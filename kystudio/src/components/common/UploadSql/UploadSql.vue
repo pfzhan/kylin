@@ -559,7 +559,7 @@ export default class UploadSqlModel extends Vue {
   }
   submitModels () {
     this.submitModelLoading = true
-    let models = [...this.selectModels.map(it => ({...it, create_base_index: this.addBaseIndex}))]
+    let models = [...this.selectModels.map(it => ({...it, with_base_index: this.addBaseIndex}))]
     models.forEach(obj => {
       delete obj.isChecked
       delete obj.isNameError

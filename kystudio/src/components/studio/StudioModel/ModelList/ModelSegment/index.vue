@@ -292,7 +292,6 @@
       </div>
     </div>
     <el-table
-      border
       ref="subPartitionValuesTable"
       :data="pagerTableData"
       style="width: 100%"

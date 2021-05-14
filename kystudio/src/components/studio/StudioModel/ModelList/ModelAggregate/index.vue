@@ -87,8 +87,8 @@
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
                   <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout}">
-                    <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
+                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_index && indexStat.has_load_base_table_index}">
+                    <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_index && indexStat.has_load_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
                   </el-dropdown-item>
                   
                 </el-dropdown-menu>
@@ -135,7 +135,7 @@
               <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
                 <template slot-scope="scope">
                   <span class="data-size-text">{{scope.row.data_size | dataSize}}</span>
-                  <el-progress v-if="indexStat.max_data_size" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
+                  <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column
@@ -146,7 +146,7 @@
               >
                 <template slot-scope="scope">
                   <span class="usage-text">{{scope.row.usage}}</span>
-                  <el-progress v-if="indexStat.max_hit_count" :percentage="indexStat.max_hit_count && (scope.row.usage / indexStat.max_hit_count > 0.05) ? scope.row.usage / indexStat.max_hit_count * 100 : 0.5" class="usage-progress"></el-progress>
+                  <el-progress v-if="'max_usage' in indexStat" :percentage="indexStat.max_usage && (scope.row.usage / indexStat.max_usage > 0.05) ? scope.row.usage / indexStat.max_usage * 100 : 0.5" class="usage-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
@@ -475,7 +475,7 @@ export default class ModelAggregate extends Vue {
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.removeLoading = false
       this.refreshIndexGraphAfterSubmitSetting()
-      // this.getIndexInfo()
+      this.getIndexInfo()
       this.$emit('loadModels')
     } catch (e) {
       handleError(e)
@@ -653,7 +653,7 @@ export default class ModelAggregate extends Vue {
       await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: row.id})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.refreshIndexGraphAfterSubmitSetting()
-      // this.getIndexInfo()
+      this.getIndexInfo()
       // this.$emit('loadModels')
     } catch (e) {
       handleError(e)
@@ -760,7 +760,7 @@ export default class ModelAggregate extends Vue {
     this.isLoading = true
     await this.freshIndexGraph()
     await this.loadAggIndices()
-    // this.getIndexInfo()
+    this.getIndexInfo()
     this.isLoading = false
   }
   async refreshIndexGraphAfterSubmitSetting () {
@@ -881,7 +881,7 @@ export default class ModelAggregate extends Vue {
 
   // 创建 base index
   createBaseIndex () {
-    if (Object.keys(this.indexStat).length && this.indexStat.has_load_base_agg_layout && this.indexStat.has_load_base_table_layout) return
+    if (Object.keys(this.indexStat).length && this.indexStat.has_load_base_agg_index && this.indexStat.has_load_base_table_index) return
     this.loadBaseIndex({
       model_id: this.model.uuid,
       project: this.projectName,
@@ -899,7 +899,7 @@ export default class ModelAggregate extends Vue {
         message: <span>{this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})}<a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a></span>
       })
       this.loadAggIndices()
-      // this.getIndexInfo()
+      this.getIndexInfo()
     }).catch((e) => {
       handleError(e)
     })

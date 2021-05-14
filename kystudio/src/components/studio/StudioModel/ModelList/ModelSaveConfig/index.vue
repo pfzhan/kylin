@@ -159,7 +159,7 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && modelInstance.base_index_num !== 2))">
+      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && modelInstance.base_index_count !== 2))">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
@@ -634,7 +634,7 @@ export default class ModelPartitionModal extends Vue {
         isSubmit: isSubmit,
         isPurgeSegment: this.isChangePartition,
         data: temp,
-        create_base_index: this.addBaseIndex
+        with_base_index: this.addBaseIndex
       })
       this.hideModal()
       this.resetModalForm()

@@ -16,78 +16,84 @@
     <div class="data_features-details">
       <el-tabs class="data_features-tabs" v-model="tabType" v-loading="loadingData" tab-position="top">
         <el-tab-pane :label="$t('dataFeatures')" name="dataFeatures">
-          <el-table
-            v-scroll-shadow
-            :data="statistics.list"
-            class="data_features-tables"
-            style="width: 100%">
-            <el-table-column
-              prop="name"
-              :label="$t('columnName')"
-              width="300"
-              show-overflow-tooltip
-            >
-            </el-table-column>
-            <el-table-column
-              prop="cardinality"
-              :label="$t('cardinality')"
-              show-overflow-tooltip
-            >
-              <template slot-scope="scope">
-                <span v-if="scope.row.cardinality">{{scope.row.cardinality}}</span>
-                <span v-else class="null-value"><i>NULL</i></span>
-              </template>
-            </el-table-column>
-            <el-table-column
-              prop="max_value"
-              :label="$t('maxValue')"
-              show-overflow-tooltip
-            >
-              <template slot-scope="scope">
-                <span v-if="scope.row.max_value">{{scope.row.max_value}}</span>
-                <span v-else class="null-value"><i>NULL</i></span>
-              </template>
-            </el-table-column>
-            <el-table-column
-              prop="min_value"
-              :label="$t('minValue')"
-              show-overflow-tooltip
-            >
-              <template slot-scope="scope">
-                <span v-if="scope.row.min_value">{{scope.row.min_value}}</span>
-                <span v-else class="null-value"><i>NULL</i></span>
-              </template>
-            </el-table-column>
-            <el-table-column
-              prop="null_count"
-              :label="$t('zeroCount')"
-              show-overflow-tooltip
-            >
-              <template slot-scope="scope">
-                <span v-if="scope.row.null_count">{{scope.row.null_count}}</span>
-                <span v-else class="null-value"><i>NULL</i></span>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination v-if="!loadingData" class="ksd-center ksd-mtb-10" ref="dataFeaturesPager" layout="total, sizes, prev, pager, next, jumper" :total="statistics.totalSize" :page-size="statistics.pageSize" :current-page="statistics.pageOffset + 1" @size-change="(val) => pageStatisticsChange('size', val)" @current-change="(val) => pageStatisticsChange('page', val)"></el-pagination>
+          <template v-if="tabType === 'dataFeatures'">
+            <el-table
+              v-scroll-shadow
+              :data="statistics.list"
+              class="data_features-tables"
+              ref="dataFeatureTable"
+              style="width: 100%">
+              <el-table-column
+                prop="name"
+                :label="$t('columnName')"
+                width="300"
+                show-overflow-tooltip
+              >
+              </el-table-column>
+              <el-table-column
+                prop="cardinality"
+                :label="$t('cardinality')"
+                show-overflow-tooltip
+              >
+                <template slot-scope="scope">
+                  <span v-if="scope.row.cardinality !== null">{{scope.row.cardinality}}</span>
+                  <span v-else class="null-value"><i>NULL</i></span>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="max_value"
+                :label="$t('maxValue')"
+                show-overflow-tooltip
+              >
+                <template slot-scope="scope">
+                  <span v-if="scope.row.max_value !== null">{{scope.row.max_value}}</span>
+                  <span v-else class="null-value"><i>NULL</i></span>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="min_value"
+                :label="$t('minValue')"
+                show-overflow-tooltip
+              >
+                <template slot-scope="scope">
+                  <span v-if="scope.row.min_value !== null">{{scope.row.min_value}}</span>
+                  <span v-else class="null-value"><i>NULL</i></span>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="null_count"
+                :label="$t('zeroCount')"
+                show-overflow-tooltip
+              >
+                <template slot-scope="scope">
+                  <span v-if="scope.row.null_count !== null">{{scope.row.null_count}}</span>
+                  <span v-else class="null-value"><i>NULL</i></span>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination v-if="!loadingData" class="ksd-center ksd-mtb-10" ref="dataFeaturesPager" layout="total, sizes, prev, pager, next, jumper" :total="statistics.totalSize" :page-size="statistics.pageSize" :current-page="statistics.pageOffset + 1" @size-change="(val) => pageStatisticsChange('size', val)" @current-change="(val) => pageStatisticsChange('page', val)"></el-pagination>
+          </template>
         </el-tab-pane>
         <el-tab-pane :label="$t('sample')" name="sample">
-          <el-table
-            v-scroll-shadow
-            :data="sample.list"
-            class="sample-tables"
-            style="width: 100%">
-            <el-table-column
-              v-for="item in statistics.list"
-              :key="item.id"
-              :label="item.name"
-              show-overflow-tooltip
-              :prop="item.name"
-              width="200"
-            >
-            </el-table-column>
-          </el-table>
-          <el-pagination v-if="sample.totalSize" class="ksd-center ksd-mtb-10" ref="dataSamplePager" layout="total, sizes, prev, pager, next, jumper" :total="sample.totalSize" :page-size="sample.pageSize" :current-page="sample.pageOffset + 1" @size-change="(val) => pageSampleChange('size', val)" @current-change="(val) => pageSampleChange('page', val)"></el-pagination>
+          <template v-if="tabType === 'sample'">
+            <el-table
+              v-scroll-shadow
+              :data="sample.list"
+              class="sample-tables"
+              ref="sampleTable"
+              style="width: 100%">
+              <el-table-column
+                v-for="item in statistics.list"
+                :key="item.id"
+                :label="item.name"
+                show-overflow-tooltip
+                :prop="item.name"
+                width="200"
+              >
+              </el-table-column>
+            </el-table>
+            <el-pagination v-if="sample.totalSize" class="ksd-center ksd-mtb-10" ref="dataSamplePager" layout="total, sizes, prev, pager, next, jumper" :total="sample.totalSize" :page-size="sample.pageSize" :current-page="sample.pageOffset + 1" @size-change="(val) => pageSampleChange('size', val)" @current-change="(val) => pageSampleChange('page', val)"></el-pagination>
+          </template>
         </el-tab-pane>
       </el-tabs>
     </div>

@@ -36,6 +36,9 @@ import { getPickerOptions } from './handler'
     options: {
       type: Array,
       default: () => []
+    },
+    hideArrow: {
+      type: Boolean
     }
   },
   locales
@@ -96,6 +99,20 @@ export default class DropdownFilter extends Vue {
     this.handleSetDropdown(!this.isShowDropDown)
   }
 
+  handlerClickEvent () {
+    this.$refs.$datePicker.$el.click()
+  }
+
+  mounted () {
+    this.isDatePickerType && this.$slots.default && this.$slots.default.length && this.$slots.default[0].elm.addEventListener('click', this.handlerClickEvent)
+  }
+
+  beforeDestroy () {
+    if (this.isDatePickerType) {
+      this.$slots.default && this.$slots.default.length && this.$slots.default[0].elm.removeEventListener('click', this.handlerClickEvent)
+    }
+  }
+
   renderCheckboxGroup (h) {
     const { value, options } = this
 
@@ -143,7 +160,7 @@ export default class DropdownFilter extends Vue {
   }
 
   renderPopover (h) {
-    const { value, placement, width, trigger, isShowDropDown } = this
+    const { value, placement, width, trigger, isShowDropDown, hideArrow } = this
 
     return (
       <el-popover
@@ -155,7 +172,7 @@ export default class DropdownFilter extends Vue {
         onInput={this.handleSetDropdown}>
         <div class="filter-value" slot="reference" onClick={this.handleToggleDropdown}>
           {this.$slots.default ? this.$slots.default : value}
-          <i class={['el-icon-arrow-up', isShowDropDown && 'reverse']} />
+          {!hideArrow && <i class={['el-icon-arrow-up', isShowDropDown && 'reverse']} />}
         </div>
         <div class="body">
           {this.renderFilterInput(h)}
@@ -170,13 +187,13 @@ export default class DropdownFilter extends Vue {
   }
 
   render (h) {
-    const { label, value, isPopoverType, isShowDropDown, isDatePickerType } = this
+    const { label, value, isPopoverType, isShowDropDown, isDatePickerType, hideArrow } = this
     const labelProps = { domProps: { innerHTML: label } }
 
     return (
       <div class="dropdown-filter">
         <label class="filter-label">
-          <slot name="label" {...labelProps}></slot>
+          {label && <slot name="label" {...labelProps}></slot>}
         </label>
         {isPopoverType && (
           this.renderPopover(h)
@@ -185,7 +202,7 @@ export default class DropdownFilter extends Vue {
           <div class="filter-value">
             {this.$slots.default ? this.$slots.default : value}
             {this.renderDatePicker(h)}
-            <i class={['el-icon-arrow-up', isShowDropDown && 'reverse']} />
+            {!hideArrow && <i class={['el-icon-arrow-up', isShowDropDown && 'reverse']} />}
           </div>
         )}
       </div>
@@ -208,15 +225,15 @@ export default class DropdownFilter extends Vue {
     position: relative;
     cursor: pointer;
     color: @color-text-primary;
-    &:hover,
-    &:hover i {
-      color: @color-primary;
-    }
+    // &:hover,
+    // &:hover i {
+    //   color: @color-primary;
+    // }
   }
-  .filter-value i {
-    margin-left: 5px;
-    color: #989898;
-  }
+  // .filter-value i {
+  //   margin-left: 5px;
+  //   color: #989898;
+  // }
   .el-icon-arrow-up {
     transform: rotate(180deg);
   }
@@ -232,7 +249,7 @@ export default class DropdownFilter extends Vue {
     left: 0;
     cursor: pointer;
     overflow: hidden;
-    z-index: 1;
+    z-index: -1;
     > * {
       position: absolute;
       bottom: 0;
