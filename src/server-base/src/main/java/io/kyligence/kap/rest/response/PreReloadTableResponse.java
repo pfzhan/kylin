@@ -62,6 +62,9 @@ public class PreReloadTableResponse {
     @JsonProperty("snapshot_deleted")
     private boolean snapshotDeleted = false;
 
+    @JsonProperty("update_base_index_count")
+    private int updateBaseIndexCount;
+
     public PreReloadTableResponse() {
     }
 

@@ -215,6 +215,7 @@ import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
@@ -646,6 +647,8 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setTotalIndexes(
                             getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
                     nDataModelResponse.setEmptyIndexesCount(getEmptyIndexesCount(projectName, modelDesc.getId()));
+                    nDataModelResponse.setBaseIndexCount(
+                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getBaseIndexCount());
                 }
                 filterModels.add(nDataModelResponse);
             }
@@ -1458,6 +1461,9 @@ public class ModelService extends BasicService {
             emptyIndex.setUuid(model.getUuid());
             indexPlanManager.createIndexPlan(emptyIndex);
 
+            if (modelRequest.isWithBaseIndex()) {
+                indexPlan.createAndAddBaseIndex(model);
+            }
             // create DataFlow
             val df = dataflowManager.createDataflow(emptyIndex, model.getOwner());
             if (modelRequest.isWithEmptySegment()) {
@@ -1571,6 +1577,8 @@ public class ModelService extends BasicService {
             for (NRecommendedModelResponse response : modelSuggestionResponse.getReusedModels()) {
 
                 NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                BaseIndexUpdateHelper baseIndexUpdateHelper = new BaseIndexUpdateHelper(
+                        modelMgr.getDataModelDesc(response.getId()), false);
                 modelMgr.updateDataModel(response.getId(), copyForWrite -> {
                     copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
                     copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
@@ -1581,6 +1589,7 @@ public class ModelService extends BasicService {
                 indexMgr.updateIndexPlan(response.getId(), copyForWrite -> {
                     copyForWrite.setIndexes(targetIndexPlan.getIndexes());
                 });
+                baseIndexUpdateHelper.update(indexPlanService);
             }
             return null;
         }, project);
@@ -1598,6 +1607,7 @@ public class ModelService extends BasicService {
                 modelRequest.setIndexPlan(modelResponse.getIndexPlan());
                 modelRequest.setWithEmptySegment(request.isWithEmptySegment());
                 modelRequest.setWithModelOnline(request.isWithModelOnline());
+                modelRequest.setWithBaseIndex(request.isWithBaseIndex());
                 return modelRequest;
             }).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(modelRequests)) {
@@ -1882,6 +1892,9 @@ public class ModelService extends BasicService {
         val indexPlan = new IndexPlan();
         indexPlan.setUuid(model.getUuid());
         indexPlan.setLastModified(System.currentTimeMillis());
+        if (modelRequest.isWithBaseIndex()) {
+            indexPlan.createAndAddBaseIndex(model);
+        }
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner(), RealizationStatusEnum.OFFLINE);
         SegmentRange range = null;
@@ -2975,7 +2988,7 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateDataModelSemantic(String project, ModelRequest request) {
+    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         checkModelRequest(request);
         checkModelPermission(project, request.getUuid());
@@ -2990,6 +3003,8 @@ public class ModelService extends BasicService {
         val allTables = getTableManager(request.getProject()).getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
+
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel, request.isWithBaseIndex());
 
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
@@ -3010,7 +3025,9 @@ public class ModelService extends BasicService {
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
                 request.isSaveOnly(), layoutRebuild);
         updateExcludedCheckerResult(project, request);
+        BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
+        return baseIndexResponse;
     }
 
     public void updateExcludedCheckerResult(String project, ModelRequest request) {

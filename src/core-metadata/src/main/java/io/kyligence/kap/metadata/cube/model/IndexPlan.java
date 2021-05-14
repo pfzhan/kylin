@@ -26,6 +26,8 @@ package io.kyligence.kap.metadata.cube.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.INDEX_ID_STEP;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.isAggIndex;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.isTableIndex;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -37,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -72,6 +75,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.guava20.shaded.common.collect.ImmutableSortedSet;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -165,6 +169,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     private final LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
 
     private List<LayoutEntity> ruleBasedLayouts = Lists.newArrayList();
+    private LayoutEntity baseAggLayout;
+    private LayoutEntity baseTableLayout;
 
     @Getter(value = AccessLevel.PRIVATE, lazy = true)
     private final IdMapping idMapping = initIdMapping();
@@ -183,8 +189,22 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         initDimensionAndMeasures();
         initAllColumns();
         initDictionaryDesc();
+        initBaseLayouts();
 
         this.setDependencies(calcDependencies());
+    }
+
+    private void initBaseLayouts() {
+        for (IndexEntity index : indexes) {
+            for (LayoutEntity layout : index.getLayouts()) {
+                if (layout.isBase() && isTableIndex(layout.getId())) {
+                    baseTableLayout = layout;
+                }
+                if (layout.isBase() && isAggIndex(layout.getId())) {
+                    baseAggLayout = layout;
+                }
+            }
+        }
     }
 
     @Override
@@ -367,8 +387,13 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         Preconditions.checkNotNull(targetIndex);
 
         val originLayouts = targetIndex.getLayouts();
+
         boolean isMatch = originLayouts.stream().filter(originLayout -> originLayout.equals(sourceLayout))
-                .peek(originLayout -> originLayout.setManual(true)).count() > 0;
+                .peek(originLayout -> {
+                    if (!originLayout.isBaseIndex()) {
+                        originLayout.setManual(true);
+                    }
+                }).count() > 0;
 
         LayoutEntity copy = JsonUtil.deepCopyQuietly(sourceLayout, LayoutEntity.class);
         copy.setToBeDeleted(toBeDeleted);
@@ -622,16 +647,13 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     }
 
-    public void markTableIndexesToBeDeleted(String indexPlanId, final Set<Long> layoutIds) {
+    public void markWhiteIndexToBeDelete(String indexPlanId, final Set<Long> layoutIds) {
         Preconditions.checkNotNull(indexPlanId);
         Preconditions.checkNotNull(layoutIds);
         checkIsNotCachedAndShared();
 
         Set<LayoutEntity> toBeDeletedLayouts = Sets.newHashSet();
         for (IndexEntity indexEntity : getIndexes()) {
-            if (!indexEntity.isTableIndex()) {
-                continue;
-            }
             for (LayoutEntity layoutEntity : indexEntity.getLayouts()) {
                 if (layoutIds.contains(layoutEntity.getId())) {
                     toBeDeletedLayouts.add(layoutEntity);
@@ -645,7 +667,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             // delete layouts from indexes.
             layoutEntity.getIndex().removeLayouts(Lists.newArrayList(layoutEntity), null, true, true);
         }
-
     }
 
     public void addRuleBasedBlackList(Collection<Long> blacklist) {
@@ -807,6 +828,148 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public boolean isFastBitmapEnabled() {
         return overrideProps.containsKey("kylin.query.fast-bitmap-enabled")
                 && Boolean.parseBoolean(overrideProps.get("kylin.query.fast-bitmap-enabled"));
+    }
+
+    public boolean containBaseTableLayout() {
+        return baseTableLayout != null;
+    }
+
+    public boolean containBaseAggLayout() {
+        return baseAggLayout != null;
+    }
+
+    public int getBaseIndexCount(){
+        int num = 0;
+        if(baseAggLayout != null){
+            num++;
+        }
+        if(baseTableLayout != null){
+            num++;
+        }
+        return num;
+    }
+
+    public void addIndex(IndexEntity index, boolean needAssignId) {
+        checkIsNotCachedAndShared();
+        indexes.add(index);
+        if (needAssignId) {
+            if (!index.isTableIndex()) {
+                index.assignId(nextAggregationIndexId);
+            } else {
+                index.assignId(nextTableIndexId);
+            }
+            updateNextId();
+        }
+    }
+
+    public LayoutEntity createBaseAggIndex(NDataModel model) {
+        List<Integer> dims = model.getEffectiveDimensions().keySet().asList();
+        List<Integer> measures = model.getEffectiveMeasures().keySet().asList();
+        List<Integer> colOrder = naturalOrderCombine(dims, measures);
+        return createLayout(colOrder, true);
+    }
+
+    public LayoutEntity createBaseTableIndex(NDataModel model) {
+        List<Integer> dims = model.getEffectiveDimensions().keySet().asList();
+        List<Integer> measureCols = model.getMeasureRelatedCols();
+        List<Integer> colOrder = naturalOrderCombine(dims, measureCols);
+        if (colOrder.isEmpty()) {
+            return null;
+        }
+        return createLayout(colOrder, false);
+    }
+
+    private LayoutEntity createLayout(List<Integer> colOrder, boolean isAgg) {
+        LayoutEntity newBaseLayout = new LayoutEntity();
+        newBaseLayout.setColOrder(colOrder);
+        newBaseLayout.setUpdateTime(System.currentTimeMillis());
+        newBaseLayout.setBase(true);
+        newBaseLayout.initalId(isAgg);
+        return newBaseLayout;
+    }
+
+    private List<Integer> naturalOrderCombine(List<Integer> col1, List<Integer> col2) {
+        return ImmutableSortedSet.<Integer> naturalOrder().addAll(col1).addAll(col2).build().asList();
+    }
+
+    public Optional<LayoutEntity> removeLayoutSameWith(LayoutEntity layout) {
+        Optional<LayoutEntity> oldLayout = getIdMapping().allLayoutMapping.values().stream()
+                .filter(l -> l.equals(layout)).findFirst();
+        if (oldLayout.isPresent()) {
+            removeLayouts(Sets.newHashSet(oldLayout.get().getId()), true, true);
+        }
+        return oldLayout;
+    }
+
+    public boolean needUpdateBaseAggLayout(LayoutEntity replace, boolean isAuto) {
+        return needUpdate(baseAggLayout, replace, isAuto);
+    }
+
+    public boolean needUpdateBaseTableLayout(LayoutEntity replace, boolean isAuto) {
+        return needUpdate(baseTableLayout, replace, isAuto);
+    }
+
+    private boolean needUpdate(LayoutEntity curLayout, LayoutEntity replace, boolean isAuto) {
+        if (curLayout == null) {
+            return false;
+        }
+        if (!isAuto) {
+            return !curLayout.equals(replace);
+        }
+        return !curLayout.equalsCols(replace);
+    }
+
+    public void createAndAddBaseIndex(NDataModel model) {
+        checkIsNotCachedAndShared();
+        LayoutEntity agg = createBaseAggIndex(model);
+        LayoutEntity table = createBaseTableIndex(model);
+        List<LayoutEntity> baseLayouts = Lists.newArrayList();
+        baseLayouts.add(agg);
+        if (table != null) {
+            baseLayouts.add(table);
+        }
+        createAndAddBaseIndex(baseLayouts);
+    }
+
+    public void createAndAddBaseIndex(List<LayoutEntity> needCreateBaseLayouts) {
+        checkIsNotCachedAndShared();
+        val allIndexMapping = getAllIndexesMap();
+        for (LayoutEntity baseLayout : needCreateBaseLayouts) {
+
+            //if layout exist in indexes, use its id
+            Optional<LayoutEntity> oldLayout = removeLayoutSameWith(baseLayout);
+            if (oldLayout.isPresent()) {
+                baseLayout.setId(oldLayout.get().getId());
+            }
+
+            val newIndex = IndexEntity.from(baseLayout);
+            IndexEntity indexInAll = allIndexMapping.get(newIndex.createIndexIdentifier());
+            if (indexInAll == null) {
+                addIndex(newIndex, baseLayout.notAssignId());
+            } else {
+
+                IndexEntity indexInWhiteList = getWhiteListIndexesMap().get(newIndex.createIndexIdentifier());
+                if (indexInWhiteList != null) {
+                    IndexEntity realIndex = getIndexes().get(getIndexes().indexOf(indexInWhiteList));
+                    realIndex.addLayout(baseLayout);
+                } else {
+                    // clear layouts in indexInAll which in rulebaseindex or tobedelete
+                    indexInAll.setLayouts(Lists.newArrayList());
+                    indexInAll.addLayout(baseLayout);
+                    getIndexes().add(indexInAll);
+                }
+            }
+
+        }
+
+    }
+
+    public Long getBaseAggLayoutId() {
+        return baseAggLayout != null ? baseAggLayout.getId() : null;
+    }
+
+    public Long getBaseTableLayoutId() {
+        return baseTableLayout != null ? baseTableLayout.getId() : null;
     }
 
     public class IndexPlanUpdateHandler {

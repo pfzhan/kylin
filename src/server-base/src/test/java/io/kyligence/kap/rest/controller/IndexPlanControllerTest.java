@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -112,5 +113,38 @@ public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(indexPlanController)
                 .calculateDiffRuleBasedIndex(Mockito.any(UpdateRuleBasedCuboidRequest.class));
+    }
+
+    @Test
+    public void testCreateBaseIndex() throws Exception {
+        CreateBaseIndexRequest request = new CreateBaseIndexRequest();
+        request.setProject("default");
+        request.setModelId("abc");
+        Mockito.doReturn(null).when(indexPlanService).createBaseIndex("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/index_plans/base_index")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testUpdateBaseIndex() throws Exception {
+        CreateBaseIndexRequest request = new CreateBaseIndexRequest();
+        request.setProject("default");
+        request.setModelId("abc");
+        Mockito.doReturn(null).when(indexPlanService).updateBaseIndex("default", request, false);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/base_index")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testGetIndexStat() throws Exception {
+        Mockito.doReturn(null).when(indexPlanService).getStat("default", "abc");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/index_plans/index_stat")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("model_id", "abc")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 }

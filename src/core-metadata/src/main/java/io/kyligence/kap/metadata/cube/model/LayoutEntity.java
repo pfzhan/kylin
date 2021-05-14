@@ -24,10 +24,14 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.INDEX_ID_STEP;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.TABLE_INDEX_START_ID;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -40,6 +44,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -56,6 +61,12 @@ import lombok.Setter;
 @Getter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class LayoutEntity implements IStorageAware, Serializable, IKeep {
+
+    /** inital id for table or agg
+     */
+    public static final long TABLE_LAYOUT_INIT_ID = 40_000_000_001L;
+    public static final long AGG_LAYOUT_INIT_ID = TABLE_INDEX_START_ID - INDEX_ID_STEP + 1;
+
     @JsonBackReference
     private IndexEntity index;
 
@@ -100,6 +111,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
 
     @JsonProperty("auto")
     private boolean isAuto = false;
+
+    @JsonProperty("base")
+    private boolean isBase = false;
 
     @Setter
     @JsonProperty("draft_version")
@@ -222,11 +236,17 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     }
 
     public long getIndexId() {
-        return this.getId() - this.getId() % IndexEntity.INDEX_ID_STEP;
+        return this.getId() - this.getId() % INDEX_ID_STEP;
     }
 
     public ImmutableList<Integer> getColOrder() {
         return ImmutableList.copyOf(colOrder);
+    }
+
+    public boolean equalsCols(LayoutEntity layout) {
+        Set<Integer> order1 = ImmutableSortedSet.<Integer> naturalOrder().addAll(getColOrder()).build();
+        Set<Integer> order2 = ImmutableSortedSet.<Integer> naturalOrder().addAll(layout.getColOrder()).build();
+        return order1.equals(order2);
     }
 
     public void setColOrder(List<Integer> l) {
@@ -349,4 +369,23 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         return sb.toString();
     }
 
+    public boolean isBaseIndex() {
+        return isBase;
+    }
+
+    public void initalId(boolean isAgg) {
+        id = isAgg ? AGG_LAYOUT_INIT_ID : TABLE_LAYOUT_INIT_ID;
+    }
+
+    public boolean notAssignId() {
+        return id == AGG_LAYOUT_INIT_ID || id == TABLE_LAYOUT_INIT_ID;
+    }
+
+    public void setBase(boolean base) {
+        checkIsNotCachedAndShared();
+        isBase = base;
+        if(!base){
+            setAuto(true);
+        }
+    }
 }

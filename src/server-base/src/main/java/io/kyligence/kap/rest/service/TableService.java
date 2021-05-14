@@ -1193,6 +1193,26 @@ public class TableService extends BasicService {
                                 context.getRemoveAffectedModel(m.getProject(), m.getModelId()).getUpdatedLayouts())
                         .size())
                 .sum());
+
+        result.setUpdateBaseIndexCount(context.getChangeTypeAffectedModels().values().stream().mapToInt(m -> {
+            IndexPlan indexPlan = NIndexPlanManager.getInstance(getConfig(), m.getProject())
+                    .getIndexPlan(m.getModelId());
+            if (!indexPlan.getConfig().isUpdateBaseIndexAutoMode()) {
+                return 0;
+            }
+            Set<Long> updateLayouts = Sets.newHashSet();
+            updateLayouts.addAll(m.getUpdatedLayouts());
+            updateLayouts.addAll(context.getRemoveAffectedModel(m.getProject(), m.getModelId()).getUpdatedLayouts());
+            int updateBaseIndexCount = 0;
+            if (updateLayouts.contains(indexPlan.getBaseAggLayoutId())) {
+                updateBaseIndexCount++;
+            }
+            if (updateLayouts.contains(indexPlan.getBaseTableLayoutId())) {
+                updateBaseIndexCount++;
+            }
+            return updateBaseIndexCount;
+        }).sum());
+
         return result;
     }
 
@@ -1302,7 +1322,7 @@ public class TableService extends BasicService {
     private String updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
             boolean needBuild) throws Exception {
         val projectName = project.getName();
-
+        val baseIndexUpdater = new BaseIndexUpdateHelper(model, false);
         val removeAffected = context.getRemoveAffectedModel(project.getName(), model.getId());
         val changeTypeAffected = context.getChangeTypeAffectedModel(project.getName(), model.getId());
         if (removeAffected.isBroken()) {
@@ -1341,6 +1361,7 @@ public class TableService extends BasicService {
             indexPlanService.reloadLayouts(projectName, changeTypeAffected.getModelId(),
                     changeTypeAffected.getUpdatedLayouts());
         }
+        baseIndexUpdater.update(indexPlanService);
         if (CollectionUtils.isNotEmpty(removeAffected.getUpdatedLayouts())
                 || CollectionUtils.isNotEmpty(changeTypeAffected.getUpdatedLayouts())) {
             val jobManager = getJobManager(projectName);

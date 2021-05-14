@@ -21,33 +21,61 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
 
 import java.util.List;
+import java.util.Set;
+
+import org.glassfish.jersey.internal.guava.Sets;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-public class OptRecResponse implements ProjectInsensitiveRequest {
+public class CreateBaseIndexRequest implements ProjectInsensitiveRequest {
 
-    @JsonProperty("project")
     private String project;
 
     @JsonProperty("model_id")
     private String modelId;
 
-    @JsonProperty("added_layouts")
-    private List<Long> addedLayouts = Lists.newArrayList();
+    @JsonProperty("source_types")
+    private Set<Source> sourceTypes = Sets.newHashSet();
 
-    @JsonProperty("removed_layouts")
-    private List<Long> removedLayouts = Lists.newArrayList();
+    @JsonProperty("base_agg_index_property")
+    private LayoutProperty baseAggIndexProperty;
 
-    @JsonProperty("base_index_info")
-    private BuildBaseIndexResponse baseIndexInfo;
+    @JsonProperty("base_table_index_property")
+    private LayoutProperty baseTableIndexProperty;
+
+    public boolean needHandleBaseAggIndex() {
+        return sourceTypes.isEmpty() || sourceTypes.contains(Source.BASE_AGG_INDEX);
+    }
+
+    public boolean needHandleBaseTableIndex() {
+        return sourceTypes.isEmpty() || sourceTypes.contains(Source.BASE_TABLE_INDEX);
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LayoutProperty {
+
+        @JsonProperty("col_order")
+        private List<String> colOrder;
+
+        @JsonProperty("shard_by_columns")
+        private List<String> shardByColumns;
+
+        @JsonProperty("sort_by_columns")
+        private List<String> sortByColumns;
+    }
 
 }

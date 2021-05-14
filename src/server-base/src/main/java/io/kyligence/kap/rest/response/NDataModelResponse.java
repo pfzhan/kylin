@@ -114,6 +114,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("last_build_time")
     private long lastBuildTime;
 
+    @JsonProperty("base_index_count")
+    private int baseIndexCount;
+
     private long lastModify;
 
     public NDataModelResponse() {

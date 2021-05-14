@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.response;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
 import java.util.List;
 
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -72,8 +73,18 @@ public class IndexResponse {
     @JsonIgnore
     private boolean isManual;
 
+    @JsonIgnore
+    private boolean isBase;
+
+    // just for baseindex
+    @JsonProperty("need_update")
+    private boolean needUpdate;
+
     @JsonProperty("source")
     public IndexEntity.Source getSource() {
+        if (isBase()) {
+            return IndexEntity.isTableIndex(getId()) ? Source.BASE_TABLE_INDEX : Source.BASE_AGG_INDEX;
+        }
         if (getId() < IndexEntity.TABLE_INDEX_START_ID) {
             if (isManual()) {
                 return IndexEntity.Source.CUSTOM_AGG_INDEX;

@@ -104,6 +104,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     @Autowired
     private ModelService modelService;
 
+    @Autowired
+    private IndexPlanService indexPlanService;
+
     private static final class RecApproveContext {
         private final Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
         private final Map<Integer, NDataModel.NamedColumn> dimensions = Maps.newHashMap();
@@ -585,6 +588,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public OptRecResponse approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
+                getDataModelManager(project).getDataModelDesc(modelId), false);
         Map<Integer, String> userDefinedRecNameMap = request.getNames();
         RecApproveContext approveContext = new RecApproveContext(project, modelId, userDefinedRecNameMap);
         approveRecItemsToRemoveLayout(request, approveContext);
@@ -596,6 +601,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         response.setModelId(request.getModelId());
         response.setAddedLayouts(approveContext.addedLayoutIdList);
         response.setRemovedLayouts(approveContext.removedLayoutIdList);
+        response.setBaseIndexInfo(baseIndexUpdater.update(indexPlanService));
+
         return response;
     }
 
@@ -636,7 +643,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 continue;
             }
             NDataModel model = df.getModel();
+            BaseIndexUpdateHelper update = new BaseIndexUpdateHelper(model, false);
             RecToIndexResponse response = approveAllRecItems(project, model.getUuid(), model.getAlias(), recActionType);
+            response.setBaseIndexInfo(update.update(indexPlanService));
             responseList.add(response);
         }
         return responseList;

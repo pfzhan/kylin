@@ -86,6 +86,12 @@ public class NDataSegmentResponse extends NDataSegment {
 
     private long storage;
 
+    @JsonProperty("has_base_table_index")
+    private boolean hasBaseTableIndex;
+
+    @JsonProperty("has_base_agg_index")
+    private boolean hasBaseAggIndex;
+
     public NDataSegmentResponse() {
         super();
     }
@@ -103,6 +109,8 @@ public class NDataSegmentResponse extends NDataSegment {
         indexCount = segment.getLayoutSize();
         indexCountTotal = segment.getIndexPlan().getAllLayouts().size();
         multiPartitionCount = segment.getMultiPartitions().size();
+        hasBaseAggIndex = segment.getIndexPlan().containBaseAggLayout();
+        hasBaseTableIndex = segment.getIndexPlan().containBaseTableLayout();
         if (dataflow.getModel().getMultiPartitionDesc() != null) {
             multiPartitionCountTotal = dataflow.getModel().getMultiPartitionDesc().getPartitions().size();
         }

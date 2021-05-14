@@ -31,7 +31,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -74,12 +73,14 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.IndexPlan.UpdateRuleImpact;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -93,12 +94,16 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
+import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
+import io.kyligence.kap.rest.request.CreateBaseIndexRequest.LayoutProperty;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
+import io.kyligence.kap.rest.response.IndexStatResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Setter;
@@ -164,24 +169,9 @@ public class IndexPlanService extends BasicService {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
                 }
             }
-
-            NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .getDataflow(request.getModelId());
-
-            val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-            if (readySegs.isEmpty()) {
-                removeIndex(project, request.getModelId(), request.getId());
-            } else {
-                NDataSegment segment = readySegs.getLatestReadySegment();
-                NDataLayout dataLayout = segment.getLayout(request.getId());
-                // may no data before the last ready segments but have a add cuboid job.
-                if (null == dataLayout) {
-                    removeIndex(project, request.getModelId(), request.getId());
-                } else {
-                    addTableIndexToBeDeleted(project, request.getModelId(), Lists.newArrayList(request.getId()));
-                }
+            if (IndexEntity.isTableIndex(request.getId())) {
+                deleteOrMarkTobeDelete(project, request.getModelId(), Sets.newHashSet(request.getId()));
             }
-
             return createTableIndex(project, request);
         } catch (Exception e) {
             throw new KylinException(FAILED_UPDATE_TABLE_INDEX, e);
@@ -374,7 +364,7 @@ public class IndexPlanService extends BasicService {
         indexPlan.setRuleBasedIndex(newRuleBasedIndex, Sets.newHashSet(), false, true, false);
     }
 
-    private boolean addTableIndexToBeDeleted(String project, String modelId, Collection<Long> layoutIds) {
+    private boolean addIndexToBeDeleted(String project, String modelId, Set<Long> layoutIds) {
         aclEvaluate.checkProjectWritePermission(project);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
@@ -387,7 +377,7 @@ public class IndexPlanService extends BasicService {
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.markTableIndexesToBeDeleted(indexPlan.getUuid(), Sets.newHashSet(layoutIds));
+            copyForWrite.markWhiteIndexToBeDelete(indexPlan.getUuid(), Sets.newHashSet(layoutIds));
         });
 
         return true;
@@ -763,6 +753,9 @@ public class IndexPlanService extends BasicService {
         if (layoutEntity.isToBeDeleted()) {
             status = IndexEntity.Status.LOCKED;
         }
+
+        response.setNeedUpdate(needUpdateLayout(model, layoutEntity));
+
         response.setStatus(status);
         response.setDataSize(dataSize);
         response.setLastModified(layoutEntity.getUpdateTime());
@@ -771,6 +764,18 @@ public class IndexPlanService extends BasicService {
                     .stream().mapToInt(Integer::intValue).sum());
         }
         return response;
+    }
+
+    private boolean needUpdateLayout(NDataModel model, LayoutEntity layoutEntity) {
+        IndexPlan indexPlan = getIndexPlan(model.getProject(), model.getId());
+        if (layoutEntity.isBase()) {
+            if (IndexEntity.isAggIndex(layoutEntity.getId())) {
+                return indexPlan.needUpdateBaseAggLayout(indexPlan.createBaseAggIndex(model), true);
+            } else {
+                return indexPlan.needUpdateBaseTableLayout(indexPlan.createBaseTableIndex(model), true);
+            }
+        }
+        return false;
     }
 
     private IndexPlan getIndexPlan(String project, String model) {
@@ -935,5 +940,162 @@ public class IndexPlanService extends BasicService {
                 copyForWrite.setAggShardByColumns(effectiveShardCol);
             });
         }
+    }
+
+    @Transaction(project = 0)
+    public BuildBaseIndexResponse updateBaseIndex(String project, CreateBaseIndexRequest request,
+            boolean createIfNotExist) {
+        return updateBaseIndex(project, request, createIfNotExist, createIfNotExist, false);
+    }
+
+    @Transaction(project = 0)
+    public BuildBaseIndexResponse updateBaseIndex(String project, CreateBaseIndexRequest request,
+            boolean createIfNotExistTableLayout, boolean createIfNotExistAggLayout, boolean isAuo) {
+        aclEvaluate.checkProjectWritePermission(project);
+        // update = delete + create
+        Set<Long> needDelete = checkNeedUpdateBaseIndex(project, request, isAuo);
+        deleteOrMarkTobeDelete(project, request.getModelId(), needDelete);
+
+        if (createIfNotExistAggLayout) {
+            request.getSourceTypes().add(Source.BASE_TABLE_INDEX);
+        }
+        if (createIfNotExistTableLayout) {
+            request.getSourceTypes().add(Source.BASE_AGG_INDEX);
+        }
+        if (request.getSourceTypes().isEmpty()) {
+            return BuildBaseIndexResponse.EMPTY;
+        }
+
+        return createBaseIndex(project, request);
+    }
+
+    private Set<Long> checkNeedUpdateBaseIndex(String project, CreateBaseIndexRequest request, boolean isAuto) {
+        String modelId = request.getModelId();
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        Set<Long> needDelete = Sets.newHashSet();
+        Set<IndexEntity.Source> updateTypes = Sets.newHashSet();
+
+        LayoutEntity baseAggLayout = indexPlan.createBaseAggIndex(model);
+        overrideLayout(baseAggLayout, request.getBaseAggIndexProperty(), model);
+        if (request.needHandleBaseAggIndex() && indexPlan.needUpdateBaseAggLayout(baseAggLayout, isAuto)) {
+            needDelete.add(indexPlan.getBaseAggLayoutId());
+            updateTypes.add(Source.BASE_AGG_INDEX);
+        }
+
+        LayoutEntity baseTablelayout = indexPlan.createBaseTableIndex(model);
+        overrideLayout(baseTablelayout, request.getBaseTableIndexProperty(), model);
+        if (request.needHandleBaseTableIndex() && indexPlan.needUpdateBaseTableLayout(baseTablelayout, isAuto)) {
+            needDelete.add(indexPlan.getBaseTableLayoutId());
+            updateTypes.add(Source.BASE_TABLE_INDEX);
+        }
+        request.setSourceTypes(updateTypes);
+        return needDelete;
+    }
+
+    private void deleteOrMarkTobeDelete(String project, String modelId, Set<Long> needDelete) {
+        if (CollectionUtils.isEmpty(needDelete)) {
+            return;
+        }
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
+
+        val readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
+        if (readySegs.isEmpty()) {
+            removeIndexes(project, modelId, needDelete);
+        } else {
+            NDataSegment segment = readySegs.getLatestReadySegment();
+
+            for (long layoutId : needDelete) {
+                NDataLayout dataLayout = segment.getLayout(layoutId);
+                // may no data before the last ready segments but have a add cuboid job.
+                if (null == dataLayout) {
+                    removeIndex(project, modelId, layoutId);
+                } else {
+                    addIndexToBeDeleted(project, modelId, Sets.newHashSet(layoutId));
+                }
+            }
+        }
+    }
+
+    @Transaction(project = 0)
+    public BuildBaseIndexResponse createBaseIndex(String project, CreateBaseIndexRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
+        NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(request.getModelId());
+
+        List<LayoutEntity> needCreateBaseLayouts = getNotCreateBaseLayout(model, indexPlan, request);
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(),
+                copyForWrite -> copyForWrite.createAndAddBaseIndex(needCreateBaseLayouts));
+
+        BuildBaseIndexResponse response = new BuildBaseIndexResponse();
+        for (LayoutEntity layoutEntity : needCreateBaseLayouts) {
+            response.addLayout(layoutEntity);
+        }
+        updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
+        return response;
+    }
+
+    private List<LayoutEntity> getNotCreateBaseLayout(NDataModel model, IndexPlan indexPlan,
+            CreateBaseIndexRequest request) {
+        List<LayoutEntity> needCreateBaseLayouts = Lists.newArrayList();
+
+        if (request.needHandleBaseAggIndex() && !indexPlan.containBaseAggLayout()) {
+            LayoutEntity baseAggLayout = indexPlan.createBaseAggIndex(model);
+            overrideLayout(baseAggLayout, request.getBaseAggIndexProperty(), model);
+            needCreateBaseLayouts.add(baseAggLayout);
+        }
+
+        if (request.needHandleBaseTableIndex() && !indexPlan.containBaseTableLayout()) {
+            LayoutEntity baseTableLayout = indexPlan.createBaseTableIndex(model);
+            if (baseTableLayout != null) {
+                overrideLayout(baseTableLayout, request.getBaseTableIndexProperty(), model);
+                needCreateBaseLayouts.add(baseTableLayout);
+            }
+        }
+        return needCreateBaseLayouts;
+    }
+
+    private void overrideLayout(LayoutEntity layout, LayoutProperty layoutProperty, NDataModel model) {
+        layout.setOwner(getUsername());
+        if (layoutProperty == null) {
+            return;
+        }
+        if (!layoutProperty.getColOrder().isEmpty()) {
+            List<Integer> overrideColOrder = convertColumn(layoutProperty.getColOrder(), model);
+            List<Integer> dimsIds = layout.getDimsIds();
+            if (checkColsMatch(dimsIds, overrideColOrder)) {
+                layout.setColOrder(ImmutableList.<Integer> builder().addAll(overrideColOrder)
+                        .addAll(layout.getMeasureIds()).build());
+            } else {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ROOT, "col order %s doesn't match current base layout %s ",
+                                layoutProperty.getColOrder(), layout.getColOrder()));
+            }
+        }
+        if (!CollectionUtils.isEmpty(layoutProperty.getShardByColumns())) {
+            layout.setShardByColumns(convertColumn(layoutProperty.getShardByColumns(), model));
+        }
+        if (!CollectionUtils.isEmpty(layoutProperty.getSortByColumns())) {
+            layout.setSortByColumns(convertColumn(layoutProperty.getSortByColumns(), model));
+        }
+
+    }
+
+    private boolean checkColsMatch(List<Integer> colOrder, List<Integer> overrideColOrder) {
+        if (colOrder.size() == overrideColOrder.size()) {
+            List<Integer> colOrder1 = Lists.newArrayList(colOrder);
+            List<Integer> colOrder2 = Lists.newArrayList(overrideColOrder);
+            colOrder1.sort(Integer::compareTo);
+            colOrder2.sort(Integer::compareTo);
+            return colOrder1.equals(colOrder2);
+        }
+        return false;
+    }
+
+    public IndexStatResponse getStat(String project, String modelId) {
+        List<IndexResponse> results = getIndexes(project, modelId, "", Lists.newArrayList(), null, false,
+                Lists.newArrayList(), Lists.newArrayList());
+        return IndexStatResponse.from(results);
     }
 }

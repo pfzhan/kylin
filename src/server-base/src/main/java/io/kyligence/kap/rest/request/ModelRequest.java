@@ -87,6 +87,9 @@ public class ModelRequest extends NDataModel implements ModelInsensitiveRequest 
     @JsonProperty("with_model_online")
     private boolean withModelOnline = false;
 
+    @JsonProperty("with_base_index")
+    private boolean withBaseIndex = false;
+
     private List<SimplifiedJoinTableDesc> simplifiedJoinTableDescs;
 
     @JsonProperty("join_tables")

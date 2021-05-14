@@ -107,6 +107,7 @@ import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
@@ -499,19 +500,20 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "updateModelSemantic", tags = { "AI" })
     @PutMapping(value = "/semantic")
     @ResponseBody
-    public EnvelopeResponse<String> updateSemantic(@RequestBody ModelRequest request) {
+    public EnvelopeResponse<BuildBaseIndexResponse> updateSemantic(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(request.getProject(), request.getId());
         validateDataRange(request.getStart(), request.getEnd(), partitionColumnFormat);
         validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, request.getUuid());
         try {
+            BuildBaseIndexResponse response = BuildBaseIndexResponse.EMPTY;
             if (request.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
                 modelService.repairBrokenModel(request.getProject(), request);
             } else {
-                modelService.updateDataModelSemantic(request.getProject(), request);
+                response = modelService.updateDataModelSemantic(request.getProject(), request);
             }
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_UPDATE_MODEL, e);
         } catch (Exception e) {

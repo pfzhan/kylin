@@ -66,6 +66,7 @@ import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.NonEquiJoinConditionType;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentConfig;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -1393,5 +1394,15 @@ public class NDataModel extends RootPersistentEntity {
 
     public boolean isMultiPartitionModel() {
         return multiPartitionDesc != null && CollectionUtils.isNotEmpty(multiPartitionDesc.getColumns());
+    }
+
+    public List<Integer> getMeasureRelatedCols() {
+        Set<Integer> colIds = Sets.newHashSet();
+        for (Measure measure : getEffectiveMeasures().values()) {
+            colIds.addAll(measure.getFunction().getParameters().stream().filter(ParameterDesc::isColumnType)
+                    .map(parameterDesc -> getColumnIdByColumnName(parameterDesc.getValue()))
+                    .collect(Collectors.toList()));
+        }
+        return Lists.newArrayList(colIds);
     }
 }

@@ -217,7 +217,8 @@ public class NIndexPlanManager implements IKeepNames {
         validatePlan(indexPlan);
         indexPlan.setIndexes(indexPlan.getIndexes().stream()
                 .peek(cuboid -> cuboid.setLayouts(cuboid.getLayouts().stream()
-                        .filter(l -> l.isAuto() || IndexEntity.isTableIndex(l.getId())).collect(Collectors.toList())))
+                        .filter(l -> l.isBase() || l.isAuto() || IndexEntity.isTableIndex(l.getId()))
+                        .collect(Collectors.toList())))
                 .filter(cuboid -> cuboid.getLayouts().size() > 0).collect(Collectors.toList()));
 
         val dataflowManager = NDataflowManager.getInstance(config, project);

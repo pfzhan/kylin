@@ -23,41 +23,50 @@
  */
 package io.kyligence.kap.rest.response;
 
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Status.LOCKED;
+
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
+@Data
 @Setter
-@NoArgsConstructor
-public class OpenRecApproveResponse {
-    @JsonProperty("project")
-    private String project;
-    @JsonProperty("models")
-    private List<RecToIndexResponse> models;
+@Getter
+public class IndexStatResponse {
 
-    public OpenRecApproveResponse(String project, List<RecToIndexResponse> models) {
-        this.project = project;
-        this.models = models;
-    }
+    @JsonProperty("max_data_size")
+    private long maxDataSize;
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class RecToIndexResponse {
-        @JsonProperty("uuid")
-        private String modelId;
-        @JsonProperty("alias")
-        private String modelAlias;
-        @JsonProperty("added_indexes")
-        private List<Long> addedIndexes;
-        @JsonProperty("removed_indexes")
-        private List<Long> removedIndexes;
-        @JsonProperty("base_index_info")
-        private BuildBaseIndexResponse baseIndexInfo;
+    @JsonProperty("max_usage")
+    private long maxUsage;
+
+    @JsonProperty("has_load_base_table_index")
+    private boolean hasLoadBaseTableIndex;
+
+    @JsonProperty("has_load_base_agg_index")
+    private boolean hasLoadBaseAggIndex;
+
+    public static IndexStatResponse from(List<IndexResponse> results) {
+        IndexStatResponse response = new IndexStatResponse();
+        long maxUsage = 0;
+        long maxDataSize = 0;
+        for (IndexResponse index : results) {
+            if (index.isBase() && index.getStatus() != LOCKED && IndexEntity.isAggIndex(index.getId())) {
+                response.setHasLoadBaseAggIndex(true);
+            }
+            if (index.isBase() && index.getStatus() != LOCKED && IndexEntity.isTableIndex(index.getId())) {
+                response.setHasLoadBaseTableIndex(true);
+            }
+            maxDataSize = Math.max(maxDataSize, index.getDataSize());
+            maxUsage = Math.max(maxUsage, index.getUsage());
+        }
+        response.setMaxDataSize(maxDataSize);
+        response.setMaxUsage(maxUsage);
+        return response;
     }
 }
