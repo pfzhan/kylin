@@ -46,7 +46,7 @@ public class OptRecLayoutResponse {
     private long createTime;
     @JsonProperty("last_modified")
     private long lastModified;
-    @JsonProperty("hit_count")
+    @JsonProperty("usage")
     private int usage;
     @JsonProperty("index_id")
     private long indexId;
