@@ -300,7 +300,7 @@ public class RealizationChooser {
     }
 
     public static void fixContextForTableIndexAnswerNonRawQuery(OLAPContext context) {
-        if (KylinConfig.getInstanceFromEnv().isUseTableIndexAnswerNonRawQuery()
+        if (context.realization.getConfig().isUseTableIndexAnswerNonRawQuery()
                 && !context.storageContext.isEmptyLayout() && context.isAnsweredByTableIndex()) {
             if (!context.aggregations.isEmpty()) {
                 List<FunctionDesc> aggregations = context.aggregations;

@@ -116,8 +116,9 @@ public class NQueryLayoutChooser {
             Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
             boolean matched = false;
             final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
+
             if (indexEntity.isTableIndex()
-                    && (sqlDigest.isRawQuery || KylinConfig.getInstanceFromEnv().isUseTableIndexAnswerNonRawQuery())) {
+                    && (sqlDigest.isRawQuery || dataflow.getConfig().isUseTableIndexAnswerNonRawQuery())) {
                 unmatchedCols.addAll(sqlDigest.allColumns);
                 matched = matchTableIndex(layout, model, unmatchedCols, needDerive, tempResult);
                 if (!matched && logger.isDebugEnabled()) {
