@@ -255,8 +255,7 @@ public class QueryHistoryService extends BasicService {
     private boolean isLayoutExist(NIndexPlanManager indexPlanManager, String modelId, Long layoutId) {
         if (layoutId == null)
             return false;
-        return indexPlanManager.getIndexPlan(modelId).getAllLayouts().stream()
-                .anyMatch(index -> index.getId() == layoutId);
+        return indexPlanManager.getIndexPlan(modelId).getLayoutEntity(layoutId) != null;
     }
 
     private void splitModels(QueryHistoryRequest request) {
