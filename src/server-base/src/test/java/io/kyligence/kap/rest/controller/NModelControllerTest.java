@@ -65,6 +65,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -422,7 +423,11 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testCreateModel() throws Exception {
         ModelRequest request = new ModelRequest();
         request.setProject("default");
-        Mockito.doReturn(null).when(modelService).createModel(request.getProject(), request);
+        NDataModel mockModel = new NDataModel();
+        mockModel.setUuid("mock");
+        mockModel.setProject("default");
+        Mockito.doReturn(mockModel).when(modelService).createModel(request.getProject(), request);
+        Mockito.doReturn(new IndexPlan()).when(modelService).getIndexPlan(mockModel.getId(), mockModel.getProject());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))

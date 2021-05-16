@@ -125,6 +125,19 @@ public class BaseIndexTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCreateEmptyBaseTableLayout() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        ModelRequest modelRequest = FormModel(modelManager.getDataModelDesc(COMMON_MODEL_ID));
+        modelRequest.setDimensions(Lists.newArrayList());
+        modelRequest.setMeasures(modelRequest.getAllMeasures().subList(0, 0));
+        String modelId = modelService.createModel(modelRequest.getProject(), modelRequest).getId();
+        modelService.updateDataModelSemantic(getProject(), modelRequest);
+        LayoutEntity baseAggLayout = LayoutBuilder.builder().colOrder(10000).build();
+        LayoutEntity baseTableLayout = null;
+        compareBaseIndex(getModelIdFrom(modelRequest.getAlias()), baseTableLayout, baseAggLayout);
+    }
+
+    @Test
     public void testCreateBaseLayoutWithProperties() {
         // create base index is same with index in rulebaseindex or indexes
         CreateBaseIndexRequest request = new CreateBaseIndexRequest();
@@ -347,7 +360,7 @@ public class BaseIndexTest extends CSVSourceTestCase {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), getProject()).getIndexPlan(modelId);
         return indexPlan.getAllLayouts().stream()
                 .filter(layoutEntity -> layoutEntity.isBase() && isTableIndex(layoutEntity.getId())).findFirst()
-                .orElseGet(null);
+                .orElse(null);
     }
 
     private LayoutEntity getBaseAggIndex(String modelId) {
@@ -366,7 +379,9 @@ public class BaseIndexTest extends CSVSourceTestCase {
     private void compareBaseIndex(String indexPlanId, LayoutEntity baseTableLayout, LayoutEntity baseAggLayout) {
         LayoutEntity expectedBaseTableLayout = getBaseTableIndex(indexPlanId);
         LayoutEntity expectedBaseAggLayout = getBaseAggIndex(indexPlanId);
-
+        if (expectedBaseTableLayout == null && baseTableLayout == null) {
+            return;
+        }
         Assert.assertThat(baseAggLayout.getColOrder(), equalTo(expectedBaseAggLayout.getColOrder()));
         Assert.assertThat(baseAggLayout.getShardByColumns(), equalTo(expectedBaseAggLayout.getShardByColumns()));
         Assert.assertThat(baseAggLayout.getSortByColumns(), equalTo(expectedBaseAggLayout.getSortByColumns()));

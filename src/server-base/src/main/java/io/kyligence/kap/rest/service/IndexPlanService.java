@@ -984,10 +984,16 @@ public class IndexPlanService extends BasicService {
         }
 
         LayoutEntity baseTablelayout = indexPlan.createBaseTableIndex(model);
-        overrideLayout(baseTablelayout, request.getBaseTableIndexProperty(), model);
-        if (request.needHandleBaseTableIndex() && indexPlan.needUpdateBaseTableLayout(baseTablelayout, isAuto)) {
-            needDelete.add(indexPlan.getBaseTableLayoutId());
-            updateTypes.add(Source.BASE_TABLE_INDEX);
+        if (baseTablelayout != null) {
+            overrideLayout(baseTablelayout, request.getBaseTableIndexProperty(), model);
+            if (request.needHandleBaseTableIndex() && indexPlan.needUpdateBaseTableLayout(baseTablelayout, isAuto)) {
+                needDelete.add(indexPlan.getBaseTableLayoutId());
+                updateTypes.add(Source.BASE_TABLE_INDEX);
+            }
+        } else {
+            if (indexPlan.containBaseTableLayout()) {
+                needDelete.add(indexPlan.getBaseTableLayoutId());
+            }
         }
         request.setSourceTypes(updateTypes);
         return needDelete;
