@@ -643,9 +643,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 continue;
             }
             NDataModel model = df.getModel();
-            BaseIndexUpdateHelper update = new BaseIndexUpdateHelper(model, false);
             RecToIndexResponse response = approveAllRecItems(project, model.getUuid(), model.getAlias(), recActionType);
-            response.setBaseIndexInfo(update.update(indexPlanService));
             responseList.add(response);
         }
         return responseList;
@@ -675,6 +673,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(model, false);
         approveRecItemsToRemoveLayout(request, approveContext);
         approveRecItemsToAddLayout(request, approveContext);
         updateRecommendationCount(project, modelId);
@@ -684,6 +684,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         response.setModelAlias(modelAlias);
         response.setAddedIndexes(approveContext.addedLayoutIdList);
         response.setRemovedIndexes(approveContext.removedLayoutIdList);
+        response.setBaseIndexInfo(baseIndexUpdater.update(indexPlanService));
+
         return response;
     }
 

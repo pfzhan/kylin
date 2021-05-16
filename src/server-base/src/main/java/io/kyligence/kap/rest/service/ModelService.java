@@ -1531,6 +1531,8 @@ public class ModelService extends BasicService {
                 columnMap.put(column.getAliasDotColumn(), column);
             });
 
+            BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
+                    modelManager.getDataModelDesc(modelRequest.getId()), false);
             // update model
             List<LayoutRecDetailResponse> recItems = modelRequest.getRecItems();
             modelManager.updateDataModel(modelRequest.getId(), copyForWrite -> {
@@ -1603,6 +1605,7 @@ public class ModelService extends BasicService {
                 }
             });
             optRecService.updateRecommendationCount(project, modelRequest.getUuid());
+            baseIndexUpdater.update(indexPlanService);
         }
     }
 
@@ -1612,7 +1615,7 @@ public class ModelService extends BasicService {
             for (NRecommendedModelResponse response : modelSuggestionResponse.getReusedModels()) {
 
                 NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                BaseIndexUpdateHelper baseIndexUpdateHelper = new BaseIndexUpdateHelper(
+                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
                         modelMgr.getDataModelDesc(response.getId()), false);
                 modelMgr.updateDataModel(response.getId(), copyForWrite -> {
                     copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
@@ -1624,7 +1627,7 @@ public class ModelService extends BasicService {
                 indexMgr.updateIndexPlan(response.getId(), copyForWrite -> {
                     copyForWrite.setIndexes(targetIndexPlan.getIndexes());
                 });
-                baseIndexUpdateHelper.update(indexPlanService);
+                baseIndexUpdater.update(indexPlanService);
             }
             return null;
         }, project);
