@@ -3165,7 +3165,7 @@ public class ModelService extends BasicService {
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
 
         String uuid = request.getUuid();
-        NDataModel convertedModel = convertAndInitDataModel(request, project);
+        NDataModel convertedModel = modelManager.getDataModelDesc(uuid);
         List<JoinTableDesc> joinTables = convertedModel.getJoinTables();
 
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(uuid);

@@ -37,6 +37,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.springframework.beans.BeanUtils;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -360,11 +361,29 @@ public class RuleBasedIndex implements Serializable, IKeep {
         return allLayouts.stream().filter(layout -> !existLayouts.contains(layout)).collect(Collectors.toSet());
     }
 
-    public static RuleBasedIndex copy(RuleBasedIndex oldRuleBasedIndex) {
+    public static RuleBasedIndex copyAndResetAggGroups(RuleBasedIndex oldRuleBasedIndex,
+            List<NAggregationGroup> reservedAggGroups) {
+        List<NAggregationGroup> newAggGroups = Lists.newArrayList();
+        reservedAggGroups.forEach(aggGroup -> {
+            NAggregationGroup tmp = new NAggregationGroup();
+            BeanUtils.copyProperties(aggGroup, tmp);
+
+            NAggregationGroup newAggGroup = new NAggregationGroup();
+            newAggGroup.setSelectRule(tmp.getSelectRule());
+            newAggGroup.setIncludes(tmp.getIncludes());
+            newAggGroup.setMeasures(tmp.getMeasures());
+            newAggGroups.add(newAggGroup);
+        });
+
+        RuleBasedIndex tmpRuleBasedIndex = new RuleBasedIndex();
+        BeanUtils.copyProperties(oldRuleBasedIndex, tmpRuleBasedIndex);
+
+        // Only need properties of aggregationGroups, globalDimCap and schedulerVersion,
+        // please refer to UpdateRuleBasedCuboidRequest.convertToRuleBasedIndex.
         RuleBasedIndex newRuleBasedIndex = new RuleBasedIndex();
-        newRuleBasedIndex.setAggregationGroups(oldRuleBasedIndex.getAggregationGroups());
-        newRuleBasedIndex.setGlobalDimCap(oldRuleBasedIndex.getGlobalDimCap());
-        newRuleBasedIndex.setSchedulerVersion(oldRuleBasedIndex.getSchedulerVersion());
+        newRuleBasedIndex.setAggregationGroups(newAggGroups);
+        newRuleBasedIndex.setGlobalDimCap(tmpRuleBasedIndex.getGlobalDimCap());
+        newRuleBasedIndex.setSchedulerVersion(tmpRuleBasedIndex.getSchedulerVersion());
         newRuleBasedIndex.adjustDimensions();
         newRuleBasedIndex.adjustMeasures();
         newRuleBasedIndex.setLastModifiedTime(System.currentTimeMillis());

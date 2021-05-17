@@ -47,6 +47,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Lists;
@@ -140,7 +141,12 @@ public class NDataModelResponse extends NDataModel {
 
     private long lastModify;
 
+    @JsonIgnore
     private List<SimplifiedNamedColumn> simplifiedDims;
+
+    @Getter(lazy = true)
+    @JsonIgnore
+    private final NDataModel lazyModel = originModel();
 
     public NDataModelResponse() {
         super();
@@ -177,7 +183,8 @@ public class NDataModelResponse extends NDataModel {
         }
 
         Set<String> excludedTables = loadExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, getJoinTables(), getModel());
+        List<JoinTableDesc> joinTables = getLazyModel().getJoinTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, getLazyModel());
         List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
         for (NamedColumn col : getAllNamedColumns()) {
             if (col.isDimension()) {
@@ -210,7 +217,7 @@ public class NDataModelResponse extends NDataModel {
     }
 
     private boolean isFkAllDim(String[] foreignKeys, Map<String, NamedColumn> columnMap) {
-        if(foreignKeys == null){
+        if (foreignKeys == null) {
             return false;
         }
         for (String fkCol : foreignKeys) {
@@ -221,7 +228,7 @@ public class NDataModelResponse extends NDataModel {
         return true;
     }
 
-    private NDataModel getModel() {
+    private NDataModel originModel() {
         return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .getDataModelDesc(this.getUuid());
     }
@@ -385,12 +392,12 @@ public class NDataModelResponse extends NDataModel {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
         Set<String> excludedTables = loadExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, getJoinTables(), getModel());
+        List<JoinTableDesc> joinTables = getLazyModel().getJoinTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, getLazyModel());
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
             TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());
-            if (simplifiedNamedColumn.getStatus() == DIMENSION && colRef != null
-                    && tableMetadata != null) {
+            if (simplifiedNamedColumn.getStatus() == DIMENSION && colRef != null && tableMetadata != null) {
                 if (checker.isColRefDependsLookupTable(colRef)) {
                     simplifiedNamedColumn.setDependLookupTable(true);
                 }

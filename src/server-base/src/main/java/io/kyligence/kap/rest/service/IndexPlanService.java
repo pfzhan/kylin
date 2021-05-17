@@ -356,11 +356,11 @@ public class IndexPlanService extends BasicService {
         if ((invalidDimensions.isEmpty() && invalidMeasures.isEmpty()) || oldRuleBasedIndex == null) {
             return;
         }
-        List<NAggregationGroup> aggGroups = oldRuleBasedIndex.getAggregationGroups();
-        aggGroups.removeIf(aggGroup -> Arrays.stream(aggGroup.getIncludes()).anyMatch(invalidDimensions::contains)
-                || Arrays.stream(aggGroup.getMeasures()).anyMatch(invalidMeasures::contains));
-
-        RuleBasedIndex newRuleBasedIndex = RuleBasedIndex.copy(oldRuleBasedIndex);
+        List<NAggregationGroup> reservedAggGroups = oldRuleBasedIndex.getAggregationGroups().stream()
+                .filter(aggGroup -> Arrays.stream(aggGroup.getIncludes()).noneMatch(invalidDimensions::contains)
+                        && Arrays.stream(aggGroup.getMeasures()).noneMatch(invalidMeasures::contains))
+                .collect(Collectors.toList());
+        RuleBasedIndex newRuleBasedIndex = RuleBasedIndex.copyAndResetAggGroups(oldRuleBasedIndex, reservedAggGroups);
         indexPlan.setRuleBasedIndex(newRuleBasedIndex, Sets.newHashSet(), false, true, false);
     }
 
