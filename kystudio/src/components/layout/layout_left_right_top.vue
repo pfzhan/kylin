@@ -1544,7 +1544,7 @@ export default class LayoutLeftRightTop extends Vue {
   .el-menu--popup {
     margin-left: 1px;
     padding: 0px;
-    background-color: @text-title-color!important;
+    // background-color: @text-title-color!important;
     &.el-menu {
       min-width: 100px;
     }
