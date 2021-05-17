@@ -23,11 +23,11 @@
 package org.apache.spark.sql
 
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
+import io.kyligence.kap.secondstorage.SecondStorage
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory
 import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.{HashMap => MutableHashMap}
-
 
 class KylinDataFrameManager(sparkSession: SparkSession) {
   private var extraOptions = new MutableHashMap[String, String]()
@@ -67,13 +67,15 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
   }
 
   def cuboidTable(dataflow: NDataflow, layout: LayoutEntity, pruningInfo: String): DataFrame = {
-    format("parquet")
-    option("project", dataflow.getProject)
-    option("dataflowId", dataflow.getUuid)
-    option("cuboidId", layout.getId)
-    option("pruningInfo", pruningInfo)
-    StorageStoreFactory.create(dataflow.getModel.getStorageType)
-      .read(dataflow, layout, sparkSession, extraOptions.toMap)
+    SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
+      format("parquet")
+      option("project", dataflow.getProject)
+      option("dataflowId", dataflow.getUuid)
+      option("cuboidId", layout.getId)
+      option("pruningInfo", pruningInfo)
+      StorageStoreFactory.create(dataflow.getModel.getStorageType)
+        .read(dataflow, layout, sparkSession, extraOptions.toMap)
+    }
   }
 
   /**
@@ -88,4 +90,10 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     this
   }
 
+}
+
+object KylinDataFrameManager {
+  def apply(session: SparkSession): KylinDataFrameManager = {
+    new KylinDataFrameManager(session)
+  }
 }

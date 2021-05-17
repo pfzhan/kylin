@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -116,6 +117,15 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("base_index_count")
     private int baseIndexCount;
+
+    @JsonProperty("second_storage_size")
+    private long secondStorageSize;
+
+    @JsonProperty("second_storage_nodes")
+    private List<SecondStorageNode> secondStorageNodes;
+
+    @JsonProperty("second_storage_enabled")
+    private boolean secondStorageEnabled;
 
     private long lastModify;
 

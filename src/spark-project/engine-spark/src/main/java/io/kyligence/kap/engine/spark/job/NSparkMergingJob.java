@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.secondstorage.SecondStorageConstants;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -136,7 +138,13 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
                 String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
 
         JobStepType.UPDATE_METADATA.createStep(job, config);
-
+        if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())
+                && layouts.stream().anyMatch(SecondStorageUtil::isBaseIndex)) {
+            AbstractExecutable mergeStep = JobStepType.SECOND_STORAGE_MERGE.createStep(job, config);
+            mergeStep.setParam(SecondStorageConstants.P_MERGED_SEGMENT_ID, mergedSegment.getId());
+            mergeStep.setParam(NBatchConstants.P_SEGMENT_IDS,
+                    String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
+        }
         return job;
     }
 

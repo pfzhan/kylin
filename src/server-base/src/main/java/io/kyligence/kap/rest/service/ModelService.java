@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
+import static org.apache.kylin.common.exception.JobErrorCode.JOB_CONFIGURATION_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
@@ -89,6 +90,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import io.kyligence.kap.rest.response.InvalidIndexesResponse;
+import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -117,8 +123,11 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -215,14 +224,12 @@ import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
-import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -825,14 +832,14 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getIndexPlan(modelId);
         Set<Long> allIndexes = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(withAllIndexes)) {
             for (Long idx : withAllIndexes) {
                 if (!allIndexes.contains(idx)) {
                     throw new KylinException(INVALID_SEGMENT_PARAMETER, "Invalid index id " + idx);
                 }
             }
         }
-        if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(withoutAnyIndexes)) {
             for (Long idx : withoutAnyIndexes) {
                 if (!allIndexes.contains(idx)) {
                     throw new KylinException(INVALID_SEGMENT_PARAMETER, "Invalid index id " + idx);
@@ -849,7 +856,35 @@ public class ModelService extends BasicService {
         Comparator<NDataSegmentResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
         segmentResponseList.sort(comparator);
+
+        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
         return segmentResponseList;
+    }
+
+    private void addSecondStorageResponse(String modelId, String project,
+            List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
+
+        if (!SecondStorageUtil.isModelEnable(project, modelId))
+            return;
+
+        val tableFlowManager = SecondStorage.tableFlowManager(getConfig(), project);
+        val tableFlow = tableFlowManager.get(dataflow.getId()).orElse(null);
+        if (tableFlow!=null) {
+            Map<String, TablePartition> tablePartitions = tableFlow.getTableDataList()
+                    .stream().flatMap(tableData -> tableData.getPartitions().stream())
+                    .collect(Collectors.toMap(TablePartition::getSegmentId, partition->partition));
+            segmentResponseList.forEach(segment -> {
+                if (tablePartitions.containsKey(segment.getId())) {
+                    val nodes = tablePartitions.get(segment.getId()).getShardNodes().stream()
+                            .map(SecondStorageUtil::transformNode).collect(Collectors.toList());
+                    segment.setSecondStorageNodes(nodes);
+                    segment.setSecondStorageDiskSize(tablePartitions.get(segment.getId()).getSizeInNode().values().stream().reduce(Long::sum).orElse(0L));
+                } else {
+                    segment.setSecondStorageNodes(Collections.emptyList());
+                    segment.setSecondStorageDiskSize(0L);
+                }
+            });
+        }
     }
 
     private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
@@ -1649,12 +1684,24 @@ public class ModelService extends BasicService {
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        // disable second storage
+        if (modelRequest.getId() != null && SecondStorageUtil.isModelEnable(project, modelRequest.getId())
+                && !modelRequest.isWithSecondStorage()) {
+            SecondStorageUtil.validateDisableModel(project, modelRequest.getId());
+            SecondStorageUtil.disableModel(project, modelRequest.getId());
+        }
+        val dataModel = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataModel model = saveModel(project, modelRequest);
             modelRequest.setUuid(model.getUuid());
             updateExcludedCheckerResult(project, modelRequest);
             return getDataModelManager(project).getDataModelDesc(model.getUuid());
         }, project);
+
+        // enable second storage
+        if (modelRequest.isWithSecondStorage() && !SecondStorageUtil.isModelEnable(project, dataModel.getId())) {
+            SecondStorageUtil.initModelMetaData(project, dataModel.getId());
+        }
+        return dataModel;
     }
 
     public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
@@ -2804,9 +2851,16 @@ public class ModelService extends BasicService {
                         dataflow.getModelAlias()));
             }
         }
+        if (SecondStorageUtil.isModelEnable(project, model)) {
+            SecondStorageUtil.cleanSegments(project, model, idsToDelete);
+            val jobHandler = new SecondStorageSegmentCleanJobHandler();
+            final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), idsToDelete);
+            getJobManager(project).addJob(param, jobHandler);
+        }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
         cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
         offlineModelIfNecessary(dataflowManager, model);
+
     }
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
@@ -2951,6 +3005,30 @@ public class ModelService extends BasicService {
                 .mergeSegmentJob(new JobParam(mergeSeg, modelId, getUsername()).withPriority(params.getPriority())));
 
         return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), jobId);
+    }
+
+    @Transaction(project = 0)
+    public List<JobInfoResponse.JobInfo>
+    exportSegmentToSecondStorage(String project, String model, String[] segmentIds) {
+        aclEvaluate.checkProjectOperationPermission(project);
+
+        checkSegmentsExistById(model, project, segmentIds);
+        checkSegmentsStatus(model, project, segmentIds,
+                SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.REFRESHING,
+                SegmentStatusEnumToDisplay.MERGING,
+                SegmentStatusEnumToDisplay.LOCKED);
+
+        if (!SecondStorage.enabled()) {
+            throw new KylinException(JOB_CONFIGURATION_ERROR, "!!!No Second Storage is installed!!!");
+        }
+        val jobHandler = new SecondStorageSegmentLoadJobHandler();
+
+        final JobParam param = SecondStorageJobParamUtil.of(project, model, getUsername(), Stream.of(segmentIds));
+        return Collections.singletonList(
+                new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
+                        getJobManager(project).addJob(param, jobHandler))
+        );
     }
 
     @Transaction(project = 0)
@@ -3610,9 +3688,9 @@ public class ModelService extends BasicService {
             }
         }
 
-        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
-            copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
-        });
+        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite ->
+            copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc())
+        );
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                 modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
     }
@@ -3679,9 +3757,9 @@ public class ModelService extends BasicService {
             }
         }
 
-        getDataModelManager(project).updateDataModel(modelId, copyForWrite -> {
-            copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping());
-        });
+        getDataModelManager(project).updateDataModel(modelId, copyForWrite ->
+            copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping())
+        );
     }
 
     private void changeModelOwner(NDataModel model) {

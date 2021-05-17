@@ -47,6 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -710,6 +711,11 @@ public class ProjectService extends BasicService {
         response.setMultiPartitionEnabled(config.isMultiPartitionEnabled());
 
         response.setQueryHistoryDownloadMaxSize(config.getQueryHistoryDownloadMaxSize());
+
+        if (SecondStorageUtil.isGlobalEnable()) {
+            response.setSecondStorageEnabled(SecondStorageUtil.isProjectEnable(project));
+            response.setSecondStorageNodes(SecondStorageUtil.listProjectNodes(project));
+        }
 
         return response;
     }

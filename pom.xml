@@ -55,7 +55,7 @@
         <!-- Hadoop versions -->
         <hadoop.version>2.8.4</hadoop.version>
         <yarn.version>${hadoop.version}</yarn.version>
-        <hadoop.cloud.version>2.7.1</hadoop.cloud.version>
+        <hadoop.cloud.version>${hadoop.version}</hadoop.cloud.version>
 
         <!-- Hive versions -->
         <hive.version>2.3.7</hive.version>
@@ -295,6 +295,7 @@
         <module>src/datasource-sdk</module>
         <module>src/external-catalog</module>
         <module>src/second-storage/core</module>
+        <module>src/second-storage/core-ui</module>
         <module>src/second-storage/clickhouse</module>
         <module>src/second-storage/clickhouse-it</module>
     </modules>
@@ -387,6 +388,11 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-second-storage-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-second-storage-ui</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -854,6 +860,10 @@
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>
                         <artifactId>log4j-1.2-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-web</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>

@@ -107,7 +107,7 @@ public class JobParam {
     public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner,
             Set<Long> targetPartitions, Set<JobBucket> targetBuckets) {
         this(model, owner);
-        this.setTargetSegments(targetSegments);
+        this.withTargetSegments(targetSegments);
         this.setTargetLayouts(targetLayouts);
         if (CollectionUtils.isNotEmpty(targetPartitions)) {
             this.setTargetPartitions(targetPartitions);
@@ -147,11 +147,12 @@ public class JobParam {
         this.priority = priority;
         return this;
     }
-
-    public void setTargetSegments(Set<String> targetSegments) {
+    
+    public JobParam withTargetSegments(Set<String> targetSegments) {
         if (Objects.nonNull(targetSegments)) {
             this.targetSegments = targetSegments;
         }
+        return this;
     }
 
     public void setTargetLayouts(Set<Long> targetLayouts) {

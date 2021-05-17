@@ -99,7 +99,7 @@ public class InMemResourceStore extends ResourceStore {
 
     @Override
     public RawResource checkAndPutResource(String resPath, ByteSource byteSource, long oldMvcc) {
-        return checkAndPutResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc);
+         return checkAndPutResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc);
     }
 
     @Override

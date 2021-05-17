@@ -31,12 +31,15 @@ public class ColumnWithAlias {
     private final boolean distinct;
     private final String alias;
     private final String name;
+    private final String expr;
 
-    private ColumnWithAlias(boolean distinct, String alias, String name) {
+    private ColumnWithAlias(boolean distinct, String alias, String name, String expr) {
         this.distinct = distinct;
         this.alias = alias;
         this.name = name;
+        this.expr = expr;
     }
+
     public static ColumnWithAliasBuilder builder() {
         return new ColumnWithAliasBuilder();
     }
@@ -46,6 +49,7 @@ public class ColumnWithAlias {
         private boolean distinct;
         private String alias;
         private String name;
+        private String expr;
 
         public ColumnWithAliasBuilder distinct(boolean distinct) {
             this.distinct = distinct;
@@ -62,8 +66,13 @@ public class ColumnWithAlias {
             return this;
         }
 
+        public ColumnWithAliasBuilder expr(String expr) {
+            this.expr = expr;
+            return this;
+        }
+
         public ColumnWithAlias build() {
-            return new ColumnWithAlias(distinct, alias, name);
+            return new ColumnWithAlias(distinct, alias, name, expr);
         }
     }
 
@@ -77,5 +86,9 @@ public class ColumnWithAlias {
 
     public String getName() {
         return name;
+    }
+
+    public String getExpr() {
+        return expr;
     }
 }

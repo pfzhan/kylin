@@ -25,6 +25,7 @@ package io.kyligence.kap.engine.spark.mockup.external;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,11 +82,18 @@ public class FileCatalog implements IExternalCatalog, IKeep {
 
     private void init(Configuration hadoopConfig) {
         try {
-            FileSystem fileSystem = FileSystem.get(hadoopConfig);
+            FileSystem fileSystem;
             KylinConfigExt ext = KylinConfigExt.createInstance(KylinConfig.getInstanceFromEnv(), Maps.newHashMap());
 
             Preconditions.checkArgument(!Strings.isNullOrEmpty(ext.getExternalCatalogClass()));
             String meta = ext.getOptional("kylin.NSparkDataSource.data.dir", null);
+            String fs = ext.getOptional("kylin.NSparkDataSource.data.fs", null);
+            if (fs == null) {
+                fileSystem = FileSystem.get(hadoopConfig);
+            } else {
+                URI uri = URI.create(hadoopConfig.get("fs.defaultFS." + fs));
+                fileSystem = FileSystem.get(uri, hadoopConfig);
+            }
             readDatabases(fileSystem, meta).forEach(
                     (database, tables) -> initDatabase(fileSystem, meta, database, Lists.newArrayList(tables)));
         } catch (Exception e) {

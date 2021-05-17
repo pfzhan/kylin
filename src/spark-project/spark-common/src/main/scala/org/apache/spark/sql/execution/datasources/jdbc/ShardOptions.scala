@@ -23,13 +23,23 @@
  */
 package org.apache.spark.sql.execution.datasources.jdbc
 
+import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions.{REPLICA_SPLIT_CHAR, SPLIT_CHAR}
+
 case class ShardOptions(sharding: String) {
-  val shards: Array[String] = sharding.split(ShardOptions.SPLIT_CHAR)
+  val replicaShards: Array[Array[String]] = sharding
+    .split(REPLICA_SPLIT_CHAR)
+    .map(_.split("\\" + SPLIT_CHAR)
+      .sorted)
+
+  //  val shards: Array[String] = sharding.split(ShardOptions.SPLIT_CHAR)
+  val shards: Array[String] = replicaShards(0)
+
 }
 
 object ShardOptions {
   val SHARD_URLS = "shard_urls"
   val SPLIT_CHAR = '|'
+  val REPLICA_SPLIT_CHAR = ";"
 
   def create(options: JDBCOptions): ShardOptions = {
     ShardOptions(options.parameters.get(SHARD_URLS).getOrElse(options.url))
@@ -37,5 +47,9 @@ object ShardOptions {
 
   def buildSharding(urls: String*): String = {
     urls.mkString(SPLIT_CHAR.toString)
+  }
+
+  def buildReplicaSharding(urls: Array[Array[String]]): String = {
+    urls.map(_.mkString(SPLIT_CHAR.toString)).mkString(REPLICA_SPLIT_CHAR)
   }
 }

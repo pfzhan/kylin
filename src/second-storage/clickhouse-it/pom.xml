@@ -18,13 +18,24 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <test.cloud.ignore>ClickHouseSimpleITTestWith</test.cloud.ignore>
+        <aggregate.report.dir>target/site/jacoco-aggregate/jacoco.xml</aggregate.report.dir>
+        <sonar.coverage.jacoco.xmlReportPaths>$0{project.basedir}/${aggregate.report.dir}</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-second-storage-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-ui</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.kyligence.ke</groupId>
+                    <artifactId>kap-server-base</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -171,23 +182,19 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <testExcludes>
-                        <exclude>**/${test.cloud.ignore}Blob*</exclude>
-                    </testExcludes>
-                </configuration>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>report</id>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <phase>test</phase>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>hadoop-3.2</id>
-            <properties>
-                <test.cloud.ignore>ignore</test.cloud.ignore>
-            </properties>
-        </profile>
-    </profiles>
 </project>

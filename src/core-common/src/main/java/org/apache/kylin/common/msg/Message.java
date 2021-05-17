@@ -1260,6 +1260,10 @@ public class Message {
         return "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
     }
 
+    public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
+        return "Can’t submit the job at the moment, segment [%s] hasn't base index. Please refresh this segment.";
+    }
+
     public String getADD_JOB_EXCEPTION() {
         return "Can’t find executable jobs at the moment. Please try again later.";
     }
@@ -1499,5 +1503,13 @@ public class Message {
 
     public String getQUERY_HISTORY_COLUMN_META() {
         return "Start Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n";
+    }
+
+    public String getSECOND_STORAGE_JOB_EXISTS() {
+        return "The model %s has import tasks in progress. Please try again later.\n";
+    }
+
+    public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
+        return "The project %s has import tasks in progress. Please try again later.\n";
     }
 }

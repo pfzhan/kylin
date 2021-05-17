@@ -24,6 +24,7 @@
 package io.kyligence.kap.ddl;
 
 import io.kyligence.kap.ddl.exp.ColumnWithAlias;
+import io.kyligence.kap.ddl.exp.GroupBy;
 import io.kyligence.kap.ddl.exp.TableIdentifier;
 import io.kyligence.kap.ddl.visitor.RenderVisitor;
 
@@ -34,6 +35,8 @@ public class Select extends DDL<Select> {
     private final TableIdentifier fromTable;
 
     private final List<ColumnWithAlias> columns = new ArrayList<>();
+    private String condition;
+    private GroupBy groupby;
 
     public Select(TableIdentifier table) {
         fromTable = table;
@@ -41,6 +44,16 @@ public class Select extends DDL<Select> {
 
     public Select column(ColumnWithAlias column) {
         columns.add(column);
+        return this;
+    }
+
+    public Select where(String condition) {
+        this.condition = condition;
+        return this;
+    }
+
+    public Select groupby(GroupBy groupby) {
+        this.groupby = groupby;
         return this;
     }
 
@@ -54,6 +67,14 @@ public class Select extends DDL<Select> {
 
     public TableIdentifier from() {
         return fromTable;
+    }
+
+    public String where() {
+        return condition;
+    }
+
+    public GroupBy groupby() {
+        return groupby;
     }
 
     @Override

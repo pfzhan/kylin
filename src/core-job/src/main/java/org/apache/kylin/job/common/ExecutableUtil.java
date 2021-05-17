@@ -72,7 +72,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class ExecutableUtil {
 
-    final static Map<JobTypeEnum, ExecutableUtil> implementations = Maps.newHashMap();
+    static final Map<JobTypeEnum, ExecutableUtil> implementations = Maps.newHashMap();
+
+    public static void registerImplementation(JobTypeEnum type, ExecutableUtil child) {
+        implementations.put(type, child);
+    }
 
     static {
         implementations.put(JobTypeEnum.INDEX_BUILD, new IndexBuildJobUtil());
@@ -86,7 +90,7 @@ public abstract class ExecutableUtil {
     public static void computeParams(JobParam jobParam) {
         val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
                 .getDataModelDesc(jobParam.getModel());
-        if (model.isMultiPartitionModel()) {
+        if (model != null && model.isMultiPartitionModel()) {
             jobParam.getCondition().put(JobParam.ConditionConstant.MULTI_PARTITION_JOB, true);
         }
         ExecutableUtil paramUtil = implementations.get(jobParam.getJobTypeEnum());

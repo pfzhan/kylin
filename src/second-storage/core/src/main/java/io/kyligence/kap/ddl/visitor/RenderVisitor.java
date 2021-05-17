@@ -27,11 +27,14 @@ package io.kyligence.kap.ddl.visitor;
 import io.kyligence.kap.ddl.AlterTable;
 import io.kyligence.kap.ddl.CreateDatabase;
 import io.kyligence.kap.ddl.CreateTable;
+import io.kyligence.kap.ddl.DropDatabase;
 import io.kyligence.kap.ddl.DropTable;
 import io.kyligence.kap.ddl.InsertInto;
 import io.kyligence.kap.ddl.RenameTable;
 import io.kyligence.kap.ddl.Select;
+import io.kyligence.kap.ddl.ShowCreateTable;
 import io.kyligence.kap.ddl.exp.ColumnWithType;
+import io.kyligence.kap.ddl.exp.GroupBy;
 import io.kyligence.kap.ddl.exp.TableIdentifier;
 
 public interface RenderVisitor {
@@ -41,9 +44,12 @@ public interface RenderVisitor {
     void visit(CreateTable<?> createTable);
     void visit(CreateDatabase createDatabase);
     void visit(DropTable dropTable);
+    void visit(DropDatabase dropDatabase);
     void visit(InsertInto insert);
     void visit(Select insert);
+    void visit(GroupBy groupBy);
     void visit(AlterTable alterTable);
+    void visit(ShowCreateTable showCreateTable);
 
     void visitValue(Object pram);
 

@@ -273,9 +273,7 @@ public class NExecAndComp {
 
     public static List<Row> normRows(List<Row> rows) {
         List<Row> rowList = Lists.newArrayList();
-        rows.forEach(row -> {
-            rowList.add(SparderQueryTest.prepareRow(row));
-        });
+        rows.forEach(row -> rowList.add(SparderQueryTest.prepareRow(row)));
         return rowList;
     }
 
@@ -626,18 +624,16 @@ public class NExecAndComp {
         try {
             SparderEnv.skipCompute();
             List<Object> parametersNotNull = parameters == null ? new ArrayList<>() : new ArrayList<>(parameters);
-            Dataset<Row> df = queryCube(prj, sql, parametersNotNull);
-            return df;
+            return queryCube(prj, sql, parametersNotNull);
         } finally {
             SparderEnv.cleanCompute();
         }
     }
 
-    static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql) throws Exception {
+    public static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql) throws Exception {
         try {
             SparderEnv.skipCompute();
-            Dataset<Row> df = queryCube(prj, sql, null);
-            return df;
+            return queryCube(prj, sql, null);
         } finally {
             SparderEnv.cleanCompute();
         }

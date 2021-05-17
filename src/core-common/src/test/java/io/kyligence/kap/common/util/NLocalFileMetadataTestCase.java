@@ -25,6 +25,7 @@
 package io.kyligence.kap.common.util;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -208,7 +209,18 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         clearTestConfig();
         QueryContext.reset();
     }
-
+    
+    static protected String getLocalWorkingDirectory() {
+        String dir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        if (dir.startsWith("file://"))
+            dir = dir.substring("file://".length());
+        try {
+            return new File(dir).getCanonicalPath();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+    
     protected ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }

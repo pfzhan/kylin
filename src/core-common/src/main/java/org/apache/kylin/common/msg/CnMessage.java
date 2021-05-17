@@ -1400,6 +1400,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
+        return "当前无法提交任务, Segment [%s] 不包含基础索引。请刷新此Segment。";
+    }
+
+    @Override
     public String getADD_JOB_EXCEPTION() {
         return "当前没有可执行的任务。请稍后重试。";
     }
@@ -1678,5 +1683,15 @@ public class CnMessage extends Message {
     @Override
     public String getQUERY_HISTORY_COLUMN_META() {
         return "查询开始时间,查询耗时,查询 ID,SQL 语句,查询对象,查询状态,查询节点,查询用户\n";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_JOB_EXISTS() {
+        return "模型%s有导入缓存任务正在进行，请稍后重试。";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
+        return "项目%s有导入缓存任务正在进行，请稍后重试。";
     }
 }

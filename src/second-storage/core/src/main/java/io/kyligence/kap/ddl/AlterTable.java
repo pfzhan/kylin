@@ -30,11 +30,24 @@ import io.kyligence.kap.ddl.visitor.Renderable;
 
 public class AlterTable extends DDL<AlterTable> {
     private final TableIdentifier table;
-    private final ManipulatePartition manipulatePartition;
+    private ManipulatePartition manipulatePartition = null;
+    private boolean freeze = false;
+    private String attachPart = null;
+
 
     public AlterTable(TableIdentifier table, ManipulatePartition manipulatePartition) {
         this.table = table;
         this.manipulatePartition = manipulatePartition;
+    }
+
+    public AlterTable(TableIdentifier table, boolean freeze) {
+        this.table = table;
+        this.freeze = freeze;
+    }
+
+    public AlterTable(TableIdentifier table, String attachPart) {
+        this.table = table;
+        this.attachPart = attachPart;
     }
 
     public TableIdentifier getTable() {
@@ -43,6 +56,14 @@ public class AlterTable extends DDL<AlterTable> {
 
     public ManipulatePartition getManipulatePartition() {
         return manipulatePartition;
+    }
+
+    public boolean isFreeze() {
+        return freeze;
+    }
+
+    public String getAttachPart() {
+        return attachPart;
     }
 
     @Override

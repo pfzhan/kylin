@@ -180,7 +180,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
         Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
-                "last_modify", false, null, null, null))
+                "last_modify", false, null, null, null, null))
                 .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("page_offset", "1").param("project", "default").param("model_name", "model1")

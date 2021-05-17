@@ -320,7 +320,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         execMgr.addJob(job);
 
         if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            throw new IllegalStateException();
+            val firstErrorMsg = job.getTasks().stream()
+                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
+                    .findFirst()
+                    .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
+                    .orElse("Unknown Error");
+            throw new IllegalStateException(firstErrorMsg);
         }
 
         val merger = new AfterBuildResourceMerger(config, prj);

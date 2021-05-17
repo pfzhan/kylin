@@ -69,7 +69,14 @@ public class ClickHouseRender extends DefaultSQLRender {
                 .append(DefaultSQLRender.KeyWord.TABLE);
         acceptOrVisitValue(alterTable.getTable());
         result.append(' ');
-        acceptOrVisitValue(alterTable.getManipulatePartition());
+        if (alterTable.isFreeze()) {
+            result.append(' ').append(KeyWord.FREEZE);
+        } else if (alterTable.getManipulatePartition() != null) {
+            acceptOrVisitValue(alterTable.getManipulatePartition());
+        } else if (alterTable.getAttachPart() != null) {
+            result.append(' ').append(KeyWord.ATTACH_PART).append(' ')
+                    .append('\'').append(alterTable.getAttachPart()).append('\'');
+        }
     }
 
     @Override
@@ -92,6 +99,8 @@ public class ClickHouseRender extends DefaultSQLRender {
         private static final String ENGINE = "ENGINE";
         private static final String TUPLE = "tuple";
         private static final String PARTITION = "PARTITION";
+        private static final String FREEZE = "FREEZE";
+        private static final String ATTACH_PART = "ATTACH PART";
 
         private KeyWord() {
         }

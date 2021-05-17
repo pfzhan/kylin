@@ -26,17 +26,21 @@ package io.kyligence.kap.ddl.visitor;
 import io.kyligence.kap.ddl.AlterTable;
 import io.kyligence.kap.ddl.CreateDatabase;
 import io.kyligence.kap.ddl.CreateTable;
+import io.kyligence.kap.ddl.DropDatabase;
 import io.kyligence.kap.ddl.DropTable;
 import io.kyligence.kap.ddl.InsertInto;
 import io.kyligence.kap.ddl.RenameTable;
 import io.kyligence.kap.ddl.Select;
+import io.kyligence.kap.ddl.ShowCreateTable;
 import io.kyligence.kap.ddl.exp.ColumnWithAlias;
 import io.kyligence.kap.ddl.exp.ColumnWithType;
+import io.kyligence.kap.ddl.exp.GroupBy;
 import io.kyligence.kap.ddl.exp.TableIdentifier;
 import org.apache.commons.collections.map.ListOrderedMap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang.StringUtils.join;
 
@@ -45,30 +49,54 @@ public class DefaultSQLRender implements BaseRender {
     protected static final String OPEN_BRACKET = "(";
     protected static final String CLOSE_BRACKET = ")";
 
-    protected static class KeyWord {
-        private KeyWord() {}
-        public static final String CREATE = "CREATE";
-        public static final String DATABASE = "DATABASE";
-        public static final String TABLE = "TABLE";
-        public static final String DISTINCT = "DISTINCT";
-        public static final String ALTER = "ALTER";
+    @Override
+    public void visit(Select select) {
+        result.append(KeyWord.SELECT);
+        if (select.columns().isEmpty()) {
+            result.append(" * ");
+        } else {
+            result.append(' ');
+            List<String> columns = new ArrayList<>(select.columns().size());
+            for (ColumnWithAlias column : select.columns()) {
+                columns.add(buildColumnWithAlias(column));
+            }
+            result.append(String.join(",", columns));
+            result.append(' ');
+        }
 
-        public static final String DROP = "DROP";
-        public static final String IF_EXISTS = "if exists";
-        public static final String IF_NOT_EXISTS = "if not exists";
+        result.append(KeyWord.FROM);
+        acceptOrVisitValue(select.from());
+        if (select.where() != null) {
+            result.append(' ').append(KeyWord.WHERE).append(' ').append(select.where());
+        }
+        if (select.groupby() != null) {
+            result.append(' ');
+            this.visit(select.groupby());
+        }
+    }
 
-        public static final String INSERT = "INSERT INTO";
-        public static final String SELECT = "SELECT";
-        public static final String FROM = "FROM";
+    private String buildColumnWithAlias(ColumnWithAlias column) {
+        StringBuilder columnString = new StringBuilder();
+        if (column.isDistinct()) {
+            columnString.append(KeyWord.DISTINCT);
+        }
+        if (column.getExpr() != null) {
+            columnString.append(' ').append(column.getExpr());
+        } else {
+            columnString.append(" `").append(column.getName()).append("`");
+        }
+        if (column.getAlias() != null) {
+            columnString.append(" AS ").append(column.getAlias());
+        }
+        return columnString.toString();
+    }
 
-        public static final String AS = "AS";
-        public static final String ORDER_BY = "ORDER BY";
-
-        public static final String RENAME = "RENAME";
-        public static final String TO = "TO";
-
-        private static final String VALUES = "VALUES";
-        private static final String NULLABLE = "Nullable";
+    @Override
+    public void visit(GroupBy groupBy) {
+        result.append(KeyWord.GROUP_BY);
+        result.append(' ');
+        List<String> columns = groupBy.columns().stream().map(col -> "`" + col.getName() + "`").collect(Collectors.toList());
+        result.append(String.join(",", columns));
     }
 
     protected final StringBuilder result = new StringBuilder();
@@ -125,6 +153,7 @@ public class DefaultSQLRender implements BaseRender {
         acceptOrVisitValue(query.table());
     }
 
+    @Override
     public void visit(CreateTable<?> query) {
         createTablePrefix(query);
 
@@ -140,6 +169,7 @@ public class DefaultSQLRender implements BaseRender {
         result.append(')');
     }
 
+    @Override
     public void visit(CreateDatabase createDatabase) {
         result.append(KeyWord.CREATE).append(' ').append(KeyWord.DATABASE);
         if (createDatabase.isIfNotExists()) {
@@ -148,12 +178,22 @@ public class DefaultSQLRender implements BaseRender {
         result.append(' ').append(createDatabase.getDatabase());
     }
 
+    @Override
     public void visit(DropTable dropTable) {
         result.append(KeyWord.DROP).append(' ').append(KeyWord.TABLE);
         if (dropTable.isIfExists()) {
             result.append(' ').append(KeyWord.IF_EXISTS);
         }
         acceptOrVisitValue(dropTable.table());
+    }
+
+    @Override
+    public void visit(DropDatabase dropDatabase) {
+        result.append(KeyWord.DROP).append(' ').append(KeyWord.DATABASE);
+        if (dropDatabase.isIfExists()) {
+            result.append(' ').append(KeyWord.IF_EXISTS);
+        }
+        result.append(' ').append(dropDatabase.db());
     }
 
     @Override
@@ -183,35 +223,42 @@ public class DefaultSQLRender implements BaseRender {
     }
 
     @Override
-    public void visit(Select select) {
-        result.append(KeyWord.SELECT);
-        if (select.columns().isEmpty()) {
-            result.append(" * ");
-        } else {
-            result.append(' ');
-            List<String> columns = new ArrayList<>(select.columns().size());
-            for (ColumnWithAlias column : select.columns()) {
-                StringBuilder columnString = new StringBuilder();
-                if (column.isDistinct()) {
-                    columnString.append(KeyWord.DISTINCT);
-                }
-                columnString.append(" `").append(column.getName()).append("`");
-                if (column.getAlias() != null) {
-                    columnString.append(" AS ").append(column.getAlias());
-                }
-                columns.add(columnString.toString());
-            }
-            result.append(String.join(",", columns));
-            result.append(' ');
-        }
-
-        result.append(KeyWord.FROM);
-        acceptOrVisitValue(select.from());
+    public void visit(ShowCreateTable showCreateTable) {
+        result.append(KeyWord.SHOW_CREATE_TABLE).append(' ').append(showCreateTable.getTableIdentifier().table());
     }
 
     @Override
     public void visit(AlterTable alterTable) {
         throw new UnsupportedOperationException("Alter table doesn't support by default render");
+    }
+
+    protected static class KeyWord {
+        private KeyWord() {}
+        public static final String CREATE = "CREATE";
+        public static final String DATABASE = "DATABASE";
+        public static final String TABLE = "TABLE";
+        public static final String DISTINCT = "DISTINCT";
+        public static final String ALTER = "ALTER";
+        public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE";
+        public static final String WHERE = "WHERE";
+        public static final String GROUP_BY = "GROUP BY";
+
+        public static final String DROP = "DROP";
+        public static final String IF_EXISTS = "if exists";
+        public static final String IF_NOT_EXISTS = "if not exists";
+
+        public static final String INSERT = "INSERT INTO";
+        public static final String SELECT = "SELECT";
+        public static final String FROM = "FROM";
+
+        public static final String AS = "AS";
+        public static final String ORDER_BY = "ORDER BY";
+
+        public static final String RENAME = "RENAME";
+        public static final String TO = "TO";
+
+        private static final String VALUES = "VALUES";
+        private static final String NULLABLE = "Nullable";
     }
 
     @Override

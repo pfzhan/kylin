@@ -493,6 +493,10 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isMetadataCompressEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.compress.enabled", TRUE));
     }
+    
+    public String getSecondStorage() {
+        return getOptional("kylin.second-storage.class", null);
+    }
 
     public boolean isMetadataAuditLogEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.audit-log.enabled", TRUE));

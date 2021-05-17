@@ -252,6 +252,13 @@
             <version>${bcprov-ext-jdk15on.version}</version>
         </dependency>
 
+        <!-- Hadoop -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test & Env -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>

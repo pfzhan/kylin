@@ -24,16 +24,22 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static java.util.stream.Collectors.joining;
-import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.job.JobBucket;
+import io.kyligence.kap.secondstorage.SecondStorageConstants;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -47,22 +53,16 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.job.JobBucket;
-import lombok.val;
+import static java.util.stream.Collectors.joining;
+import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 /**
  *
@@ -160,6 +160,23 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         JobStepType.RESOURCE_DETECT.createStep(job, config);
         JobStepType.CUBING.createStep(job, config);
         JobStepType.UPDATE_METADATA.createStep(job, config);
+        if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())) {
+            if (Objects.equals(jobType, JobTypeEnum.INDEX_BUILD) || Objects.equals(jobType, JobTypeEnum.INC_BUILD)) {
+                boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseIndex);
+                if (hasBaseIndex) {
+                    JobStepType.SECOND_STORAGE_EXPORT.createStep(job, config);
+                }
+            } else if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH)) {
+                val oldSegs = job.getTargetSegments().stream().map(segId -> {
+                    val curSeg = df.getSegment(segId);
+                    return Objects.requireNonNull(df.getSegments().stream().filter(seg ->
+                            seg.getSegRange().equals(curSeg.getSegRange())
+                            && !seg.getId().equals(segId)).findFirst().orElse(null)).getId();
+                }).collect(Collectors.toList());
+                job.setParam(SecondStorageConstants.P_OLD_SEGMENT_IDS, String.join(",", oldSegs));
+                JobStepType.SECOND_STORAGE_REFRESH.createStep(job, config);
+            }
+        }
         return job;
     }
 

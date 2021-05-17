@@ -109,7 +109,7 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         val dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
         val df = dfm.getDataflow(modelId);
         JobParam param = new JobParam();
-        param.setTargetSegments(Sets.newHashSet(segmentId));
+        param.withTargetSegments(Sets.newHashSet(segmentId));
         param.setModel(modelId);
         param.setOwner("ADMIN");
         param.setProject(PROJECT);

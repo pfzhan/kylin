@@ -35,7 +35,6 @@ import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
-import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.SingleSQLStatement;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -61,7 +60,8 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         NLocalWithSparkSessionTest.ensureSparkConf();
         ClickHouseUtils.InjectNewPushDownRule(sparkConf);
         NLocalWithSparkSessionTest.beforeClass();
-        SparderEnv.getSparkSession().sessionState().optimizer().preCBORules().contains(V2ScanRelationPushDown2$.MODULE$);
+        Assert.assertTrue(SparderEnv.getSparkSession()
+                .sessionState().optimizer().preCBORules().contains(V2ScanRelationPushDown2$.MODULE$));
     }
 
     @AfterClass
@@ -101,18 +101,10 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             List<Row> results = dataset.collectAsList();
             Assert.assertEquals(expectedRow, results);
 
-            ShardJDBCScan shardJDBCScan = ClickHouseUtils.getShardScan(dataset.queryExecution().optimizedPlan());
-            SingleSQLStatement statement = shardJDBCScan.pushedStatement();
-
-            Assert.assertNotNull(statement);
-            Assert.assertNotNull(statement.groupBy().get());
-            List<String> groupBy = scala.collection.JavaConverters.seqAsJavaList(statement.groupBy().get());
-            Assert.assertEquals(1, groupBy.size());
-            Assert.assertEquals("s2".toLowerCase(Locale.ROOT),
-                    ClickHouseUtils.removeLeadingAndTrailingQuotes(groupBy.get(0)).toLowerCase(Locale.ROOT));
-
+            ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
             Assert.assertEquals(1, shardJDBCScan.relation().parts().length);
-            log.info(statement.toSQL(null));
+            List<String> expected = ImmutableList.of("s2");
+            ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
             return true;
         });
         Assert.assertTrue(result);
@@ -152,17 +144,10 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             List<Row> results = dataset.collectAsList();
             Assert.assertEquals(expectedRow, results);
 
-            ShardJDBCScan shardJDBCScan = ClickHouseUtils.getShardScan(dataset.queryExecution().optimizedPlan());
-            SingleSQLStatement statement = shardJDBCScan.pushedStatement();
-
-            Assert.assertNotNull(statement);
-            Assert.assertNotNull(statement.groupBy().get());
-            List<String> groupBy = scala.collection.JavaConverters.seqAsJavaList(statement.groupBy().get());
-            Assert.assertEquals(1, groupBy.size());
-            Assert.assertEquals("s2".toLowerCase(Locale.ROOT),
-                    ClickHouseUtils.removeLeadingAndTrailingQuotes(groupBy.get(0)).toLowerCase(Locale.ROOT));
-            log.info(statement.toSQL(null));
+            ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
             Assert.assertEquals(2, shardJDBCScan.relation().parts().length);
+            List<String> expected = ImmutableList.of("s2");
+            ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
             return true;
         });
     }
