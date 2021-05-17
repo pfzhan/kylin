@@ -134,7 +134,7 @@
               <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
               <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
                 <template slot-scope="scope">
-                  <span class="data-size-text">{{scope.row.data_size | dataSize}}</span>
+                  <span class="data-size-text">{{formatDataSize(scope.row.data_size)}}</span>
                   <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
                 </template>
               </el-table-column>
@@ -383,6 +383,16 @@ export default class ModelAggregate extends Vue {
   //     aggIndexAdvancedDesc: null
   //   })
   // }
+
+  formatDataSize (dataSize) {
+    const [size = +size, ext] = this.$root.$options.filters.dataSize(dataSize).split(' ')
+    const intType = ['B', 'KB']
+    if (intType.includes(ext)) {
+      return `${Math.round(size)} ${ext}`
+    } else {
+      return `${size.toFixed(1)} ${ext}`
+    }
+  }
 
   async complementedIndexes (indexType, id) {
     let title = this.$t('buildIndex')

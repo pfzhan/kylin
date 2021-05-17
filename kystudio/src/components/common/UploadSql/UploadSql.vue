@@ -153,7 +153,7 @@
         </el-tabs>
       </div>
       <span slot="footer" class="dialog-footer">
-        <div class="ksd-fleft" v-if="uploadFlag==='step3'">
+        <div class="ksd-fleft" v-if="uploadFlag==='step3' && (isShowSuggestModels || isShowTabModels && modelType === 'suggest')">
           <el-checkbox v-model="addBaseIndex">
             <span>{{$t('addBaseIndexCheckBox')}}</span>
           </el-checkbox>

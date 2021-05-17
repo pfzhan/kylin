@@ -169,7 +169,7 @@
 
           </template>
         </el-table-column>
-        <el-table-column width="140px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+        <el-table-column width="150px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
             <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom">
               <el-button type="primary" class="rec-btn" text icon="el-ksd-icon-wizard_22" @click.stop="jumpToRecommendation(scope.row)">{{scope.row.recommendations_count}}</el-button>
@@ -213,7 +213,7 @@
           :label="$t('rowCount')">
           <template slot-scope="scope">
             <div>{{sliceNumber(scope.row.source)}}</div>
-            <div class="update-time ksd-fs-12" v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</div>
+            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
           </template>
         </el-table-column>
         <el-table-column
@@ -622,7 +622,7 @@ export default class ModelList extends Vue {
     if (columnIndex === 0) {
       return 'model-alias-item'
     }
-    if (columnIndex === 2) {
+    if (column.label && column.label === this.$t('kylinLang.common.fact')) {
       return 'fact-table-title'
     }
   }
@@ -1175,6 +1175,7 @@ export default class ModelList extends Vue {
       }
     }
     .update-time {
+      width: 100%;
       color: @text-disabled-color;
       overflow: hidden;
       text-overflow: ellipsis;

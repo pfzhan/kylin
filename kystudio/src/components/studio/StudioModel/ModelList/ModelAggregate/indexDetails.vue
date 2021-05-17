@@ -9,7 +9,7 @@
     @close="resetDetail"
     :visible="true">
     <div class="ksd-mb-10 ksd-fs-12 indexes-content-details">
-      <span>{{$t(detailType === 'aggDetail' ? 'customAggIndex' : 'customTableIndex')}}
+      <span>{{$t(cuboidData.source) + $t('kylinLang.common.colon')}}
         <span v-if="detailType === 'aggDetail' && cuboidDetail.cuboidContent">{{$t('indexContentTips', {dimensionNum: cuboidDetail.cuboidContent.filter(it => it.type === 'dimension').length, measureNum: cuboidDetail.cuboidContent.filter(it => it.type === 'measure').length})}}</span>
         <span v-else-if="detailType !== 'aggDetail' && cuboidData.col_order">{{$t('tableIndexContentTip', {num: cuboidData.col_order.length})}}</span>
       </span>
