@@ -114,7 +114,6 @@ import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CreateModelResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.InvalidIndexesResponse;
@@ -238,7 +237,8 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "createModel", tags = { "AI" })
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
-    public EnvelopeResponse<CreateModelResponse> createModel(@RequestBody ModelRequest modelRequest) throws Exception {
+    public EnvelopeResponse<BuildBaseIndexResponse> createModel(@RequestBody ModelRequest modelRequest)
+            throws Exception {
         checkProjectName(modelRequest.getProject());
         validatePartitionDesc(modelRequest.getPartitionDesc());
         String partitionDateFormat = modelRequest.getPartitionDesc() == null ? null
@@ -246,8 +246,8 @@ public class NModelController extends NBasicController {
         validateDataRange(modelRequest.getStart(), modelRequest.getEnd(), partitionDateFormat);
         try {
             NDataModel model = modelService.createModel(modelRequest.getProject(), modelRequest);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, new CreateModelResponse(
-                    modelService.getIndexPlan(model.getId(), model.getProject()).getBaseIndexCount()), "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                    BuildBaseIndexResponse.from(modelService.getIndexPlan(model.getId(), model.getProject())), "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e);
         }

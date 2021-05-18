@@ -26,9 +26,12 @@ package io.kyligence.kap.rest.response;
 
 import static io.kyligence.kap.metadata.model.NDataModel.MEASURE_ID_BASE;
 
+import java.util.Set;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -47,8 +50,17 @@ public class BuildBaseIndexResponse extends BasicResponse {
     @JsonProperty("base_agg_index")
     private IndexInfo aggIndex;
 
-    public void addLayout(LayoutEntity baseLayout) {
+    public static BuildBaseIndexResponse from(IndexPlan indexPlan) {
+        BuildBaseIndexResponse response = new BuildBaseIndexResponse();
+        response.addLayout(indexPlan.getBaseAggLayout());
+        response.addLayout(indexPlan.getBaseTableLayout());
+        return response;
+    }
 
+    public void addLayout(LayoutEntity baseLayout) {
+        if (baseLayout == null) {
+            return;
+        }
         IndexInfo info = new IndexInfo();
 
         info.setDimCount((int) baseLayout.getColOrder().stream().filter(id -> id < MEASURE_ID_BASE).count());
@@ -60,7 +72,6 @@ public class BuildBaseIndexResponse extends BasicResponse {
             aggIndex = info;
         }
         info.setLayoutId(baseLayout.getId());
-
     }
 
     public void judgeIndexOperateType(boolean previousExist, boolean isAgg) {
@@ -70,6 +81,17 @@ public class BuildBaseIndexResponse extends BasicResponse {
                 index.setOperateType(OperateType.UPDATE);
             } else {
                 index.setOperateType(OperateType.CREATE);
+            }
+        }
+    }
+
+    public void setIndexUpdateType(Set<Long> ids) {
+        for (long id : ids) {
+            if (IndexEntity.isAggIndex(id) && aggIndex != null) {
+                aggIndex.setOperateType(OperateType.UPDATE);
+            }
+            if (IndexEntity.isTableIndex(id) && tableIndex != null) {
+                tableIndex.setOperateType(OperateType.UPDATE);
             }
         }
     }
@@ -87,7 +109,7 @@ public class BuildBaseIndexResponse extends BasicResponse {
         private long layoutId;
 
         @JsonProperty("operate_type")
-        private OperateType operateType;
+        private OperateType operateType = OperateType.CREATE;
     }
 
     private enum OperateType {

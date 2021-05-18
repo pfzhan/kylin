@@ -654,8 +654,10 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setTotalIndexes(
                             getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
                     nDataModelResponse.setEmptyIndexesCount(getEmptyIndexesCount(projectName, modelDesc.getId()));
-                    nDataModelResponse.setBaseIndexCount(
-                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getBaseIndexCount());
+                    nDataModelResponse.setHasBaseAggIndex(
+                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).containBaseAggLayout());
+                    nDataModelResponse.setHasBaseTableIndex(
+                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).containBaseTableLayout());
                 }
                 filterModels.add(nDataModelResponse);
             }

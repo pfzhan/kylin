@@ -115,8 +115,11 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("last_build_time")
     private long lastBuildTime;
 
-    @JsonProperty("base_index_count")
-    private int baseIndexCount;
+    @JsonProperty("has_base_table_index")
+    private boolean hasBaseTableIndex;
+
+    @JsonProperty("has_base_agg_index")
+    private boolean hasBaseAggIndex;
 
     @JsonProperty("second_storage_size")
     private long secondStorageSize;

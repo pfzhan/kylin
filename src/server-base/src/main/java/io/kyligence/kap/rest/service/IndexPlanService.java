@@ -966,7 +966,9 @@ public class IndexPlanService extends BasicService {
             return BuildBaseIndexResponse.EMPTY;
         }
 
-        return createBaseIndex(project, request);
+        BuildBaseIndexResponse response = createBaseIndex(project, request);
+        response.setIndexUpdateType(needDelete);
+        return response;
     }
 
     private Set<Long> checkNeedUpdateBaseIndex(String project, CreateBaseIndexRequest request, boolean isAuto) {
