@@ -67,8 +67,9 @@ public class AsyncQueryJob extends NSparkExecutable {
     private static final String MODEL = "/model_desc";
     private static final String TABLE = "/table";
     private static final String TABLE_EXD = "/table_exd";
+    private static final String ACL = "/acl";
     private static final String[] META_DUMP_LIST = new String[] { DATAFLOW, DATAFLOW_DETAIL, INDEX_PLAN, MODEL, TABLE,
-            TABLE_EXD };
+            TABLE_EXD, ACL };
 
     @Override
     protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
