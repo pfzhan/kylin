@@ -28,7 +28,8 @@ export default {
     viewAllPartition: 'View All',
     preStep: 'Previous',
     undefinedPartitionColErrorTip: 'This source table has no partition set yet.',
-    emptyPartitionSettingTip: 'The snapshots of the selected tables have already been added. Please select again.'
+    emptyPartitionSettingTip: 'The snapshots of the selected tables have already been added. Please select again.',
+    repairSnapshotTitle: 'Snapshot Repair'
   },
   'zh-cn': {
     addSnapshotTitle: '添加快照',
@@ -59,6 +60,7 @@ export default {
     viewAllPartition: '查看全部',
     preStep: '上一步',
     undefinedPartitionColErrorTip: '该源表未定义分区。',
-    emptyPartitionSettingTip: '已选的表的快照均已添加，请重新选择。'
+    emptyPartitionSettingTip: '已选的表的快照均已添加，请重新选择。',
+    repairSnapshotTitle: '快照修复'
   }
 }

@@ -17,12 +17,14 @@
         <el-button type="primary" class="ksd-mr-8 ksd-fleft" icon="el-ksd-icon-add_22" @click="addSnapshot">{{$t('snapshot')}}</el-button>
         <div class="ke-it-other_actions ksd-fleft">
           <el-button type="primary" text icon="el-ksd-icon-refresh_22" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button type="primary" text icon="el-ksd-icon-table_delete_22" class="ksd-ml-2" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button type="primary" text icon="el-ksd-icon-table_delete_22" :disabled="!multipleSelection.length || hasEventAuthority('delete')" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button type="primary" text icon="el-ksd-icon-repair_22" :disabled="!multipleSelection.length || hasEventAuthority('repair')" @click="repairSnapshot">{{$t('kylinLang.common.repair')}}</el-button>
         </div>
       </div>
       <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
     </div>
     <el-table class="ksd-mt-16 snapshot-table ke-it-snapshot_table"
+      v-scroll-shadow
       :data="snapshotTables"
       @sort-change="sortSnapshotList"
       :default-sort = "{prop: 'last_modified_time', order: 'descending'}"
@@ -65,7 +67,7 @@
         <template slot-scope="scope">
           <div class="partition-values" v-if="!loadingSnapshotTable">
             <span class="content" v-custom-tooltip="{text: scope.row.select_partition_col, w: 20, tableClassName: 'snapshot-table'}">{{scope.row.select_partition_col || $t('noPartition')}}</span>
-            <i @click="editPartitionColumn(scope.row)" class="el-icon-ksd-table_edit"></i>
+            <i @click="editPartitionColumn(scope.row)" :class="['el-icon-ksd-table_edit', {'is-disabled': scope.row.status === 'BROKEN'}]"></i>
           </div>
         </template>
       </el-table-column>
@@ -308,7 +310,7 @@ import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
 export default class Snapshot extends Vue {
   pageRefTags = pageRefTags
   snapshotTables = []
-  allStatus = ['ONLINE', 'LOADING', 'REFRESHING']
+  allStatus = ['ONLINE', 'LOADING', 'REFRESHING', 'BROKEN']
   filter = {
     page_offset: 0,
     page_size: +localStorage.getItem(this.pageRefTags.snapshotPager) || 20,
@@ -422,12 +424,14 @@ export default class Snapshot extends Vue {
     this.getSnapshotList()
   }
   getTagType (row) {
-    if (row.status === 'ONLINE') {
-      return 'success'
-    } else if (row.status === 'WARNING') {
-      return 'warning'
-    } else if (['LOCKED'].includes(row.status)) {
-      return 'info'
+    let map = {
+      ONLINE: 'success',
+      WARNING: 'warning',
+      LOCKED: 'info',
+      BROKEN: 'danger'
+    }
+    if (row.status in map) {
+      return map[row.status]
     } else {
       return ''
     }
@@ -439,6 +443,10 @@ export default class Snapshot extends Vue {
     }
     if (type === 'refresh') {
       return typeList(['ONLINE'])
+    } else if (type === 'delete') {
+      return typeList(['ONLINE', 'LOADING', 'REFRESHING'])
+    } else if (type === 'repair') {
+      return typeList(['BROKEN'])
     }
   }
   filterContent (val, type) {
@@ -583,6 +591,7 @@ export default class Snapshot extends Vue {
     })
     this.getSnapshotList()
   }
+
   async callGlobalDetail (targetTables, msg, title, type, submitText) {
     const tableData = []
     targetTables.forEach((t) => {
@@ -605,7 +614,7 @@ export default class Snapshot extends Vue {
     })
   }
   async addSnapshot (filterText) {
-    const isSubmit = await this.showSnapshotModelDialog()
+    const isSubmit = await this.showSnapshotModelDialog({})
     if (isSubmit) {
       this.getSnapshotList()
     }
@@ -628,6 +637,13 @@ export default class Snapshot extends Vue {
     this.filter.page_offset = size
     this.filter.page_size = count
     this.getSnapshotList()
+  }
+  async repairSnapshot () {
+    const data = this.multipleSelection
+    const isSubmit = await this.showSnapshotModelDialog({type: 'repair', data})
+    if (isSubmit) {
+      this.getSnapshotList()
+    }
   }
 }
 </script>
@@ -678,6 +694,10 @@ export default class Snapshot extends Vue {
         right: 0;
         vertical-align: top;
         margin-top: 5px;
+        &.is-disabled {
+          color: @text-disabled-color;
+          pointer-events: none;
+        }
       }
     }
   }

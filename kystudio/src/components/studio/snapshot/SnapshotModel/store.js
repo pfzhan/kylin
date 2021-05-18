@@ -10,7 +10,9 @@ const types = {
 const initialState = JSON.stringify({
   isShow: false,
   isGenerateModel: false,
-  callback: null
+  callback: null,
+  type: 'new',
+  repairData: null
 })
 
 export default {
@@ -27,6 +29,8 @@ export default {
     },
     [types.SET_MODAL]: (state, payload) => {
       state.callback = payload.callback
+      state.type = payload.type
+      state.repairData = payload.data
     },
     // 还原Modal中的值为初始值
     [types.RESET_MODAL_FORM]: (state, payload) => {
@@ -34,9 +38,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }) {
+    [types.CALL_MODAL] ({ commit }, {type, data}) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { callback: resolve })
+        commit(types.SET_MODAL, { callback: resolve, type: type || 'new', data: data || null })
         commit(types.SHOW_MODAL)
       })
     }

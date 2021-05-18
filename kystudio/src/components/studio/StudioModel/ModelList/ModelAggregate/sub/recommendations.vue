@@ -9,7 +9,7 @@
         <el-button text :disabled="!selectedList.length" @click="betchAccept" type="primary" icon="el-ksd-icon-confirm_22">{{$t('accept')}}</el-button><el-button text :disabled="!selectedList.length" type="primary" @click="betchDelete" icon="el-ksd-icon-table_delete_22">{{$t('delete')}}</el-button>
       </div>
       <div class="search-contain ksd-fright ksd-mt-10">
-        <el-input class="search-input" v-model.trim="recommendationsList.key" size="small" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
+        <el-input class="search-input" v-model.trim="recommendationsList.key" size="medium" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
       </div>
       <el-table
         nested

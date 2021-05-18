@@ -8,7 +8,7 @@
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @close="handleClose"
-      :title="step === 'one' ? $t('addSnapshotTitle') : $t('sourceTablePartitionSetting')"
+      :title="type === 'repair' ? $t('repairSnapshotTitle') : step === 'one' ? $t('addSnapshotTitle') : $t('sourceTablePartitionSetting')"
       class="add-snapshot-dialog ke-it-add_snapshot_dialog">
       <div class="add-snapshot clearfix" :class="{'zh-lang': $store.state.system.lang !== 'en'}" v-if="step === 'one'">
         <div class="list clearfix">
@@ -146,15 +146,15 @@
             :pageSize="partitionColumnData.page_size"
             @current-change="pageCurrentChange"
             class="ksd-center ksd-mt-10"
-            v-show="partitionColumnData.list.length">
+            v-show="partitionColumnData.list.length && type !== 'repair'">
           </el-pagination>
         </template>
       </div>
       <span slot="footer" class="dialog-footer ky-no-br-space ke-it-btns">
         <el-button plain size="medium" v-if="step === 'one'" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" :disabled="!selectedTables.length && !selectedDatabases.length" :loading="submitLoading" v-if="step === 'one'" @click="submit">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button plain size="medium" v-if="step === 'two'" @click="handlerPrevStep">{{$t('preStep')}}</el-button>
-        <el-button type="primary" size="medium" :loading="submitLoading" v-if="step === 'two'" @click="submitPartition">{{$t('kylinLang.common.add')}}</el-button>
+        <el-button plain size="medium" v-if="step === 'two' && type === 'new'" @click="handlerPrevStep">{{$t('preStep')}}</el-button>
+        <el-button type="primary" size="medium" :loading="submitLoading" v-if="step === 'two'" :disabled="!partitionColumnData.list.length" @click="submitPartition">{{$t('kylinLang.common.add')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -184,7 +184,9 @@ vuex.registerModule(['modals', 'SnapshotModel'], store)
     // Store数据注入
     ...mapState('SnapshotModel', {
       isShow: state => state.isShow,
-      callback: state => state.callback
+      callback: state => state.callback,
+      type: state => state.type,
+      repairData: state => state.repairData
     }),
     ...mapState({
       // loadHiveTableNameEnabled: state => state.system.loadHiveTableNameEnabled
@@ -245,7 +247,8 @@ export default class SnapshotModel extends Vue {
     list: [],
     page_offset: 0,
     page_size: 10,
-    total_size: 0
+    total_size: 0,
+    excludeBroken: true
   }
   partitionOptions = {}
   emptyPartitionSetting = false
@@ -263,7 +266,14 @@ export default class SnapshotModel extends Vue {
   @Watch('isShow')
   onDialogOpen (val) {
     if (val) {
-      this.loadDatabaseAndTables()
+      if (this.type === 'repair') {
+        this.step = 'two'
+        this.selectedTables = this.repairData.map(it => `${it.database}.${it.table}`)
+        this.partitionColumnData.excludeBroken = false
+        this.getPartitionColumns()
+      } else {
+        this.loadDatabaseAndTables()
+      }
     }
   }
   async loadDatabaseAndTables (filterText) {
@@ -526,6 +536,7 @@ export default class SnapshotModel extends Vue {
     this.partitionOptions = {}
     this.partitionColumnData.page_offset = 0
     this.partitionColumnData.list = []
+    this.partitionColumnData.excludeBroken = true
     this.step = 'one'
   }
   handleClose (isSubmit) {
@@ -566,9 +577,9 @@ export default class SnapshotModel extends Vue {
   }
   async getPartitionColumns () {
     return new Promise(async (resolve, reject) => {
-      const {page_offset, page_size} = this.partitionColumnData
+      const {page_offset, page_size, excludeBroken} = this.partitionColumnData
       try {
-        const res = await this.fetchPartitionConfig({project: this.currentSelectedProject, table_pattern: this.searchDBOrTableName, tables: this.selectedTables.join(','), databases: this.selectedDatabases.join(','), page_offset, page_size, include_exist: false})
+        const res = await this.fetchPartitionConfig({project: this.currentSelectedProject, table_pattern: this.searchDBOrTableName, tables: this.selectedTables.join(','), databases: this.selectedDatabases.join(','), page_offset, page_size, include_exist: false, exclude_broken: excludeBroken})
         const results = await handleSuccessAsync(res)
         this.partitionColumnData.list = results.value.map(item => {
           let partition_column = ''
