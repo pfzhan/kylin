@@ -156,8 +156,10 @@ public class AsyncQueryJob extends NSparkExecutable {
                     metadataDumpSet.addAll(resourceStore.listResourcesRecursively("/" + getProject() + mata));
                 }
             }
-            config.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()).toString());
-            MetadataStore.createMetadataStore(config).dump(ResourceStore.getKylinMetaStore(config), metadataDumpSet);
+            KylinConfig configCopy = KylinConfig.createKylinConfig(config);
+            configCopy.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()).toString());
+            MetadataStore.createMetadataStore(configCopy).dump(ResourceStore.getKylinMetaStore(config),
+                    metadataDumpSet);
         } catch (Exception e) {
             throw new ExecuteException("kylin properties or meta dump failed", e);
         }
