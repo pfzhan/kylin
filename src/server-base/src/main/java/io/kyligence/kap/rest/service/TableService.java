@@ -1500,7 +1500,7 @@ public class TableService extends BasicService {
         if (context.isChanged(originTable)) {
             targetTable.setLastSnapshotPath(null);
             val tableIdentity = targetTable.getIdentity();
-            targetTable.deleteSnapshot();
+            targetTable.deleteSnapshot(true);
             stopSnapshotJobs(projectName, tableIdentity);
         } else {
             targetTable.copySnapshotFrom(originTable);

@@ -30,12 +30,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
-
-import com.google.common.collect.ImmutableSet;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.rest.request.SnapshotRequest;
-import io.kyligence.kap.rest.response.SnapshotColResponse;
 import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
@@ -62,10 +58,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -73,10 +71,13 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.SnapshotConfigRequest;
+import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.SnapshotCheckResponse;
+import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
+import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
 import lombok.val;
 
 public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
@@ -197,6 +198,26 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
             actual = e.getCause().getMessage();
         }
         Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testFixBrokenSnapshot() {
+        enableSnapshotManualManagement();
+        String partColName = "CAL_DT";
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+            TableDesc copy = tbgr.copyForWrite(tbgr.getTableDesc(tableName));
+            copy.setSnapshotHasBroken(true);
+            tbgr.updateTableDesc(copy);
+            return null;
+        }, PROJECT);
+        TableDesc table = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName);
+        Assert.assertTrue(table.isSnapshotHasBroken());
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(), Sets.newHashSet(tableName), Maps.newHashMap(), false,
+                1);
+        table = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName);
+        Assert.assertTrue(!table.isSnapshotHasBroken());
     }
 
     @Test
@@ -327,7 +348,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     public void testGetProjectSnapshots() {
         enableSnapshotManualManagement();
         String tablePattern = "SSB";
-        Set<String> statusFilter = Sets.newHashSet("ONLINE");
+        Set<SnapshotStatus> statusFilter = Sets.newHashSet(SnapshotStatus.ONLINE);
         String sortBy = "";
         setSnapshotPath("SSB.LINEORDER", "some_path");
         setSnapshotPath("SSB.P_LINEORDER", "some_path");
@@ -442,6 +463,44 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
                 null, false);
         Assert.assertEquals(1, response.size());
         Assert.assertEquals(partColName, response.get(0).getPartitionCol());
+    }
+
+    @Test
+    public void testGetBrokenSnapshotCol() {
+        enableSnapshotManualManagement();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+            TableDesc copy = tbgr.copyForWrite(tbgr.getTableDesc(tableName));
+            copy.setSnapshotHasBroken(true);
+            tbgr.updateTableDesc(copy);
+            return null;
+        }, PROJECT);
+        List<SnapshotColResponse> responses = snapshotService.getSnapshotCol(PROJECT, null, Sets.newHashSet("DEFAULT"),
+                null, false, true);
+        Assert.assertEquals(10, responses.size());
+        responses = snapshotService.getSnapshotCol(PROJECT, null, Sets.newHashSet("DEFAULT"), null, false, false);
+        Assert.assertEquals(11, responses.size());
+        responses = snapshotService.getSnapshotCol(PROJECT, Sets.newHashSet("DEFAULT.TEST_KYLIN_FACT"), null, null,
+                false, false);
+        Assert.assertEquals(1, responses.size());
+        Assert.assertEquals("TEST_KYLIN_FACT", responses.get(0).getTable());
+    }
+
+    @Test
+    public void testGetBrokenSnapshot() {
+        enableSnapshotManualManagement();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+            TableDesc copy = tbgr.copyForWrite(tbgr.getTableDesc(tableName));
+            copy.setSnapshotHasBroken(true);
+            tbgr.updateTableDesc(copy);
+            return null;
+        }, PROJECT);
+        List<SnapshotInfoResponse> responses = snapshotService.getProjectSnapshots(PROJECT, null,
+                Sets.newHashSet(SnapshotStatus.BROKEN), Sets.newHashSet(), null, true);
+        Assert.assertEquals(1, responses.size());
     }
 
     @Test

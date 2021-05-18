@@ -63,6 +63,7 @@ import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.SnapshotService;
+import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -93,6 +94,7 @@ public class NSnapshotController extends NBasicController {
             @RequestParam(value = "databases", required = false, defaultValue = "") Set<String> databases,
             @RequestParam(value = "table_pattern", required = false, defaultValue = "") String tablePattern,
             @RequestParam(value = "include_exist", required = false, defaultValue = "true") boolean includeExistSnapshot,
+            @RequestParam(value = "exclude_broken", required = false, defaultValue = "true") boolean excludeBroken,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         project = checkProjectName(project);
@@ -100,7 +102,7 @@ public class NSnapshotController extends NBasicController {
         checkNonNegativeIntegerArg("page_size", limit);
 
         List<SnapshotColResponse> responses = snapshotService.getSnapshotCol(project, tables, databases, tablePattern,
-                includeExistSnapshot);
+                includeExistSnapshot, excludeBroken);
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
@@ -181,7 +183,7 @@ public class NSnapshotController extends NBasicController {
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "status", required = false, defaultValue = "") Set<String> statusFilter,
+            @RequestParam(value = "status", required = false, defaultValue = "") Set<SnapshotStatus> statusFilter,
             @RequestParam(value = "partition", required = false, defaultValue = "") Set<Boolean> partitionFilter,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean isReversed) {

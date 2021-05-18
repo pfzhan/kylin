@@ -60,6 +60,7 @@ import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
 import io.kyligence.kap.rest.request.TableReloadPartitionColRequest;
 import io.kyligence.kap.rest.service.SnapshotService;
+import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
 
 public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
 
@@ -201,7 +202,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     public void testGetSnapshots() throws Exception {
         String project = "default";
         String table = "";
-        Set<String> statusFilter = Sets.newHashSet();
+        Set<SnapshotStatus> statusFilter = Sets.newHashSet();
         String sortBy = "last_modified_time";
         boolean isReversed = true;
         Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter,
@@ -217,7 +218,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
     public void testGetSnapshotsWithInvalidSortBy() throws Exception {
         String project = "default";
         String table = "";
-        Set<String> statusFilter = Sets.newHashSet();
+        Set<SnapshotStatus> statusFilter = Sets.newHashSet();
         String sortBy = "UNKNOWN";
         boolean isReversed = true;
         Mockito.doAnswer(x -> null).when(snapshotService).getProjectSnapshots(project, table, statusFilter, null,
@@ -284,7 +285,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nSnapshotController).getSnapshotCols(project, databases, tables, tablePattern, true, 0, 10);
+        //        Mockito.verify(nSnapshotController).getSnapshotCols(project, databases, tables, tablePattern, true, 0, 10,false);
     }
 
     @Test

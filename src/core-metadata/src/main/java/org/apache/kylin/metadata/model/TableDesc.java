@@ -198,6 +198,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonProperty("temp_snapshot_path")
     private String tempSnapshotPath;
 
+    @Setter
+    @Getter
+    @JsonProperty("snapshot_has_broken")
+    private boolean snapshotHasBroken;
+
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
@@ -233,7 +238,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.selectedSnapshotPartitionCol = other.selectedSnapshotPartitionCol;
         this.snapshotPartitionCol = other.snapshotPartitionCol;
         this.snapshotLastModified = other.getSnapshotLastModified();
-
+        this.snapshotHasBroken = other.snapshotHasBroken;
 
         setMvcc(other.getMvcc());
     }
@@ -509,12 +514,13 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.tableType = tableType;
     }
 
-    public void deleteSnapshot() {
+    public void deleteSnapshot(boolean makeBroken) {
         this.lastSnapshotPath = null;
         snapshotPartitionCol = null;
         snapshotPartitions = Maps.newHashMap();
         selectedSnapshotPartitionCol = null;
         lastSnapshotSize = 0;
+        snapshotHasBroken = makeBroken;
     }
 
     public void copySnapshotFrom(TableDesc originTable) {
@@ -523,6 +529,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         setSnapshotPartitionCol(originTable.getSnapshotPartitionCol());
         setSelectedSnapshotPartitionCol(originTable.getSelectedSnapshotPartitionCol());
         setSnapshotLastModified(originTable.getSnapshotLastModified());
+        setSnapshotHasBroken(originTable.isSnapshotHasBroken());
     }
 
     public void resetSnapshotPartitions(Set<String> snapshotPartitions) {
