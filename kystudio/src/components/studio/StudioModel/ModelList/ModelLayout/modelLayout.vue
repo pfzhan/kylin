@@ -1,8 +1,8 @@
 <template>
   <div class="model-layout">
     <div class="header-layout">
-      <span class="title"><i class="el-ksd-icon-arrow_left_22 ksd-fs-22" @click="jumpBack"></i>
-        <span>{{modelName}}<i class="el-ksd-icon-arrow_down_16 icon--right" @click="showModelList = !showModelList"></i></span>
+      <div class="title"><el-button type="primary" text icon-button-mini icon="el-ksd-icon-arrow_left_16" size="small" @click="jumpBack"></el-button>
+        <span class="model-name"><span class="ksd-fs-16">{{modelName}}</span><el-button type="primary" text @click.stop="showModelList = !showModelList" icon-button-mini icon="el-ksd-icon-arrow_down_16" size="small"></el-button></span>
         <div class="model-filter-list" v-if="showModelList">
           <div class="search-bar"><el-input class="search-model-input" v-model="searchModelName" size="small" :placeholder="$t('kylinLang.common.pleaseInput')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchModel" @clear="searchModel()"></el-input></div>
           <div class="model-list" v-loading="showSearchResult">
@@ -17,7 +17,7 @@
             </template>
           </div>
         </div>
-      </span>
+      </div>
       <model-actions
         v-if="currentModelRow"
         @jump:recommendation="jumpToRecommendation"
@@ -197,8 +197,8 @@ export default class ModelLayout extends Vue {
   currentIndexTab = 'indexOverview'
   modelName = ''
   searchModelName = ''
-  showModelList = false
   buildVisible = {}
+  showModelList = false
   showSearchResult = false
 
   created () {
@@ -433,14 +433,22 @@ export default class ModelLayout extends Vue {
     .header-layout {
       height: 56px;
       width: 100%;
-      padding: 0 10px;
+      padding: 0 14px;
       box-sizing: border-box;
       line-height: 56px;
       // box-shadow: 1px 1px 4px #ccc;
       border-bottom: 1px solid #ECF0F8;
       background-color: @ke-background-color-secondary;
       .title {
+        display: inline-block;
+        height: 100%;
         font-weight: 600;
+        .el-button {
+          vertical-align: middle;
+        }
+        .model-name {
+          margin-left: -5px;
+        }
         i {
           cursor: pointer;
         }

@@ -130,10 +130,11 @@
             <li class="ksd-mr-22"><change_lang ref="changeLangCom"></change_lang></li>
             <li>
               <el-dropdown @command="handleCommand" class="user-msg-dropdown">
-                <span class="el-dropdown-link">
-                  <!-- <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i> -->
+                <!-- <span class="el-dropdown-link">
+                  <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i>
                   <span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
-                </span>
+                </span> -->
+                <el-button type="primary" text iconr="el-ksd-icon-arrow_table_down_22"><span class="limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span></el-button>
                 <el-dropdown-menu slot="dropdown">
                   <div class="user-name">{{ currentUserInfo && currentUserInfo.username }}</div>
                   <el-dropdown-item command="setting">{{$t('kylinLang.common.changePassword')}}</el-dropdown-item>
@@ -1395,6 +1396,9 @@ export default class LayoutLeftRightTop extends Vue {
                 margin-right: 10px;
                 border-right: 1px solid @ke-border-secondary;
               }
+              &:last-child {
+                margin-right: 10px;
+              }
             }
             .active-nodes {
               font-size: 12px;
@@ -1417,7 +1421,7 @@ export default class LayoutLeftRightTop extends Vue {
               }
             }
             .user-msg-dropdown {
-              height: 24px;
+              // height: 24px;
               .el-dropdown-link {
                 height: 100%;
                 display: inline-block;
@@ -1499,7 +1503,7 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
   .limit-user-name {
-    height: 20px;
+    // height: 20px;
     display: inline-block;
     overflow: hidden;
     text-overflow: ellipsis;

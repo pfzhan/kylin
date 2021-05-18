@@ -159,7 +159,7 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && modelInstance.base_index_count !== 2))">
+      <div class="ksd-fleft" v-if="modelInstance && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && (!modelInstance.has_base_table_index || !modelInstance.has_base_agg_index)))">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>

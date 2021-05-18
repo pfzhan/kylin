@@ -7,15 +7,15 @@
       </common-tip>
     </template>
     <template v-else>
-      <common-tip :content="$t('kylinLang.common.edit')" v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('modelActions')" :disabled="!!editText">
-        <span v-if="!editText" class="item ksd-mr-10" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-edit_22']"></i></span>
+      <common-tip :content="$t('kylinLang.common.edit')" class="ksd-mr-8" v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('modelActions')" :disabled="!!editText">
+        <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-edit_22']"></i></span>
         <el-button v-else class="item" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-edit_22" type="primary" text>{{editText}}</el-button>
       </common-tip>
-      <common-tip :content="$t('kylinLang.common.repair')" v-if="currentModel.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')" :disabled="!!editText">
-        <span v-if="!editText" class="item ksd-mr-10" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-repair_22']"></i></span>
+      <common-tip :content="$t('kylinLang.common.repair')" class="ksd-mr-8" v-if="currentModel.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')" :disabled="!!editText">
+        <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-repair_22']"></i></span>
         <el-button v-else class="item" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-repair_22" type="primary" text>{{editText}}</el-button>
       </common-tip>
-      <common-tip :disabled="!!buildText" :content="(!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc) ? $t('multilParTip') : currentModel.total_indexes ? $t('build') : $t('noIndexTips')" v-if="currentModel.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
+      <common-tip :disabled="!!buildText" class="ksd-mr-8" :content="(!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc) ? $t('multilParTip') : currentModel.total_indexes ? $t('build') : $t('noIndexTips')" v-if="currentModel.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
         <el-popover
           ref="popoverBuild"
           placement="bottom-end"
@@ -27,13 +27,13 @@
             <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(currentModel.uuid)">{{$t('iKnow')}}</el-button>
           </div>
         </el-popover>
-        <span v-if="!buildText" :class="['item', 'ksd-mr-10', {'build-disabled':!currentModel.total_indexes || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}]" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(currentModel)"><i :class="['icon-item', 'el-ksd-icon-build_index_22', {'ksd-mr-5': buildText}]"></i></span>
+        <span v-if="!buildText" :class="['item', {'build-disabled':!currentModel.total_indexes || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}]" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(currentModel)"><i :class="['icon-item', 'el-ksd-icon-build_index_22', {'ksd-mr-5': buildText}]"></i></span>
         <el-button v-else class="item" :disabled="!currentModel.total_indexes || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(currentModel)" icon="el-ksd-icon-build_index_22" type="primary" text>{{buildText}}</el-button>
       </common-tip>
-      <common-tip :content="$t('kylinLang.common.moreActions')" :disabled="!!moreText" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
+      <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-mr-8" :disabled="!!moreText" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
         <el-dropdown @command="(command) => {handleCommand(command, currentModel)}" :id="currentModel.name" trigger="click" >
           <span class="el-dropdown-link" >
-            <span v-if="!moreText" class="item ksd-fs-14 ksd-mr-10"><i :class="['icon-item', otherIcon]"></i></span>
+            <span v-if="!moreText" class="item ksd-fs-14"><i :class="['icon-item', otherIcon]"></i></span>
             <el-button v-else class="item" :icon="otherIcon" type="primary" text>{{moreText}}</el-button>
           </span>
           <el-dropdown-menu slot="dropdown"  :uuid='currentModel.uuid' :append-to-body="appendToBody" :popper-container="'modelListPage'" class="specialDropdown">
@@ -518,6 +518,7 @@ export default class ModelActions extends Vue {
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
 .action-items {
+  font-size: 0;
   .tip_box {
     line-height: inherit !important;
     vertical-align: inherit !important;
@@ -526,7 +527,7 @@ export default class ModelActions extends Vue {
     cursor: pointer;
   }
   .icon-item {
-    font-size: 16px;
+    font-size: 22px;
     vertical-align: middle;
     margin-top: -2px;
     cursor: pointer;

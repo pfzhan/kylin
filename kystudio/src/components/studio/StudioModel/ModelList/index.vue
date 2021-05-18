@@ -2,9 +2,9 @@
   <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
     <div class="ksd-title-page ksd-mt-32" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-page ksd-mt-32" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
-    <div>
+    <div class="ksd-mt-16">
       <div class="clearfix">
-        <div class="ksd-mtb-10 ksd-fright">
+        <div class="ksd-fright">
           <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-ksd-icon-loading_22':'el-ksd-icon-search_22'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
           </el-input>
           <el-button
@@ -20,7 +20,7 @@
           <el-dropdown
             v-guide.addModelBtn
             split-button
-            class="ksd-mtb-10 ksd-fleft"
+            class="ksd-fleft"
             type="primary"
             size="medium"
             id="addModel"
@@ -42,13 +42,13 @@
             </el-dropdown-menu>
           </el-dropdown>
           <common-tip :content="$t('noModelsExport')" v-if="metadataActions.includes('executeModelMetadata')" placement="top" :disabled="!!modelArray.length">
-            <el-button icon="el-ksd-icon-export_22" size="medium" class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
+            <el-button icon="el-ksd-icon-export_22" size="medium" class="ksd-ml-8" :disabled="!modelArray.length" @click="handleExportMetadatas">
               <span>{{$t('exportMetadatas')}}</span>
             </el-button>
           </common-tip>
         </div>
       </div>
-      <div class="table-filters clearfix ksd-mt-15" v-show="isShowFilters">
+      <div class="table-filters clearfix ksd-mt-24" v-show="isShowFilters">
         <DropdownFilter
           type="checkbox"
           trigger="click"
@@ -115,7 +115,9 @@
                 popper-class="status-tooltip"
                 placement="top-start"
                 trigger="hover">
-                <i slot="reference" :class="['filter-status', scope.row.status]" />
+                <template slot="reference">
+                  <span :class="['filter-status', scope.row.status]"></span>
+                </template>
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
                 <div v-if="scope.row.status === 'WARNING' && scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
@@ -171,7 +173,8 @@
         </el-table-column>
         <el-table-column width="150px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
-            <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom">
+            <template v-if="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">-</template>
+            <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom" v-else>
               <el-button type="primary" class="rec-btn" text icon="el-ksd-icon-wizard_22" @click.stop="jumpToRecommendation(scope.row)">{{scope.row.recommendations_count}}</el-button>
               <!-- <span class="recommendation-layout" @click.stop="jumpToRecommendation(scope.row)"><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.recommendations_count}}</span></span> -->
             </el-tooltip>
@@ -929,9 +932,11 @@ export default class ModelList extends Vue {
     this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('willAddIndex')
   }
 
-  modelRowClickEvent (row, args) {
+  modelRowClickEvent (row, e) {
     if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
-    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias, ...args}})
+    if (e.target.localName === 'td' || [...e.target.classList].includes('cell')) {
+      this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
+    }
   }
 
   // 展示 E-R 图
@@ -951,6 +956,8 @@ export default class ModelList extends Vue {
 @import '../../../../assets/styles/variables.less';
 .mode-list{
   position:relative;
+  margin-left: 24px;
+  margin-right: 24px;
   .specialDropdown{
     min-width:96px;
     .el-dropdown-menu__item {
@@ -965,9 +972,9 @@ export default class ModelList extends Vue {
       display: none;
     }
   }
-  .model-list-header {
-    height: 50px;
-  }
+  // .model-list-header {
+  //   height: 50px;
+  // }
   .full-model-slide-fade-enter-active {
     transition: all .3s ease;
   }
@@ -1181,8 +1188,6 @@ export default class ModelList extends Vue {
       text-overflow: ellipsis;
     }
   }
-  margin-left: 20px;
-  margin-right: 20px;
   .row-action {
     right:20px;
     top: 4px;
@@ -1238,6 +1243,9 @@ export default class ModelList extends Vue {
   }
   .table-filters {
     margin-bottom: 8px;
+    >.dropdown-filter {
+      margin-left: -8px;
+    }
     .actions {
       float: right;
       .el-button.is-text {
@@ -1391,7 +1399,7 @@ export default class ModelList extends Vue {
 }
 .status-tooltip {
   min-width: unset;
-  transform: translate(0, 5px);
+  transform: translate(-3px, 0);
   .popper__arrow {
     left: 5px !important;
   }

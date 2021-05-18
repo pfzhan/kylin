@@ -15,34 +15,37 @@
       </span>
       <span><el-tooltip :content="$t('modifiedTime')" placement="top"><i class="el-icon-ksd-type_time"></i></el-tooltip> {{cuboidDetail.modifiedTime || showTableIndexDetail.modifiedTime}}</span>
     </div>
-    <el-table class="cuboid-content" :data="cuboidDetail.cuboidContent" size="small" border v-if="detailType === 'aggDetail'">
-      <el-table-column type="index" :label="$t('order')" width="64">
-      </el-table-column>
-      <el-table-column prop="content" show-overflow-tooltip :label="$t('content')">
-        <template slot-scope="scope">
-          <span>{{scope.row.content}}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="type" :label="$t('kylinLang.query.type')" width="90">
-        <template slot-scope="scope">
-          <span>{{$t('kylinLang.cube.' + scope.row.type)}}</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="cardinality" :label="$t('cardinality')" info-icon="el-ksd-icon-more_info_22" :info-tooltip="$t('cardinalityColumnTips')" sortable>
-        <template slot-scope="scope">
-          <span v-if="scope.row.cardinality">{{scope.row.cardinality}}</span>
-          <span v-else><i class="no-data_placeholder">NULL</i></span>
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="Shard by"
-        align="center"
-        width="80">
-        <template slot-scope="scope">
-            <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.isSharedBy"></i>
-        </template>
-      </el-table-column>
-    </el-table>
+    <template v-if="detailType === 'aggDetail'">
+      <el-table class="cuboid-content" :data="cuboidDetail.cuboidContent" size="small" border>
+        <el-table-column type="index" :label="$t('order')" width="64">
+        </el-table-column>
+        <el-table-column prop="content" show-overflow-tooltip :label="$t('content')">
+          <template slot-scope="scope">
+            <span>{{scope.row.content}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="type" :label="$t('kylinLang.query.type')" width="90">
+          <template slot-scope="scope">
+            <span>{{$t('kylinLang.cube.' + scope.row.type)}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="cardinality" :label="$t('cardinality')" info-icon="el-ksd-icon-more_info_22" :info-tooltip="$t('cardinalityColumnTips')" sortable>
+          <template slot-scope="scope">
+            <span v-if="scope.row.cardinality">{{scope.row.cardinality}}</span>
+            <span v-else><i class="no-data_placeholder">NULL</i></span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="Shard by"
+          align="center"
+          width="80">
+          <template slot-scope="scope">
+              <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.isSharedBy"></i>
+          </template>
+        </el-table-column>
+      </el-table>
+      <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.IndexDetailPager" :perpage_size="currentCount" :curPage="currentAggPage+1" :totalSize="totalAggIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+    </template>
     <div v-else>
         <el-table
         size="small"
@@ -115,13 +118,17 @@ export default class indexDetails extends Vue {
   currentPage = 0
   currentCount = +localStorage.getItem(this.pageRefTags.IndexDetailPager) || 10
   totalTableIndexColumnSize = 0
+  currentAggPage = 0
+  totalAggIndexColumnSize = 0
 
   get cuboidDetail () {
     if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'tabelIndexDetail') {
       return []
     }
     const modifiedTime = transToGmtTime(this.cuboidData.last_modified)
-    const cuboidContent = this.cuboidData.col_order.map(col => ({ content: col.key, type: col.value === 'measure' ? 'measure' : 'dimension', cardinality: col.cardinality, isSharedBy: this.cuboidData.shard_by_columns.includes(col.key) }))
+    const aggIndexList = this.cuboidData.col_order.slice(this.currentCount * this.currentAggPage, this.currentCount * (this.currentAggPage + 1))
+    const cuboidContent = aggIndexList.map(col => ({ content: col.key, type: col.value === 'measure' ? 'measure' : 'dimension', cardinality: col.cardinality, isSharedBy: this.cuboidData.shard_by_columns.includes(col.key) }))
+    this.totalAggIndexColumnSize = this.cuboidData.col_order.length
     return { modifiedTime, cuboidContent }
   }
 

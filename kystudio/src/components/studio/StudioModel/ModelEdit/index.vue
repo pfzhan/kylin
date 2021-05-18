@@ -1650,7 +1650,7 @@ export default class ModelEdit extends Vue {
           this.isPurgeSegment = res.isPurgeSegment // 修改分区列会清空所有segment，该字段引导用户去添加segment
         }
         if (res.isSubmit) {
-          this.handleSaveModel({data, modelSaveConfigData: res.data, createBaseIndex: this.modelInstance.base_index_count === 2 ? false : res.with_base_index})
+          this.handleSaveModel({data, modelSaveConfigData: res.data, createBaseIndex: this.modelInstance.has_base_table_index && this.modelInstance.has_base_agg_index ? false : res.with_base_index})
         } else {
           this.$emit('saveRequestEnd')
         }

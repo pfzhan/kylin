@@ -286,6 +286,7 @@ export default {
     width: 100%;
     position: relative;
     border: 1px solid @ke-border-secondary;
+    box-sizing: border-box;
     // background-color: @aceditor-bg-color;
     border-radius: 6px;
     .ace_print-margin {

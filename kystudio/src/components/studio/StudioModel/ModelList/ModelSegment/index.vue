@@ -55,7 +55,7 @@
     </div>
 
     <div class="segment-views ksd-mb-15">
-      <el-table nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table nested :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom" min-width="180">
@@ -187,7 +187,6 @@
       </div>
       <div class="ksd-mt-20 ksd-title-label-small">{{$t('afterMergeSegment')}}</div>
       <el-table class="ksd-mt-10"
-        border
         nested
         size="small"
         max-height="420"
