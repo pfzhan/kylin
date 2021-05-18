@@ -202,7 +202,8 @@ public class JobService extends BasicService {
             if (StringUtils.isEmpty(subject)) {
                 return true;
             }
-            return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject);
+            return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject)
+                || StringUtils.containsIgnoreCase(abstractExecutable.getId(), subject);
         }).and(abstractExecutable -> {
             List<String> jobNames = jobFilter.getJobNames();
             if (CollectionUtils.isEmpty(jobNames)) {
