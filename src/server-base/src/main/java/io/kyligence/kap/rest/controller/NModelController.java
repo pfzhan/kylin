@@ -172,13 +172,14 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
             @RequestParam(value = "model_attributes", required = false) List<ModelAttributeEnum> modelAttributes,
             @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
-            @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
+            @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo,
+            @RequestParam(value = "only_normal_dim", required = false, defaultValue = "true") boolean onlyNormalDim) {
         checkProjectName(project);
         status = formatStatus(status, ModelStatusToDisplayEnum.class);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
             models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse,
-                    modelAliasOrOwner, lastModifyFrom, lastModifyTo));
+                    modelAliasOrOwner, lastModifyFrom, lastModifyTo, onlyNormalDim));
         } else {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }

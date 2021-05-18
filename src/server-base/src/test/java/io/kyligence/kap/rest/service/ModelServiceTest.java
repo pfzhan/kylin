@@ -170,6 +170,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
@@ -411,6 +412,30 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         models = modelService.getModels("", "default", false, "", null, "expansionrate", true);
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
+    }
+
+    @Test
+    public void testGetNonFlattenModel() {
+        String project = "cc_test";
+        String modelName = "test_model";
+        NDataModelResponse model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
+                .get(0);
+        Assert.assertEquals(8, model.getNamedColumns().size());
+        Assert.assertEquals(8, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel originModel = modelManager.getDataModelDescByAlias(modelName);
+        originModel.getJoinTables().forEach(join -> {
+            join.setFlattenable("NORMALIZED");
+        });
+
+        //if onlyNormalDim set false, getModel can return nonflatten table dimension
+        model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, false)
+                .get(0);
+        Assert.assertEquals(14, model.getNamedColumns().size());
+        Assert.assertEquals(14, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
     }
 
     @Test

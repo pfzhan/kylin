@@ -224,7 +224,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"), "", 0,
-                10, "last_modify", true, null, null, null, null);
+                10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test
@@ -239,7 +239,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
-                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null);
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test
@@ -253,7 +253,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("ONLINE"),
-                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null);
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test

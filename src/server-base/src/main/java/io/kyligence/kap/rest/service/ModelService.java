@@ -621,6 +621,13 @@ public class ModelService extends BasicService {
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
+        return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
+                lastModifyFrom, lastModifyTo, true);
+    }
+
+    public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
+            String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
+            Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
         aclEvaluate.checkProjectReadPermission(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
@@ -637,6 +644,9 @@ public class ModelService extends BasicService {
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
+                if (!onlyNormalDim) {
+                    nDataModelResponse.enrichDerivedDimension();
+                }
                 nDataModelResponse.setForbiddenOnline(isScd2ForbiddenOnline);
                 nDataModelResponse.setBroken(modelDesc.isBroken());
                 nDataModelResponse.setStatus(modelResponseStatus);

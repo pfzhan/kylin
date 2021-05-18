@@ -303,6 +303,15 @@ public class NDataModel extends RootPersistentEntity {
         @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = ColumnStatusFilter.class)
         protected ColumnStatus status = ColumnStatus.EXIST;
 
+        public static NamedColumn copy(NamedColumn col) {
+            NamedColumn copy = new NamedColumn();
+            copy.setId(col.getId());
+            copy.setName(col.getName());
+            copy.setAliasDotColumn(col.getAliasDotColumn());
+            copy.setStatus(col.getStatus());
+            return copy;
+        }
+
         public boolean isExist() {
             return status != ColumnStatus.TOMB;
         }
