@@ -48,6 +48,11 @@ object TimestampDiffImpl {
 
   // DateType -> DateType
   def evaluate(unit: String, date1: Int, date2: Int): Long = {
+    // Align to Spark function datediff:
+    // org.apache.spark.sql.catalyst.expressions.DateDiff
+    if (unit.toUpperCase(Locale.ROOT).equals("DAY")) {
+      return date2 - date1
+    }
     val before = KapDateTimeUtils.daysToMillis(date1)
     val after = KapDateTimeUtils.daysToMillis(date2)
     convertDuration(unit, before, after)
