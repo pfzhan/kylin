@@ -798,11 +798,7 @@ export default class ModelSegment extends Vue {
     return this.filter.startDate ? time.getTime() < this.filter.startDate.getTime() : false
   }
   handleSortChange ({ column, prop, order }) {
-    if (order === 'ascending') {
-      this.filter.reverse = false
-    } else {
-      this.filter.reverse = true
-    }
+    this.filter.reverse = order === 'ascending'
     this.filter.sortBy = prop === 'storage' ? 'bytes_size' : prop
     this.handleCurrentChange(0, this.pagination.pageSize)
   }
