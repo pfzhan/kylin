@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,6 +43,7 @@
 package org.apache.kylin.query.routing.rules;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
@@ -61,7 +61,8 @@ public class SegmentPruningRule extends RoutingRule {
         val iterator = candidates.iterator();
         while (iterator.hasNext()) {
             val candidate = iterator.next();
-            val prunedSegments = RealizationPruner.pruneSegments(candidate.getRealization().getModel(), candidate.getCtx());
+            val prunedSegments = RealizationPruner.pruneSegments((NDataflow) candidate.getRealization(),
+                    candidate.getCtx());
             if (CollectionUtils.isEmpty(prunedSegments)) {
                 log.info("there is no segment to answer sql");
                 val capability = new CapabilityResult();

@@ -179,6 +179,14 @@ public class PartitionDesc implements Serializable {
         return partitionDateColumnRef;
     }
 
+    public void changeTableAlias(String oldAlias, String newAlias) {
+        String table = partitionDateColumn.split("\\.")[0];
+        String column = partitionDateColumn.split("\\.")[1];
+        if (table.equalsIgnoreCase(oldAlias)) {
+            partitionDateColumn = newAlias + "." + column;
+        }
+    }
+
     // ============================================================================
 
     public static interface IPartitionConditionBuilder {
@@ -200,7 +208,6 @@ public class PartitionDesc implements Serializable {
             long endExclusive = tsr.getEnd();
 
             TblColRef partitionDateColumn = partDesc.getPartitionDateColumnRef();
-
             StringBuilder builder = new StringBuilder();
 
             if (partDesc.partitionColumnIsYmdInt()) {

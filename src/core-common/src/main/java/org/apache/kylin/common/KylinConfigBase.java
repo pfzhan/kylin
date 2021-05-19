@@ -855,6 +855,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.job.max-concurrent-jobs", "20"));
     }
 
+    public int getMaxStreamingConcurrentJobLimit() {
+        return Integer.parseInt(getOptional("kylin.streaming.job.max-concurrent-jobs", "10"));
+    }
+
     public Boolean getAutoSetConcurrentJob() {
         if (isDevOrUT()) {
             return Boolean.parseBoolean(getOptional("kylin.job.auto-set-concurrent-jobs", FALSE));
@@ -971,7 +975,7 @@ public abstract class KylinConfigBase implements Serializable {
         //        r.put(0, "org.apache.kylin.source.hive.HiveSource");
         //        r.put(1, "org.apache.kylin.source.kafka.KafkaSource");
         //        r.put(8, "org.apache.kylin.source.jdbc.JdbcSource");
-        r.put(1, "io.kyligence.kap.engine.spark.source.kafka.NSparkKafkaSource");
+        r.put(1, "io.kyligence.kap.source.kafka.NSparkKafkaSource");
         r.put(8, "io.kyligence.kap.source.jdbc.JdbcSource");
         r.put(9, "io.kyligence.kap.engine.spark.source.NSparkDataSource");
         r.put(13, "io.kyligence.kap.source.file.FileSource");
@@ -1057,6 +1061,30 @@ public abstract class KylinConfigBase implements Serializable {
         }
     }
 
+    // ============================================================================
+    // SOURCE.KAFKA
+    // ============================================================================
+
+    public Map<String, String> getKafkaConfigOverride() {
+        return getPropertiesByPrefix("kylin.source.kafka.config-override.");
+    }
+
+    public Map<String, String> getKafkaAdminConfigOverride() {
+        return getPropertiesByPrefix("kylin.source.kafka.admin.config-override.");
+    }
+
+    public long getKafkaConnectTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.source.kafka.connect-timeout-ms", "3000ms"),
+                TimeUnit.MILLISECONDS);
+    }
+
+    public long getKafkaPollMessageTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.source.kafka.poll-message-timeout-ms", "3000ms"), TimeUnit.MILLISECONDS);
+    }
+
+    public String getKafkaRatePerPartition() {
+        return getOptional("kylin.streaming.kafka.max-rate-per-partition", "-1");
+    }
     // ============================================================================
     // SOURCE.JDBC
     // ============================================================================
@@ -1273,6 +1301,35 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Double getSparkEngineResourceRequestOverLimitProportion() {
         return Double.parseDouble(getOptional("kylin.engine.resource-request-over-limit-proportion", "1.0"));
+    }
+
+    public Map<String, String> getStreamingSparkConfigOverride() {
+        return getPropertiesByPrefix("kylin.streaming.spark-conf.");
+    }
+
+    public long getStreamingJobStartupTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.startup-timeout", "5m"), TimeUnit.MINUTES);
+    }
+
+    public long getStreamingJobShutdownTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.shutdown-timeout", "0m"), TimeUnit.MINUTES);
+    }
+
+    public String getStreamingJobStatusWatchEnabled() {
+        return getOptional("kylin.streaming.job-status-watch-enabled", "true");
+    }
+
+    public String getStreamingJobRetryEnabled() {
+        return getOptional("kylin.streaming.job-retry-enabled", "false");
+    }
+
+    public int getStreamingJobRetryInterval() {
+        return (int) TimeUtil.timeStringAs(getOptional("kylin.streaming.job-retry-interval", "5m"), TimeUnit.MINUTES);
+    }
+
+    public int getStreamingJobMaxRetryInterval() {
+        return (int) TimeUtil.timeStringAs(getOptional("kylin.streaming.job-retry-max-interval", "30m"),
+                TimeUnit.MINUTES);
     }
 
     // ============================================================================
@@ -2025,19 +2082,34 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getStreamingBaseCheckpointLocation() {
-        return getOptional("kylin.engine.streaming-base-ckeckpoint-location", "/kylin/checkpoint");
+        return getOptional("kylin.engine.streaming-checkpoint-location", getHdfsWorkingDirectory() + "/streaming/checkpoint");
+    }
+
+    public String getStreamingBaseJobsLocation() {
+        return getOptional("kylin.engine.streaming-jobs-location", getHdfsWorkingDirectory() + "/streaming/jobs");
     }
 
     public Boolean getStreamingMetricsEnabled() {
         return Boolean.parseBoolean(this.getOptional("kylin.engine.streaming-metrics-enabled", FALSE));
     }
 
-    public Integer getStreamingSegmentMergeThresholds() {
-        return Integer.parseInt(getOptional("kylin.engine.streaming-segment-merge-threshold", "20"));
+    public long getStreamingSegmentMergeInterval() {
+        return TimeUtil.timeStringAs(getOptional("kylin.engine.streaming-segment-merge-interval", "60s"),
+                TimeUnit.SECONDS);
     }
 
-    public String getStreamingDuration() {
-        return getOptional("kylin.engine.streaming-duration", "30000");
+    public long getStreamingSegmentCleanInterval() {
+        return TimeUtil.timeStringAs(getOptional("kylin.engine.streaming-segment-clean-interval", "2h"),
+                TimeUnit.HOURS);
+    }
+
+    public double getStreamingSegmentMergeRatio() {
+        return Double.parseDouble(getOptional("kylin.engine.streaming-segment-merge-ratio", "1.5"));
+    }
+
+    public long getStreamingJobStatsSurvivalThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.jobstats.survival-time-threshold", "7d"),
+                TimeUnit.DAYS);
     }
 
     public Boolean getTriggerOnce() {
@@ -2280,6 +2352,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     public long getCatchUpTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-timeout", "2s"), TimeUnit.SECONDS);
+    }
+
+    public long getCatchUpMaxTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.metadata.audit-log.catchup-max-timeout", "60s"),
+                TimeUnit.SECONDS);
     }
 
     public long getUpdateEpochTimeout() {

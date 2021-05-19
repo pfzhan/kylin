@@ -245,9 +245,9 @@ import KapDetailDialogModal from '../common/GlobalDialog/dialog/detail_dialog'
 import Diagnostic from '../admin/Diagnostic/index'
 import Capacity from '../admin/SystemCapacity/CapacityTopBar'
 import $ from 'jquery'
+import moment from 'moment'
 import ElementUI from 'kyligence-ui'
 import GuideModal from '../studio/StudioModel/ModelList/GuideModal/GuideModal.vue'
-import moment from 'moment'
 let MessageBox = ElementUI.MessageBox
 // import Scrollbar from 'smooth-scrollbar'
 @Component({

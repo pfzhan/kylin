@@ -47,11 +47,25 @@
         />
       </el-tab-pane>
       <el-tab-pane class="tab-pane-item" :label="$t('segment')" name="first">
+        <SegmentTabs
+          v-if="currentModelRow.tabTypes === 'first' && currentModelRow.model_type === 'HYBRID'"
+          :ref="'segmentComp' + currentModelRow.alias"
+          :model="currentModelRow"
+          :isShowSegmentActions="datasourceActions.includes('segmentActions')"
+          @purge-model="model => handleCommand('purge', model)"
+          @loadModels="reloadModel"
+          @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
+          @auto-fix="autoFix(currentModelRow.alias, currentModelRow.uuid, currentModelRow.segment_holes)"/>
+        <StreamingSegment
+          :isShowPageTitle="true"
+          v-if="currentModelRow.tabTypes === 'first' && currentModelRow.model_type === 'STREAMING'"
+          :isShowSegmentActions="datasourceActions.includes('segmentActions')"
+          :model="currentModelRow" />
         <ModelSegment
           :ref="'segmentComp' + currentModelRow.alias"
           :model="currentModelRow"
           :isShowSegmentActions="datasourceActions.includes('segmentActions')"
-          v-if="currentModelRow.tabTypes === 'first'"
+          v-if="currentModelRow.tabTypes === 'first' && (currentModelRow.model_type !== 'HYBRID' && currentModelRow.model_type !== 'STREAMING')"
           @loadModels="reloadModel"
           @purge-model="model => handleCommand('purge', model)"
           @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
@@ -68,6 +82,9 @@
               :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
               ref="modelAggregateItem"
               v-if="currentIndexTab === 'indexOverview'" />
+          </el-tab-pane>
+          <el-tab-pane class="tab-pane-item" :label="$t('recommendationsBtn')" name="recommendations" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+            <recommendations :modelDesc="currentModelRow" @accept="acceptRecommend" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" v-if="datasourceActions.includes('editAggGroup')" :label="$t('aggregateGroup')" name="aggGroup">
             <ModelAggregateView
@@ -87,6 +104,9 @@
       </el-tab-pane>
       <el-tab-pane class="tab-pane-item" :label="$t('developers')" name="fifth">
         <Developers v-if="currentModelRow.tabTypes === 'fifth'" :currentModelRow="currentModelRow"/>
+      </el-tab-pane>
+      <el-tab-pane class="tab-pane-item" :label="$t('streaming')" name="streaming">
+        <ModelStreamingJob v-if="currentModelRow.tabTypes === 'streaming'" class="ksd-mrl-15 ksd-mt-15" :model="currentModelRow.uuid"/>
       </el-tab-pane>
     </el-tabs>
 
@@ -115,6 +135,8 @@ import { transToServerGmtTime, handleSuccessAsync } from 'util'
 import locales from './locales'
 import ModelOverview from '../ModelOverview/ModelOverview.vue'
 import ModelSegment from '../ModelSegment/index.vue'
+import SegmentTabs from '../ModelSegment/SegmentTabs.vue'
+import StreamingSegment from '../ModelSegment/StreamingSegment/StreamingSegment.vue'
 import ModelAggregate from '../ModelAggregate/index.vue'
 import ModelAggregateView from '../ModelAggregateView/index.vue'
 import TableIndexView from '../TableIndexView/index.vue'
@@ -128,6 +150,8 @@ import ModelActions from '../ModelActions/modelActions'
 import ModelRenameModal from '../ModelRenameModal/rename.vue'
 import ModelCloneModal from '../ModelCloneModal/clone.vue'
 import ModelPartition from '../ModelPartition/index.vue'
+import Recommendations from '../ModelAggregate/sub/recommendations'
+import ModelStreamingJob from '../ModelStreamingJob/ModelStreamingJob.vue'
 
 @Component({
   beforeRouteEnter (to, from, next) {
@@ -175,6 +199,8 @@ import ModelPartition from '../ModelPartition/index.vue'
   components: {
     ModelOverview,
     ModelSegment,
+    SegmentTabs,
+    StreamingSegment,
     ModelAggregate,
     ModelAggregateView,
     TableIndexView,
@@ -187,7 +213,9 @@ import ModelPartition from '../ModelPartition/index.vue'
     ModelActions,
     ModelRenameModal,
     ModelCloneModal,
-    ModelPartition
+    ModelPartition,
+    Recommendations,
+    ModelStreamingJob
   },
   locales
 })
@@ -212,6 +240,12 @@ export default class ModelLayout extends Vue {
     await this.loadModelList()
     this.initModelData()
   }
+
+  // 处理优化建议挪到外部 begin
+  acceptRecommend () {
+    // todo 在主 tab 了，可能不用刷索引列表了
+  }
+  // 处理优化建议挪到外部 end
 
   initModelData () {
     const {modelName, searchModelName, jump, tabTypes} = this.$route.params

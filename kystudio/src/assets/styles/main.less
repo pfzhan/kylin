@@ -743,6 +743,9 @@ i[class^=el-icon-]{
 }
 *[draggable="true"]{
   cursor: move;
+  &.nodraggable {
+    cursor: not-allowed;
+  }
 }
 // 其他网站嵌套，采用nomenu模式 内嵌页面专用css
 .cloud-frame-page{

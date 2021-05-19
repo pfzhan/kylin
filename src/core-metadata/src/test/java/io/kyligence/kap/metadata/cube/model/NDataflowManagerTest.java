@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -256,6 +257,73 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(mergedSeg.getSegRange().contains(seg1.getSegRange()));
         Assert.assertTrue(mergedSeg.getSegRange().contains(seg2.getSegRange()));
+    }
+
+    @Test
+    public void testMergeKafkaSegmentsSuccess() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+
+        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 2L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(seg1);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(1, df.getSegments().size());
+
+        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(2L, 3L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 300L)));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(seg2);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(2, df.getSegments().size());
+
+        String newSegId = UUID.randomUUID().toString();
+        NDataSegment mergedSeg1 = mgr.mergeSegments(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 3L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)), true, 1, newSegId);
+        mergedSeg1.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(mergedSeg1);
+        mgr.updateDataflow(update);
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(3, df.getSegments().size());
+
+        NDataSegment mergedSeg2 = mgr.mergeSegments(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 3L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)), true, 1, newSegId);
+        mergedSeg2.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(mergedSeg2);
+        mgr.updateDataflow(update);
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(3, df.getSegments().size());
+
+        Assert.assertTrue(mergedSeg1.getSegRange().contains(seg1.getSegRange()));
+        Assert.assertTrue(mergedSeg2.getSegRange().contains(seg2.getSegRange()));
+
+        NDataSegment mergedSeg3 = mgr.mergeSegments(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 3L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)), true, 1, null);
+        mergedSeg3.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(mergedSeg3);
+        mgr.updateDataflow(update);
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(3, df.getSegments().size());
+        Assert.assertNull(df.getSegment(newSegId));
+        Assert.assertNotNull(df.getSegment(mergedSeg3.getId()));
     }
 
     @Test
@@ -578,6 +646,130 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         segments.addAll(df.getSegments());
         segments.add(mgr.newSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 10L)));
         Assert.assertEquals(1, mgr.calculateHoles(copy.getUuid(), segments).size());
+    }
+
+    @Test
+    public void testCalculateHolesOfKafkaRange() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        val modelMgr = NDataModelManager.getInstance(testConfig, projectDefault);
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
+        final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
+
+        val copy = indexPlan.copy();
+        copy.setUuid(UUID.randomUUID().toString());
+        CubeTestUtils.createTmpModelAndCube(testConfig, copy);
+
+        NDataflow df = mgr.createDataflow(copy, "test_owner");
+
+        mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
+        mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L)));
+        mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1000L, 10000L,
+                createKafkaPartitionOffset(0, 400L), createKafkaPartitionOffset(0, 800L)));
+
+        List<NDataSegment> dataSegments = mgr.calculateHoles(copy.getUuid());
+        Assert.assertEquals(2, dataSegments.size());
+
+        df = mgr.getDataflow(copy.getId());
+        Assert.assertEquals(2, mgr.calculateHoles(copy.getUuid(), df.getSegments()).size());
+
+        val segments = Lists.newArrayList(df.getSegments());
+        segments.add(mgr.newSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 9L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L))));
+        Assert.assertEquals(2, mgr.calculateHoles(copy.getUuid(), segments).size());
+        segments.clear();
+        segments.addAll(df.getSegments());
+        segments.add(mgr.newSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 10L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L))));
+        Assert.assertEquals(1, mgr.calculateHoles(copy.getUuid(), segments).size());
+    }
+
+    @Test
+    public void testAppendSegmentForStreaming() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        val modelMgr = NDataModelManager.getInstance(testConfig, projectDefault);
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
+        final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
+
+        val copy = indexPlan.copy();
+        copy.setUuid(UUID.randomUUID().toString());
+        CubeTestUtils.createTmpModelAndCube(testConfig, copy);
+
+        NDataflow df = mgr.createDataflow(copy, "test_owner");
+
+        mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        String newSegId = UUID.randomUUID().toString();
+        df = mgr.getDataflow(df.getId());
+        val newSegment1 = mgr.appendSegmentForStreaming(df, segRange, newSegId);
+        Assert.assertEquals(newSegId, newSegment1.getId());
+        df = mgr.getDataflow(df.getId());
+        val newSegment2 = mgr.appendSegmentForStreaming(df, segRange, newSegId);
+        Assert.assertEquals(newSegId, newSegment2.getId());
+        Assert.assertEquals(2, mgr.getDataflow(df.getId()).getSegments().size());
+
+    }
+
+    @Test
+    public void testAppendSegmentOfSameRangeForStreaming() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        val modelMgr = NDataModelManager.getInstance(testConfig, projectDefault);
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
+        final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
+
+        val copy = indexPlan.copy();
+        copy.setUuid(UUID.randomUUID().toString());
+        CubeTestUtils.createTmpModelAndCube(testConfig, copy);
+
+        NDataflow df = mgr.createDataflow(copy, "test_owner");
+
+        mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
+        df = mgr.getDataflow(df.getId());
+
+        Assert.assertEquals(1, mgr.getDataflow(df.getId()).getSegments().size());
+        val empSeg = mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
+        df = mgr.getDataflow(df.getId());
+        Assert.assertEquals(StringUtils.EMPTY, empSeg.getId());
+        Assert.assertEquals(1, mgr.getDataflow(df.getId()).getSegments().size());
+
+        Assert.assertEquals(1, mgr.getDataflow(df.getId()).getSegments().size());
+        val newSeg = mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 150L)));
+        df = mgr.getDataflow(df.getId());
+        SegmentRange.KafkaOffsetPartitionedSegmentRange range = (SegmentRange.KafkaOffsetPartitionedSegmentRange) mgr
+                .getDataflow(df.getId()).getSegment(newSeg.getId()).getSegRange();
+        Assert.assertEquals(150L, range.getSourcePartitionOffsetEnd().get(0).longValue());
+        Assert.assertEquals(1, mgr.getDataflow(df.getId()).getSegments().size());
+
+        val newSeg1 = mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)));
+        df = mgr.getDataflow(df.getId());
+        Assert.assertEquals(1, mgr.getDataflow(df.getId()).getSegments().size());
+        SegmentRange.KafkaOffsetPartitionedSegmentRange range1 = (SegmentRange.KafkaOffsetPartitionedSegmentRange) mgr
+                .getDataflow(df.getId()).getSegment(newSeg1.getId()).getSegRange();
+        Assert.assertEquals(300L, range1.getSourcePartitionOffsetEnd().get(0).longValue());
+
+        val newSeg2 = mgr.appendSegmentForStreaming(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
+                createKafkaPartitionOffset(0, 500L), createKafkaPartitionOffset(0, 600L)));
+        df = mgr.getDataflow(df.getId());
+        Assert.assertEquals(2, mgr.getDataflow(df.getId()).getSegments().size());
     }
 
     @Test

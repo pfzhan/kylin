@@ -108,6 +108,9 @@ public class MetadataChecker {
 
         val allFiles = metadataStore.list(File.separator);
         for (final String file : allFiles) {
+            if (file.endsWith(".DS_Store")) {
+                continue;
+            }
             //check uuid file
             if (file.equals(ResourceStore.METASTORE_UUID_TAG)) {
                 verifyResult.existUUIDFile = true;

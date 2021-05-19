@@ -22,7 +22,7 @@
       <div class="ksd-title-label">{{$t('chooseBuildType')}}</div>
       <el-select v-model="buildType" class="ksd-mtb-10" @change="handChangeBuildType" :disabled="!datasourceActions.includes('changeBuildType')">
         <el-option :label="$t('incremental')" value="incremental"></el-option>
-        <el-option :label="$t('fullLoad')" value="fullLoad"></el-option>
+        <el-option v-if="!isStreamModel" :label="$t('fullLoad')" value="fullLoad"></el-option>
       </el-select>
       <el-alert
         class="ksd-pt-0"
@@ -389,6 +389,10 @@ export default class ModelPartitionModal extends Vue {
       }
     }
   }
+  get isStreamModel () {
+    const factTable = this.modelInstance.getFactTable()
+    return factTable.source_type === 1 || this.modelInstance.model_type === 'STREAMING'
+  }
   get columns () {
     if (!this.isShow || this.partitionMeta.table === '') {
       return []
@@ -449,7 +453,7 @@ export default class ModelPartitionModal extends Vue {
       // this.$nextTick(() => {
       //   this.$refs.partitionForm && this.$refs.partitionForm.validate()
       // })
-      if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column)) {
+      if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) && !this.isStreamModel) {
         this.buildType = 'fullLoad'
         this.defaultBuildType = 'fullLoad'
       }

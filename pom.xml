@@ -290,6 +290,7 @@
         <module>src/server-base</module>
         <module>src/server</module>
         <module>src/spark-project</module>
+        <module>src/streaming</module>
         <module>src/assembly</module>
         <module>src/tool</module>
         <module>src/datasource-sdk</module>
@@ -326,6 +327,11 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-source-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

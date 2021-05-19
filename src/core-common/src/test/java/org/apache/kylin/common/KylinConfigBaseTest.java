@@ -245,6 +245,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-concurrent-jobs", "10", 10));
 
+        map.put("getMaxStreamingConcurrentJobLimit",
+                new PropertiesEntity("kylin.streaming.job.max-concurrent-jobs", "10", 10));
+
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 
         map.put("isCtlJobPriorCrossProj",
@@ -655,19 +658,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider",
                         "org.apache.kylin.common.storage.DefaultStorageProvider"));
 
-        map.put("getStreamingBaseCheckpointLocation", new PropertiesEntity(
-                "kylin.engine.streaming-base-ckeckpoint-location", "/kylin/checkpoint", "/kylin/checkpoint"));
-
-        map.put("getStreamingMetricsEnabled",
-                new PropertiesEntity("kylin.engine.streaming-metrics-enabled", "false", false));
-
-        map.put("getStreamingSegmentMergeThresholds",
-                new PropertiesEntity("kylin.engine.streaming-segment-merge-threshold", "20", 20));
-
-        map.put("getStreamingDuration", new PropertiesEntity("kylin.engine.streaming-duration", "30000", "30000"));
-
-        map.put("getTriggerOnce", new PropertiesEntity("kylin.engine.streaming-trigger-once", "false", false));
-
         map.put("getLoadHiveTablenameIntervals",
                 new PropertiesEntity("kylin.source.load-hive-tablename-interval-seconds", "3600", 3600L));
 
@@ -827,6 +817,34 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         NonCustomProjectLevelConfig.listAllConfigNames()));
         map.put("getDiagObfLevel", new PropertiesEntity("kylin.diag.obf.level", "OBF", "OBF"));
         map.put("isMetadataCompressEnabled", new PropertiesEntity("kylin.metadata.compress.enabled", "true", true));
+
+        map.put("getStreamingBaseCheckpointLocation", new PropertiesEntity("kylin.engine.streaming-checkpoint-location",
+                "/kylin/checkpoint", "/kylin/checkpoint"));
+        map.put("getStreamingBaseJobsLocation",
+                new PropertiesEntity("kylin.engine.streaming-jobs-location", "/kylin/jobs", "/kylin/jobs"));
+        map.put("getStreamingMetricsEnabled",
+                new PropertiesEntity("kylin.engine.streaming-metrics-enabled", "false", false));
+        map.put("getTriggerOnce", new PropertiesEntity("kylin.engine.streaming-trigger-once", "false", false));
+        map.put("getStreamingSegmentMergeInterval",
+                new PropertiesEntity("kylin.engine.streaming-segment-merge-interval", "60s", 60L));
+        map.put("getStreamingSegmentCleanInterval",
+                new PropertiesEntity("kylin.engine.streaming-segment-clean-interval", "2h", 2L));
+        map.put("getStreamingSegmentMergeRatio",
+                new PropertiesEntity("kylin.engine.streaming-segment-merge-ratio", "1.5", 1.5));
+        map.put("getStreamingJobStartupTimeout", new PropertiesEntity("kylin.streaming.startup-timeout", "5m", 5L));
+        map.put("getStreamingJobShutdownTimeout", new PropertiesEntity("kylin.streaming.shutdown-timeout", "10m", 10L));
+        map.put("getStreamingJobStatsSurvivalThreshold",
+                new PropertiesEntity("kylin.streaming.jobstats.survival-time-threshold", "7d", 7L));
+        map.put("getStreamingJobRetryEnabled",
+                new PropertiesEntity("kylin.streaming.job-retry-enabled", "false", "false"));
+        map.put("getStreamingJobStatusWatchEnabled",
+                new PropertiesEntity("kylin.streaming.job-status-watch-enabled", "true", "true"));
+        map.put("getStreamingJobRetryInterval", new PropertiesEntity("kylin.streaming.job-retry-interval", "5m", 5));
+        map.put("getStreamingJobMaxRetryInterval",
+                new PropertiesEntity("kylin.streaming.job-retry-max-interval", "30m", 30));
+        map.put("getKafkaRatePerPartition",
+                new PropertiesEntity("kylin.streaming.kafka.max-rate-per-partition", "-1", "-1"));
+
     }
 
     @Before
@@ -847,7 +865,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(457, methodsCount);
+        Assert.assertEquals(474, methodsCount);
     }
 
     @Test

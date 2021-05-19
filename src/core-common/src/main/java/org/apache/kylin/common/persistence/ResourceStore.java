@@ -101,6 +101,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String PROJECT_ROOT = GLOBAL_PROJECT + "/project";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
+    public static final String FUSION_MODEL_RESOURCE_ROOT = "/fusion_model";
     public static final String INDEX_PLAN_RESOURCE_ROOT = "/index_plan";
     public static final String TABLE_EXD_RESOURCE_ROOT = "/table_exd";
     public static final String TEMP_STATMENT_RESOURCE_ROOT = "/temp_statement";
@@ -108,6 +109,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String EXTERNAL_FILTER_RESOURCE_ROOT = "/ext_filter";
     public static final String EXECUTE_RESOURCE_ROOT = "/execute";
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
+    public static final String KAFKA_RESOURCE_ROOT = "/kafka";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String EVENT_RESOURCE_ROOT = "/event";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";

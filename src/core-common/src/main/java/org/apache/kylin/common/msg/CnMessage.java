@@ -388,6 +388,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSAME_TABLE_NAME_EXIST() {
+        return "表 %s 已经存在，请选择其他名称。";
+    }
+
+    @Override
     public String getQUERY_NOT_ALLOWED() {
         return "任务节点不支持查询。请选择查询节点。";
     }
@@ -407,6 +412,20 @@ public class CnMessage extends Message {
         return "SQL 不能为空。请检查后重试。";
     }
 
+    @Override
+    public String getJOB_REPEATED_START_FAILURE() {
+        return "不能重复启动实时任务。";
+    }
+
+    @Override
+    public String getJOB_START_FAILURE() {
+        return "无法启动模型\"%s\"的实时任务。请检查后重试。";
+    }
+
+    @Override
+    public String getJOB_STOP_FAILURE() {
+        return "无法停止模型\"%s\"的实时任务。请检查后重试。";
+    }
     // Access
     @Override
     public String getACL_PERMISSION_REQUIRED() {
@@ -1693,5 +1712,25 @@ public class CnMessage extends Message {
     @Override
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
         return "项目%s有导入缓存任务正在进行，请稍后重试。";
+    }
+
+    @Override
+    public String getINVALID_BREOK_DEFINITION() {
+        return "无效输入。";
+    }
+
+    @Override
+    public String getEMPTY_STREAMING_MESSAGE() {
+        return "该 Topic 为空。请检查后重试。";
+    }
+
+    @Override
+    public String getINVALID_STREAMING_MESSAGE_TYPE() {
+        return "非法流式消息类型。";
+    }
+
+    @Override
+    public String getPARSE_STREAMING_MESSAGE_ERROR() {
+        return "解析器无法解析样例数据，建议检查选项设置或者修改解析器后再尝试解析。";
     }
 }

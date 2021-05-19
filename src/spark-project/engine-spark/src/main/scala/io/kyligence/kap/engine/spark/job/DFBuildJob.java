@@ -197,7 +197,7 @@ public class DFBuildJob extends SparkApplication {
     private void computeColumnBytes(DFChooser datasetChooser, NDataSegment seg, String dataflowId, String path) {
         ss.sparkContext().setJobDescription("Compute column bytes");
         val df = ss.read().parquet(path);
-        val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
+        val columnBytes = (Map<String, Object>)JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
         updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), df.count());
         ss.sparkContext().setJobDescription(null);
     }
@@ -465,6 +465,7 @@ public class DFBuildJob extends SparkApplication {
         dataLayout.setPartitionValues(taskStats.partitionValues());
         dataLayout.setFileCount(taskStats.numFiles());
         dataLayout.setByteSize(taskStats.numBytes());
+        dataLayout.setReady(true);
         return dataLayout;
     }
 
@@ -493,7 +494,7 @@ public class DFBuildJob extends SparkApplication {
                 || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
             return;
 
-        if (modelDesc.getRootFactTable().getTableDesc().getTableType().equals(CatalogTableType.VIEW().name()))
+        if (CatalogTableType.VIEW().name().equals(modelDesc.getRootFactTable().getTableDesc().getTableType()))
             return;
 
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();

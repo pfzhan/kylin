@@ -51,7 +51,12 @@ const initialState = JSON.stringify({
       username: '',
       password: ''
     },
-    databaseSizeObj: null
+    databaseSizeObj: null,
+    kafkaMeta: null,
+    convertData: null,
+    sampleData: null,
+    treeData: [],
+    columnData: null
   },
   datasource: null,
   project: null

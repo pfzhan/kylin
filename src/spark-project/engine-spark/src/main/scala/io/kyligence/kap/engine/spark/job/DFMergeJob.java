@@ -201,7 +201,7 @@ public class DFMergeJob extends SparkApplication {
         return mergeCuboidsAssist;
     }
 
-    private NDataLayout saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
+    protected NDataLayout saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
             DFLayoutMergeAssist assist) throws IOException {
         ss.sparkContext().setLocalProperty("spark.scheduler.pool", "merge");
         long layoutId = layout.getId();

@@ -149,6 +149,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "model_name", required = false) String modelAlias, //
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "owner", required = false) String owner, //
+            @RequestParam(value = "model_type", required = false) List<String> modelType, //
             @RequestParam(value = "status", required = false) List<String> status, //
             @RequestParam(value = "table", required = false) String table, //
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
@@ -160,7 +161,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo,
             @RequestParam(value = "only_normal_dim", required = false, defaultValue = "true") boolean onlyNormalDim) {
         String projectName = checkProjectName(project);
-        return modelController.getModels(modelAlias, exactMatch, projectName, owner, status, table, offset, limit,
+        return modelController.getModels(modelAlias, exactMatch, projectName, owner, modelType, status, table, offset, limit,
                 sortBy, reverse, modelAliasOrOwner, null, lastModifyFrom, lastModifyTo, onlyNormalDim);
     }
 

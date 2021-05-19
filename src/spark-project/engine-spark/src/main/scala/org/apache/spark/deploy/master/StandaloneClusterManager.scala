@@ -75,9 +75,13 @@ class StandaloneClusterManager extends IClusterManager with Logging {
   }
 
   override def killApplication(jobStepId: String): Unit = {
+    killApplication(s"$JOB_STEP_PREFIX", jobStepId)
+  }
+
+  override def killApplication(jobStepPrefix: String, jobStepId: String): Unit = {
     val master = masterEndpoints(0)
     val state = master.askSync[MasterStateResponse](RequestMasterState)
-    val app = state.activeApps.find(_.desc.name.equals(s"$JOB_STEP_PREFIX$jobStepId")).orNull
+    val app = state.activeApps.find(_.desc.name.equals(jobStepPrefix + jobStepId)).orNull
     if (app == null) {
       logInfo(s"No active application found of jobStepId $jobStepId")
       return
@@ -106,6 +110,17 @@ class StandaloneClusterManager extends IClusterManager with Logging {
       false
     } else {
       "KILLED".equals(app.state.toString)
+    }
+  }
+
+  override def applicationExisted(jobId: String): Boolean = {
+    val master = masterEndpoints(0)
+    val state = master.askSync[MasterStateResponse](RequestMasterState)
+    val app = state.activeApps.find(_.desc.name.equalsIgnoreCase(jobId)).orNull
+    if (app == null) {
+      false
+    } else {
+      true
     }
   }
 }

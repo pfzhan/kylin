@@ -132,3 +132,6 @@ LICENSE.backup
 appid
 child_process
 src/server-base/spark-warehouse/
+
+#streaming
+src/streaming/examples/*

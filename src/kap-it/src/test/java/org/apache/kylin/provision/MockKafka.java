@@ -54,6 +54,7 @@ import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.kafka.common.requests.MetadataResponse;
+import org.apache.kylin.common.util.NetworkUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

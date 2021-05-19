@@ -16,7 +16,9 @@ export default {
     modelEditAction: 'Edit',
     modelBuildAction: 'Build',
     moreAction: 'More',
-    noData: 'No Data'
+    noData: 'No Data',
+    recommendationsBtn: 'Recommendations',
+    streaming: 'Streaming'
   },
   'zh-cn': {
     overview: '基本信息',
@@ -35,6 +37,8 @@ export default {
     modelEditAction: '编辑',
     modelBuildAction: '构建',
     moreAction: '更多',
-    noResult: '暂无数据'
+    noResult: '暂无数据',
+    recommendationsBtn: '优化建议',
+    streaming: '实时任务'
   }
 }

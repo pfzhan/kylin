@@ -196,6 +196,9 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     private boolean assertProjectFolder(File projectFolder, File archiveFolder) {
+        if (projectFolder.getName().endsWith(".DS_Store") || archiveFolder.getName().endsWith(".DS_Store")) {
+            return true;
+        }
         Assertions.assertThat(projectFolder.list()).containsAnyOf("dataflow", "dataflow_details", "cube_plan",
                 "model_desc", "table");
         Assertions.assertThat(projectFolder.listFiles()).filteredOn(f -> !f.getName().startsWith("."))

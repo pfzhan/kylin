@@ -64,6 +64,7 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -212,6 +213,12 @@ public class TableService extends BasicService {
 
     @Autowired
     private LicenseInfoService licenseInfoService;
+
+    public List<TableDesc> getTableDescByType(String project, boolean withExt, final String tableName,
+            final String database, boolean isFuzzy, int sourceType) throws IOException {
+        return getTableDesc(project, withExt, tableName, database, isFuzzy).stream()
+                .filter(tableDesc -> sourceType == tableDesc.getSourceType()).collect(Collectors.toList());
+    }
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
@@ -390,6 +397,12 @@ public class TableService extends BasicService {
     private TableDescResponse getTableResponse(TableDesc table, String project) {
         TableDescResponse tableDescResponse = new TableDescResponse(table);
         TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
+        if (table.getKafkaConfig() != null) {
+            tableDescResponse.setKafkaBootstrapServers(table.getKafkaConfig().getKafkaBootstrapServers());
+            tableDescResponse.setSubscribe(table.getKafkaConfig().getSubscribe());
+            tableDescResponse.setBatchTable(table.getKafkaConfig().getBatchTable());
+        }
+
         if (tableExtDesc == null) {
             return tableDescResponse;
         }
@@ -940,6 +953,13 @@ public class TableService extends BasicService {
             projectInstance.setDefaultDatabase(ProjectInstance.DEFAULT_DATABASE);
             npr.updateProject(projectInstance);
         }
+    }
+
+    @Transaction(project = 0)
+    public void unloadKafkaConfig(String project, String tableIdentity) {
+        aclEvaluate.checkProjectWritePermission(project);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KafkaConfigManager.getInstance(kylinConfig, project).removeKafkaConfig(tableIdentity);
     }
 
     @Transaction(project = 0, readonly = true)
@@ -1996,5 +2016,9 @@ public class TableService extends BasicService {
         usedTableNames.addAll(model.getJoinTables().stream().map(JoinTableDesc::getTable).collect(Collectors.toList()));
         return usedTableNames.stream().map(getTableManager(project)::getTableDesc).filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    public TableExtDesc getOrCreateTableExt(String project, TableDesc t) {
+        return getTableManager(project).getOrCreateTableExt(t);
     }
 }

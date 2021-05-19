@@ -84,6 +84,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("source")
     private long source;
 
+    @JsonProperty("model_type")
+    private ModelType modelType;
+
     @JsonProperty("expansion_rate")
     private String expansionrate;
 
@@ -148,6 +151,7 @@ public class NDataModelResponse extends NDataModel {
         this.setConfig(dataModel.getConfig());
         this.setProject(dataModel.getProject());
         this.setMvcc(dataModel.getMvcc());
+        this.setModelType(dataModel.getModelType());
         this.lastModify = lastModified;
         this.setSimplifiedJoinTableDescs(
                 SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(dataModel.getJoinTables()));

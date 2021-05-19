@@ -132,7 +132,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @JsonManagedReference
     @JsonProperty("segments")
-    private Segments<NDataSegment> segments = new Segments<NDataSegment>();
+    private Segments<NDataSegment> segments = new Segments<>();
 
     @JsonProperty("storage_location_identifier")
     private String storageLocationIdentifier; // maybe useful in some cases..
@@ -218,8 +218,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments) {
-
         return NDataflowCapabilityChecker.check(this, prunedSegments, digest);
+    }
+
+    public boolean isStreaming() {
+        return getModel().getModelType() != NDataModel.ModelType.BATCH;
     }
 
     @Override
@@ -411,6 +414,16 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public Segments<NDataSegment> getSegmentsByRange(SegmentRange range) {
         return segments.getSegmentsByRange(range);
+    }
+
+    public List<NDataSegment> getQueryableSegmentsByRange(SegmentRange range) {
+        val result = Lists.<NDataSegment> newArrayList();
+        for (val seg : getQueryableSegments()) {
+            if (seg.getSegRange().overlaps(range)) {
+                result.add(seg);
+            }
+        }
+        return result;
     }
 
     @Override

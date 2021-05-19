@@ -32,6 +32,23 @@
         :sampling-rows="form.samplingRows"
         @input="handleInputTableOrDatabase">
       </SourceHive>
+      <SourceKafka
+        v-if="sourceKafka"
+        ref="kafka-form"
+        :source-type="sourceType"
+        :convert-data-store="form.convertData"
+        :sample-data-store="form.sampleData"
+        :tree-data-store="form.treeData"
+        @input="handleInputKafkaData">
+      </SourceKafka>
+      <SourceKafkaStep2
+        v-if="sourceKafkaStep2"
+        ref="kafka-form2"
+        :source-type="sourceType"
+        :convert-data="form.convertData"
+        :column-data="form.columnData"
+        @input="handleInputKafkaData">
+      </SourceKafkaStep2>
       <SourceCSVConnect
         ref="source-csv-connection-form"
         :form="form.csvSettings"
@@ -77,6 +94,8 @@ import { set } from '../../../util/object'
 import SourceSelect from './SourceSelect/SourceSelect.vue'
 import SourceHiveSetting from './SourceHiveSetting/SourceHiveSetting.vue'
 import SourceHive from './SourceHive/SourceHive.vue'
+import SourceKafka from './SourceKafka/SourceKafka.vue'
+import SourceKafkaStep2 from './SourceKafkaStep2/SourceKafkaStep2.vue'
 import SourceCSVConnect from './SourceCSV/SourceConnect/connect.vue'
 import SourceCSVSetting from './SourceCSV/SourceSetting/setting.vue'
 import SourceCSVStructure from './SourceCSV/SourceStructure/structure.vue'
@@ -88,6 +107,8 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
     SourceSelect,
     SourceHiveSetting,
     SourceHive,
+    SourceKafka,
+    SourceKafkaStep2,
     SourceCSVConnect,
     SourceCSVSetting,
     SourceCSVStructure,
@@ -116,7 +137,9 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
       importTable: 'LOAD_HIVE_IN_PROJECT',
       saveCsvDataSourceInfo: 'SAVE_CSV_INFO',
       saveSourceConfig: 'SAVE_SOURCE_CONFIG',
-      updateProjectDatasource: 'UPDATE_PROJECT_DATASOURCE'
+      updateProjectDatasource: 'UPDATE_PROJECT_DATASOURCE',
+      convertTopicJson: 'CONVERT_TOPIC_JSON',
+      saveKafka: 'SAVE_KAFKA'
     })
   },
   locales
@@ -147,10 +170,15 @@ export default class DataSourceModal extends Vue {
   }
   get sourceType () { return this.form.project.override_kylin_properties['kylin.source.default'] }
   get sourceHive () { return [this.editTypes.HIVE, this.editTypes.RDBMS, this.editTypes.RDBMS2].includes(this.editType) }
+  get sourceKafka () { return this.editType === this.editTypes.KAFKA }
+  get sourceKafkaStep2 () { return this.editType === this.editTypes.KAFKA2 }
   handleInput (key, value) {
     this.setModalForm(set(this.form, key, value))
   }
   handleInputTableOrDatabase (payload) {
+    this.setModalForm(payload)
+  }
+  handleInputKafkaData (payload) {
     this.setModalForm(payload)
   }
   handleInputDatasource (value) {
@@ -193,11 +221,17 @@ export default class DataSourceModal extends Vue {
       if (await this._validate()) {
         const results = await this._submit()
         if (results) {
+          if (this.editTypes.HIVE === this.editType) {
+            results.sourceType = 9
+          } else { // 目前只有Hive和Kafka数据源
+            results.sourceType = 1
+          }
           this.handleClose(results)
         }
       }
     } catch (e) {
       handleError(e)
+      this.prevSteps.pop()
     }
     this._hideLoading()
   }
@@ -264,6 +298,15 @@ export default class DataSourceModal extends Vue {
         // await handleWaiting()
         return await handleSuccessAsync(response)
       }
+      case editTypes.KAFKA: {
+        const response = await this.convertTopicJson(submitData)
+        this.setModalForm({ columnData: response.body.data })
+        return this.setModal({ editType: editTypes.KAFKA2 })
+      }
+      case editTypes.KAFKA2: {
+        const response = await this.saveKafka(submitData)
+        return await handleSuccessAsync(response)
+      }
     }
   }
   async _validate () {
@@ -301,6 +344,14 @@ export default class DataSourceModal extends Vue {
       }
       case editTypes.CONFIG_CSV_SQL: {
         return await this.$refs['source-csv-sql-form'].$refs.form.validate()
+      }
+      case editTypes.KAFKA: {
+        const isValid = this.form.convertData
+        !isValid && this.$message(this.$t('pleaseGetClusterInfoAndTopicInfo'))
+        return isValid
+      }
+      case editTypes.KAFKA2: {
+        return await this.$refs['kafka-form2'].$refs.kafkaForm.validate()
       }
       default:
         return true

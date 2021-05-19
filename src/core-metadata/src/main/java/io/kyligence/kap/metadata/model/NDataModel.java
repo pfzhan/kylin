@@ -48,6 +48,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -107,6 +108,10 @@ import lombok.val;
 public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
     public static final int MEASURE_ID_BASE = 100000;
+
+    public enum ModelType implements Serializable {
+        BATCH, STREAMING, HYBRID, UNKNOWN
+    }
 
     public enum TableKind implements Serializable {
         FACT, LOOKUP
@@ -428,6 +433,20 @@ public class NDataModel extends RootPersistentEntity {
 
     public TableRef getRootFactTable() {
         return rootFactTableRef;
+    }
+
+    public ModelType getModelType() {
+        if (rootFactTableRef == null) {
+            return ModelType.UNKNOWN;
+        }
+        KafkaConfig kafkaConfig = rootFactTableRef.getTableDesc().getKafkaConfig();
+        if (kafkaConfig != null) {
+            if (kafkaConfig.hasBatchTable()) {
+                return ModelType.HYBRID;
+            }
+            return ModelType.STREAMING;
+        }
+        return ModelType.BATCH;
     }
 
     public Set<TableRef> getAllTables() {

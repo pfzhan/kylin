@@ -1,10 +1,16 @@
 <template>
   <div class="model-aggregate ksd-mb-15" v-if="model" v-loading="isLoading">
     <div class="aggregate-view">
-      <div class="btn-groups" v-if="isShowAggregateAction">
+      <!-- <div class="btn-groups" v-if="isShowAggregateAction">
         <el-tabs class="btn-group-tabs" v-model="switchIndexValue" type="button">
           <el-tab-pane :label="$t('indexListBtn')" @click="switchIndexValue = 'index', doLayoutIndexTable()" name="index" />
           <el-tab-pane :label="$t('recommendationsBtn')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" name="rec" />
+        </el-tabs>
+      </div> -->
+      <div class="btn-groups" v-if="showModelTypeSwitch">
+        <el-tabs class="btn-group-tabs" v-model="switchModelType" type="button">
+          <el-tab-pane :label="$t('kylinLang.common.BATCH')" name="BATCH" />
+          <el-tab-pane :label="$t('kylinLang.common.STREAMING')" name="STREAMING" />
         </el-tabs>
       </div>
       <!-- <div class="aggregate-tree-map" :style="{width: `${moveEvent.w}%`}">
@@ -38,7 +44,7 @@
         <div class="drag-bar ky-drag-layout-bar" @mousedown="handlerDownEvent">||</div>
       </div> -->
       <div class="index-group">
-        <el-card class="agg-detail-card agg-detail" v-show="switchIndexValue === 'index'">
+        <el-card class="agg-detail-card agg-detail">
           <!-- <div slot="header" class="clearfix"> -->
             <!-- <div class="left font-medium fix">{{$t('aggregateDetail')}}</div> -->
             <!-- <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
@@ -67,7 +73,7 @@
                 </div>
               </el-popover>
               <div class="date-range ksd-mb-16 ksd-fs-12 ksd-fleft">
-                {{$t('dataRange')}}: {{getDataRange}}<span class="data-range-tips"><i v-popover:indexPopover class="el-icon-ksd-info ksd-fs-12 ksd-ml-8"></i></span>
+                {{$t('dataRange')}}: {{getDataRange}}<span class="data-range-tips"><i v-if="!isRealTimeMode" v-popover:indexPopover class="el-icon-ksd-info ksd-fs-12 ksd-ml-8"></i></span>
               </div>
               <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-6">
                 <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
@@ -90,16 +96,17 @@
                   <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_index && indexStat.has_load_base_table_index}">
                     <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_index && indexStat.has_load_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
                   </el-dropdown-item>
-                  
+
                 </el-dropdown-menu>
               </el-dropdown>
               <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
+              <el-button v-if="datasourceActions.includes('delAggIdx') && isRealTimeMode" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
               <el-dropdown
                 class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
                 :class="{'is-disabled': !checkedList.length}"
                 placement="bottom-start"
                 :loading="removeLoading"
-                v-if="datasourceActions.includes('delAggIdx')"
+                v-if="datasourceActions.includes('delAggIdx') && !isRealTimeMode"
               >
                 <el-button type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}<i class="el-ksd-icon-arrow_down_22"></i></el-button>
                 <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
@@ -211,11 +218,11 @@
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
-        <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 'rec'"/>
+        <!-- <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 'rec'"/> -->
       </div>
     </div>
     <index-details :indexDetailTitle="indexDetailTitle" :detailType="detailType" :cuboidData="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
-    
+
 
     <!-- <ConfirmSegment/> -->
     <!-- <TableIndexEdit/> -->
@@ -241,7 +248,7 @@ import { BuildIndexStatus } from '../../../../../config/model'
 // import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
 import { formatGraphData } from './handler'
 import NModel from '../../ModelEdit/model.js'
-import Recommendations from './sub/recommendations'
+// import Recommendations from './sub/recommendations'
 import IndexDetails from './indexDetails'
 
 @Component({
@@ -320,7 +327,7 @@ import IndexDetails from './indexDetails'
   components: {
     FlowerChart,
     TreemapChart,
-    Recommendations,
+    // Recommendations,
     IndexDetails
     // ConfirmSegment
     // AggregateModal
@@ -373,6 +380,7 @@ export default class ModelAggregate extends Vue {
   //   }
   // }
   switchIndexValue = 'index'
+  switchModelType = 'BATCH' // 默认离线 - BATCH, 实时 - STREAMING
   isHaveComplementSegs = false
   indexesByQueryHistory = true  // 是否获取查询相关的索引
   indexStat = {}
@@ -383,6 +391,16 @@ export default class ModelAggregate extends Vue {
   //     aggIndexAdvancedDesc: null
   //   })
   // }
+
+  // 控制显示实时，离线选项
+  get showModelTypeSwitch () {
+    return this.model && this.model.model_type === 'HYBRID'
+  }
+
+  // 判断是否时实时模式
+  get isRealTimeMode () {
+    return this.showModelTypeSwitch && this.switchModelType === 'STREAMING'
+  }
 
   formatDataSize (dataSize) {
     const [size = +size, ext] = this.$root.$options.filters.dataSize(dataSize).split(' ')
@@ -858,10 +876,10 @@ export default class ModelAggregate extends Vue {
   // }
 
   // 优化建议通过后刷新索引列表
-  async acceptRecommend () {
-    await this.loadAggIndices()
-    this.model.total_indexes = this.totalSize
-  }
+  // async acceptRecommend () {
+  //   await this.loadAggIndices()
+  //   this.model.total_indexes = this.totalSize
+  // }
 
   // 关闭索引详情弹窗
   closeDetailDialog () {
@@ -1132,7 +1150,7 @@ export default class ModelAggregate extends Vue {
         .data-range-tips {
           .el-icon-ksd-info {
             color: @text-disabled-color;
-  
+
           }
         }
         .el-icon-question {

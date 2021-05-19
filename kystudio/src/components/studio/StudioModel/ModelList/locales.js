@@ -3,6 +3,7 @@ export default {
     capbility: 'Favorite Rate',
     dataLoadTime: 'Last Updated Time',
     status: 'Status',
+    streamingTips: '实时模型，部分功能不可用',
     modelPartitionSet: 'Model Partition',
     enableModelTip: 'Are you sure you want to online the model {modelName}?',
     enableModelTitle: 'Online Model',
@@ -52,6 +53,7 @@ export default {
     OFFLINE: 'OFFLINE',
     BROKEN: 'BROKEN',
     status_c: 'Status: ',
+    modelType_c: 'Types:&nbsp;',
     modelStatus_c: 'Model Status:',
     reset: 'Reset',
     lastModifyTime_c: 'Last Updated Time: ',
@@ -81,6 +83,9 @@ export default {
     changeModelOwner: 'Change Owner',
     change: 'Change',
     modelName: 'Model',
+    modelType: 'Types',
+    STREAMING: 'Streaming Model',
+    BATCH: 'Batch Model',
     changeTo: 'Change Owner To',
     pleaseChangeOwner: 'Please change model owner',
     changeDesc: 'You can change the owner of the model to a system admin, a user in the project ADMIN role, or a user in the project management role.',
@@ -95,12 +100,14 @@ export default {
     SCD2ModalOfflineTip: 'This model includes non-equal join conditions (≥, <), which are not supported at the moment. Please delete those join conditions, or turn on `Support History table` in project settings.',
     storageTip: 'Calculates the amount of data built in this model',
     subPartitionValuesManage: 'Manage Sub-Partition Values',
-    multilParTip: 'This model used multilevel partitioning, which are not supported at the moment. Please set subpartition as \'None\' in model partition dialog, or turn on \'Multilevel Partitioning\' in project settings.'
+    multilParTip: 'This model used multilevel partitioning, which are not supported at the moment. Please set subpartition as \'None\' in model partition dialog, or turn on \'Multilevel Partitioning\' in project settings.',
+    streaming: 'Streaming'
   },
   'zh-cn': {
     capbility: '加速比例',
     dataLoadTime: '最近更新时间',
     status: '状态',
+    streamingTips: '实时模型，部分功能不可用',
     modelPartitionSet: '分区设置',
     enableModelTip: '你确认要上线模型 {modelName} 吗？',
     enableModelTitle: '上线模型',
@@ -150,6 +157,7 @@ export default {
     OFFLINE: 'OFFLINE',
     BROKEN: 'BROKEN',
     status_c: '状态：',
+    modelType_c: '模型类型：',
     modelStatus_c: '模型状态：',
     reset: '重置',
     lastModifyTime_c: '最后更新时间：',
@@ -176,6 +184,9 @@ export default {
     changeModelOwner: '变更所有者',
     change: '变更',
     modelName: '模型',
+    modelType: '模型类型',
+    STREAMING: '实时模型',
+    BATCH: '离线模型',
     changeTo: '变更所有者为',
     pleaseChangeOwner: '请选择模型所有者',
     changeDesc: '您可以将该模型的所有者变更为系统管理员、项目 ADMIN 角色的用户或者项目 Management 角色的用户。',
@@ -190,6 +201,7 @@ export default {
     SCD2ModalOfflineTip: '该模型中存在 ≥ 或 < 的关联关系，当前不可用。请删除相应关联关系，或在项目设置中开启支持拉链表开关。',
     storageTip: '模型下已构建数据的存储大小',
     subPartitionValuesManage: '子分区值设置',
-    multilParTip: '该模型使用了多级分区，当前不可用。请在分区设置中将子分区列设为”无分区”，或在项目设置中开启支持多级分区。'
+    multilParTip: '该模型使用了多级分区，当前不可用。请在分区设置中将子分区列设为”无分区”，或在项目设置中开启支持多级分区。',
+    streaming: '实时任务'
   }
 }

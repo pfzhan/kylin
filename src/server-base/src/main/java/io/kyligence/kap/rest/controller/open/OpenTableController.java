@@ -116,10 +116,11 @@ public class OpenTableController extends NBasicController {
             @RequestParam(value = "is_fuzzy", required = false, defaultValue = "false") boolean isFuzzy,
             @RequestParam(value = "ext", required = false, defaultValue = "true") boolean withExt,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit)
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
             throws IOException {
-        String projectName = checkProjectName(project);
-        List<TableDesc> result = tableService.getTableDesc(projectName, withExt, table, database, isFuzzy);
+        checkProjectName(project);
+        List<TableDesc> result = tableService.getTableDescByType(project, withExt, table, database, isFuzzy, sourceType);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
 

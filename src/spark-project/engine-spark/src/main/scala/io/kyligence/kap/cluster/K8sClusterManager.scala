@@ -46,6 +46,10 @@ class K8sClusterManager extends IClusterManager with Logging {
     logInfo("Kill Application $jobStepId !")
   }
 
+  override def killApplication(jobStepPrefix: String, jobStepId: String): Unit = {
+    logInfo("Kill Application $jobStepPrefix $jobStepId !")
+  }
+
   override def isApplicationBeenKilled(applicationId: String): Boolean = {
     true
   }
@@ -57,4 +61,9 @@ class K8sClusterManager extends IClusterManager with Logging {
   override def fetchQueueStatistics(queueName: String): ResourceInfo = {
     ResourceInfo(Int.MaxValue, 1000)
   }
+
+  override def applicationExisted(jobId: String): Boolean = {
+    false
+  }
+
 }

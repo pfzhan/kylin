@@ -6,19 +6,22 @@ Vue.use(VueResource)
 
 export default {
   getCusterTopic: (kafka) => {
-    return Vue.resource(apiUrl + 'kafka').save(kafka)
+    return Vue.resource(apiUrl + 'kafka/topics').save(kafka)
   },
   getTopicInfo: (topic) => {
-    return Vue.resource(apiUrl + 'kafka/' + topic.cluster + '/' + topic.name).save(topic.kafka)
+    return Vue.resource(apiUrl + 'kafka/messages').save(topic.kafka)
+  },
+  convertTopicJson: (para) => {
+    return Vue.resource(apiUrl + 'kafka/convert').save(para.kafka)
   },
   saveSampleData: (tableName, sampleData, project) => {
     return Vue.resource(apiUrl + 'kafka/' + project + '/' + tableName + '/samples').save(sampleData)
   },
   saveKafka: (kafka) => {
-    return Vue.resource(apiUrl + 'streaming').save(kafka)
+    return Vue.resource(apiUrl + 'streaming_tables/table').save(kafka)
   },
   updateKafka: (kafka) => {
-    return Vue.resource(apiUrl + 'streaming').update(kafka)
+    return Vue.resource(apiUrl + 'streaming_tables/table').update(kafka)
   },
   getConfig: (tableName, project) => {
     return Vue.resource(apiUrl + 'streaming/getConfig').get({table: tableName, project: project})

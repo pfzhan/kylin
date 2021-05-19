@@ -42,6 +42,9 @@
 
 package org.apache.kylin.common.util;
 
+import static org.apache.kylin.common.ZookeeperConfig.geZKClientConnectionTimeoutMs;
+import static org.apache.kylin.common.ZookeeperConfig.geZKClientSessionTimeoutMs;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -49,6 +52,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,6 +123,10 @@ public class ZKUtil {
         return getZookeeperClient(config, retryPolicy, listener);
     }
 
+    public static CuratorFramework getZookeeperClient(KylinConfig config) throws Exception {
+        return getZookeeperClient(config, null);
+    }
+
     private static CuratorFramework getZookeeperClient(final KylinConfig config, final RetryPolicy retryPolicy,
             ConnectionStateListener listener) throws Exception {
         String zkString = getZKConnectString(config);
@@ -127,7 +135,7 @@ public class ZKUtil {
             CuratorFramework instance = CACHE.get(config, new Callable<CuratorFramework>() {
                 @Override
                 public CuratorFramework call() throws Exception {
-                    return newZookeeperClient(zkString, retryPolicy, listener);
+                    return newZookeeperClient(config, zkString, retryPolicy, listener);
                 }
             });
 
@@ -139,7 +147,7 @@ public class ZKUtil {
             }
             return instance;
         } catch (ExecutionException e) {
-            return newZookeeperClient(zkString, retryPolicy, listener);
+            return newZookeeperClient(config, zkString, retryPolicy, listener);
         }
     }
 
@@ -147,11 +155,11 @@ public class ZKUtil {
         return config.getZookeeperConnectString();
     }
 
-    private static CuratorFramework newZookeeperClient(String zkString, RetryPolicy retryPolicy,
-            ConnectionStateListener listener) throws Exception {
+    private static CuratorFramework newZookeeperClient(final KylinConfig config, String zkString,
+            RetryPolicy retryPolicy, ConnectionStateListener listener) throws Exception {
         logger.info("zookeeper connection string: {} with namespace {}", zkString, ZK_ROOT);
 
-        CuratorFramework instance = getCuratorFramework(zkString, ZK_ROOT, retryPolicy);
+        CuratorFramework instance = getCuratorFramework(config, zkString, ZK_ROOT, retryPolicy);
         instance.start();
         logger.info("new zookeeper Client start: {}", zkString);
 
@@ -161,7 +169,7 @@ public class ZKUtil {
         }
 
         // create zkRoot znode if necessary
-        createzkRootIfNecessary(instance, zkString);
+        createzkRootIfNecessary(config, instance, zkString);
         return instance;
     }
 
@@ -171,12 +179,12 @@ public class ZKUtil {
         return new ExponentialBackoffRetry(baseSleepTimeMs, maxRetries);
     }
 
-    private static synchronized void createzkRootIfNecessary(CuratorFramework instance, String zkString)
-            throws Exception {
+    private static synchronized void createzkRootIfNecessary(KylinConfig config, CuratorFramework instance,
+            String zkString) throws Exception {
         try {
             RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
             if (instance.checkExists().forPath("/") == null) {
-                CuratorFramework tmpCurator = getCuratorFramework(zkString, null, retryPolicy);
+                CuratorFramework tmpCurator = getCuratorFramework(config, zkString, null, retryPolicy);
                 tmpCurator.start();
                 tmpCurator.create().creatingParentsIfNeeded().forPath(ZK_ROOT);
                 tmpCurator.close();
@@ -189,10 +197,42 @@ public class ZKUtil {
         }
     }
 
-    private static CuratorFramework getCuratorFramework(String zkString, String zkRoot, RetryPolicy retryPolicy) {
+    private static CuratorFramework getCuratorFramework(final KylinConfig config, String zkString, String zkRoot,
+            RetryPolicy retryPolicy) {
         if (!Strings.isNullOrEmpty(zkRoot)) {
             zkString += zkRoot;
         }
-        return CuratorFrameworkFactory.newClient(zkString, 120000, 15000, retryPolicy);
+        int sessionTimeout = geZKClientSessionTimeoutMs();
+        int connectionTimeout = geZKClientConnectionTimeoutMs();
+        return CuratorFrameworkFactory.newClient(zkString, sessionTimeout, connectionTimeout, retryPolicy);
+    }
+
+    public static CuratorFramework createEphemeralPath(String path, KylinConfig kylinConfig) throws Exception {
+        try {
+            CuratorFramework zkClient = getZookeeperClient(kylinConfig);
+            int retry = 0;
+            while (retry++ < kylinConfig.getZKMaxRetries()) {
+                if (zkClient.checkExists().forPath(path) != null) {
+                    Thread.sleep((long) 10000 * retry);
+                } else {
+                    break;
+                }
+            }
+            zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
+            return zkClient;
+        } catch (Exception e) {
+            logger.error("Failed to create path: {}", path);
+            throw e;
+        }
+    }
+
+    public static boolean pathExisted(String path, KylinConfig kylinConfig) throws Exception {
+        try {
+            CuratorFramework zkClient = getZookeeperClient(kylinConfig);
+            return zkClient.checkExists().forPath(path) != null;
+        } catch (Exception e) {
+            logger.error("Failed to create path: {}", path);
+            throw e;
+        }
     }
 }

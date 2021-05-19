@@ -33,8 +33,8 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | toGMTDate}}</h2>
             <div class="table-actions ky-no-br-space">
-              <el-button type="primary" text icon="el-ksd-icon-sample_22" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable')">{{$t('sample')}}</el-button>
-              <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-resure_22" :loading="reloadBtnLoading" @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable')">{{$t('reload')}}</el-button>
+              <el-button type="primary" text icon="el-ksd-icon-sample_22" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable') && selectedTable.datasource == 9">{{$t('sample')}}</el-button>
+              <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-resure_22" :loading="reloadBtnLoading" @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable') && selectedTable.datasource == 9">{{$t('reload')}}</el-button>
               <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-table_delete_22" :loading="delBtnLoading" v-if="datasourceActions.includes('delSourceTable')" @click="handleDelete">{{$t('delete')}}</el-button>
             </div>
           </div>
@@ -48,6 +48,9 @@
             </el-tab-pane>
             <el-tab-pane :label="$t('sampling')" :name="viewTypes.SAMPLE">
               <TableSamples :table="selectedTable" v-if="viewType === viewTypes.SAMPLE"></TableSamples>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('kafkaCluster')" :name="viewTypes.KAFKA" v-if="selectedTable.datasource===1">
+              <KafkaCluster :streamingData="selectedTable"></KafkaCluster>
             </el-tab-pane>
           </el-tabs>
         </template>
@@ -109,6 +112,7 @@ import DataSourceBar from '../../common/DataSourceBar/index.vue'
 import TableDataLoad from './TableDataLoad/TableDataLoad.vue'
 import TableColumns from './TableColumns/TableColumns.vue'
 import TableSamples from './TableSamples/TableSamples.vue'
+import KafkaCluster from './KafkaCluster/KafkaCluster.vue'
 import SourceManagement from './SourceManagement/SourceManagement.vue'
 import ReloadTable from './TableReload/reload.vue'
 import { handleSuccessAsync, handleError } from '../../../util'
@@ -121,6 +125,7 @@ import { getFormattedTable } from '../../../util/UtilTable'
     TableDataLoad,
     TableColumns,
     TableSamples,
+    KafkaCluster,
     SourceManagement,
     ReloadTable
   },
@@ -165,6 +170,7 @@ export default class StudioSource extends Vue {
   delAllLoading = false
   isOnlySnapshot = false
   get selectedTable () {
+    this.viewType = viewTypes.COLUMNS
     return this.selectedTableData ? getFormattedTable(this.selectedTableData) : null
   }
   get sampleDesc () {
@@ -195,7 +201,7 @@ export default class StudioSource extends Vue {
       const tableName = data.label
       const databaseName = data.database
       this.handleShowSourcePage(false)
-      await this.fetchTableDetail({ tableName, databaseName })
+      await this.fetchTableDetail({ tableName, databaseName, sourceType: data.datasource })
     } catch (e) {
       handleError(e)
     }
@@ -314,6 +320,7 @@ export default class StudioSource extends Vue {
     try {
       const projectName = this.currentSelectedProject
       const databaseName = this.selectedTable.database
+      const datasource = this.selectedTable.datasource
       const tableName = this.selectedTable.name
       let fullTableName = databaseName + '.' + tableName
       this.reloadBtnLoading = true
@@ -328,7 +335,7 @@ export default class StudioSource extends Vue {
         tableName: fullTableName
       })
       if (isSubmit) {
-        this.fetchTableDetail({ tableName, databaseName })
+        this.fetchTableDetail({ tableName, databaseName, sourceType: datasource })
       }
     } catch (e) {
       this.reloadBtnLoading = false
@@ -340,6 +347,7 @@ export default class StudioSource extends Vue {
       const { isSetToDefault } = options
       const tableName = this.selectedTable.name
       const databaseName = this.selectedTable.database
+      const datasource = this.selectedTable.datasource
       let isHaveFirstTable = true
       // 3016 临时修复方案，sprint1 修复后，以修复后的代码为准
       if (isSetToDefault) {
@@ -349,7 +357,7 @@ export default class StudioSource extends Vue {
       }
       isSetToDefault
         ? isHaveFirstTable = this.$refs['datasource-bar'].selectFirstTable()
-        : await this.fetchTableDetail({ tableName, databaseName })
+        : await this.fetchTableDetail({ tableName, databaseName, sourceType: datasource })
       if (!isHaveFirstTable) {
         this.selectedTableData = null
       }
@@ -357,10 +365,10 @@ export default class StudioSource extends Vue {
       handleError(e)
     }
   }
-  async fetchTableDetail ({ tableName, databaseName }) {
+  async fetchTableDetail ({ tableName, databaseName, sourceType }) {
     try {
       const projectName = this.currentSelectedProject
-      const res = await this.fetchTables({ projectName, databaseName, tableName, isExt: true, isFuzzy: false })
+      const res = await this.fetchTables({ projectName, databaseName, tableName, isExt: true, isFuzzy: false, sourceType })
       const tableDetail = await handleSuccessAsync(res)
       this.selectedTableData = tableDetail.tables[0]
     } catch (e) {
@@ -404,6 +412,9 @@ export default class StudioSource extends Vue {
   background: white;
   .layout-left {
     z-index:8;
+    .data-source-bar .el-tree {
+      border: none;
+    }
   }
   .layout-right {
     padding: 32px 24px 0;

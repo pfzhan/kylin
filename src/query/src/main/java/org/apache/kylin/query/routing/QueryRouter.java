@@ -44,7 +44,6 @@ package org.apache.kylin.query.routing;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -73,18 +72,18 @@ public class QueryRouter {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
-    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations,
+    public static Candidate selectRealization(OLAPContext olapContext, IRealization realization,
             Map<String, String> aliasMap) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         IRealization readyReal = null;
-        for (IRealization real : realizations) {
-            if (real.isReady()) {
-                readyReal = real;
-            }
+
+        if (realization.isReady()) {
+            readyReal = realization;
         }
+
         if (readyReal == null) {
-            logger.warn("Realization {} is not ready", realizations);
+            logger.warn("Realization {} is not ready", realization);
             return null;
         }
 
@@ -97,12 +96,8 @@ public class QueryRouter {
         olapContext.resetSQLDigest();
         SQLDigest sqlDigest = olapContext.getSQLDigest();
 
-        List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
-        for (IRealization real : realizations) {
-            if (real.isReady()) {
-                candidates.add(new Candidate(real, sqlDigest, olapContext));
-            }
-        }
+        List<Candidate> candidates = Lists.newArrayListWithCapacity(1);
+        candidates.add(new Candidate(realization, sqlDigest, olapContext));
         logger.debug("Find candidates by table {} and project={} : {}", factTableName, projectName,
                 StringUtils.join(candidates, ","));
         List<Candidate> originCandidates = Lists.newArrayList(candidates);

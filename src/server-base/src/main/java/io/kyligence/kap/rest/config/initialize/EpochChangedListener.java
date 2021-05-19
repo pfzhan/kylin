@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -85,6 +86,11 @@ public class EpochChangedListener implements IKeep {
                 if (!scheduler.hasStarted()) {
                     throw new RuntimeException("Scheduler for " + project + " has not been started");
                 }
+                StreamingScheduler ss = StreamingScheduler.getInstance(project);
+                ss.init();
+                if (!ss.getHasStarted().get()) {
+                    throw new RuntimeException("Streaming Scheduler for " + project + " has not been started");
+                }
 
                 QueryHistoryTaskScheduler qhAccelerateScheduler = QueryHistoryTaskScheduler.getInstance(project);
                 qhAccelerateScheduler.init();
@@ -117,6 +123,10 @@ public class EpochChangedListener implements IKeep {
                 NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
                 QueryHistoryTaskScheduler.shutdownByProject(project);
                 NDefaultScheduler.shutdownByProject(project);
+                StreamingScheduler ss = StreamingScheduler.getInstance(project);
+                if(ss != null) {
+                    ss.forceShutdown();
+                }
             } catch (Exception e) {
                 log.warn("error when shutdown " + project + " thread", e);
             }

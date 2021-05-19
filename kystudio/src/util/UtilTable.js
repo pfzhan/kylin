@@ -25,6 +25,9 @@ export function getFormattedTable (originData = {}) {
     endTime,
     create_time: originData.create_time,
     sampling_rows: originData.sampling_rows,
+    kafka_bootstrap_servers: originData.kafka_bootstrap_servers,
+    subscribe: originData.subscribe,
+    hive_table_identity: originData.hive_table_identity,
     __data: originData
   }
 }

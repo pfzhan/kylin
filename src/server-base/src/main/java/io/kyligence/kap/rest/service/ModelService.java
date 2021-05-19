@@ -265,6 +265,7 @@ import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.BISyncTool;
 import io.kyligence.kap.tool.bisync.SyncContext;
@@ -579,6 +580,10 @@ public class ModelService extends BasicService {
         return modelResponseList;
     }
 
+    private boolean isTypesContains(List<String> types, NDataModel.ModelType modelType) {
+        return types == null || types.isEmpty() || (modelType != null && types.contains(modelType.toString()));
+    }
+
     private boolean isListContains(List<String> status, ModelStatusToDisplayEnum modelStatus) {
         return status == null || status.isEmpty() || (modelStatus != null && status.contains(modelStatus.name()));
     }
@@ -616,6 +621,15 @@ public class ModelService extends BasicService {
             final List<String> status) {
         return getModels(null, projectName, false, null, status, LAST_MODIFY, true, null, null, null).stream()
                 .filter(NDataModel::isMultiPartitionModel).collect(Collectors.toList());
+    }
+
+    public List<NDataModelResponse> getModelsByTypes(final String modelAlias, final String projectName,
+            boolean exactMatch, String owner, List<String> modelTypes, List<String> status, String sortBy,
+            boolean reverse, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
+        return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
+                lastModifyFrom, lastModifyTo).stream()
+                        .filter(dataModel -> isTypesContains(modelTypes, dataModel.getModelType()))
+                        .collect(Collectors.toList());
     }
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
@@ -1425,7 +1439,8 @@ public class ModelService extends BasicService {
         }
         try {
             ProjectInstance project = getProjectManager().getProject(dataModel.getProject());
-            if (project.getSourceType() == ISourceAware.ID_SPARK) {
+            if (project.getSourceType() == ISourceAware.ID_SPARK
+                    && dataModel.getModelType() == NDataModel.ModelType.BATCH) {
                 SparkSession ss = SparderEnv.getSparkSession();
                 String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
                 QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
@@ -1522,7 +1537,6 @@ public class ModelService extends BasicService {
             }
 
             updateIndexPlan(project, indexPlan);
-
             UnitOfWorkContext context = UnitOfWork.get();
             context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         }
@@ -1969,9 +1983,17 @@ public class ModelService extends BasicService {
         if (range != null) {
             dataflowManager.fillDfManually(df, Lists.newArrayList(range));
         }
+        createStreamingModel(project, model, modelRequest);
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
+    }
+
+    private void createStreamingModel(String project, NDataModel model, ModelRequest request) {
+        if (NDataModel.ModelType.BATCH != model.getModelType()) {
+            val jobManager = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+            jobManager.createStreamingJob(model);
+        }
     }
 
     void updateIndexPlan(String project, IndexPlan indexPlan) {

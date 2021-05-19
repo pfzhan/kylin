@@ -20,6 +20,7 @@ class NTable {
     this.joinInfo = {} // 链接对象
     this.guid = options.guid || sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
+    this.source_type = options.source_type
     this._cache_search_columns = this.columns // 搜索结果缓存
     // this._parent = options._parent
     this.ST = null

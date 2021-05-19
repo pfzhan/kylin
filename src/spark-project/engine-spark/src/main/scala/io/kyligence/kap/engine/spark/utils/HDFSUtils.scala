@@ -25,7 +25,7 @@ import java.io.FileNotFoundException
 
 import io.kyligence.kap.engine.spark.cleanup.HDFSResourceCheck
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileContext, FileStatus, Path}
+import org.apache.hadoop.fs.{FSDataOutputStream, FileContext, FileStatus, Path}
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 
@@ -65,4 +65,48 @@ object HDFSUtils extends Logging {
   def getFileStatus(path: Path): FileStatus = {
     getFileContext(path).getFileStatus(path)
   }
+
+  def isExistsMarkFile(markFile: String): Boolean = {
+    val conf = new Configuration()
+    val path = new Path(markFile)
+    val fs = path.getFileSystem(conf)
+    return fs.exists(path)
+  }
+
+  def deleteMarkFile(markFile: String): Unit = {
+    val conf = new Configuration()
+    val path = new Path(markFile)
+    val fs = path.getFileSystem(conf)
+    if (fs.exists(path)) {
+      fs.delete(path, true)
+    }
+  }
+
+  def touchzMarkFile(markFile: String): Boolean = {
+    val path = new Path(markFile)
+    val fs = path.getFileSystem(new Configuration())
+
+    if (!fs.exists(path.getParent)) {
+      fs.mkdirs(path.getParent)
+    }
+    var errCnt = 0
+    while (errCnt < 3) {
+      var output: FSDataOutputStream = null
+      try {
+        if (!fs.exists(path)) {
+          output = fs.create(path)
+          output.writeByte(0)
+          output.close()
+        }
+        return fs.exists(path)
+      } catch {
+        case e: Exception =>
+          log.warn(e.getMessage + ", begin to retry")
+      }
+      Thread.sleep(1000)
+      errCnt = errCnt + 1
+    }
+    fs.exists(path)
+  }
+
 }

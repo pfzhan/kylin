@@ -232,6 +232,13 @@ public class JdbcAuditLogStore implements AuditLogStore {
         replayWorker.waitForCatchup(getMaxId(), config.getCatchUpTimeout());
     }
 
+    public void catchupWithMaxTimeout() throws Exception {
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayWorker.updateOffset(store.getOffset());
+        replayWorker.catchup();
+        replayWorker.waitForCatchup(getMaxId(), config.getCatchUpMaxTimeout());
+    }
+
     @Override
     public void catchup() {
         val store = ResourceStore.getKylinMetaStore(config);

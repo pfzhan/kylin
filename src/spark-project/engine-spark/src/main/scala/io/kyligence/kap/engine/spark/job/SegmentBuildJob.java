@@ -46,7 +46,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 
 public class SegmentBuildJob extends SegmentJob {
-    private static final Logger logger = LoggerFactory.getLogger(SegmentBuildJob.class);
+    protected static final Logger logger = LoggerFactory.getLogger(SegmentBuildJob.class);
 
     @Override
     protected String generateInfo() {
@@ -96,7 +96,7 @@ public class SegmentBuildJob extends SegmentJob {
         }
     }
 
-    private void build() throws IOException {
+    protected void build() throws IOException {
         for (NDataSegment dataSegment : readOnlySegments) {
             SegmentBuildExec exec = new SegmentBuildExec(this, dataSegment);
             buildSegment(dataSegment, exec);

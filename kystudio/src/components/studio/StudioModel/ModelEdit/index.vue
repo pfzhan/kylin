@@ -60,12 +60,14 @@
             :project-name="currentSelectedProject"
             :is-show-load-source="true"
             :is-show-load-table="datasourceActions.includes('loadSource')"
+            :is-show-load-table-inner-btn="datasourceActions.includes('loadSource')"
             :is-show-settings="false"
             :is-show-action-group="false"
             :is-expand-on-click-node="false"
             :expand-node-types="['datasource', 'database']"
             :draggable-node-types="['table']"
             :searchable-node-types="['table']"
+            :is-model-have-fact="modelInstance && !!modelInstance.fact_table"
             @drag="dragTable">
           </DataSourceBar>
           <!-- </div> -->
@@ -371,9 +373,9 @@
           <span>ESC</span>
         </div>
       </div>
-    </transition> 
-   
-     
+    </transition>
+
+
     <ModelSaveConfig/>
     <DimensionModal/>
     <BatchMeasureModal @betchMeasures="updateBetchMeasure"/>
@@ -395,8 +397,8 @@
       <!-- 编辑table 快捷按钮 -->
       <div v-guide.modelActionPanel class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
         <div v-if="currentEditTable.kind === 'FACT' || modelInstance.checkTableCanSwitchFact(currentEditTable.guid)">
-          <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-            <span >{{$t('switchLookup')}}</span>
+          <div class="action switch" :class="{'disabled': currentEditTable.source_type === 1}" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+            <span>{{$t('switchLookup')}}</span>
           </div>
           <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
             <span >{{$t('switchFact')}}</span>
@@ -907,6 +909,9 @@ export default class ModelEdit extends Vue {
     this.measureVisible = false
   }
   changeTableType (t) {
+    if (t.kind === 'FACT' && t.source_type === 1) {
+      return
+    }
     if (this._checkTableType(t)) {
       let joinT = Object.keys(this.modelInstance.linkUsedColumns).filter(it => it.indexOf(t.guid) === 0)
       if (joinT.length && joinT.some(it => this.modelInstance.linkUsedColumns[it].length)) {
@@ -1888,6 +1893,12 @@ export default class ModelEdit extends Vue {
   }
 
   handleSaveModel ({data, modelSaveConfigData, createBaseIndex}) {
+    const factTable = this.modelInstance.getFactTable()
+    if (factTable.source_type === 1) {
+      data.model_type = 'STREAMING'
+    } else if (factTable.source_type === 9) {
+      data.model_type = 'BATCH'
+    }
     this.saveModelType = 'saveModel'
     let para = {...data, with_base_index: createBaseIndex}
     if (data.uuid) {
@@ -2170,6 +2181,10 @@ export default class ModelEdit extends Vue {
       transform: margin-left ease;
       &:hover {
         margin-left: 4px;
+      }
+      &.disabled {
+        opacity: 0.375;
+        cursor: not-allowed;
       }
     }
   }
@@ -2456,7 +2471,7 @@ export default class ModelEdit extends Vue {
               font-weight: @font-medium;
               font-style: normal;
             }
-            
+
           }
         }
       }
@@ -2488,7 +2503,7 @@ export default class ModelEdit extends Vue {
         &:hover {
           background: @grey-2;
         }
-      } 
+      }
       .search-result-box {
         box-shadow: 0 0px 2px 0 @color-text-placeholder;
         background-color: rgba(255, 255, 255, 1);
@@ -2505,7 +2520,7 @@ export default class ModelEdit extends Vue {
         }
         .search-group {
           padding-top: 5px;
-          padding-bottom: 5px; 
+          padding-bottom: 5px;
         }
         .search-content {
           &.active,&:hover{
@@ -2687,7 +2702,7 @@ export default class ModelEdit extends Vue {
       }
       // overflow: hidden;
       .table-title {
-        .setting-icon {  
+        .setting-icon {
           float:right;
           font-size:14px;
           width:20px;

@@ -331,6 +331,16 @@ export function objectClone (obj) {
   }
   return s
 }
+// 从对象数组中模糊匹配某个符合key value 的对象的位置
+export function indexOfObjWithSomeKeyByfuzzy (objectArr, key, equalVal) {
+  for (var i = 0; i < objectArr.length; i++) {
+    var filterObj = objectArr[i]
+    if (filterObj && filterObj[key].toLowerCase() === equalVal.toLowerCase()) {
+      return i
+    }
+  }
+  return -1
+}
 // 改变对象数组里对象的某个属性
 export function changeObjectArrProperty (objectArr, key, val, newKey, newVal, _this) {
   var arr = objectArr

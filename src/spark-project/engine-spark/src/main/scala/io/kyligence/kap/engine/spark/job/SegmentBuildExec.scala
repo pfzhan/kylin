@@ -220,7 +220,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
   }
 
-  private def buildDataLayout(source: SegmentBuildSource, parentDS: Dataset[Row], sanityCheckCount: Long): Unit = {
+  protected def buildDataLayout(source: SegmentBuildSource, parentDS: Dataset[Row], sanityCheckCount: Long): Unit = {
     if (needSkipLayout(source.getLayout.getId)) {
       return
     }

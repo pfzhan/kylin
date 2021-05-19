@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -92,13 +93,12 @@ public class RealizationPruner {
     private static final String INTEGER = "integer";
     private static final String BIGINT = "bigint";
 
-    public static List<NDataSegment> pruneSegments(NDataModel model, OLAPContext olapContext) {
+    public static List<NDataSegment> pruneSegments(NDataflow dataflow, OLAPContext olapContext) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val projectName = model.getProject();
-        val dataflow = NDataflowManager.getInstance(kylinConfig, projectName).getDataflow(model.getUuid());
+        val projectName = dataflow.getProject();
+
         val projectInstance = NProjectManager.getInstance(kylinConfig).getProject(projectName);
         val allReadySegments = dataflow.getQueryableSegments();
-
         if (!projectInstance.getConfig().isHeterogeneousSegmentEnabled()) {
             return allReadySegments;
         }

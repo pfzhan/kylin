@@ -12,6 +12,9 @@ export default {
     [types.GET_TOPIC_INFO]: function ({ commit }, topic) {
       return api.kafka.getTopicInfo(topic)
     },
+    [types.CONVERT_TOPIC_JSON]: function ({ commit }, para) {
+      return api.kafka.convertTopicJson(para)
+    },
     [types.SAVE_SAMPLE_DATA]: function ({ commit }, data) {
       return api.kafka.saveSampleData(data.tableName, data.sampleData, data.project)
     },

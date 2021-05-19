@@ -5,20 +5,32 @@
       <div class="header-text ksd-title-module">
         <span>{{$t('kylinLang.common.dataSource')}}</span>
       </div>
-      <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]">
-        <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
-          <i class="ksd-fs-22 el-ksd-icon-setting_old" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
-        </el-tooltip>
+      <div class="icon-btns clearfix">
+        <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]" v-if="isShowSourceSwitch">
+          <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
+            <i class="ksd-fs-14 el-icon-ksd-setting" @click="handleSwitchSource"></i>
+          </el-tooltip>
+        </div>
+        <div class="add-source-table-icon" v-if="isShowLoadTable">
+          <el-tooltip :content="$t('loadTables')" effect="dark" placement="top">
+            <i class="ksd-fs-14 el-icon-ksd-project_add"  @click="importDataSource('selectSource', currentProjectData)"></i>
+          </el-tooltip>
+        </div>
       </div>
     </section>
     <section class="body">
       <div v-if="isShowLoadTable" class="btn-group">
-        <el-button plain size="medium" v-if="!isLoadingTreeData && showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-ksd-icon-add_data_source_old" @click="importDataSource('selectSource', currentProjectData)">
-          {{$t('addDatasource')}}
+        <el-button plain size="medium" v-if="!isLoadingTreeData && showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
+          {{$t('loadTables')}}
         </el-button>
       </div>
-      <div v-if="showTreeFilter" class="ksd-mb-16">
-        <el-input v-model="filterText" :placeholder="$t('searchTable')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
+      <div v-if="showTreeFilter" class="ksd-mb-16 dispaly-flex">
+        <el-input v-model="filterText" :placeholder="$t('searchTable')"  prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
+        <div class="add-source-table-icon" v-if="isShowLoadTableInnerBtn">
+          <el-tooltip :content="$t('loadTables')" effect="dark" placement="top">
+            <i class="ksd-fs-14 el-icon-ksd-project_add"  @click="importDataSource('selectSource', currentProjectData)"></i>
+          </el-tooltip>
+        </div>
       </div>
       <div v-scroll style="height:calc(100% - 51px)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList
@@ -28,6 +40,7 @@
           :placeholder="$t('searchTable')"
           :default-expanded-keys="defaultExpandedKeys"
           :draggable-node-types="draggableNodeTypes"
+          :is-model-have-fact="isModelHaveFact"
           :is-expand-all="isExpandAll"
           :is-show-filter="false"
           :is-expand-on-click-node="isExpandOnClickNode"
@@ -95,14 +108,12 @@
 import Vue from 'vue'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
-
 import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
 import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder, getDatabaseTablesObj } from './handler'
-import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
+import { handleSuccessAsync, handleError, kapConfirm, objectClone } from '../../../util'
 // import { types } from '../../studio/StudioModel/TableIndexEdit/store'
-
 @Component({
   props: {
     projectName: {
@@ -139,6 +150,10 @@ import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
     isShowLoadTable: {
       type: Boolean,
       default: true
+    },
+    isShowLoadTableInnerBtn: {
+      type: Boolean,
+      default: false
     },
     isShowSourceSwitch: {
       type: Boolean,
@@ -187,6 +202,10 @@ import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
     customTreeTitle: {
       type: String,
       default: ''
+    },
+    isModelHaveFact: {
+      type: Boolean,
+      default: false
     }
   },
   components: {
@@ -240,6 +259,7 @@ export default class DataSourceBar extends Vue {
   }
   databaseSizeObj = {}
   dataSourceSelectedLabel = ''
+  currentSourceTypes = [9, 1] // 默认试着获取一下Hive和kafka数据源的数据
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
@@ -284,14 +304,12 @@ export default class DataSourceBar extends Vue {
   get ignoreColumnTree () {
     return this.ignoreNodeTypes.indexOf('column') >= 0
   }
-
-  get currentSourceTypes () {
-    const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
-    return overrideKylinProperties && overrideKylinProperties['kylin.source.default']
-      ? [+overrideKylinProperties['kylin.source.default']]
-      : []
-  }
-
+  // get currentSourceTypes () {
+  //   const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
+  //   return overrideKylinProperties && overrideKylinProperties['kylin.source.default']
+  //     ? [+overrideKylinProperties['kylin.source.default']]
+  //     : []
+  // }
   get foreignKeys () {
     return this.tableArray.reduce((foreignKeys, table) => {
       const currentFK = table.__data.foreign_key.map(foreignKey => `${table.datasource}.${table.database}.${foreignKey}`)
@@ -311,6 +329,13 @@ export default class DataSourceBar extends Vue {
   onLanguageChange () {
     this.freshDatasourceTitle()
   }
+  // @Watch('tableArray')
+  // onTreeDataChange () {
+  //   this.freshAutoCompleteWords()
+  //   this.defaultExpandedKeys = this.defaultExpandedKeysWords
+  //     .filter(word => this.expandNodeTypes.includes(word.meta))
+  //     .map(word => word.id)
+  // }
   @Watch('projectName')
   @Watch('currentSourceTypes')
   onProjectChange (oldValue, newValue) {
@@ -343,53 +368,58 @@ export default class DataSourceBar extends Vue {
   async initTree () {
     try {
       this.isSearchIng = false
-      await this.loadDatasources()
+      // await this.loadDatasources()
       // await this.loadDataBases()
       // await this.loadTables({ isReset: true })
       // 有加载数据源的情况，才去加载db 和 table，否则就处理loading字段
-      if (this.datasources.length > 0) {
-        await this.loadTreeData()
-        this.freshAutoCompleteWords()
-        this.defaultExpandedKeys = this.allWords
-          .filter(word => this.expandNodeTypes.includes(word.meta))
-          .map(word => word.id)
-      } else {
-        this.isLoadingTreeData = false
-      }
-      freshTreeOrder(this)
-      this.selectFirstTable()
+      // if (this.datasources.length > 0) {
+      //   await this.loadTreeData()
+      //   this.freshAutoCompleteWords()
+      // } else {
+      //   this.isLoadingTreeData = false
+      // }
+      // freshTreeOrder(this)
+      // this.selectFirstTable()
+      this.isLoadingTreeData = false
+      await this.loadTreeData()
     } catch (e) {
       handleError(e)
     }
   }
-  async loadDatasources () {
-    this.datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
-  }
+  // async loadDatasources () {
+  //   this.datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
+  // }
   async loadTreeData (filterText) { // 根据数据源获取dbs 和tables
     this.isLoadingTreeData = true
-    // 默认获取 this.datasources 的第一个元素拿到相应参数，发送接口获取数据，暂不考虑多数据源
+    this.treeKey = 'pageTree_' + filterText + Number(new Date())
+    this.databaseSizeObj = {}
+    this.datasources = []
+    const datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
+    await Promise.all(datasources.map((datasource, index) => {
+      return this.loadDateBasesData(datasource, index, filterText)
+    }))
+    this.freshAutoCompleteWords()
+    freshTreeOrder(this)
+    this.selectFirstTable()
+    this.isLoadingTreeData = false
+  }
+  async loadDateBasesData (datasource, index, filterText) {
     let params = {
-      project_name: this.datasources[0].projectName,
-      source_type: this.datasources[0].sourceType,
+      project_name: datasource.projectName,
+      source_type: datasource.sourceType,
       page_offset: 0,
       page_size: pageSizeMapping.TABLE_TREE,
       table: filterText || ''
     }
     const response = await this.fetchDBandTables(params)
     const results = await handleSuccessAsync(response)
-    // 没有筛选条件时，需要将数据库和 size 做个映射
-    if (!filterText) {
-      if (results.databases.length) {
+    if (results.databases.length) {
+      // 没有筛选条件时，需要将数据库和 size 做个映射
+      if (!filterText) {
         results.databases.forEach((item) => {
           this.databaseSizeObj[item.dbname] = item.size
         })
-      } else {
-        this.databaseSizeObj = {}
       }
-    }
-    this.treeKey = 'pageTree_' + filterText + Number(new Date())
-    // 初始化数据中 db 一层的 render
-    this.datasources.forEach((datasource, index) => {
       // 先处理 db 一层的render，以及初值的赋值
       datasource.children = results.databases.map(resultDatabse => getDatabaseTablesObj(this, datasource, resultDatabse))
       // 然后处理 table 一级的render render 后变更页码，并存入store
@@ -398,8 +428,14 @@ export default class DataSourceBar extends Vue {
         this.addPagination(database)
         this.cacheDatasourceInStore(index, database.originTables, true)
       })
-    })
-    this.isLoadingTreeData = false
+      // 确保下Hive数据源第一位
+      if (datasource && datasource.sourceType === 9) {
+        this.datasources.unshift(datasource)
+      } else {
+        this.datasources.push(datasource)
+      }
+      this.defaultExpandedKeys.push(datasource.id)
+    }
   }
   async loadDataBases () {
     // 分数据源，请求database
@@ -418,12 +454,11 @@ export default class DataSourceBar extends Vue {
       return database.id === databaseId || !databaseId
     })
     const responses = await Promise.all(currentDatabases.map((database) => {
-      const { projectName, label: databaseName, pagination } = database
+      const { projectName, label: databaseName, pagination, datasource } = database
       isReset ? this.clearPagination(database) : null
-      return this.fetchTables({ projectName, databaseName, tableName, isExt: true, ...pagination })
+      return this.fetchTables({ projectName, databaseName, tableName, isExt: true, ...pagination, sourceType: datasource })
     }))
     const results = await handleSuccessAsync(responses)
-
     currentDatabases.forEach((database, index) => {
       const { size, tables: resultTables } = results[index]
       const tables = resultTables.map(resultTable => getTableObj(this, database, resultTable, this.ignoreNodeTypes.indexOf('column') >= 0))
@@ -438,7 +473,6 @@ export default class DataSourceBar extends Vue {
     })
     this.recoverySelectedTable()
   }
-
   // 恢复之前选中的表名
   recoverySelectedTable () {
     for (let item of this.tableArray) {
@@ -448,7 +482,6 @@ export default class DataSourceBar extends Vue {
       }
     }
   }
-
   cacheDatasourceInStore (index, tables, isSourceReset) {
     const isReset = isSourceReset && index === 0
     const project = this.projectName
@@ -483,9 +516,6 @@ export default class DataSourceBar extends Vue {
   resetDefaultExpandedKeys () {
     this.cacheDefaultExpandedKeys = this.defaultExpandedKeys
     this.freshAutoCompleteWords()
-    this.defaultExpandedKeys = this.allWords
-      .filter(word => this.expandNodeTypes.includes(word.meta))
-      .map(word => word.id)
   }
   async reloadTables (isNotResetDefaultExpandedKeys) {
     const res = await this.handleFilter(this.filterText, isNotResetDefaultExpandedKeys)
@@ -525,22 +555,31 @@ export default class DataSourceBar extends Vue {
     }
   }
   handleNodeExpand (data, node) {
-    this.defaultExpandedKeys.push(data.id)
+    const index = this.defaultExpandedKeys.indexOf(data.id)
+    if (index === -1) {
+      this.defaultExpandedKeys.push(data.id)
+    }
   }
   handleNodeCollapse (data, node) {
     const index = this.defaultExpandedKeys.indexOf(data.id)
     if (index !== -1) {
       this.defaultExpandedKeys.splice(index, 1)
     }
+    const idPrefix = `${data.id}.` // 合并DataSource树节点，同时合并索引DataSource的database树节点
+    const defaultExpandedKeysClone = objectClone(this.defaultExpandedKeys)
+    this.defaultExpandedKeys.forEach((k, index) => {
+      if ((k + '').indexOf(idPrefix) !== -1) {
+        defaultExpandedKeysClone.splice(index, 1)
+      }
+    })
+    this.defaultExpandedKeys = defaultExpandedKeysClone
   }
   async handleToggleTop (data, node, event) {
     event && event.stopPropagation()
     event && event.preventDefault()
-
     const { projectName } = this
     const tableFullName = `${data.database}.${data.label}`
     const isTopSet = !data.isTopSet
-
     await this.updateTopTable({ projectName, tableFullName, isTopSet })
     data.isTopSet = isTopSet
     freshTreeOrder(this)
@@ -638,7 +677,7 @@ export default class DataSourceBar extends Vue {
       }
       if (loaded.length > 0) {
         await new Promise((resolve) => setTimeout(() => resolve(), 1000))
-        this.handleResultModalClosed()
+        this.handleResultModalClosed(result.sourceType)
       }
     }
   }
@@ -654,15 +693,15 @@ export default class DataSourceBar extends Vue {
       this.toImportDataSource(editType, project)
     }
   }
-  async handleResultModalClosed () {
+  async handleResultModalClosed (sourceType) {
     try {
       await this.loadDataBases()
       await this.reloadTables(true) // true 表示不改变树开合情况
       // 展开新增database
       this.loadedTables.forEach((item) => {
         const database = item.split('.')[0]
-        if (database && this.defaultExpandedKeys.indexOf(this.datasources[0].sourceType + '.' + database) === -1) {
-          this.defaultExpandedKeys.push(this.datasources[0].sourceType + '.' + database)
+        if (database && this.defaultExpandedKeys.indexOf(sourceType + '.' + database) === -1) {
+          this.defaultExpandedKeys.push(sourceType + '.' + database)
         }
       })
       freshTreeOrder(this)
@@ -714,6 +753,14 @@ export default class DataSourceBar extends Vue {
   position:relative;
   height: 100%;
   width: 100%;
+  .dispaly-flex {
+    display: flex;
+    .add-source-table-icon {
+      line-height: 30px;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+  }
   .header,
   .body {
     width: 240px;
@@ -733,8 +780,12 @@ export default class DataSourceBar extends Vue {
       line-height: 20px;
     }
   }
+  .icon-btns {
+    position: relative;
+    height: 22px;
+  }
   .header-icons {
-    position: absolute;
+    float: right;
     width: 22px;
     height: 22px;
     right: 16px;
@@ -758,6 +809,16 @@ export default class DataSourceBar extends Vue {
       margin-right: 0;
     }
   }
+  .add-source-table-icon {
+    float: right;
+    width: 22px;
+    height: 22px;
+    text-align: center;
+    line-height: 22px;
+    &:hover {
+      color: @base-color;
+    }
+  }
   .body {
     height: calc(~"100% - 66px");
     overflow: hidden;
@@ -773,6 +834,7 @@ export default class DataSourceBar extends Vue {
   .el-tree {
     min-height: calc(~"100vh - 263px");
     margin-bottom: 40px;
+    border: 1px solid #ddd;
     &.ignore-column-tree {
       .el-tree-node >.el-tree-node__children {
         // margin-left: -18px;
@@ -894,42 +956,42 @@ export default class DataSourceBar extends Vue {
       margin-right: 2px;
       font-style: normal;
     }
-    & > .el-tree-node {
-      // border: 1px solid #ddd;
-      min-height: calc(~"100vh - 263px");
-      overflow: hidden;
-      margin-bottom: 10px;
-      // & > .el-tree-node__content {
-      //   padding: 7px 9px 8px 9px !important; // important用来去掉el-tree的内联样式
-      //   height: auto;
-      //   background: @regular-background-color;
-      //   &:hover > .tree-item > span {
-      //     color: #263238;
-      //   }
-      // }
-      // datasource的样式
-      & > .el-tree-node__content {
-        cursor: default;
-        & > .tree-item {
-          width: 100%;
-          i {
-            cursor: pointer;
-          }
-          .right {
-            right: 0;
-          }
-        }
-      }
-      // & > .el-tree-node__content .el-tree-node__expand-icon {
-      //   display: none;
-      // }
-      // & > .el-tree-node__children {
-      //   margin-left: -18px;
-      // }
-      // & > .el-tree-node__children > .el-tree-node {
-      //   border-top: 1px solid #CFD8DC;
-      // }
-    }
+    // & > .el-tree-node {
+    //   border: 1px solid #ddd;
+    //   min-height: calc(~"100vh - 263px");
+    //   overflow: hidden;
+    //   margin-bottom: 10px;
+    //   & > .el-tree-node__content {
+    //     padding: 7px 9px 8px 9px !important; // important用来去掉el-tree的内联样式
+    //     height: auto;
+    //     background: @regular-background-color;
+    //     &:hover > .tree-item > span {
+    //       color: #263238;
+    //     }
+    //   }
+    //   // datasource的样式
+    //   & > .el-tree-node__content {
+    //     cursor: default;
+    //     & > .tree-item {
+    //       width: 100%;
+    //       i {
+    //         cursor: pointer;
+    //       }
+    //       .right {
+    //         right: 0;
+    //       }
+    //     }
+    //   }
+    //   & > .el-tree-node__content .el-tree-node__expand-icon {
+    //     display: none;
+    //   }
+    //   & > .el-tree-node__children {
+    //     margin-left: -18px;
+    //   }
+    //   & > .el-tree-node__children > .el-tree-node {
+    //     border-top: 1px solid #CFD8DC;
+    //   }
+    // }
   }
   .el-tree__empty-block {
     text-align: left;

@@ -36,11 +36,15 @@ trait IClusterManager extends IKeep {
 
   def killApplication(jobStepId: String): Unit
 
+  def killApplication(jobStepPrefix: String, jobStepId: String): Unit
+
   def isApplicationBeenKilled(applicationId: String): Boolean
 
   def getRunningJobs(queues: util.Set[String]): util.List[String]
 
   def fetchQueueStatistics(queueName: String): ResourceInfo
+
+  def applicationExisted(jobId: String): Boolean
 }
 
 // memory unit is MB

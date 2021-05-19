@@ -8,7 +8,7 @@
     :disabled='disabled'
     multiple
     filterable
-    :remote="remoteSearch"
+    remote
     size="medium"
     :remote-method="remoteMethodSync"
     :allow-create='allowcreate'
@@ -46,6 +46,10 @@ export default {
     validateRegex: RegExp,
     splitChar: String,
     duplicateremove: Boolean,
+    validateFailedMove: {
+      type: Boolean,
+      default: true
+    },
     isSignSameValue: Boolean,
     remoteMethod: Function,
     selectGroupOne: {
@@ -89,7 +93,7 @@ export default {
   watch: {
     selectedlabels (val) {
       this.selectedL = val.map((item) => {
-        return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
+        return item.toLocaleUpperCase()
       })
     },
     // 保证组件在外部切换校验类型的时候能够动态切换校验表达式
@@ -111,7 +115,7 @@ export default {
         this.$emit('change')
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         if (this.allowcreate && e.length > 0) {
-          let item = this.isNeedNotUpperCase ? e[e.length - 1] : (e[e.length - 1]).toLocaleUpperCase()
+          let item = (e[e.length - 1]).toLocaleUpperCase()
           let result = this.filterCreateTag(item)
           var splitChar = this.splitChar || ';'
           var regOfSeparate = new RegExp(splitChar)
@@ -127,13 +131,15 @@ export default {
         }
         // 都转为大写
         let temp = this.selectedL.map((item) => {
-          return this.isNeedNotUpperCase ? item : item.toLocaleUpperCase()
+          return item.toLocaleUpperCase()
         })
         // 去重返回
         this.duplicateremove && (this.selectedL = [...new Set(temp)])
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
+        this.resetErrortags()
         this.isSignSameValue && this.signSameTags()
+        !this.validateFailedMove && this.signValidateFailedTags()
       })
     },
     bindTagClick () {
@@ -154,25 +160,44 @@ export default {
         }
       }
     },
+    resetErrortags () {
+      const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
+      tags.forEach((t, index) => {
+        let tagClassName = tags[index].className
+        if (tags[index] && tagClassName.indexOf('error-tag') > -1) {
+          tags[index].className = tagClassName.replace(/error-tag/g, '')
+        }
+      })
+    },
     // 标记重复的tag
     signSameTags () {
       setTimeout(() => {
         let indexes = []
         const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
-        const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && (item.querySelector('.el-select__tags-text').innerText || item.querySelector('.el-select__tags-text').textContent))
+        const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && item.querySelector('.el-select__tags-text').innerText || item.querySelector('.el-select__tags-text').textContent)
         tagText.forEach((element, index, self) => {
-          if (self.indexOf(element) !== self.lastIndexOf(element)) {
+          if (self.indexOf(element.trim()) !== self.lastIndexOf(element.trim())) {
             tags[index] && (tags[index].className += ' error-tag')
             indexes.push(index)
-          } else {
-            if (!tags[index]) return
-            let tagClassName = tags[index].className
-            if (tags[index] && tagClassName.indexOf('error-tag') > -1) {
-              tags[index].className = tagClassName.replace(/error-tag/g, '')
-            }
           }
         })
         this.$emit('duplicateTags', indexes.length > 0)
+      }, 200)
+    },
+    // 标记校验失败的tag
+    signValidateFailedTags () {
+      setTimeout(() => {
+        let indexes = []
+        const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
+        const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && item.querySelector('.el-select__tags-text').innerText)
+        var regExp = new RegExp(this.validateReg)
+        tagText.forEach((item, index) => {
+          if (!regExp.test(item.trim())) {
+            tags[index] && (tags[index].className += ' error-tag')
+            indexes.push(index)
+          }
+        })
+        this.$emit('validateFailedTags', indexes.length > 0)
       }, 200)
     },
     removeTag (data) {
@@ -183,7 +208,9 @@ export default {
       //     break
       //   }
       // }
+      this.resetErrortags()
       this.isSignSameValue && this.signSameTags()
+      !this.validateFailedMove && this.signValidateFailedTags()
       this.$emit('removeTag', data, this.refreshInfo)
     },
     selectTag (e) {
@@ -201,7 +228,9 @@ export default {
         var regExp = new RegExp(this.validateReg)
         if (!regExp.test(item)) {
           this.$emit('validateFail')
-          return []
+          if (this.validateFailedMove) {
+            return []
+          }
         }
       }
       // 忽略分隔符
@@ -213,7 +242,7 @@ export default {
       var splitChar = this.splitChar || ';'
       var regOfSeparate = new RegExp(splitChar)
       if (item && regOfSeparate.test(item)) {
-        Array.prototype.push.apply(result, item.split(regOfSeparate).filter(item => item))
+        Array.prototype.push.apply(result, item.split(regOfSeparate))
       } else if (item) {
         result.push(item)
       }
@@ -228,7 +257,10 @@ export default {
     clearDuplicateValue () {
       this.selectedL = [...new Set(this.selectedL)]
       this.$emit('refreshData', this.selectedL, this.refreshInfo)
+      this.resetErrortags()
       this.signSameTags()
+      this.isSignSameValue && this.signSameTags()
+      !this.validateFailedMove && this.signValidateFailedTags()
     },
     manualInputEvent () {
       // 处理单独录入的情况 start
@@ -243,7 +275,9 @@ export default {
           })
           // 去重返回
           this.duplicateremove && (this.selectedL = [...new Set(temp)])
+          this.resetErrortags()
           this.isSignSameValue && (this.selectedL = this.selectedL.filter(it => it), this.signSameTags())
+          !this.validateFailedMove && (this.selectedL = this.selectedL.filter(it => it), this.signValidateFailedTags())
           this.$emit('refreshData', this.selectedL, this.refreshInfo)
         }
         if (this.$refs.select.$refs.input) {
@@ -268,7 +302,9 @@ export default {
       }
       this.$refs.select.$refs.input.onblur = () => {
         this.manualInputEvent()
+        this.resetErrortags()
         this.isSignSameValue && this.signSameTags()
+        !this.validateFailedMove && this.signValidateFailedTags()
       }
     }
     this.bindTagClick()

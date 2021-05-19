@@ -43,6 +43,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.Map;
 
 import lombok.val;
@@ -131,10 +132,15 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         BasicSegmentRange(Long s, Long e) {
+            this(s, e, true);
+        }
+
+        BasicSegmentRange(Long s, Long e, Boolean needCheck) {
             this.start = (s == null || s <= 0) ? 0 : s;
             this.end = (e == null || e == Long.MAX_VALUE) ? Long.MAX_VALUE : e;
-
-            Preconditions.checkState(this.start <= this.end);
+            if (needCheck) {
+                Preconditions.checkState(this.start <= this.end);
+            }
         }
 
         private BasicSegmentRange convert(SegmentRange o) {
@@ -344,12 +350,12 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         public KafkaOffsetPartitionedSegmentRange(Long startOffset, Long endOffset) {
-            super(startOffset, endOffset);
+            super(startOffset, endOffset, false);
         }
 
         public KafkaOffsetPartitionedSegmentRange(Long startOffset, Long endOffset,
                 Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd) {
-            super(startOffset, endOffset);
+            super(startOffset, endOffset, false);
             this.sourcePartitionOffsetStart = sourcePartitionOffsetStart == null ? Maps.<Integer, Long> newHashMap()
                     : sourcePartitionOffsetStart;
             this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd == null ? Maps.<Integer, Long> newHashMap()
@@ -362,9 +368,18 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         @Override
+        public boolean contains(SegmentRange o) {
+            KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
+            return comparePartitionOffset(this.sourcePartitionOffsetStart, other.sourcePartitionOffsetStart) <= 0
+                    && comparePartitionOffset(other.sourcePartitionOffsetEnd, this.sourcePartitionOffsetEnd) <= 0;
+        }
+
+        @Override
         public SegmentRange coverWith(SegmentRange o) {
             KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
-            return new KafkaOffsetPartitionedSegmentRange(this.start, other.end, this.getSourcePartitionOffsetStart(),
+            val start = Math.min(this.start, other.start);
+            val end = Math.max(this.end, other.end);
+            return new KafkaOffsetPartitionedSegmentRange(start, end, this.getSourcePartitionOffsetStart(),
                     other.getSourcePartitionOffsetEnd());
         }
 
@@ -391,7 +406,15 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
         @Override
         public boolean overlaps(SegmentRange o) {
-            return false;
+            super.checkSameType(o);
+            KafkaOffsetPartitionedSegmentRange t = convertToKafkaOffset(o);
+
+            if (t.sourcePartitionOffsetStart != null && t.sourcePartitionOffsetEnd != null) {
+                return comparePartitionOffset(this.sourcePartitionOffsetStart, t.sourcePartitionOffsetEnd) < 0
+                        && comparePartitionOffset(t.sourcePartitionOffsetStart, this.sourcePartitionOffsetEnd) < 0;
+            } else {
+                return true;
+            }
         }
 
         @Override
@@ -401,8 +424,15 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
                 return null;
             }
             val start = this.start < other.start ? other.start : this.start;
-            val end = this.end < other.end ? this.start : other.start;
-            return new TimePartitionedSegmentRange(start, end);
+            val end = this.end < other.end ? this.end : other.end;
+
+            val offsetStart = comparePartitionOffset(this.sourcePartitionOffsetStart,
+                    other.sourcePartitionOffsetStart) < 0 ? other.sourcePartitionOffsetStart
+                            : this.sourcePartitionOffsetStart;
+            val offsetEnd = comparePartitionOffset(this.sourcePartitionOffsetEnd, other.sourcePartitionOffsetEnd) < 0
+                    ? other.sourcePartitionOffsetEnd
+                    : this.sourcePartitionOffsetEnd;
+            return new KafkaOffsetPartitionedSegmentRange(start, end, offsetStart, offsetEnd);
         }
 
         @Override
@@ -410,8 +440,6 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
             if (this == o)
                 return true;
             if (o == null || getClass() != o.getClass())
-                return false;
-            if (!super.equals(o))
                 return false;
             KafkaOffsetPartitionedSegmentRange that = (KafkaOffsetPartitionedSegmentRange) o;
             return java.util.Objects.equals(sourcePartitionOffsetStart, that.sourcePartitionOffsetStart)
@@ -421,6 +449,30 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         @Override
         public int hashCode() {
             return java.util.Objects.hash(super.hashCode(), sourcePartitionOffsetStart, sourcePartitionOffsetEnd);
+        }
+
+        @Override
+        public int compareTo(SegmentRange o) {
+            KafkaOffsetPartitionedSegmentRange target = (KafkaOffsetPartitionedSegmentRange) o;
+            int result = comparePartitionOffset(this.sourcePartitionOffsetStart, target.sourcePartitionOffsetStart);
+            if (result == 0) {
+                result = comparePartitionOffset(this.sourcePartitionOffsetEnd, target.sourcePartitionOffsetEnd);
+            }
+            return result;
+        }
+
+        public int comparePartitionOffset(Map<Integer, Long> sourcePartitionOffset,
+                Map<Integer, Long> targetPartitionOffset) {
+            int result = 0;
+            Iterator<Map.Entry<Integer, Long>> iter = sourcePartitionOffset.entrySet().iterator();
+            while (iter.hasNext()) {
+                Map.Entry<Integer, Long> entry = iter.next();
+                result = (entry.getValue().compareTo(targetPartitionOffset.get(entry.getKey())));
+                if (result != 0) {
+                    return result;
+                }
+            }
+            return result;
         }
 
         public Map<Integer, Long> getSourcePartitionOffsetStart() {

@@ -1,0 +1,531 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.streaming.jobs.scheduler;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
+
+import com.google.common.collect.Sets;
+import io.kyligence.kap.cluster.ClusterManagerFactory;
+import io.kyligence.kap.cluster.IClusterManager;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.jobs.thread.StreamingJobRunner;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.util.JobKiller;
+import io.kyligence.kap.streaming.util.MetaInfoUpdater;
+import lombok.Getter;
+import lombok.val;
+import lombok.var;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.common.util.ZKUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+public class StreamingScheduler {
+
+    private static final Logger logger = LoggerFactory.getLogger(StreamingScheduler.class);
+
+    @Getter
+    private String project;
+
+    @Getter
+    private AtomicBoolean initialized = new AtomicBoolean(false);
+
+    @Getter
+    private AtomicBoolean hasStarted = new AtomicBoolean(false);
+
+    private ExecutorService jobPool;
+    private Map<String, StreamingJobRunner> runnerMap = Maps.newHashMap();
+    private Map<String, AbstractMap.SimpleEntry<AtomicInteger, AtomicInteger>> retryMap = Maps.newHashMap();
+
+    private static final Map<String, StreamingScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
+    private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private static List<JobStatusEnum> STARTABLE_STATUS_LIST = Arrays.asList(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,
+            JobStatusEnum.NEW);
+
+    private static StreamingJobStatusWatcher jobStatusUpdater = new StreamingJobStatusWatcher();
+
+    public StreamingScheduler(String project) {
+        Preconditions.checkNotNull(project);
+        this.project = project;
+
+        if (INSTANCE_MAP.containsKey(project))
+            throw new IllegalStateException(
+                    "StreamingScheduler for project " + project + " has been initiated. Use getInstance() instead.");
+        init();
+        logger.debug("New StreamingScheduler created by project '{}': {}", project,
+                System.identityHashCode(StreamingScheduler.this));
+        scheduledExecutorService.scheduleWithFixedDelay(this::retryJob, 5, 1, TimeUnit.MINUTES);
+        jobStatusUpdater.schedule();
+    }
+
+    public static synchronized StreamingScheduler getInstance(String project) {
+        return INSTANCE_MAP.computeIfAbsent(project, StreamingScheduler::new);
+    }
+
+    public synchronized void init() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+
+        if (!config.isJobNode()) {
+            logger.info("server mode: {}, no need to run job scheduler", config.getServerMode());
+            return;
+        }
+        if (!UnitOfWork.isAlreadyInTransaction())
+            logger.info("Initializing Job Engine ....");
+
+        if (!initialized.compareAndSet(false, true)) {
+            return;
+        }
+
+        int maxPoolSize = config.getMaxStreamingConcurrentJobLimit();
+        ThreadFactory executorThreadFactory = new BasicThreadFactory.Builder()
+                .namingPattern("StreamingJobWorker(project:" + project + ")").uncaughtExceptionHandler((t, e) -> {
+                    logger.error(e.getMessage(), e);
+                    throw new RuntimeException(e);
+                }).build();
+
+        jobPool = new ThreadPoolExecutor(maxPoolSize, maxPoolSize * 2, Long.MAX_VALUE, TimeUnit.DAYS,
+                new SynchronousQueue<>(), executorThreadFactory);
+        resumeJobs(config);
+
+        hasStarted.set(true);
+    }
+
+    public synchronized void submitJob(String project, String modelId) {
+        submitJob(project, modelId, JobTypeEnum.STREAMING_BUILD);
+        submitJob(project, modelId, JobTypeEnum.STREAMING_MERGE);
+
+        val conf = KylinConfig.getInstanceFromEnv();
+        boolean timeout = waitJob(modelId, status -> isRunning(status) || isFailed(status),
+                conf.getStreamingJobStartupTimeout());
+        if (conf.getStreamingJobStartupTimeout() > 0 && timeout) {
+            killJob(modelId, JobTypeEnum.STREAMING_BUILD);
+            killJob(modelId, JobTypeEnum.STREAMING_MERGE);
+            String modelName = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDesc(modelId).getAlias();
+            throw new KylinException(ServerErrorCode.JOB_START_FAILURE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_START_FAILURE(), modelName));
+        }
+    }
+
+    public synchronized void submitJob(String project, String modelId, JobTypeEnum jobType) {
+        String jobId = StreamingUtils.getJobId(modelId, jobType.name());
+        boolean applicationExisted = applicationExisted(jobId);
+        throwExceptionIfAppExists(applicationExisted, modelId);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
+
+        checkJobStartStatus(jobMeta, jobId);
+        if (!StringUtils.isEmpty(jobMeta.getProcessId())) {
+            JobKiller.killProcess(jobMeta);
+        }
+
+        Predicate<NDataSegment> predicate = item -> (item.getStatus() == SegmentStatusEnum.NEW
+                || item.getStorageBytesSize() == 0) && item.getAdditionalInfo() != null;
+        if (JobTypeEnum.STREAMING_BUILD == jobType) {
+            deleteBrokenSegment(project, modelId, item -> predicate.apply(item)
+                    && !item.getAdditionalInfo().containsKey(StreamingConstants.FILE_LAYER));
+        } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
+            deleteBrokenSegment(project, modelId, item -> predicate.apply(item)
+                    && item.getAdditionalInfo().containsKey(StreamingConstants.FILE_LAYER));
+        }
+        MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.STARTING);
+        StreamingJobRunner jobRunner = new StreamingJobRunner(project, modelId, jobType);
+        runnerMap.put(jobId, jobRunner);
+        jobPool.execute(jobRunner);
+        if (!StreamingUtils.isJobOnCluster()) {
+            MetaInfoUpdater.updateJobState(project, jobId, Sets.newHashSet(JobStatusEnum.RUNNING, JobStatusEnum.ERROR),
+                    JobStatusEnum.RUNNING, null);
+        }
+    }
+
+    public void stopJob(String modelId) {
+        stopJob(modelId, JobTypeEnum.STREAMING_BUILD);
+        stopJob(modelId, JobTypeEnum.STREAMING_MERGE);
+
+        val conf = KylinConfig.getInstanceFromEnv();
+        boolean timeouted = waitJob(modelId, status -> isFinished(status) || isFailed(status),
+                conf.getStreamingJobShutdownTimeout());
+        if (conf.getStreamingJobShutdownTimeout() > 0 && timeouted) {
+            killJob(modelId, JobTypeEnum.STREAMING_BUILD);
+            killJob(modelId, JobTypeEnum.STREAMING_MERGE);
+            String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDesc(modelId).getAlias();
+            throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
+        }
+    }
+
+    public synchronized void stopJob(String modelId, JobTypeEnum jobType) {
+        String jobId = StreamingUtils.getJobId(modelId, jobType.name());
+
+        KylinConfig conf = KylinConfig.getInstanceFromEnv();
+        boolean existed = applicationExisted(jobId);
+        if (existed) {
+            StreamingJobManager jobMgr = StreamingJobManager.getInstance(conf, project);
+            JobStatusEnum status = jobMgr.getStreamingJobByUuid(jobId).getCurrentStatus();
+            if (isFailed(status) || isFinished(status)) {
+                return;
+            }
+            MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.STOPPING);
+            doStop(modelId, jobType);
+        } else {
+            doStop(modelId, jobType);
+            if (StreamingUtils.isJobOnCluster()) {
+                MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
+            } else {
+                MetaInfoUpdater.updateJobState(project, jobId,
+                        Sets.newHashSet(JobStatusEnum.STOPPED, JobStatusEnum.ERROR), JobStatusEnum.STOPPED, null);
+            }
+        }
+    }
+
+    private void doStop(String modelId, JobTypeEnum jobType) {
+        String jobId = StreamingUtils.getJobId(modelId, jobType.name());
+        StreamingJobRunner runner = runnerMap.get(jobId);
+        synchronized (runnerMap) {
+            if (Objects.isNull(runner)) {
+                runner = new StreamingJobRunner(project, modelId, jobType);
+                runner.init();
+                runnerMap.put(jobId, runner);
+            }
+        }
+        runner.stop();
+    }
+
+    public static synchronized void shutdownByProject(String project) {
+        val instance = getInstanceByProject(project);
+        if (instance != null) {
+            INSTANCE_MAP.remove(project);
+            instance.forceShutdown();
+        }
+    }
+
+    public static synchronized StreamingScheduler getInstanceByProject(String project) {
+        return INSTANCE_MAP.get(project);
+    }
+
+    public void forceShutdown() {
+        logger.info("Shutting down DefaultScheduler ....");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+        List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
+        List<StreamingJobMeta> retryJobMetaList = jobMetaList.stream()
+                .filter(meta -> JobStatusEnum.RUNNING == meta.getCurrentStatus()).collect(Collectors.toList());
+        val modelSet = new HashSet<StreamingJobMeta>();
+        retryJobMetaList.forEach(meta -> {
+            stopJob(meta.getModelId(), meta.getJobType());
+            modelSet.add(meta);
+        });
+        // wait stremaing job to shutdown gracefully
+        val jobMap = waitJob(modelSet, status -> isFinished(status) || isFailed(status),
+                config.getStreamingJobShutdownTimeout());
+
+        // kill job for wait too long time
+        jobMap.entrySet().stream().forEach(entry -> {
+            if (!entry.getValue().get()) {
+                logger.info("begin to kill job:" + entry.getKey());
+                killJob(entry.getKey());
+            }
+        });
+        releaseResources();
+        ExecutorServiceUtil.forceShutdown(jobPool);
+    }
+
+    private void releaseResources() {
+        initialized.set(false);
+        hasStarted.set(false);
+        INSTANCE_MAP.remove(project);
+    }
+
+    private boolean waitJob(String modelId, Predicate<JobStatusEnum> predicate, long timeout) {
+        val config = KylinConfig.getInstanceFromEnv();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+
+        String buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
+        String mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.toString());
+        val sets = Sets.newHashSet(mgr.getStreamingJobByUuid(buildJobId), mgr.getStreamingJobByUuid(mergeJobId));
+        val jobMap = waitJob(sets, predicate, timeout);
+        return jobMap.size() != jobMap.values().stream().filter(item -> item.get()).count();
+    }
+
+    private Map<String, AtomicBoolean> waitJob(Set<StreamingJobMeta> modelIds, Predicate<JobStatusEnum> predicate,
+            long timeout) {
+        val config = KylinConfig.getInstanceFromEnv();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+
+        val jobMap = new HashMap<String, AtomicBoolean>();
+        modelIds.stream().forEach(item -> jobMap
+                .put(StreamingUtils.getJobId(item.getModelId(), item.getJobType().name()), new AtomicBoolean(false)));
+
+        long startTime = System.currentTimeMillis();
+        while (true) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+            jobMap.forEach((jobId, done) -> {
+                StreamingJobMeta meta = mgr.getStreamingJobByUuid(jobId);
+                if (predicate.apply(meta.getCurrentStatus())) {
+                    done.set(true);
+                }
+            });
+            if (jobMap.size() == jobMap.values().stream().filter(item -> item.get()).count()) {
+                break;
+            }
+
+            if (timeout > 0 && (System.currentTimeMillis() - startTime) / (60 * 1000) > timeout) {
+                break;
+            }
+        }
+        return jobMap;
+    }
+
+    private boolean isRunning(JobStatusEnum state) {
+        if (JobStatusEnum.RUNNING == state) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isFailed(JobStatusEnum state) {
+        if (JobStatusEnum.ERROR == state) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isFinished(JobStatusEnum state) {
+        if (JobStatusEnum.STOPPED == state) {
+            return true;
+        }
+        return false;
+    }
+
+    private void checkJobStartStatus(StreamingJobMeta jobMeta, String jobId) {
+        if (!STARTABLE_STATUS_LIST.contains(jobMeta.getCurrentStatus())) {
+            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, jobId);
+        }
+    }
+
+    public void retryJob() {
+        val config = KylinConfig.getInstanceFromEnv();
+
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+        List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
+        List<StreamingJobMeta> retryJobMetaList = jobMetaList
+                .stream().filter(meta -> "true".equals(meta.getParams()
+                        .getOrDefault(StreamingConstants.STREAMING_RETRY_ENABLE, config.getStreamingJobRetryEnabled())))
+                .collect(Collectors.toList());
+        retryJobMetaList.forEach(meta -> {
+            JobStatusEnum status = meta.getCurrentStatus();
+            String modelId = meta.getModelId();
+            String jobId = StreamingUtils.getJobId(modelId, meta.getJobType().name());
+            if (retryMap.containsKey(jobId) || status == JobStatusEnum.ERROR) {
+                boolean canRestart = !applicationExisted(jobId);
+                if (canRestart) {
+                    if (!retryMap.containsKey(jobId)) {
+                        if (status == JobStatusEnum.ERROR) {
+                            retryMap.put(jobId, new AbstractMap.SimpleEntry<>(
+                                    new AtomicInteger(config.getStreamingJobRetryInterval()), new AtomicInteger(1)));
+                        }
+                    } else {
+                        int targetCnt = retryMap.get(jobId).getKey().get();
+                        int currCnt = retryMap.get(jobId).getValue().get();
+                        logger.debug("targetCnt=" + targetCnt + ",currCnt=" + currCnt + " jobId=" + jobId);
+
+                        if (targetCnt <= config.getStreamingJobMaxRetryInterval()) {
+                            retryMap.get(jobId).getValue().incrementAndGet();
+                            if (targetCnt == currCnt && status == JobStatusEnum.ERROR) {
+                                logger.info("begin to restart job:" + modelId + "_" + meta.getJobType());
+                                restartJob(config, meta, jobId, targetCnt);
+                            }
+                        }
+
+                    }
+                } else {
+                    if (status == JobStatusEnum.RUNNING && retryMap.containsKey(jobId)) {
+                        logger.debug("remove jobId=" + jobId);
+                        retryMap.remove(jobId);
+                    }
+                }
+            }
+        });
+    }
+
+    private boolean zkPathExisted(String path, KylinConfig kylinConfig) throws Exception {
+        if (kylinConfig.isUTEnv()) {
+            return false;
+        } else {
+            return ZKUtil.pathExisted(path, kylinConfig);
+        }
+    }
+
+    private void restartJob(KylinConfig config, StreamingJobMeta meta, String jobId, int targetCnt) {
+        try {
+            val path = StreamingConstants.ZK_EPHEMERAL_ROOT_PATH + project + "_" + jobId;
+            if (!zkPathExisted(path, config)) {
+                submitJob(meta.getProject(), meta.getModelId(), meta.getJobType());
+                if (targetCnt < config.getStreamingJobMaxRetryInterval()) {
+                    retryMap.get(jobId).getKey().addAndGet(config.getStreamingJobRetryInterval());
+                }
+                retryMap.get(jobId).getValue().set(0);
+            } else {
+                if (!applicationExisted(jobId)) {
+                    JobKiller.killProcess(meta);
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    private void deleteBrokenSegment(String project, String dataflowId, Predicate<NDataSegment> predicate) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataflow df = dfMgr.getDataflow(dataflowId);
+            Segments<NDataSegment> segments = df.getSegments();
+            List<NDataSegment> toRemoveSegs = segments.stream().filter(item -> predicate.apply(item))
+                    .collect(Collectors.toList());
+            if (!toRemoveSegs.isEmpty()) {
+                val dfUpdate = new NDataflowUpdate(dataflowId);
+                dfUpdate.setToRemoveSegs(toRemoveSegs.toArray(new NDataSegment[0]));
+                dfMgr.updateDataflow(dfUpdate);
+            }
+            return 0;
+        }, project);
+    }
+
+    private boolean applicationExisted(String jobId) {
+        boolean existed = false;
+        val config = KylinConfig.getInstanceFromEnv();
+        if (!config.isUTEnv() && !StreamingUtils.isLocalMode()) {
+            int errCnt = 0;
+            while (errCnt++ < 3) {
+                try {
+                    final IClusterManager cm = ClusterManagerFactory.create(config);
+                    existed = cm.applicationExisted(jobId);
+                    return existed;
+                } catch (UncheckedTimeoutException e) {
+                    logger.warn(e.getMessage());
+                    existed = false;
+                }
+            }
+        }
+        return existed;
+    }
+
+    private void throwExceptionIfAppExists(Boolean isExists, String modelId) {
+        if (isExists) {
+            String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDesc(modelId).getAlias();
+            throw new KylinException(ServerErrorCode.REPEATED_START_ERROR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_START_FAILURE(), model));
+        }
+    }
+
+    private void killJob(String modelId, JobTypeEnum jobTypeEnum) {
+        killJob(StreamingUtils.getJobId(modelId, jobTypeEnum.name()));
+    }
+
+    private void killJob(String jobId) {
+        val config = KylinConfig.getInstanceFromEnv();
+        var jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
+        JobKiller.killProcess(jobMeta);
+        JobKiller.killApplication(jobId);
+
+        MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
+    }
+
+    private void resumeJobs(KylinConfig config) {
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+        List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
+
+        if (jobMetaList == null || jobMetaList.isEmpty()) {
+            return;
+        }
+        List<StreamingJobMeta> retryJobMetaList = jobMetaList.stream()
+                .filter(meta -> JobStatusEnum.STARTING == meta.getCurrentStatus()
+                        || JobStatusEnum.STOPPING == meta.getCurrentStatus()
+                        || JobStatusEnum.RUNNING == meta.getCurrentStatus()
+                        || JobStatusEnum.ERROR == meta.getCurrentStatus())
+                .collect(Collectors.toList());
+        retryJobMetaList.forEach(meta -> {
+            val modelId = meta.getModelId();
+            val jobType = meta.getJobType();
+            if (JobStatusEnum.RUNNING == meta.getCurrentStatus() || JobStatusEnum.STARTING == meta.getCurrentStatus()) {
+                killJob(meta.getModelId(), meta.getJobType());
+                submitJob(project, modelId, jobType);
+            } else {
+                killJob(meta.getModelId(), meta.getJobType());
+            }
+        });
+    }
+}

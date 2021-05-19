@@ -32,6 +32,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -63,5 +64,11 @@ public class NEpochController extends NBasicController {
     public EnvelopeResponse<String> updateAllEpochOwner(@RequestBody EpochRequest epochRequest) {
         epochService.updateAllEpochs(epochRequest.isForce(), epochRequest.isClient());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/maintenance_mode")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> isMaintenanceMode() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, epochService.isMaintenanceMode(), "");
     }
 }

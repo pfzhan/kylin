@@ -426,6 +426,15 @@ export default {
     },
     [types.FETCH_SUBMITTER_LIST] (_, params) {
       return api.model.fetchSubmitterList(params)
+    },
+    [types.GET_STREAMING_JOB] (_, params) {
+      return api.model.getStreamingJobs(params)
+    },
+    [types.CHANGE_STREAMING_JOB_STATUS] (_, params) {
+      return api.model.changeStreamingJobStatus(params)
+    },
+    [types.UPDATE_STREAMING_CONFIGURATIONS] (_, params) {
+      return api.model.updateStreamingConfigurations(params)
     }
   },
   getters: {

@@ -137,6 +137,7 @@ export const pageRefTags = {
   IndexDetailPager: 'IndexDetailPager',
   tableIndexDetailPager: 'tableIndexDetailPager',
   segmentPager: 'segmentPager',
+  streamSegmentPager: 'streamSegmentPager',
   capacityPager: 'capacityPager',
   projectDetail: 'projectDetail',
   sqlListsPager: 'sqlListsPager',
@@ -707,7 +708,7 @@ export const sourceNameMapping = {
 }
 
 export const pageSizeMapping = {
-  TABLE_TREE: 10
+  TABLE_TREE: 7
 }
 
 export const speedProjectTypes = [

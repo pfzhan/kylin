@@ -223,7 +223,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"), "", 0,
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", null, Arrays.asList("ONLINE"), "", 0,
                 10, "last_modify", true, null, null, null, null, true);
     }
 
@@ -238,7 +238,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", null, Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
@@ -252,7 +252,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("ONLINE"),
+        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", null, Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
@@ -784,13 +784,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         model.setUuid("model1");
         models.add(new NDataModelResponse(model));
         NDataModel model1 = new NDataModel();
-        model.setUuid("model2");
+        model1.setUuid("model2");
         models.add(new NDataModelResponse(model1));
         NDataModel model2 = new NDataModel();
-        model.setUuid("model3");
+        model2.setUuid("model3");
         models.add(new NDataModelResponse(model2));
         NDataModel model3 = new NDataModel();
-        model.setUuid("model4");
+        model3.setUuid("model4");
         models.add(new NDataModelResponse(model3));
 
         return models;

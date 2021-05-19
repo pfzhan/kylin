@@ -26,13 +26,14 @@ import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
-import io.kyligence.kap.metadata.model.NTableMetadataManager
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils
+import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
-import org.apache.kylin.common.{KapConfig, QueryContext}
+import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.sql.execution.utils.SchemaProcessor
@@ -65,7 +66,6 @@ object TableScanPlan extends LogEx {
   }
 
   def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = logTime("table scan", info = true) {
-
     val session: SparkSession = SparderEnv.getSparkSession
     val olapContext = rel.getContext
     val dataflow = olapContext.realization.asInstanceOf[NDataflow]
@@ -108,6 +108,7 @@ object TableScanPlan extends LogEx {
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout, pruningInfo)
           .toDF(columnNames: _*)
+
         logInfo(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, newDf)
         newDf

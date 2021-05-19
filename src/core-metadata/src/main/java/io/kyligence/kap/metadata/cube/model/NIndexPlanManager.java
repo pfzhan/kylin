@@ -254,7 +254,8 @@ public class NIndexPlanManager implements IKeepNames {
         }
 
         // validate columns of table index
-        Set<Integer> selectedColumnIds = NDataModelManager.getInstance(config, indexPlan.getProject())
+        Set<Integer> selectedColumnIds = NDataModelManager
+                .getInstance(config, indexPlan.getProject())
                 .getDataModelDesc(indexPlan.getUuid()).getAllSelectedColumns().stream()
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
         for (IndexEntity index : indexPlan.getAllIndexes(false)) {

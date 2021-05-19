@@ -324,7 +324,7 @@ export default {
       return api.datasource.fetchDatabases(para.projectName, para.sourceType)
     },
     [types.FETCH_TABLES]: function ({commit}, para) {
-      return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.page_offset, para.pageSize, para.isFuzzy, para.isExt)
+      return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.page_offset, para.pageSize, para.isFuzzy, para.sourceType, para.isExt)
         .then((response) => {
           if (!para.isFuzzy && !para.isDisableCache) {
             commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.page_offset === 0 })

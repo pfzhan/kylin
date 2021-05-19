@@ -72,6 +72,18 @@
           @input="v => filterContent(v, 'last_modify')">
           <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('lastModifyTime_c')}}{{selectedRange}}</el-button>
         </DropdownFilter>
+        <DropdownFilter
+          type="checkbox"
+          trigger="click"
+          :value="filterArgs.model_types"
+          :label="$t('modelType_c')"
+          :options="[
+            { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
+            { renderLabel: renderModelTypeLabel, value: 'BATCH' }
+          ]"
+          @input="v => filterContent(v, 'model_types')">
+          <span>{{selectedModeType}}</span>
+        </DropdownFilter>
         <div class="actions">
           <el-button
             text
@@ -202,6 +214,15 @@
           </template>
         </el-table-column>
         <el-table-column
+          prop="model_type"
+          show-overflow-tooltip
+          width="150px"
+          :label="$t('modelType')">
+          <template slot-scope="scope">
+            <span>{{$t(scope.row.model_type)}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
           width="100"
           prop="usage"
           sortable="custom"
@@ -267,7 +288,7 @@
       <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.modelListPager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
-    
+
     <!-- 模型构建 -->
     <ModelBuildModal @isWillAddIndex="willAddIndex" ref="modelBuildComp"/>
     <!-- 模型检查 -->
@@ -304,6 +325,7 @@ import { handleError, kapMessage } from 'util/business'
 import { handleSuccessAsync, dataGenerator, sliceNumber, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
+import SegmentTabs from './ModelSegment/SegmentTabs.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
 import ModelAggregateView from './ModelAggregateView/index.vue'
 import TableIndexView from './TableIndexView/index.vue'
@@ -316,6 +338,7 @@ import ConfirmSegment from './ConfirmSegment/ConfirmSegment.vue'
 import ModelPartition from './ModelPartition/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
 import ModelSql from './ModelSql/ModelSql.vue'
+import ModelStreamingJob from './ModelStreamingJob/ModelStreamingJob.vue'
 import ModelRecommendModal from './ModelRecommendModal/index.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
@@ -336,6 +359,7 @@ function getDefaultFilters (that) {
     sort_by: 'last_modify',
     reverse: true,
     status: [],
+    model_types: [],
     model_alias_or_owner: '',
     last_modify: [],
     owner: ''
@@ -429,6 +453,7 @@ function getDefaultFilters (that) {
     ModelBuildModal,
     TableIndex,
     ModelSegment,
+    SegmentTabs,
     ModelAggregate,
     ModelAggregateView,
     TableIndexView,
@@ -440,6 +465,7 @@ function getDefaultFilters (that) {
     ModelPartition,
     ModelJson,
     ModelSql,
+    ModelStreamingJob,
     ModelRecommendModal,
     UploadSqlModel,
     DropdownFilter,
@@ -464,6 +490,7 @@ export default class ModelList extends Vue {
   transToServerGmtTime = transToServerGmtTime
   filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
+  modelTypeList = ['STREAMING', 'BATCH']
   currentEditModel = null
   showFull = false
   showSearchResult = false
@@ -555,6 +582,12 @@ export default class ModelList extends Vue {
       return `${startDate} - ${endDate}`
     }
     return this.$t('allTimeRange')
+  }
+  get selectedModeType () {
+    const { filterArgs } = this
+    return filterArgs.model_types.length && this.modelTypeList.length !== filterArgs.model_types.length
+      ? filterArgs.model_types.map(status => this.$t(status)).join(', ')
+      : this.$t('ALL')
   }
   get isResetFilterDisabled () {
     return !this.filterArgs.last_modify.length && !this.filterArgs.status.length
@@ -666,7 +699,7 @@ export default class ModelList extends Vue {
     const res = await this.fetchSegments({ projectName, modelName })
     const { total_size, value } = await handleSuccessAsync(res)
     let type = 'incremental'
-    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column)) {
+    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) && modelDesc.model_type !== 'STREAMING') {
       type = 'fullLoad'
     }
     this.isModelListOpen = true
@@ -875,7 +908,8 @@ export default class ModelList extends Vue {
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {
-      status: 'status'
+      status: 'status',
+      model_types: 'model_types'
     }
 
     this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
@@ -908,6 +942,13 @@ export default class ModelList extends Vue {
     return [
       <i class={['filter-bar filter-status', value]} />,
       <span>{value}</span>
+    ]
+  }
+
+  renderModelTypeLabel (h, option) {
+    const { value } = option
+    return [
+      <span>{this.$t(value)}</span>
     ]
   }
 
@@ -1302,6 +1343,11 @@ export default class ModelList extends Vue {
       display: inline-block;
     }
   }
+  .streaming {
+    float: left;
+    font-size: 12px;
+    line-height: 18px;
+  }
   .alias .filter-status {
     float: left;
     position: relative;
@@ -1401,7 +1447,7 @@ export default class ModelList extends Vue {
   min-width: unset;
   transform: translate(-3px, 0);
   .popper__arrow {
-    left: 5px !important;
+    left: 8px !important;
   }
 }
 .model-actions-dropdown {

@@ -50,6 +50,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.collections.CollectionUtils;
@@ -89,7 +90,6 @@ import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
@@ -163,6 +163,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "owner", required = false) String owner,
+            @RequestParam(value = "model_types", required = false) List<String> modelTypes,
             @RequestParam(value = "status", required = false) List<String> status,
             @RequestParam(value = "table", required = false) String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
@@ -178,8 +179,8 @@ public class NModelController extends NBasicController {
         status = formatStatus(status, ModelStatusToDisplayEnum.class);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
-            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse,
-                    modelAliasOrOwner, lastModifyFrom, lastModifyTo, onlyNormalDim));
+            models.addAll(modelService.getModelsByTypes(modelAlias, project, exactMatch, owner, modelTypes, status,
+                    sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo, onlyNormalDim));
         } else {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }
@@ -744,10 +745,10 @@ public class NModelController extends NBasicController {
     /* Segments */
     @ApiOperation(value = "getSegments", tags = {
             "DW" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
-    @GetMapping(value = "/{model:.+}/segments")
+    @GetMapping(value = "/{dataflow:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
-            @PathVariable(value = "model") String modelId, //
+            @PathVariable(value = "dataflow") String dataflowId, //
             @RequestParam(value = "project") String project,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
@@ -761,8 +762,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         validateRange(start, end);
-        modelService.checkModelPermission(project, modelId);
-        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, status,
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(dataflowId, project, start, end, status,
                 withAllIndexes, withoutAnyIndexes, allToComplement, sortBy, reverse);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
     }
@@ -807,9 +807,9 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "deleteSegments", tags = { "DW" }, notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{model:.+}/segments")
+    @DeleteMapping(value = "/{dataflow:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
+    public EnvelopeResponse<String> deleteSegments(@PathVariable("dataflow") String dataflowId,
             @RequestParam("project") String project, //
             @RequestParam("purge") Boolean purge, //
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
@@ -818,19 +818,18 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
 
         if (purge) {
-            modelService.purgeModelManually(model, project);
+            modelService.purgeModelManually(dataflowId, project);
         } else {
             checkSegmentParms(ids, names);
-            String[] idsDeleted = modelService.convertSegmentIdWithName(model, project, ids, names);
+            String[] idsDeleted = modelService.convertSegmentIdWithName(dataflowId, project, ids, names);
             if (ArrayUtils.isEmpty(idsDeleted)) {
                 throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
             }
-            modelService.deleteSegmentById(model, project, idsDeleted, force);
+            modelService.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
-
 
     @ApiOperation(value = "refreshOrMergeSegments", tags = { "DW" }, notes = "Add URL: {model}")
     @PutMapping(value = "/{model:.+}/segments")

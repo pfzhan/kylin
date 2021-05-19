@@ -440,6 +440,9 @@ export default class NewQuery extends Vue {
     height: 100%;
     .layout-left {
       min-width: 240px;
+      .data-source-bar .el-tree {
+        border: none;
+      }
     }
     .data-source-bar .el-tree__empty-block {
       display: none;

@@ -80,4 +80,9 @@ public class EpochService extends BasicService {
         prjs.add(UnitOfWork.GLOBAL_UNIT);
         updateEpoch(prjs, force, client);
     }
+
+    public boolean isMaintenanceMode() {
+        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        return epochMgr.isMaintenanceMode();
+    }
 }
