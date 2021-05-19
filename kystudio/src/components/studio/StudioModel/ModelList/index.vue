@@ -64,6 +64,7 @@
           <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('status_c')}}{{selectedStatus}}</el-button>
         </DropdownFilter>
         <DropdownFilter
+          class="ksd-ml-8"
           type="datetimerange"
           trigger="click"
           :value="filterArgs.last_modify"
@@ -1227,6 +1228,9 @@ export default class ModelList extends Vue {
       color: @text-disabled-color;
       overflow: hidden;
       text-overflow: ellipsis;
+      span {
+        font-size: 12px;
+      }
     }
   }
   .row-action {
@@ -1304,7 +1308,7 @@ export default class ModelList extends Vue {
     line-height: 20px;
     width: 100%;
     height: 20px;
-    margin-bottom: 5px;
+    // margin-bottom: 5px;
     float: left;
   }
   .last-modified {
@@ -1428,6 +1432,7 @@ export default class ModelList extends Vue {
   transform: translate(-5px, 5px);
   margin-left: 15px;
   color: #8B99AE;
+  font-size: 12px;
   .popper__arrow {
     left: 5px !important;
   }

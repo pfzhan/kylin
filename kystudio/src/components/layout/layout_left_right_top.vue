@@ -105,7 +105,7 @@
             <li class="capacity-li">
               <capacity/>
             </li>
-            <li class="ksd-mr-2" v-if="showMenuByRole('admin')">
+            <li v-if="showMenuByRole('admin')" style="margin-right: 1px;">
               <el-button
                 type="primary"
                 text
@@ -116,15 +116,15 @@
                 @click="handleSwitchAdmin">
               </el-button>
             </li>
-            <li class="ksd-mr-2"><help></help></li>
+            <li style="margin-right: 1px;"><help></help></li>
             <li class="ksd-mr-10"><change_lang ref="changeLangCom"></change_lang></li>
-            <li class="ksd-mr-30">
+            <li>
               <el-dropdown @command="handleCommand" class="user-msg-dropdown">
                 <!-- <span class="el-dropdown-link">
                   <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i>
                   <span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
                 </span> -->
-                <el-button type="primary" text iconr="el-ksd-icon-arrow_table_down_22"><span class="limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span></el-button>
+                <el-button type="primary" text iconr="el-ksd-icon-arrow_down_22"><span class="limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span></el-button>
                 <el-dropdown-menu slot="dropdown">
                   <div class="user-name">{{ currentUserInfo && currentUserInfo.username }}</div>
                   <el-dropdown-item command="setting">{{$t('kylinLang.common.changePassword')}}</el-dropdown-item>
