@@ -29,6 +29,9 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import java.util.Map;
+
 public interface ISourceConnector extends IKeep {
-    Dataset<Row> getSourceData(KylinConfig kylinConfig, SparkSession sparkSession, String sql);
+    Dataset<Row> getSourceData(KylinConfig kylinConfig, SparkSession sparkSession, String sql,
+            Map<String, String> params);
 }

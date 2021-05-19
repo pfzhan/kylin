@@ -35,6 +35,7 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.{DFChooser, KylinBuildEnv}
 import io.kyligence.kap.engine.spark.utils.{FileNames, LogUtils}
 import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
+import io.kyligence.kap.metadata.project.NProjectManager
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig
@@ -272,9 +273,11 @@ class SnapshotBuilder extends Logging with Serializable {
   }
 
   def getSourceData(ss: SparkSession, tableDesc: TableDesc): Dataset[Row] = {
+    val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
+      .getProject(tableDesc.getProject).getOverrideKylinProps
     SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
-      .getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
+      .getSourceData(tableDesc, ss, params)
   }
 
   def getFileMd5(file: FileStatus): String = {
@@ -335,7 +338,7 @@ class SnapshotBuilder extends Logging with Serializable {
       logInfo(s"Create md5 file: ${md5Path} for snap: ${currSnapFile}")
     }
 
-    resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows ))
+    resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows))
   }
 
   def buildSingleSnapshotWithoutMd5(ss: SparkSession, tableDesc: TableDesc, baseDir: String,

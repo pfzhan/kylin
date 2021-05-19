@@ -68,6 +68,13 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
 
     private static Joiner joiner = Joiner.on("_");
 
+    // Used by DefaultSourceConnector just for build, do not abuse it!
+    protected AbstractJdbcAdaptor(){
+        this.dataSource = null;
+        this.config = null;
+        this.dataSourceDef = null;
+    }
+
     /**
      * Default constructor method.
      *

@@ -66,6 +66,10 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import lombok.val;
 
+/**
+ * After KE 4.3, we use {@link io.kyligence.kap.engine.spark.job.SegmentMergeJob} to merge segment
+ */
+@Deprecated
 public class DFMergeJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFMergeJob.class);
     protected BuildLayoutWithUpdate buildLayoutWithUpdate;

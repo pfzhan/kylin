@@ -30,6 +30,8 @@ import io.kyligence.kap.engine.spark.builder.CreateFlatTable
 import io.kyligence.kap.engine.spark.source.SparkSqlUtil
 import io.kyligence.kap.engine.spark.stats.analyzer.TableAnalyzerJob
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper
+import io.kyligence.kap.metadata.project.NProjectManager
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
@@ -56,9 +58,11 @@ class TableAnalysisJob(tableDesc: TableDesc,
     val cores = sparkConf.get(SparkConfHelper.EXECUTOR_CORES, "1").toInt
     val numPartitions = instances * cores
     val rowsTakenInEachPartition = rowCount / numPartitions
+    val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
+      .getProject(tableDesc.getProject).getOverrideKylinProps
     val dataFrame = SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
-      .getSourceData(tableDesc, ss, Maps.newHashMap[String, String])
+      .getSourceData(tableDesc, ss, params)
       .coalesce(numPartitions)
 
     calculateViewMetasIfNeeded(tableDesc.getIdentity)

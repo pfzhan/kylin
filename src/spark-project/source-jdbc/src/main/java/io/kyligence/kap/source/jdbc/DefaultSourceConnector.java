@@ -24,19 +24,35 @@
 package io.kyligence.kap.source.jdbc;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.sdk.datasource.adaptor.AdaptorConfig;
+import org.apache.kylin.sdk.datasource.adaptor.DefaultAdaptor;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import java.util.Map;
+
 // for reflection
-public class DefaultSourceConnector implements ISourceConnector {
+public class DefaultSourceConnector extends DefaultAdaptor implements ISourceConnector {
+
+    public DefaultSourceConnector(AdaptorConfig config) throws Exception {
+        super(config);
+    }
+
+    // Reflected by JdbcSourceInput#getSourceData only, do not abuse it!
+    public DefaultSourceConnector(){
+        super();
+    }
+
     @Override
-    public Dataset<Row> getSourceData(KylinConfig kylinConfig, SparkSession sparkSession, String sql) {
+    public Dataset<Row> getSourceData(KylinConfig kylinConfig, SparkSession sparkSession, String sql,
+            Map<String, String> params) {
         String url = kylinConfig.getJdbcConnectionUrl();
         String user = kylinConfig.getJdbcUser();
         String password = kylinConfig.getJdbcPass();
         String driver = kylinConfig.getJdbcDriver();
         return sparkSession.read().format("jdbc").option("url", url).option("user", user).option("password", password)
-                .option("driver", driver).option("query", sql).load();
+                .option("driver", driver).option("query", sql).options(params).load();
     }
+
 }

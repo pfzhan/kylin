@@ -54,6 +54,11 @@ public class DefaultAdaptor extends AbstractJdbcAdaptor {
 
     private static final String DROP_TABLE_SQL = "DROP TABLE IF EXISTS ";
 
+    // Used by DefaultSourceConnector just for build, do not abuse it!
+    protected DefaultAdaptor(){
+        super();
+    }
+
     public DefaultAdaptor(AdaptorConfig config) throws Exception {
         super(config);
     }
