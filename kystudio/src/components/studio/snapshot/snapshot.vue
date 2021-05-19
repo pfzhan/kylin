@@ -7,7 +7,7 @@
           <p>*&nbsp;{{$t('snapshotDesc2')}}</p>
           <p>*&nbsp;{{$t('snapshotDesc3')}}</p>
         </div>
-        <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
+        <i class="el-ksd-icon-more_info_22 snapshot-icon ksd-fs-22"></i>
       </common-tip>
     </div>
     <div class="ksd-mb-16 snapshot-desc">{{$t('snapshotDesc')}}</div>
@@ -652,6 +652,11 @@ export default class Snapshot extends Vue {
 @import '../../../assets/styles/variables.less';
 #snapshot {
   margin: 32px 24px 24px;
+  .snapshot-icon {
+    position: relative;
+    bottom: 6px;
+    left: -5px;
+  }
   .snapshot-desc {
     color: @text-disabled-color;
   }

@@ -575,7 +575,7 @@ export default class NewQuery extends Vue {
       font-size: 12px;
       line-height: 18px;
       vertical-align: middle;
-      margin-top: 5px;
+      margin-top: 4px;
       color: @text-disabled-color;
       i {
         cursor: default;
@@ -590,13 +590,11 @@ export default class NewQuery extends Vue {
       }
     }
     .query_result_box{
-      border: 0;
       position: relative;
-      top: -5px;
       > .btn-group {
         position: absolute;
         right: 0px;
-        top: 9px;
+        top: 4px;
         z-index: 99;
       }
       h3{

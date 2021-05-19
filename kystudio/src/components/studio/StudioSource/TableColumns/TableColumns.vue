@@ -1,13 +1,14 @@
 <template>
   <div class="table-columns">
     <div class="columns-header">
-      <div class="left font-medium">
+      <div class="left total-rows">
         <span v-if="totalDataRows">{{$t('total') + totalDataRows}}</span>
       </div>
       <div class="right">
         <el-input
           class="filter-input"
           prefix-icon="el-ksd-icon-search_22"
+          size="small"
           v-model="filterText"
           @input="filterChange"
           :placeholder="$t('filterByColumns')">
@@ -181,6 +182,12 @@ export default class TableColumns extends Vue {
   .columns-header {
     margin-bottom: 10px;
     white-space: nowrap;
+    .total-rows {
+      font-size: 14px;
+      line-height: 22px;
+      // position: relative;
+      // bottom: 4px;
+    }
   }
   .columns-body {
     width: 100%;

@@ -10,36 +10,26 @@
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
                 <!-- <i :class="item.icon" class="ksd-fs-16"></i> -->
-                <el-icon :name="item.icon" type="mult"></el-icon>
-                <span slot="title" v-if="item.name === 'modelList'">
-                  {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
-                </span>
-                <span slot="title" v-else>
-                  {{$t('kylinLang.menu.' + item.name)}}
-                </span>
+                <el-icon :name="item.icon" type="mult"></el-icon><span
+                slot="title" v-if="item.name === 'modelList'">{{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}</span><span
+                slot="title" v-else>{{$t('kylinLang.menu.' + item.name)}}</span>
               </el-menu-item>
               <el-submenu :index="item.path" v-if="item.children && showMenuByRole(item.name)" :id="item.name" :key="index">
                 <template slot="title">
                   <!-- <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i> -->
-                  <el-icon :name="item.icon" type="mult"></el-icon>
-                  <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
+                  <el-icon :name="item.icon" type="mult"></el-icon><span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
                 </template>
                 <!-- <el-menu-item-group> -->
-                  <el-menu-item :index="child.path" :class="{'ksd-pl-55': !briefMenuGet}" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
+                  <el-menu-item :index="child.path" :class="{'ksd-pl-45': !briefMenuGet}" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
                     <template v-if="child.name === 'job'">
-                      <span style="position:relative;" id="monitorJobs">
-                        {{$t('kylinLang.menu.' + child.name)}}
-                      </span>
+                      <span style="position:relative;" id="monitorJobs">{{$t('kylinLang.menu.' + child.name)}}</span>
                     </template>
                     <template v-else-if="child.name === 'modelList'">
-                      <span style="position:relative;" id="studioModel">
-                        {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
-                      </span>
+                      <span style="position:relative;" id="studioModel">{{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}</span>
                       <div class="number-icon" v-if="reachThresholdVisible">1</div>
                     </template>
                     <template v-else>
-                      <span style="position:relative;">
-                        {{$t('kylinLang.menu.' + child.name)}}
+                      <span style="position:relative;"> {{$t('kylinLang.menu.' + child.name)}}
                         <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'acceleration'"></span>
                       </span>
                     </template>
@@ -127,8 +117,8 @@
               </el-button>
             </li>
             <li class="ksd-mr-2"><help></help></li>
-            <li class="ksd-mr-22"><change_lang ref="changeLangCom"></change_lang></li>
-            <li>
+            <li class="ksd-mr-10"><change_lang ref="changeLangCom"></change_lang></li>
+            <li class="ksd-mr-30">
               <el-dropdown @command="handleCommand" class="user-msg-dropdown">
                 <!-- <span class="el-dropdown-link">
                   <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i>
@@ -1116,9 +1106,9 @@ export default class LayoutLeftRightTop extends Vue {
     position: relative;
     min-width: 65px;
     .quota-info {
-      font-size: 12px;
-      height: 20px;
-      line-height: 20px;
+      font-size: 14px;
+      height: 22px;
+      line-height: 22px;
       .quota-title {
         font-weight: @font-regular;
         &:hover {
@@ -1372,7 +1362,7 @@ export default class LayoutLeftRightTop extends Vue {
           // box-shadow: 0 1px 2px 0 @line-split-color;
           z-index: 100;
           .nav-icon {
-            margin-left: 204px;
+            margin-left: 200px;
             margin-top: 13px;
             height: 14px;
             line-height: 14px;
@@ -1401,9 +1391,9 @@ export default class LayoutLeftRightTop extends Vue {
               }
             }
             .active-nodes {
-              font-size: 12px;
-              height: 20px;
-              line-height: 20px;
+              font-size: 14px;
+              height: 22px;
+              line-height: 22px;
               &:hover {
                 color: @base-color;
               }

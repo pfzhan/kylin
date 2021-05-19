@@ -412,9 +412,10 @@ export default class StudioSource extends Vue {
     position: relative;
   }
   .table-name {
-    font-size: 14px;
+    font-size: 16px;
+    line-height: 24px;
     color: #263238;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
