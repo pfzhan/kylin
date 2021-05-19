@@ -57,7 +57,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
@@ -121,7 +121,7 @@ public class MassinFilterManager {
             bos.close();
 
             ResourceStore store = getStore();
-            store.checkAndPutResource(resourcePath, ByteStreams.asByteSource(baos.toByteArray()), -1);
+            store.checkAndPutResource(resourcePath, ByteSource.wrap(baos.toByteArray()), -1);
         } else {
             throw new RuntimeException("HBASE_TABLE FilterTableType Not supported yet");
         }

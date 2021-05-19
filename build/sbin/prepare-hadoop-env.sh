@@ -27,6 +27,7 @@
 cdh_mapreduce_path=$CDH_MR2_HOME
 cdh_mapreduce_path_first="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce"
 cdh_mapreduce_path_second="/usr/lib/hadoop-mapreduce"
+cdh_hadoop_lib_path="/opt/cloudera/parcels/CDH/lib/hadoop"
 cdh_version=`hadoop version | head -1 | awk -F '-' '{print $2}'`
 
 function quit {
@@ -108,6 +109,18 @@ function is_hdp_3_x() {
     return 0
 }
 
+function is_cdh_7_x() {
+    hdp_version=`hadoop version | grep "CDH-7.*" | awk -F"/" '{print $5}'`
+
+    if [[ -n "${hdp_version}" ]]; then
+        echo 1
+        return 1
+    fi
+
+    echo 0
+    return 0
+}
+
 function is_hdp_2_6() {
     hadoop_common_file="`find ${hdp_hadoop_path}/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
     hdp_version=${hadoop_common_file##*/}
@@ -135,4 +148,20 @@ function is_fi_c90() {
 
     echo 0
     return 0
+}
+
+function prepare_hadoop_conf_jars(){
+  if [[ $(is_cdh_7_x) == 1 ]]; then
+    find ${SPARK_HOME}/jars -name "guava-*.jar" -exec rm -rf {} \;
+    find ${KYLIN_HOME}/server/jars -name "guava-*.jar" -exec rm -rf {} \;
+
+    guava_jars=$(find ${cdh_hadoop_lib_path}/client/ -maxdepth 1 \
+    -name "guava-*.jar" \
+    -o -name "failureaccess.jar")
+
+    cp ${guava_jars} "${SPARK_HOME}"/jars
+    cp ${guava_jars} "${KYLIN_HOME}"/server/jars
+    hadoop_conf_cdh7x_jars=$(find ${cdh_hadoop_lib_path}/client/ -maxdepth 1 -name "commons-configuration2-*.jar")
+    cp ${hadoop_conf_cdh7x_jars} ${SPARK_HOME}/jars
+  fi
 }

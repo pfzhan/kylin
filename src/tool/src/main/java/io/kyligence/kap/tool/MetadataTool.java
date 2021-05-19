@@ -60,7 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
@@ -279,7 +279,7 @@ public class MetadataTool extends ExecutableApplication {
             val auditLogStore = resourceStore.getAuditLogStore();
             long finalOffset = getOffset(auditLogStore);
                 backupResourceStore.putResourceWithoutCheck(ResourceStore.METASTORE_IMAGE,
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
+                        ByteSource.wrap(JsonUtil.writeValueAsBytes(new ImageDesc(finalOffset))),
                         System.currentTimeMillis(), -1);
                 var projectFolders = resourceStore.listResources("/");
                 if (projectFolders == null) {

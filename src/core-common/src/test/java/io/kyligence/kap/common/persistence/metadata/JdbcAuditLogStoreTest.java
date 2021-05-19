@@ -43,7 +43,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
@@ -62,10 +62,10 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
     public void testUpdateResourceWithLog() throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(charset)), -1);
-            store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes(charset)), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes(charset)), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes(charset)), 0);
+            store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/abc2", ByteSource.wrap("abc".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteSource.wrap("abc".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteSource.wrap("abc2".getBytes(charset)), 0);
             store.deleteResource("/p1/abc");
             return 0;
         }, "p1");
@@ -263,7 +263,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
     public void testGet() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/123", ByteStreams.asByteSource("123".getBytes(charset)), -1);
+            store.checkAndPutResource("/p1/123", ByteSource.wrap("123".getBytes(charset)), -1);
             return 0;
         }, "p1");
 

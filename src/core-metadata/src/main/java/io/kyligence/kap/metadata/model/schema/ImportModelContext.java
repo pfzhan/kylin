@@ -54,7 +54,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
@@ -439,7 +439,7 @@ public class ImportModelContext implements IKeep {
 
             targetResourceStore.checkAndPutResource(
                     String.format(Locale.ROOT, MODEL_REC_PATH, targetProject, targetModelId),
-                    ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)), -1);
+                    ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(rawRecItems)), -1);
         }
     }
 

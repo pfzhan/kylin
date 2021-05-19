@@ -37,7 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
@@ -78,7 +78,7 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.server.mode", "query");
         AtomicInteger mvcc = new AtomicInteger(0);
         val initEvent = new ResourceCreateOrUpdateEvent(new RawResource("/default/abc.json",
-                ByteStreams.asByteSource("version1".getBytes(charset)), 0L, mvcc.get()));
+                ByteSource.wrap("version1".getBytes(charset)), 0L, mvcc.get()));
         val synchronize = MessageSynchronization.getInstance(getTestConfig());
         synchronize.replayInTransaction(new UnitMessages(Lists.newArrayList(initEvent)));
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
@@ -94,7 +94,7 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
                 starter.await();
                 while (latch1.getCount() > 0) {
                     val updateEvent = new ResourceCreateOrUpdateEvent(new RawResource("/default/abc.json",
-                            ByteStreams.asByteSource("version2".getBytes(charset)), 0L, mvcc.incrementAndGet()));
+                            ByteSource.wrap("version2".getBytes(charset)), 0L, mvcc.incrementAndGet()));
                     synchronize.replayInTransaction(new UnitMessages(Lists.newArrayList(updateEvent)));
                     latch1.countDown();
                 }
@@ -123,13 +123,13 @@ public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
 
     private List<Event> createEvents() {
         val event1 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc.json", ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+                new RawResource("/default/abc.json", ByteSource.wrap("version1".getBytes(charset)), 0L, 0));
         val event2 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc2.json", ByteStreams.asByteSource("abc2".getBytes(charset)), 0L, 0));
+                new RawResource("/default/abc2.json", ByteSource.wrap("abc2".getBytes(charset)), 0L, 0));
         val event3 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc.json", ByteStreams.asByteSource("version2".getBytes(charset)), 0L, 1));
+                new RawResource("/default/abc.json", ByteSource.wrap("version2".getBytes(charset)), 0L, 1));
         val event4 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc3.json", ByteStreams.asByteSource("42".getBytes(charset)), 0L, 0));
+                new RawResource("/default/abc3.json", ByteSource.wrap("42".getBytes(charset)), 0L, 0));
         val event5 = new ResourceDeleteEvent("/default/abc3.json");
         return Lists.newArrayList(event1, event2, event3, event4, event5).stream().peek(e -> e.setKey("default"))
                 .collect(Collectors.toList());

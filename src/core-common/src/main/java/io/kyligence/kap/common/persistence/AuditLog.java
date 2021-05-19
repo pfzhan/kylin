@@ -33,8 +33,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.AllArgsConstructor;
@@ -80,7 +79,7 @@ public class AuditLog implements IKeep {
         @Override
         public ByteSource deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
                 throws IOException {
-            return ByteStreams.asByteSource(jsonParser.getBinaryValue());
+            return ByteSource.wrap(jsonParser.getBinaryValue());
         }
     }
 }

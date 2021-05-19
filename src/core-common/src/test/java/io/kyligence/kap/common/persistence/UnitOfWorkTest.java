@@ -36,7 +36,7 @@ import org.junit.Test;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -62,11 +62,11 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         val ret = UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             resourceStore.checkAndPutResource("/_global/path/to/res",
-                    ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                    ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
             resourceStore.checkAndPutResource("/_global/path/to/res2",
-                    ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                    ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
             resourceStore.checkAndPutResource("/_global/path/to/res3",
-                    ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                    ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT);
 
@@ -82,9 +82,9 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
             val ret = UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                 resourceStore.checkAndPutResource("/_global/path/to/res",
-                        ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                        ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                 resourceStore.checkAndPutResource("/_global/path/to/res2",
-                        ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                        ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                 throw new IllegalArgumentException("surprise");
             }, UnitOfWork.GLOBAL_UNIT);
         } catch (Exception ignore) {
@@ -152,22 +152,22 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             resourceStore.checkAndPutResource("/_global/path/to/res",
-                    ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                    ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
             resourceStore.checkAndPutResource("/_global/path/to/res2",
-                    ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                    ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore2 = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                 resourceStore2.checkAndPutResource("/_global/path2/to/res2/1",
-                        ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                        ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                 resourceStore2.checkAndPutResource("/_global/path2/to/res2/2",
-                        ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                        ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                 resourceStore2.checkAndPutResource("/_global/path2/to/res2/3",
-                        ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                        ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                 Assert.assertEquals(resourceStore, resourceStore2);
                 return 0;
             }, UnitOfWork.GLOBAL_UNIT);
             resourceStore.checkAndPutResource("/_global/path/to/res3",
-                    ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                    ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT);
 
@@ -184,7 +184,7 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     public void testReadLockExclusive() {
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         resourceStore.checkAndPutResource("/_global/path/to/res1",
-                ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
         Object condition = new Object();
         AtomicBoolean stop = new AtomicBoolean();
         Thread readLockHelder = new Thread(() -> {
@@ -262,7 +262,7 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
                         val resourceStoreInTransaction = ResourceStore
                                 .getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                         resourceStoreInTransaction.checkAndPutResource("/_global/path/to/res1",
-                                ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                                ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                         synchronized (condition) {
                             Unsafe.notify(condition);
                         }
@@ -323,7 +323,7 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
                     .readonly(true).maxRetry(1).processor(() -> {
                         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                         resourceStore.checkAndPutResource("/_global/path/to/res1",
-                                ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                                ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                         return 0;
                     }).build());
             Assert.fail();
@@ -335,7 +335,7 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
     @Test
     public void testReadTransaction() {
         ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource("/_global/path/to/res1",
-                ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
         UnitOfWork.doInTransactionWithRetry(
                 UnitOfWorkParams.builder().unitName(UnitOfWork.GLOBAL_UNIT).readonly(true).maxRetry(1).processor(() -> {
                     val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
@@ -351,7 +351,7 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
                 .maxRetry(1).processor(() -> {
                     val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                     resourceStore.checkAndPutResource("/_global/path/to/res1",
-                            ByteStreams.asByteSource("{}".getBytes(Charset.defaultCharset())), -1L);
+                            ByteSource.wrap("{}".getBytes(Charset.defaultCharset())), -1L);
                     return 0;
                 }).build());
         Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())

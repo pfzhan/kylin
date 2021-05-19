@@ -41,7 +41,7 @@ import org.apache.kylin.util.PasswordEncodeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -100,7 +100,7 @@ public class AdminUserInitCLI {
         try {
             logger.info("Start init default user.");
             RawResource rawResource = new RawResource(ADMIN_USER_RES_PATH,
-                    ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(managedUser)), System.currentTimeMillis(), 0L);
+                    ByteSource.wrap(JsonUtil.writeValueAsBytes(managedUser)), System.currentTimeMillis(), 0L);
             metaStore.putResource(rawResource, null, UnitOfWork.DEFAULT_EPOCH_ID);
 
             String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + ADMIN_USER_NAME + StorageCleaner.ANSI_RED;

@@ -53,8 +53,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -90,7 +89,7 @@ public class RawResource {
         public ByteSource deserialize(JsonParser p, DeserializationContext ctxt)
                 throws IOException, JsonProcessingException {
             val bytes = p.getBinaryValue();
-            return ByteStreams.asByteSource(bytes);
+            return ByteSource.wrap(bytes);
         }
     }
 }

@@ -48,7 +48,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.NavigableSet;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -95,7 +95,7 @@ public class MetadataVersionRefresher {
                 objectNode.put("version", version);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 mapper.writeValue(baos, objectNode);
-                this.store.checkAndPutResource(path, ByteStreams.asByteSource(baos.toByteArray()), -1);
+                this.store.checkAndPutResource(path, ByteSource.wrap(baos.toByteArray()), -1);
             }
         }
     }

@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
@@ -99,7 +99,7 @@ public class KapPasswordResetCLI {
 
         UnitOfWork.doInTransactionWithRetry(
                 () -> ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).checkAndPutResource(id,
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)), aclStore.getResource(id).getMvcc()),
+                        ByteSource.wrap(JsonUtil.writeValueAsBytes(user)), aclStore.getResource(id).getMvcc()),
                 UnitOfWork.GLOBAL_UNIT);
 
         logger.trace("update user : {}", user.getUsername());

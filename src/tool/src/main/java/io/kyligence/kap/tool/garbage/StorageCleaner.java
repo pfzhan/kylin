@@ -63,7 +63,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.TrashRecord;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -252,7 +252,7 @@ public class StorageCleaner {
                     RawResource raw = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
                     long mvcc = raw == null ? -1 : raw.getMvcc();
                     threadViewRS.checkAndPutResource(ResourceStore.METASTORE_TRASH_RECORD,
-                            ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new TrashRecord(trashRecord))), mvcc);
+                            ByteSource.wrap(JsonUtil.writeValueAsBytes(new TrashRecord(trashRecord))), mvcc);
                     return 0;
                 }, UnitOfWork.GLOBAL_UNIT, 1);
             }

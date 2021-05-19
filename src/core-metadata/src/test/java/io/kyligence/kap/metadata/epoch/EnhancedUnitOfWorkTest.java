@@ -43,7 +43,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -122,7 +122,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/_global/p1/abc",
-                    ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())), -1);
+                    ByteSource.wrap("abc".getBytes(Charset.defaultCharset())), -1);
             return 0;
         }, 0, UnitOfWork.GLOBAL_UNIT);
 
@@ -139,7 +139,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/_global/p1/abc",
-                    ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())), -1);
+                    ByteSource.wrap("abc".getBytes(Charset.defaultCharset())), -1);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT, 1);
     }
@@ -153,7 +153,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             store.checkAndPutResource("/_global/p1/abc",
-                    ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())), -1);
+                    ByteSource.wrap("abc".getBytes(Charset.defaultCharset())), -1);
             return 0;
         }, UnitOfWork.GLOBAL_UNIT, 1);
         Assert.assertEquals(0, ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())

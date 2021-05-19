@@ -40,7 +40,6 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -50,6 +49,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.MapUtil;
+import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import lombok.EqualsAndHashCode;
@@ -344,7 +344,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("id", id).toString();
+        return MoreObjects.toStringHelper(this).add("id", id).toString();
     }
 
     public boolean isDraft() {

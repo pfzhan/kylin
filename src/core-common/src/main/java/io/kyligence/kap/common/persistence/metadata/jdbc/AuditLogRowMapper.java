@@ -30,7 +30,7 @@ import lombok.SneakyThrows;
 import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import lombok.val;
@@ -54,7 +54,7 @@ public class AuditLogRowMapper implements RowMapper<AuditLog> {
         val operator = rs.getString(7);
         val instance = rs.getString(8);
 
-        return new AuditLog(id, resPath, content == null ? null : ByteStreams.asByteSource(content), ts, mvcc, unitId,
+        return new AuditLog(id, resPath, content == null ? null : ByteSource.wrap(content), ts, mvcc, unitId,
                 operator, instance);
     }
 }

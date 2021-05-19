@@ -71,8 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.ImageDesc;
@@ -349,7 +348,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
             Throwables.propagate(e);
         }
 
-        ByteSource byteSource = ByteStreams.asByteSource(buf.toByteArray());
+        ByteSource byteSource = ByteSource.wrap(buf.toByteArray());
 
         val x = checkAndPutResource(resPath, byteSource, oldMvcc);
         obj.setLastModified(x.getTimestamp());

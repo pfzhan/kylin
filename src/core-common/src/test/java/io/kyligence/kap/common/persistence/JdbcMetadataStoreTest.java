@@ -45,7 +45,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
@@ -77,11 +77,11 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     public void testBasic() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
-            store.checkAndPutResource("/p1/abc2", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
-            store.checkAndPutResource("/p1/abc3", ByteStreams.asByteSource("abc2".getBytes(DEFAULT_CHARSET)), 0);
-            store.checkAndPutResource("/p1/abc4", ByteStreams.asByteSource("abc2".getBytes(DEFAULT_CHARSET)), 1000L,
+            store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc2", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc3", ByteSource.wrap("abc2".getBytes(DEFAULT_CHARSET)), 0);
+            store.checkAndPutResource("/p1/abc4", ByteSource.wrap("abc2".getBytes(DEFAULT_CHARSET)), 1000L,
                     -1);
             store.deleteResource("/p1/abc");
             return 0;
@@ -149,8 +149,8 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     public void testDuplicate() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), -1);
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), 0);
+            store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), -1);
+            store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), 0);
             return 0;
         }, "p1");
 
@@ -165,7 +165,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/p1/abc", ByteStreams.asByteSource("abc".getBytes(DEFAULT_CHARSET)), 1);
+            store.checkAndPutResource("/p1/abc", ByteSource.wrap("abc".getBytes(DEFAULT_CHARSET)), 1);
             return 0;
         }, "p1");
     }
@@ -174,7 +174,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     public void testBatchUpdate() throws Exception {
         val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
         List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
-                new RawResource("/p1/test", ByteStreams.asByteSource("test content".getBytes(StandardCharsets.UTF_8)),
+                new RawResource("/p1/test", ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)),
                         System.currentTimeMillis(), 0)));
         val unitMessages = new UnitMessages(events);
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -219,7 +219,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.metadata.compress.enabled", "false");
         val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
         List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
-                new RawResource("/p1/test", ByteStreams.asByteSource("test content".getBytes(StandardCharsets.UTF_8)),
+                new RawResource("/p1/test", ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)),
                         System.currentTimeMillis(), 0)));
         val unitMessages = new UnitMessages(events);
         UnitOfWork.doInTransactionWithRetry(() -> {

@@ -34,7 +34,7 @@ import org.apache.kylin.common.util.FilePathUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteSource;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import lombok.Getter;
 import lombok.val;

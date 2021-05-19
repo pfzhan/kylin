@@ -55,7 +55,7 @@ import org.mockito.Mockito;
 
 import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 public class CacheReloadCheckerTest {
 
@@ -84,13 +84,13 @@ public class CacheReloadCheckerTest {
 
         Mockito.when(cache.getIfPresent("mock")).thenReturn(entity);
         Mockito.when(store.getResource(resPath))
-                .thenReturn(new RawResource(resPath, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+                .thenReturn(new RawResource(resPath, ByteSource.wrap("version1".getBytes(charset)), 0L, 0));
         Mockito.when(store.getResource(depPath1))
-                .thenReturn(new RawResource(depPath1, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+                .thenReturn(new RawResource(depPath1, ByteSource.wrap("version1".getBytes(charset)), 0L, 0));
         Mockito.when(store.getResource(depPath2))
-                .thenReturn(new RawResource(depPath2, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+                .thenReturn(new RawResource(depPath2, ByteSource.wrap("version1".getBytes(charset)), 0L, 0));
         Mockito.when(store.getResource(depPath3))
-                .thenReturn(new RawResource(depPath3, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+                .thenReturn(new RawResource(depPath3, ByteSource.wrap("version1".getBytes(charset)), 0L, 0));
 
         Assert.assertFalse(checker.needReload("mock"));
         Mockito.when(store.getResource(depPath3)).thenReturn(null);
@@ -101,7 +101,7 @@ public class CacheReloadCheckerTest {
         Assert.assertFalse(checker.needReload("mock"));
 
         Mockito.when(store.getResource(depPath3))
-                .thenReturn(new RawResource(depPath3, ByteStreams.asByteSource("version1".getBytes(charset)), 0L, 0));
+                .thenReturn(new RawResource(depPath3, ByteSource.wrap("version1".getBytes(charset)), 0L, 0));
         Assert.assertTrue(checker.needReload("mock"));
     }
 
