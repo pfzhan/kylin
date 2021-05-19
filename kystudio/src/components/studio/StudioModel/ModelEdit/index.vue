@@ -1914,10 +1914,10 @@ export default class ModelEdit extends Vue {
         // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
         // await handleWaiting()
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
-        if (!(data.simplified_dimensions && data.simplified_dimensions.length)) {
-          this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
-          return
-        }
+        // if (!(data.simplified_dimensions && data.simplified_dimensions.length)) {
+        //   this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+        //   return
+        // }
         this.saveModelResponse = result
         const { createBaseIndexNum, updateBaseIndexNum } = this.getBaseIndexCount(result)
         setTimeout(() => {
