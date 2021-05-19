@@ -78,10 +78,6 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/ssl-client.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hadoop-env.sh
 
-        if [ -n "$KRB5_CONFIG" ]
-        then
-          checkAndCopyFile $KRB5_CONFIG
-        fi
     elif [ -d "/etc/hadoop/conf" ]
     then
         mkdir -p ${KYLIN_HOME}/hadoop_conf
@@ -99,8 +95,6 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile /etc/hadoop/conf/topology.map
         checkAndCopyFile /etc/hadoop/conf/ssl-client.xml
         checkAndCopyFile /etc/hadoop/conf/hadoop-env.sh
-        # Ensure krb5.conf underlying hadoop_conf
-        checkAndCopyFile $KYLIN_HOME/conf/$KYLIN_KRB5CONF
     else
         # APACHE HADOOP platform
         APACHE_HADOOP_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.apache-hadoop-conf-dir`
@@ -142,9 +136,14 @@ function fetchKylinHadoopConf() {
               echo "Hadoop conf directory currently generated based on manual mode."
           else
               echo "Missing hadoop conf files. Please contact Kyligence technical support for more details."
-              exit -1
+              exit 1
           fi
         fi
+    fi
+
+    # Ensure krb5.conf underlying hadoop_conf
+    if [[ $(is_kap_kerberos_enabled) == 1 ]];then
+          checkExactlyAndCopyFile $KYLIN_HOME/conf/$KYLIN_KRB5CONF
     fi
 
     if [ -d ${KYLIN_HOME}/hadoop_conf_override ]
@@ -162,6 +161,17 @@ function checkAndCopyFile() {
             dst_dir=${kylin_hadoop_conf_dir}
         fi
         cp -rf ${source_file} ${dst_dir}
+    fi
+}
+
+# exit if the source file not exist
+function checkExactlyAndCopyFile() {
+    source_file=$1
+    if [[ ! -f ${source_file} ]]; then
+        echo "cannot find file ${source_file}, please check the existence of it"
+        exit 1
+    else
+        checkAndCopyFile "$@"
     fi
 }
 

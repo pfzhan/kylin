@@ -24,15 +24,30 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
 
-function exportKRB5CCNAME() {
+KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
+
+function is_kap_kerberos_enabled(){
+  if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]];then
+    echo 1
+    return 1
+  else
+    echo 0
+    return 0
+  fi
+}
+
+function exportKRB5() {
     KAP_KERBEROS_CACHE=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.cache`
     export KRB5CCNAME=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_CACHE}
+
+    KAP_KERBEROS_KRB5=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.krb5-conf`
+    export KRB5_CONFIG=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_KRB5}
+    echo "KRB5_CONFIG is set to ${KRB5_CONFIG}"
 }
 
 function prepareKerberosOpts() {
     export KYLIN_KERBEROS_OPTS=""
-    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
-    if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]];then
+    if [[ $(is_kap_kerberos_enabled) == 1 ]];then
       KYLIN_KERBEROS_OPTS="-Djava.security.krb5.conf=${KYLIN_HOME}/conf/krb5.conf"
     fi
 }
@@ -96,15 +111,14 @@ function initKerberosIfNeeded(){
 
     export SKIP_KERB=1
 
-    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
-    if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
+    if [[ $(is_kap_kerberos_enabled) == 1 ]]
     then
         if [[ -z "$(command -v klist)" ]]
         then
              quit "Kerberos command not found! Please check configuration of Kerberos in kylin.properties or check Kerberos installation."
         fi
 
-        exportKRB5CCNAME
+        exportKRB5
 
         if ! klist -s
         then

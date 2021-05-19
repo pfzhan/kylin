@@ -146,8 +146,8 @@ function retrieveSparkEnvProps()
 
     # spark conf
     confStr=`echo "$SPARK_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
-    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
-    if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
+
+    if [[ $(is_kap_kerberos_enabled) == 1 ]]
     then
         confStr=`echo ${confStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
         confStr=$(config_item_java_options_add_suffix "${confStr}" "spark.yarn.am.extraJavaOptions" "-Djava.security.krb5.conf=krb5.conf")

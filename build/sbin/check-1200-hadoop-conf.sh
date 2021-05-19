@@ -101,3 +101,7 @@ if [[ ! -f ${kylin_hadoop_conf_dir}/hive-site.xml ]]; then
     source_file=$(getSourceFile "hive-site.xml")
     [[ -z ${source_file} ]] || quit "hive-site.xml does not exist in ${kylin_hadoop_conf_dir}, please copy it from ${source_file}"
 fi
+
+if [[ $(is_kap_kerberos_enabled) == 1 && ! -f ${kylin_hadoop_conf_dir}/$KYLIN_KRB5CONF ]]; then
+    quit "krb5.conf does not exist in ${kylin_hadoop_conf_dir}, please copy it from ${KYLIN_HOME}/conf/${KYLIN_KRB5CONF}"
+fi
