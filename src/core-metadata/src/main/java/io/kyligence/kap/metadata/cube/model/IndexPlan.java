@@ -871,6 +871,10 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return createLayout(colOrder, true);
     }
 
+    public LayoutEntity createBaseTableIndex() {
+        return createBaseTableIndex(getModel());
+    }
+
     public LayoutEntity createBaseTableIndex(NDataModel model) {
         List<Integer> dims = model.getEffectiveDimensions().keySet().asList();
         List<Integer> measureCols = model.getMeasureRelatedCols();

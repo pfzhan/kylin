@@ -1104,6 +1104,14 @@ public class IndexPlanService extends BasicService {
     public IndexStatResponse getStat(String project, String modelId) {
         List<IndexResponse> results = getIndexes(project, modelId, "", Lists.newArrayList(), null, false,
                 Lists.newArrayList(), Lists.newArrayList());
-        return IndexStatResponse.from(results);
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        IndexStatResponse response = IndexStatResponse.from(results);
+        if (!indexPlan.containBaseAggLayout()) {
+            response.setNeedCreateBaseAggIndex(true);
+        }
+        if (!indexPlan.containBaseTableLayout() && indexPlan.createBaseTableIndex() != null) {
+            response.setNeedCreateBaseTableIndex(true);
+        }
+        return response;
     }
 }

@@ -341,8 +341,8 @@ public class BaseIndexTest extends CSVSourceTestCase {
     @Test
     public void testGetIndexesStat() {
         IndexStatResponse indexStat = indexPlanService.getStat(getProject(), COMMON_MODEL_ID);
-        Assert.assertEquals(false, indexStat.isHasLoadBaseAggIndex());
-        Assert.assertEquals(false, indexStat.isHasLoadBaseAggIndex());
+        Assert.assertEquals(true, indexStat.isNeedCreateBaseAggIndex());
+        Assert.assertEquals(true, indexStat.isNeedCreateBaseAggIndex());
     }
 
     private String getModelIdFrom(String alias) {

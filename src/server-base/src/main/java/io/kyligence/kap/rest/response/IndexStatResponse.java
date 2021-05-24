@@ -23,13 +23,10 @@
  */
 package io.kyligence.kap.rest.response;
 
-import static io.kyligence.kap.metadata.cube.model.IndexEntity.Status.LOCKED;
-
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,23 +42,18 @@ public class IndexStatResponse {
     @JsonProperty("max_usage")
     private long maxUsage;
 
-    @JsonProperty("has_load_base_table_index")
-    private boolean hasLoadBaseTableIndex;
+    @JsonProperty("need_create_base_table_index")
+    private boolean needCreateBaseTableIndex;
 
-    @JsonProperty("has_load_base_agg_index")
-    private boolean hasLoadBaseAggIndex;
+    @JsonProperty("need_create_base_agg_index")
+    private boolean needCreateBaseAggIndex;
 
     public static IndexStatResponse from(List<IndexResponse> results) {
         IndexStatResponse response = new IndexStatResponse();
         long maxUsage = 0;
         long maxDataSize = 0;
+
         for (IndexResponse index : results) {
-            if (index.isBase() && index.getStatus() != LOCKED && IndexEntity.isAggIndex(index.getId())) {
-                response.setHasLoadBaseAggIndex(true);
-            }
-            if (index.isBase() && index.getStatus() != LOCKED && IndexEntity.isTableIndex(index.getId())) {
-                response.setHasLoadBaseTableIndex(true);
-            }
             maxDataSize = Math.max(maxDataSize, index.getDataSize());
             maxUsage = Math.max(maxUsage, index.getUsage());
         }
