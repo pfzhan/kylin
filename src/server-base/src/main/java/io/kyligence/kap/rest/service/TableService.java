@@ -64,7 +64,6 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -159,6 +158,7 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -900,7 +900,7 @@ public class TableService extends BasicService {
         }
     }
 
-    private void stopSnapshotJobs(String project, String table) {
+    private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getExecutableManager(project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
@@ -912,6 +912,7 @@ public class TableService extends BasicService {
         conflictJobs.forEach(job -> {
             execManager.discardJob(job.getId());
         });
+        return conflictJobs;
     }
 
     @Transaction(project = 0)
@@ -924,7 +925,7 @@ public class TableService extends BasicService {
             throw new KylinException(INVALID_TABLE_NAME, String.format(Locale.ROOT, msg.getTABLE_NOT_FOUND(), table));
         }
 
-        stopSnapshotJobs(project, table);
+        stopAndGetSnapshotJobs(project, table);
 
         val dataflowManager = getDataflowManager(project);
         if (cascade) {
@@ -1518,10 +1519,11 @@ public class TableService extends BasicService {
 
     void cleanSnapshot(ReloadTableContext context, TableDesc targetTable, TableDesc originTable, String projectName) {
         if (context.isChanged(originTable)) {
-            targetTable.setLastSnapshotPath(null);
             val tableIdentity = targetTable.getIdentity();
-            targetTable.deleteSnapshot(true);
-            stopSnapshotJobs(projectName, tableIdentity);
+            List<AbstractExecutable> stopJobs = stopAndGetSnapshotJobs(projectName, tableIdentity);
+            if (!stopJobs.isEmpty() || targetTable.getLastSnapshotPath() != null) {
+                targetTable.deleteSnapshot(true);
+            }
         } else {
             targetTable.copySnapshotFrom(originTable);
         }

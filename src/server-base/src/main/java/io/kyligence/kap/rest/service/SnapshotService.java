@@ -328,7 +328,7 @@ public class SnapshotService extends BasicService {
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
         List<String> tablesWithEmptySnapshot = tables.stream()
-                .filter(tableDesc -> !hasSnapshotOrRunningJob(tableDesc, executables)).map(TableDesc::getIdentity)
+                .filter(tableDesc -> !hasLoadedSnapshot(tableDesc, executables)).map(TableDesc::getIdentity)
                 .collect(Collectors.toList());
         if (!tablesWithEmptySnapshot.isEmpty()) {
             throw new KylinException(SNAPSHOT_NOT_EXIST, String.format(Locale.ROOT,
