@@ -1523,6 +1523,8 @@ public class TableService extends BasicService {
             List<AbstractExecutable> stopJobs = stopAndGetSnapshotJobs(projectName, tableIdentity);
             if (!stopJobs.isEmpty() || targetTable.getLastSnapshotPath() != null) {
                 targetTable.deleteSnapshot(true);
+            } else {
+                targetTable.copySnapshotFrom(originTable);
             }
         } else {
             targetTable.copySnapshotFrom(originTable);
