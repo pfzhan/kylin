@@ -23,8 +23,31 @@
  */
 package io.kyligence.kap.engine.spark.job;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DIST_META_URL;
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_JOB_ID;
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_QUERY_CONTEXT;
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_QUERY_PARAMS;
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.persistence.RawResource;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.query.util.QueryParams;
@@ -32,6 +55,14 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import lombok.val;
 
 public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
 
@@ -41,6 +72,10 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
     final static String ASYNC_HADOOP_CONF = "kylin.query.async-query.submit-hadoop-conf-dir";
     final static String ASYNC_HADOOP_CONF_VALUE = "/home/kylin/hadoop_conf_async";
     final static String ASYNC_QUERY_CLASS = "-className io.kyligence.kap.engine.spark.job.AsyncQueryApplication";
+    final static String ASYNC_QUERY_SPARK_EXECUTOR_CORES = "kylin.query.async-query.spark-conf.spark.executor.cores";
+    final static String ASYNC_QUERY_SPARK_EXECUTOR_MEMORY = "kylin.query.async-query.spark-conf.spark.executor.memory";
+    final static String ASYNC_QUERY_SPARK_QUEUE = "root.quard";
+
     @Before
     public void setup() {
         createTestMetadata();
@@ -57,10 +92,8 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp(BUILD_HADOOP_CONF, BUILD_HADOOP_CONF_VALUE);
         {
             AsyncQueryJob asyncQueryJob = new AsyncQueryJob() {
-                protected ExecuteResult runSparkSubmit(String hadoopConf,
-                                                       String jars,
-                                                       String kylinJobJar,
-                                                       String appArgs) {
+                protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar,
+                        String appArgs) {
                     Assert.assertEquals(BUILD_HADOOP_CONF_VALUE, hadoopConf);
                     Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
                     String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
@@ -74,10 +107,8 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp(ASYNC_HADOOP_CONF, ASYNC_HADOOP_CONF_VALUE);
         {
             AsyncQueryJob asyncQueryJob = new AsyncQueryJob() {
-                protected ExecuteResult runSparkSubmit(String hadoopConf,
-                                                       String jars,
-                                                       String kylinJobJar,
-                                                       String appArgs) {
+                protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar,
+                        String appArgs) {
                     Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
                     Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
                     String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
@@ -86,6 +117,142 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
             };
             asyncQueryJob.setProject(queryParams.getProject());
             Assert.assertTrue(asyncQueryJob.submit(queryParams).succeed());
+        }
+    }
+
+    @Test
+    public void testDumpMetadataAndCreateArgsFile() throws ExecuteException, IOException {
+        QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);
+        queryParams.setSparkQueue(ASYNC_QUERY_SPARK_QUEUE);
+        queryParams.setAclInfo(new QueryContext.AclInfo("user1", Sets.newHashSet("group1"), false));
+        QueryContext queryContext = QueryContext.current();
+        queryContext.setUserSQL("select 1");
+        queryContext.getMetrics().setServer("localhost");
+        queryContext.getQueryTagInfo().setAsyncQuery(true);
+
+        overwriteSystemProp(ASYNC_HADOOP_CONF, ASYNC_HADOOP_CONF_VALUE);
+        AsyncQueryJob asyncQueryJob = new AsyncQueryJob() {
+            protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
+                Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
+                Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
+                generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
+                return ExecuteResult.createSucceed(appArgs
+                        .substring(appArgs.lastIndexOf("file:") + "file:".length(), appArgs.lastIndexOf("/")).trim());
+            }
+        };
+        asyncQueryJob.setProject(queryParams.getProject());
+        ExecuteResult executeResult = asyncQueryJob.submit(queryParams);
+        Assert.assertTrue(executeResult.succeed());
+        String asyncQueryJobPath = executeResult.output();
+        FileSystem workingFileSystem = HadoopUtil.getWorkingFileSystem();
+        Assert.assertTrue(workingFileSystem.exists(new Path(asyncQueryJobPath)));
+        Assert.assertEquals(2, workingFileSystem.listStatus(new Path(asyncQueryJobPath)).length);
+
+        // validate spark job args
+        String argsLine = null;
+        try (FSDataInputStream inputStream = workingFileSystem
+                .open(workingFileSystem.listStatus(new Path(asyncQueryJobPath))[0].getPath())) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, Charset.defaultCharset()));
+            argsLine = br.readLine();
+        }
+        Assert.assertNotNull(argsLine);
+        Map<String, String> argsMap = JsonUtil.readValueAsMap(argsLine);
+        Assert.assertTrue(argsMap.get(P_JOB_ID).startsWith(ASYNC_QUERY_JOB_ID_PRE));
+        QueryParams readQueryParams = JsonUtil.readValue(argsMap.get(P_QUERY_PARAMS), QueryParams.class);
+        Assert.assertEquals("select 1", readQueryParams.getSql());
+        Assert.assertEquals(ASYNC_QUERY_SPARK_QUEUE, readQueryParams.getSparkQueue());
+        Assert.assertEquals("default", readQueryParams.getProject());
+        Assert.assertEquals("user1", readQueryParams.getAclInfo().getUsername());
+        Assert.assertEquals("[group1]", readQueryParams.getAclInfo().getGroups().toString());
+        QueryContext readQueryContext = JsonUtil.readValue(argsMap.get(P_QUERY_CONTEXT), QueryContext.class);
+        Assert.assertEquals("select 1", readQueryContext.getUserSQL());
+        Assert.assertEquals("localhost", readQueryContext.getMetrics().getServer());
+        Assert.assertTrue(readQueryContext.getQueryTagInfo().isAsyncQuery());
+        Assert.assertTrue(argsMap.get(P_DIST_META_URL).contains(
+                asyncQueryJobPath.substring(asyncQueryJobPath.indexOf("working-dir/") + "working-dir/".length())));
+
+        // validate kylin properties
+        FileStatus kylinPropertiesFile = workingFileSystem
+                .listStatus(workingFileSystem.listStatus(new Path(asyncQueryJobPath))[1].getPath())[0];
+        Properties properties = new Properties();
+        try (FSDataInputStream inputStream = workingFileSystem.open(kylinPropertiesFile.getPath())) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, Charset.defaultCharset()));
+            properties.load(br);
+        }
+        Assert.assertTrue(properties.size() > 0);
+        Assert.assertFalse(properties.getProperty("kylin.query.queryhistory.url").contains("hdfs"));
+        Assert.assertEquals(properties.getProperty("kylin.query.async-query.spark-conf.spark.yarn.queue"),
+                ASYNC_QUERY_SPARK_QUEUE);
+        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_CORES), "5");
+        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_MEMORY), "12288m");
+
+        // validate metadata
+        val rawResourceMap = Maps.<String, RawResource> newHashMap();
+        FileStatus metadataFile = workingFileSystem
+                .listStatus(workingFileSystem.listStatus(new Path(asyncQueryJobPath))[1].getPath())[1];
+        try (FSDataInputStream inputStream = workingFileSystem.open(metadataFile.getPath());
+                ZipInputStream zipIn = new ZipInputStream(inputStream)) {
+            ZipEntry zipEntry = null;
+            while ((zipEntry = zipIn.getNextEntry()) != null) {
+                if (!zipEntry.getName().startsWith("/")) {
+                    continue;
+                }
+                long t = zipEntry.getTime();
+                RawResource raw = new RawResource(zipEntry.getName(), ByteSource.wrap(IOUtils.toByteArray(zipIn)), t,
+                        0);
+                rawResourceMap.put(zipEntry.getName(), raw);
+            }
+        }
+        Assert.assertEquals(73, rawResourceMap.size());
+    }
+
+    @Test
+    public void testJobNotModifyKylinConfig() throws ExecuteException, IOException {
+        QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);
+
+        overwriteSystemProp(ASYNC_HADOOP_CONF, ASYNC_HADOOP_CONF_VALUE);
+        {
+            AsyncQueryJob asyncQueryJob = new AsyncQueryJob() {
+                protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar,
+                        String appArgs) {
+                    Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
+                    Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
+                    generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
+                    return ExecuteResult.createSucceed(
+                            appArgs.substring(appArgs.lastIndexOf("file:") + "file:".length(), appArgs.lastIndexOf("/"))
+                                    .trim());
+                }
+            };
+            asyncQueryJob.setProject(queryParams.getProject());
+            ExecuteResult executeResult = asyncQueryJob.submit(queryParams);
+            Assert.assertTrue(executeResult.succeed());
+        }
+        Assert.assertFalse(KylinConfig.getInstanceFromEnv().getMetadataUrl().toString().contains("hdfs"));
+    }
+
+    @Test
+    public void testJobSparkCmd() throws ExecuteException, IOException {
+        QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);
+        queryParams.setSparkQueue(ASYNC_QUERY_SPARK_QUEUE);
+
+        overwriteSystemProp(ASYNC_HADOOP_CONF, ASYNC_HADOOP_CONF_VALUE);
+        overwriteSystemProp(ASYNC_QUERY_SPARK_EXECUTOR_CORES, "3");
+        overwriteSystemProp(ASYNC_QUERY_SPARK_EXECUTOR_MEMORY, "513m");
+        {
+            AsyncQueryJob asyncQueryJob = new AsyncQueryJob() {
+                protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar,
+                        String appArgs) {
+                    Assert.assertEquals(ASYNC_HADOOP_CONF_VALUE, hadoopConf);
+                    Assert.assertTrue(appArgs.contains(ASYNC_QUERY_CLASS));
+                    String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
+                    return ExecuteResult.createSucceed(cmd);
+                }
+            };
+            asyncQueryJob.setProject(queryParams.getProject());
+            ExecuteResult executeResult = asyncQueryJob.submit(queryParams);
+            Assert.assertTrue(executeResult.succeed());
+            Assert.assertTrue(executeResult.output().contains("--conf 'spark.executor.memory=513m'"));
+            Assert.assertTrue(executeResult.output().contains("--conf 'spark.executor.cores=3'"));
         }
     }
 }
