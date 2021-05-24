@@ -1329,6 +1329,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    @Repeat(3)
     public void testConcurrentJobLimit() {
         String project = "heterogeneous_segment";
         String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";

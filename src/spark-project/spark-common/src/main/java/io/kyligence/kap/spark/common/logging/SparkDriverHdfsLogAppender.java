@@ -24,16 +24,26 @@
 package io.kyligence.kap.spark.common.logging;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.helpers.LogLog;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.config.Property;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.status.StatusLogger;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
+@Plugin(name = "DriverHdfsAppender", category = "Core", elementType = "appender", printObject = true)
 public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
 
     @Getter
@@ -43,7 +53,7 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     // kerberos
     @Getter
     @Setter
-    private boolean kerberosEnable = false;
+    private boolean kerberosEnabled = false;
     @Getter
     @Setter
     private String kerberosPrincipal;
@@ -51,13 +61,18 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     @Setter
     private String kerberosKeytab;
 
+    protected SparkDriverHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
+            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+        super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
+    }
+
     @Override
     public void init() {
-        LogLog.warn("spark.driver.log4j.appender.hdfs.File -> " + getLogPath());
-        LogLog.warn("kerberosEnable -> " + isKerberosEnable());
-        if (isKerberosEnable()) {
-            LogLog.warn("kerberosPrincipal -> " + getKerberosPrincipal());
-            LogLog.warn("kerberosKeytab -> " + getKerberosKeytab());
+        StatusLogger.getLogger().warn("spark.driver.log4j.appender.hdfs.File -> " + getLogPath());
+        StatusLogger.getLogger().warn("kerberosEnable -> " + isKerberosEnabled());
+        if (isKerberosEnabled()) {
+            StatusLogger.getLogger().warn("kerberosPrincipal -> " + getKerberosPrincipal());
+            StatusLogger.getLogger().warn("kerberosKeytab -> " + getKerberosKeytab());
         }
     }
 
@@ -72,19 +87,44 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @Override
-    public void doWriteLog(int eventSize, List<LoggingEvent> transaction) throws IOException, InterruptedException {
+    public void doWriteLog(int eventSize, List<LogEvent> transaction) throws IOException, InterruptedException {
         if (!isWriterInited()) {
             Configuration conf = new Configuration();
             if (!initHdfsWriter(new Path(getLogPath()), conf)) {
-                LogLog.error("init the hdfs writer failed!");
+                StatusLogger.getLogger().error("init the hdfs writer failed!");
             }
         }
 
         while (eventSize > 0) {
-            LoggingEvent loggingEvent = getLogBufferQue().take();
+            LogEvent loggingEvent = getLogBufferQue().take();
             transaction.add(loggingEvent);
             writeLogEvent(loggingEvent);
             eventSize--;
         }
     }
+
+    @PluginFactory
+    public static SparkDriverHdfsLogAppender createAppender(@PluginAttribute("name") String name,
+            @PluginAttribute("kerberosEnabled") boolean kerberosEnabled,
+            @PluginAttribute("kerberosPrincipal") String kerberosPrincipal,
+            @PluginAttribute("kerberosKeytab") String kerberosKeytab,
+            @PluginAttribute("workingDir") String hdfsWorkingDir, @PluginAttribute("logPath") String logPath,
+            @PluginAttribute("logQueueCapacity") int logQueueCapacity,
+            @PluginAttribute("flushInterval") int flushInterval,
+            @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
+            @PluginElement("Properties") Property[] properties) {
+        HdfsManager manager = new HdfsManager(name, layout);
+        val appender = new SparkDriverHdfsLogAppender(name, layout, filter, false, false, properties, manager);
+        appender.setKerberosEnabled(kerberosEnabled);
+        if (kerberosEnabled) {
+            appender.setKerberosPrincipal(kerberosPrincipal);
+            appender.setKerberosKeytab(kerberosKeytab);
+        }
+        appender.setWorkingDir(hdfsWorkingDir);
+        appender.setLogPath(logPath);
+        appender.setLogQueueCapacity(logQueueCapacity);
+        appender.setFlushInterval(flushInterval);
+        return appender;
+    }
+
 }

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration name="Log4j1">
+    <Appenders>
+        <RollingFile name="server" fileName="${env:KYLIN_HOME}/logs/kylin.log" append="true"
+                     filePattern="${env:KYLIN_HOME}/logs/kylin.log.%i">
+            <Policies>
+                <SizeBasedTriggeringPolicy size="268435456"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+            <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
+        </RollingFile>
+        <Routing name="routing">
+            <Routes pattern="${ctx:logCategory}">
+                <Route>
+                    <RollingFile name="rolling-${ctx:logCategory}"
+                                 fileName="${env:KYLIN_HOME}/logs/kylin.${ctx:logCategory}.log"
+                                 filePattern="${env:KYLIN_HOME}/logs/kylin.${ctx:logCategory}.log.%i">
+                        <Policies>
+                            <SizeBasedTriggeringPolicy size="268435456"/>
+                        </Policies>
+                        <DefaultRolloverStrategy max="10"/>
+                        <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
+                    </RollingFile>
+                </Route>
+
+                <Route ref="server" key="${ctx:logCategory}"/>
+            </Routes>
+        </Routing>
+    </Appenders>
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="routing"/>
+        </Root>
+        <Logger name="io.kyligence" level="DEBUG"/>
+        <Logger name="org.springframework" level="WARN"/>
+        <Logger name="org.apache.kylin" level="DEBUG"/>
+        <Logger name="io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser" level="INFO"/>
+        <Logger name="org.apache.spark.ui" level="WARN"/>
+        <Logger name="org.apache.spark.sql.execution.ui" level="WARN"/>
+        <Logger name="org.springframework.security" level="INFO"/>
+        <Logger name="org.apache.spark.ContextCleaner" level="WARN"/>
+        <Logger name="io.kyligence.kap.ext" level="INFO"/>
+    </Loggers>
+</Configuration>

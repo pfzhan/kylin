@@ -26,15 +26,27 @@ package io.kyligence.kap.common.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.Property;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.After;
 import org.junit.Before;
 
+import lombok.val;
+
 public class LogOutputTestCase extends NLocalFileMetadataTestCase {
-    public static class LoggerAppender extends AppenderSkeleton {
+
+    public static class MockAppender extends AbstractAppender {
         public List<String> events = new ArrayList<>();
+
+        protected MockAppender() {
+            super("mock", null, PatternLayout.createDefaultLayout(), true, new Property[0]);
+        }
 
         public void close() {
         }
@@ -44,29 +56,43 @@ public class LogOutputTestCase extends NLocalFileMetadataTestCase {
         }
 
         @Override
-        protected void append(LoggingEvent event) {
-            events.add(event.getMessage().toString());
+        public void append(LogEvent event) {
+            events.add(event.getMessage().getFormattedMessage());
         }
     }
 
-    private LoggerAppender loggerAppender;
-
     @Before
     public void createLoggerAppender() {
-        loggerAppender = new LoggerAppender();
-        Logger.getRootLogger().addAppender(loggerAppender);
+        LoggerContext context = (LoggerContext) LogManager.getContext();
+        Configuration configuration = context.getConfiguration();
+        val loggerAppender = new MockAppender();
+        configuration.addAppender(loggerAppender);
+        Logger logger = (Logger) LogManager.getLogger("");
+        logger.addAppender(configuration.getAppender("mock"));
     }
 
     @After
     public void removeLoggerAppender() {
-        Logger.getRootLogger().removeAppender(loggerAppender);
+        LoggerContext context = (LoggerContext) LogManager.getContext();
+        Configuration configuration = context.getConfiguration();
+        Logger logger = (Logger) LogManager.getLogger("");
+        logger.removeAppender(configuration.getAppender("mock"));
+        configuration.removeLogger("mock");
     }
 
-    public boolean containsLog(String log) {
-        return loggerAppender.events.contains(log);
+    protected boolean containsLog(String log) {
+        return getMockAppender().events.contains(log);
     }
 
-    public void clearLogs() {
-        loggerAppender.events.clear();
+    protected void clearLogs() {
+        val appender = getMockAppender();
+        if (appender != null) {
+            appender.events.clear();
+        }
+    }
+
+    MockAppender getMockAppender() {
+        Logger logger = (Logger) LogManager.getLogger("");
+        return (MockAppender) logger.getAppenders().get("mock");
     }
 }

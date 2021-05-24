@@ -44,8 +44,8 @@ keepParam+=$(grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\#]*" src 
 keepParam+=$(grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep classes in kylin-defaults*.properties
 keepParam+=$(grep -hro --include="kylin-defaults*.properties" "io\.kyligence\.kap\.[^\"\\#]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
-# keep classes in kylin-*-log4j.properties
-keepParam+=$(grep -hro --include="kylin-*-log4j.properties" "io\.kyligence\.kap\.[^\"\\#]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+# keep classes in kylin-*-log4j.xml
+keepParam+=$(grep -hro --include="kylin-*-log4j.xml" "io\.kyligence\.kap\.[^\"\\#]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep classes in *.sh
 keepParam+=$(grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 

@@ -23,7 +23,6 @@
  */
 package org.apache.kylin.job.runners;
 
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -34,7 +33,9 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.logging.SetLogCategory;
 import lombok.val;
+import lombok.var;
 
 public class JobRunner extends AbstractDefaultSchedulerRunner {
     private static final Logger logger = LoggerFactory.getLogger(JobRunner.class);
@@ -53,7 +54,8 @@ public class JobRunner extends AbstractDefaultSchedulerRunner {
     protected void doRun() {
         //only the first 8 chars of the job uuid
         val jobIdSimple = executable.getId().substring(0, 8);
-        try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobid:%s)", project, jobIdSimple)) {
+        try (SetThreadName ignored = new SetThreadName("JobWorker(project:%s,jobid:%s)", project, jobIdSimple);
+                SetLogCategory logCategory = new SetLogCategory("schedule")) {
             executable.execute(context);
             // trigger the next step asap
             fetcherRunner.scheduleNext();

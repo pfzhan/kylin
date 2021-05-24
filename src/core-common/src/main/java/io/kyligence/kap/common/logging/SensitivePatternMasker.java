@@ -28,13 +28,18 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.pattern.ConverterKeys;
+import org.apache.logging.log4j.core.pattern.LogEventPatternConverter;
+import org.apache.logging.log4j.util.PerformanceSensitive;
 
 import io.kyligence.kap.common.obf.IKeep;
-import lombok.val;
 
-public class SensitivePatternLayout extends PatternLayout implements IKeep {
+@Plugin(name = "SensitivePatternMasker", category = "Converter")
+@ConverterKeys({ "mask" })
+public class SensitivePatternMasker extends LogEventPatternConverter implements IKeep {
     private static final String PREFIX_GROUP_NAME = "prefix";
     private static final String SENSITIVE_GROUP_NAME = "sensitive";
     private static final String MASK = "******";
@@ -42,18 +47,12 @@ public class SensitivePatternLayout extends PatternLayout implements IKeep {
             "(?<%s>password\\s*[:=])(?<%s>[^,.!]*)", PREFIX_GROUP_NAME, SENSITIVE_GROUP_NAME),
             Pattern.CASE_INSENSITIVE);
 
-    @Override
-    public String format(LoggingEvent event) {
-        if (event.getMessage() instanceof String) {
-            String maskedMessage = mask(event.getRenderedMessage());
+    public static SensitivePatternMasker newInstance(final Configuration config, final String[] options) {
+        return new SensitivePatternMasker();
+    }
 
-            val maskedEvent = new LoggingEvent(event.getFQNOfLoggerClass(), event.getLogger(), event.getTimeStamp(),
-                    event.getLevel(), maskedMessage, event.getThreadName(), event.getThrowableInformation(),
-                    event.getNDC(), event.getLocationInformation(), event.getProperties());
-
-            return super.format(maskedEvent);
-        }
-        return super.format(event);
+    protected SensitivePatternMasker() {
+        super("mask", "mask");
     }
 
     private String mask(String message) {
@@ -62,5 +61,11 @@ public class SensitivePatternLayout extends PatternLayout implements IKeep {
             return matcher.replaceAll(String.format(Locale.ROOT, "${%s}%s", PREFIX_GROUP_NAME, MASK));
         }
         return message;
+    }
+
+    @PerformanceSensitive({ "allocation" })
+    @Override
+    public void format(LogEvent event, StringBuilder toAppendTo) {
+        toAppendTo.append(mask(event.getMessage().getFormattedMessage()));
     }
 }

@@ -111,8 +111,7 @@
         <mysql-connector.version>8.0.16</mysql-connector.version>
         <postgresql.version>42.2.13</postgresql.version>
         <commons-dbcp.version>2.5.0</commons-dbcp.version>
-        <log4j.version>1.2.17</log4j.version>
-        <log4j-extras.version>${log4j.version}</log4j-extras.version>
+        <log4j2.version>2.14.1</log4j2.version>
         <slf4j.version>1.7.30</slf4j.version>
         <apache-log4j.version>2.12.1</apache-log4j.version>
         <xalan.version>2.7.2</xalan.version>
@@ -156,7 +155,7 @@
         <!-- container -->
         <jetty.toolchain.test-helper.version>3.1.1</jetty.toolchain.test-helper.version>
         <test.container.version>1.15.0</test.container.version>
-        
+
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
@@ -249,7 +248,7 @@
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.language>java</sonar.language>
-        <scala.version>2.12.10</scala.version>
+        <scala.version>2.12.13</scala.version>
 
         <!-- swagger api-->
         <swagger.version>1.5.24</swagger.version>
@@ -565,6 +564,14 @@
                         <groupId>com.google.protobuf</groupId>
                         <artifactId>protobuf-java</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -578,6 +585,10 @@
                     <exclusion>
                         <groupId>javax.servlet</groupId>
                         <artifactId>servlet-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
                 <version>${hadoop.version}</version>
@@ -599,6 +610,12 @@
                 <artifactId>hadoop-yarn-client</artifactId>
                 <version>${hadoop.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -606,6 +623,10 @@
                 <exclusions>
                     <exclusion>
                         <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
@@ -671,6 +692,10 @@
                     <exclusion>
                         <groupId>io.netty</groupId>
                         <artifactId>netty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -896,10 +921,10 @@
                         <groupId>org.apache.logging.log4j</groupId>
                         <artifactId>log4j-slf4j-impl</artifactId>
                     </exclusion>
-                        <exclusion>
-                            <artifactId>hbase-client</artifactId>
-                            <groupId>org.apache.hbase</groupId>
-                        </exclusion>
+                    <exclusion>
+                        <artifactId>hbase-client</artifactId>
+                        <groupId>org.apache.hbase</groupId>
+                    </exclusion>
                 </exclusions>
                 <scope>provided</scope>
             </dependency>
@@ -1051,6 +1076,12 @@
                 <artifactId>kafka_2.12</artifactId>
                 <version>${kafka.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -1104,24 +1135,6 @@
 
             <!-- Logging -->
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>${log4j.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>apache-log4j-extras</artifactId>
-                <version>${log4j-extras.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${slf4j.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
@@ -1130,6 +1143,31 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-web</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-1.2-api</artifactId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${log4j2.version}</version>
             </dependency>
 
             <!-- Test -->
@@ -1311,6 +1349,11 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-jdbc</artifactId>
+                <version>${spring.boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-log4j2</artifactId>
                 <version>${spring.boot.version}</version>
             </dependency>
             <dependency>
@@ -1607,6 +1650,14 @@
                         <groupId>org.apache.hadoop</groupId>
                     </exclusion>
                     <!-- End of Hadoop 3.x dependencies -->
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
                 </exclusions>
                 <version>${spark.version}</version>
                 <scope>provided</scope>
@@ -1672,6 +1723,14 @@
                         <groupId>org.apache.hadoop</groupId>
                     </exclusion>
                     <!-- End of Hadoop 3.x dependencies -->
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -1984,7 +2043,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.2.4</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -2268,8 +2327,12 @@
                         <exclude>**/SimpleCharStream.class</exclude>
                         <exclude>**/*TokenManager.class</exclude>
                         <exclude>**/TokenMgrError.class</exclude>
-                        <exclude>**/org/apache/kylin/common/util/Bytes$LexicographicalComparerHolder$UnsafeComparer.class</exclude>
-                        <exclude>**/org/apache/kylin/common/util/Bytes$LexicographicalComparerHolder$UnsafeComparer$1.class</exclude>
+                        <exclude>
+                            **/org/apache/kylin/common/util/Bytes$LexicographicalComparerHolder$UnsafeComparer.class
+                        </exclude>
+                        <exclude>
+                            **/org/apache/kylin/common/util/Bytes$LexicographicalComparerHolder$UnsafeComparer$1.class
+                        </exclude>
                         <exclude>**/org/apache/kylin/common/util/Bytes.class</exclude>
                         <exclude>**/org/apache/kylin/common/util/AbstractTestCase.class</exclude>
                         <exclude>**/org/apache/kylin/sdk/datasource/framework/FixedCachedRowSetImpl.class</exclude>
@@ -2281,8 +2344,10 @@
                         <exclude>**/io/kyligence/kap/common/util/Unsafe.class</exclude>
                         <exclude>**/io/kyligence/kap/query/runtime/ExpressionConverter$.class</exclude>
                         <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest.class</exclude>
-                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$TimeoutHandler.class</exclude>
-                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$ModelHandler.class</exclude>
+                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$TimeoutHandler.class
+                        </exclude>
+                        <exclude>**/io/kyligence/kap/rest/scheduler/JobSchedulerListenerTest$ModelHandler.class
+                        </exclude>
                         <exclude>**/io/kyligence/kap/tool/kerberos/KerberosLoginUtil.class</exclude>
                     </excludes>
                     <signaturesFiles>
@@ -2469,18 +2534,6 @@
                             <excludes>
                                 <exclude>**/IT*.java</exclude>
                             </excludes>
-                            <systemProperties>
-                                <property>
-                                    <name>buildCubeUsingProvidedData</name>
-                                    <value>false</value>
-                                </property>
-                                <property>
-                                    <name>log4j.configuration</name>
-                                    <value>
-                                        file:${user.dir}/src/core-common/src/test/resources/log4j-ci.properties
-                                    </value>
-                                </property>
-                            </systemProperties>
                             <argLine>-javaagent:${project.build.testOutputDirectory}/jamm.jar
                                 ${argLine} ${surefireArgLine}
                             </argLine>

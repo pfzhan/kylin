@@ -158,7 +158,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public static void staticCreateTestMetadata(String... overlay) {
-        cleanSingletonInstances();
         String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata(false, overlay);
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
@@ -168,6 +167,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         } catch (ClassNotFoundException e) {
             // ignore it
         }
+        cleanSingletonInstances();
     }
 
     private static void cleanSingletonInstances() {
@@ -208,11 +208,12 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static void staticCleanupTestMetadata() {
         cleanSingletonInstances();
+        clearTestConfig();
+        QueryContext.reset();
+
         File directory = new File(TempMetadataBuilder.TEMP_TEST_METADATA);
         FileUtils.deleteQuietly(directory);
 
-        clearTestConfig();
-        QueryContext.reset();
     }
 
     public static String getLocalWorkingDirectory() {

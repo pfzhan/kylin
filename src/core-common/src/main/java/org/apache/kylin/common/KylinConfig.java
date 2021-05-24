@@ -65,6 +65,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -182,35 +183,15 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-    // Only used in test cases!!!
+    @VisibleForTesting
     public static void destroyInstance() {
         synchronized (KylinConfig.class) {
             logger.info("Destroy KylinConfig");
-            dumpStackTrace();
             SYS_ENV_INSTANCE = null;
             THREAD_ENV_INSTANCE = new ThreadLocal<>();
         }
     }
 
-    private static void dumpStackTrace() {
-
-        //uncomment below to start debugging
-
-        //        Thread t = Thread.currentThread();
-        //        int maxStackTraceDepth = 20;
-        //        int current = 0;
-        //
-        //        StackTraceElement[] stackTrace = t.getStackTrace();
-        //        StringBuilder buf = new StringBuilder("This is not a exception, just for diagnose purpose:");
-        //        buf.append("\n");
-        //        for (StackTraceElement e : stackTrace) {
-        //            if (++current > maxStackTraceDepth) {
-        //                break;
-        //            }
-        //            buf.append("\t").append("at ").append(e.toString()).append("\n");
-        //        }
-        //        logger.info(buf.toString());
-    }
 
     public enum UriType {
         PROPERTIES_FILE, REST_ADDR, LOCAL_FOLDER, HDFS_FILE

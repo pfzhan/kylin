@@ -21,19 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.spark.common.logging;
+package io.kyligence.kap.common.logging;
 
-import org.apache.log4j.spi.LoggingEvent;
+import java.io.Closeable;
 
-import java.io.IOException;
-import java.util.List;
+import org.apache.logging.log4j.ThreadContext;
 
-public class TestErrorSparkExecutorHdfsLogAppender extends SparkExecutorHdfsLogAppender {
+public class SetLogCategory implements Closeable {
 
-    @Override
-    public void doWriteLog(int size, List<LoggingEvent> transaction) throws IOException, InterruptedException {
-        super.doWriteLog(size, transaction);
-        throw new IOException("test flush IOException!");
+    private static final String KEY = "logCategory";
+
+    public SetLogCategory(String category) {
+        ThreadContext.put(KEY, category);
     }
 
+    @Override
+    public void close() {
+        ThreadContext.remove(KEY);
+    }
 }

@@ -37,8 +37,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 
 import com.google.common.collect.Sets;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,7 +50,7 @@ public class FileMetadataStore extends MetadataStore {
     public FileMetadataStore(KylinConfig kylinConfig) throws Exception {
         super(kylinConfig);
         root = new File(kylinConfig.getMetadataUrl().getIdentifier()).getAbsoluteFile();
-        epochStore = EpochStore.getEpochStore(kylinConfig);
+        epochStore = FileEpochStore.getEpochStore(kylinConfig);
     }
 
     @Override

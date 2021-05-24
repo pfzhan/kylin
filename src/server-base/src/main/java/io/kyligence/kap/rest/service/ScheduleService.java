@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.SetThreadName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -62,10 +63,7 @@ public class ScheduleService {
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
 
-        String oldThreadName = Thread.currentThread().getName();
-        try {
-            Thread.currentThread().setName("RoutineOpsWorker");
-
+        try (SetThreadName ignored = new SetThreadName("RoutineOpsWorker")) {
             log.info("Start to work");
             if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                 backupService.backupAll();
@@ -80,8 +78,6 @@ public class ScheduleService {
             projectService.garbageCleanup();
 
             log.info("Finish to work");
-        } finally {
-            Thread.currentThread().setName(oldThreadName);
         }
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);
@@ -92,16 +88,12 @@ public class ScheduleService {
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON, MetricsCategory.GLOBAL, GLOBAL);
 
-        String oldThreadName = Thread.currentThread().getName();
-        try {
-            Thread.currentThread().setName("UpdateTopNRecommendationsWorker");
+        try (SetThreadName ignored = new SetThreadName("UpdateTopNRecommendationsWorker")) {
             log.info("Routine task to update cost and topN recommendations");
 
             rawRecService.updateCostsAndTopNCandidates(null);
 
             log.info("Updating cost and topN recommendations finished.");
-        } finally {
-            Thread.currentThread().setName(oldThreadName);
         }
 
         MetricsGroup.hostTagCounterInc(MetricsName.METADATA_OPS_CRON_SUCCESS, MetricsCategory.GLOBAL, GLOBAL);

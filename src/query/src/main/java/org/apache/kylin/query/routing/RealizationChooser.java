@@ -93,6 +93,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.logging.SetLogCategory;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -112,8 +113,7 @@ public class RealizationChooser {
     private static ExecutorService selectCandidateService = new ThreadPoolExecutor(
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadCoreNum(),
             KylinConfig.getInstanceFromEnv().getQueryRealizationChooserThreadMaxNum(), 60L, TimeUnit.SECONDS,
-            new SynchronousQueue<Runnable>(), new NamedThreadFactory("RealChooser"),
-            new ThreadPoolExecutor.CallerRunsPolicy());
+            new SynchronousQueue<>(), new NamedThreadFactory("RealChooser"), new ThreadPoolExecutor.CallerRunsPolicy());
 
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
@@ -146,7 +146,8 @@ public class RealizationChooser {
                     try (KylinConfig.SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
                             .setAndUnsetThreadLocalConfig(kylinConfig);
                             SetThreadName ignored = new SetThreadName(Thread.currentThread().getName() + " QueryId %s",
-                                    queryId)) {
+                                    queryId);
+                            SetLogCategory logCategory = new SetLogCategory("query")) {
                         if (project != null) {
                             NTableMetadataManager.getInstance(kylinConfig, project);
                             NDataModelManager.getInstance(kylinConfig, project);

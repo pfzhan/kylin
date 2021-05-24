@@ -58,6 +58,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -441,10 +442,8 @@ public class ProjectService extends BasicService {
     }
 
     public void garbageCleanup() {
-        String oldThreadName = Thread.currentThread().getName();
 
-        try {
-            Thread.currentThread().setName("GarbageCleanupWorker");
+        try (SetThreadName ignored = new SetThreadName("GarbageCleanupWorker")) {
             // clean up acl
             cleanupAcl();
             val config = KylinConfig.getInstanceFromEnv();
@@ -466,8 +465,6 @@ public class ProjectService extends BasicService {
                 logger.info("Garbage cleanup for project<{}> finished", project.getName());
             }
             cleanRawRecForDeletedProject(projectManager);
-        } finally {
-            Thread.currentThread().setName(oldThreadName);
         }
 
     }

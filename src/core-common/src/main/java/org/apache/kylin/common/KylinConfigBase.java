@@ -2116,15 +2116,15 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getLogSparkDriverPropertiesFile() {
-        return getLogPropertyFile("spark-driver-log4j.properties");
+        return getLogPropertyFile("spark-driver-log4j.xml");
     }
 
     public String getLogSparkExecutorPropertiesFile() {
-        return getLogPropertyFile("spark-executor-log4j.properties");
+        return getLogPropertyFile("spark-executor-log4j.xml");
     }
 
     public String getLogSparkAppMasterPropertiesFile() {
-        return getLogPropertyFile("spark-appmaster-log4j.properties");
+        return getLogPropertyFile("spark-appmaster-log4j.xml");
     }
 
     private String getLogPropertyFile(String filename) {

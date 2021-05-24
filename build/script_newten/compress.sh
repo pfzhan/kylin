@@ -69,7 +69,7 @@ cp -rf deploy/grafana/custom.ini ${package_name}/grafana/conf/
 mkdir -p ${package_name}/conf
 mkdir -p ${package_name}/tool/conf
 mkdir -p ${package_name}/server/conf
-for log_conf in `find conf -name "*-log4j.properties"`; do
+for log_conf in `find conf -name "*-log4j.xml"`; do
     cp ${log_conf} ${package_name}/${log_conf}.template
     if [[ ${log_conf} == *"tool"* ]]; then
         cp ${log_conf} ${package_name}/tool/${log_conf}

@@ -122,10 +122,6 @@
             <artifactId>calcite-linq4j</artifactId>
         </dependency>
         <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
@@ -409,9 +405,9 @@
                         <reuseForks>false</reuseForks>
                         <systemProperties>
                             <property>
-                                <name>log4j.configuration</name>
+                                <name>log4j.configurationFile</name>
                                 <value>
-                                    file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                    file:${project.basedir}/../../build/conf/kylin-tools-log4j.xml
                                 </value>
                             </property>
                         </systemProperties>

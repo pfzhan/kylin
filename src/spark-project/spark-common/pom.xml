@@ -82,10 +82,6 @@
             <artifactId>spark-sql_2.12</artifactId>
             <type>test-jar</type>
         </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>apache-log4j-extras</artifactId>
-        </dependency>
     </dependencies>
     
 

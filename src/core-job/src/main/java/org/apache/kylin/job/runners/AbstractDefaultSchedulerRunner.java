@@ -23,6 +23,7 @@
  */
 package org.apache.kylin.job.runners;
 
+import io.kyligence.kap.common.logging.SetLogCategory;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
@@ -77,11 +78,12 @@ public abstract class AbstractDefaultSchedulerRunner implements Runnable {
 
     @Override
     public void run() {
-        if (checkEpochIdFailed()) {
-            return;
+        try (SetLogCategory ignored = new SetLogCategory("schedule")) {
+            if (checkEpochIdFailed()) {
+                return;
+            }
+            doRun();
         }
-
-        doRun();
     }
 
     protected abstract void doRun();

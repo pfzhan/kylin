@@ -25,6 +25,7 @@ package io.kyligence.kap.spark.common.logging;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -38,40 +39,47 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.helpers.LogLog;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.config.Property;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
+import org.apache.logging.log4j.status.StatusLogger;
 import org.apache.spark.SparkEnv;
-import org.apache.spark.deploy.yarn.YarnSparkHadoopUtil;
 
 import com.google.common.annotations.VisibleForTesting;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
+@Plugin(name = "ExecutorHdfsAppender", category = "Core", elementType = "appender", printObject = true)
 public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
     private static final long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
-    private static final long A_HOUR_MILLIS = 60 * 60 * 1000L;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd",
             Locale.getDefault(Locale.Category.FORMAT));
-    private final SimpleDateFormat hourFormat = new SimpleDateFormat("HH", Locale.getDefault(Locale.Category.FORMAT));
 
     @VisibleForTesting
-    String outPutPath;
+    String outputPath;
     @VisibleForTesting
     String executorId;
 
     @VisibleForTesting
     long startTime = 0;
-    @VisibleForTesting
-    boolean rollingByHour = false;
+
+    @Getter
+    @Setter
     @VisibleForTesting
     int rollingPeriod = 5;
 
     //log appender configurable
     @Getter
     @Setter
-    private String metadataIdentifier;
+    private String metadataId;
     @Getter
     @Setter
     private String category;
@@ -87,23 +95,23 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     @Setter
     private String project;
 
+    protected SparkExecutorHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
+            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+        super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
+    }
+
     @Override
     void init() {
-        if (StringUtils.isBlank(this.identifier)) {
-            this.identifier = YarnSparkHadoopUtil.getContainerId().getApplicationAttemptId().getApplicationId()
-                    .toString();
-        }
-
-        LogLog.warn("metadataIdentifier -> " + getMetadataIdentifier());
-        LogLog.warn("category -> " + getCategory());
-        LogLog.warn("identifier -> " + getIdentifier());
+        StatusLogger.getLogger().warn("metadataIdentifier -> " + getMetadataId());
+        StatusLogger.getLogger().warn("category -> " + getCategory());
+        StatusLogger.getLogger().warn("identifier -> " + getIdentifier());
 
         if (null != getProject()) {
-            LogLog.warn("project -> " + getProject());
+            StatusLogger.getLogger().warn("project -> " + getProject());
         }
 
         if (null != getJobName()) {
-            LogLog.warn("jobName -> " + getJobName());
+            StatusLogger.getLogger().warn("jobName -> " + getJobName());
         }
     }
 
@@ -115,11 +123,11 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     @Override
     boolean isSkipCheckAndFlushLog() {
         if (SparkEnv.get() == null && StringUtils.isBlank(executorId)) {
-            LogLog.warn("Waiting for spark executor to start");
+            StatusLogger.getLogger().warn("Waiting for spark executor to start");
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                LogLog.error("Waiting for spark executor starting is interrupted!", e);
+                StatusLogger.getLogger().error("Waiting for spark executor starting is interrupted!", e);
                 Thread.currentThread().interrupt();
             }
             return true;
@@ -128,28 +136,35 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @Override
-    void doWriteLog(int size, List<LoggingEvent> transaction) throws IOException, InterruptedException {
+    void doWriteLog(int size, List<LogEvent> transaction) throws IOException, InterruptedException {
         while (size > 0) {
-            final LoggingEvent loggingEvent = getLogBufferQue().take();
+            final LogEvent loggingEvent = getLogBufferQue().take();
             if (isTimeChanged(loggingEvent)) {
                 updateOutPutDir(loggingEvent);
 
-                final Path file = new Path(outPutPath);
+                final Path file = new Path(outputPath);
 
                 String sparkuser = System.getenv("SPARK_USER");
                 String user = System.getenv("USER");
-                LogLog.warn("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser
-                        + " USER is " + user);
+                StatusLogger.getLogger().warn("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is "
+                        + sparkuser + " USER is " + user);
                 UserGroupInformation ugi = SparkEnv.getUGI();
                 // Add tokens to new user so that it may execute its task correctly.
-                LogLog.warn("Login user hashcode is " + ugi.hashCode());
-                ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                if (ugi != null) {
+                    StatusLogger.getLogger().warn("Login user hashcode is " + ugi.hashCode());
+                    ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
+                        if (!initHdfsWriter(file, new Configuration())) {
+                            StatusLogger.getLogger().error("Failed to init the hdfs writer!");
+                        }
+                        doRollingClean(loggingEvent);
+                        return null;
+                    });
+                } else {
                     if (!initHdfsWriter(file, new Configuration())) {
-                        LogLog.error("Failed to init the hdfs writer!");
+                        StatusLogger.getLogger().error("Failed to init the hdfs writer!");
                     }
                     doRollingClean(loggingEvent);
-                    return null;
-                });
+                }
             }
 
             transaction.add(loggingEvent);
@@ -159,21 +174,15 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @VisibleForTesting
-    void updateOutPutDir(LoggingEvent event) {
-        if (rollingByHour) {
-            String rollingDir = dateFormat.format(new Date(event.getTimeStamp())) + "/"
-                    + hourFormat.format(new Date(event.getTimeStamp()));
-            outPutPath = getOutPutDir(rollingDir);
-        } else {
-            String rollingDir = dateFormat.format(new Date(event.getTimeStamp()));
-            outPutPath = getOutPutDir(rollingDir);
-        }
+    void updateOutPutDir(LogEvent event) {
+        String rollingDir = dateFormat.format(new Date(event.getTimeMillis()));
+        outputPath = getOutPutDir(rollingDir);
     }
 
     private String getOutPutDir(String rollingDir) {
         if (StringUtils.isBlank(executorId)) {
             executorId = SparkEnv.get() != null ? SparkEnv.get().executorId() : UUID.randomUUID().toString();
-            LogLog.warn("executorId set to " + executorId);
+            StatusLogger.getLogger().warn("executorId set to " + executorId);
         }
 
         if ("job".equals(getCategory())) {
@@ -184,7 +193,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @VisibleForTesting
-    void doRollingClean(LoggingEvent event) throws IOException {
+    void doRollingClean(LogEvent event) throws IOException {
         FileSystem fileSystem = getFileSystem();
 
         String rootPathName = getRootPathName();
@@ -198,7 +207,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
         if (logFolders == null)
             return;
 
-        String thresholdDay = dateFormat.format(new Date(event.getTimeStamp() - A_DAY_MILLIS * rollingPeriod));
+        String thresholdDay = dateFormat.format(new Date(event.getTimeMillis() - A_DAY_MILLIS * rollingPeriod));
 
         for (FileStatus fs : logFolders) {
             String fileName = fs.getPath().getName();
@@ -222,25 +231,49 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
         }
     }
 
-    @VisibleForTesting
-    boolean isTimeChanged(LoggingEvent event) {
-        if (rollingByHour) {
-            return isNeedRolling(event, A_HOUR_MILLIS);
-        } else {
-            return isNeedRolling(event, A_DAY_MILLIS);
+    public String getIdentifier() {
+        try {
+            return StringUtils.isBlank(identifier) ? SparkEnv.get().conf().getAppId() : identifier;
+        } catch (Exception e) {
+            return null;
         }
     }
 
-    private boolean isNeedRolling(LoggingEvent event, Long timeInterval) {
-        if (0 == startTime || ((event.getTimeStamp() / timeInterval) - (startTime / timeInterval)) > 0) {
-            startTime = event.getTimeStamp();
+    @VisibleForTesting
+    boolean isTimeChanged(LogEvent event) {
+        if (0 == startTime || ((event.getTimeMillis() / A_DAY_MILLIS) - (startTime / A_DAY_MILLIS)) > 0) {
+            startTime = event.getTimeMillis();
             return true;
         }
         return false;
     }
 
     private String parseHdfsWordingDir() {
-        return StringUtils.appendIfMissing(getHdfsWorkingDir(), "/")
-                + StringUtils.replace(getMetadataIdentifier(), "/", "-");
+        return StringUtils.appendIfMissing(getWorkingDir(), "/") + StringUtils.replace(getMetadataId(), "/", "-");
     }
+
+    @PluginFactory
+    public static SparkExecutorHdfsLogAppender createAppender(@PluginAttribute("name") String name,
+            @PluginAttribute("workingDir") String workingDir, @PluginAttribute("metadataId") String metadataId,
+            @PluginAttribute("category") String category, @PluginAttribute("identifier") String identifier,
+            @PluginAttribute("jobName") String jobName, @PluginAttribute("project") String project,
+            @PluginAttribute("rollingPeriod") int rollingPeriod,
+            @PluginAttribute("logQueueCapacity") int logQueueCapacity,
+            @PluginAttribute("flushInterval") int flushInterval,
+            @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
+            @PluginElement("Properties") Property[] properties) {
+        HdfsManager manager = new HdfsManager(name, layout);
+        val appender = new SparkExecutorHdfsLogAppender(name, layout, filter, false, false, properties, manager);
+        appender.setWorkingDir(workingDir);
+        appender.setMetadataId(metadataId);
+        appender.setCategory(category);
+        appender.setIdentifier(identifier);
+        appender.setJobName(jobName);
+        appender.setProject(project);
+        appender.setRollingPeriod(rollingPeriod);
+        appender.setLogQueueCapacity(logQueueCapacity);
+        appender.setFlushInterval(flushInterval);
+        return appender;
+    }
+
 }

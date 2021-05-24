@@ -524,10 +524,10 @@ public class NSparkExecutable extends AbstractExecutable {
         final String log4jName = Paths.get(localLog4j).getFileName().toString();
         if (isYarnCluster || config.getSparkMaster().startsWith("k8s")) {
             // Direct file name.
-            sb.append(String.format(Locale.ROOT, " -Dlog4j.configuration=%s ", log4jName));
+            sb.append(String.format(Locale.ROOT, " -Dlog4j.configurationFile=%s ", log4jName));
         } else {
             // Use 'file:' as scheme.
-            sb.append(String.format(Locale.ROOT, " -Dlog4j.configuration=file:%s ", localLog4j));
+            sb.append(String.format(Locale.ROOT, " -Dlog4j.configurationFile=file:%s ", localLog4j));
         }
     }
 

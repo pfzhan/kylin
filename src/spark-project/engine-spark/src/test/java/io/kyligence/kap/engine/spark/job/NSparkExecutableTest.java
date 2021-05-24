@@ -122,7 +122,7 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("spark-submit"));
-            Assert.assertTrue(cmd.contains("log4j.configuration=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
+            Assert.assertTrue(cmd.contains("log4j.configurationFile=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
             Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
             Assert.assertTrue(cmd.contains("spark.driver.log4j.appender.hdfs.File="));
             Assert.assertTrue(cmd.contains("kylin.hdfs.working.dir="));

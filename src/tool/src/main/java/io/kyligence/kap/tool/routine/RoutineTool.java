@@ -37,6 +37,7 @@ import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -206,15 +207,16 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         List<ProjectInstance> projectInstances = NProjectManager.getInstance(config).listAllProjects().stream()
                 .filter(projectInstance -> !projectInstance.isExpertMode()).collect(Collectors.toList());
-        Thread.currentThread().setName("DeleteRawRecItemsInDB");
-        for (ProjectInstance instance : projectInstances) {
-            try {
-                RawRecManager rawRecManager = RawRecManager.getInstance(instance.getName());
-                rawRecManager.deleteAllOutDated(instance.getName());
-                Set<String> modelIds = NDataModelManager.getInstance(config, instance.getName()).listAllModelIds();
-                rawRecManager.deleteRecItemsOfNonExistModels(instance.getName(), modelIds);
-            } catch (Exception e) {
-                log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
+        try (SetThreadName ignored = new SetThreadName("DeleteRawRecItemsInDB")) {
+            for (ProjectInstance instance : projectInstances) {
+                try {
+                    RawRecManager rawRecManager = RawRecManager.getInstance(instance.getName());
+                    rawRecManager.deleteAllOutDated(instance.getName());
+                    Set<String> modelIds = NDataModelManager.getInstance(config, instance.getName()).listAllModelIds();
+                    rawRecManager.deleteRecItemsOfNonExistModels(instance.getName(), modelIds);
+                } catch (Exception e) {
+                    log.error("project<" + instance.getName() + "> delete raw recommendations in DB failed", e);
+                }
             }
         }
     }

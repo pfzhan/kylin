@@ -25,14 +25,8 @@ package io.kyligence.kap.rest.config.initialize;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,20 +37,17 @@ import org.springframework.test.util.ReflectionTestUtils;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.common.util.LogOutputTestCase;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import lombok.val;
 
-public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
+public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
 
-    private TestAppender testAppender;
 
     @Before
     public void setUp() {
         this.createTestMetadata();
-        testAppender = new TestAppender();
-        Logger.getRootLogger().addAppender(testAppender);
         getTestConfig().setMetadataUrl("test" + System.currentTimeMillis()
                 + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
     }
@@ -66,7 +57,6 @@ public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         cleanupTestMetadata();
-        Logger.getRootLogger().removeAppender(testAppender);
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {
@@ -92,8 +82,7 @@ public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
         // _global epoch owner
         updateListener.onUpdate(new SourceUsageUpdateNotifier());
 
-        Assert.assertTrue(testAppender.events.stream().anyMatch(
-                loggingEvent -> loggingEvent.getMessage().toString().contains("Start to update source usage...")));
+        Assert.assertTrue(containsLog("Start to update source usage..."));
 
         epoch = epochManager.getEpoch(EpochManager.GLOBAL);
         epoch = new Epoch(epoch.getEpochId() + 1, EpochManager.GLOBAL, "127.0.0.1:1111", System.currentTimeMillis(),
@@ -104,8 +93,7 @@ public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
         // not epoch owner
         updateListener.onUpdate(new SourceUsageUpdateNotifier());
 
-        Assert.assertTrue(testAppender.events.stream().anyMatch(loggingEvent -> loggingEvent.getMessage().toString()
-                .contains("Start to notify 127.0.0.1:1111 to update source usage")));
+        Assert.assertTrue(containsLog("Start to notify 127.0.0.1:1111 to update source usage"));
     }
 
     @Test
@@ -124,23 +112,7 @@ public class SourceUsageUpdateListenerTest extends NLocalFileMetadataTestCase {
         // _global epoch owner
         updateListener.onVerify(new SourceUsageVerifyNotifier());
 
-        Assert.assertTrue(testAppender.events.stream().anyMatch(loggingEvent -> loggingEvent.getMessage().toString()
-                .contains("Verify model partition is aligned with source table partition")));
+        Assert.assertTrue(containsLog("Verify model partition is aligned with source table partition."));
     }
 
-    public static class TestAppender extends AppenderSkeleton {
-        public List<LoggingEvent> events = new ArrayList<>();
-
-        public void close() {
-        }
-
-        public boolean requiresLayout() {
-            return false;
-        }
-
-        @Override
-        protected void append(LoggingEvent event) {
-            events.add(event);
-        }
-    }
 }

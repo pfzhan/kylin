@@ -77,12 +77,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
-import io.kyligence.kap.query.engine.QueryRoutingEngine;
-import io.kyligence.kap.query.util.QueryModelPriorities;
-import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -155,20 +149,27 @@ import com.google.common.collect.SetMultimap;
 import com.google.gson.Gson;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
+import io.kyligence.kap.common.logging.SetLogCategory;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.TableSchema;
+import io.kyligence.kap.query.util.QueryModelPriorities;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -220,11 +221,13 @@ public class QueryService extends BasicService {
             markHighPriorityQueryIfNeeded();
 
             QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
-                    sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(),
-                    true, sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
-                    isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(), sqlRequest.isAcceptPartial(), true);
+                    sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(), true,
+                    sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
+                    isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),
+                    sqlRequest.isAcceptPartial(), true);
             if (queryParams.isPrepareStatementWithParams()) {
-                queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(), ((PrepareSqlRequest) sqlRequest).getParams()));
+                queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
+                        ((PrepareSqlRequest) sqlRequest).getParams()));
                 queryParams.setParams(((PrepareSqlRequest) sqlRequest).getParams());
             }
             queryParams.setAclInfo(getExecuteAclInfo(queryParams.getProject(), queryParams.getExecuteAs()));
@@ -252,7 +255,8 @@ public class QueryService extends BasicService {
                 return fakeResponse;
             }
 
-            Pair<List<List<String>>, List<SelectedColumnMeta>> pair = queryRoutingEngine.queryWithSqlMassage(queryParams);
+            Pair<List<List<String>>, List<SelectedColumnMeta>> pair = queryRoutingEngine
+                    .queryWithSqlMassage(queryParams);
             if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 QueryContext.current().getMetrics().setResultRowCount(pair.getFirst().size());
             }
@@ -385,7 +389,6 @@ public class QueryService extends BasicService {
         KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(request.getProject()).getConfig();
 
-
         LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
                 .put(LogReport.SQL, sql).put(LogReport.USER, user)
                 .put(LogReport.SUCCESS, null == response.getExceptionMessage()).put(LogReport.DURATION, duration)
@@ -401,8 +404,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.PARTIAL_RESULT, response.isPartial())
                 .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
                 .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
-                .put(LogReport.PUSH_DOWN, response.isQueryPushDown())
-                .put(LogReport.IS_PREPARE, response.isPrepare())
+                .put(LogReport.PUSH_DOWN, response.isQueryPushDown()).put(LogReport.IS_PREPARE, response.isPrepare())
                 .put(LogReport.TIMEOUT, response.isTimeout()).put(LogReport.TRACE_URL, response.getTraceUrl())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
@@ -436,16 +438,17 @@ public class QueryService extends BasicService {
             // validate queryId with UUID.fromString
             queryContext.setQueryId(UUID.fromString(sqlRequest.getQueryId()).toString());
         }
-        try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
+        try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId());
+                SetLogCategory ignored2 = new SetLogCategory("query")) {
             if (sqlRequest.getExecuteAs() != null)
                 sqlRequest.setUsername(sqlRequest.getExecuteAs());
             else
                 sqlRequest.setUsername(getUsername());
             QueryLimiter.tryAcquire();
             SQLResponse response = queryWithCache(sqlRequest, isQueryInspect);
-            response.setTraces(
-                    QueryContext.currentTrace().spans()
-                            .stream().map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration())).collect(Collectors.toList()));
+            response.setTraces(QueryContext.currentTrace().spans().stream()
+                    .map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration()))
+                    .collect(Collectors.toList()));
             return response;
         } finally {
             QueryLimiter.release();
@@ -577,7 +580,7 @@ public class QueryService extends BasicService {
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
             if (isPrepareStatementWithParams(sqlRequest)
                     && !(KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()
-                    || sqlResponse.isQueryPushDown())) {
+                            || sqlResponse.isQueryPushDown())) {
                 PrepareSqlStateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
                 String filledSql = queryContext.getMetrics().getCorrectedSql();
                 try {
@@ -591,16 +594,18 @@ public class QueryService extends BasicService {
             sqlResponse.setTraceUrl(traceUrl);
             logQuery(sqlRequest, sqlResponse);
 
-            if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql()) && queryContext.getQueryTagInfo().isStorageCacheUsed()) {
+            if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())
+                    && queryContext.getQueryTagInfo().isStorageCacheUsed()) {
                 String defaultSchema = "DEFAULT";
                 try {
-                    defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
+                    defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv())
+                            .getSchema();
                 } catch (Exception e) {
                     logger.warn("Failed to get connection, project: {}", queryContext.getProject(), e);
                 }
                 QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()),
-                        queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(), defaultSchema,
-                        false);
+                        queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(),
+                        queryContext.getOffset(), defaultSchema, false);
                 queryParams.setAclInfo(queryContext.getAclInfo());
                 queryContext.getMetrics().setCorrectedSql(QueryUtil.massageSql(queryParams));
             }
@@ -659,10 +664,9 @@ public class QueryService extends BasicService {
         List<QueryContext.NativeQueryRealization> nativeQueryRealizationList = Lists.newArrayList();
         if (sqlResponse.getNativeRealizations() != null) {
             for (NativeQueryRealization nqReal : sqlResponse.getNativeRealizations()) {
-                nativeQueryRealizationList.add(
-                        new QueryContext.NativeQueryRealization(nqReal.getModelId(), nqReal.getModelAlias(),
-                                nqReal.getLayoutId(), nqReal.getIndexType(), nqReal.isPartialMatchModel(),
-                                nqReal.isValid(), nqReal.isLayoutExist(), nqReal.getSnapshots()));
+                nativeQueryRealizationList.add(new QueryContext.NativeQueryRealization(nqReal.getModelId(),
+                        nqReal.getModelAlias(), nqReal.getLayoutId(), nqReal.getIndexType(),
+                        nqReal.isPartialMatchModel(), nqReal.isValid(), nqReal.isLayoutExist(), nqReal.getSnapshots()));
             }
         }
         queryContext.setNativeQueryRealizationList(nativeQueryRealizationList);
@@ -1103,8 +1107,8 @@ public class QueryService extends BasicService {
 
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
             List<SelectedColumnMeta> columnMetas, String project) {
-        SQLResponse response = new SQLResponse(columnMetas, results, 0, false,
-                null, QueryContext.current().getQueryTagInfo().isPartial(), isPushDown);
+        SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null,
+                QueryContext.current().getQueryTagInfo().isPartial(), isPushDown);
         QueryContext queryContext = QueryContext.current();
 
         response.wrapResultOfQueryContext(queryContext);

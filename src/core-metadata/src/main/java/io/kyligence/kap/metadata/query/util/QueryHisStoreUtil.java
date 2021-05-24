@@ -48,6 +48,7 @@ import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.logging.LogOutputStream;
@@ -170,10 +171,7 @@ public class QueryHisStoreUtil {
     }
 
     public static void cleanQueryHistory() {
-        String oldThreadName = Thread.currentThread().getName();
-
-        try {
-            Thread.currentThread().setName("QueryHistoryCleanWorker");
+        try (SetThreadName ignored = new SetThreadName("QueryHistoryCleanWorker")) {
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
             getQueryHistoryDao().deleteQueryHistoriesIfMaxSizeReached();
@@ -192,9 +190,6 @@ public class QueryHisStoreUtil {
                     log.error("clean query histories<" + project.getName() + "> failed", e);
                 }
             }
-
-        } finally {
-            Thread.currentThread().setName(oldThreadName);
         }
     }
 

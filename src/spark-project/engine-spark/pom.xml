@@ -160,12 +160,6 @@
             <artifactId>aws-java-sdk-s3</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>apache-log4j-extras</artifactId>
-        </dependency>
-
     </dependencies>
 
     <build>

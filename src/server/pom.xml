@@ -11,7 +11,7 @@
  * with the terms of the license agreement you entered into with
  * Kyligence Inc.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORResourceDetectBeforeCubingJobTestS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
  * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
@@ -128,6 +128,10 @@
             <artifactId>spring-session</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-zookeeper-discovery</artifactId>
             <exclusions>
@@ -167,12 +171,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -301,18 +299,30 @@
                             </outputDirectory>
                             <includeScope>compile</includeScope>
                             <excludeGroupIds>
-                                <!--we use log4j in Spark jars-->
-                                log4j,
+                                <!--we use Spark jars-->
                                 org.spark-project.hive,
                                 org.slf4j,
                                 xerces,
+                                org.anltr,
+                                org.apache.arrow,
+                                org.apache.avro,
                                 org.apache.hadoop,
                                 org.apache.hive,
                                 org.apache.hive.hcatalog,
                                 org.apache.spark,
                                 org.apache.kafka,
                                 org.apache.zookeeper,
-                                mysql
+                                org.glassfish.hk2,
+                                org.glassfish.hk2.external,
+                                org.json4s,
+                                org.mortbay.jetty,
+                                org.scala-lang,
+                                com.twitter,
+                                com.sun.jersey,
+                                io.dropwizard.metrics,
+                                joda-time,
+                                mysql,
+                                net.sf.py4j
                             </excludeGroupIds>
                         </configuration>
                     </execution>

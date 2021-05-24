@@ -57,10 +57,10 @@ function startKG() {
         quit "Kyligence Enterprise is not running, will not start guardian process"
     fi
 
-    if [[ -f ${KYLIN_HOME}/conf/kylin-guardian-log4j.properties ]]; then
-        guardian_log4j="file:${KYLIN_HOME}/conf/kylin-guardian-log4j.properties"
+    if [[ -f ${KYLIN_HOME}/conf/kylin-guardian-log4j.xml ]]; then
+        guardian_log4j="file:${KYLIN_HOME}/conf/kylin-guardian-log4j.xml"
     else
-        guardian_log4j="file:${KYLIN_HOME}/server/conf/kylin-guardian-log4j.properties"
+        guardian_log4j="file:${KYLIN_HOME}/server/conf/kylin-guardian-log4j.xml"
     fi
 
     TIME_ZONE=`${KYLIN_HOME}/bin/get-properties.sh kylin.web.timezone`
@@ -68,7 +68,7 @@ function startKG() {
         TIME_ZONE="-Duser.timezone=${TIME_ZONE}"
     fi
 
-    TOOL_OPTS="-Dfile.encoding=UTF-8 -Dkylin.home=${KYLIN_HOME} -Dlog4j.configuration=${guardian_log4j} ${TIME_ZONE}"
+    TOOL_OPTS="-Dfile.encoding=UTF-8 -Dkylin.home=${KYLIN_HOME} -Dlog4j.configurationFile=${guardian_log4j} ${TIME_ZONE}"
     TOOL_CLASSPATH=${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/*:${SPARK_HOME}/jars/*
 
     nohup java -Xms128m -Xmx1g ${TOOL_OPTS} -classpath ${TOOL_CLASSPATH} io.kyligence.kap.tool.daemon.KapGuardian > /dev/null 2>&1 & echo $! > ${KYLIN_HOME}/kgid &

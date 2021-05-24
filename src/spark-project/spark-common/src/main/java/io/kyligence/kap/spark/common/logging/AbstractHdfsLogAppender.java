@@ -23,10 +23,9 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -43,18 +42,25 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.helpers.LogLog;
-import org.apache.log4j.spi.LoggingEvent;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
+import org.apache.logging.log4j.core.appender.OutputStreamManager;
+import org.apache.logging.log4j.core.config.Property;
+import org.apache.logging.log4j.status.StatusLogger;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
-public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
+public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppender<AbstractHdfsLogAppender.HdfsManager>
+        implements IKeep {
 
     private final Object flushLogLock = new Object();
     private final Object initWriterLock = new Object();
@@ -62,14 +68,13 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     private final Object fileSystemLock = new Object();
 
     private FSDataOutputStream outStream = null;
-    private BufferedWriter bufferedWriter = null;
 
     private FileSystem fileSystem = null;
 
     private ExecutorService appendHdfsService = null;
 
     @Getter
-    private BlockingDeque<LoggingEvent> logBufferQue = null;
+    private BlockingDeque<LogEvent> logBufferQue = null;
     private static final double QUEUE_FLUSH_THRESHOLD = 0.2;
 
     //configurable
@@ -82,7 +87,25 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
 
     @Getter
     @Setter
-    private String hdfsWorkingDir;
+    private String workingDir;
+
+    protected AbstractHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
+            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+        super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
+        StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s starting ...", getAppenderName()));
+        StatusLogger.getLogger().warn("hdfsWorkingDir -> " + getWorkingDir());
+
+        init();
+
+        logBufferQue = new LinkedBlockingDeque<>(getLogQueueCapacity());
+        final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true) //
+                .setNameFormat("logger-thread-%d").build();
+        appendHdfsService = Executors.newSingleThreadExecutor(factory);
+        appendHdfsService.execute(this::checkAndFlushLog);
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
+
+        StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s started ...", getAppenderName()));
+    }
 
     public FileSystem getFileSystem() {
         if (null == fileSystem) {
@@ -95,13 +118,13 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
         synchronized (fileSystemLock) {
             if (null == fileSystem) {
                 try {
-                    if (Objects.isNull(hdfsWorkingDir) || hdfsWorkingDir.isEmpty()) {
-                        hdfsWorkingDir = System.getProperty("kylin.hdfs.working.dir");
-                        LogLog.warn("hdfsWorkingDir -> " + getHdfsWorkingDir());
+                    if (Objects.isNull(workingDir) || workingDir.isEmpty()) {
+                        workingDir = System.getProperty("kylin.hdfs.working.dir");
+                        StatusLogger.getLogger().warn("hdfsWorkingDir -> " + getWorkingDir());
                     }
-                    fileSystem = new Path(hdfsWorkingDir).getFileSystem(conf);
+                    fileSystem = new Path(workingDir).getFileSystem(conf);
                 } catch (IOException e) {
-                    LogLog.error("Failed to create the file system, ", e);
+                    StatusLogger.getLogger().error("Failed to create the file system, ", e);
                     throw new RuntimeException(e);
                 }
             }
@@ -111,7 +134,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
 
     public boolean isWriterInited() {
         synchronized (initWriterLock) {
-            return null != bufferedWriter;
+            return null != outStream;
         }
     }
 
@@ -122,45 +145,29 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     /**
      * init the load resource.
      */
-    @Override
-    public void activateOptions() {
-        LogLog.warn(String.format(Locale.ROOT, "%s starting ...", getAppenderName()));
-        LogLog.warn("hdfsWorkingDir -> " + getHdfsWorkingDir());
-
-        init();
-
-        logBufferQue = new LinkedBlockingDeque<>(getLogQueueCapacity());
-        final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true) //
-                .setNameFormat("logger-thread-%d").build();
-        appendHdfsService = Executors.newSingleThreadExecutor(factory);
-        appendHdfsService.execute(this::checkAndFlushLog);
-        Runtime.getRuntime().addShutdownHook(new Thread(this::close));
-
-        LogLog.warn(String.format(Locale.ROOT, "%s started ...", getAppenderName()));
-    }
 
     @Override
-    public void append(LoggingEvent loggingEvent) {
+    public void append(LogEvent loggingEvent) {
         try {
             boolean offered = logBufferQue.offer(loggingEvent, 10, TimeUnit.SECONDS);
             if (!offered) {
-                LogLog.error("LogEvent cannot put into the logBufferQue, log event content:");
+                StatusLogger.getLogger().error("LogEvent cannot put into the logBufferQue, log event content:");
                 printLoggingEvent(loggingEvent);
             }
         } catch (InterruptedException e) {
-            LogLog.warn("Append logging event interrupted!", e);
+            StatusLogger.getLogger().warn("Append logging event interrupted!", e);
             // Restore interrupted state...
             Thread.currentThread().interrupt();
         }
     }
 
     @Override
-    public void close() {
+    public void stop() {
         synchronized (closeLock) {
-            if (!this.closed) {
-                this.closed = true;
+            if (!this.isStopped()) {
+                setStopped();
 
-                List<LoggingEvent> transaction = Lists.newArrayList();
+                List<LogEvent> transaction = Lists.newArrayList();
                 try {
                     flushLog(getLogBufferQue().size(), transaction);
 
@@ -175,23 +182,18 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                             printLoggingEvent(getLogBufferQue().take());
                         }
                     } catch (Exception ie) {
-                        LogLog.error("clear the logging buffer queue failed!", ie);
+                        StatusLogger.getLogger().error("clear the logging buffer queue failed!", ie);
                     }
-                    LogLog.error(String.format(Locale.ROOT, "close %s failed!", getAppenderName()), e);
+                    StatusLogger.getLogger().error(String.format(Locale.ROOT, "close %s failed!", getAppenderName()),
+                            e);
                 }
-                LogLog.warn(String.format(Locale.ROOT, "%s closed ...", getAppenderName()));
+                StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s closed ...", getAppenderName()));
             }
         }
     }
 
     private void closeWriter() {
-        IOUtils.closeQuietly(bufferedWriter);
         IOUtils.closeQuietly(outStream);
-    }
-
-    @Override
-    public boolean requiresLayout() {
-        return true;
     }
 
     /**
@@ -209,10 +211,10 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             int removeNum = getLogQueueCapacity() / 5;
             while (removeNum > 0) {
                 try {
-                    LoggingEvent loggingEvent = logBufferQue.take();
+                    LogEvent loggingEvent = logBufferQue.take();
                     printLoggingEvent(loggingEvent);
                 } catch (Exception ex) {
-                    LogLog.error("Take event interrupted!", ex);
+                    StatusLogger.getLogger().error("Take event interrupted!", ex);
                 }
                 removeNum--;
             }
@@ -223,17 +225,16 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * print the logging event to stderr
      * @param loggingEvent
      */
-    private void printLoggingEvent(LoggingEvent loggingEvent) {
+    private void printLoggingEvent(LogEvent loggingEvent) {
         try {
-            String log = getLayout().format(loggingEvent);
-            LogLog.error(log.endsWith("\n") ? log.substring(0, log.length() - 1) : log);
-            if (null != loggingEvent.getThrowableStrRep()) {
-                for (String stack : loggingEvent.getThrowableStrRep()) {
-                    LogLog.error(stack);
+            getLayout().encode(loggingEvent, getManager());
+            if (null != loggingEvent.getThrown()) {
+                for (val stack : loggingEvent.getThrown().getStackTrace()) {
+                    StatusLogger.getLogger().error(stack);
                 }
             }
         } catch (Exception e) {
-            LogLog.error("print logging event failed!", e);
+            StatusLogger.getLogger().error("print logging event failed!", e);
         }
     }
 
@@ -243,7 +244,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     protected void checkAndFlushLog() {
         long start = System.currentTimeMillis();
         do {
-            List<LoggingEvent> transaction = Lists.newArrayList();
+            List<LogEvent> transaction = Lists.newArrayList();
             try {
                 if (isSkipCheckAndFlushLog()) {
                     continue;
@@ -261,9 +262,9 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             } catch (Exception e) {
                 transaction.forEach(this::printLoggingEvent);
                 clearLogBufferQueueWhenBlocked();
-                LogLog.error("Error occurred when consume event", e);
+                StatusLogger.getLogger().error("Error occurred when consume event", e);
             }
-        } while (!closed);
+        } while (!isStopped());
     }
 
     /**
@@ -275,7 +276,6 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     protected boolean initHdfsWriter(Path outPath, Configuration conf) {
         synchronized (initWriterLock) {
             closeWriter();
-            bufferedWriter = null;
             outStream = null;
 
             int retry = 10;
@@ -285,19 +285,19 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                     outStream = fileSystem.create(outPath, true);
                     break;
                 } catch (Exception e) {
-                    LogLog.error("fail to create stream for path: " + outPath, e);
+                    StatusLogger.getLogger().error("fail to create stream for path: " + outPath, e);
                 }
 
                 try {
                     Unsafe.wait(initWriterLock, 1000); //waiting for acl to turn to current user
                 } catch (InterruptedException e) {
-                    LogLog.warn("Init writer interrupted!", e);
+                    StatusLogger.getLogger().warn("Init writer interrupted!", e);
                     // Restore interrupted state...
                     Thread.currentThread().interrupt();
                 }
             }
             if (null != outStream) {
-                bufferedWriter = new BufferedWriter(new OutputStreamWriter(outStream, Charset.defaultCharset()));
+                getManager().setOutputStream(outStream);
                 return true;
             }
         }
@@ -306,31 +306,21 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     }
 
     /**
-     * write the data into the buffer.
-     *
-     * @param message
-     * @throws IOException
-     */
-    protected void write(String message) throws IOException {
-        bufferedWriter.write(message);
-    }
-
-    /**
      * write the error stack info into buffer
      *
      * @param loggingEvent
      * @throws IOException
      */
-    protected void writeLogEvent(LoggingEvent loggingEvent) throws IOException {
+    protected void writeLogEvent(LogEvent loggingEvent) throws IOException {
         if (null != loggingEvent) {
-            write(getLayout().format(loggingEvent));
+            getLayout().encode(loggingEvent, getManager());
 
-            if (null != loggingEvent.getThrowableStrRep()) {
-                for (String message : loggingEvent.getThrowableStrRep()) {
-                    write(message);
-                    write("\n");
-                }
-            }
+            //            if (null != loggingEvent.getThrown()) {
+            //                for (val message : loggingEvent.getThrown().getStackTrace()) {
+            //                    write(message.toString());
+            //                    write("\n");
+            //                }
+            //            }
         }
     }
 
@@ -341,7 +331,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * @throws IOException
      * @throws InterruptedException
      */
-    abstract void doWriteLog(int eventSize, List<LoggingEvent> transaction) throws IOException, InterruptedException;
+    abstract void doWriteLog(int eventSize, List<LogEvent> transaction) throws IOException, InterruptedException;
 
     /**
      * flush the buffer data to HDFS.
@@ -349,7 +339,6 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * @throws IOException
      */
     private void flush() throws IOException {
-        bufferedWriter.flush();
         outStream.hsync();
     }
 
@@ -360,7 +349,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * @throws IOException
      * @throws InterruptedException
      */
-    protected void flushLog(int eventSize, List<LoggingEvent> transaction) throws IOException, InterruptedException {
+    protected void flushLog(int eventSize, List<LogEvent> transaction) throws IOException, InterruptedException {
         if (eventSize <= 0) {
             return;
         }
@@ -373,6 +362,18 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             doWriteLog(eventSize, transaction);
 
             flush();
+        }
+    }
+
+    public static class HdfsManager extends OutputStreamManager {
+
+        protected HdfsManager(String streamName, Layout<?> layout) {
+            super(null, streamName, layout, false);
+        }
+
+        @Override
+        public void setOutputStream(OutputStream os) {
+            super.setOutputStream(os);
         }
     }
 }

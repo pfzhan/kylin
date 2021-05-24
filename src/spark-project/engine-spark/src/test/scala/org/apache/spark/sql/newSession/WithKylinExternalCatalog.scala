@@ -34,7 +34,7 @@ import org.scalatest.BeforeAndAfterAll
 
 trait WithKylinExternalCatalog extends SparkFunSuite with BeforeAndAfterAll {
   protected val ut_meta = "../examples/test_case_data/localmeta"
-  protected val additional = "../../build/conf/spark-executor-log4j.properties"
+  protected val additional = "../../build/conf/spark-executor-log4j.xml"
   protected def metadata : Seq[String] = {
       Seq(fitPathForUT(ut_meta))
   }

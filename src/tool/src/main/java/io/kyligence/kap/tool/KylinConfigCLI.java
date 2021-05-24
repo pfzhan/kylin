@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.BackwardCompatibilityConfig;
 import org.apache.kylin.common.KylinConfig;
 
@@ -39,6 +40,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.Unsafe;
 
+@Slf4j
 public class KylinConfigCLI implements IKeep {
     public static void main(String[] args) {
         execute(args);

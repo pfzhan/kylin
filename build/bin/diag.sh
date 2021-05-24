@@ -90,17 +90,17 @@ function prepareEnv {
 function runTool() {
     prepareEnv
 
-    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-diag-log4j.properties ]]; then
-        diag_log4j="file:${KYLIN_HOME}/conf/kylin-tools-diag-log4j.properties"
+    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-diag-log4j.xml ]]; then
+        diag_log4j="file:${KYLIN_HOME}/conf/kylin-tools-diag-log4j.xml"
     else
-        diag_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-diag-log4j.properties"
+        diag_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-diag-log4j.xml"
     fi
 
     TIME_ZONE=`${KYLIN_HOME}/bin/get-properties.sh kylin.web.timezone`
     if [[ -n ${TIME_ZONE} ]]; then
         TIME_ZONE="-Duser.timezone=${TIME_ZONE}"
     fi
-    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${DIAG_JAVA_OPTS} ${KYLIN_KERBEROS_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" $@
+    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${DIAG_JAVA_OPTS} ${KYLIN_KERBEROS_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlog4j.configurationFile=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" $@
     exit $?
 }
 

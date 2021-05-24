@@ -32,6 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.SetThreadName;
 import org.springframework.stereotype.Service;
 
 import io.kyligence.kap.tool.HDFSMetadataTool;
@@ -45,15 +46,10 @@ public class MetadataBackupService {
 
     public void backupAll() throws Exception {
 
-        String oldThreadName = Thread.currentThread().getName();
-        try {
-            Thread.currentThread().setName("MetadataBackupWorker");
-
+        try (SetThreadName ignored = new SetThreadName("MetadataBackupWorker")) {
             String[] args = new String[] { "-backup", "-compress", "-dir", getBackupDir() };
             backup(args);
             executors.submit(this::rotateAuditLog);
-        } finally {
-            Thread.currentThread().setName(oldThreadName);
         }
     }
 

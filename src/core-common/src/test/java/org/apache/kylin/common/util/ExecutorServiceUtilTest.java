@@ -62,13 +62,11 @@ public class ExecutorServiceUtilTest extends LogOutputTestCase {
     @Ignore
     public void testShutdownGracefully() throws Exception {
         ExecutorService pool = Executors.newScheduledThreadPool(1);
-        pool.execute(new Runnable() {
-            public void run() {
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    log.error("thread interrupted.");
-                }
+        pool.execute(() -> {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                log.error("thread interrupted.");
             }
         });
         Thread.sleep(2000);
@@ -79,11 +77,7 @@ public class ExecutorServiceUtilTest extends LogOutputTestCase {
     @Test
     public void testForceShutdown() {
         ScheduledExecutorService pool = Executors.newScheduledThreadPool(1);
-        Future task = pool.schedule(new Runnable() {
-            public void run() {
-                log.info("thread execute");
-            }
-        }, 10, TimeUnit.SECONDS);
+        Future task = pool.schedule(() -> log.info("thread execute"), 10, TimeUnit.SECONDS);
         ExecutorServiceUtil.forceShutdown(pool);
         try {
             //Avoid getting stuck
@@ -94,4 +88,5 @@ public class ExecutorServiceUtilTest extends LogOutputTestCase {
         }
         Assert.assertFalse(containsLog("thread execute"));
     }
+
 }

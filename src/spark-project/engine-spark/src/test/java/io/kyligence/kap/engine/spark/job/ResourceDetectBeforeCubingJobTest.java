@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
@@ -34,9 +32,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -54,13 +49,8 @@ import lombok.val;
 public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTest {
     private KylinConfig config;
 
-    private TestAppender testAppender;
-
     @Before
     public void setup() {
-        testAppender = new TestAppender();
-
-        Logger.getRootLogger().addAppender(testAppender);
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
 
@@ -76,7 +66,6 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
 
     @After
     public void after() {
-        Logger.getRootLogger().removeAppender(testAppender);
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
     }
@@ -110,25 +99,6 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        long count = testAppender.events.stream()
-                .filter(loggingEvent -> loggingEvent.getMessage().toString().contains("leaf nodes is:")).count();
-        Assert.assertEquals(count, segments.size());
-
     }
 
-    public static class TestAppender extends AppenderSkeleton {
-        public List<LoggingEvent> events = new ArrayList<>();
-
-        public void close() {
-        }
-
-        public boolean requiresLayout() {
-            return false;
-        }
-
-        @Override
-        protected void append(LoggingEvent event) {
-            events.add(event);
-        }
-    }
 }

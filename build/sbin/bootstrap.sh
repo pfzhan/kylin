@@ -166,12 +166,12 @@ function runTool() {
 
 function runToolInternal() {
     prepareEnv
-    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
-        kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties"
+    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.xml ]]; then
+        kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.xml"
     else
-        kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
+        kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.xml"
     fi
-    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/conf/:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
+    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/conf/:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
 }
 
 function killChildProcess {
@@ -246,10 +246,10 @@ function startKE(){
       quit "Create Admin user failed, for more details please refer to \"\$KYLIN_HOME/logs/shell.stderr\"."
     fi
 
-    if [[ -f ${KYLIN_HOME}/conf/kylin-server-log4j.properties ]]; then
-        kylin_server_log4j="file:${KYLIN_HOME}/conf/kylin-server-log4j.properties"
+    if [[ -f ${KYLIN_HOME}/conf/kylin-server-log4j.xml ]]; then
+        kylin_server_log4j="file:${KYLIN_HOME}/conf/kylin-server-log4j.xml"
     else
-        kylin_server_log4j="file:${KYLIN_HOME}/server/conf/kylin-server-log4j.properties"
+        kylin_server_log4j="file:${KYLIN_HOME}/server/conf/kylin-server-log4j.xml"
     fi
 
     TIME_ZONE=`${KYLIN_HOME}/bin/get-properties.sh kylin.web.timezone`

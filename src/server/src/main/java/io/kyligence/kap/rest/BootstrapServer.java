@@ -52,7 +52,6 @@ import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
 import io.kyligence.kap.common.util.EncryptUtil;
-import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import lombok.val;
 
@@ -68,9 +67,6 @@ public class BootstrapServer implements ApplicationListener<ApplicationEvent> {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
 
     public static void main(String[] args) {
-        // set log4j logging system
-        Unsafe.setProperty("org.springframework.boot.logging.LoggingSystem",
-                "io.kyligence.kap.rest.logging.Log4JLoggingSystem");
         SpringApplication.run(BootstrapServer.class, args);
     }
 
