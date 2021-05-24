@@ -21,7 +21,7 @@
           <el-button type="primary" text icon="el-ksd-icon-repair_22" :disabled="!multipleSelection.length || hasEventAuthority('repair')" @click="repairSnapshot">{{$t('kylinLang.common.repair')}}</el-button>
         </div>
       </div>
-      <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
+      <el-input class="ksd-fright search-input ke-it-search_snapshot" :disabled="loadingSnapshotTable" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
     </div>
     <el-table class="ksd-mt-16 snapshot-table ke-it-snapshot_table"
       v-scroll-shadow

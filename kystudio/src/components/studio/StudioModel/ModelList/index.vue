@@ -2,7 +2,8 @@
   <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
     <div class="ksd-title-page ksd-mt-32" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-page ksd-mt-32" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
-    <div class="ksd-mt-16">
+    <div class="model-list-contain ksd-mt-16" v-loading="loadingModels">
+      <!-- <div class="layout-mask" v-if="loadingModels"></div> -->
       <div class="clearfix">
         <div class="ksd-fright">
           <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-ksd-icon-loading_22':'el-ksd-icon-search_22'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
@@ -506,6 +507,8 @@ export default class ModelList extends Vue {
   expandTab = ''
   isModelListOpen = false
   isShow = false
+  loadingModels = false
+  debouce = null
 
   // async showGuide () {
   //   await this.callGuideModal({ isShowBuildGuide: true })
@@ -867,17 +870,21 @@ export default class ModelList extends Vue {
   // 加载模型列表
   loadModelsList () {
     this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
+    this.loadingModels = true
+    this.$el.click()
     return this.loadModels(this.filterArgs).then(() => {
       if (this.filterArgs.model_alias_or_owner || this.modelsPagerRenderData.list.length) {
         this.showSearchResult = true
       } else {
         this.showSearchResult = false
       }
+      this.loadingModels = false
       this.$nextTick(() => {
         this.expandedRows = this.currentEditModel ? [this.currentEditModel] : this.expandedRows
         this.setModelExpand()
       })
     }).catch((res) => {
+      this.loadingModels = false
       handleError(res)
     })
   }
@@ -921,7 +928,10 @@ export default class ModelList extends Vue {
       }
     })
     this.filterArgs[type] = val
-    this.pageCurrentChange(0, this.filterArgs.page_size)
+    clearTimeout(this.debouce)
+    this.debouce = setTimeout(() => {
+      this.pageCurrentChange(0, this.filterArgs.page_size)
+    }, 300)
   }
   // 删除单个筛选条件
   handleClose (tag) {
@@ -1000,6 +1010,9 @@ export default class ModelList extends Vue {
   position:relative;
   margin-left: 24px;
   margin-right: 24px;
+  .model-list-contain {
+    position: relative;
+  }
   .specialDropdown{
     min-width:96px;
     .el-dropdown-menu__item {
