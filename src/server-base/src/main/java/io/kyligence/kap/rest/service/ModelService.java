@@ -123,6 +123,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.manager.JobManager;
@@ -1713,12 +1714,7 @@ public class ModelService extends BasicService {
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
-        // disable second storage
-        if (modelRequest.getId() != null && SecondStorageUtil.isModelEnable(project, modelRequest.getId())
-                && !modelRequest.isWithSecondStorage()) {
-            SecondStorageUtil.validateDisableModel(project, modelRequest.getId());
-            SecondStorageUtil.disableModel(project, modelRequest.getId());
-        }
+
         val dataModel = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataModel model = saveModel(project, modelRequest);
             modelRequest.setUuid(model.getUuid());
@@ -1970,6 +1966,8 @@ public class ModelService extends BasicService {
         indexPlan.setLastModified(System.currentTimeMillis());
         if (modelRequest.isWithBaseIndex()) {
             indexPlan.createAndAddBaseIndex(model);
+        } else if (modelRequest.isWithSecondStorage() && !modelRequest.isWithBaseIndex()) {
+            indexPlan.createAndAddBaseIndex(Collections.singletonList(indexPlan.createBaseTableIndex(model)));
         }
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner(), RealizationStatusEnum.OFFLINE);
@@ -3108,6 +3106,7 @@ public class ModelService extends BasicService {
         checkModelRequest(request);
         checkModelPermission(project, request.getUuid());
         validatePartitionDateColumn(request);
+        disableSecondStorageIfNeeded(project, request);
 
         val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
@@ -3143,6 +3142,22 @@ public class ModelService extends BasicService {
         BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
         return baseIndexResponse;
+    }
+
+    public void disableSecondStorageIfNeeded(String project, ModelRequest request) {
+        // disable second storage
+        if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
+                && !request.isWithSecondStorage()) {
+            SecondStorageUtil.validateDisableModel(project, request.getId());
+            triggerModelClean(project, request.getId());
+            SecondStorageUtil.disableModel(project, request.getId());
+        }
+    }
+
+    private void triggerModelClean(String project, String model) {
+        val jobHandler = new SecondStorageModelCleanJobHandler();
+        final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, model, getUsername());
+        getJobManager(project).addJob(param, jobHandler);
     }
 
     public void updateExcludedCheckerResult(String project, ModelRequest request) {

@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
-import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
@@ -31,6 +30,7 @@ import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.ddl.InsertInto;
 import io.kyligence.kap.ddl.exp.ColumnWithType;
 import io.kyligence.kap.engine.spark.utils.RichOption;
+import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.config.Cluster;
 import io.kyligence.kap.secondstorage.config.Node;
@@ -284,7 +284,7 @@ public class ClickHouseUtils {
                 Map.class), new PrintWriter(file, Charset.defaultCharset().name()));
         Unsafe.setProperty(CONFIG_SECOND_STORAGE_CLUSTER, file.getAbsolutePath());
         Unsafe.setProperty(SecondStorageConstants.NODE_REPLICA, String.valueOf(replica));
-        ClickHouseStorage.reloadNodeMap();
+        SecondStorage.init(true);
         Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
         try {
             return lambda.call();

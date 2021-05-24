@@ -65,6 +65,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -5544,5 +5545,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains("Data model with id 'abc' not found."));
         }
+    }
+
+    @Test
+    public void disableSecondStorageIfNeeded() throws IOException {
+        val models = new ArrayList<>(modelService.listAllModelIdsInProject("default"));
+        val model = models.get(0);
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        SecondStorageUtil.initModelMetaData("default", model);
+        ModelRequest request = new ModelRequest();
+        request.setWithSecondStorage(false);
+        request.setUuid(model);
+        Mockito.doCallRealMethod().when(modelService).disableSecondStorageIfNeeded("default", request);
+        modelService.disableSecondStorageIfNeeded("default", request);
+        Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
     }
 }

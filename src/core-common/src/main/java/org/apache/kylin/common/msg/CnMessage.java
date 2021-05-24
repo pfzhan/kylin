@@ -1706,12 +1706,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_JOB_EXISTS() {
-        return "模型%s有导入缓存任务正在进行，请稍后重试。";
+        return "模型 %s 有导入缓存任务正在进行，请稍后重试。";
     }
 
     @Override
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
-        return "项目%s有导入缓存任务正在进行，请稍后重试。";
+        return "项目 %s 有导入缓存任务正在进行，请稍后重试。";
     }
 
     @Override

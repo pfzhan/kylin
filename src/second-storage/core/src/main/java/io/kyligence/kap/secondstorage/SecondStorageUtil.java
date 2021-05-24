@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.secondstorage;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -53,7 +53,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -72,31 +71,30 @@ public class SecondStorageUtil {
     }
 
     public static void initModelMetaData(String project, String model) {
-        final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Optional<NManager<TablePlan>> tablePlanManager = tablePlanManager(config, project);
-        Optional<NManager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
-        Preconditions.checkState(tableFlowManager.isPresent() && tablePlanManager.isPresent());
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
-        TablePlan tablePlan = tablePlanManager.get().makeSureRootEntity(model);
-        tableFlowManager.get().makeSureRootEntity(model);
-        Map<Long, List<LayoutEntity>> layouts = indexPlanManager.getIndexPlan(model)
-                .getAllLayoutsMap().values().stream()
-                .filter(layout -> isBaseIndex(layout.getId()))
-                .collect(Collectors.groupingBy(LayoutEntity::getIndexId));
-        for (Map.Entry<Long, List<LayoutEntity>> entry : layouts.entrySet()) {
-            // TODO select base index
-            LayoutEntity layoutEntity =
-                    entry.getValue().stream().min(Comparator.comparing(LayoutEntity::getId)).orElse(null);
-            tablePlan = tablePlan.createTableEntityIfNotExists(layoutEntity, true);
-        }
-    }
-
-    public static boolean isBaseIndex(long index) {
-        return IndexEntity.isTableIndex(index);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(()-> {
+            final KylinConfig config = KylinConfig.getInstanceFromEnv();
+            Optional<NManager<TablePlan>> tablePlanManager = tablePlanManager(config, project);
+            Optional<NManager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
+            Preconditions.checkState(tableFlowManager.isPresent() && tablePlanManager.isPresent());
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
+            TablePlan tablePlan = tablePlanManager.get().makeSureRootEntity(model);
+            tableFlowManager.get().makeSureRootEntity(model);
+            Map<Long, List<LayoutEntity>> layouts = indexPlanManager.getIndexPlan(model)
+                    .getAllLayoutsMap().values().stream()
+                    .filter(SecondStorageUtil::isBaseIndex)
+                    .collect(Collectors.groupingBy(LayoutEntity::getIndexId));
+            for (Map.Entry<Long, List<LayoutEntity>> entry : layouts.entrySet()) {
+                LayoutEntity layoutEntity =
+                        entry.getValue().stream().filter(SecondStorageUtil::isBaseIndex).findFirst().orElse(null);
+                Preconditions.checkNotNull(layoutEntity);
+                tablePlan = tablePlan.createTableEntityIfNotExists(layoutEntity, true);
+            }
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
     public static boolean isBaseIndex(LayoutEntity index) {
-        return isBaseIndex(index.getId());
+        return IndexEntity.isTableIndex(index.getId()) && index.isBaseIndex();
     }
 
     public static Optional<LayoutEntity> getBaseIndex(NDataflow df) {
@@ -283,11 +281,10 @@ public class SecondStorageUtil {
     }
 
     public static String getTable(String modelId, long layoutId){
-            // TODO layout id should from base index
-            return String.format(Locale.ROOT, "%s_%d", modelId.replace("-", ""), layoutId);
+        return String.format(Locale.ROOT, "%s_%d", modelId.replace("-", ""), layoutId);
     }
 
     public static String getTablePrefix(String modelId) {
-        return modelId.replace("-", "")+"_";
+        return modelId.replace("-", "") + "_";
     }
 }

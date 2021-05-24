@@ -60,9 +60,13 @@ object SecondStorage extends LogEx {
     }
   }
 
-  private lazy val secondStoragePlugin: SecondStoragePlugin =
-    Option(KylinConfig.getInstanceFromEnv.getSecondStorage).map(load).orNull
+  private var secondStoragePlugin: SecondStoragePlugin = _;
 
+  def init(force: Boolean): Unit = {
+    if (force || secondStoragePlugin == null) {
+      secondStoragePlugin = Option(KylinConfig.getInstanceFromEnv.getSecondStorage).map(load).orNull
+    }
+  }
 
   def enabled: Boolean = secondStoragePlugin != null && secondStoragePlugin.ready()
 
@@ -100,7 +104,7 @@ object SecondStorage extends LogEx {
           .map(t => {
             // random choice available shards replica
             val nodes = t.getPartitions.get(Random.nextInt(t.getPartitions.size())).getShardNodes
-            ShardOptions.buildSharding(JavaConverters.asScalaBuffer(SecondStorageNodeHelper.resolve(nodes)): _*)
+            ShardOptions.buildSharding(JavaConverters.asScalaBuffer(SecondStorageNodeHelper.resolveToJDBC(nodes)): _*)
           })
         database <- tableData.map(_.getDatabase)
         table <- tableData.map(_.getTable)

@@ -24,6 +24,7 @@
 package io.kyligence.kap.clickhouse.metadata;
 
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
+import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -39,6 +40,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -49,10 +51,12 @@ public class NClickHouseManagerTest {
     private static final String TEST_DESCRIPTION = "test_description";
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         Unsafe.setProperty("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
+        MockSecondStorage.mock();
+        SecondStorage.init(true);
         TestUtils.createEmptyClickHouseConfig();
     }
 

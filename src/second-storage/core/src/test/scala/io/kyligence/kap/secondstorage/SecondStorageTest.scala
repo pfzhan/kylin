@@ -28,10 +28,11 @@ import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 class SecondStorageTest extends SparderBaseFunSuite with LocalMetadata {
 
   test("SecondStorage.enabled should not throw execution") {
-    overwriteSystemProp("kylin.second-storage.class", null)
+    overwriteSystemProp("kylin.second-storage.class", "X")
     assertResult(false)(SecondStorage.enabled)
 
-    assertResult(null)(SecondStorage.load("X"))
+    SecondStorage.init(false)
+    assertResult(false)(SecondStorage.enabled)
     assertResult(null)(SecondStorage.load("io.kyligence.kap.secondstorage.metadata.TableFlow"))
 
     val testStorage = SecondStorage.load(classOf[TestStorage].getCanonicalName)

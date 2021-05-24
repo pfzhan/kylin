@@ -24,8 +24,14 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
@@ -33,6 +39,10 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
+
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
 
@@ -44,8 +54,22 @@ public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
         setJobType(JobTypeEnum.SECOND_STORAGE_MODEL_CLEAN);
         setTargetSubject(builder.getModelId());
         setProject(builder.df.getProject());
-        long startTime = 0L;
-        long endTime = Long.MAX_VALUE - 1;
+        long startTime = Long.MAX_VALUE - 1;
+        long endTime = 0L;
+        Optional<NManager<TableFlow>> manager = SecondStorageUtil.tableFlowManager(builder.df);
+        Preconditions.checkState(manager.isPresent());
+        Optional<TableFlow> tableFlow = manager.get().get(builder.df.getId());
+        Preconditions.checkState(tableFlow.isPresent());
+        Set<String> segSet = tableFlow.get().getTableDataList().stream().flatMap(tableData -> {
+            return tableData.getPartitions().stream().map(TablePartition::getSegmentId);
+        }).collect(Collectors.toSet());
+        for (NDataSegment segment : builder.df.getSegments().stream()
+                .filter(seg -> segSet.contains(seg.getId()))
+                .collect(Collectors.toList())) {
+            startTime = Math.min(startTime, Long.parseLong(segment.getSegRange().getStart().toString()));
+            endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
+                    : Long.parseLong(segment.getSegRange().getEnd().toString());
+        }
         setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
         setParam(NBatchConstants.P_JOB_ID, getId());

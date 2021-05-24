@@ -155,8 +155,9 @@ public class SecondStorageService extends BasicService {
             throw new KylinException(JobErrorCode.SECOND_STORAGE_PROJECT_JOB_EXISTS,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getSECOND_STORAGE_PROJECT_JOB_EXISTS(), project));
         }
+        val jobId = triggerProjectClean(project);
         SecondStorageUtil.disableProject(project);
-        return triggerProjectClean(project);
+        return jobId;
     }
 
     private String triggerProjectClean(String project) {

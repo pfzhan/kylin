@@ -22,32 +22,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.secondstorage.management;
+package io.kyligence.kap.clickhouse.job;
 
-import io.kyligence.kap.secondstorage.SecondStorage;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import lombok.val;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.modules.junit4.PowerMockRunner;
 
-import javax.annotation.PostConstruct;
+import java.net.URISyntaxException;
 
-@Configuration
-@Order(2)
-public class ManagementConfig {
+@RunWith(PowerMockRunner.class)
+public class AzureBlobClientTest {
 
-    @PostConstruct
-    public void init() {
-        SecondStorage.init(false);
+    @Test
+    public void getBlob() throws URISyntaxException, StorageException {
+        val container = PowerMockito.mock(CloudBlobContainer.class);
+        val blob = PowerMockito.mock(CloudBlockBlob.class);
+        val client = new AzureBlobClient(null, null);
+        PowerMockito.when(container.getBlockBlobReference(Mockito.anyString())).thenReturn(blob);
+        val result = client.getBlob(container, "/test/a.txt");
+        Assert.assertEquals(blob, result);
     }
-
-    @Bean("secondStorageEndpoint")
-    SecondStorageEndpoint secondStorageEndpoint() {
-        return new SecondStorageEndpoint();
-    }
-
-    @Bean("secondStorageService")
-    SecondStorageService secondStorageService() {
-        return new SecondStorageService();
-    }
-
 }

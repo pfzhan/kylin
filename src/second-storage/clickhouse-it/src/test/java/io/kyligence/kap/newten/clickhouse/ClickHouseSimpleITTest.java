@@ -457,7 +457,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
             NDataflow df = dsMgr.getDataflow(cubeName);
-            val segments = new HashSet<>(df.getQueryableSegments());
             triggerClickHouseJob(df, config);
 
             // test refresh segment
@@ -478,7 +477,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
             Assert.assertNotNull(flow);
 
             Set<LayoutEntity> allLayouts = df.getIndexPlan().getAllLayouts().stream()
-                    .filter(layout -> SecondStorageUtil.isBaseIndex(layout.getId())).collect(Collectors.toSet());
+                    .filter(SecondStorageUtil::isBaseIndex).collect(Collectors.toSet());
             Assert.assertEquals(allLayouts.size(), flow.getTableDataList().size());
             for (LayoutEntity layoutEntity : allLayouts) {
                 TableEntity tableEntity = plan.getEntity(layoutEntity).orElse(null);

@@ -387,7 +387,13 @@
                 </dependency>
                 <dependency>
                     <groupId>io.kyligence.ke</groupId>
+                    <artifactId>kap-second-storage-core</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.kyligence.ke</groupId>
                     <artifactId>kap-second-storage-ui</artifactId>
+                    <scope>provided</scope>
                 </dependency>
 
                 <!-- jdbc -->

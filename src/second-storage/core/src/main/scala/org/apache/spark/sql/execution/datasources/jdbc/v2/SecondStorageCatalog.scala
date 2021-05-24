@@ -30,7 +30,7 @@ import org.apache.spark.sql.types.StructType
 class SecondStorageCatalog extends ShardJDBCTableCatalog {
 
   override def resolveTable(options: JDBCOptions): StructType = {
-    SchemaCache.get(name).getOrElse(
+    SchemaCache.get(options.tableOrQuery).getOrElse(
       JDBCRDD.resolveTable(options)
     )
   }

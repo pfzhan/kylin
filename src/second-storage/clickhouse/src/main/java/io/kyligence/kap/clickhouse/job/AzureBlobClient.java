@@ -45,11 +45,9 @@ import java.security.InvalidKeyException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class AzureBlobClient {
-    private static AtomicReference<AzureBlobClient> client = new AtomicReference<>();
 
     private final CloudBlobClient cloudBlobClient;
     private final BlobUrl blobUrl;
@@ -96,7 +94,7 @@ public class AzureBlobClient {
         }
     }
 
-    private CloudBlob getBlob(CloudBlobContainer container, String path) {
+    public CloudBlob getBlob(CloudBlobContainer container, String path) {
         // blob name can't start with /
         if (path.startsWith("/")) {
             path = path.substring(1);
