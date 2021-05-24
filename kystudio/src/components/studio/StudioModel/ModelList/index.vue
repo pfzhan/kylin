@@ -77,14 +77,15 @@
         <DropdownFilter
           type="checkbox"
           trigger="click"
-          :value="filterArgs.model_types"
-          :label="$t('modelType_c')"
+          hideArrow
+          :value="filterArgs.model_attributes"
           :options="[
+            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE' },
             { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
             { renderLabel: renderModelTypeLabel, value: 'BATCH' }
           ]"
-          @input="v => filterContent(v, 'model_types')">
-          <span>{{selectedModeType}}</span>
+          @input="v => filterContent(v, 'model_attributes')">
+          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedStatus}}</el-button>
         </DropdownFilter>
         <div class="actions">
           <el-button
@@ -252,7 +253,14 @@
           :label="$t('storage')"
         >
           <template slot-scope="scope">
-            {{scope.row.storage|dataSize}}
+            <div>{{scope.row.storage|dataSize}}</div>
+            <div class="ts-storage" v-if="$store.state.project.second_storage_enabled&&scope.row.second_storage_enabled">
+              <common-tip :content="$t('secStorage')">
+                <el-icon class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
+                {{scope.row.second_storage_size|dataSize}}
+              </common-tip>
+            </div>
+            <div class="ts-storage" v-else>-</div>
           </template>
         </el-table-column>
         <el-table-column
@@ -364,7 +372,8 @@ function getDefaultFilters (that) {
     model_types: [],
     model_alias_or_owner: '',
     last_modify: [],
-    owner: ''
+    owner: '',
+    model_attributes: []
   }
 }
 
@@ -1012,6 +1021,10 @@ export default class ModelList extends Vue {
   margin-right: 24px;
   .model-list-contain {
     position: relative;
+  }
+  .ts-storage {
+    font-size: 12px;
+    color: @text-disabled-color;
   }
   .specialDropdown{
     min-width:96px;

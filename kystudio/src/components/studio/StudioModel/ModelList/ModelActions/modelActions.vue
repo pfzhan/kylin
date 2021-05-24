@@ -43,6 +43,7 @@
             <el-dropdown-item command="recommendations" v-if="currentModel.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
             <el-dropdown-item command="dataLoad" v-if="currentModel.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
             <el-dropdown-item @click.native="subParValMana(currentModel)" v-if="currentModel.status !== 'BROKEN' && $store.state.project.multi_partition_enabled && currentModel.multi_partition_desc && modelActions.includes('manageSubPartitionValues')">{{$t('subPartitionValuesManage')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="openSecStorageDialog()" v-if="currentModel.status !== 'BROKEN' && $store.state.project.second_storage_enabled&&modelActions.includes('secStorageAction')">{{$t('secStorage')}}</el-dropdown-item>
             <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="importMDX" divided disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="exportMDX" disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
@@ -101,7 +102,7 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" :disabled="!(modelOwner.model&&modelOwner.owner)" @click="changeModelOwner" :loading="changeLoading">{{$t('change')}}</el-button>
       </div>
     </el-dialog>
@@ -117,8 +118,38 @@
         <el-radio v-for="it in tdsConnectionOptions" :key="it.value" :label="it.value">{{$t(it.text)}}</el-radio>
       </el-radio-group>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="closeExportTDSDialog">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" @click="handlerExportTDS">{{$t('kylinLang.query.export')}}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 二级存储 -->
+    <el-dialog width="600px" :title="$t('secStorage')" class="sec_storage_dialog" v-if="showSecStorageDialog" :append-to-body="true" :visible="true" @close="closeSecStorageDialog" :close-on-click-modal="false">
+      <el-alert v-if="isShowSecStorageTips" show-icon :title="secStorageTips" :type="secStorageTipsType" class="ksd-mb-24" :closable="false"></el-alert>
+      <div>{{$t('secStorageDesc')}}</div>
+      <div class="ksd-mt-24 ksd-mb-24">
+        <span class="font-medium">{{$t('supportSecStoage')}}</span>
+        <span class="">
+          <el-switch
+            v-model="second_storage_enabled"
+            @change="val => handleChangeSecStorage(val)"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')">
+          </el-switch>
+        </span>
+      </div>
+      <div v-if="currentModel.second_storage_nodes.length">
+        <div class="font-medium">{{$t('node')}}</div>
+        <ul>
+          <li v-for="n in currentModel.second_storage_nodes" :key="n.name">
+            <span>{{n.name}}</span>
+            <span class="ip-span">{{n.ip}}:{{n.port}}</span>
+          </li>
+        </ul>
+      </div>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button size="medium" @click="closeSecStorageDialog">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" @click="handlerSecStorage" :loading="secStorageLoading">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -179,7 +210,8 @@ import locales from './locales'
       purgeModel: 'PURGE_MODEL',
       disableModel: 'DISABLE_MODEL',
       enableModel: 'ENABLE_MODEL',
-      delModel: 'DELETE_MODEL'
+      delModel: 'DELETE_MODEL',
+      updateModelSecStorage: 'UPDATE_MODEL_SEC_STORAGE'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -224,6 +256,12 @@ export default class ModelActions extends Vue {
   }
   currentExportTDSModel = null
   showExportTDSDialog = false
+  showSecStorageDialog = false
+  secStorageTips = ''
+  secStorageTipsType = ''
+  isShowSecStorageTips = false
+  secStorageLoading = false
+  second_storage_enabled = this.currentModel.second_storage_enabled
   exportTDSOtions = [
     {value: 'AGG_INDEX_COL', text: 'exportTDSOptions1'},
     {value: 'AGG_INDEX_AND_TABLE_INDEX_COL', text: 'exportTDSOptions2'},
@@ -445,6 +483,24 @@ export default class ModelActions extends Vue {
     this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.alias, modelId: model.uuid }})
   }
 
+  openSecStorageDialog () {
+    this.showSecStorageDialog = true
+  }
+
+  handleChangeSecStorage (val) {
+    if (val && !this.currentModel.base_index_count) {
+      this.secStorageTips = this.$t('openSecStorageTips', {modelName: this.currentModel.alias})
+      this.secStorageTipsType = 'tip'
+      this.isShowSecStorageTips = true
+    } else if (!val && this.currentModel.second_storage_size > 0) {
+      this.secStorageTips = this.$t('closeSecStorageTips')
+      this.secStorageTipsType = 'warning'
+      this.isShowSecStorageTips = true
+    } else {
+      this.isShowSecStorageTips = false
+    }
+  }
+
   handleModel (action, modelDesc, successTip) {
     return this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
       kapMessage(successTip)
@@ -479,6 +535,32 @@ export default class ModelActions extends Vue {
     }
   }
 
+  async handlerSecStorage () {
+    try {
+      this.secStorageLoading = true
+      await this.updateModelSecStorage({ project: this.currentSelectedProject, model: this.currentModel.uuid, enabled: this.second_storage_enabled })
+      if (!this.second_storage_enabled) { // 关闭会发起删除TS缓存任务
+        this.$message({
+          dangerouslyUseHTMLString: true,
+          type: 'success',
+          customClass: 'close-sec-storage-success',
+          message: (
+            <div>
+              <span>{this.$t('jobSuccess')}</span>
+              <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
+            </div>
+          )
+        })
+      }
+      this.secStorageLoading = false
+      this.showSecStorageDialog = false
+      this.$emit('loadModelsList')
+    } catch (e) {
+      handleError(e)
+      this.secStorageLoading = false
+    }
+  }
+
   handlerExportTDS () {
     const { uuid, model_id = uuid } = this.currentExportTDSModel
     const data = {
@@ -506,6 +588,13 @@ export default class ModelActions extends Vue {
     this.showExportTDSDialog = false
     this.exportTDSType = 'AGG_INDEX_COL'
     this.exportTDSConnectionType = 'TABLEAU_ODBC_TDS'
+  }
+
+  // 关闭分层存储弹窗
+  closeSecStorageDialog () {
+    this.isShowSecStorageTips = false
+    this.showSecStorageDialog = false
+    this.second_storage_enabled = this.currentModel.second_storage_enabled
   }
 
   closeBuildTips (uuid) {
@@ -562,6 +651,11 @@ export default class ModelActions extends Vue {
       white-space: break-spaces;
       white-space: normal;
     }
+  }
+}
+.sec_storage_dialog {
+  .ip_span {
+    color: @text-title-color;
   }
 }
 </style>

@@ -78,7 +78,8 @@ export default {
     baseIndex: 'Base Index',
     unCreateBaseIndexTip: 'Base Indexes have already been added',
     buildBaseIndexTip: 'Successfully added {baseIndexNum} base index(es). ',
-    updateBaseIndexTips: 'A base index would be added. The previous base index might be in "locked" state while still could answer queries. Are you sure you wan to update？'
+    updateBaseIndexTips: 'A base index would be added. The previous base index might be in "locked" state while still could answer queries. Are you sure you wan to update？',
+    disabledDelBaseIndexTips: 'The base table index can\'t be deleted when the secondary storage is ON.'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -159,6 +160,7 @@ export default {
     baseIndex: '基础索引',
     unCreateBaseIndexTip: '基础索引已添加',
     buildBaseIndexTip: '成功添加 {baseIndexNum} 个基础索引。',
-    updateBaseIndexTips: '将新建 1 个基础索引。原基础索引可能处于“锁定”状态，但仍可服务查询。确定要更新吗？'
+    updateBaseIndexTips: '将新建 1 个基础索引。原基础索引可能处于“锁定”状态，但仍可服务查询。确定要更新吗？',
+    disabledDelBaseIndexTips: '在开启二级存储时基础明细索引不可删除。'
   }
 }

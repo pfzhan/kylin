@@ -73,7 +73,19 @@ export default {
     projectConfig: 'Custom Project Configuration',
     configuration: 'Configuration',
     deleteConfig: 'Delete Configuration',
-    confirmDeleteConfig: 'Are you sure you want to delete the custome configuration [{key}]?'
+    confirmDeleteConfig: 'Are you sure you want to delete the custome configuration [{key}]?',
+    secondaryStorage: 'Secondary Storage',
+    supportSecStorage: 'Support Secondary Storage',
+    supportSecStorageDesc: 'With this switch ON, the basic table index will be synchronized to the secondary storage. It will improve the performance of ad-hoc query and detail query analysis scenarios.',
+    chooseNode: 'Please select node',
+    storageNode: 'Storage Node',
+    openSecStorageTitle: 'Turn On Secondary Storage',
+    openSecStorageTips: 'With this switch ON, the selected nodes can\'t be removed from the project. The models under this project could use the secondary storage on demand.<br/>Are you sure you want to turn it on?',
+    openSecConfirmBtn: 'Turn On',
+    closeSecStorageSetting: 'Turn Off Secondary Storage',
+    closeSecStorageTip: 'With this switch OFF, the data stored in the secondary storage will be cleared. The query performance might be affected.',
+    affectedModels: 'The affected model:',
+    secStorageInputTitle: 'Please enter "Turn Off Secondary Storage" to confirm.'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -147,6 +159,18 @@ export default {
     projectConfig: '自定义项目配置',
     configuration: '配置',
     deleteConfig: '删除配置',
-    confirmDeleteConfig: '您确定要删除自定义配置 [{key}] 吗？'
+    confirmDeleteConfig: '您确定要删除自定义配置 [{key}] 吗？',
+    secondaryStorage: '二级存储',
+    supportSecStorage: '支持二级存储',
+    supportSecStorageDesc: '二级存储用于同步模型中的基础明细索引数据，以提高多维度灵活查询和明细查询的查询性能',
+    chooseNode: '请选择节点',
+    storageNode: '存储节点',
+    openSecStorageTitle: '开启二级存储',
+    openSecStorageTips: '开启后，该项目中使用的节点不可移除, 模型可按需使用二级存储。<br/>确定要开启二级存储吗？',
+    openSecConfirmBtn: '确定开启',
+    closeSecStorageSetting: '关闭二级存储',
+    closeSecStorageTip: '关闭后，该项目中模型的二级存储数据将被清空，可能会影响查询效率。',
+    affectedModels: '受影响的模型如下：',
+    secStorageInputTitle: '输入“关闭分层存储”以确认操作'
   }
 }

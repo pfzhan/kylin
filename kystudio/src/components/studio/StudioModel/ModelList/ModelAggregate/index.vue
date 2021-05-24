@@ -100,23 +100,52 @@
                 </el-dropdown-menu>
               </el-dropdown>
               <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
-              <el-button v-if="datasourceActions.includes('delAggIdx') && isRealTimeMode" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
-              <el-dropdown
-                class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
-                :class="{'is-disabled': !checkedList.length}"
-                placement="bottom-start"
-                :loading="removeLoading"
-                v-if="datasourceActions.includes('delAggIdx') && !isRealTimeMode"
-              >
-                <el-button type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}<i class="el-ksd-icon-arrow_down_22"></i></el-button>
-                <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
-                  <el-dropdown-item
-                    :disabled="!checkedList.length"
-                    @click="complementedIndexes('deleteIndexes')">
-                    {{$t('deletePart')}}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
+              <template v-if="isRealTimeMode">
+                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
+                  <el-button v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex" :disabled="isDisableDelBaseIndex" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                </common-tip>
+                <el-button v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+              </template>
+              <template v-else>
+                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
+                  <el-dropdown
+                    split-button
+                    type="primary"
+                    text
+                    btn-icon="el-ksd-icon-table_delete_22"
+                    class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
+                    :class="{'is-disabled': isDisableDelBaseIndex}"
+                    placement="bottom-start"
+                    :loading="removeLoading"
+                    v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
+                    <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                      <el-dropdown-item
+                        :disabled="isDisableDelBaseIndex">
+                        {{$t('deletePart')}}
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </el-dropdown>
+                </common-tip>
+                <el-dropdown
+                  split-button
+                  type="primary"
+                  text
+                  btn-icon="el-ksd-icon-table_delete_22"
+                  class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
+                  :class="{'is-disabled': !checkedList.length}"
+                  placement="bottom-start"
+                  :loading="removeLoading"
+                  @click="removeIndexes"
+                  v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
+                  <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                    <el-dropdown-item
+                      :disabled="!checkedList.length"
+                      @click="complementedIndexes('deleteIndexes')">
+                      {{$t('deletePart')}}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+              </template>
               <!-- <el-button
               icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10 ksd-ml-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button> -->
               <div class="right fix">
@@ -489,6 +518,17 @@ export default class ModelAggregate extends Vue {
 
   handleSelectionChange (val) {
     this.checkedList = val
+  }
+
+  get isDisableDelBaseIndex () {
+    let isHaveBaseTableIndex = false
+    for (let i = 0; i < this.checkedList.length; i++) {
+      if (this.checkedList[i].source === 'BASE_TABLE_INDEX') {
+        isHaveBaseTableIndex = true
+        break
+      }
+    }
+    return isHaveBaseTableIndex && this.model.second_storage_enabled
   }
 
   async removeIndexes () {
@@ -1171,11 +1211,11 @@ export default class ModelAggregate extends Vue {
         .split-button {
           &.is-disabled {
             .el-button-group > .el-button {
-              background-color: @background-disabled-color;
+              background-color: @fff;
+              opacity: 0.3;
               color: @text-disabled-color;
               cursor: not-allowed;
               background-image: none;
-              border-color: @line-border-color3;
             }
           }
         }

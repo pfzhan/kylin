@@ -18,8 +18,8 @@
         <div class="action_groups ksd-fleft" v-if="monitorActions.includes('jobActions')">
           <el-button type="primary" text size="medium" icon="el-ksd-icon-play_outline_22" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
-          <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
-          <el-button type="primary" text size="medium" icon="el-ksd-icon-close_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause&&getBatchJobNameEnabled" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button type="primary" text size="medium" icon="el-ksd-icon-close_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.discard&&getBatchJobNameEnabled" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-table_delete_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </div>
       </el-col>
@@ -85,7 +85,7 @@
             show-overflow-tooltip
             prop="target_subject">
             <template slot-scope="scope">
-              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
+              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
               <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && !scope.row.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
                 <span class="is-disabled">{{scope.row.target_subject}}</span>
               </common-tip>
@@ -98,7 +98,8 @@
             min-width="180"
             show-overflow-tooltip>
             <template slot-scope="scope">
-              <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
+              <span v-if="scope.row.data_range_end==9223372036854776000&&!delSecJobTypes.includes(scope.row.job_name)">{{$t('fullLoad')}}</span>
+              <span v-else-if="scope.row.data_range_end==9223372036854776000&&delSecJobTypes.includes(scope.row.job_name)">{{$t('full')}}</span>
               <span v-else>{{scope.row.data_range_start | toServerGMTDate}} - {{scope.row.data_range_end | toServerGMTDate}}</span>
             </template>
           </el-table-column>
@@ -136,7 +137,7 @@
             <template slot-scope="scope">
               <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
                 <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project, '', scope.row)"></i>
-              </common-tip><common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
+              </common-tip><common-tip :content="$t('jobPause')" v-if="(scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING') && !delSecJobTypes.includes(scope.row.job_name)">
                 <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
               :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
@@ -145,7 +146,7 @@
               :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED' || scope.row.job_status=='RUNNING'">
                 <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
-              :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING'">
+              :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING' && !delSecJobTypes.includes(scope.row.job_name)">
                 <i class="el-icon-ksd-error_02 ksd-fs-14" @click.stop="discard([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
               :content="$t('jobDiagnosis')" v-if="monitorActions.includes('diagnostic') && (scope.row.job_status =='FINISHED' || scope.row.job_status == 'DISCARDED' || scope.row.job_status=='PENDING')">
@@ -159,7 +160,7 @@
                     </common-tip>
                   </span>
                   <el-dropdown-menu slot="dropdown">
-                    <el-dropdown-item @click.native="discard([scope.row.id], scope.row.project, '', scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
+                    <el-dropdown-item @click.native="discard([scope.row.id], scope.row.project, '', scope.row)" v-if="(scope.row.job_status=='RUNNING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED')&&!delSecJobTypes.includes(scope.row.job_name)">{{$t('jobDiscard')}}</el-dropdown-item>
                     <el-dropdown-item @click.native="showDiagnosisDetail(scope.row.id)" v-if="monitorActions.includes('diagnostic')">{{$t('jobDiagnosis')}}</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
@@ -183,7 +184,7 @@
                 <p class="list">
                   <span class="label">{{$t('TargetSubject')}}: </span>
                   <span class="text">
-                    <span class="is-disabled" v-if="selectedJob.job_name === 'TABLE_SAMPLING' || selectedJob.target_subject_error">{{getTargetSubject(selectedJob)}}</span>
+                    <span class="is-disabled" v-if="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(selectedJob.job_name) || selectedJob.target_subject_error">{{getTargetSubject(selectedJob)}}</span>
                     <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(selectedJob.job_name) && !selectedJob.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
                       <span class="is-disabled">{{selectedJob.target_subject}}</span>
                     </common-tip>
@@ -456,6 +457,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       selectedJobs: '{selectedNumber} jobs have been selected. ',
       selectAll: 'All Select',
       fullLoad: 'Full Load',
+      full: 'Full',
       jobDetails: 'Job Details',
       waitingjobs: 'initializing job(s)',
       jobs: 'Job(s)',
@@ -477,6 +479,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SUB_PARTITION_BUILD: 'Build Subpartition',
       SNAPSHOT_BUILD: 'Build Snapshot',
       SNAPSHOT_REFRESH: 'Refresh Snapshot',
+      EXPORT_TO_SECOND_STORAGE: 'Export To Second Storage',
+      SECOND_STORAGE_MODEL_CLEAN: 'Delete Secondary Storage',
+      SECOND_STORAGE_NODE_CLEAN: 'Delete Secondary Storage',
+      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Secondary Storage',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
@@ -496,7 +502,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       cleanUpOldSegment: 'Clean Up Old Segment',
       tableSampling: 'Table Sampling',
       buildSnapshot: 'Build Snapshot',
-      filteredTotalSize: '{totalSize} result(s)'
+      filteredTotalSize: '{totalSize} result(s)',
+      secondaryStorage: 'Secondary Storage',
+      delSecondaryStorage: 'Delete Secondary Storage'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -553,6 +561,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       selectedJobs: '目前已选择当页 {selectedNumber} 条任务。',
       selectAll: '全选',
       fullLoad: '全量加载',
+      full: '全量',
       jobDetails: '任务详情',
       waitingjobs: '个初始化的任务',
       jobs: '个任务',
@@ -574,6 +583,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SUB_PARTITION_REFRESH: '刷新子分区数据',
       SNAPSHOT_BUILD: '构建快照',
       SNAPSHOT_REFRESH: '刷新快照',
+      EXPORT_TO_SECOND_STORAGE: '导入二级存储数据',
+      SECOND_STORAGE_MODEL_CLEAN: '删除二级存储',
+      SECOND_STORAGE_NODE_CLEAN: '删除二级存储',
+      SECOND_STORAGE_SEGMENT_CLEAN: '删除二级存储',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
@@ -593,7 +606,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       cleanUpOldSegment: '清理旧 Segment',
       tableSampling: '表抽样',
       buildSnapshot: '构建快照',
-      filteredTotalSize: '{totalSize} 条结果'
+      filteredTotalSize: '{totalSize} 条结果',
+      secondaryStorage: '二级存储',
+      delSecondaryStorage: '删除二级存储'
     }
   }
 })
@@ -642,7 +657,8 @@ export default class JobsList extends Vue {
   jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
   jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SUB_PARTITION_BUILD', 'SUB_PARTITION_REFRESH']
-  tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH']
+  tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SECOND_STORAGE_NODE_CLEAN']
+  delSecJobTypes = ['SECOND_STORAGE_NODE_CLEAN', 'SECOND_STORAGE_MODEL_CLEAN', 'SECOND_STORAGE_SEGMENT_CLEAN']
   targetId = ''
   searchLoading = false
   batchBtnsEnabled = {
@@ -660,6 +676,7 @@ export default class JobsList extends Vue {
   showDiagnostic = false
   diagnosticId = ''
   isShowBtn = true
+  getBatchJobNameEnabled = false
 
   get emptyText () {
     return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -700,7 +717,13 @@ export default class JobsList extends Vue {
       'Clean Up Old Segment': this.$t('cleanUpOldSegment'),
       'Update Metadata': this.$t('updateMetadata'),
       'Table Sampling': this.$t('tableSampling'),
-      'Build Snapshot': this.$t('buildSnapshot')
+      'Build Snapshot': this.$t('buildSnapshot'),
+      'STEP_EXPORT_TO_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_REFRESH_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_MERGE_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_SECOND_STORAGE_MODEL_CLEAN': this.$t('delSecondaryStorage'),
+      'STEP_SECOND_STORAGE_NODE_CLEAN': this.$t('delSecondaryStorage'),
+      'STEP_SECOND_STORAGE_SEGMENT_CLEAN': this.$t('delSecondaryStorage')
     }
     return stepMap[name]
   }
@@ -998,7 +1021,11 @@ export default class JobsList extends Vue {
       const selectedStatus = this.multipleSelection.map((item) => {
         return item.job_status
       })
+      const selectedJobNames = this.multipleSelection.map((item) => {
+        return item.job_name
+      })
       this.getBatchBtnStatus(selectedStatus)
+      this.getBatchJobNameEnabled = this.isContain(this.delSecJobTypes, selectedJobNames)
       this.idsArr = this.multipleSelection.map((item) => {
         return item.id
       })

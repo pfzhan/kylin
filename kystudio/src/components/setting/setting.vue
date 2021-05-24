@@ -157,6 +157,15 @@ export default class Setting extends Vue {
 <style lang="less">
 @import '../../assets/styles/variables.less';
 
+.el-select-dropdown__item {
+  .node-name {
+    color: @text-normal-color;
+  }
+  .node-ip {
+    color: @text-title-color;
+  }
+}
+
 .setting {
   padding: 20px;
   .setting-header {
@@ -180,29 +189,42 @@ export default class Setting extends Vue {
   }
   // editable-block style
   .editable-block {
-    margin-bottom: 15px;
+    margin-bottom: 24px;
   }
   // setting-item 通用style
   .setting-item {
     /* border-bottom: 1px solid @line-split-color; */
-    padding: 7.5px 15px;
+    padding: 8px 24px;
     margin: 0;
-    &:first-child{
-      padding-top:10px;
+    .sec-nodes {
+      font-size: 12px;
+      line-height: 16px;
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+    .node-name {
+      color: @text-normal-color;
+    }
+    .node-ip {
+      color: @text-title-color;
     }
   }
   .setting-item:last-child {
     border: none;
-    padding-bottom:10px;
+    padding-bottom:16px;
   }
   .setting-label {
-    margin-right: 10px;
+    margin-right: 8px;
   }
   .setting-input {
     display: none;
     margin-bottom: 0;
   }
-  .setting-label,
+  .setting-label {
+    display: inline-block;
+    color: @text-normal-color;
+    font-size: 12px;
+  }
   .setting-value {
     display: inline-block;
     color: @text-title-color;
@@ -238,14 +260,14 @@ export default class Setting extends Vue {
     }
   }
   .setting-desc {
-    margin-top: 3px;
+    margin-top: 8px;
     font-size: 12px;
     line-height: 16px;
     color: @text-normal-color;
-    &.large {
-      font-size: 14px;
-      color: @text-title-color;
-    }
+    // &.large {
+    //   font-size: 14px;
+    //   color: @text-title-color;
+    // }
     .warning{
       margin-top:5px;
       .el-icon-ksd-alert{

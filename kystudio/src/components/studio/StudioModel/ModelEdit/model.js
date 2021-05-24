@@ -257,6 +257,8 @@ class NModel extends Schama {
         metaData.multi_partition_desc = this.multi_partition_desc
         metaData.maintain_model_type = this._mount.maintain_model_type
         metaData.management_type = this.management_type
+        metaData.with_second_storage = this.second_storage_enabled
+        metaData.second_storage_size = this.second_storage_size
         metaData.canvas = this._generateTableRectData()
         // metaData = _filterData(metaData)
         resolve(metaData)

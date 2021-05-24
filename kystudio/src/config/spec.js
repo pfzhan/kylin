@@ -96,7 +96,8 @@ export default {
       { "id": "purge" },
       { "id": "offline" },
       { "id": "online" },
-      { "id": "changeModelOwner" }
+      { "id": "changeModelOwner" },
+      { "id": "secStorageAction" }
     ],
     "metadataActions": [
       { "id": "executeModelMetadata" }
@@ -209,8 +210,8 @@ export default {
     "modelActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues" },
-        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues" },
+        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues,secStorageAction" },
+        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner,manageSubPartitionValues,secStorageAction" },
         { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,manageSubPartitionValues" },
         { "key": "systemUser-operation", "value": "purge,exportTDS,manageSubPartitionValues" },
         { "key": "systemUser-read", "value": "exportTDS" }

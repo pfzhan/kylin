@@ -435,6 +435,12 @@ export default {
     },
     [types.UPDATE_STREAMING_CONFIGURATIONS] (_, params) {
       return api.model.updateStreamingConfigurations(params)
+    },
+    [types.UPDATE_MODEL_SEC_STORAGE] (_, params) {
+      return api.model.updateModelSecStorage(params)
+    },
+    [types.SYNC_SEGMENTS_SEC_STORAGE] (_, params) {
+      return api.model.syncSegmentsSecStorage(params)
     }
   },
   getters: {

@@ -19,16 +19,41 @@
         <!-- <span class="right ky-a-like" v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span> -->
       </div>
       <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
-        <el-button v-if="$store.state.project.emptySegmentEnable" type="primary" icon="el-ksd-icon-add_22" text :disabled="!model.partition_desc && segments.length>0" @click="addSegment">Segment</el-button>
+        <el-button v-if="$store.state.project.emptySegmentEnable" type="primary" icon="el-ksd-icon-add_22" :disabled="!model.partition_desc && segments.length>0" class="ksd-mr-8 ksd-fleft" @click="addSegment">Segment</el-button>
+        <el-dropdown split-button @click="handleRefreshSegment" class="ksd-fleft" btn-icon="el-ksd-icon-refresh_22" size="medium">
+          {{$t('kylinLang.common.refresh')}}
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item @click.native="handleMergeSegment" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')">
+              <i class="el-ksd-icon-merge_22 ksd-fs-16"></i>
+              <span class="ksd-fs-12">{{$t('merge')}}</span>
+            </el-dropdown-item>
+            <el-dropdown-item @click="handleSyncSegment" v-if="model.second_storage_enabled" :disabled="!selectedSegments.length || hasEventAuthority('sync')">
+              <common-tip :content="$t('syncTips')" v-if="hasEventAuthority('sync')">
+                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
+                <span class="ksd-fs-12">{{$t('sync')}}</span>
+              </common-tip>
+              <template v-else>
+                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
+                <span class="ksd-fs-12">{{$t('sync')}}</span>
+              </template>
+            </el-dropdown-item>
+            <el-dropdown-item @click.native="handleDeleteSegment" :disabled="!selectedSegments.length || hasEventAuthority('delete')">
+              <i class="el-ksd-icon-table_delete_16 ksd-fs-16"></i>
+              <span class="ksd-fs-12">{{$t('kylinLang.common.delete')}}</span>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+        <el-button icon="el-ksd-icon-repair_22" type="primary" class="ksd-ml-2" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
+      </div>
+      <!-- <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button icon="el-ksd-icon-refresh_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <el-button icon="el-ksd-icon-merge_22" type="primary" text :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')" @click="handleMergeSegment">{{$t('merge')}}</el-button>
         <el-button icon="el-ksd-icon-table_delete_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
         <el-button icon="el-ksd-icon-repair_22" type="primary" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
-        <!-- <el-button-group>
+        <el-button-group>
           <el-button icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
-        </el-button-group> -->
-
-      </div>
+        </el-button-group>
+      </div> -->
       <div class="right">
         <div class="segment-action ky-no-br-space" v-if="!filterSegment">
           <span class="ksd-mr-5 ksd-fs-14">{{$t('segmentPeriod')}}</span>
@@ -115,6 +140,9 @@
         <el-table-column :label="$t('storageSize')" width="140" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
+        <el-table-column :label="$t('secStorage')" width="140" align="right" prop="second_storage_size" sortable="custom" v-if="model.second_storage_enabled">
+          <template slot-scope="scope">{{scope.row.second_storage_size | dataSize}}</template>
+        </el-table-column>
         <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
             <div class="ksd-fs-0">
@@ -139,36 +167,43 @@
     </div>
 
     <el-dialog :title="$t('segmentDetail')" append-to-body limited-area :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="720px">
-      <table class="ksd-table segment-detail" v-if="detailSegment">
-        <tr class="ksd-tr">
-          <th>{{$t('segmentID')}}</th>
-          <td>{{detailSegment.id}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('segmentName')}}</th>
-          <td>{{detailSegment.name}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('segmentPath')}}</th>
-          <td class="segment-path">{{detailSegment.segmentPath}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('fileNumber')}}</th>
-          <td>{{detailSegment.fileNumber}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('storageSize1')}}</th>
-          <td>{{detailSegment.bytes_size | dataSize}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('startTime')}}</th>
-          <td>{{segmentTime(detailSegment, detailSegment.startTime) | toServerGMTDate}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('endTime')}}</th>
-          <td>{{segmentTime(detailSegment, detailSegment.endTime) | toServerGMTDate}}</td>
-        </tr>
-      </table>
+      <div class="ksd-list segment-detail" v-if="detailSegment">
+        <p class="list">
+          <span class="label">{{$t('segmentID')}}</span>
+          <span class="text">{{detailSegment.id}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('segmentName')}}</span>
+          <span class="text">{{detailSegment.name}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('segmentPath')}}</span>
+          <span class="text segment-path">{{detailSegment.segmentPath}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('fileNumber')}}</span>
+          <span class="text">{{detailSegment.fileNumber}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('storageSize1')}}</span>
+          <span class="text">{{detailSegment.bytes_size | dataSize}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('startTime')}}</span>
+          <span class="text">{{segmentTime(detailSegment, detailSegment.startTime) | toServerGMTDate}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('endTime')}}</span>
+          <span class="text">{{segmentTime(detailSegment, detailSegment.endTime) | toServerGMTDate}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('secStorageNode')}}</span>
+          <span class="text">{{getSecStorageNodes(detailSegment)}}</span>
+        </p>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="isShowDetail = false">{{$t('kylinLang.common.close')}}</el-button>
+      </div>
     </el-dialog>
 
     <el-dialog
@@ -423,7 +458,8 @@ import arealabel from '../../../../common/area_label.vue'
       fetchSubPartitions: 'FETCH_SUB_PARTITIONS',
       deleteSubPartition: 'DELETE_SUB_PARTITION',
       refreshSubPartition: 'REFRESH_SUB_PARTITION',
-      fetchSubPartitionValues: 'FETCH_SUB_PARTITION_VALUES'
+      fetchSubPartitionValues: 'FETCH_SUB_PARTITION_VALUES',
+      syncSegmentsSecStorage: 'SYNC_SEGMENTS_SEC_STORAGE'
     }),
     ...mapActions('ModelBuildModal', {
       callModelBuildDialog: 'CALL_MODAL'
@@ -787,6 +823,8 @@ export default class ModelSegment extends Vue {
       return typeList(['ONLINE', 'WARNING'])
     } else if (type === 'merge') {
       return typeList(['ONLINE', 'WARNING'])
+    } else if (type === 'sync') {
+      return typeList(['ONLINE', 'WARNING'])
     } else if (type === 'delete') {
       return typeList(['ONLINE', 'LOADING', 'REFRESHING', 'MERGING', 'WARNING'])
     }
@@ -877,6 +915,11 @@ export default class ModelSegment extends Vue {
       this.$message(this.$t('pleaseSelectSegments'))
     }
   }
+  getSecStorageNodes (segment) {
+    return segment.second_storage_nodes && segment.second_storage_nodes.map(s => {
+      return `${s.name} ${s.ip}:${s.port}`
+    }).toString()
+  }
   async handleMergeSegment () {
     try {
       const segmentIds = this.selectedSegmentIds
@@ -942,6 +985,53 @@ export default class ModelSegment extends Vue {
       handleError(e)
       this.mergeLoading = false
       this.mergeError = true
+    }
+  }
+  async handleSyncSegment () {
+    try {
+      const segmentIds = this.selectedSegmentIds
+      if (!segmentIds.length) {
+        this.$message(this.$t('pleaseSelectSegments'))
+      } else {
+        const projectName = this.currentSelectedProject
+        const modelId = this.model.uuid
+        let tableData = []
+        this.selectedSegments.forEach((seg) => {
+          const obj = {}
+          obj['start'] = transToServerGmtTime(this.segmentTime(seg, seg.startTime))
+          obj['end'] = transToServerGmtTime(this.segmentTime(seg, seg.endTime))
+          tableData.push(obj)
+        })
+        await this.callGlobalDetailDialog({
+          msg: this.$t('confirmSyncSegments'),
+          title: this.$t('syncSegmentTip'),
+          detailTableData: tableData,
+          detailColumns: [
+            {column: 'start', label: this.$t('kylinLang.common.startTime')},
+            {column: 'end', label: this.$t('kylinLang.common.endTime')}
+          ],
+          dialogType: '',
+          showDetailBtn: false,
+          submitText: this.$t('kylinLang.common.ok')
+        })
+        await this.syncSegmentsSecStorage({ project: projectName, model: modelId, segment_ids: this.selectedSegmentIds, type: 'CLICKHOUSE' })
+        this.$message({
+          dangerouslyUseHTMLString: true,
+          type: 'success',
+          customClass: 'sync-segment-success',
+          message: (
+            <div>
+              <span>{this.$t('kylinLang.common.buildSuccess')}</span>
+              <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
+            </div>
+          )
+        })
+        await this.loadSegments()
+        this.$emit('loadModels')
+      }
+    } catch (e) {
+      e !== 'cancel' && handleError(e)
+      this.loadSegments()
     }
   }
   async handleDeleteSegment () {
@@ -1034,16 +1124,11 @@ export default class ModelSegment extends Vue {
 .segment-part {
   height: 100%;
 }
-.segment-detail.ksd-table {
-  &.ksd-table{
-    table-layout:fixed;
-    th {
-      width:130px;
-
-    }
-  }
-}
 .segment-detail {
+  .label {
+    width:130px;
+    text-align: right;
+  }
   .segment-path {
     word-break: break-all;
   }

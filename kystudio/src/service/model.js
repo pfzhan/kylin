@@ -23,7 +23,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + modelId + '/segments?project=' + project + '&purge=' + true).delete()
   },
   getModelList: (params) => {
-    return Vue.resource(apiUrl + 'models{?status}' + '{&model_types}').get(params)
+    return Vue.resource(apiUrl + 'models{?status}{&model_attributes}').get(params)
   },
   renameModel: (params) => {
     return Vue.resource(apiUrl + 'models/' + params.model + '/name').update(params)
@@ -362,5 +362,11 @@ export default {
   },
   updateStreamingConfigurations (para) {
     return Vue.http.put(apiUrl + 'streaming_jobs/params', para)
+  },
+  updateModelSecStorage (para) {
+    return Vue.resource(apiUrl + 'storage/model/state').save(para)
+  },
+  syncSegmentsSecStorage (para) {
+    return Vue.resource(apiUrl + 'storage/segments').save(para)
   }
 }

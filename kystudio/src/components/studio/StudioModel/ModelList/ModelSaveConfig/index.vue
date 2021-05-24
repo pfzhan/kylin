@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     :title="partitionTitle"
-    width="560px"
+    width="600px"
     append-to-body
     limited-area
     :visible="isShow"
@@ -19,8 +19,8 @@
         v-if="isShowWarning"
         show-icon>
       </el-alert>
-      <div class="ksd-title-label">{{$t('chooseBuildType')}}</div>
-      <el-select v-model="buildType" class="ksd-mtb-10" @change="handChangeBuildType" :disabled="!datasourceActions.includes('changeBuildType')">
+      <div class="ksd-title-label-mini">{{$t('chooseBuildType')}}</div>
+      <el-select v-model="buildType" class="ksd-mtb-10" @change="handChangeBuildType" :disabled="!datasourceActions.includes('changeBuildType')" style="width:100%">
         <el-option :label="$t('incremental')" value="incremental"></el-option>
         <el-option v-if="!isStreamModel" :label="$t('fullLoad')" value="fullLoad"></el-option>
       </el-select>
@@ -34,10 +34,10 @@
       </el-alert>
     </div>
     <el-form v-if="mode === 'saveModel'&&buildType=== 'incremental'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
-      <div class="ksd-title-label ksd-mb-10">{{$t('partitionSet')}}</div>
+      <div class="ksd-title-label-mini ksd-mb-10">{{$t('partitionSet')}}</div>
       <el-form-item :label="$t('partitionDateTable')" class="clearfix">
         <el-row :gutter="5">
-          <el-col :span="12">
+          <el-col :span="24">
             <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
               <!-- <el-option :label="$t('noPartition')" value=""></el-option> -->
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
@@ -47,7 +47,7 @@
       </el-form-item>
       <el-form-item  :label="$t('partitionDateColumn')" v-if="partitionMeta.table">
         <el-row :gutter="5">
-          <el-col :span="11" v-if="partitionMeta.table">
+          <el-col :span="partitionMeta.column&&$store.state.project.projectPushdownConfig ? 11 : 12" v-if="partitionMeta.table">
             <el-form-item prop="column">
               <el-select
                 :disabled="isLoadingNewRange"
@@ -67,7 +67,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="11">
+          <el-col :span="partitionMeta.column&&$store.state.project.projectPushdownConfig ? 11 : 12">
             <el-select
               :disabled="isLoadingFormat"
               v-guide.partitionColumnFormat
@@ -82,7 +82,7 @@
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
           </el-col>
-          <el-col :span="1">
+          <el-col :span="1" v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
               <div style="display: inline-block;">
                 <el-button
@@ -90,7 +90,6 @@
                   :loading="isLoadingFormat"
                   icon="el-ksd-icon-data_range_search_old"
                   v-guide.getPartitionColumnFormat
-                  v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
                   @click="handleLoadFormat">
                 </el-button>
               </div>
@@ -132,23 +131,42 @@
     <template v-if="mode === 'saveModel'">
       <div class="divide-block">
         <div class="divider"></div>
-        <span v-if="isExpand" @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-icon-ksd-more_01-copy arrow"></i></span>
-        <span v-else @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-icon-ksd-more_02 arrow"></i></span>
+        <span v-if="isExpand" @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-ksd-icon-arrow_up_16 arrow ksd-fs-16"></i></span>
+        <span v-else @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-ksd-icon-arrow_down_16 arrow ksd-fs-16"></i></span>
       </div>
       <div v-show="isExpand">
+        <div class="ksd-mb-24">
+          <el-alert
+            :title="$t('secStorageTips')"
+            type="warning"
+            :closable="false"
+            class="ksd-mb-8"
+            v-if="isShowSecStorageTips"
+            show-icon>
+          </el-alert>
+          <span class="ksd-title-label-mini">{{$t('secStorage')}}</span>
+          <span>
+            <el-switch
+              v-model="modelDesc.with_second_storage"
+              @change="val => handleSecStorageEnabled(val)"
+              :active-text="$t('kylinLang.common.OFF')"
+              :inactive-text="$t('kylinLang.common.ON')">
+            </el-switch>
+          </span>
+          <div class="secStorage-desc ksd-mt-8" v-html="$t('secStorageDesc')"></div>
+        </div>
         <!-- <div class="divider"></div> -->
-        <div class="ksd-title-label ksd-mb-10">
+        <div class="ksd-title-label-mini ksd-mb-8">
           {{$t('dataFilterCond')}}
           <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
-            <i class="icon el-ksd-icon-more_info_16"></i>
+            <i class="el-ksd-icon-more_info_16 ksd-fs-16"></i>
           </el-tooltip>
         </div>
         <el-alert
           :title="$t('filterCondTips')"
           type="warning"
           :closable="false"
-          :show-background="false"
-          style="padding-top:0px;"
+          class="ksd-mb-8"
           show-icon>
         </el-alert>
         <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" width="99.6%" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
@@ -266,6 +284,15 @@ export default class ModelPartitionModal extends Vue {
   isExpand = false
   defaultBuildType = 'incremental'
   addBaseIndex = true
+  isShowSecStorageTips = false
+
+  handleSecStorageEnabled (val) {
+    if (!val && this.modelDesc.second_storage_size > 0) {
+      this.isShowSecStorageTips = true
+    } else {
+      this.isShowSecStorageTips = false
+    }
+  }
 
   toggleShowPartition () {
     this.isExpand = !this.isExpand
@@ -453,6 +480,7 @@ export default class ModelPartitionModal extends Vue {
       // this.$nextTick(() => {
       //   this.$refs.partitionForm && this.$refs.partitionForm.validate()
       // })
+      this.isExpand = !this.modelDesc.uuid
       if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) && !this.isStreamModel) {
         this.buildType = 'fullLoad'
         this.defaultBuildType = 'fullLoad'
@@ -681,6 +709,11 @@ export default class ModelPartitionModal extends Vue {
 <style lang="less" scoped>
 @import '../../../../../assets/styles/variables.less';
 .model-partition-dialog {
+  .secStorage-desc {
+    font-size: 12px;
+    line-height: 16px;
+    color: @text-normal-color;
+  }
   .error-msg-box {
     border: 1px solid @line-border-color;
     max-height: 55px;
@@ -692,24 +725,25 @@ export default class ModelPartitionModal extends Vue {
     }
   }
   .divide-block {
-    color: @base-color;
+    color: @text-title-color;
     position: relative;
     text-align: center;
     margin-top: 5px;
+    font-size: 12px;
     span {
       cursor: pointer;
     }
-    .arrow {
-      transform: rotate(90deg);
-      margin-left: 3px;
-      font-size: 5px;
-      color: @base-color;
-      position: absolute;
-      top: 15px;
-    }
+    // .arrow {
+    //   transform: rotate(90deg);
+    //   margin-left: 3px;
+    //   font-size: 5px;
+    //   color: @base-color;
+    //   position: absolute;
+    //   top: 15px;
+    // }
     .divider {
       margin: 10px 0;
-      border-bottom: 1px solid @line-split-color;
+      border-bottom: 1px solid @ke-color-secondary;
     }
   }
   .item-desc {
