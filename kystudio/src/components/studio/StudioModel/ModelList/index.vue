@@ -27,7 +27,8 @@
             placement="bottom-start"
             btn-icon="el-ksd-icon-add_22"
             v-if="datasourceActions.includes('modelActions')"
-            @click="showAddModelDialog">{{$t('kylinLang.common.model')}}
+            @click="showAddModelDialog">
+            {{$t('kylinLang.common.model')}}
             <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
               <el-dropdown-item
                 v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')"
@@ -169,14 +170,14 @@
 
           </template>
         </el-table-column>
-        <el-table-column width="140px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+        <el-table-column width="140px" :label="$t('recommendationsTiTle')">
           <template slot-scope="scope">
             <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom">
-              <span class="recommendation-layout" @click.stop="jumpToRecommendation(scope.row)"><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.recommendations_count}}</span></span>
+              <span class="recommendation-layout" @click.stop><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.available_indexes_count}}</span></span>
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.fact')" width="180">
+        <el-table-column :label="$t('kylinLang.common.fact')" width="200">
           <template slot-scope="scope">
             <template v-if="scope.row.status === 'BROKEN'">-</template>
             <template v-else>
@@ -198,7 +199,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="100"
           prop="usage"
           sortable="custom"
           show-overflow-tooltip
@@ -206,7 +206,7 @@
           :label="$t('usage')">
         </el-table-column>
         <el-table-column
-          width="120"
+          width="150"
           prop="source"
           sortable="custom"
           show-overflow-tooltip
@@ -217,7 +217,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          width="100"
           prop="storage"
           show-overflow-tooltip
           sortable="custom"
@@ -940,7 +939,7 @@ export default class ModelList extends Vue {
 
   // 跳转至指定模型优化建议界面
   jumpToRecommendation (model) {
-    this.$router.push({name: 'ModelDetails', params: {modelName: model.alias, jump: 'recommendation'}})
+    this.modelRowClickEvent(model, {jump: 'recommendation'})
   }
 }
 </script>
@@ -1017,9 +1016,6 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
-    .el-table__body tr {
-      cursor: pointer;
-    }
     .el-table__body td {
       vertical-align: top;
     }
@@ -1040,7 +1036,6 @@ export default class ModelList extends Vue {
       border: 1px solid @ke-border-secondary;
       border-radius: 6px;
       color: @ke-color-primary;
-      cursor: pointer;
     }
     .build-disabled > .el-ksd-icon-build_index_22 {
       color: @color-text-disabled;
@@ -1322,7 +1317,7 @@ export default class ModelList extends Vue {
     background-color: @color-success;
   }
   &.OFFLINE {
-    background-color: @ke-color-info-secondary;
+    background-color: #5C5C5C;
   }
   &.BROKEN {
     background-color: @color-danger;
@@ -1342,7 +1337,7 @@ export default class ModelList extends Vue {
       background-color: @color-success;
     }
     &.OFFLINE {
-      background-color: @ke-color-info-secondary;
+      background-color: #5C5C5C;
     }
     &.BROKEN {
       background-color: @color-danger;

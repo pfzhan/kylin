@@ -878,7 +878,7 @@ export default class IndexList extends Vue {
   changeSort ({prop, order}) {
     this.recommendationsList = {
       ...this.recommendationsList,
-      reverse: order === 'descending',
+      reverse: order !== 'descending',
       sort_by: prop,
       page_offset: 0
     }

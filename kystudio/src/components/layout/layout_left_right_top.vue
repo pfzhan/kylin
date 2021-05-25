@@ -3,9 +3,9 @@
     <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
       <el-col :span="24" class="panel-center">
         <aside class="left-menu">
-          <img v-show="!briefMenuGet" src="../../assets/img/logo_KE.png" class="logo" @click="goHome">
+          <img v-show="!briefMenuGet" src="../../assets/img/ky_logo.png" class="logo" @click="goHome">
           <img v-show="briefMenuGet" src="../../assets/img/logo/logo_small_white.png" class="logo" @click="goHome">
-          <!-- <div class="ky-line"></div> -->
+          <div class="ky-line"></div>
           <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
@@ -1350,11 +1350,11 @@ export default class LayoutLeftRightTop extends Vue {
           //   }
           // }
           .logo {
-            width: 100%;
-            // height: 26px;
+            width:110px;
+            height: 26px;
             vertical-align: middle;
             z-index:999;
-            margin: 13px 0 13px 0;
+            margin: 13px 36px 12px 36px;
             cursor: pointer;
           }
           .ky-line {

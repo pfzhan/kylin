@@ -518,10 +518,6 @@ export default class ModelActions extends Vue {
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
 .action-items {
-  .tip_box {
-    line-height: inherit !important;
-    vertical-align: inherit !important;
-  }
   .item {
     cursor: pointer;
   }

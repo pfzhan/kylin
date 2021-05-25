@@ -48,8 +48,7 @@ export default {
     cannotOnlineTips: 'This model can\'t go online at the moment:',
     disableModelTip: 'The offline model couldn\'t serve queries. The built indexes could still be used after the model is online again. Are you sure you want to offline model "{modelName}"?',
     disableModelTitle: 'Offline Model',
-    noIndexTips: 'You should add indexes first before building.',
-    changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.'
+    noIndexTips: 'You should add indexes first before building.'
   },
   'zh-cn': {
     authorityDetails: '权限详情',
@@ -100,7 +99,6 @@ export default {
     cannotOnlineTips: '该模型当前不可上线：',
     disableModelTip: '模型下线后将无法服务于查询，已构建的索引可在模型上线后继续使用。确定要下线模型 {modelName} 吗？',
     disableModelTitle: '下线模型',
-    noIndexTips: '您需要先添加索引，才可以进行构建',
-    changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。'
+    noIndexTips: '您需要先添加索引，才可以进行构建'
   }
 }
