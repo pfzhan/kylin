@@ -7,22 +7,24 @@
           <p>*&nbsp;{{$t('snapshotDesc2')}}</p>
           <p>*&nbsp;{{$t('snapshotDesc3')}}</p>
         </div>
-        <i class="el-icon-ksd-what ksd-fs-14"></i>
+        <i class="el-ksd-icon-more_info_22 snapshot-icon ksd-fs-22"></i>
       </common-tip>
     </div>
     <div class="ksd-mb-16 snapshot-desc">{{$t('snapshotDesc')}}</div>
 
     <div class="clearfix">
       <div class="ksd-fleft ky-no-br-space" v-if="datasourceActions.includes('snapshotAction')">
-        <el-button type="primary" class="ksd-mr-8 ksd-fleft" icon="el-icon-plus" @click="addSnapshot">{{$t('snapshot')}}</el-button>
+        <el-button type="primary" class="ksd-mr-8 ksd-fleft" icon="el-ksd-icon-add_22" @click="addSnapshot">{{$t('snapshot')}}</el-button>
         <div class="ke-it-other_actions ksd-fleft">
-          <el-button type="primary" text icon="el-icon-ksd-table_refresh" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button type="primary" text icon="el-icon-ksd-table_delete" class="ksd-ml-2" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button type="primary" text icon="el-ksd-icon-refresh_22" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
+          <el-button type="primary" text icon="el-ksd-icon-table_delete_22" :disabled="!multipleSelection.length || hasEventAuthority('delete')" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button type="primary" text icon="el-ksd-icon-repair_22" :disabled="!multipleSelection.length || hasEventAuthority('repair')" @click="repairSnapshot">{{$t('kylinLang.common.repair')}}</el-button>
         </div>
       </div>
-      <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
+      <el-input class="ksd-fright search-input ke-it-search_snapshot" :disabled="loadingSnapshotTable" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
     </div>
-    <el-table class="ksd-mt-10 snapshot-table ke-it-snapshot_table"
+    <el-table class="ksd-mt-16 snapshot-table ke-it-snapshot_table"
+      v-scroll-shadow
       :data="snapshotTables"
       @sort-change="sortSnapshotList"
       :default-sort = "{prop: 'last_modified_time', order: 'descending'}"
@@ -58,14 +60,14 @@
         show-overflow-tooltip
         :filters="partitionColumns"
         :filtered-value="filter.partitionColumns"
-        filter-icon="el-icon-ksd-filter"
+        filter-icon="el-ksd-icon-filter_22"
         :show-multiple-footer="false"
         :filter-change="(v) => filterContent(v, 'partition')"
         width="160">
         <template slot-scope="scope">
           <div class="partition-values" v-if="!loadingSnapshotTable">
             <span class="content" v-custom-tooltip="{text: scope.row.select_partition_col, w: 20, tableClassName: 'snapshot-table'}">{{scope.row.select_partition_col || $t('noPartition')}}</span>
-            <i @click="editPartitionColumn(scope.row)" class="el-icon-ksd-table_edit"></i>
+            <i @click="editPartitionColumn(scope.row)" :class="['el-icon-ksd-table_edit', {'is-disabled': scope.row.status === 'BROKEN'}]"></i>
           </div>
         </template>
       </el-table-column>
@@ -82,7 +84,7 @@
         :filters="allStatus.map(item => ({text: $t(item), value: item}))"
         :filtered-value="filter.status"
         :label="$t('status')"
-        filter-icon="el-icon-ksd-filter"
+        filter-icon="el-ksd-icon-filter_22"
         :show-multiple-footer="false"
         :filter-change="(v) => filterContent(v, 'status')"
       >
@@ -104,7 +106,7 @@
       </el-table-column>
       <el-table-column
         prop="lookup_table_count"
-        info-icon="el-icon-ksd-what"
+        info-icon="el-ksd-icon-more_info_22"
         :info-tooltip="$t('lookupModelsTip')"
         :label="$t('lookupModels')"
         header-align="right"
@@ -113,7 +115,7 @@
       </el-table-column>
       <el-table-column
         prop="fact_table_count"
-        info-icon="el-icon-ksd-what"
+        info-icon="el-ksd-icon-more_info_22"
         :info-tooltip="$t('factModelsTip')"
         :label="$t('factModels')"
         header-align="right"
@@ -127,7 +129,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="snapshotTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="snapshotPager" :refTag="pageRefTags.snapshotPager" :perPageSize="20" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="snapshotTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="snapshotPager" :refTag="pageRefTags.snapshotPager" :perPageSize="20" class="ksd-mtb-16 ksd-center" ></kap-pager>
 
     <!-- 添加Snapshot -->
     <SnapshotModel v-on:reloadSnapshotList="getSnapshotList"/>
@@ -246,7 +248,7 @@
       <el-checkbox class="ksd-mt-10" v-model="refreshNewPartition" v-if="refreshSnapshotTables.length">
         {{$t('refreshNewPartitionTip')}}
         <el-tooltip :content="$t('refreshNewPartitionInfo')" effect="dark" placement="top">
-          <i class="el-icon-ksd-what"></i>
+          <i class="el-ksd-icon-more_info_22"></i>
         </el-tooltip>
       </el-checkbox>
       <span slot="footer" class="dialog-footer">
@@ -308,7 +310,7 @@ import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
 export default class Snapshot extends Vue {
   pageRefTags = pageRefTags
   snapshotTables = []
-  allStatus = ['ONLINE', 'LOADING', 'REFRESHING']
+  allStatus = ['ONLINE', 'LOADING', 'REFRESHING', 'BROKEN']
   filter = {
     page_offset: 0,
     page_size: +localStorage.getItem(this.pageRefTags.snapshotPager) || 20,
@@ -422,12 +424,14 @@ export default class Snapshot extends Vue {
     this.getSnapshotList()
   }
   getTagType (row) {
-    if (row.status === 'ONLINE') {
-      return 'success'
-    } else if (row.status === 'WARNING') {
-      return 'warning'
-    } else if (['LOCKED'].includes(row.status)) {
-      return 'info'
+    let map = {
+      ONLINE: 'success',
+      WARNING: 'warning',
+      LOCKED: 'info',
+      BROKEN: 'danger'
+    }
+    if (row.status in map) {
+      return map[row.status]
     } else {
       return ''
     }
@@ -439,6 +443,10 @@ export default class Snapshot extends Vue {
     }
     if (type === 'refresh') {
       return typeList(['ONLINE'])
+    } else if (type === 'delete') {
+      return typeList(['ONLINE', 'LOADING', 'REFRESHING'])
+    } else if (type === 'repair') {
+      return typeList(['BROKEN'])
     }
   }
   filterContent (val, type) {
@@ -583,6 +591,7 @@ export default class Snapshot extends Vue {
     })
     this.getSnapshotList()
   }
+
   async callGlobalDetail (targetTables, msg, title, type, submitText) {
     const tableData = []
     targetTables.forEach((t) => {
@@ -605,7 +614,7 @@ export default class Snapshot extends Vue {
     })
   }
   async addSnapshot (filterText) {
-    const isSubmit = await this.showSnapshotModelDialog()
+    const isSubmit = await this.showSnapshotModelDialog({})
     if (isSubmit) {
       this.getSnapshotList()
     }
@@ -629,13 +638,25 @@ export default class Snapshot extends Vue {
     this.filter.page_size = count
     this.getSnapshotList()
   }
+  async repairSnapshot () {
+    const data = this.multipleSelection
+    const isSubmit = await this.showSnapshotModelDialog({type: 'repair', data})
+    if (isSubmit) {
+      this.getSnapshotList()
+    }
+  }
 }
 </script>
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 #snapshot {
-  margin: 20px;
+  margin: 32px 24px 24px;
+  .snapshot-icon {
+    position: relative;
+    bottom: 6px;
+    left: -5px;
+  }
   .snapshot-desc {
     color: @text-disabled-color;
   }
@@ -643,12 +664,6 @@ export default class Snapshot extends Vue {
     width: 248px;
   }
   .snapshot-table {
-    .el-icon-ksd-filter {
-      position: relative;
-      font-size: 17px;
-      top: 2px;
-      left: 5px;
-    }
     .el-table__row.no-authority-model {
       background-color: @table-stripe-color;
       color: @text-disabled-color;
@@ -684,6 +699,10 @@ export default class Snapshot extends Vue {
         right: 0;
         vertical-align: top;
         margin-top: 5px;
+        &.is-disabled {
+          color: @text-disabled-color;
+          pointer-events: none;
+        }
       }
     }
   }

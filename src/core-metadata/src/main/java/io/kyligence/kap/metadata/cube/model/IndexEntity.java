@@ -98,6 +98,16 @@ public class IndexEntity implements Serializable, IKeep {
     @Getter(lazy = true)
     private final BiMap<Integer, TblColRef> effectiveDimCols = initEffectiveDimCols();
 
+    public static IndexEntity from(LayoutEntity layout) {
+        IndexEntity index = new IndexEntity();
+        index.setDimensions(layout.getDimsIds());
+        index.setMeasures(layout.getMeasureIds());
+        index.setLayouts(Lists.newArrayList(layout));
+        index.setId(layout.getIndexId());
+        layout.setIndex(index);
+        return index;
+    }
+
     private BiMap<Integer, TblColRef> initEffectiveDimCols() {
         return Maps.filterKeys(getModel().getEffectiveCols(),
                 input -> input != null && getDimensionBitset().get(input));
@@ -271,7 +281,7 @@ public class IndexEntity implements Serializable, IKeep {
         return !isTableIndex(id);
     }
 
-    void removeLayouts(List<LayoutEntity> deprecatedLayouts, Predicate<LayoutEntity> isSkip, boolean deleteAuto,
+    public void removeLayouts(List<LayoutEntity> deprecatedLayouts, Predicate<LayoutEntity> isSkip, boolean deleteAuto,
             boolean deleteManual) {
         checkIsNotCachedAndShared();
         List<LayoutEntity> toRemoveLayouts = Lists.newArrayList();
@@ -321,12 +331,30 @@ public class IndexEntity implements Serializable, IKeep {
                 + "}.";
     }
 
+    public void assignId(long id) {
+        this.id = id;
+        int inc = 1;
+        for (LayoutEntity layout : layouts) {
+            layout.setId(id + inc);
+            inc++;
+        }
+    }
+
+    public void addLayout(LayoutEntity layout) {
+        if (layout.notAssignId()) {
+            layout.setId(this.getId() + this.getNextLayoutOffset());
+            this.setNextLayoutOffset((this.getNextLayoutOffset() + 1) % IndexEntity.INDEX_ID_STEP);
+        }
+        layout.setIndex(this);
+        this.getLayouts().add(layout);
+    }
+
     public enum Status {
         NO_BUILD, BUILDING, LOCKED, ONLINE
     }
 
     public enum Source {
-        RECOMMENDED_AGG_INDEX, RECOMMENDED_TABLE_INDEX, CUSTOM_AGG_INDEX, CUSTOM_TABLE_INDEX
+        RECOMMENDED_AGG_INDEX, RECOMMENDED_TABLE_INDEX, CUSTOM_AGG_INDEX, CUSTOM_TABLE_INDEX, BASE_AGG_INDEX, BASE_TABLE_INDEX
     }
 
     public static class IndexIdentifier {

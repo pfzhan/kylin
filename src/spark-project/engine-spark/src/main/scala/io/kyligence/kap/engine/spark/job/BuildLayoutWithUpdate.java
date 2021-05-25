@@ -164,17 +164,22 @@ public class BuildLayoutWithUpdate {
 
         // persist to storage
         KylinConfig.setAndUnsetThreadLocalConfig(config);
+        updateLayouts(config,project,dataFlowId,layouts);
+
+        if (Objects.nonNull(layoutPoints.peek())) {
+            // schedule immediately
+            doCheckPoint();
+        }
+    }
+
+    protected void updateLayouts(KylinConfig config,String project, String dataFlowId,
+                                 final List<NDataLayout> layouts) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataflowUpdate update = new NDataflowUpdate(dataFlowId);
             update.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
             NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);
             return 0;
         }, project);
-
-        if (Objects.nonNull(layoutPoints.peek())) {
-            // schedule immediately
-            doCheckPoint();
-        }
     }
 
     public void shutDown() {

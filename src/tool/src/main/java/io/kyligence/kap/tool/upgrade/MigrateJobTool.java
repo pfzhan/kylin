@@ -49,8 +49,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -160,7 +159,7 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
                 dout.close();
                 buf.close();
 
-                ByteSource byteSource = ByteStreams.asByteSource(buf.toByteArray());
+                ByteSource byteSource = ByteSource.wrap(buf.toByteArray());
 
                 rs = new RawResource(executePath, byteSource, System.currentTimeMillis(), rs.getMvcc() + 1);
 

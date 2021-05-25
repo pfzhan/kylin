@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.ByteSource;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Getter;
@@ -99,7 +99,7 @@ public class InMemResourceStore extends ResourceStore {
 
     @Override
     public RawResource checkAndPutResource(String resPath, ByteSource byteSource, long oldMvcc) {
-        return checkAndPutResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc);
+         return checkAndPutResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc);
     }
 
     @Override

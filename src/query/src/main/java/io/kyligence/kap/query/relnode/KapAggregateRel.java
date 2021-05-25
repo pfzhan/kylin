@@ -33,7 +33,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.util.ICutContextStrategy;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -61,13 +69,6 @@ import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.query.util.ICutContextStrategy;
 import lombok.Getter;
 
 /**
@@ -312,7 +313,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     }
 
-    protected static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT", "BITMAP_UUID");
+    protected static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT",
+            "BITMAP_UUID");
 
     private Boolean isExactlyMatched() {
         if (!KapConfig.getInstanceFromEnv().needReplaceAggWhenExactlyMatched()) {
@@ -326,6 +328,9 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         }
         IndexEntity index = getContext().storageContext.getCandidate().getLayoutEntity().getIndex();
         if (index.getModel().getStorageType() != 0) {
+            return false;
+        }
+        if (index.getModel().getModelType() != NDataModel.ModelType.BATCH) {
             return false;
         }
         for (AggregateCall call : getRewriteAggCalls()) {
@@ -388,15 +393,15 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     private boolean groupbyContainSegmentPartition(PartitionDesc partitionDesc) {
         return partitionDesc != null && partitionDesc.getPartitionDateColumnRef() != null
                 && getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet())
-                .contains(partitionDesc.getPartitionDateColumnRef().getIdentity());
+                        .contains(partitionDesc.getPartitionDateColumnRef().getIdentity());
     }
 
     private boolean groupbyContainMultiPartitions(MultiPartitionDesc multiPartitionDesc) {
         if (multiPartitionDesc == null || CollectionUtils.isEmpty(multiPartitionDesc.getPartitions()))
             return true;
 
-        return getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet())
-                .containsAll(multiPartitionDesc.getColumnRefs().stream().map(TblColRef::getIdentity).collect(Collectors.toSet()));
+        return getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet()).containsAll(
+                multiPartitionDesc.getColumnRefs().stream().map(TblColRef::getIdentity).collect(Collectors.toSet()));
     }
 
     private boolean isDimExactlyMatch() {

@@ -30,7 +30,8 @@ export default {
     computedColumnCollapse: 'Computed Columns ({num})',
     indexesCollapse: 'Indexes ({num})',
     aggIndexes: 'Aggregate Indexes ({len})',
-    tableIndexes: 'Table Indexes ({len})'
+    tableIndexes: 'Table Indexes ({len})',
+    noFactTableTips: 'Unable to add join relationship between dimension tables. Please add join relationship of fact table first.'
   },
   'zh-cn': {
     addJoinCondition: '添加关联关系',
@@ -63,6 +64,7 @@ export default {
     computedColumnCollapse: '可计算列（{num}）',
     indexesCollapse: '索引（{num}）',
     aggIndexes: '聚合索引（{len}）',
-    tableIndexes: '明细索引（{len}）'
+    tableIndexes: '明细索引（{len}）',
+    noFactTableTips: '无法添加维度表之间的关联关系，请先添加事实表的关联关系。'
   }
 }

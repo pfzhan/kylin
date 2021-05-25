@@ -38,8 +38,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.google.common.base.Throwables;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 
@@ -100,7 +99,7 @@ class RenameEntity {
             Throwables.propagate(e);
         }
 
-        ByteSource byteSource = ByteStreams.asByteSource(buf.toByteArray());
+        ByteSource byteSource = ByteSource.wrap(buf.toByteArray());
 
         this.rs = new RawResource(destName, byteSource, System.currentTimeMillis(), entity.getMvcc());
     }

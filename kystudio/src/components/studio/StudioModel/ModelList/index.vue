@@ -1,10 +1,11 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
-    <div class="ksd-title-page ksd-mt-24" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
-    <div class="ksd-title-page ksd-mt-24" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
-    <div>
+    <div class="ksd-title-page ksd-mt-32" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
+    <div class="ksd-title-page ksd-mt-32" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
+    <div class="model-list-contain ksd-mt-16" v-loading="loadingModels">
+      <!-- <div class="layout-mask" v-if="loadingModels"></div> -->
       <div class="clearfix">
-        <div class="ksd-mtb-10 ksd-fright">
+        <div class="ksd-fright">
           <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-ksd-icon-loading_22':'el-ksd-icon-search_22'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
           </el-input>
           <el-button
@@ -20,15 +21,14 @@
           <el-dropdown
             v-guide.addModelBtn
             split-button
-            class="ksd-mtb-10 ksd-fleft"
+            class="ksd-fleft"
             type="primary"
             size="medium"
             id="addModel"
             placement="bottom-start"
             btn-icon="el-ksd-icon-add_22"
             v-if="datasourceActions.includes('modelActions')"
-            @click="showAddModelDialog">
-            {{$t('kylinLang.common.model')}}
+            @click="showAddModelDialog">{{$t('kylinLang.common.model')}}
             <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
               <el-dropdown-item
                 v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')"
@@ -43,7 +43,7 @@
             </el-dropdown-menu>
           </el-dropdown>
           <common-tip :content="$t('noModelsExport')" v-if="metadataActions.includes('executeModelMetadata')" placement="top" :disabled="!!modelArray.length">
-            <el-button icon="el-ksd-icon-export_22" size="medium" class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
+            <el-button icon="el-ksd-icon-export_22" size="medium" class="ksd-ml-8" :disabled="!modelArray.length" @click="handleExportMetadatas">
               <span>{{$t('exportMetadatas')}}</span>
             </el-button>
           </common-tip>
@@ -54,7 +54,7 @@
           type="checkbox"
           trigger="click"
           :value="filterArgs.status"
-          :label="$t('status_c')"
+          hideArrow
           @input="v => filterContent(v, 'status')"
           :options="[
             { renderLabel: renderStatusLabel, value: 'ONLINE' },
@@ -62,21 +62,36 @@
             { renderLabel: renderStatusLabel, value: 'BROKEN' },
             { renderLabel: renderStatusLabel, value: 'WARNING' },
           ]">
-          <span>{{selectedStatus}}</span>
+          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('status_c')}}{{selectedStatus}}</el-button>
         </DropdownFilter>
         <DropdownFilter
+          class="ksd-ml-8"
           type="datetimerange"
           trigger="click"
           :value="filterArgs.last_modify"
-          :label="$t('lastModifyTime_c')"
+          hideArrow
           :shortcuts="['lastDay', 'lastWeek', 'lastMonth']"
           @input="v => filterContent(v, 'last_modify')">
-          <span>{{selectedRange}}</span>
+          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('lastModifyTime_c')}}{{selectedRange}}</el-button>
+        </DropdownFilter>
+        <DropdownFilter
+          class="ksd-ml-8"
+          type="checkbox"
+          trigger="click"
+          hideArrow
+          :value="filterArgs.model_attributes"
+          :options="[
+            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE' },
+            { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
+            { renderLabel: renderModelTypeLabel, value: 'BATCH' }
+          ]"
+          @input="v => filterContent(v, 'model_attributes')">
+          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedStatus}}</el-button>
         </DropdownFilter>
         <div class="actions">
           <el-button
             text
-            type="info"
+            type="primary"
             icon="el-ksd-icon-resure_22"
             class="reset-filters-btn"
             :disabled="isResetFilterDisabled"
@@ -116,7 +131,9 @@
                 popper-class="status-tooltip"
                 placement="top-start"
                 trigger="hover">
-                <i slot="reference" :class="['filter-status', scope.row.status]" />
+                <template slot="reference">
+                  <span :class="['filter-status', scope.row.status]"></span>
+                </template>
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
                 <div v-if="scope.row.status === 'WARNING' && scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
@@ -170,14 +187,16 @@
 
           </template>
         </el-table-column>
-        <el-table-column width="140px" :label="$t('recommendationsTiTle')">
+        <el-table-column width="150px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
-            <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom">
-              <span class="recommendation-layout" @click.stop><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.available_indexes_count}}</span></span>
+            <template v-if="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">-</template>
+            <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom" v-else>
+              <el-button type="primary" class="rec-btn" text icon="el-ksd-icon-wizard_22" @click.stop="jumpToRecommendation(scope.row)">{{scope.row.recommendations_count}}</el-button>
+              <!-- <span class="recommendation-layout" @click.stop="jumpToRecommendation(scope.row)"><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.recommendations_count}}</span></span> -->
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.fact')" width="200">
+        <el-table-column :label="$t('kylinLang.common.fact')" width="180">
           <template slot-scope="scope">
             <template v-if="scope.row.status === 'BROKEN'">-</template>
             <template v-else>
@@ -191,14 +210,24 @@
               >
                 <div class="model-ER-layout"><ModelERDiagram v-if="scope.row.showER" :model="dataGenerator.generateModel(scope.row)" /></div>
               </el-popover>
-              <span class="fact-table-title" v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 20, tableClassName: 'model_list_table'}" v-if="scope.row.fact_table.split('.').length === 2">{{scope.row.fact_table.split('.')[1]}}</span>
               <span class="model-ER">
-                <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-24" type="mult"></el-icon>
+                <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-22" type="mult"></el-icon>
               </span>
+              <div class="fact-table" v-if="scope.row.fact_table.split('.').length === 2"><span v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 0, tableClassName: 'model_list_table'}">{{scope.row.fact_table.split('.')[1]}}</span></div>
             </template>
           </template>
         </el-table-column>
         <el-table-column
+          prop="model_type"
+          show-overflow-tooltip
+          width="150px"
+          :label="$t('modelType')">
+          <template slot-scope="scope">
+            <span>{{$t(scope.row.model_type)}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          width="100"
           prop="usage"
           sortable="custom"
           show-overflow-tooltip
@@ -206,17 +235,18 @@
           :label="$t('usage')">
         </el-table-column>
         <el-table-column
-          width="150"
+          width="120"
           prop="source"
           sortable="custom"
-          show-overflow-tooltip
           :label="$t('rowCount')">
           <template slot-scope="scope">
             <div>{{sliceNumber(scope.row.source)}}</div>
-            <div class="update-time ksd-fs-12" v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 20, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</div>
+            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
           </template>
         </el-table-column>
         <el-table-column
+          align="right"
+          width="100"
           prop="storage"
           show-overflow-tooltip
           sortable="custom"
@@ -224,10 +254,18 @@
           :label="$t('storage')"
         >
           <template slot-scope="scope">
-            {{scope.row.storage|dataSize}}
+            <div>{{scope.row.storage|dataSize}}</div>
+            <div class="ts-storage" v-if="$store.state.project.second_storage_enabled&&scope.row.second_storage_enabled">
+              <common-tip :content="$t('secStorage')">
+                <el-icon class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
+                {{scope.row.second_storage_size|dataSize}}
+              </common-tip>
+            </div>
+            <div class="ts-storage" v-else>-</div>
           </template>
         </el-table-column>
         <el-table-column
+          align="right"
           sortable="custom"
           prop="expansionrate"
           show-overflow-tooltip
@@ -242,6 +280,8 @@
           </template>
         </el-table-column>
         <el-table-column
+          align="right"
+          width="120"
           prop="total_indexes"
           show-overflow-tooltip
           :label="$t('aggIndexCount')">
@@ -260,7 +300,7 @@
       <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :refTag="pageRefTags.modelListPager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
-    
+
     <!-- 模型构建 -->
     <ModelBuildModal @isWillAddIndex="willAddIndex" ref="modelBuildComp"/>
     <!-- 模型检查 -->
@@ -297,6 +337,7 @@ import { handleError, kapMessage } from 'util/business'
 import { handleSuccessAsync, dataGenerator, sliceNumber, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
+import SegmentTabs from './ModelSegment/SegmentTabs.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
 import ModelAggregateView from './ModelAggregateView/index.vue'
 import TableIndexView from './TableIndexView/index.vue'
@@ -309,6 +350,7 @@ import ConfirmSegment from './ConfirmSegment/ConfirmSegment.vue'
 import ModelPartition from './ModelPartition/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
 import ModelSql from './ModelSql/ModelSql.vue'
+import ModelStreamingJob from './ModelStreamingJob/ModelStreamingJob.vue'
 import ModelRecommendModal from './ModelRecommendModal/index.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
@@ -329,9 +371,11 @@ function getDefaultFilters (that) {
     sort_by: 'last_modify',
     reverse: true,
     status: [],
+    model_types: [],
     model_alias_or_owner: '',
     last_modify: [],
-    owner: ''
+    owner: '',
+    model_attributes: []
   }
 }
 
@@ -422,6 +466,7 @@ function getDefaultFilters (that) {
     ModelBuildModal,
     TableIndex,
     ModelSegment,
+    SegmentTabs,
     ModelAggregate,
     ModelAggregateView,
     TableIndexView,
@@ -433,6 +478,7 @@ function getDefaultFilters (that) {
     ModelPartition,
     ModelJson,
     ModelSql,
+    ModelStreamingJob,
     ModelRecommendModal,
     UploadSqlModel,
     DropdownFilter,
@@ -457,6 +503,7 @@ export default class ModelList extends Vue {
   transToServerGmtTime = transToServerGmtTime
   filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
+  modelTypeList = ['STREAMING', 'BATCH']
   currentEditModel = null
   showFull = false
   showSearchResult = false
@@ -471,6 +518,8 @@ export default class ModelList extends Vue {
   expandTab = ''
   isModelListOpen = false
   isShow = false
+  loadingModels = false
+  debouce = null
 
   // async showGuide () {
   //   await this.callGuideModal({ isShowBuildGuide: true })
@@ -549,6 +598,12 @@ export default class ModelList extends Vue {
     }
     return this.$t('allTimeRange')
   }
+  get selectedModeType () {
+    const { filterArgs } = this
+    return filterArgs.model_types.length && this.modelTypeList.length !== filterArgs.model_types.length
+      ? filterArgs.model_types.map(status => this.$t(status)).join(', ')
+      : this.$t('ALL')
+  }
   get isResetFilterDisabled () {
     return !this.filterArgs.last_modify.length && !this.filterArgs.status.length
   }
@@ -618,7 +673,7 @@ export default class ModelList extends Vue {
     if (columnIndex === 0) {
       return 'model-alias-item'
     }
-    if (columnIndex === 2) {
+    if (column.label && column.label === this.$t('kylinLang.common.fact')) {
       return 'fact-table-title'
     }
   }
@@ -659,7 +714,7 @@ export default class ModelList extends Vue {
     const res = await this.fetchSegments({ projectName, modelName })
     const { total_size, value } = await handleSuccessAsync(res)
     let type = 'incremental'
-    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column)) {
+    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) && modelDesc.model_type !== 'STREAMING') {
       type = 'fullLoad'
     }
     this.isModelListOpen = true
@@ -826,17 +881,21 @@ export default class ModelList extends Vue {
   // 加载模型列表
   loadModelsList () {
     this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
+    this.loadingModels = true
+    this.$el.click()
     return this.loadModels(this.filterArgs).then(() => {
       if (this.filterArgs.model_alias_or_owner || this.modelsPagerRenderData.list.length) {
         this.showSearchResult = true
       } else {
         this.showSearchResult = false
       }
+      this.loadingModels = false
       this.$nextTick(() => {
         this.expandedRows = this.currentEditModel ? [this.currentEditModel] : this.expandedRows
         this.setModelExpand()
       })
     }).catch((res) => {
+      this.loadingModels = false
       handleError(res)
     })
   }
@@ -868,7 +927,8 @@ export default class ModelList extends Vue {
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {
-      status: 'status'
+      status: 'status',
+      model_types: 'model_types'
     }
 
     this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
@@ -879,7 +939,10 @@ export default class ModelList extends Vue {
       }
     })
     this.filterArgs[type] = val
-    this.pageCurrentChange(0, this.filterArgs.page_size)
+    clearTimeout(this.debouce)
+    this.debouce = setTimeout(() => {
+      this.pageCurrentChange(0, this.filterArgs.page_size)
+    }, 300)
   }
   // 删除单个筛选条件
   handleClose (tag) {
@@ -904,6 +967,13 @@ export default class ModelList extends Vue {
     ]
   }
 
+  renderModelTypeLabel (h, option) {
+    const { value } = option
+    return [
+      <span>{this.$t(value)}</span>
+    ]
+  }
+
   // 模型展开自动滚动到可视区域
   scrollViewArea (index) {
     const scrollDom = this.$el.querySelector(`.model_list_row_${index}`)
@@ -925,9 +995,11 @@ export default class ModelList extends Vue {
     this.$refs['segmentComp' + alias] && await this.$refs['segmentComp' + alias].$emit('willAddIndex')
   }
 
-  modelRowClickEvent (row, args) {
+  modelRowClickEvent (row, e) {
     if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
-    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias, ...args}})
+    if (e.target.localName === 'td' || [...e.target.classList].includes('cell')) {
+      this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
+    }
   }
 
   // 展示 E-R 图
@@ -939,7 +1011,7 @@ export default class ModelList extends Vue {
 
   // 跳转至指定模型优化建议界面
   jumpToRecommendation (model) {
-    this.modelRowClickEvent(model, {jump: 'recommendation'})
+    this.$router.push({name: 'ModelDetails', params: {modelName: model.alias, jump: 'recommendation'}})
   }
 }
 </script>
@@ -947,6 +1019,15 @@ export default class ModelList extends Vue {
 @import '../../../../assets/styles/variables.less';
 .mode-list{
   position:relative;
+  margin-left: 24px;
+  margin-right: 24px;
+  .model-list-contain {
+    position: relative;
+  }
+  .ts-storage {
+    font-size: 12px;
+    color: @text-disabled-color;
+  }
   .specialDropdown{
     min-width:96px;
     .el-dropdown-menu__item {
@@ -961,9 +1042,9 @@ export default class ModelList extends Vue {
       display: none;
     }
   }
-  .model-list-header {
-    height: 50px;
-  }
+  // .model-list-header {
+  //   height: 50px;
+  // }
   .full-model-slide-fade-enter-active {
     transition: all .3s ease;
   }
@@ -1016,19 +1097,28 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    .el-table__header th {
+      vertical-align: top;
+    }
+    .el-table__body tr {
+      cursor: pointer;
+    }
     .el-table__body td {
       vertical-align: top;
     }
     .custom-tooltip-layout {
       vertical-align: middle;
       // margin-top: 6px;
-      width: calc(~'100% - 20px');
+      width: calc(~'100% - 5px');
     }
     .model-ER {
-      position: absolute;
-      right: 10px;
+      // position: absolute;
+      // right: 10px;
       cursor: pointer;
       // transform: translate(0, -50%);
+    }
+    .rec-btn {
+      color: @ke-color-primary;
     }
     .recommendation-layout {
       display: inline-block;
@@ -1036,6 +1126,7 @@ export default class ModelList extends Vue {
       border: 1px solid @ke-border-secondary;
       border-radius: 6px;
       color: @ke-color-primary;
+      cursor: pointer;
     }
     .build-disabled > .el-ksd-icon-build_index_22 {
       color: @color-text-disabled;
@@ -1148,19 +1239,31 @@ export default class ModelList extends Vue {
       }
     }
     .fact-table-title {
+      // width: calc(~'100% - 40px');
+      // margin-left: 8px;
+      // display: inline-block;
+      // overflow: hidden;
+      .fact-table {
+        width: calc(~'100% - 35px');
+        margin-left: 8px;
+        display: inline-block;
+      // overflow: hidden;
+      }
       .cell > span {
         width: 100%;
         display: inline-block;
       }
     }
     .update-time {
+      width: 100%;
       color: @text-disabled-color;
       overflow: hidden;
       text-overflow: ellipsis;
+      span {
+        font-size: 12px;
+      }
     }
   }
-  margin-left: 20px;
-  margin-right: 20px;
   .row-action {
     right:20px;
     top: 4px;
@@ -1216,6 +1319,9 @@ export default class ModelList extends Vue {
   }
   .table-filters {
     margin-bottom: 8px;
+    >.dropdown-filter {
+      margin-left: -8px;
+    }
     .actions {
       float: right;
       .el-button.is-text {
@@ -1233,7 +1339,7 @@ export default class ModelList extends Vue {
     line-height: 20px;
     width: 100%;
     height: 20px;
-    margin-bottom: 5px;
+    // margin-bottom: 5px;
     float: left;
   }
   .last-modified {
@@ -1271,6 +1377,11 @@ export default class ModelList extends Vue {
       transform: scale(0.833333);
       display: inline-block;
     }
+  }
+  .streaming {
+    float: left;
+    font-size: 12px;
+    line-height: 18px;
   }
   .alias .filter-status {
     float: left;
@@ -1317,7 +1428,7 @@ export default class ModelList extends Vue {
     background-color: @color-success;
   }
   &.OFFLINE {
-    background-color: #5C5C5C;
+    background-color: @ke-color-info-secondary;
   }
   &.BROKEN {
     background-color: @color-danger;
@@ -1337,7 +1448,7 @@ export default class ModelList extends Vue {
       background-color: @color-success;
     }
     &.OFFLINE {
-      background-color: #5C5C5C;
+      background-color: @ke-color-info-secondary;
     }
     &.BROKEN {
       background-color: @color-danger;
@@ -1352,6 +1463,7 @@ export default class ModelList extends Vue {
   transform: translate(-5px, 5px);
   margin-left: 15px;
   color: #8B99AE;
+  font-size: 12px;
   .popper__arrow {
     left: 5px !important;
   }
@@ -1369,9 +1481,9 @@ export default class ModelList extends Vue {
 }
 .status-tooltip {
   min-width: unset;
-  transform: translate(0, 5px);
+  transform: translate(-3px, 0);
   .popper__arrow {
-    left: 5px !important;
+    left: 8px !important;
   }
 }
 .model-actions-dropdown {

@@ -22,10 +22,8 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.sql.Timestamp
 import java.util
 import com.google.common.collect.Sets
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.engine.spark.job.{FlatTableHelper, TableMetaManager}
@@ -36,13 +34,8 @@ import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegm
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
-import org.apache.kylin.source.SourceFactory
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.functions.{col, expr}
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
-import org.apache.spark.storage.StorageLevel
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import java.util.Locale
 import scala.collection.JavaConverters._
@@ -60,90 +53,14 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
 
-  def castDF(df: DataFrame, parsedSchema: StructType): DataFrame = {
-    df.selectExpr("CAST(value AS STRING) as rawValue").map { case Row(csv_string) =>
-      val sp = csv_string.toString.split(",")
-      Row(
-        (0 to parsedSchema.fields.length - 1).map { index =>
-          try {
-            parsedSchema.fields(index).dataType match {
-              case IntegerType => sp(index).toInt
-              case LongType => sp(index).toLong
-              case DoubleType => sp(index).toDouble
-              case TimestampType => new Timestamp(sp(index).toLong)
-              case _ => sp(index)
-            }
-          }
-          catch {
-            case ex: Exception =>
-              // scalastyle:off
-              System.out.println(s"cast dataframe schema fail ${ex.toString}  stackTrace is: ${ex.getStackTrace.toString} line is: ${csv_string}")
-            // scalastyle:on
-          }
-        }: _*
-      )
-    }(RowEncoder(parsedSchema))
-  }
-
-
-  def generateStreamingDataset(needJoin: Boolean = true): Dataset[Row] = {
-
-    var lookupTablesGlobal = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
-    val model = flatTable.getDataModel
-    val tableDesc = model.getRootFactTable.getTableDesc
-    val kafkaParam = tableDesc.getKafkaParam
-
-    val originFactTable = SourceFactory
-      .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
-      .getSourceData(tableDesc, ss, kafkaParam)
-
-    val schema =
-      StructType(
-        tableDesc.getColumns.map { columnDescs =>
-          StructField(columnDescs.getName, SparderTypeUtil.toSparkType(columnDescs.getType, false))
-        }
-      )
-    val factTable = castDF(originFactTable, schema)
-    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-
-    var rootFactDataset: Dataset[Row] = factTable.alias(model.getRootFactTable.getAlias)
-
-    rootFactDataset = CreateFlatTable.changeSchemaToAliasDotName(rootFactDataset, model.getRootFactTable.getAlias)
-
-    if (lookupTablesGlobal.isEmpty) {
-      val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
-      lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
-      lookupTablesGlobal.foreach { case (_, df) =>
-        df.persist(StorageLevel.MEMORY_ONLY)
-      }
-    }
-    joinFactTableWithLookupTables(rootFactDataset, lookupTablesGlobal, model, ss)
-  }
-
-  def encodeStreamingDataset(seg: NDataSegment, model: NDataModel, batchDataset: Dataset[Row]): Dataset[Row] = {
-    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-    val (dictCols, encodeCols): GlobalDictType = assemblyGlobalDictTuple(seg, toBuildTree)
-    val encodedDataset = encodeWithCols(batchDataset, ccCols, dictCols, encodeCols)
-    val filterEncodedDataset = FlatTableHelper.applyFilterCondition(flatTable, encodedDataset, true)
-
-    flatTable match {
-      case joined: NCubeJoinedFlatTableDesc =>
-        changeSchemeToColumnIndice(filterEncodedDataset, joined)
-      case unsupported =>
-        throw new UnsupportedOperationException(
-          s"Unsupported flat table desc type : ${unsupported.getClass}.")
-    }
-  }
-
-
   def generateDataset(needEncode: Boolean = false, needJoin: Boolean = true): Dataset[Row] = {
     val model = flatTable.getDataModel
-
-    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-    var rootFactDataset = generateTableDataset(model.getRootFactTable, ccCols.toSeq, model.getRootFactTable.getAlias, ss, sourceInfo)
+    val table = model.getRootFactTable
+    val ccCols = table.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
+    var rootFactDataset = generateTableDataset(table, ccCols.toSeq, table.getAlias, ss, sourceInfo)
     lazy val flatTableInfo = Map(
       "segment" -> seg,
-      "table" -> model.getRootFactTable.getTableIdentity,
+      "table" -> table.getTableIdentity,
       "join_lookup" -> needJoin,
       "build_global_dictionary" -> needEncode
     )
@@ -197,7 +114,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     }
   }
 
-  private def encodeWithCols(ds: Dataset[Row],
+  protected def encodeWithCols(ds: Dataset[Row],
                              ccCols: Set[TblColRef],
                              dictCols: Set[TblColRef],
                              encodeCols: Set[TblColRef]): Dataset[Row] = {
@@ -273,7 +190,7 @@ object CreateFlatTable extends LogEx {
     }
   }
 
-  private def generateLookupTableDataset(model: NDataModel,
+  def generateLookupTableDataset(model: NDataModel,
                                          cols: Seq[TblColRef],
                                          ss: SparkSession): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
     val lookupTables = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()

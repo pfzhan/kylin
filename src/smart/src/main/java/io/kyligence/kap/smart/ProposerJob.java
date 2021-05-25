@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -94,10 +95,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
 
         List<String> resources = Lists.newArrayList();
         NDataflowManager.getInstance(config, project).listDataModelsByStatus(RealizationStatusEnum.ONLINE)
-                .forEach(model -> {
-                    resources.add(model.getResourcePath());
-                    resources.add(IndexPlan.concatResourcePath(model.getId(), project));
-                });
+                .forEach(model -> resources.addAll(generateResource(model, project)));
         Set<String> allModelNames = NDataflowManager.getInstance(config, project).listUnderliningDataModels(true)
                 .stream().map(model -> model.getAlias().toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
 
@@ -146,6 +144,13 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             runner.cleanupEnv();
         }
         return context;
+    }
+
+    private static List<String> generateResource(NDataModel model, String project) {
+        List<String> resources = Lists.newArrayList();
+        resources.add(model.getResourcePath());
+        resources.add(IndexPlan.concatResourcePath(model.getId(), project));
+        return resources;
     }
 
     private static String generateJobId(String project) {

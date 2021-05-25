@@ -98,14 +98,14 @@ class LocalQueryRunnerBuilder {
             mockupResources.put(dataModel.getResourcePath(), dataModel);
             // now get healthy model list through NDataflowManager.listUnderliningDataModels,
             // then here mockup the dataflow and indexPlan for the dataModel
-            mockupDataflowAndIndexPlan(dataModel, projectName, mockupResources);
+            mockupDataflowAndIndexPlan(dataModel.getId(), projectName, mockupResources);
         });
     }
 
-    private void mockupDataflowAndIndexPlan(NDataModel dataModel, String projectName,
+    private void mockupDataflowAndIndexPlan(String dataflowId, String projectName,
             Map<String, RootPersistentEntity> mockupResources) {
         IndexPlan indexPlan = new IndexPlan();
-        indexPlan.setUuid(dataModel.getUuid());
+        indexPlan.setUuid(dataflowId);
         indexPlan.setProject(projectName);
         indexPlan.setDescription(StringUtils.EMPTY);
         NDataflow dataflow = NDataflow.create(indexPlan, RealizationStatusEnum.ONLINE);

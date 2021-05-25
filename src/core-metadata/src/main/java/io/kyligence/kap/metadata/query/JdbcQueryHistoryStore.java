@@ -608,20 +608,28 @@ public class JdbcQueryHistoryStore {
             QueryExpressionDSL<SelectModel>.QueryExpressionWhereBuilder filterSql, QueryHistoryRequest request) {
         List<String> realizations = request.realizations;
         boolean pushdown = realizations.contains("pushdown");
-        boolean model = realizations.contains("modelName");
-        List<String> queryIds = Lists.newArrayList();
-        if (!model && request.getFilterModelIds() != null && !request.getFilterModelIds().isEmpty()) {
-            queryIds = queryQueryHistoriesIds(request.getFilterModelIds());
-        }
-        if (pushdown && model) {
+        boolean selectAllModels = realizations.contains("modelName");
+        if (pushdown && selectAllModels) {
             return filterSql;
         } else if (pushdown) {
-            filterSql = filterSql.and(queryHistoryTable.indexHit, isEqualTo(false), or(queryHistoryTable.queryId, isIn(queryIds)));
-        } else if (model) {
-            filterSql = filterSql.and(queryHistoryTable.indexHit, isEqualTo(true), or(queryHistoryTable.engineType, isIn(realizations)));
+            if (request.getFilterModelIds() != null && !request.getFilterModelIds().isEmpty()) {
+                filterSql = filterSql.and(queryHistoryTable.indexHit, isEqualTo(false), or(queryHistoryTable.queryId,
+                        isIn(selectDistinct(queryHistoryRealizationTable.queryId).from(queryHistoryRealizationTable)
+                                .where(queryHistoryRealizationTable.model, isIn(request.getFilterModelIds())))));
+            } else {
+                filterSql = filterSql.and(queryHistoryTable.indexHit, isEqualTo(false));
+            }
+        } else if (selectAllModels) {
+            // Process CONSTANTS, HIVE, RDBMS and all model
+            filterSql = filterSql.and(queryHistoryTable.engineType, isIn(realizations), or(queryHistoryTable.indexHit, isEqualTo(true)));
+        } else if (request.getFilterModelIds() != null && !request.getFilterModelIds().isEmpty()) {
+            // Process CONSTANTS, HIVE, RDBMS and model1, model2, model3...
+            filterSql = filterSql.and(queryHistoryTable.engineType, isIn(realizations), or(queryHistoryTable.queryId,
+                            isIn(selectDistinct(queryHistoryRealizationTable.queryId).from(queryHistoryRealizationTable)
+                                    .where(queryHistoryRealizationTable.model, isIn(request.getFilterModelIds())))));
         } else {
-            // Process CONSTANTS, HIVE, RDBMS and models
-            filterSql = filterSql.and(queryHistoryTable.engineType, isIn(realizations), or(queryHistoryTable.queryId, isIn(queryIds)));
+            // Process CONSTANTS, HIVE, RDBMS
+            filterSql = filterSql.and(queryHistoryTable.engineType, isIn(realizations));
         }
 
         return filterSql;

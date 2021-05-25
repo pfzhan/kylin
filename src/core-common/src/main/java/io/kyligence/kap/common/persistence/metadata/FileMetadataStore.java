@@ -37,8 +37,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -111,7 +110,7 @@ public class FileMetadataStore extends MetadataStore {
         val f = new File(root, path);
         val resPath = f.getPath().replace(root.getPath() + path, "");
         try (FileInputStream in = new FileInputStream(f)) {
-            val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
+            val bs = ByteSource.wrap(IOUtils.toByteArray(in));
             return new RawResource(resPath, bs, f.lastModified(), 0);
         }
     }

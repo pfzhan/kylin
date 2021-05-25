@@ -19,6 +19,7 @@ export default {
     projectPushdownConfig: true,
     snapshot_manual_management_enabled: false,
     scd2_enabled: false,
+    second_storage_enabled: false,
     emptySegmentEnable: false,
     projectConfig: null,
     multi_partition_enabled: false,
@@ -111,6 +112,9 @@ export default {
     },
     [types.UPDATE_SCD2_ENABLE] (state, type) {
       state.scd2_enabled = type
+    },
+    [types.UPDATE_SEC_STORAGE_ENABLE] (state, type) {
+      state.second_storage_enabled = type
     },
     [types.UPDATE_MULTI_PARTITION_ENABLE] (state, type) {
       state.multi_partition_enabled = type
@@ -239,8 +243,18 @@ export default {
         commit(types.UPDATE_SNAPSHOT_MANUAL_ENABLE, response.data.data.snapshot_manual_management_enabled || false)
         commit(types.UPDATE_MULTI_PARTITION_ENABLE, response.data.data.multi_partition_enabled || false)
         commit(types.UPDATE_EMPTY_SEGMENT_ENABLE, response.data.data.create_empty_segment_enabled || false)
+        commit(types.UPDATE_SEC_STORAGE_ENABLE, response.data.data.second_storage_enabled || false)
         return response
       })
+    },
+    [types.UPDATE_SEC_STORAGE_SETTINGS]: function ({ commit }, para) {
+      return api.project.updateSecStorageSettings(para)
+    },
+    [types.FETCH_AVAILABLE_NODES]: function ({ commit }, para) {
+      return api.project.fetchAvailableNodes(para)
+    },
+    [types.GET_SEC_STORAGE_MODELS]: function ({ commit }, para) {
+      return api.project.getSecStorageModels(para)
     },
     [types.UPDATE_PROJECT_GENERAL_INFO]: function ({ commit }, para) {
       return api.project.updateProjectGeneralInfo(para)

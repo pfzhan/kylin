@@ -47,7 +47,7 @@ import org.junit.rules.TemporaryFolder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Throwables;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
@@ -104,7 +104,7 @@ public class YarnApplicationToolTest extends NLocalFileMetadataTestCase {
                 }).stream().map(x -> {
                     try {
                         return new RawResource(x.get("meta_table_key").asText(),
-                                ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(x.get("meta_table_content"))),
+                                ByteSource.wrap(JsonUtil.writeValueAsBytes(x.get("meta_table_content"))),
                                 x.get("meta_table_ts").asLong(), x.get("meta_table_mvcc").asLong());
                     } catch (IOException e) {
                         throw Throwables.propagate(e);

@@ -65,7 +65,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   protected lazy final val fullDS = newDS()
   private lazy final val fastDS = newFastDS()
 
-  private val rootFactTable = dataModel.getRootFactTable
+  protected val rootFactTable = dataModel.getRootFactTable
 
   // Flat table.
   private lazy val shouldPersistFT = tableDesc.shouldPersistFlatTable()
@@ -85,11 +85,11 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     join
   }
 
-  private lazy val factTableDS = newFactTableDS()
+  protected lazy val factTableDS = newFactTableDS()
   private lazy val fastFactTableDS = newFastFactTableDS()
 
   // By design, COMPUTED-COLUMN could only be defined on fact table.
-  private lazy val factTableCCs = rootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
+  protected lazy val factTableCCs = rootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
 
   def getFastDS(): Dataset[Row] = {
     fastDS
@@ -190,7 +190,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     tryPersistFTVDS(partDS)
   }
 
-  private def newLookupTableDS(cols: Set[TblColRef]): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
+  protected def newLookupTableDS(cols: Set[TblColRef]): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
     val ret = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
     dataModel.getJoinTables.asScala
       .foreach { joinDesc =>
@@ -303,7 +303,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     Some(tableDS)
   }
 
-  private def newTableDS(tableRef: TableRef): Dataset[Row] = {
+  protected def newTableDS(tableRef: TableRef): Dataset[Row] = {
     // By design, why not try recovering from table snapshot.
     // If fact table is a view and its snapshot exists, that will benefit.
     logInfo(s"Load source table ${tableRef.getTableIdentity}")
@@ -368,10 +368,10 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   // Historical debt.
   // Waiting for reconstruction.
 
-  private def encodeWithCols(ds: Dataset[Row],
-                             ccCols: Set[TblColRef],
-                             dictCols: Set[TblColRef],
-                             encodeCols: Set[TblColRef]): Dataset[Row] = {
+  protected def encodeWithCols(ds: Dataset[Row],
+                               ccCols: Set[TblColRef],
+                               dictCols: Set[TblColRef],
+                               encodeCols: Set[TblColRef]): Dataset[Row] = {
     val ccDataset = withColumn(ds, ccCols)
     if (isGDReady) {
       logInfo(s"Skip DICTIONARY segment $segmentId")
@@ -409,7 +409,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   }
 
   // For lookup table, CC column may be duplicate of the flat table when it doesn't belong to one specific table like '1+2'
-  private def cleanComputedColumns(cc: Set[TblColRef], flatCols: Set[String]): Set[TblColRef] = {
+  protected def cleanComputedColumns(cc: Set[TblColRef], flatCols: Set[String]): Set[TblColRef] = {
     var cleanCols = cc
     if (flatCols != null) {
       cleanCols = cc.filter(col => !flatCols.contains(convertFromDot(col.getIdentity)))
@@ -435,7 +435,7 @@ object SegmentFlatTable extends LogEx {
     newDS.select(selectedColumns: _*)
   }
 
-  private def wrapAlias(originDS: Dataset[Row], alias: String): Dataset[Row] = {
+  def wrapAlias(originDS: Dataset[Row], alias: String): Dataset[Row] = {
     val newFields = originDS.schema.fields.map(f => convertFromDot(alias + "." + f.name)).toSeq
     val newDS = originDS.toDF(newFields: _*)
     logInfo(s"Wrap ALIAS ${originDS.schema.treeString} TO ${newDS.schema.treeString}")

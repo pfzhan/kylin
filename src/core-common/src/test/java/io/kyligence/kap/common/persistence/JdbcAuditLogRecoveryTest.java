@@ -47,7 +47,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.google.common.base.Joiner;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
@@ -136,7 +136,7 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
                     val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                     val path = "/p1/abc-" + System.currentTimeMillis();
                     val originAbc = store.getResource(path);
-                    store.checkAndPutResource(path, ByteStreams.asByteSource("abc".getBytes(charset)),
+                    store.checkAndPutResource(path, ByteSource.wrap("abc".getBytes(charset)),
                             System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
                     return 0;
                 }, "p1");
@@ -202,7 +202,7 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
                 IntStream.range(1000, 1000 + size).forEach(id -> {
                     String path = "/p2/abc" + id;
                     val originAbc = store.getResource(path);
-                    store.checkAndPutResource(path, ByteStreams.asByteSource((path + "-version2").getBytes(charset)),
+                    store.checkAndPutResource(path, ByteSource.wrap((path + "-version2").getBytes(charset)),
                             System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
                 });
                 return 0;

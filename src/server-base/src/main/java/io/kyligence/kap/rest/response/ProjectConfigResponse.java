@@ -33,6 +33,7 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -60,6 +61,10 @@ public class ProjectConfigResponse {
     private boolean scd2Enabled;
     @JsonProperty("snapshot_manual_management_enabled")
     private boolean snapshotManualManagementEnabled;
+    @JsonProperty("second_storage_enabled")
+    private Boolean secondStorageEnabled;
+    @JsonProperty("second_storage_nodes")
+    private List<SecondStorageNode> secondStorageNodes;
     @JsonProperty("runner_class_name")
     private String runnerClassName;
     @JsonProperty("converter_class_names")

@@ -128,8 +128,9 @@ public class NTableController extends NBasicController {
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
 
-    @ApiOperation(value = "getTableDesc", tags = { "AI" }, notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
-    @GetMapping(value = "")
+    @ApiOperation(value = "getTableDesc", tags = {
+            "AI" }, notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
+    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse getTableDesc(@RequestParam(value = "ext", required = false) boolean withExt,
             @RequestParam(value = "project") String project,
@@ -137,13 +138,14 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "is_fuzzy", required = false, defaultValue = "true") boolean isFuzzy,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit)
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
             throws IOException {
 
         checkProjectName(project);
         List<TableDesc> tableDescs = new ArrayList<>();
 
-        tableDescs.addAll(tableService.getTableDesc(project, withExt, table, database, isFuzzy));
+        tableDescs.addAll(tableService.getTableDescByType(project, withExt, table, database, isFuzzy, sourceType));
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tableDescs, offset, limit),
                 "");
     }
@@ -158,12 +160,15 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
             @RequestParam(value = "is_fuzzy", required = false, defaultValue = "true") boolean isFuzzy,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) throws Exception {
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
+            throws Exception {
 
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 tableService.getProjectTables(project, table, offset, limit, false, (databaseName, tableName) -> {
-                    return tableService.getTableDesc(project, withExt, tableName, databaseName, isFuzzy);
+                    return tableService.getTableDescByType(project, withExt, tableName, databaseName, isFuzzy,
+                            sourceType);
                 }), "");
     }
 
@@ -179,6 +184,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         String dbTblName = database + "." + table;
         tableService.unloadTable(project, dbTblName, cascade);
+        tableService.unloadKafkaConfig(project, dbTblName);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -221,7 +227,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "loadTables", tags = { "AI" }, notes = "Update Body: data_source_type, need_sampling, sampling_rows")
+    @ApiOperation(value = "loadTables", tags = {
+            "AI" }, notes = "Update Body: data_source_type, need_sampling, sampling_rows")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
@@ -276,7 +283,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "refreshSegments", tags = { "AI" }, notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
+    @ApiOperation(value = "refreshSegments", tags = {
+            "AI" }, notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
     @PutMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
@@ -373,7 +381,8 @@ public class NTableController extends NBasicController {
      * @return String[]
      * @throws IOException
      */
-    @ApiOperation(value = "showTables", tags = { "AI" }, notes = "Update Param: data_source_type, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "showTables", tags = {
+            "AI" }, notes = "Update Param: data_source_type, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/names")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableNameResponse>>> showTables(
@@ -388,7 +397,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tables, offset, limit), "");
     }
 
-    @ApiOperation(value = "showProjectTableNames", tags = { "AI" }, notes = "Update Param: data_source_type, page_offset, page_size")
+    @ApiOperation(value = "showProjectTableNames", tags = {
+            "AI" }, notes = "Update Param: data_source_type, page_offset, page_size")
     @GetMapping(value = "/project_table_names")
     @ResponseBody
     public EnvelopeResponse<NInitTablesResponse> showProjectTableNames(@RequestParam(value = "project") String project,
@@ -403,7 +413,8 @@ public class NTableController extends NBasicController {
                 }), "");
     }
 
-    @ApiOperation(value = "getTablesAndColumns", tags = { "AI" }, notes = "Update Param: page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getTablesAndColumns", tags = {
+            "AI" }, notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/simple_table")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TablesAndColumnsResponse>>> getTablesAndColomns(
@@ -476,7 +487,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @ApiOperation(value = "updateAutoMergeConfig", tags = { "DW" }, notes = "Update Body: auto_merge_enabled, auto_merge_time_ranges, volatile_range_number, volatile_range_enabled, volatile_range_type")
+    @ApiOperation(value = "updateAutoMergeConfig", tags = {
+            "DW" }, notes = "Update Body: auto_merge_enabled, auto_merge_time_ranges, volatile_range_number, volatile_range_enabled, volatile_range_type")
     @PutMapping(value = "/auto_merge_config")
     @ResponseBody
     public EnvelopeResponse<String> updateAutoMergeConfig(@RequestBody AutoMergeRequest autoMergeRequest) {

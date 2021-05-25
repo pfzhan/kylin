@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
+import static org.apache.kylin.common.exception.JobErrorCode.JOB_CONFIGURATION_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.CONCURRENT_SUBMIT_JOB_LIMIT;
@@ -89,6 +90,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import io.kyligence.kap.rest.response.InvalidIndexesResponse;
+import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -117,8 +123,12 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -221,7 +231,6 @@ import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
-import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -257,6 +266,7 @@ import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.BISyncTool;
 import io.kyligence.kap.tool.bisync.SyncContext;
@@ -571,6 +581,10 @@ public class ModelService extends BasicService {
         return modelResponseList;
     }
 
+    private boolean isTypesContains(List<String> types, NDataModel.ModelType modelType) {
+        return types == null || types.isEmpty() || (modelType != null && types.contains(modelType.toString()));
+    }
+
     private boolean isListContains(List<String> status, ModelStatusToDisplayEnum modelStatus) {
         return status == null || status.isEmpty() || (modelStatus != null && status.contains(modelStatus.name()));
     }
@@ -610,9 +624,25 @@ public class ModelService extends BasicService {
                 .filter(NDataModel::isMultiPartitionModel).collect(Collectors.toList());
     }
 
+    public List<NDataModelResponse> getModelsByTypes(final String modelAlias, final String projectName,
+            boolean exactMatch, String owner, List<String> modelTypes, List<String> status, String sortBy,
+            boolean reverse, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
+        return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
+                lastModifyFrom, lastModifyTo).stream()
+                        .filter(dataModel -> isTypesContains(modelTypes, dataModel.getModelType()))
+                        .collect(Collectors.toList());
+    }
+
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
+        return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
+                lastModifyFrom, lastModifyTo, true);
+    }
+
+    public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
+            String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
+            Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
         aclEvaluate.checkProjectReadPermission(projectName);
         List<Pair<NDataflow, NDataModel>> pairs = getFirstMatchModels(modelAlias, projectName, exactMatch, owner,
                 modelAliasOrOwner, lastModifyFrom, lastModifyTo);
@@ -629,6 +659,9 @@ public class ModelService extends BasicService {
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
+                if (!onlyNormalDim) {
+                    nDataModelResponse.enrichDerivedDimension();
+                }
                 nDataModelResponse.setForbiddenOnline(isScd2ForbiddenOnline);
                 nDataModelResponse.setBroken(modelDesc.isBroken());
                 nDataModelResponse.setStatus(modelResponseStatus);
@@ -646,6 +679,10 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setTotalIndexes(
                             getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
                     nDataModelResponse.setEmptyIndexesCount(getEmptyIndexesCount(projectName, modelDesc.getId()));
+                    nDataModelResponse.setHasBaseAggIndex(
+                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).containBaseAggLayout());
+                    nDataModelResponse.setHasBaseTableIndex(
+                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).containBaseTableLayout());
                 }
                 filterModels.add(nDataModelResponse);
             }
@@ -822,14 +859,14 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getIndexPlan(modelId);
         Set<Long> allIndexes = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        if (withAllIndexes != null && !withAllIndexes.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(withAllIndexes)) {
             for (Long idx : withAllIndexes) {
                 if (!allIndexes.contains(idx)) {
                     throw new KylinException(INVALID_SEGMENT_PARAMETER, "Invalid index id " + idx);
                 }
             }
         }
-        if (withoutAnyIndexes != null && !withoutAnyIndexes.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(withoutAnyIndexes)) {
             for (Long idx : withoutAnyIndexes) {
                 if (!allIndexes.contains(idx)) {
                     throw new KylinException(INVALID_SEGMENT_PARAMETER, "Invalid index id " + idx);
@@ -846,7 +883,35 @@ public class ModelService extends BasicService {
         Comparator<NDataSegmentResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
         segmentResponseList.sort(comparator);
+
+        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
         return segmentResponseList;
+    }
+
+    private void addSecondStorageResponse(String modelId, String project,
+            List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
+
+        if (!SecondStorageUtil.isModelEnable(project, modelId))
+            return;
+
+        val tableFlowManager = SecondStorage.tableFlowManager(getConfig(), project);
+        val tableFlow = tableFlowManager.get(dataflow.getId()).orElse(null);
+        if (tableFlow!=null) {
+            Map<String, TablePartition> tablePartitions = tableFlow.getTableDataList()
+                    .stream().flatMap(tableData -> tableData.getPartitions().stream())
+                    .collect(Collectors.toMap(TablePartition::getSegmentId, partition->partition));
+            segmentResponseList.forEach(segment -> {
+                if (tablePartitions.containsKey(segment.getId())) {
+                    val nodes = tablePartitions.get(segment.getId()).getShardNodes().stream()
+                            .map(SecondStorageUtil::transformNode).collect(Collectors.toList());
+                    segment.setSecondStorageNodes(nodes);
+                    segment.setSecondStorageDiskSize(tablePartitions.get(segment.getId()).getSizeInNode().values().stream().reduce(Long::sum).orElse(0L));
+                } else {
+                    segment.setSecondStorageNodes(Collections.emptyList());
+                    segment.setSecondStorageDiskSize(0L);
+                }
+            });
+        }
     }
 
     private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
@@ -1375,7 +1440,8 @@ public class ModelService extends BasicService {
         }
         try {
             ProjectInstance project = getProjectManager().getProject(dataModel.getProject());
-            if (project.getSourceType() == ISourceAware.ID_SPARK) {
+            if (project.getSourceType() == ISourceAware.ID_SPARK
+                    && dataModel.getModelType() == NDataModel.ModelType.BATCH) {
                 SparkSession ss = SparderEnv.getSparkSession();
                 String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
                 QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
@@ -1458,6 +1524,9 @@ public class ModelService extends BasicService {
             emptyIndex.setUuid(model.getUuid());
             indexPlanManager.createIndexPlan(emptyIndex);
 
+            if (modelRequest.isWithBaseIndex()) {
+                indexPlan.createAndAddBaseIndex(model);
+            }
             // create DataFlow
             val df = dataflowManager.createDataflow(emptyIndex, model.getOwner());
             if (modelRequest.isWithEmptySegment()) {
@@ -1469,7 +1538,6 @@ public class ModelService extends BasicService {
             }
 
             updateIndexPlan(project, indexPlan);
-
             UnitOfWorkContext context = UnitOfWork.get();
             context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         }
@@ -1490,6 +1558,8 @@ public class ModelService extends BasicService {
                 columnMap.put(column.getAliasDotColumn(), column);
             });
 
+            BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
+                    modelManager.getDataModelDesc(modelRequest.getId()), false);
             // update model
             List<LayoutRecDetailResponse> recItems = modelRequest.getRecItems();
             modelManager.updateDataModel(modelRequest.getId(), copyForWrite -> {
@@ -1562,6 +1632,7 @@ public class ModelService extends BasicService {
                 }
             });
             optRecService.updateRecommendationCount(project, modelRequest.getUuid());
+            baseIndexUpdater.update(indexPlanService);
         }
     }
 
@@ -1571,6 +1642,8 @@ public class ModelService extends BasicService {
             for (NRecommendedModelResponse response : modelSuggestionResponse.getReusedModels()) {
 
                 NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
+                        modelMgr.getDataModelDesc(response.getId()), false);
                 modelMgr.updateDataModel(response.getId(), copyForWrite -> {
                     copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
                     copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
@@ -1581,6 +1654,7 @@ public class ModelService extends BasicService {
                 indexMgr.updateIndexPlan(response.getId(), copyForWrite -> {
                     copyForWrite.setIndexes(targetIndexPlan.getIndexes());
                 });
+                baseIndexUpdater.update(indexPlanService);
             }
             return null;
         }, project);
@@ -1598,6 +1672,7 @@ public class ModelService extends BasicService {
                 modelRequest.setIndexPlan(modelResponse.getIndexPlan());
                 modelRequest.setWithEmptySegment(request.isWithEmptySegment());
                 modelRequest.setWithModelOnline(request.isWithModelOnline());
+                modelRequest.setWithBaseIndex(request.isWithBaseIndex());
                 return modelRequest;
             }).collect(Collectors.toList());
             if (CollectionUtils.isNotEmpty(modelRequests)) {
@@ -1639,12 +1714,19 @@ public class ModelService extends BasicService {
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+
+        val dataModel = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataModel model = saveModel(project, modelRequest);
             modelRequest.setUuid(model.getUuid());
             updateExcludedCheckerResult(project, modelRequest);
             return getDataModelManager(project).getDataModelDesc(model.getUuid());
         }, project);
+
+        // enable second storage
+        if (modelRequest.isWithSecondStorage() && !SecondStorageUtil.isModelEnable(project, dataModel.getId())) {
+            SecondStorageUtil.initModelMetaData(project, dataModel.getId());
+        }
+        return dataModel;
     }
 
     public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
@@ -1882,6 +1964,11 @@ public class ModelService extends BasicService {
         val indexPlan = new IndexPlan();
         indexPlan.setUuid(model.getUuid());
         indexPlan.setLastModified(System.currentTimeMillis());
+        if (modelRequest.isWithBaseIndex()) {
+            indexPlan.createAndAddBaseIndex(model);
+        } else if (modelRequest.isWithSecondStorage() && !modelRequest.isWithBaseIndex()) {
+            indexPlan.createAndAddBaseIndex(Collections.singletonList(indexPlan.createBaseTableIndex(model)));
+        }
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner(), RealizationStatusEnum.OFFLINE);
         SegmentRange range = null;
@@ -1894,9 +1981,17 @@ public class ModelService extends BasicService {
         if (range != null) {
             dataflowManager.fillDfManually(df, Lists.newArrayList(range));
         }
+        createStreamingModel(project, model, modelRequest);
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
+    }
+
+    private void createStreamingModel(String project, NDataModel model, ModelRequest request) {
+        if (NDataModel.ModelType.BATCH != model.getModelType()) {
+            val jobManager = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+            jobManager.createStreamingJob(model);
+        }
     }
 
     void updateIndexPlan(String project, IndexPlan indexPlan) {
@@ -2791,9 +2886,16 @@ public class ModelService extends BasicService {
                         dataflow.getModelAlias()));
             }
         }
+        if (SecondStorageUtil.isModelEnable(project, model)) {
+            SecondStorageUtil.cleanSegments(project, model, idsToDelete);
+            val jobHandler = new SecondStorageSegmentCleanJobHandler();
+            final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), idsToDelete);
+            getJobManager(project).addJob(param, jobHandler);
+        }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
         cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
         offlineModelIfNecessary(dataflowManager, model);
+
     }
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
@@ -2941,6 +3043,30 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
+    public List<JobInfoResponse.JobInfo>
+    exportSegmentToSecondStorage(String project, String model, String[] segmentIds) {
+        aclEvaluate.checkProjectOperationPermission(project);
+
+        checkSegmentsExistById(model, project, segmentIds);
+        checkSegmentsStatus(model, project, segmentIds,
+                SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.REFRESHING,
+                SegmentStatusEnumToDisplay.MERGING,
+                SegmentStatusEnumToDisplay.LOCKED);
+
+        if (!SecondStorage.enabled()) {
+            throw new KylinException(JOB_CONFIGURATION_ERROR, "!!!No Second Storage is installed!!!");
+        }
+        val jobHandler = new SecondStorageSegmentLoadJobHandler();
+
+        final JobParam param = SecondStorageJobParamUtil.of(project, model, getUsername(), Stream.of(segmentIds));
+        return Collections.singletonList(
+                new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
+                        getJobManager(project).addJob(param, jobHandler))
+        );
+    }
+
+    @Transaction(project = 0)
     public List<JobInfoResponse.JobInfo> refreshSegmentById(RefreshSegmentParams params) {
 
         aclEvaluate.checkProjectOperationPermission(params.getProject());
@@ -2975,11 +3101,12 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateDataModelSemantic(String project, ModelRequest request) {
+    public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         checkModelRequest(request);
         checkModelPermission(project, request.getUuid());
         validatePartitionDateColumn(request);
+        disableSecondStorageIfNeeded(project, request);
 
         val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
@@ -2990,6 +3117,8 @@ public class ModelService extends BasicService {
         val allTables = getTableManager(request.getProject()).getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
+
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel, request.isWithBaseIndex());
 
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
@@ -3010,7 +3139,25 @@ public class ModelService extends BasicService {
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
                 request.isSaveOnly(), layoutRebuild);
         updateExcludedCheckerResult(project, request);
+        BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
+        return baseIndexResponse;
+    }
+
+    public void disableSecondStorageIfNeeded(String project, ModelRequest request) {
+        // disable second storage
+        if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
+                && !request.isWithSecondStorage()) {
+            SecondStorageUtil.validateDisableModel(project, request.getId());
+            triggerModelClean(project, request.getId());
+            SecondStorageUtil.disableModel(project, request.getId());
+        }
+    }
+
+    private void triggerModelClean(String project, String model) {
+        val jobHandler = new SecondStorageModelCleanJobHandler();
+        final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, model, getUsername());
+        getJobManager(project).addJob(param, jobHandler);
     }
 
     public void updateExcludedCheckerResult(String project, ModelRequest request) {
@@ -3593,9 +3740,9 @@ public class ModelService extends BasicService {
             }
         }
 
-        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
-            copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
-        });
+        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite ->
+            copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc())
+        );
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                 modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
     }
@@ -3662,9 +3809,9 @@ public class ModelService extends BasicService {
             }
         }
 
-        getDataModelManager(project).updateDataModel(modelId, copyForWrite -> {
-            copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping());
-        });
+        getDataModelManager(project).updateDataModel(modelId, copyForWrite ->
+            copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping())
+        );
     }
 
     private void changeModelOwner(NDataModel model) {

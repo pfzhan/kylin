@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -71,6 +70,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.NModelController;
@@ -150,13 +150,13 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         model.setUuid("model1");
         models.add(new NDataModelResponse(model));
         NDataModel model1 = new NDataModel();
-        model.setUuid("model2");
+        model1.setUuid("model2");
         models.add(new NDataModelResponse(model1));
         NDataModel model2 = new NDataModel();
-        model.setUuid("model3");
+        model2.setUuid("model3");
         models.add(new NDataModelResponse(model2));
         NDataModel model3 = new NDataModel();
-        model.setUuid("model4");
+        model3.setUuid("model4");
         models.add(new NDataModelResponse(model3));
 
         return models;
@@ -179,8 +179,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModels() throws Exception {
-        Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
-                "last_modify", false, null, null, null))
+        Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", null, Arrays.asList("NEW"), "", 1, 5,
+                "last_modify", false, null, null, null, null, true))
                 .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("page_offset", "1").param("project", "default").param("model_name", "model1")
@@ -189,8 +189,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", Arrays.asList("NEW"), "", 1,
-                5, "last_modify", true, null, null, null);
+        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", null, Arrays.asList("NEW"), "", 1,
+                5, "last_modify", true, null, null, null, true);
     }
 
     @Test

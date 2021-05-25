@@ -43,7 +43,6 @@
 package org.apache.kylin.common.msg;
 
 import java.util.Locale;
-
 import org.apache.kylin.common.Singletons;
 
 public class Message {
@@ -474,6 +473,10 @@ public class Message {
         return "The data type of column %2$s from the source table %1$s has changed. Please remove the column from model %3$s, or modify the data type.";
     }
 
+    public String getSAME_TABLE_NAME_EXIST() {
+        return "Table %s already exists, please choose a different name.";
+    }
+
     public String getQUERY_NOT_ALLOWED() {
         return "Job node is unavailable for queries. Please select a query node.";
     }
@@ -496,6 +499,18 @@ public class Message {
 
     public String getNULL_EMPTY_SQL() {
         return "SQL can’t be empty. Please check and try again.";
+    }
+
+    public String getJOB_REPEATED_START_FAILURE() {
+        return "Can’t start the streaming job repeatedly.";
+    }
+
+    public String getJOB_START_FAILURE() {
+        return "Can’t start the streaming job of Model \"%s\". Please check and try again.";
+    }
+
+    public String getJOB_STOP_FAILURE() {
+        return "Can’t stop the streaming job of Model \"%s\". Please check and try again.";
     }
 
     // Access
@@ -1260,6 +1275,10 @@ public class Message {
         return "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
     }
 
+    public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
+        return "Can’t submit the job at the moment, segment [%s] hasn't base index. Please refresh this segment.";
+    }
+
     public String getADD_JOB_EXCEPTION() {
         return "Can’t find executable jobs at the moment. Please try again later.";
     }
@@ -1499,5 +1518,29 @@ public class Message {
 
     public String getQUERY_HISTORY_COLUMN_META() {
         return "Start Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n";
+    }
+
+    public String getSECOND_STORAGE_JOB_EXISTS() {
+        return "The model %s has import tasks in progress. Please try again later.\n";
+    }
+
+    public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
+        return "The project %s has import tasks in progress. Please try again later.\n";
+    }
+
+    public String getINVALID_BREOK_DEFINITION() {
+        return "Invalid input.";
+    }
+
+    public String getEMPTY_STREAMING_MESSAGE() {
+        return "This topic is empty. Please check and try again.";
+    }
+
+    public String getINVALID_STREAMING_MESSAGE_TYPE() {
+        return "The streaming message type is invalid.";
+    }
+
+    public String getPARSE_STREAMING_MESSAGE_ERROR() {
+        return "The parser cannot parse the sample data. Please check the options or modify the parser, and parse again.";
     }
 }

@@ -24,16 +24,22 @@
 
 package io.kyligence.kap.rest.response;
 
+import static io.kyligence.kap.metadata.model.NDataModel.ColumnStatus.DIMENSION;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -78,6 +84,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("source")
     private long source;
 
+    @JsonProperty("model_type")
+    private ModelType modelType;
+
     @JsonProperty("expansion_rate")
     private String expansionrate;
 
@@ -114,7 +123,24 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("last_build_time")
     private long lastBuildTime;
 
+    @JsonProperty("has_base_table_index")
+    private boolean hasBaseTableIndex;
+
+    @JsonProperty("has_base_agg_index")
+    private boolean hasBaseAggIndex;
+
+    @JsonProperty("second_storage_size")
+    private long secondStorageSize;
+
+    @JsonProperty("second_storage_nodes")
+    private List<SecondStorageNode> secondStorageNodes;
+
+    @JsonProperty("second_storage_enabled")
+    private boolean secondStorageEnabled;
+
     private long lastModify;
+
+    private List<SimplifiedNamedColumn> simplifiedDims;
 
     public NDataModelResponse() {
         super();
@@ -125,6 +151,7 @@ public class NDataModelResponse extends NDataModel {
         this.setConfig(dataModel.getConfig());
         this.setProject(dataModel.getProject());
         this.setMvcc(dataModel.getMvcc());
+        this.setModelType(dataModel.getModelType());
         this.lastModify = lastModified;
         this.setSimplifiedJoinTableDescs(
                 SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(dataModel.getJoinTables()));
@@ -132,6 +159,18 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("simplified_dimensions")
     public List<SimplifiedNamedColumn> getNamedColumns() {
+        if (simplifiedDims != null) {
+            return simplifiedDims;
+        }
+        fillDimensions(true);
+        return simplifiedDims;
+    }
+
+    public void enrichDerivedDimension() {
+        fillDimensions(false);
+    }
+
+    private void fillDimensions(boolean onlyNormalDim) {
         NTableMetadataManager tableMetadata = null;
         if (!isBroken()) {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
@@ -145,8 +184,41 @@ public class NDataModelResponse extends NDataModel {
                 dimList.add(transColumnToDim(checker, col, tableMetadata));
             }
         }
+        if (!onlyNormalDim) {
+            List<NamedColumn> allNameColCopy = Lists.newArrayList();
+            for (NamedColumn col : getAllNamedColumns()) {
+                allNameColCopy.add(NamedColumn.copy(col));
+            }
 
-        return dimList;
+            Map<String, NamedColumn> columnMap = allNameColCopy.stream().filter(NamedColumn::isExist)
+                    .collect(Collectors.toMap(NamedColumn::getAliasDotColumn, Function.identity()));
+            for (JoinTableDesc joinTable : getJoinTables()) {
+                if (!joinTable.isFlattenable() && isFkAllDim(joinTable.getJoin().getForeignKey(), columnMap)) {
+                    for (TblColRef col : joinTable.getTableRef().getColumns()) {
+                        NamedColumn namedColumn = columnMap.get(col.getAliasDotName());
+                        if (!namedColumn.isDimension()) {
+                            dimList.add(transColumnToDim(checker, namedColumn, tableMetadata));
+                            namedColumn.setStatus(DIMENSION);
+                        }
+                    }
+                }
+            }
+            setAllNamedColumns(allNameColCopy);
+        }
+
+        simplifiedDims = dimList;
+    }
+
+    private boolean isFkAllDim(String[] foreignKeys, Map<String, NamedColumn> columnMap) {
+        if(foreignKeys == null){
+            return false;
+        }
+        for (String fkCol : foreignKeys) {
+            if (!columnMap.get(fkCol).isDimension()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private NDataModel getModel() {
@@ -157,7 +229,7 @@ public class NDataModelResponse extends NDataModel {
     public SimplifiedNamedColumn transColumnToDim(ExcludedLookupChecker checker, NamedColumn col,
             NTableMetadataManager tableMetadata) {
         SimplifiedNamedColumn simplifiedDimension = new SimplifiedNamedColumn(col);
-
+        simplifiedDimension.setStatus(DIMENSION);
         TblColRef colRef = findColumnByAlias(simplifiedDimension.getAliasDotColumn());
         if (colRef == null || tableMetadata == null) {
             return simplifiedDimension;
@@ -317,7 +389,7 @@ public class NDataModelResponse extends NDataModel {
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
             TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());
-            if (simplifiedNamedColumn.getStatus() == ColumnStatus.DIMENSION && colRef != null
+            if (simplifiedNamedColumn.getStatus() == DIMENSION && colRef != null
                     && tableMetadata != null) {
                 if (checker.isColRefDependsLookupTable(colRef)) {
                     simplifiedNamedColumn.setDependLookupTable(true);

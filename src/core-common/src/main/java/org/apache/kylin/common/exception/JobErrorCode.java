@@ -25,7 +25,11 @@ package org.apache.kylin.common.exception;
 
 public enum JobErrorCode implements ErrorCodeSupplier {
 
-    SANITY_CHECK_ERROR("KE-030001001");
+    SANITY_CHECK_ERROR("KE-030001001"),
+    JOB_CONFIGURATION_ERROR("KE-030001002"),
+    SECOND_STORAGE_SEGMENTS_CONFLICTS("KE-030002001"),
+    SECOND_STORAGE_JOB_EXISTS("KE-030002002"),
+    SECOND_STORAGE_PROJECT_JOB_EXISTS("KE-030002003");
 
     private final ErrorCode errorCode;
 

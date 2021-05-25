@@ -89,6 +89,10 @@ import io.kyligence.kap.query.pushdown.SparkSubmitter;
 import lombok.val;
 import scala.collection.JavaConversions;
 
+/**
+ * After KE 4.3, we use {@link io.kyligence.kap.engine.spark.job.SegmentBuildJob} to build segment
+ */
+@Deprecated
 public class DFBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
     protected static String TEMP_DIR_SUFFIX = "_temp";
@@ -193,7 +197,7 @@ public class DFBuildJob extends SparkApplication {
     private void computeColumnBytes(DFChooser datasetChooser, NDataSegment seg, String dataflowId, String path) {
         ss.sparkContext().setJobDescription("Compute column bytes");
         val df = ss.read().parquet(path);
-        val columnBytes = JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
+        val columnBytes = (Map<String, Object>)JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
         updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), df.count());
         ss.sparkContext().setJobDescription(null);
     }
@@ -461,6 +465,7 @@ public class DFBuildJob extends SparkApplication {
         dataLayout.setPartitionValues(taskStats.partitionValues());
         dataLayout.setFileCount(taskStats.numFiles());
         dataLayout.setByteSize(taskStats.numBytes());
+        dataLayout.setReady(true);
         return dataLayout;
     }
 
@@ -489,7 +494,7 @@ public class DFBuildJob extends SparkApplication {
                 || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
             return;
 
-        if (modelDesc.getRootFactTable().getTableDesc().getTableType().equals(CatalogTableType.VIEW().name()))
+        if (CatalogTableType.VIEW().name().equals(modelDesc.getRootFactTable().getTableDesc().getTableType()))
             return;
 
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();

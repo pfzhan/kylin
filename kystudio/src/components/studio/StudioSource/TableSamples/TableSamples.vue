@@ -6,7 +6,7 @@
           {{$t('version')}}{{table.create_time | toGMTDate}}
         </div>
         <div class="right">
-          <el-input size="medium" clearable class="filter-input ksd-ml-10" :placeholder="$t('filterColumns')"
+          <el-input size="small" clearable class="filter-input ksd-ml-10" :placeholder="$t('filterColumns')"
             prefix-icon="el-ksd-icon-search_22" v-bind:value="filterText" @input="filterColumns"></el-input>
           <el-select size="medium" class="filter-input column-filter-input" value-key="range" v-model="samplePageRange" v-if="pagerSampleOptions.length">
             <el-option v-for="pager in pagerSampleOptions" :key="pager.label" :value="pager" :label="$t('pageRange', {pageRange: pager.label})"></el-option>

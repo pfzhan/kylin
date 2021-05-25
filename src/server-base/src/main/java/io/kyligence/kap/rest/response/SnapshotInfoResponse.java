@@ -23,13 +23,15 @@
  */
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Set;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.metadata.model.TableDesc;
 
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -57,7 +59,7 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
     private long lastModifiedTime;
 
     @JsonProperty("status")
-    private String status;
+    private SnapshotStatus status;
 
     @JsonProperty("forbidden_colunms")
     private Set<String> columns;
@@ -69,7 +71,7 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
     }
 
     public SnapshotInfoResponse(TableDesc tableDesc, long storage, int factTableCount, int lookupTableCount,
-                                long lastModifiedTime, String status, Set<String> columns, String selectPartitionCol) {
+            long lastModifiedTime, SnapshotStatus status, Set<String> columns, String selectPartitionCol) {
 
         this.table = tableDesc.getName();
         this.database = tableDesc.getDatabase();

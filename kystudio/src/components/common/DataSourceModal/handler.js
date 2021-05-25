@@ -7,6 +7,7 @@ export const editTypes = {
   CONFIG_CSV_SETTING: 'configCsvSetting',
   CONFIG_CSV_STRUCTURE: 'configCsvStructure',
   CONFIG_CSV_SQL: 'configCsvSql',
+  KAFKA2: 'kafkaStep2',
   ...sourceTypes
 }
 // export const sourceSettingSteps = {
@@ -17,7 +18,7 @@ export const editTypes = {
 //   }
 // }
 export const titleMaps = {
-  [editTypes.SELECT_SOURCE]: 'selectSource',
+  [editTypes.SELECT_SOURCE]: 'loadTables',
   [editTypes.CONFIG_SOURCE]: 'configSource',
   [editTypes.VIEW_SOURCE]: 'viewSource',
   // csv 数据源相关
@@ -25,10 +26,11 @@ export const titleMaps = {
   [editTypes.CONFIG_CSV_SETTING]: 'configCsvSetting',
   [editTypes.CONFIG_CSV_STRUCTURE]: 'configCsvSturcture',
   [editTypes.CONFIG_CSV_SQL]: 'configCsvSql',
-  [editTypes.HIVE]: 'loadhiveTables',
+  [editTypes.HIVE]: 'loadTables',
   [editTypes.RDBMS]: 'loadTables',
   [editTypes.RDBMS2]: 'loadTables',
-  [editTypes.KAFKA]: 'loadKafkaTopic'
+  [editTypes.KAFKA]: 'loadTables',
+  [editTypes.KAFKA2]: 'loadTables'
 }
 
 export const cancelMaps = {
@@ -42,7 +44,8 @@ export const cancelMaps = {
   [editTypes.HIVE]: 'kylinLang.common.prev',
   [editTypes.RDBMS]: '',
   [editTypes.RDBMS2]: '',
-  [editTypes.KAFKA]: ''
+  [editTypes.KAFKA]: 'kylinLang.common.prev',
+  [editTypes.KAFKA2]: 'kylinLang.common.prev'
 }
 
 export const confirmMaps = {
@@ -56,7 +59,8 @@ export const confirmMaps = {
   [editTypes.HIVE]: 'kylinLang.common.loadMetadata',
   [editTypes.RDBMS]: 'kylinLang.common.sync',
   [editTypes.RDBMS2]: 'kylinLang.common.sync',
-  [editTypes.KAFKA]: 'kylinLang.common.submit',
+  [editTypes.KAFKA]: 'kylinLang.common.next',
+  [editTypes.KAFKA2]: 'kylinLang.common.load',
   [editTypes.SETTING]: 'kylinLang.common.save'
 }
 
@@ -79,8 +83,12 @@ function _getLoadTableSubmitData (form) {
   }
 }
 
-function _getKafkaSubmitData (form) {
-  return {}
+function _getParseKafkaData (form) {
+  return form.convertData
+}
+
+function _getKafkaSubmitDate (form) {
+  return form.kafkaMeta
 }
 
 // AI 增强模式创建csv数据源
@@ -112,7 +120,9 @@ export function getSubmitData (form, editType) {
     case editTypes.RDBMS2:
       return _getLoadTableSubmitData(form)
     case editTypes.KAFKA:
-      return _getKafkaSubmitData(form)
+      return _getParseKafkaData(form)
+    case editTypes.KAFKA2:
+      return _getKafkaSubmitDate(form)
     case editTypes.CONFIG_CSV_SQL:
       return _getExpertModelCreateCsv(form)
     case editTypes.CONFIG_CSV_STRUCTURE:

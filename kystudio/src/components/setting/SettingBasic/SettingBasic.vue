@@ -21,7 +21,7 @@
           {{$t('enableSemiAutomatic')}}
           <span class="beta-label">BETA</span>
         </span>
-        <span class="setting-value fixed ksd-fs-12">
+        <span class="setting-value fixed">
           <el-switch
             v-model="form.semi_automatic_mode"
             :active-text="$t('kylinLang.common.OFF')"
@@ -95,7 +95,7 @@
       :header-content="$t('pushdownSettings')"
       :isEditable="false">
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span><span class="setting-value fixed ksd-fs-12">
+        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span><span class="setting-value fixed">
           <el-switch
             v-model="form.push_down_enabled"
             :active-text="$t('kylinLang.common.OFF')"
@@ -174,7 +174,7 @@
           </div>
         </div>
         <div class="setting-item">
-          <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span><span class="setting-value fixed">
+          <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span><span class="setting-value fixed ksd-fs-12">
             <el-switch
               v-model="form.retention_range.retention_range_enabled"
               :active-text="$t('kylinLang.common.OFF')"
@@ -246,23 +246,23 @@
 
         <div class="conds">
           <div class="conds-title">
-            <span class="setting-label font-medium">{{$t('querySubmitter')}}</span>
-            <el-switch v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <span class="setting-label font-medium">{{$t('querySubmitter')}}</span><span class="ksd-fs-12">
+            <el-switch v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch></span>
           </div>
           <div class="conds-content">
             <div class="ksd-fs-12 ksd-mt-5">{{$t('querySubmitterTips')}}</div>
             <div class="vip-users-block">
               <el-form-item prop="users">
-                <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> User</div>
+                <div class="ksd-mt-8 conds-title"><i class="el-icon-ksd-table_admin"></i> User</div>
                 <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable remote :remote-method="remoteMethod" :loading="loading" size="medium" :placeholder="rulesObj.users.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
-                  <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.users.length"></span>
+                  <span slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!rulesObj.users.length"></span>
                   <el-option v-for="item in filterSubmitterUserOptions" :key="item" :label="item" :value="item"></el-option>
                 </el-select>
               </el-form-item>
               <el-form-item prop="user_groups">
-              <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> User Group</div>
+              <div class="ksd-mt-8 conds-title"><i class="el-icon-ksd-table_group"></i> User Group</div>
               <el-select v-model="rulesObj.user_groups" v-event-stop :popper-append-to-body="false" filterable size="medium" :placeholder="rulesObj.user_groups.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
-                <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.user_groups.length"></span>
+                <span slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!rulesObj.user_groups.length"></span>
                 <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
               </el-select>
               </el-form-item>
@@ -271,10 +271,11 @@
         </div>
         <div class="conds">
           <div class="conds-title">
-            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><el-switch @change="changeDurationEnable" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <span class="setting-label font-medium">{{$t('queryDuration')}}</span><span class="ksd-fs-12">
+            <el-switch @change="changeDurationEnable" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch></span>
           </div>
           <div class="conds-content clearfix">
-            <div class="ksd-mt-10 ksd-fs-14">
+            <div class="ksd-mt-8 ksd-fs-12">
               {{$t('from')}}
               <el-form-item prop="min_duration" style="display: inline-block;">
                 <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', rulesObj.duration_enable && durationError && 'is-error']" :disabled="!rulesObj.duration_enable" @blur="$refs.rulesForm.validateField('max_duration')"></el-input>
@@ -294,7 +295,7 @@
             <!-- <el-switch size="small" v-model="rulesObj.recommendation_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch> -->
           </div>
           <div class="conds-content clearfix">
-              <div class="ksd-mt-10 ksd-fs-14">
+              <div class="ksd-mt-8 ksd-fs-12">
                 {{$t('suggestionTip1')}}
                 <el-form-item prop="recommendations_value" style="display: inline-block;">
                   <el-select v-model="rulesObj.recommendations_value" v-event-stop size="mini" :disabled="!rulesObj.recommendation_enable" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" style="width:70px">
@@ -307,11 +308,11 @@
         </div>
         <div class="conds">
           <div class="conds-title">
-            <span class="setting-label font-medium">{{$t('excludeRule')}}</span>
-            <el-switch v-model="rulesObj.excluded_tables_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <span class="setting-label font-medium">{{$t('excludeRule')}}</span><span class="ksd-fs-12">
+            <el-switch v-model="rulesObj.excluded_tables_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch></span>
           </div>
           <div class="conds-content clearfix">
-              <div class="ksd-mt-10 ksd-fs-14">
+              <div class="ksd-mt-8 ksd-fs-14">
                 <div class="exclude-rule-msg">
                   <p class="tips">{{$t('excludeRuleTip')}}<span class="review-details" @click="showExcludeRuleDetails = !showExcludeRuleDetails">{{$t('moreDetails')}}<i :class="['arrow', showExcludeRuleDetails ? 'el-icon-ksd-more_01-copy' : 'el-icon-ksd-more_02']"></i></span></p>
                   <div class="details" v-if="showExcludeRuleDetails">
@@ -866,7 +867,7 @@ export default class SettingBasic extends Vue {
       margin-bottom: 0;
     }
     .conds {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       // padding-bottom: 15px;
       // border-bottom: 1px solid @line-split-color;
     }

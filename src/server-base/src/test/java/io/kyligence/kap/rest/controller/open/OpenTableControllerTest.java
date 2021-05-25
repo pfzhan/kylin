@@ -117,6 +117,20 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetTable() throws Exception {
+        String project = "default";
+        String tableName = "TEST_KYLIN_FACT";
+        String database = "DEFAULT";
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", project).param("table", tableName).param("database", database)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).getTableDesc(project, tableName, database, false, true, 0, 10, 9);
+    }
+
+    @Test
     public void testSetDateRangePass() throws Exception {
         String project = "default";
         String tableName = "DEFAULT.TEST_KYLIN_FACT";

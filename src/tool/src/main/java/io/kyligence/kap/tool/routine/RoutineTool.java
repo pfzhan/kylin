@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -115,6 +116,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
                 cleanMetaByProject(projName);
             }
             cleanQueryHistories();
+            cleanStreamingStats();
             deleteRawRecItems();
             System.out.println("Metadata cleanup finished");
         } catch (Exception e) {
@@ -219,5 +221,9 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
 
     public static void cleanQueryHistories() {
         QueryHisStoreUtil.cleanQueryHistory();
+    }
+
+    public static void cleanStreamingStats() {
+        StreamingJobStatsStoreUtil.cleanStreamingJobStats();
     }
 }

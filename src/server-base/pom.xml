@@ -91,6 +91,11 @@
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-streaming</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-datasource-sdk</artifactId>
         </dependency>
         <!-- these plug-in modules, should not have API dependencies -->
@@ -252,6 +257,13 @@
             <version>${bcprov-ext-jdk15on.version}</version>
         </dependency>
 
+        <!-- Hadoop -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test & Env -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -293,6 +305,12 @@
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.javassist</groupId>
+                    <artifactId>javassist</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -362,6 +380,19 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-smart</artifactId>
         </dependency>
+        <!-- hadoop -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+        </dependency>
         <!-- Spark dependency -->
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -391,6 +422,26 @@
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-api-mockito2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- hive -->
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-metastore</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-exec</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- second storage -->
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-clickhouse</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

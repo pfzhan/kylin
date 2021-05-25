@@ -203,4 +203,15 @@ class BuildJobInfos {
   def getJobStepId: String = {
     jobStepId
   }
+
+  def clear(): Unit = {
+    seg2cuboidsNumPerLayer.clear()
+    seg2SpanningTree.clear()
+    parent2Children.clear()
+    sparkPlans.clear()
+    mergingSegments.clear()
+    abnormalLayouts.clear()
+    autoSparkConfs.clear()
+    jobRetryInfos.clear()
+  }
 }

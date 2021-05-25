@@ -23,7 +23,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + modelId + '/segments?project=' + project + '&purge=' + true).delete()
   },
   getModelList: (params) => {
-    return Vue.resource(apiUrl + 'models{?status}').get(params)
+    return Vue.resource(apiUrl + 'models{?status}{&model_attributes}').get(params)
   },
   renameModel: (params) => {
     return Vue.resource(apiUrl + 'models/' + params.model + '/name').update(params)
@@ -351,5 +351,22 @@ export default {
   },
   fetchSubmitterList (para) {
     return Vue.resource(apiUrl + 'query/query_history_submitters').get(para)
+  },
+  // 获取任务状态
+  getStreamingJobs (para) {
+    return Vue.resource(apiUrl + 'streaming_jobs').get(para)
+  },
+  // 更改任务状态
+  changeStreamingJobStatus (para) {
+    return Vue.http.put(apiUrl + 'streaming_jobs/status', para)
+  },
+  updateStreamingConfigurations (para) {
+    return Vue.http.put(apiUrl + 'streaming_jobs/params', para)
+  },
+  updateModelSecStorage (para) {
+    return Vue.resource(apiUrl + 'storage/model/state').save(para)
+  },
+  syncSegmentsSecStorage (para) {
+    return Vue.resource(apiUrl + 'storage/segments').save(para)
   }
 }

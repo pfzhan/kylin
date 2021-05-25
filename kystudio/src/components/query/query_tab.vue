@@ -3,8 +3,8 @@
     <!-- for guide start -->
     <el-button @click="handleForGuide" style="position: absolute;" v-visible v-guide.queryTriggerBtn></el-button>
     <!-- for guide end -->
-    <div class="query_panel_box ksd-mb-30">
-      <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="220" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema" :readOnly="!isWorkspace">
+    <div class="query_panel_box ksd-mb-34">
+      <kap-editor ref="insightBox" :class="{'guide-WorkSpaceEditor':isWorkspace}" height="218" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema" :readOnly="!isWorkspace">
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">
@@ -16,7 +16,7 @@
             <el-form-item v-show="showHtrace">
               <el-checkbox v-model="queryForm.isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
             </el-form-item><el-form-item>
-              <el-checkbox v-model="queryForm.hasLimit" @change="changeLimit">Limit</el-checkbox>
+              <el-checkbox class="ksd-mt-4" v-model="queryForm.hasLimit" @change="changeLimit">Limit</el-checkbox>
             </el-form-item><el-form-item :rules="limitRule" prop="listRows" :show-message="false">
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="queryForm.listRows" class="limit-input"></el-input>
             </el-form-item><el-form-item>

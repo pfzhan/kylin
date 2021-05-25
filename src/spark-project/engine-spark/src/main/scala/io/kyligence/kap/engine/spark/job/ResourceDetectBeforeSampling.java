@@ -5,6 +5,7 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -15,6 +16,7 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import scala.collection.JavaConversions;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import scala.collection.JavaConverters;
@@ -25,9 +27,10 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
     protected void doExecute() {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         final TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
+        LinkedHashMap<String, String> params = NProjectManager.getInstance(config).getProject(project).getOverrideKylinProps();
         final Dataset<Row> dataset = SourceFactory
                 .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
-                .getSourceData(tableDesc, ss, new HashMap<>());
+                .getSourceData(tableDesc, ss, params);
 
         final List<Path> paths = JavaConversions
                 .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));

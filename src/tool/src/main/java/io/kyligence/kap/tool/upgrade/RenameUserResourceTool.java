@@ -61,8 +61,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
@@ -343,7 +342,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
             dout.close();
             buf.close();
 
-            ByteSource byteSource = ByteStreams.asByteSource(buf.toByteArray());
+            ByteSource byteSource = ByteSource.wrap(buf.toByteArray());
 
             rs = new RawResource(projectAclPath, byteSource, System.currentTimeMillis(), rs.getMvcc());
 

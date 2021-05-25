@@ -25,6 +25,8 @@
 package org.apache.kylin.common;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -56,7 +58,7 @@ public class QueryTrace {
         SPAN_GROUPS.put(MODEL_MATCHING, PREPARATION);
     }
 
-
+    @Getter
     private List<Span> spans = new LinkedList<>();
 
     public Optional<Span> getLastSpan() {
@@ -100,6 +102,7 @@ public class QueryTrace {
     }
 
     @Data
+    @NoArgsConstructor
     public static class Span {
         String name;
 

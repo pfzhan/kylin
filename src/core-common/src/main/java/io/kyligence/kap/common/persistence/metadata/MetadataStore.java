@@ -40,8 +40,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
@@ -173,7 +172,7 @@ public abstract class MetadataStore {
         files.forEach(f -> {
             try (val fis = new FileInputStream(f)) {
                 val resPath = f.getPath().replace(root.getPath(), "");
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(fis));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(fis));
                 val raw = new RawResource(resPath, bs, f.lastModified(), 0);
                 resourceConsumer.accept(raw);
             } catch (IOException e) {

@@ -12,8 +12,8 @@
       <slot></slot>
     </div>
     <div class="block-foot" v-if="isEditing">
-      <el-button plain size="small" v-if="isReset" :loading="isResetLoading" @click="handleCancel">{{cancelText}}</el-button><el-button
-      size="small" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="small" v-if="isReset" :loading="isResetLoading" @click="handleCancel">{{cancelText}}</el-button><el-button
+      type="primary" size="small" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </div>
 </template>
@@ -87,17 +87,17 @@ export default class EditableBlock extends Vue {
 
 .editable-block {
   .block-header {
-    border-top: 1px solid @line-border-color;
-    border-right: 1px solid @line-border-color;
-    border-left: 1px solid @line-border-color;
-    background: @regular-background-color;
+    border-top: 1px solid @ke-border-secondary;
+    border-right: 1px solid @ke-border-secondary;
+    border-left: 1px solid @ke-border-secondary;
+    // background: @regular-background-color;
     color: @text-title-color;
-    font-size: 14px;
-    line-height: 18px;
+    font-size: 16px;
+    line-height: 22px;
     font-weight: @font-medium;
-    padding: 8px 15px;
-    border-top-left-radius: 2px;
-    border-top-right-radius: 2px;
+    padding: 16px 24px 8px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
     > * {
       vertical-align: middle;
     }
@@ -115,22 +115,24 @@ export default class EditableBlock extends Vue {
     }
   }
   .block-body {
-    border: 1px solid @line-border-color;
+    border-left: 1px solid @ke-border-secondary;
+    border-right: 1px solid @ke-border-secondary;
     background: @fff;
     &.no-footer{
-      border-bottom-left-radius: 2px;
-      border-bottom-right-radius: 2px;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+      border-bottom: 1px solid @ke-border-secondary;
     }
   }
   .block-foot {
-    border-bottom: 1px solid @line-border-color;
-    border-right: 1px solid @line-border-color;
-    border-left: 1px solid @line-border-color;
-    padding: 10px 15px;
+    border-bottom: 1px solid @ke-border-secondary;
+    border-right: 1px solid @ke-border-secondary;
+    border-left: 1px solid @ke-border-secondary;
+    padding: 0px 24px 16px;
     background: @fff;
-    text-align: right;
-    border-bottom-left-radius: 2px;
-    border-bottom-right-radius: 2px;
+    text-align: left;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
     .el-button+.el-button {
       margin-left: 8px;
     }

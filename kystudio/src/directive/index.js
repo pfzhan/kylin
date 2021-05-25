@@ -676,31 +676,22 @@ Vue.directive('custom-tooltip', {
       nextElement,
       textWidth: currentElWidth,
       binding,
+      timer: null,
       [`resizeFn-${id}`]: function () {
         const { parent } = parentList[id]
         if (!parent) return
         let textNode = parent.querySelector('.custom-tooltip-text')
-        appendTipDom(textNode, getTextWidth(textNode, textNode.innerText), 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+        setTimeout(() => {
+          // 此方法的调用需要等待 dom 被更新完成
+          appendTipDom(textNode, getTextWidth(textNode, textNode.innerText), 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+        }, 100)
       }
     }
 
     appendTipDom(el, currentElWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
 
     setTimeout(() => {
-      // 当元素在table中，使用 MutationObserver 方法监听 table 宽度 style 的改变（这里监听的是 el-table__body dom 的宽度）
-      if (binding.value.tableClassName) {
-        let element = document.querySelector(`.${binding.value.tableClassName}`) && document.querySelector(`.${binding.value.tableClassName}`).querySelector('.el-table__body')
-        let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver
-        if (parentList[id]) {
-          let observer = new MutationObserver(parentList[id][`resizeFn-${id}`])
-          parentList[id].observer = observer
-          observer.observe(element, {
-            attributes: true  // 监听 table 的 attributes 的改变
-          })
-        }
-      } else {
-        parentList[id] && parentList[id][`resizeFn-${id}`] && window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
-      }
+      licenseDom(id)
     }, 500)
   },
   update: (el, binding, oldVnode) => {
@@ -723,6 +714,28 @@ Vue.directive('custom-tooltip', {
     delete parentList[id]
   }
 })
+
+// MutationObserver 方式监听 dom attrs 的改变
+function licenseDom (id) {
+  const { binding } = parentList[id]
+  // 当元素在table中，使用 MutationObserver 方法监听 table 宽度 style 的改变（这里监听的是 el-table__body dom 的宽度）
+  if (binding.value.tableClassName) {
+    let element = document.querySelector(`.${binding.value.tableClassName}`) && document.querySelector(`.${binding.value.tableClassName}`).querySelector('.el-table__body')
+    let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver
+    if (parentList[id]) {
+      let observer = new MutationObserver(
+        parentList[id][`resizeFn-${id}`]
+      )
+      parentList[id].observer = observer
+      observer.observe(element, {
+        attributes: true,  // 监听 table 的 attributes 的改变
+        attributeFilter: ['drag-count']
+      })
+    }
+  } else {
+    parentList[id] && parentList[id][`resizeFn-${id}`] && window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
+  }
+}
 
 // 自定义创建common-tip组件并挂载
 function createToolTipDom (el, binding, parentWidth) {

@@ -43,6 +43,8 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
@@ -60,6 +62,19 @@ public class TimeRange implements Serializable {
         this.end = (e == null || e == Long.MAX_VALUE) ? Long.MAX_VALUE : e;
 
         Preconditions.checkState(this.start < this.end);
+    }
+
+    public TimeRange(Long s, Long e, Map<Integer, Long> offsetStart, Map<Integer, Long> offsetEnd) {
+        this.start = (s == null || s <= 0) ? 0 : s;
+        this.end = (e == null || e == Long.MAX_VALUE) ? Long.MAX_VALUE : e;
+
+        Preconditions.checkState(this.start <= this.end);
+        Iterator<Map.Entry<Integer, Long>> iter = offsetStart.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Integer, Long> entry = iter.next();
+            Integer partition = entry.getKey();
+            Preconditions.checkState(offsetStart.get(partition) < offsetEnd.get(partition));
+        }
     }
 
     public long getStart() {

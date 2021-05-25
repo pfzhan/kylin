@@ -6,6 +6,7 @@
     :close-on-click-modal="false"
     :append-to-body="true"
     :visible.sync="isShow"
+    :status-icon="showIcon && dialogStatus[dialogType]"
     limited-area
     :custom-class="customClass"
     :close-on-press-escape="false">
@@ -17,7 +18,7 @@
       :type="dialogType"
       :show-background="false"
       :closable="false"
-      :show-icon="showIcon">
+      :show-icon="false">
       <span class="confirm-msg" v-if="dangerouslyUseHTMLString" style="word-break: break-word;" v-html="msg"></span>
       <span class="confirm-msg" v-else style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
       <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn" class="show-detail">{{$t('kylinLang.common.seeDetail')}}
@@ -66,7 +67,6 @@
     </el-alert>
     <div v-if="tableTitle">{{tableTitle}}</div>
     <el-table class="detail-table ksd-mt-10"
-      border
       nested
       size="small"
       max-height="420"
@@ -174,6 +174,12 @@ export default class DetailDialogModal extends Vue {
   showCopyText = false
   copyBtnClickIndex = 0
   multipleSelection = []
+  dialogStatus = {
+    success: 'el-ksd-icon-finished_24',
+    warning: 'el-ksd-icon-warning_24',
+    error: 'el-ksd-icon-error_24',
+    info: 'el-ksd-icon-info_24'
+  }
   get closeT () {
     return this.closeText || this.$t('kylinLang.common.close')
   }

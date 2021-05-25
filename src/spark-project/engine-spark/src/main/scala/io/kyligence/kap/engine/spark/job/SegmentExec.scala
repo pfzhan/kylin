@@ -42,7 +42,6 @@ import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 
-private[job]
 trait SegmentExec extends Logging {
 
   protected val jobId: String

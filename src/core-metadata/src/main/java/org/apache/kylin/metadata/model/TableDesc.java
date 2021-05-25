@@ -44,7 +44,6 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +51,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -69,15 +74,8 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.val;
 
 /**
  * Table Metadata from Source. All name should be uppercase.
@@ -123,15 +121,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     @JsonProperty("source_type")
     private int sourceType = ISourceAware.ID_HIVE;
-
-    @JsonProperty("kafka_bootstrap_servers")
-    private String kafkaBootstrapServers;
-
-    @JsonProperty("subscribe")
-    private String subscribe;
-
-    @JsonProperty("starting_offsets")
-    private String startingOffsets;
 
     @JsonProperty("table_type")
     private String tableType;
@@ -198,10 +187,16 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonProperty("temp_snapshot_path")
     private String tempSnapshotPath;
 
+    @Setter
+    @Getter
+    @JsonProperty("snapshot_has_broken")
+    private boolean snapshotHasBroken;
+
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
     private boolean isBorrowedFromGlobal = false;
+    private KafkaConfig kafkaConfig;
 
     public TableDesc() {
     }
@@ -212,9 +207,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.createTime = other.createTime;
         this.name = other.name;
         this.sourceType = other.sourceType;
-        this.kafkaBootstrapServers = other.kafkaBootstrapServers;
-        this.subscribe = other.subscribe;
-        this.startingOffsets = other.startingOffsets;
         this.tableType = other.tableType;
         this.dataGen = other.dataGen;
         this.incrementLoading = other.incrementLoading;
@@ -233,7 +225,8 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.selectedSnapshotPartitionCol = other.selectedSnapshotPartitionCol;
         this.snapshotPartitionCol = other.snapshotPartitionCol;
         this.snapshotLastModified = other.getSnapshotLastModified();
-
+        this.snapshotHasBroken = other.snapshotHasBroken;
+        this.kafkaConfig = other.kafkaConfig;
 
         setMvcc(other.getMvcc());
     }
@@ -425,6 +418,8 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
                 col.init(this);
             }
         }
+        kafkaConfig = KafkaConfigManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getKafkaConfig(this.getIdentity());
     }
 
     @Override
@@ -490,31 +485,17 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         return tableType;
     }
 
-    public void setSubscribe(String subscribe) {
-        this.subscribe = subscribe;
-    }
-
-    public HashMap<String, String> getKafkaParam() {
-        Preconditions.checkState(
-                this.kafkaBootstrapServers != null && this.subscribe != null && this.startingOffsets != null,
-                "table are not streaming table");
-        val kafkaParam = Maps.<String, String> newHashMap();
-        kafkaParam.put("kafka.bootstrap.servers", this.kafkaBootstrapServers);
-        kafkaParam.put("subscribe", subscribe);
-        kafkaParam.put("startingOffsets", startingOffsets);
-        return kafkaParam;
-    }
-
     public void setTableType(String tableType) {
         this.tableType = tableType;
     }
 
-    public void deleteSnapshot() {
+    public void deleteSnapshot(boolean makeBroken) {
         this.lastSnapshotPath = null;
         snapshotPartitionCol = null;
         snapshotPartitions = Maps.newHashMap();
         selectedSnapshotPartitionCol = null;
         lastSnapshotSize = 0;
+        snapshotHasBroken = makeBroken;
     }
 
     public void copySnapshotFrom(TableDesc originTable) {
@@ -523,6 +504,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         setSnapshotPartitionCol(originTable.getSnapshotPartitionCol());
         setSelectedSnapshotPartitionCol(originTable.getSelectedSnapshotPartitionCol());
         setSnapshotLastModified(originTable.getSnapshotLastModified());
+        setSnapshotHasBroken(originTable.isSnapshotHasBroken());
     }
 
     public void resetSnapshotPartitions(Set<String> snapshotPartitions) {
@@ -546,5 +528,13 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
             }
         });
         return notReadyPartitions;
+    }
+
+    public KafkaConfig getKafkaConfig() {
+        return kafkaConfig;
+    }
+
+    public void setKafkaConfig(KafkaConfig kafkaConfig) {
+        this.kafkaConfig = kafkaConfig;
     }
 }

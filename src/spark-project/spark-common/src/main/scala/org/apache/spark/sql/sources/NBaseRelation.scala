@@ -23,6 +23,6 @@ package org.apache.spark.sql.sources
 
 import org.apache.hadoop.fs.Path
 
-abstract class NBaseRelation extends BaseRelation {
+trait NBaseRelation extends BaseRelation {
   def location: Path
 }

@@ -257,6 +257,8 @@ class NModel extends Schama {
         metaData.multi_partition_desc = this.multi_partition_desc
         metaData.maintain_model_type = this._mount.maintain_model_type
         metaData.management_type = this.management_type
+        metaData.with_second_storage = this.second_storage_enabled
+        metaData.second_storage_size = this.second_storage_size
         metaData.canvas = this._generateTableRectData()
         // metaData = _filterData(metaData)
         resolve(metaData)
@@ -993,12 +995,23 @@ class NModel extends Schama {
       let tableInfo = this._getTableOriginInfo(options.table)
       options.columns = tableInfo.columns
       options.plumbTool = this.plumbTool
+      options.source_type = tableInfo.source_type
       options.fact = tableInfo.fact
-      if (options.fact) {
-        if (this.getFactTable()) {
-          options.kind = modelRenderConfig.tableKind.lookup // 如果已经存在fact表了，那再拖入一个fact默认设置为lookup
+      if (tableInfo.source_type === 1) {
+        if (!this.getFactTable()) {
+          options.kind = modelRenderConfig.tableKind.fact
+          this.fact_table = options.table // kafka的table直接为fact表
         } else {
-          this.fact_table = options.table
+          this.vm.$message({ type: 'info', message: this.vm.$t('kafakFactTips') })
+          return
+        }
+      } else {
+        if (options.fact) {
+          if (this.getFactTable()) {
+            options.kind = modelRenderConfig.tableKind.lookup // 如果已经存在fact表了，那再拖入一个fact默认设置为lookup
+          } else {
+            this.fact_table = options.table
+          }
         }
       }
       options._parent = this._mount

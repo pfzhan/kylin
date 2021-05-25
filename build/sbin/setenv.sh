@@ -40,6 +40,10 @@ if [[ -f "${KYLIN_HOME}/conf/setenv.sh" ]]; then
     source ${KYLIN_HOME}/conf/setenv.sh
 fi
 
+if [[ -d "/data/external-jars" ]];then
+    cp -rf /data/external-jars/*.jar ${KYLIN_HOME}/spark/jars/
+fi
+
 export JAVA_VM_XMS=${JAVA_VM_XMS:-1g}
 export JAVA_VM_XMX=${JAVA_VM_XMX:-8g}
 

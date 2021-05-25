@@ -19,8 +19,7 @@
         :data="groupUsersList"
         class="group-table"
         :empty-text="emptyText"
-        v-scroll-shadow
-        border>
+        v-scroll-shadow>
         <el-table-column
           :label="$t('kylinLang.common.name')"
           show-overflow-tooltip

@@ -56,8 +56,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import lombok.Getter;
 import lombok.val;
@@ -189,7 +188,7 @@ public class HDFSMetadataStore extends MetadataStore {
                 log.warn("Zero length file: " + p.toString());
             }
             try (val in = fs.open(p)) {
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(in));
                 long t = fs.getFileStatus(p).getModificationTime();
                 return new RawResource(resPath, bs, t, 0);
             }
@@ -316,7 +315,7 @@ public class HDFSMetadataStore extends MetadataStore {
                 if (!zipEntry.getName().startsWith("/")) {
                     continue;
                 }
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipIn));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(zipIn));
                 long t = zipEntry.getTime();
                 val raw = new RawResource(zipEntry.getName(), bs, t, 0);
                 res.put(zipEntry.getName(), raw);

@@ -56,7 +56,7 @@ import org.springframework.transaction.TransactionDefinition;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;

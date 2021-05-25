@@ -247,6 +247,10 @@
             </scr:headers>
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="nUnauthorisedEntryPoint"/>
+            <scr:intercept-url pattern="/api/streaming_jobs/spark" access="permitAll"/>
+            <scr:intercept-url pattern="/api/streaming_jobs/stats" access="permitAll"/>
+            <scr:intercept-url pattern="/api/streaming_jobs/dataflow/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/epoch/maintenance_mode" access="permitAll"/>
             <scr:intercept-url pattern="/api/health" access="permitAll"/>
             <scr:intercept-url pattern="/api/health/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/prometheus" access="permitAll"/>
@@ -274,7 +278,6 @@
             <scr:intercept-url pattern="/api/cubes/src/tables" access="hasAnyRole('ROLE_ANALYST')"/>
             <scr:intercept-url pattern="/api/cubes*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/models*/**" access="isAuthenticated()"/>
-            <scr:intercept-url pattern="/api/streaming*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/job*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/admin/public_config" access="permitAll"/>
             <scr:intercept-url pattern="/api/admin/instance_info" access="permitAll"/>
@@ -316,6 +319,10 @@
             <scr:csrf disabled="true"/>
             <scr:http-basic entry-point-ref="unauthorisedEntryPoint"/>
 
+            <scr:intercept-url pattern="/api/streaming_jobs/spark" access="permitAll"/>
+            <scr:intercept-url pattern="/api/streaming_jobs/stats" access="permitAll"/>
+            <scr:intercept-url pattern="/api/streaming_jobs/dataflow/**" access="permitAll"/>
+            <scr:intercept-url pattern="/api/epoch/maintenance_mode" access="permitAll"/>
             <scr:intercept-url pattern="/api/config/is_cloud" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/file" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/content" access="permitAll"/>
@@ -329,7 +336,6 @@
             <scr:intercept-url pattern="/api/cubes/src/tables" access="hasAnyRole('ROLE_ANALYST')"/>
             <scr:intercept-url pattern="/api/cubes*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/models*/**" access="isAuthenticated()"/>
-            <scr:intercept-url pattern="/api/streaming*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/job*/**" access="isAuthenticated()"/>
             <scr:intercept-url pattern="/api/admin/config" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/license/info" access="permitAll"/>

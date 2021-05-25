@@ -70,6 +70,7 @@ public class ScheduleService {
             if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
                 backupService.backupAll();
                 RoutineTool.cleanQueryHistories();
+                RoutineTool.cleanStreamingStats();
                 RoutineTool.deleteRawRecItems();
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     new SourceUsageCleaner().cleanup();

@@ -272,16 +272,23 @@ public class RealizationChooser {
             logger.info("Exclude this model {} because there are no ready segments", model.getAlias());
             return null;
         }
-        Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)),
-                model2AliasMap.get(model));
-        if (candidate != null) {
-            logger.trace("Model {} QueryRouter matched", model);
-        } else {
-            logger.trace("Model {} failed in QueryRouter matching", model);
+
+        Set<IRealization> realizations = Sets.newHashSet(modelMap.get(model));
+        List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
+        for (IRealization real : realizations) {
+            Candidate candidate = QueryRouter.selectRealization(context, real, model2AliasMap.get(model));
+            candidates.add(candidate);
+
+            if (candidate != null) {
+                logger.trace("Model {} QueryRouter matched", model);
+            } else {
+                logger.trace("Model {} failed in QueryRouter matching", model);
+            }
         }
         context.setNeedToManyDerived(needToManyDerived(model));
+
         context.unfixModel();
-        return candidate;
+        return candidates.get(0);
     }
 
     private static boolean needToManyDerived(NDataModel model) {
@@ -300,7 +307,7 @@ public class RealizationChooser {
     }
 
     public static void fixContextForTableIndexAnswerNonRawQuery(OLAPContext context) {
-        if (KylinConfig.getInstanceFromEnv().isUseTableIndexAnswerNonRawQuery()
+        if (context.realization.getConfig().isUseTableIndexAnswerNonRawQuery()
                 && !context.storageContext.isEmptyLayout() && context.isAnsweredByTableIndex()) {
             if (!context.aggregations.isEmpty()) {
                 List<FunctionDesc> aggregations = context.aggregations;

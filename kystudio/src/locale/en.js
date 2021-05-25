@@ -219,7 +219,9 @@ exports.default = {
     buildSuccess: 'Submitted successfully. You may go to the job page to ',
     toJoblist: 'check details',
     queryNode: 'Query node',
-    jobNode: 'Job node'
+    jobNode: 'Job node',
+    BATCH: 'Batch',
+    STREAMING: 'Streaming'
   },
   model: {
     generateModel: 'From SQL',

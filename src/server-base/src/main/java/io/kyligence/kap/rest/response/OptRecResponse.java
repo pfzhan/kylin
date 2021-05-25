@@ -46,4 +46,8 @@ public class OptRecResponse implements ProjectInsensitiveRequest {
 
     @JsonProperty("removed_layouts")
     private List<Long> removedLayouts = Lists.newArrayList();
+
+    @JsonProperty("base_index_info")
+    private BuildBaseIndexResponse baseIndexInfo;
+
 }

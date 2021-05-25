@@ -110,9 +110,6 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     private static final String CONVERT_TO_CC_ERROR_MSG = "Something unexpected while ConvertToComputedColumn transforming the query, return original query.";
 
-    private static Map<String, String> calciteExtrasProperties = KylinConfig.getInstanceFromEnv()
-            .getCalciteExtrasProperties();
-
     private static final LoadingCache<String, String> transformExpressions = CacheBuilder.newBuilder()
             .maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build(new CacheLoader<String, String>() {
                 @Override
@@ -252,10 +249,10 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
             List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo) {
-        return replaceComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo, false);
+        return new ConvertToComputedColumn().replaceComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo, false);
     }
 
-    private static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
+    private Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
             List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo, boolean replaceCcName) {
 
         if (computedColumns == null || computedColumns.isEmpty()) {
@@ -307,7 +304,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         }
     }
 
-    private static List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> matchComputedColumn(String inputSql,
+    private List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> matchComputedColumn(String inputSql,
             SqlCall selectOrOrderby, List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo,
             boolean replaceCcName) {
         List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
@@ -348,16 +345,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         return transformExpressions.get(expression);
     }
 
-    private static String getCalciteConformance() {
-        try {
-            return calciteExtrasProperties.get("conformance");
-        } catch (Throwable e) {
-            return "DEFAULT";
-        }
-    }
-
     //Return matched node's position and its alias(if exists).If can not find matches, return an empty list
-    private static List<SqlNode> getMatchedNodes(SqlCall selectOrOrderby, String ccExp, QueryAliasMatchInfo matchInfo) {
+    private List<SqlNode> getMatchedNodes(SqlCall selectOrOrderby, String ccExp, QueryAliasMatchInfo matchInfo) {
         if (ccExp == null || ccExp.equals(StringUtils.EMPTY)) {
             return Collections.emptyList();
         }
@@ -365,7 +354,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         SqlNode ccExpressionNode = CalciteParser.getReadonlyExpNode(ccExp);
 
         List<SqlNode> inputNodes = new LinkedList<>();
-        if ("LENIENT".equals(getCalciteConformance())) {
+        if ("LENIENT".equals(KylinConfig.getInstanceFromEnv().getCalciteConformance())) {
             inputNodes = getInputTreeNodes(selectOrOrderby);
         } else {
 

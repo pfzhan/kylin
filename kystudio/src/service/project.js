@@ -133,6 +133,15 @@ export default {
   getSCDModel (data) {
     return Vue.resource(apiUrl + 'models/name/scd2').get(data)
   },
+  updateSecStorageSettings (data) {
+    return Vue.resource(apiUrl + 'storage/project/state').save(data)
+  },
+  getSecStorageModels (para) {
+    return Vue.resource(apiUrl + 'storage/project/state/validation').save(para)
+  },
+  fetchAvailableNodes (para) {
+    return Vue.resource(apiUrl + 'storage/nodes').get(para)
+  },
   loadStatistics (para) {
     return Vue.resource(apiUrl + `projects/statistics`).get(para)
   },

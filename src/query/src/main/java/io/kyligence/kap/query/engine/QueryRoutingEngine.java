@@ -126,13 +126,13 @@ public class QueryRoutingEngine {
             }, queryParams.getProject());
         } catch (TransactionException e) {
             Throwable cause = e.getCause();
-            if (shouldPushdown(cause, queryParams.getKylinConfig())) {
+            if (shouldPushdown(cause, queryParams)) {
                 return pushDownQuery((SQLException) cause, queryParams);
             } else {
                 throw e;
             }
         } catch (SQLException e) {
-            if (shouldPushdown(e, queryParams.getKylinConfig())) {
+            if (shouldPushdown(e, queryParams)) {
                 return pushDownQuery(e, queryParams);
             } else {
                 throw e;
@@ -142,9 +142,13 @@ public class QueryRoutingEngine {
         }
     }
 
-    private boolean shouldPushdown(Throwable e, KylinConfig config) {
+    private boolean shouldPushdown(Throwable e, QueryParams queryParams) {
+        if (queryParams.isForcedToIndex()) {
+            return false;
+        }
+
         Throwable cause = e instanceof SQLException ? e : e.getCause();
-        for (Class<?> pushdownOnError : config.pushdownOnErrors()) {
+        for (Class<?> pushdownOnError : queryParams.getKylinConfig().pushdownOnErrors()) {
             if (ExceptionUtils.indexOfThrowable(cause, pushdownOnError) != -1) {
                 return true;
             }

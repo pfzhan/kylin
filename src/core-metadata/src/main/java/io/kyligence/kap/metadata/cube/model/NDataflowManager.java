@@ -82,6 +82,13 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
 
+/**
+ * TODO
+ * Since Version 4.x.x, model-dataflow relationship depends on model type,
+ * refer to [NDataModel.ModelType]
+ * Batch model still mapping to ONE dataflow
+ * While Streaming model will be mapping to TWO dataflows
+ */
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);
 
@@ -180,12 +187,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return listAllDataflows(false);
     }
 
-    // get all dataflows include broken ones
+    // get all dataflows include/exclude broken ones
     public List<NDataflow> listAllDataflows(boolean includeBroken) {
         return crud.listAll().stream().filter(df -> includeBroken || !df.checkBrokenWithRelatedInfo())
                 .collect(Collectors.toList());
     }
-
     // listUnderliningDataModels only get the healthy models,
     // the broken ones need to be invisible in the auto-suggestion process,
     // anyone in dataflow, indexPlan and dataModel is broken, the model is considered to be broken
@@ -261,6 +267,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.get(id);
     }
 
+    // TODO not support in streaming model
     public NDataflow getDataflowByModelAlias(String name) {
         return listAllDataflows(true).stream().filter(dataflow -> Objects.equals(dataflow.getModelAlias(), name))
                 .findFirst().orElse(null);
@@ -276,7 +283,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     public NDataflow createDataflow(IndexPlan plan, String owner, RealizationStatusEnum realizationStatusEnum) {
         NDataflow df = NDataflow.create(plan, realizationStatusEnum);
-        df.setStatus(realizationStatusEnum);
         df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
 
         // save dataflow
@@ -360,7 +366,36 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment appendSegmentForStreaming(NDataflow df, SegmentRange segRange) {
+        return appendSegmentForStreaming(df, segRange, null);
+    }
+
+    public NDataSegment appendSegmentForStreaming(NDataflow df, SegmentRange segRange, String newSegId) {
         NDataSegment newSegment = newSegment(df, segRange);
+        if (!StringUtils.isEmpty(newSegId)) {
+            newSegment.setId(newSegId);
+            if (df.getSegment(newSegId) != null) {
+                return df.getSegment(newSegId);
+            }
+        }
+        val removeSegs = new ArrayList<NDataSegment>();
+        val segments = df.getSegments().stream().filter(item -> !item.getAdditionalInfo().containsKey("file_layer"))
+                .collect(Collectors.toList());
+        Collections.sort(segments);
+        if (!segments.isEmpty()) {
+            val lastL0Seg = segments.get(segments.size() - 1);
+            val lastL0SegRange = (SegmentRange.KafkaOffsetPartitionedSegmentRange) lastL0Seg.getSegRange();
+            val newSegRange = (SegmentRange.KafkaOffsetPartitionedSegmentRange) segRange;
+            if (lastL0SegRange.equals(segRange)
+                    || lastL0SegRange.comparePartitionOffset(lastL0SegRange.getSourcePartitionOffsetStart(),
+                            newSegRange.getSourcePartitionOffsetEnd()) >= 0) {
+                NDataSegment emptySeg = new NDataSegment();
+                emptySeg.setId(StringUtils.EMPTY);
+                return emptySeg;
+            } else if (newSegRange.contains(lastL0SegRange) || lastL0SegRange.contains(newSegRange)) {
+                removeSegs.add(lastL0Seg);
+            }
+        }
+
         newSegment.setStatus(SegmentStatusEnum.NEW);
 
         Map<Long, NDataLayout> layoutsMap = new HashMap<>();
@@ -369,9 +404,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             layoutsMap.put(ly.getLayoutId(), ly);
         }
         newSegment.setLayoutsMap(layoutsMap);
-        validateNewSegments(df, newSegment);
+        //        validateNewSegments(df, newSegment);
         NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
+        upd.setToRemoveSegsWithArray(removeSegs.toArray(new NDataSegment[0]));
         updateDataflow(upd);
         return newSegment;
     }
@@ -406,6 +442,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment mergeSegments(NDataflow dataflow, SegmentRange segRange, boolean force) {
+        return mergeSegments(dataflow, segRange, force, null, null);
+    }
+
+    public NDataSegment mergeSegments(NDataflow dataflow, SegmentRange segRange, boolean force, Integer fileLayer,
+            String newSegId) {
         NDataflow dataflowCopy = dataflow.copy();
         if (dataflowCopy.getSegments().isEmpty())
             throw new IllegalArgumentException(dataflow + " has no segments");
@@ -414,6 +455,27 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         checkCubeIsPartitioned(dataflowCopy);
 
         NDataSegment newSegment = newSegment(dataflowCopy, segRange);
+        NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getUuid());
+
+        //  for streaming merge
+        if (fileLayer != null) {
+            if (!StringUtils.isEmpty(newSegId)) {
+                newSegment.setId(newSegId);
+                if (dataflowCopy.getSegment(newSegId) != null) {
+                    return dataflowCopy.getSegment(newSegment.getId());
+                }
+            }
+            val segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).stream()
+                    .filter(item -> item.getAdditionalInfo().containsKey("file_layer")).collect(Collectors.toList());
+            for (int i = 0; i < segments.size(); i++) {
+                val seg = segments.get(i);
+                if (seg.getSegRange().equals(segRange)) {
+                    update.setToRemoveSegs(seg);
+                    break;
+                }
+            }
+        }
+
         Segments<NDataSegment> mergingSegments = dataflowCopy.getMergingSegments(newSegment);
         if (mergingSegments.size() <= 1)
             throw new IllegalArgumentException("Range " + newSegment.getSegRange()
@@ -455,11 +517,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         } else {
             newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
         }
-
+        if (fileLayer != null) {
+            newSegment.getAdditionalInfo().put("file_layer", String.valueOf(fileLayer));
+        }
         validateNewSegments(dataflowCopy, newSegment);
         checkAndMergeMultiPartitions(dataflow, newSegment, mergingSegments);
 
-        NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getUuid());
         update.setToAddSegs(newSegment);
         updateDataflow(update);
         return newSegment;
@@ -509,6 +572,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         segment.setSegmentRange(segRange);
         segment.validate();
         return segment;
+    }
+
+    private void containsNewSegment(NDataflow df, NDataSegment newSegment) {
+        Segments<NDataSegment> tobe = df.calculateToBeSegments(newSegment);
+        List<NDataSegment> newList = Arrays.asList(newSegment);
+        if (!tobe.containsAll(newList)) {
+            throw new IllegalStateException("For NDataflow " + df + ", the new segments " + newList
+                    + " do not fit in its current " + df.getSegments() + "; the resulted tobe is " + tobe);
+        }
     }
 
     private void validateNewSegments(NDataflow df, NDataSegment newSegments) {
@@ -610,8 +682,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.save(copy);
     }
 
-    public long getDataflowStorageSize(String modelId) {
-        return getDataflow(modelId).getStorageBytesSize();
+    public long getDataflowUsage(String dataflowId) {
+        return getDataflow(dataflowId).getQueryHitCount();
+    }
+
+    public long getDataflowStorageSize(String dataflowId) {
+        return getDataflow(dataflowId).getStorageBytesSize();
     }
 
     public long getDataflowSourceSize(String modelId) {

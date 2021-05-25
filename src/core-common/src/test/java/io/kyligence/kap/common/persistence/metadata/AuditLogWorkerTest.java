@@ -47,7 +47,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.google.common.base.Joiner;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
 import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
@@ -138,7 +138,7 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
                 val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
                 val path = "/0p1/abc-" + System.currentTimeMillis();
                 val originAbc = store.getResource(path);
-                store.checkAndPutResource(path, ByteStreams.asByteSource("abc".getBytes(Charset.defaultCharset())),
+                store.checkAndPutResource(path, ByteSource.wrap("abc".getBytes(Charset.defaultCharset())),
                         System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
                 return 0;
             }, "0p1");
@@ -192,11 +192,11 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
         IntStream.range(1000, 1000 + size).forEach(id -> {
             String path = "/p2/abc" + id;
             if (systemStore.exists(path)) {
-                systemStore.checkAndPutResource(path, ByteStreams.asByteSource(path.getBytes(Charset.defaultCharset())),
+                systemStore.checkAndPutResource(path, ByteSource.wrap(path.getBytes(Charset.defaultCharset())),
                         System.currentTimeMillis(), versions.get(path) - 1);
             } else {
                 systemStore.putResourceWithoutCheck(path,
-                        ByteStreams.asByteSource(path.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
+                        ByteSource.wrap(path.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
                         versions.get(path));
             }
         });
@@ -215,7 +215,7 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
                 String path = "/p2/abc" + id;
                 val originAbc = store.getResource(path);
                 store.checkAndPutResource(path,
-                        ByteStreams.asByteSource((path + "-version2").getBytes(Charset.defaultCharset())),
+                        ByteSource.wrap((path + "-version2").getBytes(Charset.defaultCharset())),
                         System.currentTimeMillis(), originAbc == null ? -1 : originAbc.getMvcc());
             });
             return 0;

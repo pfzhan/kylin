@@ -235,6 +235,15 @@ i[class^=el-icon-]{
   font-weight: @font-600;
 }
 
+.ksd-title-label-mini {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: @font-medium;
+}
+.el-form-item__label {
+  font-size: 12px !important;
+}
+
 .ksd-btn-minwidth {
   min-width: 60px;
 }
@@ -402,6 +411,7 @@ i[class^=el-icon-]{
       margin-top: 8px;
       font-size: 12px;
       display: flex;
+      align-items: center;
       &:first-child {
         margin-top: 0;
       }
@@ -502,8 +512,7 @@ i[class^=el-icon-]{
 }
 .query_panel_box {
   border: 1px solid @ke-border-secondary;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
+  border-radius: 6px;
   .smyles_editor_wrap {
     margin: -1px;
     // .ace-chrome {
@@ -515,8 +524,10 @@ i[class^=el-icon-]{
   }
   .operatorBox{
     display: flex;
-    padding: 10px 15px;
+    padding: 8px 15px;
     background-color: @fff;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
   }
 }
 // 带图标警告、成功、失败提示语样式覆盖
@@ -741,11 +752,17 @@ i[class^=el-icon-]{
 }
 *[draggable="true"]{
   cursor: move;
+  &.nodraggable {
+    cursor: not-allowed;
+  }
 }
 // 其他网站嵌套，采用nomenu模式 内嵌页面专用css
 .cloud-frame-page{
   .alter-block {
     top: 0px;
+  }
+  .el-message {
+    top: 27px;
   }
   .el-breadcrumb{
     display: none;
@@ -816,7 +833,7 @@ i[class^=el-icon-]{
 }
 
 .font-medium {
-  font-weight: bold;
+  font-weight: @font-medium;
 }
 
 .font-regular {

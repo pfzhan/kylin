@@ -26,7 +26,8 @@ export default {
     confirmSampling: 'The source table {table_name} has a related sample job running, it will be discarded if you re-submit a new sample job. Do you really want to re-submit a new one?',
     samplingTableJobBeginTips: 'Sampling job for table [{tableName}] has been submitted successfully, you can view the job progress in the Monitor page.',
     deleteAll: 'Delete All',
-    deleteTable: 'Delete Table'
+    deleteTable: 'Delete Table',
+    kafkaCluster: 'Kafka Info'
   },
   'zh-cn': {
     updateAt: '最后更新时间 :',
@@ -55,6 +56,7 @@ export default {
     confirmSampling: '表 {table_name} 有正在进行的抽样任务，再次触发会终止前一个抽样任务。您确认要重新抽样吗？',
     samplingTableJobBeginTips: '表 [{tableName}] 抽样任务提交成功，您可以在监控页面查看任务进度。',
     deleteAll: '全部删除',
-    deleteTable: '删除源表'
+    deleteTable: '删除源表',
+    kafkaCluster: 'Kafka 源信息'
   }
 }

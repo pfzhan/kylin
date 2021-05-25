@@ -24,13 +24,16 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.BufferedLogger;
@@ -48,12 +51,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
-
-import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 public class AsyncQueryJob extends NSparkExecutable {
 
@@ -65,18 +67,19 @@ public class AsyncQueryJob extends NSparkExecutable {
     private static final String MODEL = "/model_desc";
     private static final String TABLE = "/table";
     private static final String TABLE_EXD = "/table_exd";
+    private static final String ACL = "/acl";
     private static final String[] META_DUMP_LIST = new String[] { DATAFLOW, DATAFLOW_DETAIL, INDEX_PLAN, MODEL, TABLE,
-            TABLE_EXD };
+            TABLE_EXD, ACL };
 
     @Override
     protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
 
         try {
-            killOrphanApplicationIfExists(getAsyncQueryJobId());
+            killOrphanApplicationIfExists(getId());
             String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
             CliCommandExecutor exec = new CliCommandExecutor();
-            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getAsyncQueryJobId());
+            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getId());
             return ExecuteResult.createSucceed(r.getCmd());
         } catch (Exception e) {
             return ExecuteResult.createError(e);
@@ -104,16 +107,22 @@ public class AsyncQueryJob extends NSparkExecutable {
 
     @Override
     protected String getJobNamePrefix() {
-        return "ASYNC_QUERY_JOB_";
+        return "";
     }
 
-    private String getAsyncQueryJobId() {
+    @Override
+    public String getId() {
         return ASYNC_QUERY_JOB_ID_PRE + super.getId();
     }
 
     public ExecuteResult submit(QueryParams queryParams) throws ExecuteException, JsonProcessingException {
         this.setLogPath(getSparkDriverLogHdfsPath(getConfig()));
-        KylinConfig config = getConfig();
+        KylinConfig originConfig = getConfig();
+        HashMap<String, String> overrideCopy = Maps.newHashMap(((KylinConfigExt) originConfig).getExtendedOverrides());
+        if (StringUtils.isNotEmpty(queryParams.getSparkQueue())) {
+            overrideCopy.put("kylin.query.async-query.spark-conf.spark.yarn.queue", queryParams.getSparkQueue());
+        }
+        KylinConfig config = KylinConfigExt.createInstance(originConfig, overrideCopy);
         String kylinJobJar = config.getKylinJobJarPath();
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
@@ -129,13 +138,14 @@ public class AsyncQueryJob extends NSparkExecutable {
         setParam(NBatchConstants.P_QUERY_CONTEXT, JsonUtil.writeValueAsString(QueryContext.current()));
         setParam(NBatchConstants.P_PROJECT_NAME, getProject());
         setParam(NBatchConstants.P_QUERY_ID, QueryContext.current().getQueryId());
-        setParam(NBatchConstants.P_JOB_ID, getAsyncQueryJobId());
+        setParam(NBatchConstants.P_JOB_ID, getId());
         setParam(NBatchConstants.P_JOB_TYPE, JobTypeEnum.ASYNC_QUERY.toString());
         setParam(NBatchConstants.P_QUERY_QUEUE, queryParams.getSparkQueue());
-        setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), getAsyncQueryJobId()));
+        setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()));
 
         try {
             // dump kylin.properties to HDFS
+            config.setProperty("kylin.query.queryhistory.url", config.getMetadataUrl().toString());
             attachMetadataAndKylinProps(config, true);
 
             // dump metadata to HDFS
@@ -147,20 +157,22 @@ public class AsyncQueryJob extends NSparkExecutable {
                     metadataDumpSet.addAll(resourceStore.listResourcesRecursively("/" + getProject() + mata));
                 }
             }
-            config.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getAsyncQueryJobId()).toString());
-            MetadataStore.createMetadataStore(config).dump(ResourceStore.getKylinMetaStore(config), metadataDumpSet);
+            KylinConfig configCopy = KylinConfig.createKylinConfig(config);
+            configCopy.setMetadataUrl(config.getJobTmpMetaStoreUrl(getProject(), getId()).toString());
+            MetadataStore.createMetadataStore(configCopy).dump(ResourceStore.getKylinMetaStore(config),
+                    metadataDumpSet);
         } catch (Exception e) {
             throw new ExecuteException("kylin properties or meta dump failed", e);
         }
 
         return runSparkSubmit(getHadoopConfDir(), jars, kylinJobJar,
                 "-className io.kyligence.kap.engine.spark.job.AsyncQueryApplication "
-                        + createArgsFileOnHDFS(config, getAsyncQueryJobId()));
+                        + createArgsFileOnHDFS(config, getId()));
     }
 
     private String getHadoopConfDir() {
         KylinConfig kylinconfig = KylinConfig.getInstanceFromEnv();
-        if (Strings.isNotEmpty(kylinconfig.getAsyncQueryHadoopConfDir())) {
+        if (StringUtils.isNotEmpty(kylinconfig.getAsyncQueryHadoopConfDir())) {
             return kylinconfig.getAsyncQueryHadoopConfDir();
         }
         return HadoopUtil.getHadoopConfDir();

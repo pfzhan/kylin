@@ -382,9 +382,13 @@ class MockClusterManager extends IClusterManager {
 
   override def killApplication(jobStepId: String): Unit = {}
 
+  override def killApplication(jobStepPrefix: String, jobStepId: String): Unit = {}
+
   override def getRunningJobs(queues: util.Set[String]): util.List[String] = null
 
   override def fetchQueueStatistics(queueName: String): ResourceInfo = ResourceInfo(10, 20)
 
   override def isApplicationBeenKilled(applicationId: String): Boolean = false
+
+  override def applicationExisted(jobId: String): Boolean = false
 }

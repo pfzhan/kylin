@@ -63,6 +63,14 @@ export function _getYarnNameSetting (data) {
   }
 }
 
+export function _getSecStorageSetting (data) {
+  return {
+    project: data.project,
+    second_storage_enabled: data.second_storage_enabled,
+    second_storage_nodes: data.second_storage_nodes
+  }
+}
+
 export function _getSnapshotSetting (data) {
   return {
     project: data.project,

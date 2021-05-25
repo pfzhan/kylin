@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1248,4 +1249,30 @@ public class TableServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(String.format(Locale.ROOT, Message.getInstance().getMODEL_NOT_FOUND(), "nomodel"));
         tableService.getTablesOfModel(project, "nomodel");
     }
+
+    @Test
+    public void testGetTableDescByType() {
+        String project = "streaming_test";
+        try{
+            List<TableDesc> tableDescs = tableService.getTableDescByType(project, true, "", "default", true, 1);
+            Assert.assertNotNull(tableDescs);
+        }catch (Exception e) {
+            Assert.fail();
+        }
+
+    }
+
+    @Test
+    public void testUnloadKafkaConfig() {
+        String project = "streaming_test";
+        val mgr = KafkaConfigManager.getInstance(getTestConfig(), project);
+        try{
+            tableService.unloadKafkaConfig(project, "DEFAULT.SSB_TOPIC");
+            Assert.assertNull(mgr.getKafkaConfig("DEFAULT.SSB_TOPIC"));
+        }catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+
 }

@@ -1,4 +1,6 @@
 <template>
+<div>
+  <div class="ksd-title-label-small ksd-ml-20 ksd-mt-20">{{$t('dataSourceTypeCheckTip')}}</div>
   <div class="source-new">
     <ul>
       <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.HIVE])">
@@ -32,14 +34,14 @@
         </div>
       </li>
       -->
-      <li class="datasouce disabled ksd-center">
-        <div class="datasource-icon">
+      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.KAFKA])">
+        <div class="datasource-icon" @click="clickHandler(sourceTypes.KAFKA)">
           <i class="el-icon-ksd-kafka"></i>
         </div>
         <div class="datasource-name">Kafka</div>
-        <div class="status">
+        <!-- <div class="status">
           <span>{{$t('upcoming')}}</span>
-        </div>
+        </div> -->
       </li>
     </ul>
     <!--
@@ -65,6 +67,7 @@
     </ul>
     -->
   </div>
+</div>
 </template>
 <script>
 import Vue from 'vue'
@@ -109,7 +112,7 @@ export default class SourceSelect extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-new {
-  padding: 60px 0;
+  padding: 20px 0;
   margin: 0 auto;
   /* width: 472px; */
   width:100%;

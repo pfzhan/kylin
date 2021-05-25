@@ -134,5 +134,4 @@ public class StreamingManager {
     public void removeStreamingConfig(StreamingConfig streamingConfig) throws IOException {
         crud.delete(streamingConfig);
     }
-
 }

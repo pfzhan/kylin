@@ -95,6 +95,10 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-logging</artifactId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>spring-context</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -104,6 +108,14 @@
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>spring-context</artifactId>
+                    <groupId>org.springframework</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>snakeyaml</artifactId>
+                    <groupId>org.yaml</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -123,7 +135,15 @@
                     <groupId>io.reactivex</groupId>
                     <artifactId>rxnetty</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>javax.ws.rs</groupId>
+                    <artifactId>jsr311-api</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
         </dependency>
         <!--Add dependencies of KAP extensions-->
         <dependency>
@@ -192,6 +212,10 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+        </dependency>
         <!-- spark -->
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -330,4 +354,71 @@
             </snapshots>
         </pluginRepository>
     </pluginRepositories>
+    <profiles>
+        <profile>
+            <id>sandbox</id>
+            <dependencies>
+                <!-- for sandbox -->
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-hdfs</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-client</artifactId>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-common</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                </dependency>
+
+                <dependency>
+                    <groupId>io.kyligence.ke</groupId>
+                    <artifactId>kap-second-storage-clickhouse</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.kyligence.ke</groupId>
+                    <artifactId>kap-second-storage-core</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.kyligence.ke</groupId>
+                    <artifactId>kap-second-storage-ui</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+
+                <!-- jdbc -->
+                <dependency>
+                    <groupId>${clickhouse.group}</groupId>
+                    <artifactId>${clickhouse.artifact}</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <!--end for sandbox -->
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hadoop-cloud</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-aws</artifactId>
+                    <version>${hadoop.cloud.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-azure</artifactId>
+                    <version>${hadoop.cloud.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

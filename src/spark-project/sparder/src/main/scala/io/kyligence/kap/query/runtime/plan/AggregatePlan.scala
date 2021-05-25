@@ -22,7 +22,7 @@
 package io.kyligence.kap.query.runtime.plan
 
 import io.kyligence.kap.engine.spark.utils.LogEx
-import io.kyligence.kap.query.relnode.KapAggregateRel
+import io.kyligence.kap.query.relnode.{KapAggregateRel, KapProjectRel}
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
@@ -40,8 +40,11 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udaf.SingleValueAgg
 import org.apache.spark.sql.util.SparderTypeUtil
-
 import java.util.Locale
+
+import org.apache.calcite.rex.RexLiteral
+import org.apache.spark.sql.catalyst.expressions.aggregate.ApproximatePercentile
+
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -164,6 +167,21 @@ object AggregatePlan extends LogEx {
           hash,
           argNames: _*)
         funcName match {
+          case FunctionDesc.FUNC_PERCENTILE =>
+            rel.getInput match {
+              case projectRel: KapProjectRel =>
+                val percentageArg = projectRel.getChildExps.get(call.getArgList.get(1))
+                val accuracyArg = if (call.getArgList.size() < 3) { None } else { Some(projectRel.getChildExps.get(call.getArgList.get(2))) }
+                (percentageArg, accuracyArg) match {
+                  case (percentageLitRex: RexLiteral, accuracyArgLitRex: Option[RexLiteral]) =>
+                    val percentage = percentageLitRex.getValue
+                    val accuracy = accuracyArgLitRex.map(arg => arg.getValue).getOrElse(ApproximatePercentile.DEFAULT_PERCENTILE_ACCURACY)
+                    percentile_approx(col(argNames.head), lit(percentage), lit(accuracy))
+                }
+              case _ =>
+                throw new UnsupportedOperationException(s"Invalid percentile_approx parameters, " +
+                  s"expecting approx_percentile(col, percentage [, accuracy]), percentage/accuracy must be of constant literal")
+            }
           case FunctionDesc.FUNC_SUM =>
             if (isSum0(call)) {
               sum0(

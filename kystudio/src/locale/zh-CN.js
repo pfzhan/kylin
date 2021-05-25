@@ -218,7 +218,9 @@ exports.default = {
     buildSuccess: '已提交，您可以到任务页',
     toJoblist: '查看进度',
     queryNode: '查询节点',
-    jobNode: '任务节点'
+    jobNode: '任务节点',
+    BATCH: '离线',
+    STREAMING: '实时'
   },
   model: {
     generateModel: 'SQL 建模',

@@ -82,7 +82,7 @@ public class SnapshotCleaner implements MetadataCleaner {
         for (TableDesc tableDesc : tblMgr.listAllTables()) {
             if (staleSnapshotPaths.contains(tableDesc.getLastSnapshotPath())) {
                 TableDesc copy = tblMgr.copyForWrite(tableDesc);
-                copy.deleteSnapshot();
+                copy.deleteSnapshot(false);
 
                 TableExtDesc ext = tblMgr.getOrCreateTableExt(tableDesc);
                 TableExtDesc extCopy = tblMgr.copyForWrite(ext);

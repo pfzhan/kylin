@@ -104,6 +104,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     @Autowired
     private ModelService modelService;
 
+    @Autowired
+    private IndexPlanService indexPlanService;
+
     private static final class RecApproveContext {
         private final Map<Integer, NDataModel.NamedColumn> columns = Maps.newHashMap();
         private final Map<Integer, NDataModel.NamedColumn> dimensions = Maps.newHashMap();
@@ -585,6 +588,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public OptRecResponse approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
+                getDataModelManager(project).getDataModelDesc(modelId), false);
         Map<Integer, String> userDefinedRecNameMap = request.getNames();
         RecApproveContext approveContext = new RecApproveContext(project, modelId, userDefinedRecNameMap);
         approveRecItemsToRemoveLayout(request, approveContext);
@@ -596,6 +601,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         response.setModelId(request.getModelId());
         response.setAddedLayouts(approveContext.addedLayoutIdList);
         response.setRemovedLayouts(approveContext.removedLayoutIdList);
+        response.setBaseIndexInfo(baseIndexUpdater.update(indexPlanService));
+
         return response;
     }
 
@@ -666,6 +673,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         } else {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(model, false);
         approveRecItemsToRemoveLayout(request, approveContext);
         approveRecItemsToAddLayout(request, approveContext);
         updateRecommendationCount(project, modelId);
@@ -675,6 +684,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         response.setModelAlias(modelAlias);
         response.setAddedIndexes(approveContext.addedLayoutIdList);
         response.setRemovedIndexes(approveContext.removedLayoutIdList);
+        response.setBaseIndexInfo(baseIndexUpdater.update(indexPlanService));
+
         return response;
     }
 

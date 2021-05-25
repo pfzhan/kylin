@@ -73,7 +73,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
@@ -164,7 +164,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
                 if (!zipEntry.getName().startsWith("/")) {
                     continue;
                 }
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipIn));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(zipIn));
                 long t = zipEntry.getTime();
                 val raw = new RawResource(zipEntry.getName(), bs, t, 0);
                 res.put(zipEntry.getName(), raw);
@@ -196,6 +196,9 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     private boolean assertProjectFolder(File projectFolder, File archiveFolder) {
+        if (projectFolder.getName().endsWith(".DS_Store") || archiveFolder.getName().endsWith(".DS_Store")) {
+            return true;
+        }
         Assertions.assertThat(projectFolder.list()).containsAnyOf("dataflow", "dataflow_details", "cube_plan",
                 "model_desc", "table");
         Assertions.assertThat(projectFolder.listFiles()).filteredOn(f -> !f.getName().startsWith("."))
@@ -279,9 +282,9 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource(deletePath);
         destResourceStore.deleteResource(modifyPath);
         destResourceStore.putResourceWithoutCheck(modifyPath,
-                ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
+                ByteSource.wrap(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
         destResourceStore.putResourceWithoutCheck(addPath,
-                ByteStreams.asByteSource(("test1").getBytes(Charset.defaultCharset())), 0, 0);
+                ByteSource.wrap(("test1").getBytes(Charset.defaultCharset())), 0, 0);
 
         Assert.assertNull(destResourceStore.getResource(deletePath));
         Assert.assertNotEquals(originDescription,
@@ -319,9 +322,9 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         destResourceStore.deleteResource(deletePath);
         destResourceStore.deleteResource(modifyPath);
         destResourceStore.putResourceWithoutCheck(modifyPath,
-                ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
+                ByteSource.wrap(JsonUtil.writeValueAsBytes(modelDesc)), 0, 0);
         destResourceStore.putResourceWithoutCheck(addPath,
-                ByteStreams.asByteSource(("test2").getBytes(Charset.defaultCharset())), 0, 0);
+                ByteSource.wrap(("test2").getBytes(Charset.defaultCharset())), 0, 0);
 
         Assert.assertNull(destResourceStore.getResource(deletePath));
         Assert.assertNotEquals(originDescription,

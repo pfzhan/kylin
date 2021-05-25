@@ -24,19 +24,9 @@
 
 package io.kyligence.kap.rest.response;
 
-import java.util.List;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.metadata.model.TableDesc;
-
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -46,6 +36,15 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageCleanJobUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.TableDesc;
+
+import java.util.List;
 
 @Setter
 @Getter
@@ -139,6 +138,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
+        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
+            executableResponse.setTargetSubject(abstractExecutable.getProject());
         } else {
             val dataflow = NDataflowManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())

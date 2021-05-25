@@ -62,6 +62,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
       type: Array,
       default: () => []
     },
+    isModelHaveFact: {
+      type: Boolean,
+      default: false
+    },
     filterWhiteListTypes: {
       type: Array,
       default: () => []
@@ -221,6 +225,7 @@ export default class TreeList extends Vue {
     const { render, draggable, handleClick, handleDbClick, type } = data
     const isNodeDraggable = this.draggableNodeTypes.includes(type) || draggable
     const treeItemStyle = this.getTreeItemStyle(data, node)
+    const className = 'tree-item guide-' + (data.database !== undefined ? data.database.toLowerCase() + node.label.toLowerCase() : node.label.toLowerCase())
     const props = {
       directives: [
         ...(type === 'isLoading' ? [{ name: 'loading', value: true }] : [])
@@ -242,7 +247,7 @@ export default class TreeList extends Vue {
       this.patchNodeMore(data, node)
     }
     return (
-      <div class={ 'tree-item guide-' + (data.database !== undefined ? data.database.toLowerCase() + node.label.toLowerCase() : node.label.toLowerCase()) }
+      <div class={ this.isModelHaveFact && data.datasource === 1 ? 'tree-item nodraggable' : className }
         style={treeItemStyle}
         draggable={isNodeDraggable}
         onMousedown={event => this.handleMouseDown(event, data, node)}

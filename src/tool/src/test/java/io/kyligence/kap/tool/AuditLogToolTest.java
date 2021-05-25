@@ -58,7 +58,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Throwables;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
@@ -167,7 +167,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
                 }).stream().map(x -> {
                     try {
                         return new RawResource(x.get("meta_table_key").asText(),
-                                ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(x.get("meta_table_content"))),
+                                ByteSource.wrap(JsonUtil.writeValueAsBytes(x.get("meta_table_content"))),
                                 x.get("meta_table_ts").asLong(), x.get("meta_table_mvcc").asLong());
                     } catch (IOException e) {
                         throw Throwables.propagate(e);
@@ -180,7 +180,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
                 .stream().map(x -> {
                     try {
                         return new AuditLog(x.get("id").asLong(), x.get("meta_key").asText(),
-                                ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(x.get("meta_content"))),
+                                ByteSource.wrap(JsonUtil.writeValueAsBytes(x.get("meta_content"))),
                                 x.get("meta_ts").asLong(), x.get("meta_mvcc").asLong(), x.get("unit_id").asText(),
                                 x.get("operator").asText(), "");
                     } catch (IOException e) {

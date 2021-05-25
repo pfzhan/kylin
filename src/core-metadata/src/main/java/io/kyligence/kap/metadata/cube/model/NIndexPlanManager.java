@@ -217,7 +217,8 @@ public class NIndexPlanManager implements IKeepNames {
         validatePlan(indexPlan);
         indexPlan.setIndexes(indexPlan.getIndexes().stream()
                 .peek(cuboid -> cuboid.setLayouts(cuboid.getLayouts().stream()
-                        .filter(l -> l.isAuto() || IndexEntity.isTableIndex(l.getId())).collect(Collectors.toList())))
+                        .filter(l -> l.isBase() || l.isAuto() || IndexEntity.isTableIndex(l.getId()))
+                        .collect(Collectors.toList())))
                 .filter(cuboid -> cuboid.getLayouts().size() > 0).collect(Collectors.toList()));
 
         val dataflowManager = NDataflowManager.getInstance(config, project);
@@ -253,7 +254,8 @@ public class NIndexPlanManager implements IKeepNames {
         }
 
         // validate columns of table index
-        Set<Integer> selectedColumnIds = NDataModelManager.getInstance(config, indexPlan.getProject())
+        Set<Integer> selectedColumnIds = NDataModelManager
+                .getInstance(config, indexPlan.getProject())
                 .getDataModelDesc(indexPlan.getUuid()).getAllSelectedColumns().stream()
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
         for (IndexEntity index : indexPlan.getAllIndexes(false)) {

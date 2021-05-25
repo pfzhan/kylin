@@ -50,15 +50,19 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
+import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
+import io.kyligence.kap.rest.response.IndexStatResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
@@ -224,4 +228,33 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "create base index", tags = { "AI" })
+    @PostMapping(value = "/base_index")
+    @ResponseBody
+    public EnvelopeResponse<BuildBaseIndexResponse> createBaseIndex(@RequestBody CreateBaseIndexRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ID, request.getModelId());
+        val response = indexPlanService.createBaseIndex(request.getProject(), request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "update base index", tags = { "AI" })
+    @PutMapping(value = "/base_index")
+    @ResponseBody
+    public EnvelopeResponse<BuildBaseIndexResponse> updateBaseIndex(@RequestBody CreateBaseIndexRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ID, request.getModelId());
+        val response = indexPlanService.updateBaseIndex(request.getProject(), request, false);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "getIndex", tags = { "AI" })
+    @GetMapping(value = "/index_stat")
+    public EnvelopeResponse<IndexStatResponse> getIndexStat(@RequestParam(value = "project") String project,
+                                                            @RequestParam(value = "model_id") String modelId) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        val response = indexPlanService.getStat(project, modelId);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
 }

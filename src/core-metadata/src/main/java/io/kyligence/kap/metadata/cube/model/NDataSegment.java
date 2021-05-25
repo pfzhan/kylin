@@ -113,6 +113,9 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("additionalInfo")
     private Map<String, String> additionalInfo = Maps.newLinkedHashMap();
 
+    @JsonProperty("is_realtime_segment")
+    private boolean isRealtimeSegment = false;
+
     @JsonProperty("is_encoding_data_skew")
     private boolean isEncodingDataSkew = false;
 
@@ -241,6 +244,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         } else if (segmentRange instanceof SegmentRange.TimePartitionedSegmentRange) {
             SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) segmentRange;
             return new TimeRange(tsr.getStart(), tsr.getEnd());
+        } else if (segmentRange instanceof SegmentRange.KafkaOffsetPartitionedSegmentRange) {
+            SegmentRange.KafkaOffsetPartitionedSegmentRange tsr = (SegmentRange.KafkaOffsetPartitionedSegmentRange) segmentRange;
+            return new TimeRange(tsr.getStart(), tsr.getEnd(), tsr.getSourcePartitionOffsetStart(),
+                    tsr.getSourcePartitionOffsetEnd());
         }
         return null;
     }
@@ -536,9 +543,17 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public boolean isAlreadyBuilt(long layoutId) {
         if (Objects.nonNull(layoutsMap) && layoutsMap.containsKey(layoutId)) {
-            return true;
+            return layoutsMap.get(layoutId).isReady();
         }
         return false;
+    }
+
+    public boolean isRealtimeSegment() {
+        return isRealtimeSegment;
+    }
+
+    public void setRealtimeSegment(boolean realtimeSegment) {
+        isRealtimeSegment = realtimeSegment;
     }
 
     public boolean isSnapshotReady() {

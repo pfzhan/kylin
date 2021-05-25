@@ -83,7 +83,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
@@ -378,7 +378,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         try (ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(zipInputStream));
                 long t = zipEntry.getTime();
                 String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
                 if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.equals(ResourceStore.VERSION_FILE)
@@ -1387,7 +1387,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         try (ZipInputStream zipInputStream = new ZipInputStream(uploadFile.getInputStream())) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(zipInputStream));
                 long t = zipEntry.getTime();
                 String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
                 if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.endsWith(".json")) {

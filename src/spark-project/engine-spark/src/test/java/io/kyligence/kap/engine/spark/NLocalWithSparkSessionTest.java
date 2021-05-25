@@ -101,13 +101,19 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     protected static SparkSession ss;
     private TestingServer zkTestServer;
 
+    protected static void ensureSparkConf() {
+        if (sparkConf == null) {
+            sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        }
+    }
+
     @BeforeClass
     public static void beforeClass() {
 
         if (Shell.MAC)
             overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        ensureSparkConf();
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
@@ -314,7 +320,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         execMgr.addJob(job);
 
         if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            throw new IllegalStateException();
+            val firstErrorMsg = job.getTasks().stream()
+                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
+                    .findFirst()
+                    .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
+                    .orElse("Unknown Error");
+            throw new IllegalStateException(firstErrorMsg);
         }
 
         val merger = new AfterBuildResourceMerger(config, prj);

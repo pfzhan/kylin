@@ -7,6 +7,7 @@
       <div class="right">
         <el-input
           class="filter-input"
+          size="small"
           prefix-icon="el-ksd-icon-search_22"
           v-model="filterText"
           :placeholder="$t('kylinLang.common.pleaseFilter')">
@@ -126,7 +127,7 @@ export default class TableStatistics extends Vue {
 .table-statistics {
   padding: 0 0 20px 0;
   .columns-header {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     white-space: nowrap;
   }
   .columns-body {

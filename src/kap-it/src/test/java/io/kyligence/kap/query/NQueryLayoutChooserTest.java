@@ -24,6 +24,7 @@
 package io.kyligence.kap.query;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.spark.sql.SparderEnv;
@@ -41,6 +43,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
@@ -56,6 +59,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.smart.SmartMaster;
@@ -312,6 +316,49 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         val pair5 = NQueryLayoutChooser
                 .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context5.getSQLDigest());
         Assert.assertFalse(pair5.getLayoutEntity().getIndex().isTableIndex());
+    }
+
+    @Test
+    public void testTableIndexAnswerAggQueryUseProjectConfig() {
+        overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "false");
+        String project = "table_index";
+        String uuid = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+            ProjectInstance projectInstance = projectManager.getProject(project);
+            projectInstance.getOverrideKylinProps().put("kylin.query.use-tableindex-answer-non-raw-query", "true");
+            projectManager.updateProject(projectInstance);
+            return null;
+        }, project);
+        NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(uuid);
+        String sql2 = "select max(PRICE)from TEST_KYLIN_FACT";
+        OLAPContext context2 = prepareOlapContext(sql2).get(0);
+        Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
+        context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
+        NLayoutCandidate pair2 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context2.getSQLDigest());
+        Assert.assertTrue(pair2.getLayoutEntity().getIndex().isTableIndex());
+    }
+
+    @Test
+    public void testTableIndexQueryAggQueryUseModelConfig() {
+        overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "false");
+        String project = "table_index";
+        String uuid = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(uuid);
+        indexPlanManager.updateIndexPlan(uuid, copyForWrite -> {
+            LinkedHashMap<String, String> props = copyForWrite.getOverrideProps();
+            props.put("kylin.query.use-tableindex-answer-non-raw-query", "true");
+            copyForWrite.setOverrideProps(props);
+        });
+        String sql2 = "select max(PRICE) from TEST_KYLIN_FACT";
+        OLAPContext context2 = prepareOlapContext(sql2).get(0);
+        Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
+        context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
+        NLayoutCandidate pair2 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context2.getSQLDigest());
+        Assert.assertTrue(pair2.getLayoutEntity().getIndex().isTableIndex());
     }
 
     @Test

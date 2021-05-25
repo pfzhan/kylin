@@ -229,14 +229,14 @@ export default {
   fetchRelatedModels (project, table, model, page_offset, pageSize) {
     return Vue.resource(apiUrl + 'models').get({project, table, model, page_offset, page_size: pageSize, with_job_status: false})
   },
-  fetchTables (project, database, table, page_offset, pageSize, isFuzzy, ext) {
-    return Vue.resource(apiUrl + 'tables').get({project, database, table, page_offset, page_size: pageSize, is_fuzzy: isFuzzy, ext})
+  fetchTables (project, database, table, page_offset, pageSize, isFuzzy, sourceType, ext) {
+    return Vue.resource(apiUrl + 'tables').get({project, database, table, page_offset, page_size: pageSize, is_fuzzy: isFuzzy, source_type: sourceType, ext})
   },
   fetchDatabases (project, datasourceType) {
     return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasource_type: datasourceType})
   },
   fetchDBandTables (project, page_offset, pageSize, table, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, datasource_type: datasourceType, ext: true})
+    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, source_type: datasourceType, ext: true})
   },
   reloadHiveDBAndTables (para) {
     return Vue.resource(apiUrl + 'tables/reload_hive_table_name').get(para)

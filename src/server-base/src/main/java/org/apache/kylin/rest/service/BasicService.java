@@ -50,6 +50,7 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.metadata.streaming.RDBMSStreamingJobStatsDAO;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -89,6 +90,7 @@ import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroupManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.streaming.StreamingJobStatsDAO;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -167,6 +169,10 @@ public abstract class BasicService {
 
     public QueryHistoryDAO getQueryHistoryDao() {
         return RDBMSQueryHistoryDAO.getInstance();
+    }
+
+    public StreamingJobStatsDAO getStreamingJobStatsDao() {
+        return RDBMSStreamingJobStatsDAO.getInstance();
     }
 
     public MonitorDao getMonitorDao() {

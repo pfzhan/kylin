@@ -1143,11 +1143,13 @@ export default class UserAccess extends Vue {
       top: 4px;
     }
   }
-  .detail-content {
-    background-color: @base-background-color-1;
-    padding: 10px 15px;
-    box-sizing: border-box;
-    font-size: 12px;
-    color: @text-normal-color;
+  .author_dialog {
+    .detail-content {
+      background-color: @base-background-color-1;
+      padding: 10px 15px;
+      box-sizing: border-box;
+      font-size: 12px;
+      color: @text-normal-color;
+    }
   }
 </style>

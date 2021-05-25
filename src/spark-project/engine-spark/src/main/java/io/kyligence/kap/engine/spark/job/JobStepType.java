@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageStepFactory;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
@@ -83,6 +84,36 @@ public enum JobStepType {
             ((DefaultChainedExecutableOnModel) parent).setHandler(
                     ExecutableHandlerFactory.createExecutableHandler((DefaultChainedExecutableOnModel) parent));
             return new NSparkUpdateMetadataStep();
+        }
+    },
+
+    SECOND_STORAGE_EXPORT {
+        @Override
+        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageLoadStep.class, step -> {
+                step.setProject(parent.getProject());
+                step.setParams(parent.getParams());
+            });
+        }
+    },
+
+    SECOND_STORAGE_REFRESH {
+        @Override
+        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageRefreshStep.class, step -> {
+                step.setProject(parent.getProject());
+                step.setParams(parent.getParams());
+            });
+        }
+    },
+
+    SECOND_STORAGE_MERGE {
+        @Override
+        protected AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return SecondStorageStepFactory.create(SecondStorageStepFactory.SecondStorageMergeStep.class, step -> {
+                step.setProject(parent.getProject());
+                step.setParams(parent.getParams());
+            });
         }
     };
 

@@ -69,6 +69,13 @@ public class TableDescResponse extends TableDesc {
     @JsonProperty("last_build_job_id")
     private String jodID;
 
+    @JsonProperty("kafka_bootstrap_servers")
+    private String kafkaBootstrapServers;
+    @JsonProperty("subscribe")
+    private String subscribe;
+    @JsonProperty("batch_table_identity")
+    private String batchTable;
+
     public TableDescResponse(TableDesc table) {
         super(table);
         extColumns = new ColumnDescResponse[getColumns().length];

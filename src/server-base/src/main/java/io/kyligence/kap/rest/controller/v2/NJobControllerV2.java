@@ -85,6 +85,7 @@ public class NJobControllerV2 extends NBasicController {
             @RequestParam(value = "timeFilter") Integer timeFilter,
             @RequestParam(value = "jobName", required = false) String jobName,
             @RequestParam(value = "projectName") String project,
+            @RequestParam(value = "key", required = false) String key,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
@@ -100,7 +101,7 @@ public class NJobControllerV2 extends NBasicController {
         }
 
         JobFilter jobFilter = new JobFilter(statuses,
-                Objects.isNull(jobName) ? Lists.newArrayList() : Lists.newArrayList(jobName), timeFilter, null, null,
+                Objects.isNull(jobName) ? Lists.newArrayList() : Lists.newArrayList(jobName), timeFilter, null, key,
                 project, sortBy, reverse);
         List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         executables = jobService.addOldParams(executables);

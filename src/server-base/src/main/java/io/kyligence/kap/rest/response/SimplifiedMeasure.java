@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
+import lombok.val;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -101,5 +102,15 @@ public class SimplifiedMeasure implements Serializable {
         functionDesc.setParameters(parameterDescs);
         measure.setFunction(functionDesc);
         return measure;
+    }
+
+    public void changeTableAlias(String oldAlias, String newAlias) {
+        for (val parameter : parameterValue) {
+            String table = parameter.getValue().split("\\.")[0];
+            if (oldAlias.equalsIgnoreCase(table)) {
+                String column = parameter.getValue().split("\\.")[1];
+                parameter.setValue(newAlias + "." + column);
+            }
+        }
     }
 }

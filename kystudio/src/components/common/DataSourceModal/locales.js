@@ -3,7 +3,7 @@ export default {
     selectSource: 'Add New Source',
     configSource: 'Add Hive Source',
     viewSource: 'General Information',
-    loadTables: 'Load Table Metadata',
+    loadTables: 'Load Tables',
     loadhiveTables: 'Load Hive Table Metadata',
     loadKafkaTopic: 'Load Kafka Topic',
     pleaseSelectSource: 'Please select datasource.',
@@ -12,13 +12,14 @@ export default {
     configCsvSetting: 'Setting CSV file',
     configCsvSturcture: 'Table Setting',
     configCsvSql: 'Create table via SQL',
-    cloudHive: 'Object Storage'
+    cloudHive: 'Object Storage',
+    pleaseGetClusterInfoAndTopicInfo: 'Please get the Kafka cluster and topic information.'
   },
   'zh-cn': {
     selectSource: '添加新数据源',
     configSource: '添加 Hive 数据源',
     viewSource: '基本信息',
-    loadTables: '加载表元数据',
+    loadTables: '加载源表',
     loadhiveTables: '加载 Hive 表元数据',
     loadKafkaTopic: '设置 Kafka 主题',
     pleaseSelectSource: '请选择数据源。',
@@ -27,6 +28,7 @@ export default {
     configCsvSetting: '设置 CSV 文件',
     configCsvSturcture: '表结构设置',
     configCsvSql: '建表 SQL 输入',
-    cloudHive: '文件数据源'
+    cloudHive: '文件数据源',
+    pleaseGetClusterInfoAndTopicInfo: '请获取 Kafka 集群和 Topic 信息'
   }
 }

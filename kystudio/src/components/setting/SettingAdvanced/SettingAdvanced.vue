@@ -48,7 +48,7 @@
         <div class="setting-item">
           <div class="setting-label font-medium">{{$t('defaultDB')}}</div>
           <el-form-item prop="default_database">
-            <el-select v-model="form.default_database" class="js_select" popper-class="js_defautDB_select">
+            <el-select v-model="form.default_database" size="small" class="js_select" popper-class="js_defautDB_select">
               <el-option
                 v-for="item in dbList"
                 :key="item"
@@ -82,7 +82,7 @@
         </span>
         <div class="setting-desc">{{$t('emptyDataLoadDesc')}}</div>
         <div class="split"></div>
-        <span class="setting-label font-medium">{{$t('errorJob')}}</span><span class="setting-value fixed ksd-fs-12">
+        <span class="setting-label font-medium">{{$t('errorJob')}}</span><span class="setting-value fixed">
           <el-switch
             v-model="form.job_error_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
@@ -104,7 +104,7 @@
             <div class="item-value" v-for="(email, index) in form.job_notification_emails" :key="index">
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
               <el-form-item :prop="`job_notification_emails.${index}`">
-                <el-input v-model="form.job_notification_emails[index]" :placeholder="$t('pleaseInputEmail')"></el-input><el-button
+                <el-input size="small" v-model="form.job_notification_emails[index]" :placeholder="$t('pleaseInputEmail')"></el-input><el-button
                  icon="el-ksd-icon-add_16" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button><el-button
                   icon="el-ksd-icon-minus_16" class="ksd-ml-5" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
               </el-form-item>
@@ -179,6 +179,41 @@
           </div>
         </div>
       </el-form>
+    </EditableBlock>
+    <!-- 二级存储 -->
+    <EditableBlock
+      :header-content="$t('secondaryStorage')"
+      :is-keep-editing="true"
+      :is-edited="!form.second_storage_enabled&&isFormEdited(form, 'sec-storage') || (form.second_storage_enabled && new_nodes.length > 0)"
+      :is-editable="userType"
+      :is-reset="false"
+      v-if="isShowSecondStorage"
+      @submit="(scb, ecb) => handleSubmit('sec-storage', scb, ecb)">
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('supportSecStorage')}}</span><span class="setting-value fixed ksd-fs-12">
+          <el-switch
+            v-model="form.second_storage_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('supportSecStorageDesc')}}</div>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('storageNode')}}</span>
+        <ul class="sec-nodes" v-if="form.second_storage_nodes&&form.second_storage_nodes.length">
+          <li v-for="n in form.second_storage_nodes" :key="n.name">
+            <span class="node-name">{{n.name}}</span>
+            <span class="node-ip">{{n.ip}}:{{n.port}}</span>
+          </li>
+        </ul>
+        <el-select class="setting-desc secondary-storage-nodes" value-key="name" multiple v-model="new_nodes" :placeholder="$t('chooseNode')">
+          <el-option v-for="item in nodes" :label="`${item.name} ${item.ip}:${item.port}`" :key="item.name" :value="item">
+            <span class="node-name">{{item.name}}</span>
+            <span class="node-ip">{{item.ip}}:{{item.port}}</span>
+          </el-option>
+        </el-select>
+      </div>
     </EditableBlock>
     <!-- 多级分区 -->
     <EditableBlock
@@ -307,7 +342,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { handleError, handleSuccessAsync } from '../../../util'
 import { kapConfirm } from 'util/business'
 import { apiUrl } from '../../../config'
-import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getSnapshotSetting, _getKerberosSettings } from './handler'
+import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getSecStorageSetting, _getExposeCCSetting, _getSnapshotSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 import { pageRefTags } from 'config'
 
@@ -327,6 +362,9 @@ import { pageRefTags } from 'config'
       updateJobAlertSettings: 'UPDATE_JOB_ALERT_SETTINGS',
       resetConfig: 'RESET_PROJECT_CONFIG',
       updateDefaultDBSettings: 'UPDATE_DEFAULT_DB_SETTINGS',
+      updateSecStorageSettings: 'UPDATE_SEC_STORAGE_SETTINGS',
+      getSecStorageModels: 'GET_SEC_STORAGE_MODELS',
+      fetchAvailableNodes: 'FETCH_AVAILABLE_NODES',
       fetchDatabases: 'FETCH_DATABASES',
       updateYarnQueue: 'UPDATE_YARN_QUEUE',
       updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG',
@@ -354,7 +392,8 @@ import { pageRefTags } from 'config'
       'currentProjectData',
       'isAutoProject',
       'settingActions',
-      'configList'
+      'configList',
+      'isShowSecondStorage'
     ]),
     ...mapState({
       platform: state => state.config.platform,
@@ -378,6 +417,8 @@ export default class SettingAdvanced extends Vue {
   pageRefTags = pageRefTags
 
   dbList = []
+  nodes = []
+  new_nodes = []
   form = {
     project: '',
     // tips_enabled: true,
@@ -393,7 +434,9 @@ export default class SettingAdvanced extends Vue {
     file: null,
     snapshot_manual_management_enabled: this.project.snapshot_manual_management_enabled,
     multi_partition_enabled: this.project.multi_partition_enabled,
-    scd2_enabled: this.project.scd2_enabled
+    scd2_enabled: this.project.scd2_enabled,
+    second_storage_enabled: true,
+    second_storage_nodes: []
   }
   // 这里是为了适配lighting 嵌套的KE 要隐藏 yarn队列部分
   get ifShowYarn () {
@@ -441,7 +484,7 @@ export default class SettingAdvanced extends Vue {
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   onFormChange () {
-    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings') || this.isFormEdited(this.form, 'yarn-name') || this.isFormEdited(this.form, 'kerberos-acc')
+    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings') || this.isFormEdited(this.form, 'yarn-name') || this.isFormEdited(this.form, 'kerberos-acc') || this.isFormEdited(this.form, 'sec-storage')
     this.$emit('form-changed', { advanceSetting })
   }
 
@@ -467,12 +510,19 @@ export default class SettingAdvanced extends Vue {
     this.loadDataBases()
     this.initForm()
     this.getConfigList()
+    this.loadAvailableNodes()
+  }
+  async loadAvailableNodes () {
+    const res = await this.fetchAvailableNodes()
+    const data = await handleSuccessAsync(res)
+    this.nodes = data
   }
   initForm () {
     // this.handleInit('accelerate-settings')
     this.handleInit('job-alert')
     this.handleInit('defaultDB-settings')
     this.handleInit('yarn-name')
+    this.handleInit('sec-storage')
     this.handleInit('expose_computed_column')
     this.handleInit('kerberos-acc')
   }
@@ -491,6 +541,9 @@ export default class SettingAdvanced extends Vue {
       }
       case 'yarn-name': {
         this.form = { ...this.form, ..._getYarnNameSetting(this.project) }; break
+      }
+      case 'sec-storage': {
+        this.form = { ...this.form, ..._getSecStorageSetting(this.project) }; break
       }
       case 'expose_computed_column': {
         this.form = { ...this.form, ..._getExposeCCSetting(this.project) }; break
@@ -511,7 +564,7 @@ export default class SettingAdvanced extends Vue {
       const confirmButtonText = value ? this.$t('confirmOpen') : this.$t('confirmClose')
       const title = value ? this.$t('openSnapshotTitle') : this.$t('closeSnapshotTitle')
       try {
-        await kapConfirm(msg, {confirmButtonText, dangerouslyUseHTMLString: true, type: 'warning'}, title)
+        await kapConfirm(msg, {confirmButtonText, dangerouslyUseHTMLString: true, centerButton: true, type: 'warning'}, title)
         submitData.snapshot_manual_management_enabled = value
         try {
           await this.updateSnapshotConfig(submitData)
@@ -533,7 +586,7 @@ export default class SettingAdvanced extends Vue {
       const submitData = _getExposeCCSetting(this.project)
       if (!value) {
         try {
-          await kapConfirm(this.$t('confirmCloseExposeCC'), {confirmButtonText: this.$t('kylinLang.common.confirmClose')})
+          await kapConfirm(this.$t('confirmCloseExposeCC'), {confirmButtonText: this.$t('kylinLang.common.confirmClose'), centerButton: true, type: 'warning'})
           submitData.expose_computed_column = value
           try {
             await this.updateExposeCCConfig(submitData)
@@ -571,6 +624,7 @@ export default class SettingAdvanced extends Vue {
           this.$confirm(this.$t('confirmDefaultDBContent', {dbName: this.form.default_database}), this.$t('confirmDefaultDBTitle'), {
             confirmButtonText: this.$t('kylinLang.common.submit'),
             cancelButtonText: this.$t('kylinLang.common.cancel'),
+            centerButton: true,
             type: 'warning'
           }).then(async () => {
             if (await this.$refs['setDefaultDB'].validate()) {
@@ -598,6 +652,119 @@ export default class SettingAdvanced extends Vue {
             await this.updateJobAlertSettings(submitData); break
           } else {
             return errorCallback()
+          }
+        }
+        case 'sec-storage': {
+          if (this.form.second_storage_enabled) {
+            // 需要二次确认
+            this.$confirm(this.$t('openSecStorageTips'), this.$t('openSecStorageTitle'), {
+              confirmButtonText: this.$t('openSecConfirmBtn'),
+              cancelButtonText: this.$t('kylinLang.common.cancel'),
+              dangerouslyUseHTMLString: true,
+              centerButton: true,
+              type: 'warning'
+            }).then(async () => {
+              try {
+                await this.updateSecStorageSettings({project: this.currentSelectedProject, new_nodes: this.new_nodes.map(n => n.name), enabled: this.form.second_storage_enabled})
+                successCallback()
+                this.$emit('reload-setting')
+                this.form.second_storage_nodes = [...this.form.second_storage_nodes, ...this.new_nodes]
+                this.new_nodes = []
+                this.loadAvailableNodes()
+                this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+              } catch (e) {
+                errorCallback()
+                handleError(e)
+              }
+            }).catch(() => {
+              return errorCallback()
+            })
+            break
+          } else {
+            const h = this.$createElement
+            // 抓取下是二级存储 的model，如果存在，需要二次确认
+            this.getSecStorageModels({project: this.currentSelectedProject}).then(async (modeldata) => {
+              try {
+                const data = await handleSuccessAsync(modeldata)
+                if (data.length) {
+                  this.$msgbox({
+                    title: this.$t('closeSecStorageSetting'),
+                    message: h('p', null, [
+                      h('span', null, [
+                        // h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+                        h('span', null, this.$t('closeSecStorageTip'))
+                      ]),
+                      h('div', null, this.$t('affectedModels')),
+                      h('div', {
+                        style: 'color: #546174;padding:8px;background:#F8F9FB;margin-top:16px;font-size:12px;line-height:16px;max-height:100px;overflow-y:auto;'
+                      }, data.map(d => {
+                        return h('div', null, d)
+                      })),
+                      h('div', { class: 'ksd-mt-24' }, [
+                        h('i', { style: 'color: #E03B3B;margin-right: 5px' }, '*'),
+                        h('span', null, this.$t('secStorageInputTitle'))
+                      ])
+                    ]),
+                    type: 'warning',
+                    centerButton: true,
+                    showInput: true,
+                    showCancelButton: true,
+                    showClose: false,
+                    $type: 'prompt',
+                    inputPattern: this.$lang === 'en' ? /^Turn Off Secondary Storage$/ : /^关闭分层存储$/,
+                    inputErrorMessage: '',
+                    confirmButtonText: this.$t('confirmClose'),
+                    cancelButtonText: this.$t('kylinLang.common.cancel')
+                  }).then(() => {
+                    this.updateSecStorageSettings({project: this.currentSelectedProject, enabled: this.form.second_storage_enabled}).then(async (res) => {
+                      try {
+                        await handleSuccessAsync(res)
+                        successCallback()
+                        this.$emit('reload-setting')
+                        this.form.second_storage_nodes = []
+                        this.nodes = []
+                        this.loadAvailableNodes()
+                        this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+                      } catch (e) {
+                        errorCallback()
+                        handleError(e)
+                      }
+                    }).catch((e) => {
+                      this.handleInit('sec-storage')
+                      errorCallback()
+                      handleError(e)
+                    })
+                  }).catch(() => {
+                    errorCallback()
+                    this.handleInit('sec-storage')
+                  })
+                } else {
+                  this.updateSecStorageSettings({project: this.currentSelectedProject, enabled: this.form.second_storage_enabled}).then(async (res) => {
+                    try {
+                      await handleSuccessAsync(res)
+                      successCallback()
+                      this.form.second_storage_nodes = []
+                      this.nodes = []
+                      this.loadAvailableNodes()
+                      this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+                    } catch (e) {
+                      errorCallback()
+                      handleError(e)
+                    }
+                  }).catch((e) => {
+                    errorCallback()
+                    handleError(e)
+                  })
+                }
+              } catch (e) {
+                errorCallback()
+                handleError(e)
+              }
+            }).catch((e) => {
+              errorCallback()
+              handleError(e)
+            })
+            break
           }
         }
         case 'yarn-name': {
@@ -637,6 +804,7 @@ export default class SettingAdvanced extends Vue {
                 confirmButtonText: this.$t('refreshNow'),
                 cancelButtonText: this.$t('refreshLater'),
                 type: 'warning',
+                centerButton: true,
                 dangerouslyUseHTMLString: true
               }).then(() => {
                 // 刷新数据源
@@ -650,7 +818,7 @@ export default class SettingAdvanced extends Vue {
         }
       }
       // 设置默认参数的有二次确认，所以成功的反馈不能在结尾调
-      if (type !== 'defaultDB-settings') {
+      if (type !== 'defaultDB-settings' && type !== 'sec-storage') {
         successCallback()
         this.$emit('reload-setting')
         if (type === 'kerberos-acc') return
@@ -767,6 +935,8 @@ export default class SettingAdvanced extends Vue {
         return JSON.stringify(_getJobAlertSettings(form, true, true)) !== JSON.stringify(_getJobAlertSettings(project, true, true))
       case 'yarn-name':
         return JSON.stringify(_getYarnNameSetting(form)) !== JSON.stringify(_getYarnNameSetting(project))
+      case 'sec-storage':
+        return JSON.stringify(_getSecStorageSetting(form)) !== JSON.stringify(_getSecStorageSetting(project))
       case 'kerberos-acc':
         // 对比principal 或者有新上传的文件
         let name = this.form.principal !== project.principal
@@ -781,7 +951,7 @@ export default class SettingAdvanced extends Vue {
         title: this.$t('openMulPartitionSetting'),
         message: h('p', null, [
           h('span', null, [
-            h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+            // h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
             h('span', null, this.$t('openMulPartitionTip'))
           ]),
           h('a', {
@@ -794,7 +964,9 @@ export default class SettingAdvanced extends Vue {
           this.$lang === 'en' && h('span', null, this.$t('openMulPartitionTip1')),
           h('p', null, this.$t('confirmOpenTip'))
         ]),
+        type: 'warning',
         showCancelButton: true,
+        centerButton: true,
         confirmButtonText: this.$t('confirmOpen'),
         cancelButtonText: this.$t('kylinLang.common.cancel')
       }).then(() => {
@@ -823,15 +995,17 @@ export default class SettingAdvanced extends Vue {
               title: this.$t('closeMulPartitionSetting'),
               message: h('p', null, [
                 h('span', null, [
-                  h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+                  // h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
                   h('span', null, this.$t('closeMulPartitionTip'))
                 ]),
                 h('div', {
-                  style: 'color: #5C5C5C;padding: 10px;background:#FAFAFA;'
+                  style: 'color: #546174;padding: 10px;background:#F8F9FB;'
                 }, data.join(',')),
                 h('p', null, this.$t('closeMulPartitionTip1'))
               ]),
               showCancelButton: true,
+              type: 'warning',
+              centerButton: true,
               confirmButtonText: this.$t('confirmClose'),
               cancelButtonText: this.$t('kylinLang.common.cancel')
             }).then(() => {
@@ -878,7 +1052,7 @@ export default class SettingAdvanced extends Vue {
         title: this.$t('openSCDSetting'),
         message: h('p', null, [
           h('span', null, [
-            h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+            // h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
             h('span', null, this.$t('openSCDTip'))
           ]),
           h('a', {
@@ -892,6 +1066,8 @@ export default class SettingAdvanced extends Vue {
           h('p', null, this.$t('confirmOpenTip'))
         ]),
         showCancelButton: true,
+        centerButton: true,
+        type: 'warning',
         confirmButtonText: this.$t('confirmOpen'),
         cancelButtonText: this.$t('kylinLang.common.cancel')
       }).then(() => {
@@ -920,15 +1096,17 @@ export default class SettingAdvanced extends Vue {
               title: this.$t('closeSCDSetting'),
               message: h('p', null, [
                 h('span', null, [
-                  h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
+                  // h('i', { class: 'el-icon-ksd-alert', style: 'color: #F7BA2A;margin-right: 5px;' }),
                   h('span', null, this.$t('closeSCDTip'))
                 ]),
                 h('div', {
-                  style: 'color: #5C5C5C;padding: 10px;background:#FAFAFA;'
+                  style: 'color: #546174;padding: 10px;background:#F8F9FB;'
                 }, data.join(',')),
                 h('p', null, this.$t('closeSCDTip1'))
               ]),
+              type: 'warning',
               showCancelButton: true,
+              centerButton: true,
               confirmButtonText: this.$t('confirmClose'),
               cancelButtonText: this.$t('kylinLang.common.cancel')
             }).then(() => {
@@ -995,6 +1173,7 @@ export default class SettingAdvanced extends Vue {
     this.$confirm(this.$t('confirmDeleteConfig', {key: item.key}), this.$t('deleteConfig'), {
       confirmButtonText: this.$t('kylinLang.common.ok'),
       cancelButtonText: this.$t('kylinLang.common.cancel'),
+      centerButton: true,
       type: 'warning'
     }).then(async () => {
       try {
@@ -1025,7 +1204,17 @@ export default class SettingAdvanced extends Vue {
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
+.el-message-box__input {
+  padding-top: 8px;
+}
+.el-message-box__errormsg {
+  display: none;
+}
 .accelerate-setting {
+  .secondary-storage-nodes {
+    display: block;
+    width: 100%;
+  }
   .beta-label {
     display: inline-block;
     height: 18px;

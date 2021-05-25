@@ -31,9 +31,7 @@ source ${KYLIN_HOME}/sbin/init-kerberos.sh
 
 echo "Checking Kerberos..."
 
-KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
-
-if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
+if [[ $(is_kap_kerberos_enabled) == 1 ]]
 then
     initKerberosIfNeeded
 else

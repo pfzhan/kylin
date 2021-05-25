@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Date;
 
+import io.kyligence.kap.metadata.streaming.JdbcStreamingJobStatsStore;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -89,6 +90,8 @@ public class AppInitializer {
     @Autowired
     HostInfoFetcher hostInfoFetcher;
 
+    JdbcStreamingJobStatsStore streamingJobStatsStore;
+
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -105,6 +108,7 @@ public class AppInitializer {
                 String localIdentify = EpochOrchestrator.getOwnerIdentity().split("\\|")[0];
                 return localIdentify.equalsIgnoreCase(instance);
             });
+            streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
 
             // register scheduler listener
             EventBusFactory.getInstance().register(new JobSchedulerListener(), false);

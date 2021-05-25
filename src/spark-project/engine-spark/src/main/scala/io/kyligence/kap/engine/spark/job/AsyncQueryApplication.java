@@ -30,7 +30,6 @@ import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_QUERY_PARAM
 import java.io.IOException;
 import java.util.Map;
 
-import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -44,6 +43,7 @@ import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 
 public class AsyncQueryApplication extends SparkApplication {
 
@@ -77,6 +77,8 @@ public class AsyncQueryApplication extends SparkApplication {
                 AsyncQueryUtil.createErrorFlag(getParam(P_PROJECT_NAME), getParam(P_QUERY_ID), e.getMessage());
             }
             saveQueryHistory();
+        } catch (Exception e) {
+            logger.error("async query job failed.", e);
         } finally {
             QueryMetricsContext.reset();
         }

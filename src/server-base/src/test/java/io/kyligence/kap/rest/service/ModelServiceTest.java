@@ -65,6 +65,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -170,6 +171,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
@@ -411,6 +413,30 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         models = modelService.getModels("", "default", false, "", null, "expansionrate", true);
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
+    }
+
+    @Test
+    public void testGetNonFlattenModel() {
+        String project = "cc_test";
+        String modelName = "test_model";
+        NDataModelResponse model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
+                .get(0);
+        Assert.assertEquals(8, model.getNamedColumns().size());
+        Assert.assertEquals(8, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel originModel = modelManager.getDataModelDescByAlias(modelName);
+        originModel.getJoinTables().forEach(join -> {
+            join.setFlattenable("NORMALIZED");
+        });
+
+        //if onlyNormalDim set false, getModel can return nonflatten table dimension
+        model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, false)
+                .get(0);
+        Assert.assertEquals(14, model.getNamedColumns().size());
+        Assert.assertEquals(14, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
     }
 
     @Test
@@ -5519,5 +5545,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains("Data model with id 'abc' not found."));
         }
+    }
+
+    @Test
+    public void disableSecondStorageIfNeeded() throws IOException {
+        val models = new ArrayList<>(modelService.listAllModelIdsInProject("default"));
+        val model = models.get(0);
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        SecondStorageUtil.initModelMetaData("default", model);
+        ModelRequest request = new ModelRequest();
+        request.setWithSecondStorage(false);
+        request.setUuid(model);
+        Mockito.doCallRealMethod().when(modelService).disableSecondStorageIfNeeded("default", request);
+        modelService.disableSecondStorageIfNeeded("default", request);
+        Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
     }
 }

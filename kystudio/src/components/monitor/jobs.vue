@@ -2,7 +2,7 @@
   <div id="jobListPage">
   <el-alert :title="$t('adminTips')" type="tip" class="admin-tips" v-if="isShowAdminTips" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20">
-    <div class="ksd-title-page ksd-mt-20">{{$t('jobsList')}}</div>
+    <div class="ksd-title-page ksd-mt-32">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="16">
         <!-- <el-dropdown class="ksd-fleft waiting-jobs" trigger="click" placement="bottom-start" @command="handleCommand">
@@ -18,8 +18,8 @@
         <div class="action_groups ksd-fleft" v-if="monitorActions.includes('jobActions')">
           <el-button type="primary" text size="medium" icon="el-ksd-icon-play_outline_22" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
-          <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
-          <el-button type="primary" text size="medium" icon="el-ksd-icon-close_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause&&getBatchJobNameEnabled" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button type="primary" text size="medium" icon="el-ksd-icon-close_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.discard&&getBatchJobNameEnabled" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-table_delete_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </div>
       </el-col>
@@ -31,9 +31,9 @@
     </el-row>
     <el-row class="filter-status-list" v-show="filterTags.length">
       <div class="tag-layout">
-        <el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}${$t('kylinLang.common.colon')}${$t(item.label)}`}}</el-tag>
+        <el-tag closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}${$t('kylinLang.common.colon')}${$t(item.label)}`}}</el-tag><span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
       </div>
-      <span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
+      <span class="filter-job-size">{{$t('filteredTotalSize', {totalSize: jobTotal})}}</span>
     </el-row>
     <transition name="fade">
       <div class="selectLabel" v-if="isSelectAllShow&&!$store.state.project.isAllProject&&filter.status.length">
@@ -58,12 +58,12 @@
           @cell-click="showLineSteps"
           :row-class-name="tableRowClassName"
           :key="$store.state.project.isAllProject">
-          <el-table-column type="selection" align="center" width="44"></el-table-column>
-          <el-table-column align="center" width="40" prop="icon" v-if="monitorActions.includes('jobActions')">
+          <el-table-column class-name="icon-column" type="selection" align="center" width="32"></el-table-column>
+          <el-table-column class-name="icon-column" align="center" width="32" prop="icon" v-if="monitorActions.includes('jobActions')">
             <template slot-scope="scope">
-              <i :class="{
-                'el-icon-caret-right': scope.row.id !== selectedJob.id || !showStep,
-                'el-icon-caret-bottom': scope.row.id == selectedJob.id && showStep}"></i>
+              <i class="ksd-fs-22" :class="{
+                'el-ksd-icon-arrow_table_right_22': scope.row.id !== selectedJob.id || !showStep,
+                'el-ksd-icon-arrow_table_down_22': scope.row.id == selectedJob.id && showStep}"></i>
             </template>
           </el-table-column>
           <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">
@@ -85,7 +85,7 @@
             show-overflow-tooltip
             prop="target_subject">
             <template slot-scope="scope">
-              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
+              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
               <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && !scope.row.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
                 <span class="is-disabled">{{scope.row.target_subject}}</span>
               </common-tip>
@@ -98,7 +98,8 @@
             min-width="180"
             show-overflow-tooltip>
             <template slot-scope="scope">
-              <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
+              <span v-if="scope.row.data_range_end==9223372036854776000&&!delSecJobTypes.includes(scope.row.job_name)">{{$t('fullLoad')}}</span>
+              <span v-else-if="scope.row.data_range_end==9223372036854776000&&delSecJobTypes.includes(scope.row.job_name)">{{$t('full')}}</span>
               <span v-else>{{scope.row.data_range_start | toServerGMTDate}} - {{scope.row.data_range_end | toServerGMTDate}}</span>
             </template>
           </el-table-column>
@@ -136,7 +137,7 @@
             <template slot-scope="scope">
               <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
                 <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project, '', scope.row)"></i>
-              </common-tip><common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
+              </common-tip><common-tip :content="$t('jobPause')" v-if="(scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING') && !delSecJobTypes.includes(scope.row.job_name)">
                 <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
               :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
@@ -145,7 +146,7 @@
               :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED' || scope.row.job_status=='RUNNING'">
                 <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
-              :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING'">
+              :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING' && !delSecJobTypes.includes(scope.row.job_name)">
                 <i class="el-icon-ksd-error_02 ksd-fs-14" @click.stop="discard([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
               :content="$t('jobDiagnosis')" v-if="monitorActions.includes('diagnostic') && (scope.row.job_status =='FINISHED' || scope.row.job_status == 'DISCARDED' || scope.row.job_status=='PENDING')">
@@ -159,7 +160,7 @@
                     </common-tip>
                   </span>
                   <el-dropdown-menu slot="dropdown">
-                    <el-dropdown-item @click.native="discard([scope.row.id], scope.row.project, '', scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
+                    <el-dropdown-item @click.native="discard([scope.row.id], scope.row.project, '', scope.row)" v-if="(scope.row.job_status=='RUNNING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED')&&!delSecJobTypes.includes(scope.row.job_name)">{{$t('jobDiscard')}}</el-dropdown-item>
                     <el-dropdown-item @click.native="showDiagnosisDetail(scope.row.id)" v-if="monitorActions.includes('diagnostic')">{{$t('jobDiagnosis')}}</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
@@ -183,7 +184,7 @@
                 <p class="list">
                   <span class="label">{{$t('TargetSubject')}}: </span>
                   <span class="text">
-                    <span class="is-disabled" v-if="selectedJob.job_name === 'TABLE_SAMPLING' || selectedJob.target_subject_error">{{getTargetSubject(selectedJob)}}</span>
+                    <span class="is-disabled" v-if="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(selectedJob.job_name) || selectedJob.target_subject_error">{{getTargetSubject(selectedJob)}}</span>
                     <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(selectedJob.job_name) && !selectedJob.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
                       <span class="is-disabled">{{selectedJob.target_subject}}</span>
                     </common-tip>
@@ -313,7 +314,7 @@
               </div>
             </li>
           </ul>
-          <div class='job-btn' @click='showStep=false'><i class='el-icon-ksd-more_02' aria-hidden='true'></i>
+          <div class='job-btn' id="jobDetailBtn" v-show="isShowBtn" :class="{'is-filter-list': filterTags.length}" @click='showStep=false'><i class='el-icon-ksd-more_02' aria-hidden='true'></i>
           </div>
         </el-card>
       </el-col>
@@ -456,6 +457,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       selectedJobs: '{selectedNumber} jobs have been selected. ',
       selectAll: 'All Select',
       fullLoad: 'Full Load',
+      full: 'Full',
       jobDetails: 'Job Details',
       waitingjobs: 'initializing job(s)',
       jobs: 'Job(s)',
@@ -477,6 +479,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SUB_PARTITION_BUILD: 'Build Subpartition',
       SNAPSHOT_BUILD: 'Build Snapshot',
       SNAPSHOT_REFRESH: 'Refresh Snapshot',
+      EXPORT_TO_SECOND_STORAGE: 'Export To Second Storage',
+      SECOND_STORAGE_MODEL_CLEAN: 'Delete Secondary Storage',
+      SECOND_STORAGE_NODE_CLEAN: 'Delete Secondary Storage',
+      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Secondary Storage',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
@@ -495,7 +501,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       mergeSegmentData: 'Merge Segment Data',
       cleanUpOldSegment: 'Clean Up Old Segment',
       tableSampling: 'Table Sampling',
-      buildSnapshot: 'Build Snapshot'
+      buildSnapshot: 'Build Snapshot',
+      filteredTotalSize: '{totalSize} result(s)',
+      secondaryStorage: 'Secondary Storage',
+      delSecondaryStorage: 'Delete Secondary Storage'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -552,6 +561,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       selectedJobs: '目前已选择当页 {selectedNumber} 条任务。',
       selectAll: '全选',
       fullLoad: '全量加载',
+      full: '全量',
       jobDetails: '任务详情',
       waitingjobs: '个初始化的任务',
       jobs: '个任务',
@@ -573,6 +583,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SUB_PARTITION_REFRESH: '刷新子分区数据',
       SNAPSHOT_BUILD: '构建快照',
       SNAPSHOT_REFRESH: '刷新快照',
+      EXPORT_TO_SECOND_STORAGE: '导入二级存储数据',
+      SECOND_STORAGE_MODEL_CLEAN: '删除二级存储',
+      SECOND_STORAGE_NODE_CLEAN: '删除二级存储',
+      SECOND_STORAGE_SEGMENT_CLEAN: '删除二级存储',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
@@ -591,7 +605,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       mergeSegmentData: '合并 Segment 数据',
       cleanUpOldSegment: '清理旧 Segment',
       tableSampling: '表抽样',
-      buildSnapshot: '构建快照'
+      buildSnapshot: '构建快照',
+      filteredTotalSize: '{totalSize} 条结果',
+      secondaryStorage: '二级存储',
+      delSecondaryStorage: '删除二级存储'
     }
   }
 })
@@ -640,7 +657,8 @@ export default class JobsList extends Vue {
   jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
   jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SUB_PARTITION_BUILD', 'SUB_PARTITION_REFRESH']
-  tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH']
+  tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SECOND_STORAGE_NODE_CLEAN']
+  delSecJobTypes = ['SECOND_STORAGE_NODE_CLEAN', 'SECOND_STORAGE_MODEL_CLEAN', 'SECOND_STORAGE_SEGMENT_CLEAN']
   targetId = ''
   searchLoading = false
   batchBtnsEnabled = {
@@ -657,6 +675,8 @@ export default class JobsList extends Vue {
   filterTags = []
   showDiagnostic = false
   diagnosticId = ''
+  isShowBtn = true
+  getBatchJobNameEnabled = false
 
   get emptyText () {
     return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -697,7 +717,13 @@ export default class JobsList extends Vue {
       'Clean Up Old Segment': this.$t('cleanUpOldSegment'),
       'Update Metadata': this.$t('updateMetadata'),
       'Table Sampling': this.$t('tableSampling'),
-      'Build Snapshot': this.$t('buildSnapshot')
+      'Build Snapshot': this.$t('buildSnapshot'),
+      'STEP_EXPORT_TO_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_REFRESH_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_MERGE_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_SECOND_STORAGE_MODEL_CLEAN': this.$t('delSecondaryStorage'),
+      'STEP_SECOND_STORAGE_NODE_CLEAN': this.$t('delSecondaryStorage'),
+      'STEP_SECOND_STORAGE_SEGMENT_CLEAN': this.$t('delSecondaryStorage')
     }
     return stepMap[name]
   }
@@ -801,18 +827,18 @@ export default class JobsList extends Vue {
   destroyed () {
     clearTimeout(this.stCycle)
   }
-  // mounted () {
-  //   if (document.getElementById('scrollContent')) {
-  //     document.getElementById('scrollContent').addEventListener('scroll', this.scrollRightBar, false)
-  //   }
-  // }
+  mounted () {
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').addEventListener('scroll', this.isShowJobBtn, false)
+    }
+  }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     // window.removeEventListener('click', this.closeIt)
-    // if (document.getElementById('scrollContent')) {
-    //   document.getElementById('scrollContent').removeEventListener('scroll', this.scrollRightBar, false)
-    // }
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').removeEventListener('scroll', this.isShowJobBtn, false)
+    }
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
@@ -901,6 +927,22 @@ export default class JobsList extends Vue {
       return ''
     }
   }
+  isShowJobBtn () {
+    this.$nextTick(() => {
+      // 右侧详情的高度
+      let rightStepDetailH = document.getElementById('stepList') && document.getElementById('stepList').clientHeight
+      // 当前滚动距离
+      let sTop = document.getElementById('scrollContent').scrollTop
+      this.isShowBtn = rightStepDetailH - 50 >= sTop
+      // 可视区宽度
+      let screenW = document.getElementById('jobListPage').offsetWidth
+      // jobBtn 的left 定位
+      let jobBtn = document.getElementById('jobDetailBtn')
+      if (jobBtn) {
+        jobBtn.style.left = (screenW + 158 - 345) + 'px'
+      }
+    })
+  }
   // setRightBarTop () {
   //   // 默认右侧详情的位移为 0
   //   let result = 0
@@ -979,7 +1021,11 @@ export default class JobsList extends Vue {
       const selectedStatus = this.multipleSelection.map((item) => {
         return item.job_status
       })
+      const selectedJobNames = this.multipleSelection.map((item) => {
+        return item.job_name
+      })
       this.getBatchBtnStatus(selectedStatus)
+      this.getBatchJobNameEnabled = this.isContain(this.delSecJobTypes, selectedJobNames)
       this.idsArr = this.multipleSelection.map((item) => {
         return item.id
       })
@@ -1345,6 +1391,7 @@ export default class JobsList extends Vue {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.$set(this.selectedJob, 'details', data)
+            this.isShowJobBtn()
             // this.setRightBarTop()
           })
         }, (resError) => {
@@ -1504,7 +1551,7 @@ export default class JobsList extends Vue {
       }
         &.el-card {
           border-radius: 0;
-          box-shadow: -10px 10px 5px @ke-background-color-secondary;
+          box-shadow: -3px 3px 5px @ke-color-secondary;
           border: 0;
           padding: 16px;
           .el-card__body {
@@ -1560,7 +1607,7 @@ export default class JobsList extends Vue {
       }
       .job-btn {
         position: fixed;
-        right: 360px;
+        right: 345px;
         top: 230px;
         height: 24px;
         width: 24px;
@@ -1571,6 +1618,10 @@ export default class JobsList extends Vue {
         box-shadow: 0px 2px 8px rgba(50, 73, 107, 0.24);
         cursor: pointer;
         text-align: center;
+        background-color: @fff;
+        &.is-filter-list {
+          top: 270px;
+        }
         i {
           transform: scale(0.8);
         }
@@ -1586,7 +1637,7 @@ export default class JobsList extends Vue {
       }
       .timeline {
         position: relative;
-        margin: 0 10px 30px 10px;
+        margin: 0px 10px 30px 0px;
         list-style: none;
         font-size: 12px;
 
@@ -1645,6 +1696,9 @@ export default class JobsList extends Vue {
               }
               i {
                 color: @text-normal-color;
+                &:hover {
+                  color: @ke-color-primary;
+                }
               }
             }
             .timeline-footer {
@@ -1702,6 +1756,16 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
+      .icon-column {
+        .cell {
+          padding-left: 8px;
+          padding-right: 8px;
+        }
+      }
+      .el-ksd-icon-arrow_table_right_22,
+      .el-ksd-icon-arrow_table_down_22 {
+        color: @text-disabled-color;
+      }
       span.is-disabled {
         color: @text-disabled-color;
       }
@@ -1781,25 +1845,26 @@ export default class JobsList extends Vue {
     }
   }
   .filter-status-list {
-    background: @background-disabled-color;
-    margin-bottom: 10px;
-    padding: 0px 5px 5px;
+    margin-bottom: 8px;
     box-sizing: border-box;
     .tag-layout {
-      width: calc(~'100% - 100px');
+      width: calc(~'100% - 80px');
       display: inline-block;
       .el-tag {
-        margin-left: 5px;
+        margin-right: 5px;
         margin-top: 5px;
       }
     }
     .clear-all-tags {
+      font-size: 12px;
+      color: @base-color;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .filter-job-size {
       position: absolute;
       top: 8px;
       right: 10px;
-      font-size: 14px;
-      color: @base-color;
-      cursor: pointer;
     }
   }
 </style>

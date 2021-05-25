@@ -23,7 +23,7 @@
         </div> -->
         <el-select v-model="buildType" class="ksd-mb-5" @change="handChangeBuildType" v-if="buildOrComplete == 'build'" :disabled="!datasourceActions.includes('changeBuildType')">
           <el-option :label="$t('incremental')" value="incremental"></el-option>
-          <el-option :label="$t('fullLoad')" value="fullLoad"></el-option>
+          <el-option :label="$t('fullLoad')" v-if="!isStreamModel" value="fullLoad"></el-option>
         </el-select>
       </div>
       <div class="tips">{{buildTips}}</div>
@@ -379,6 +379,11 @@
 
     get displaySubPartition () {
       return this.source !== 'addSegment' && this.$store.state.project.multi_partition_enabled && this.partitionMeta.multiPartition
+    }
+
+    get isStreamModel () {
+      const factTable = this.modelInstance.getFactTable()
+      return factTable.source_type === 1 || this.modelDesc.model_type === 'STREAMING'
     }
 
     refreshPartitionValues (val) {

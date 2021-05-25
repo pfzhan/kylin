@@ -27,11 +27,15 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -51,6 +55,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.transaction.Transaction;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {
@@ -161,5 +167,25 @@ public class TableExtService extends BasicService {
             loadTableByDatabaseResponse.getFailed().addAll(loadTableResponse.getFailed());
         }
         return loadTableByDatabaseResponse;
+    }
+
+    @Transaction(project = 0, retry = 1)
+    public void checkAndLoadTable(String project, TableDesc tableDesc, TableExtDesc extDesc) throws Exception {
+        checkBeforeLoadTable(tableDesc, project);
+        try {
+            loadTable(tableDesc, extDesc, project);
+        } catch (Exception ex) {
+            logger.error("Failed to load table '" + tableDesc.getIdentity() + "'\"", ex);
+        }
+    }
+
+    private void checkBeforeLoadTable(TableDesc tableDesc, String project) {
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        TableDesc originTableDesc = tableMetadataManager.getTableDesc(tableDesc.getIdentity());
+        if (originTableDesc != null && (originTableDesc.getSourceType() == ISourceAware.ID_STREAMING
+                || tableDesc.getSourceType() == ISourceAware.ID_STREAMING)) {
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSAME_TABLE_NAME_EXIST(), tableDesc.getIdentity()));
+        }
     }
 }

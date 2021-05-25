@@ -65,6 +65,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -222,8 +223,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"), "", 0,
-                10, "last_modify", true, null, null, null);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", null, Arrays.asList("ONLINE"), "", 0,
+                10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test
@@ -237,8 +238,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
-                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", null, Arrays.asList("ONLINE"),
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test
@@ -251,8 +252,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("ONLINE"),
-                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null);
+        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", null, Arrays.asList("ONLINE"),
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test
@@ -422,7 +423,11 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testCreateModel() throws Exception {
         ModelRequest request = new ModelRequest();
         request.setProject("default");
-        Mockito.doReturn(null).when(modelService).createModel(request.getProject(), request);
+        NDataModel mockModel = new NDataModel();
+        mockModel.setUuid("mock");
+        mockModel.setProject("default");
+        Mockito.doReturn(mockModel).when(modelService).createModel(request.getProject(), request);
+        Mockito.doReturn(new IndexPlan()).when(modelService).getIndexPlan(mockModel.getId(), mockModel.getProject());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -779,13 +784,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         model.setUuid("model1");
         models.add(new NDataModelResponse(model));
         NDataModel model1 = new NDataModel();
-        model.setUuid("model2");
+        model1.setUuid("model2");
         models.add(new NDataModelResponse(model1));
         NDataModel model2 = new NDataModel();
-        model.setUuid("model3");
+        model2.setUuid("model3");
         models.add(new NDataModelResponse(model2));
         NDataModel model3 = new NDataModel();
-        model.setUuid("model4");
+        model3.setUuid("model4");
         models.add(new NDataModelResponse(model3));
 
         return models;

@@ -55,7 +55,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
@@ -653,7 +653,7 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
         try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(uploadFile))) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(zipInputStream));
                 long t = zipEntry.getTime();
                 String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
                 if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.endsWith(".json")) {

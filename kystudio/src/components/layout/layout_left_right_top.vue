@@ -3,43 +3,33 @@
     <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
       <el-col :span="24" class="panel-center">
         <aside class="left-menu">
-          <img v-show="!briefMenuGet" src="../../assets/img/ky_logo.png" class="logo" @click="goHome">
+          <img v-show="!briefMenuGet" src="../../assets/img/logo_KE.png" class="logo" @click="goHome">
           <img v-show="briefMenuGet" src="../../assets/img/logo/logo_small_white.png" class="logo" @click="goHome">
-          <div class="ky-line"></div>
+          <!-- <div class="ky-line"></div> -->
           <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
                 <!-- <i :class="item.icon" class="ksd-fs-16"></i> -->
-                <el-icon :name="item.icon" type="mult"></el-icon>
-                <span slot="title" v-if="item.name === 'modelList'">
-                  {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
-                </span>
-                <span slot="title" v-else>
-                  {{$t('kylinLang.menu.' + item.name)}}
-                </span>
+                <el-icon :name="item.icon" type="mult"></el-icon><span
+                slot="title" v-if="item.name === 'modelList'">{{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}</span><span
+                slot="title" v-else>{{$t('kylinLang.menu.' + item.name)}}</span>
               </el-menu-item>
               <el-submenu :index="item.path" v-if="item.children && showMenuByRole(item.name)" :id="item.name" :key="index">
                 <template slot="title">
                   <!-- <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i> -->
-                  <el-icon :name="item.icon" type="mult"></el-icon>
-                  <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
+                  <el-icon :name="item.icon" type="mult"></el-icon><span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThresholdVisible" class="dot-icon"></div>
                 </template>
                 <!-- <el-menu-item-group> -->
-                  <el-menu-item :index="child.path" class="ksd-pl-55" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
+                  <el-menu-item :index="child.path" :class="{'ksd-pl-45': !briefMenuGet}" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
                     <template v-if="child.name === 'job'">
-                      <span style="position:relative;" id="monitorJobs">
-                        {{$t('kylinLang.menu.' + child.name)}}
-                      </span>
+                      <span style="position:relative;" id="monitorJobs">{{$t('kylinLang.menu.' + child.name)}}</span>
                     </template>
                     <template v-else-if="child.name === 'modelList'">
-                      <span style="position:relative;" id="studioModel">
-                        {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
-                      </span>
+                      <span style="position:relative;" id="studioModel">{{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}</span>
                       <div class="number-icon" v-if="reachThresholdVisible">1</div>
                     </template>
                     <template v-else>
-                      <span style="position:relative;">
-                        {{$t('kylinLang.menu.' + child.name)}}
+                      <span style="position:relative;"> {{$t('kylinLang.menu.' + child.name)}}
                         <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'acceleration'"></span>
                       </span>
                     </template>
@@ -115,7 +105,7 @@
             <li class="capacity-li">
               <capacity/>
             </li>
-            <li class="ksd-mr-2" v-if="showMenuByRole('admin')">
+            <li v-if="showMenuByRole('admin')" style="margin-right: 1px;">
               <el-button
                 type="primary"
                 text
@@ -126,14 +116,15 @@
                 @click="handleSwitchAdmin">
               </el-button>
             </li>
-            <li class="ksd-mr-2"><help></help></li>
-            <li class="ksd-mr-22"><change_lang ref="changeLangCom"></change_lang></li>
+            <li style="margin-right: 1px;"><help></help></li>
+            <li class="ksd-mr-10"><change_lang ref="changeLangCom"></change_lang></li>
             <li>
               <el-dropdown @command="handleCommand" class="user-msg-dropdown">
-                <span class="el-dropdown-link">
-                  <!-- <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i> -->
+                <!-- <span class="el-dropdown-link">
+                  <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i>
                   <span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
-                </span>
+                </span> -->
+                <el-button type="primary" text iconr="el-ksd-icon-arrow_down_22"><span class="limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span></el-button>
                 <el-dropdown-menu slot="dropdown">
                   <div class="user-name">{{ currentUserInfo && currentUserInfo.username }}</div>
                   <el-dropdown-item command="setting">{{$t('kylinLang.common.changePassword')}}</el-dropdown-item>
@@ -254,9 +245,9 @@ import KapDetailDialogModal from '../common/GlobalDialog/dialog/detail_dialog'
 import Diagnostic from '../admin/Diagnostic/index'
 import Capacity from '../admin/SystemCapacity/CapacityTopBar'
 import $ from 'jquery'
+import moment from 'moment'
 import ElementUI from 'kyligence-ui'
 import GuideModal from '../studio/StudioModel/ModelList/GuideModal/GuideModal.vue'
-import moment from 'moment'
 let MessageBox = ElementUI.MessageBox
 // import Scrollbar from 'smooth-scrollbar'
 @Component({
@@ -1115,9 +1106,9 @@ export default class LayoutLeftRightTop extends Vue {
     position: relative;
     min-width: 65px;
     .quota-info {
-      font-size: 12px;
-      height: 20px;
-      line-height: 20px;
+      font-size: 14px;
+      height: 22px;
+      line-height: 22px;
       .quota-title {
         font-weight: @font-regular;
         &:hover {
@@ -1169,7 +1160,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   .alter-block {
     position: fixed;
-    top: 53px;
+    top: 48px;
     width: 100%;
     z-index: 1;
   }
@@ -1350,11 +1341,11 @@ export default class LayoutLeftRightTop extends Vue {
           //   }
           // }
           .logo {
-            width:110px;
-            height: 26px;
+            width: 100%;
+            // height: 26px;
             vertical-align: middle;
             z-index:999;
-            margin: 13px 36px 12px 36px;
+            margin: 13px 0 13px 0;
             cursor: pointer;
           }
           .ky-line {
@@ -1371,7 +1362,7 @@ export default class LayoutLeftRightTop extends Vue {
           // box-shadow: 0 1px 2px 0 @line-split-color;
           z-index: 100;
           .nav-icon {
-            margin-left: 204px;
+            margin-left: 200px;
             margin-top: 13px;
             height: 14px;
             line-height: 14px;
@@ -1395,11 +1386,14 @@ export default class LayoutLeftRightTop extends Vue {
                 margin-right: 10px;
                 border-right: 1px solid @ke-border-secondary;
               }
+              &:last-child {
+                margin-right: 10px;
+              }
             }
             .active-nodes {
-              font-size: 12px;
-              height: 20px;
-              line-height: 20px;
+              font-size: 14px;
+              height: 22px;
+              line-height: 22px;
               &:hover {
                 color: @base-color;
               }
@@ -1417,7 +1411,7 @@ export default class LayoutLeftRightTop extends Vue {
               }
             }
             .user-msg-dropdown {
-              height: 24px;
+              // height: 24px;
               .el-dropdown-link {
                 height: 100%;
                 display: inline-block;
@@ -1499,7 +1493,7 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
   .limit-user-name {
-    height: 20px;
+    // height: 20px;
     display: inline-block;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1544,7 +1538,7 @@ export default class LayoutLeftRightTop extends Vue {
   .el-menu--popup {
     margin-left: 1px;
     padding: 0px;
-    background-color: @text-title-color!important;
+    // background-color: @text-title-color!important;
     &.el-menu {
       min-width: 100px;
     }

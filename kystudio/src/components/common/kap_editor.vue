@@ -15,7 +15,7 @@
       v-model="showCopyStatus">
       <i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span>
     </el-popover>
-    <i class="el-ksd-icon-dup_16 edit-copy-btn ksd-fs-14"
+    <i class="el-ksd-icon-dup_16 edit-copy-btn ksd-fs-16"
       v-if="readOnly"
       :class="{'is-show': editorData, 'alwaysShow': alwaysShowCopyBtn}"
       v-clipboard:copy="editorData"
@@ -286,6 +286,7 @@ export default {
     width: 100%;
     position: relative;
     border: 1px solid @ke-border-secondary;
+    box-sizing: border-box;
     // background-color: @aceditor-bg-color;
     border-radius: 6px;
     .ace_print-margin {
@@ -309,8 +310,8 @@ export default {
     }
     .edit-copy-btn {
       position: absolute;
-      right: 5px;
-      top: 5px;
+      right: 10px;
+      top: 10px;
       z-index: 9;
       opacity: 0;
       display: none;
@@ -322,6 +323,9 @@ export default {
       }
       &.is-show {
         display: block;
+      }
+      &:hover {
+        color: @base-color;
       }
     }
     &:hover {

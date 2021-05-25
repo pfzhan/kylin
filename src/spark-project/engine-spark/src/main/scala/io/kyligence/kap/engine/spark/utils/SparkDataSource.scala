@@ -24,17 +24,23 @@ package io.kyligence.kap.engine.spark.utils
 
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
+import io.kyligence.kap.metadata.project.NProjectManager
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object SparkDataSource {
+
   implicit class SparkSource(sparkSession: SparkSession) {
-    def table(tableDesc: TableDesc) : DataFrame = {
+    def table(tableDesc: TableDesc): DataFrame = {
+      val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
+        .getProject(tableDesc.getProject).getOverrideKylinProps
       SourceFactory
         .createEngineAdapter(tableDesc,
           classOf[NSparkCubingEngine.NSparkCubingSource])
-        .getSourceData(tableDesc, sparkSession, Maps.newHashMap())
+        .getSourceData(tableDesc, sparkSession, params)
     }
   }
+
 }

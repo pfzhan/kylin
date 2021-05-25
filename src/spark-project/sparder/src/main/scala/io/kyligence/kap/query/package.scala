@@ -35,7 +35,7 @@ class QueryContext(session: SparkSession) {
       session.experimental.extraStrategies = strategies :+ KylinSourceStrategy  :+ LayoutFileSourceStrategy
     }
 
-    new KylinDataFrameManager(session)
+    KylinDataFrameManager(session)
   }
 }
 

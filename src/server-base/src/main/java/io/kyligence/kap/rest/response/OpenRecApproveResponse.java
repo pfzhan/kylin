@@ -57,5 +57,7 @@ public class OpenRecApproveResponse {
         private List<Long> addedIndexes;
         @JsonProperty("removed_indexes")
         private List<Long> removedIndexes;
+        @JsonProperty("base_index_info")
+        private BuildBaseIndexResponse baseIndexInfo;
     }
 }

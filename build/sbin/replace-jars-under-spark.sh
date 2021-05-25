@@ -151,12 +151,26 @@ function hdp3_replace_jars() {
     -o -name "re2j-*.jar")
 }
 
+function cdh7x_replace_jars() {
+  other_cdh7x_jars=$(find ${cdh_hadoop_lib_path}/client/ -maxdepth 1 \
+  -name "woodstox-core.jar" \
+  -o -name "stax2-api.jar" \
+  -o -name "re2j.jar")
+
+  other_jars="${other_jars} ${other_cdh7x_jars}"
+}
+
 if [ -n "$FI_ENV_PLATFORM" ]
 then
     fi_replace_jars
 elif [ -d "$cdh_mapreduce_path" ]
 then
     cdp_replace_jars
+
+    if [[ $(is_cdh_7_x) == 1 ]]; then
+      cdh7x_replace_jars
+    fi
+
 elif [[ $(is_hdp_3_x) == 1 ]]; then
     hdp3_replace_jars
 fi

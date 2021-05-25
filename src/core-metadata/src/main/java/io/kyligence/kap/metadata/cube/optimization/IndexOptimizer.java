@@ -58,12 +58,14 @@ public class IndexOptimizer {
     protected List<LayoutEntity> filterAutoLayouts(NDataflow dataflow) {
         return dataflow.extractReadyLayouts().stream() //
                 .filter(layout -> !layout.isManual() && layout.isAuto()) //
+                .filter(layout -> !layout.isBase())
                 .collect(Collectors.toList());
     }
 
     protected List<LayoutEntity> filterManualLayouts(NDataflow dataflow) {
         return dataflow.extractReadyLayouts().stream() //
                 .filter(LayoutEntity::isManual) //
+                .filter(layout -> !layout.isBase())
                 .collect(Collectors.toList());
     }
 

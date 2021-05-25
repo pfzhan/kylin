@@ -85,7 +85,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -245,11 +245,11 @@ public class MetaStoreService extends BasicService {
                 }
 
                 newResourceStore.putResourceWithoutCheck(modelDesc.getResourcePath(),
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(modelDesc)), modelDesc.getLastModified(),
+                        ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(modelDesc)), modelDesc.getLastModified(),
                         modelDesc.getMvcc());
 
                 newResourceStore.putResourceWithoutCheck(copyIndexPlan.getResourcePath(),
-                        ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(copyIndexPlan)),
+                        ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(copyIndexPlan)),
                         copyIndexPlan.getLastModified(), copyIndexPlan.getMvcc());
 
                 // Broken model can't use getAllTables method, will be intercepted in BrokenEntityProxy
@@ -270,7 +270,7 @@ public class MetaStoreService extends BasicService {
             // add version file
             String version = System.getProperty(KE_VERSION) == null ? "unknown" : System.getProperty(KE_VERSION);
             newResourceStore.putResourceWithoutCheck(VERSION_FILE,
-                    ByteStreams.asByteSource(version.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
+                    ByteSource.wrap(version.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
                     -1);
 
             oldResourceStore.copy(ResourceStore.METASTORE_UUID_TAG, newResourceStore);
@@ -307,7 +307,7 @@ public class MetaStoreService extends BasicService {
                 .sorted(Comparator.comparingInt(RawRecItem::getId)).collect(Collectors.toList());
 
         resourceStore.putResourceWithoutCheck(String.format(Locale.ROOT, MODEL_REC_PATH, project, modelId),
-                ByteStreams.asByteSource(JsonUtil.writeValueAsIndentBytes(rawRecItems)), System.currentTimeMillis(),
+                ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(rawRecItems)), System.currentTimeMillis(),
                 -1);
     }
 
@@ -324,7 +324,7 @@ public class MetaStoreService extends BasicService {
         try (ZipInputStream zipInputStream = new ZipInputStream(uploadFile.getInputStream())) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
+                val bs = ByteSource.wrap(IOUtils.toByteArray(zipInputStream));
                 long t = zipEntry.getTime();
                 String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
                 if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.equals(VERSION_FILE)

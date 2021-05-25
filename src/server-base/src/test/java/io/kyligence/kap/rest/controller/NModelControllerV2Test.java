@@ -89,13 +89,13 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
         model.setUuid("model1");
         models.add(new NDataModelResponse(model));
         NDataModel model1 = new NDataModel();
-        model.setUuid("model2");
+        model1.setUuid("model2");
         models.add(new NDataModelResponse(model1));
         NDataModel model2 = new NDataModel();
-        model.setUuid("model3");
+        model2.setUuid("model3");
         models.add(new NDataModelResponse(model2));
         NDataModel model3 = new NDataModel();
-        model.setUuid("model4");
+        model3.setUuid("model4");
         models.add(new NDataModelResponse(model3));
 
         return models;

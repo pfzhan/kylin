@@ -1,10 +1,16 @@
 <template>
   <div class="model-aggregate ksd-mb-15" v-if="model" v-loading="isLoading">
     <div class="aggregate-view">
-      <div class="btn-groups" v-if="isShowAggregateAction">
+      <!-- <div class="btn-groups" v-if="isShowAggregateAction">
         <el-tabs class="btn-group-tabs" v-model="switchIndexValue" type="button">
           <el-tab-pane :label="$t('indexListBtn')" @click="switchIndexValue = 'index', doLayoutIndexTable()" name="index" />
           <el-tab-pane :label="$t('recommendationsBtn')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')" name="rec" />
+        </el-tabs>
+      </div> -->
+      <div class="btn-groups" v-if="showModelTypeSwitch">
+        <el-tabs class="btn-group-tabs" v-model="switchModelType" type="button">
+          <el-tab-pane :label="$t('kylinLang.common.BATCH')" name="BATCH" />
+          <el-tab-pane :label="$t('kylinLang.common.STREAMING')" name="STREAMING" />
         </el-tabs>
       </div>
       <!-- <div class="aggregate-tree-map" :style="{width: `${moveEvent.w}%`}">
@@ -38,7 +44,7 @@
         <div class="drag-bar ky-drag-layout-bar" @mousedown="handlerDownEvent">||</div>
       </div> -->
       <div class="index-group">
-        <el-card class="agg-detail-card agg-detail" v-show="switchIndexValue === 'index'">
+        <el-card class="agg-detail-card agg-detail">
           <!-- <div slot="header" class="clearfix"> -->
             <!-- <div class="left font-medium fix">{{$t('aggregateDetail')}}</div> -->
             <!-- <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
@@ -67,7 +73,7 @@
                 </div>
               </el-popover>
               <div class="date-range ksd-mb-16 ksd-fs-12 ksd-fleft">
-                {{$t('dataRange')}}: {{getDataRange}}<span class="data-range-tips"><i v-popover:indexPopover class="el-icon-ksd-info ksd-fs-12 ksd-ml-8"></i></span>
+                {{$t('dataRange')}}: {{getDataRange}}<span class="data-range-tips"><i v-if="!isRealTimeMode" v-popover:indexPopover class="el-icon-ksd-info ksd-fs-12 ksd-ml-8"></i></span>
               </div>
               <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-6">
                 <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
@@ -87,29 +93,59 @@
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
                   <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout}">
-                    <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_layout && indexStat.has_load_base_table_layout ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
+                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index}">
+                    <span :title="Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
                   </el-dropdown-item>
-                  
+
                 </el-dropdown-menu>
               </el-dropdown>
               <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
-              <el-dropdown
-                class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
-                :class="{'is-disabled': !checkedList.length}"
-                placement="bottom-start"
-                :loading="removeLoading"
-                v-if="datasourceActions.includes('delAggIdx')"
-              >
-                <el-button type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}<i class="el-ksd-icon-arrow_down_22"></i></el-button>
-                <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
-                  <el-dropdown-item
-                    :disabled="!checkedList.length"
-                    @click="complementedIndexes('deleteIndexes')">
-                    {{$t('deletePart')}}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
+              <template v-if="isRealTimeMode">
+                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
+                  <el-button v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex" :disabled="isDisableDelBaseIndex" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                </common-tip>
+                <el-button v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+              </template>
+              <template v-else>
+                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
+                  <el-dropdown
+                    split-button
+                    type="primary"
+                    text
+                    btn-icon="el-ksd-icon-table_delete_22"
+                    class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
+                    :class="{'is-disabled': isDisableDelBaseIndex}"
+                    placement="bottom-start"
+                    :loading="removeLoading"
+                    v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
+                    <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                      <el-dropdown-item
+                        :disabled="isDisableDelBaseIndex">
+                        {{$t('deletePart')}}
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </el-dropdown>
+                </common-tip>
+                <el-dropdown
+                  split-button
+                  type="primary"
+                  text
+                  btn-icon="el-ksd-icon-table_delete_22"
+                  class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
+                  :class="{'is-disabled': !checkedList.length}"
+                  placement="bottom-start"
+                  :loading="removeLoading"
+                  @click="removeIndexes"
+                  v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
+                  <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                    <el-dropdown-item
+                      :disabled="!checkedList.length"
+                      @click="complementedIndexes('deleteIndexes')">
+                      {{$t('deletePart')}}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+              </template>
               <!-- <el-button
               icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10 ksd-ml-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button> -->
               <div class="right fix">
@@ -134,8 +170,8 @@
               <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
               <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
                 <template slot-scope="scope">
-                  <span class="data-size-text">{{scope.row.data_size | dataSize}}</span>
-                  <el-progress v-if="indexStat.max_data_size" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
+                  <span class="data-size-text">{{formatDataSize(scope.row.data_size)}}</span>
+                  <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column
@@ -146,7 +182,7 @@
               >
                 <template slot-scope="scope">
                   <span class="usage-text">{{scope.row.usage}}</span>
-                  <el-progress v-if="indexStat.max_hit_count" :percentage="indexStat.max_hit_count && (scope.row.usage / indexStat.max_hit_count > 0.05) ? scope.row.usage / indexStat.max_hit_count * 100 : 0.5" class="usage-progress"></el-progress>
+                  <el-progress v-if="'max_usage' in indexStat" :percentage="indexStat.max_usage && (scope.row.usage / indexStat.max_usage > 0.05) ? scope.row.usage / indexStat.max_usage * 100 : 0.5" class="usage-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
@@ -211,11 +247,11 @@
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
-        <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 'rec'"/>
+        <!-- <recommendations :modelDesc="model" @accept="acceptRecommend" v-if="switchIndexValue === 'rec'"/> -->
       </div>
     </div>
     <index-details :indexDetailTitle="indexDetailTitle" :detailType="detailType" :cuboidData="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
-    
+
 
     <!-- <ConfirmSegment/> -->
     <!-- <TableIndexEdit/> -->
@@ -241,7 +277,7 @@ import { BuildIndexStatus } from '../../../../../config/model'
 // import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
 import { formatGraphData } from './handler'
 import NModel from '../../ModelEdit/model.js'
-import Recommendations from './sub/recommendations'
+// import Recommendations from './sub/recommendations'
 import IndexDetails from './indexDetails'
 
 @Component({
@@ -320,7 +356,7 @@ import IndexDetails from './indexDetails'
   components: {
     FlowerChart,
     TreemapChart,
-    Recommendations,
+    // Recommendations,
     IndexDetails
     // ConfirmSegment
     // AggregateModal
@@ -373,6 +409,7 @@ export default class ModelAggregate extends Vue {
   //   }
   // }
   switchIndexValue = 'index'
+  switchModelType = 'BATCH' // 默认离线 - BATCH, 实时 - STREAMING
   isHaveComplementSegs = false
   indexesByQueryHistory = true  // 是否获取查询相关的索引
   indexStat = {}
@@ -383,6 +420,26 @@ export default class ModelAggregate extends Vue {
   //     aggIndexAdvancedDesc: null
   //   })
   // }
+
+  // 控制显示实时，离线选项
+  get showModelTypeSwitch () {
+    return this.model && this.model.model_type === 'HYBRID'
+  }
+
+  // 判断是否时实时模式
+  get isRealTimeMode () {
+    return this.showModelTypeSwitch && this.switchModelType === 'STREAMING'
+  }
+
+  formatDataSize (dataSize) {
+    const [size = +size, ext] = this.$root.$options.filters.dataSize(dataSize).split(' ')
+    const intType = ['B', 'KB']
+    if (intType.includes(ext)) {
+      return `${Math.round(size)} ${ext}`
+    } else {
+      return `${size.toFixed(1)} ${ext}`
+    }
+  }
 
   async complementedIndexes (indexType, id) {
     let title = this.$t('buildIndex')
@@ -463,6 +520,17 @@ export default class ModelAggregate extends Vue {
     this.checkedList = val
   }
 
+  get isDisableDelBaseIndex () {
+    let isHaveBaseTableIndex = false
+    for (let i = 0; i < this.checkedList.length; i++) {
+      if (this.checkedList[i].source === 'BASE_TABLE_INDEX') {
+        isHaveBaseTableIndex = true
+        break
+      }
+    }
+    return isHaveBaseTableIndex && this.model.second_storage_enabled
+  }
+
   async removeIndexes () {
     if (!this.checkedList.length) return
     const layout_ids = this.checkedList.map((index) => {
@@ -475,7 +543,7 @@ export default class ModelAggregate extends Vue {
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.removeLoading = false
       this.refreshIndexGraphAfterSubmitSetting()
-      // this.getIndexInfo()
+      this.getIndexInfo()
       this.$emit('loadModels')
     } catch (e) {
       handleError(e)
@@ -653,7 +721,7 @@ export default class ModelAggregate extends Vue {
       await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: row.id})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.refreshIndexGraphAfterSubmitSetting()
-      // this.getIndexInfo()
+      this.getIndexInfo()
       // this.$emit('loadModels')
     } catch (e) {
       handleError(e)
@@ -760,7 +828,7 @@ export default class ModelAggregate extends Vue {
     this.isLoading = true
     await this.freshIndexGraph()
     await this.loadAggIndices()
-    // this.getIndexInfo()
+    this.getIndexInfo()
     this.isLoading = false
   }
   async refreshIndexGraphAfterSubmitSetting () {
@@ -848,10 +916,10 @@ export default class ModelAggregate extends Vue {
   // }
 
   // 优化建议通过后刷新索引列表
-  async acceptRecommend () {
-    await this.loadAggIndices()
-    this.model.total_indexes = this.totalSize
-  }
+  // async acceptRecommend () {
+  //   await this.loadAggIndices()
+  //   this.model.total_indexes = this.totalSize
+  // }
 
   // 关闭索引详情弹窗
   closeDetailDialog () {
@@ -881,7 +949,7 @@ export default class ModelAggregate extends Vue {
 
   // 创建 base index
   createBaseIndex () {
-    if (Object.keys(this.indexStat).length && this.indexStat.has_load_base_agg_layout && this.indexStat.has_load_base_table_layout) return
+    if (Object.keys(this.indexStat).length && !this.indexStat.need_create_base_agg_index && !this.indexStat.need_create_base_table_index) return
     this.loadBaseIndex({
       model_id: this.model.uuid,
       project: this.projectName,
@@ -899,7 +967,7 @@ export default class ModelAggregate extends Vue {
         message: <span>{this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})}<a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a></span>
       })
       this.loadAggIndices()
-      // this.getIndexInfo()
+      this.getIndexInfo()
     }).catch((e) => {
       handleError(e)
     })
@@ -1122,7 +1190,7 @@ export default class ModelAggregate extends Vue {
         .data-range-tips {
           .el-icon-ksd-info {
             color: @text-disabled-color;
-  
+
           }
         }
         .el-icon-question {
@@ -1143,11 +1211,11 @@ export default class ModelAggregate extends Vue {
         .split-button {
           &.is-disabled {
             .el-button-group > .el-button {
-              background-color: @background-disabled-color;
+              background-color: @fff;
+              opacity: 0.3;
               color: @text-disabled-color;
               cursor: not-allowed;
               background-image: none;
-              border-color: @line-border-color3;
             }
           }
         }

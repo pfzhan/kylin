@@ -40,6 +40,10 @@ import org.junit.runner.RunWith;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import lombok.val;
 
 @RunWith(TimeZoneTestRunner.class)
@@ -193,6 +197,12 @@ public class SegmentsTest {
         long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-28 00:00:00"), AutoMergeTimeEnum.YEAR,
                 -1);
         Assert.assertEquals(DateFormat.stringToMillis("2011-02-28 00:00:00"), start);
+    }
+
+    private Map<Integer, Long> createKafkaPartitionOff(int partition, Long offset) {
+        Map<Integer, Long> map = new HashMap<Integer, Long>();
+        map.put(partition, offset);
+        return map;
     }
 
     public NDataSegment newReadySegment(Long startTime, Long endTime) {

@@ -31,7 +31,7 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.util.CompressionUtils;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import lombok.val;
 
@@ -43,6 +43,6 @@ public class RawResourceRowMapper implements RowMapper<RawResource> {
         val content = CompressionUtils.decompress(rs.getBytes(2));
         val ts = rs.getLong(3);
         val mvcc = rs.getLong(4);
-        return new RawResource(resPath, ByteStreams.asByteSource(content), ts, mvcc);
+        return new RawResource(resPath, ByteSource.wrap(content), ts, mvcc);
     }
 }

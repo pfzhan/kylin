@@ -73,7 +73,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.ByteStreams;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -313,7 +313,7 @@ public class ModelDataGenerator {
         if (outprint) {
             System.out.println(Bytes.toString(content));
         }
-        outputStore.checkAndPutResource(path, ByteStreams.asByteSource(content), -1);
+        outputStore.checkAndPutResource(path, ByteSource.wrap(content), -1);
     }
 
     private String path(TableDesc table) {

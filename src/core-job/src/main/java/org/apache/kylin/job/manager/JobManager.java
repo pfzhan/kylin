@@ -80,7 +80,7 @@ public class JobManager {
     public String addIndexJob(JobParam jobParam) {
         val relatedSegments = SegmentUtil.getValidSegments(jobParam.getModel(), project).stream()
                 .map(NDataSegment::getId).collect(Collectors.toSet());
-        jobParam.setTargetSegments(relatedSegments);
+        jobParam.withTargetSegments(relatedSegments);
         return addRelatedIndexJob(jobParam);
     }
 
@@ -122,6 +122,10 @@ public class JobManager {
     }
 
     public String addJob(JobParam jobParam) {
+        return addJob(jobParam, null);
+    }
+
+    public String addJob(JobParam jobParam, AbstractJobHandler handler) {
         if (!config.isJobNode() && !config.isUTEnv()) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_ABANDON());
         }
@@ -129,28 +133,39 @@ public class JobManager {
         checkStorageQuota(project);
         jobParam.setProject(project);
         ExecutableUtil.computeParams(jobParam);
+
+        AbstractJobHandler localHandler = handler != null ? handler : createJobHandler(jobParam);
+        if (localHandler == null)
+            return null;
+
+        localHandler.handle(jobParam);
+        return jobParam.getJobId();
+    }
+
+    private AbstractJobHandler createJobHandler(JobParam jobParam) {
         AbstractJobHandler handler;
         switch (jobParam.getJobTypeEnum()) {
-        case INC_BUILD:
-            handler = new AddSegmentHandler();
-            break;
-        case INDEX_MERGE:
-            handler = new MergeSegmentHandler();
-            break;
-        case INDEX_BUILD:
-        case SUB_PARTITION_BUILD:
-            handler = new AddIndexHandler();
-            break;
-        case INDEX_REFRESH:
-        case SUB_PARTITION_REFRESH:
-            handler = new RefreshSegmentHandler();
-            break;
-        default:
-            log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
-            return null;
+            case INC_BUILD:
+                handler = new AddSegmentHandler();
+                break;
+            case INDEX_MERGE:
+                handler = new MergeSegmentHandler();
+                break;
+            case INDEX_BUILD:
+            case SUB_PARTITION_BUILD:
+                handler = new AddIndexHandler();
+                break;
+            case INDEX_REFRESH:
+            case SUB_PARTITION_REFRESH:
+                handler = new RefreshSegmentHandler();
+                break;
+            case EXPORT_TO_SECOND_STORAGE:
+                throw new UnsupportedOperationException();
+            default:
+                log.error("jobParam doesn't have matched job: {}", jobParam.getJobTypeEnum());
+                return null;
         }
-        handler.handle(jobParam);
-        return jobParam.getJobId();
+        return handler;
     }
 
     public JobManager(KylinConfig config, String project) {

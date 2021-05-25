@@ -28,6 +28,7 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 source ${KYLIN_HOME}/sbin/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-env.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded
@@ -38,6 +39,7 @@ echo "Checking hadoop conf dir..."
 
 [[ -z "${kylin_hadoop_conf_dir}" ]] && quit "ERROR: Failed to find Hadoop config dir, please set kylin_hadoop_conf_dir."
 
+prepare_hadoop_conf_jars
 
 # this is the very first check, apply -v to print verbose classpath in check-env log
 ${KYLIN_HOME}/sbin/bootstrap.sh -v io.kyligence.kap.tool.hadoop.CheckHadoopConfDir "${kylin_hadoop_conf_dir}"
@@ -98,4 +100,8 @@ fi
 if [[ ! -f ${kylin_hadoop_conf_dir}/hive-site.xml ]]; then
     source_file=$(getSourceFile "hive-site.xml")
     [[ -z ${source_file} ]] || quit "hive-site.xml does not exist in ${kylin_hadoop_conf_dir}, please copy it from ${source_file}"
+fi
+
+if [[ $(is_kap_kerberos_enabled) == 1 && ! -f ${kylin_hadoop_conf_dir}/$KYLIN_KRB5CONF ]]; then
+    quit "krb5.conf does not exist in ${kylin_hadoop_conf_dir}, please copy it from ${KYLIN_HOME}/conf/${KYLIN_KRB5CONF}"
 fi

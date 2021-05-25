@@ -78,6 +78,11 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kylin.model.suggest-model-sql-limit");
         propertyKeys.add("kylin.query.query-history-download-max-size");
 
+        // add second storage
+        if (StringUtils.isNotEmpty(KylinConfig.getInstanceFromEnv().getSecondStorage())) {
+            propertyKeys.add("kylin.second-storage.class");
+        }
+
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys) + addPropertyInMetadata();
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, config, "");

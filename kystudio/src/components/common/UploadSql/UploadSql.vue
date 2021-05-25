@@ -153,7 +153,7 @@
         </el-tabs>
       </div>
       <span slot="footer" class="dialog-footer">
-        <div class="ksd-fleft" v-if="uploadFlag==='step3'">
+        <div class="ksd-fleft" v-if="uploadFlag==='step3' && (isShowSuggestModels || isShowTabModels && modelType === 'suggest')">
           <el-checkbox v-model="addBaseIndex">
             <span>{{$t('addBaseIndexCheckBox')}}</span>
           </el-checkbox>
@@ -559,7 +559,7 @@ export default class UploadSqlModel extends Vue {
   }
   submitModels () {
     this.submitModelLoading = true
-    let models = [...this.selectModels.map(it => ({...it, create_base_index: this.addBaseIndex}))]
+    let models = [...this.selectModels.map(it => ({...it, with_base_index: this.addBaseIndex}))]
     models.forEach(obj => {
       delete obj.isChecked
       delete obj.isNameError

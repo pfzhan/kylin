@@ -67,7 +67,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -159,6 +158,7 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -213,6 +213,12 @@ public class TableService extends BasicService {
 
     @Autowired
     private LicenseInfoService licenseInfoService;
+
+    public List<TableDesc> getTableDescByType(String project, boolean withExt, final String tableName,
+            final String database, boolean isFuzzy, int sourceType) throws IOException {
+        return getTableDesc(project, withExt, tableName, database, isFuzzy).stream()
+                .filter(tableDesc -> sourceType == tableDesc.getSourceType()).collect(Collectors.toList());
+    }
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
@@ -391,6 +397,12 @@ public class TableService extends BasicService {
     private TableDescResponse getTableResponse(TableDesc table, String project) {
         TableDescResponse tableDescResponse = new TableDescResponse(table);
         TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
+        if (table.getKafkaConfig() != null) {
+            tableDescResponse.setKafkaBootstrapServers(table.getKafkaConfig().getKafkaBootstrapServers());
+            tableDescResponse.setSubscribe(table.getKafkaConfig().getSubscribe());
+            tableDescResponse.setBatchTable(table.getKafkaConfig().getBatchTable());
+        }
+
         if (tableExtDesc == null) {
             return tableDescResponse;
         }
@@ -888,7 +900,7 @@ public class TableService extends BasicService {
         }
     }
 
-    private void stopSnapshotJobs(String project, String table) {
+    private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getExecutableManager(project);
         val executables = execManager.listExecByJobTypeAndStatus(ExecutableState::isRunning, SNAPSHOT_BUILD,
                 SNAPSHOT_REFRESH);
@@ -900,6 +912,7 @@ public class TableService extends BasicService {
         conflictJobs.forEach(job -> {
             execManager.discardJob(job.getId());
         });
+        return conflictJobs;
     }
 
     @Transaction(project = 0)
@@ -912,7 +925,7 @@ public class TableService extends BasicService {
             throw new KylinException(INVALID_TABLE_NAME, String.format(Locale.ROOT, msg.getTABLE_NOT_FOUND(), table));
         }
 
-        stopSnapshotJobs(project, table);
+        stopAndGetSnapshotJobs(project, table);
 
         val dataflowManager = getDataflowManager(project);
         if (cascade) {
@@ -941,6 +954,13 @@ public class TableService extends BasicService {
             projectInstance.setDefaultDatabase(ProjectInstance.DEFAULT_DATABASE);
             npr.updateProject(projectInstance);
         }
+    }
+
+    @Transaction(project = 0)
+    public void unloadKafkaConfig(String project, String tableIdentity) {
+        aclEvaluate.checkProjectWritePermission(project);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KafkaConfigManager.getInstance(kylinConfig, project).removeKafkaConfig(tableIdentity);
     }
 
     @Transaction(project = 0, readonly = true)
@@ -1194,6 +1214,26 @@ public class TableService extends BasicService {
                                 context.getRemoveAffectedModel(m.getProject(), m.getModelId()).getUpdatedLayouts())
                         .size())
                 .sum());
+
+        result.setUpdateBaseIndexCount(context.getChangeTypeAffectedModels().values().stream().mapToInt(m -> {
+            IndexPlan indexPlan = NIndexPlanManager.getInstance(getConfig(), m.getProject())
+                    .getIndexPlan(m.getModelId());
+            if (!indexPlan.getConfig().isUpdateBaseIndexAutoMode()) {
+                return 0;
+            }
+            Set<Long> updateLayouts = Sets.newHashSet();
+            updateLayouts.addAll(m.getUpdatedLayouts());
+            updateLayouts.addAll(context.getRemoveAffectedModel(m.getProject(), m.getModelId()).getUpdatedLayouts());
+            int updateBaseIndexCount = 0;
+            if (updateLayouts.contains(indexPlan.getBaseAggLayoutId())) {
+                updateBaseIndexCount++;
+            }
+            if (updateLayouts.contains(indexPlan.getBaseTableLayoutId())) {
+                updateBaseIndexCount++;
+            }
+            return updateBaseIndexCount;
+        }).sum());
+
         return result;
     }
 
@@ -1233,14 +1273,14 @@ public class TableService extends BasicService {
         List<String> jobs = Lists.newArrayList();
         for (val model : affectedModels) {
             val jobId = updateBrokenModel(project, model, context, needBuild);
-            if (Strings.isNotEmpty(jobId)) {
+            if (StringUtils.isNotEmpty(jobId)) {
                 jobs.add(jobId);
             }
         }
         mergeTable(projectName, context, true);
         for (val model : affectedModels) {
             val jobId = updateModelByReloadTable(project, model, context, needBuild);
-            if (Strings.isNotEmpty(jobId)) {
+            if (StringUtils.isNotEmpty(jobId)) {
                 jobs.add(jobId);
             }
         }
@@ -1303,7 +1343,7 @@ public class TableService extends BasicService {
     private String updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
             boolean needBuild) throws Exception {
         val projectName = project.getName();
-
+        val baseIndexUpdater = new BaseIndexUpdateHelper(model, false);
         val removeAffected = context.getRemoveAffectedModel(project.getName(), model.getId());
         val changeTypeAffected = context.getChangeTypeAffectedModel(project.getName(), model.getId());
         if (removeAffected.isBroken()) {
@@ -1342,6 +1382,7 @@ public class TableService extends BasicService {
             indexPlanService.reloadLayouts(projectName, changeTypeAffected.getModelId(),
                     changeTypeAffected.getUpdatedLayouts());
         }
+        baseIndexUpdater.update(indexPlanService);
         if (CollectionUtils.isNotEmpty(removeAffected.getUpdatedLayouts())
                 || CollectionUtils.isNotEmpty(changeTypeAffected.getUpdatedLayouts())) {
             val jobManager = getJobManager(projectName);
@@ -1478,10 +1519,13 @@ public class TableService extends BasicService {
 
     void cleanSnapshot(ReloadTableContext context, TableDesc targetTable, TableDesc originTable, String projectName) {
         if (context.isChanged(originTable)) {
-            targetTable.setLastSnapshotPath(null);
             val tableIdentity = targetTable.getIdentity();
-            targetTable.deleteSnapshot();
-            stopSnapshotJobs(projectName, tableIdentity);
+            List<AbstractExecutable> stopJobs = stopAndGetSnapshotJobs(projectName, tableIdentity);
+            if (!stopJobs.isEmpty() || targetTable.getLastSnapshotPath() != null) {
+                targetTable.deleteSnapshot(true);
+            } else {
+                targetTable.copySnapshotFrom(originTable);
+            }
         } else {
             targetTable.copySnapshotFrom(originTable);
         }
@@ -1976,5 +2020,9 @@ public class TableService extends BasicService {
         usedTableNames.addAll(model.getJoinTables().stream().map(JoinTableDesc::getTable).collect(Collectors.toList()));
         return usedTableNames.stream().map(getTableManager(project)::getTableDesc).filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    public TableExtDesc getOrCreateTableExt(String project, TableDesc t) {
+        return getTableManager(project).getOrCreateTableExt(t);
     }
 }
