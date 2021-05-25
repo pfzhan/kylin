@@ -737,6 +737,10 @@ public class Message {
         return "Unable to use columns from dimension table \"%s\" for computed columns. Because the join relationship of this table won’t be precomputed.";
     }
 
+    public String getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP() {
+        return "Unable to use columns from dimension table \"%s\" for data filter condition. Because the join relationship of this table won’t be precomputed.";
+    }
+
     public String getCHANGE_GLOBALADMIN() {
         return "You cannot add,modify or remove the system administrator’s rights";
     }

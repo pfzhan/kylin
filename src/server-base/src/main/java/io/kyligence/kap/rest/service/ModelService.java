@@ -43,6 +43,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_M
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
@@ -3673,6 +3674,15 @@ public class ModelService extends BasicService {
         SqlVisitor<Object> sqlVisitor = new AddTableNameSqlVisitor(expr, colToTable, ambiguityCol, allColumn);
 
         sqlNode.accept(sqlVisitor);
+
+        Set<String> excludedTables = getFavoriteRuleManager(model.getProject()).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
+        String antiFlattenLookup = checker.detectFilterConditionDependsLookups(sqlNode.toString(),
+                checker.getExcludedLookups());
+        if (antiFlattenLookup != null) {
+            throw new KylinException(FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+        }
         return sqlNode
                 .toSqlString(new CalciteSqlDialect(
                         SqlDialect.EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)), true)

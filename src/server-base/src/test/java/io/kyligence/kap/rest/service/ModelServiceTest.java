@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
@@ -4279,6 +4277,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
         originSql = "trans_id between 1 and 10";
         newSql = modelService.addTableNameIfNotExist(originSql, model);
         Assert.assertEquals("(TEST_KYLIN_FACT.TRANS_ID BETWEEN 1 AND 10)", newSql);
+
+        modelManager.updateDataModel(model.getUuid(), copyForWrite -> {
+            List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.get(0).setFlattenable(JoinTableDesc.NORMALIZED);
+            copyForWrite.setJoinTables(joinTables);
+        });
+        NDataModel updatedModel = modelManager.getDataModelDesc(model.getUuid());
+
+        try {
+            originSql = "TEST_ORDER.ORDER_ID > 10";
+            modelService.addTableNameIfNotExist(originSql, updatedModel);
+            Assert.fail();
+        } catch (KylinException e) {
+            Assert.assertEquals("KE-010011006", e.getErrorCode().getCodeString());
+            Assert.assertEquals(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), "TEST_ORDER"), e.getMessage());
+        }
+
     }
 
     @Test

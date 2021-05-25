@@ -774,6 +774,10 @@ public class CnMessage extends Message {
         return "无法在可计算列中使用维度表 “%s” 中的列，因为该表的关联关系不进行预计算。";
     }
 
+    public String getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP() {
+        return "无法在数据筛选条件中使用维度表 “%s” 中的列，因为该表的关联关系不进行预计算。";
+    }
+
     @Override
     public String getCHANGE_GLOBALADMIN() {
         return "您不可以添加，修改，删除系统管理员的权限。";
