@@ -301,7 +301,9 @@ export default {
         this.manualInputEvent()
       }
       this.$refs.select.$refs.input.onblur = () => {
-        this.manualInputEvent()
+        if (this.query) {
+          this.manualInputEvent()
+        }
         this.resetErrortags()
         this.isSignSameValue && this.signSameTags()
         !this.validateFailedMove && this.signValidateFailedTags()

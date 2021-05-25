@@ -433,7 +433,8 @@ export default class ModelLayout extends Vue {
   // 跳转并展示优化建议界面
   jumpToRecommendation () {
     this.$nextTick(() => {
-      this.$refs.modelAggregateItem && (this.$refs.modelAggregateItem.switchIndexValue = 'rec')
+      this.currentIndexTab = 'recommendations'
+      // this.$refs.modelAggregateItem && (this.$refs.modelAggregateItem.switchIndexValue = 'rec')
     })
   }
 

@@ -93,8 +93,8 @@
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
                   <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && indexStat.has_load_base_agg_index && indexStat.has_load_base_table_index}">
-                    <span :title="Object.keys(indexStat).length && indexStat.has_load_base_agg_index && indexStat.has_load_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
+                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index}">
+                    <span :title="Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
                   </el-dropdown-item>
 
                 </el-dropdown-menu>
@@ -949,7 +949,7 @@ export default class ModelAggregate extends Vue {
 
   // 创建 base index
   createBaseIndex () {
-    if (Object.keys(this.indexStat).length && this.indexStat.has_load_base_agg_index && this.indexStat.has_load_base_table_index) return
+    if (Object.keys(this.indexStat).length && !this.indexStat.need_create_base_agg_index && !this.indexStat.need_create_base_table_index) return
     this.loadBaseIndex({
       model_id: this.model.uuid,
       project: this.projectName,

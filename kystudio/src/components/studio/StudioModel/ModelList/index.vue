@@ -75,6 +75,7 @@
           <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('lastModifyTime_c')}}{{selectedRange}}</el-button>
         </DropdownFilter>
         <DropdownFilter
+          class="ksd-ml-8"
           type="checkbox"
           trigger="click"
           hideArrow
@@ -280,6 +281,7 @@
         </el-table-column>
         <el-table-column
           align="right"
+          width="120"
           prop="total_indexes"
           show-overflow-tooltip
           :label="$t('aggIndexCount')">
@@ -1095,6 +1097,9 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    .el-table__header th {
+      vertical-align: top;
+    }
     .el-table__body tr {
       cursor: pointer;
     }
