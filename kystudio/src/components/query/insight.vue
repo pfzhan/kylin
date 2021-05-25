@@ -556,7 +556,6 @@ export default class NewQuery extends Vue {
         }
         .el-form-item{
           margin-bottom:0;
-          margin-right: 8px;
           &:last-child {
             margin-right: 0;
             .el-form-item__content {
@@ -566,7 +565,7 @@ export default class NewQuery extends Vue {
           }
         }
         .el-form-item__content{
-          line-height: 1;
+          line-height: 24px;
         }
       }
     }
@@ -621,12 +620,12 @@ export default class NewQuery extends Vue {
             padding-top: 8px;
           }
           .el-tabs__header {
-            width: 136px;
+            width: 114px;
           }
         }
         &.en-model {
           .el-tabs__header {
-            width: 174px !important;
+            width: 158px !important;
           }
         }
       }

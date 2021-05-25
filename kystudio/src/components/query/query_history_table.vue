@@ -10,7 +10,6 @@
           type="primary"
           size="medium"
           id="exportSql"
-          btn-icon="el-ksd-icon-export_22"
           placement="bottom-start"
           @click="exportHistory(false)">
           {{$t('kylinLang.query.export')}}
@@ -48,7 +47,7 @@
           </div> -->
           <div class="detail-content">
             <el-row :gutter="16" type="flex">
-              <el-col :span="15" :style="{height: props.row.flexHeight + 'px'}">
+              <el-col :span="14" :style="{height: props.row.flexHeight + 'px'}">
                 <div class="loading" v-if="currentExpandId === props.row.query_id"><i class="el-icon-loading"></i></div>
                 <kap-editor
                   width="100%"
@@ -65,7 +64,7 @@
                   :value="props.row.sql_text">
                 </kap-editor>
               </el-col>
-              <el-col :span="9">
+              <el-col :span="10">
                 <div class="ksd-list ksd-table-list history_detail_table" :id="'detailTable_' + props.row.query_id">
                   <p class="list">
                     <span class="label">{{$t('kylinLang.query.query_id')}}</span>
@@ -123,7 +122,7 @@
                       </span>
                     </span>
                   </p>
-                  <p class="list" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
+                  <p class="list ellipsis" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
                     <span class="label">{{$t('kylinLang.query.snapshot')}}</span>
                     <span class="text">{{getSnapshots(props.row.realizations)}}</span>
                   </p>
@@ -749,7 +748,7 @@ export default class QueryHistoryTable extends Vue {
             onInput={this.handleInputDateRange}
             type="datetimerange"
             popper-class="table-filter-datepicker"
-            toggle-icon="el-ksd-icon-data_range_old isFilter"
+            toggle-icon="el-icon-ksd-data_range isFilter"
             is-only-icon={true}>
           </el-date-picker>
         </el-tooltip>
@@ -762,7 +761,7 @@ export default class QueryHistoryTable extends Vue {
           onInput={this.handleInputDateRange}
           popper-class="table-filter-datepicker"
           type="datetimerange"
-          toggle-icon="el-ksd-icon-data_range_old"
+          toggle-icon="el-icon-ksd-data_range"
           is-only-icon={true}>
         </el-date-picker>
       </span>)
@@ -828,7 +827,7 @@ export default class QueryHistoryTable extends Vue {
               <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
               <el-button type="primary" onClick={this.saveLatencyRange} size="small">{this.$t('kylinLang.common.save')}</el-button>
             </div>
-            <i class="el-ksd-icon-data_range_old isFilter" onClick={e => (e.stopPropagation())} slot="reference"></i>
+            <i class="el-icon-ksd-data_range isFilter" onClick={e => (e.stopPropagation())} slot="reference"></i>
           </el-popover>
         </el-tooltip>
       </span>)
@@ -861,7 +860,7 @@ export default class QueryHistoryTable extends Vue {
             <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
             <el-button type="primary" onClick={this.saveLatencyRange} size="small">{this.$t('kylinLang.common.save')}</el-button>
           </div>
-          <i class="el-ksd-icon-data_range_old" onClick={e => (e.stopPropagation())} slot="reference"></i>
+          <i class="el-icon-ksd-data_range" onClick={e => (e.stopPropagation())} slot="reference"></i>
         </el-popover>
       </span>)
     }
@@ -980,7 +979,7 @@ export default class QueryHistoryTable extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   #queryHistoryTable {
-    margin-top: 32px;
+    margin-top: 24px;
     /* table.ksd-table{
       tr:nth-child(odd){
         background: @table-stripe-color;
@@ -1177,7 +1176,7 @@ export default class QueryHistoryTable extends Vue {
         line-height: 1;
         padding: 0;
         position: relative;
-        top: 4px;
+        top: 2px;
         left: 5px;
       }
       .el-icon-ksd-data_range {
@@ -1232,9 +1231,6 @@ export default class QueryHistoryTable extends Vue {
         -ms-transform: rotate(180deg) scale(0.6);
         transform: rotate(180deg) scale(0.6);
       }
-    }
-    .el-progress {
-      top: 3px;
     }
     .el-progress-bar__outer {
       border-radius: 0;
@@ -1321,7 +1317,7 @@ export default class QueryHistoryTable extends Vue {
       width: calc(~'100% - 80px');
       .clear-all-filters {
         color: @base-color;
-        margin-left: 4px;
+        margin-left: 8px;
         position: relative;
         top: 0px;
         display: inline-block;
@@ -1330,8 +1326,11 @@ export default class QueryHistoryTable extends Vue {
       }
     }
     .el-tag {
-      margin-right: 4px;
+      margin-left: 5px;
       margin-top: 6px;
+      &:first-child {
+        margin-left: 0px;
+      }
     }
     .filter-queries-size {
       position: absolute;

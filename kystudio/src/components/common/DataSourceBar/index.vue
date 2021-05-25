@@ -18,7 +18,7 @@
         </el-button>
       </div>
       <div v-if="showTreeFilter" class="ksd-mb-16">
-        <el-input v-model="filterText" :placeholder="$t('searchTable')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
+        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
       </div>
       <div v-scroll style="height:calc(100% - 51px)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList
@@ -126,7 +126,7 @@ import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
     },
     defaultWidth: {
       type: Number,
-      default: 240
+      default: 250
     },
     isShowActionGroup: {
       type: Boolean,
@@ -737,7 +737,7 @@ export default class DataSourceBar extends Vue {
     position: absolute;
     width: 22px;
     height: 22px;
-    right: 16px;
+    right: 22px;
     text-align: center;
     line-height: 22px;
     &.selected {

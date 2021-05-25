@@ -7,22 +7,22 @@
           <p>*&nbsp;{{$t('snapshotDesc2')}}</p>
           <p>*&nbsp;{{$t('snapshotDesc3')}}</p>
         </div>
-        <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
+        <i class="el-icon-ksd-what ksd-fs-14"></i>
       </common-tip>
     </div>
     <div class="ksd-mb-16 snapshot-desc">{{$t('snapshotDesc')}}</div>
 
     <div class="clearfix">
       <div class="ksd-fleft ky-no-br-space" v-if="datasourceActions.includes('snapshotAction')">
-        <el-button type="primary" class="ksd-mr-8 ksd-fleft" icon="el-ksd-icon-add_22" @click="addSnapshot">{{$t('snapshot')}}</el-button>
+        <el-button type="primary" class="ksd-mr-8 ksd-fleft" icon="el-icon-plus" @click="addSnapshot">{{$t('snapshot')}}</el-button>
         <div class="ke-it-other_actions ksd-fleft">
-          <el-button type="primary" text icon="el-ksd-icon-refresh_22" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button type="primary" text icon="el-ksd-icon-table_delete_22" class="ksd-ml-2" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button type="primary" text icon="el-icon-ksd-table_refresh" :disabled="!multipleSelection.length || hasEventAuthority('refresh')" @click="refreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
+          <el-button type="primary" text icon="el-icon-ksd-table_delete" class="ksd-ml-2" :disabled="!multipleSelection.length" @click="deleteSnap">{{$t('kylinLang.common.delete')}}</el-button>
         </div>
       </div>
       <el-input class="ksd-fright search-input ke-it-search_snapshot" v-global-key-event.enter.debounce="onFilterChange" @clear="onFilterChange()" :value="filter.table" @input="handleFilterInput" prefix-icon="el-ksd-icon-search_22" :placeholder="$t('searchSnapshot')" size="medium"></el-input>
     </div>
-    <el-table class="ksd-mt-16 snapshot-table ke-it-snapshot_table"
+    <el-table class="ksd-mt-10 snapshot-table ke-it-snapshot_table"
       :data="snapshotTables"
       @sort-change="sortSnapshotList"
       :default-sort = "{prop: 'last_modified_time', order: 'descending'}"
@@ -58,7 +58,7 @@
         show-overflow-tooltip
         :filters="partitionColumns"
         :filtered-value="filter.partitionColumns"
-        filter-icon="el-ksd-icon-filter_22"
+        filter-icon="el-icon-ksd-filter"
         :show-multiple-footer="false"
         :filter-change="(v) => filterContent(v, 'partition')"
         width="160">
@@ -82,7 +82,7 @@
         :filters="allStatus.map(item => ({text: $t(item), value: item}))"
         :filtered-value="filter.status"
         :label="$t('status')"
-        filter-icon="el-ksd-icon-filter_22"
+        filter-icon="el-icon-ksd-filter"
         :show-multiple-footer="false"
         :filter-change="(v) => filterContent(v, 'status')"
       >
@@ -104,7 +104,7 @@
       </el-table-column>
       <el-table-column
         prop="lookup_table_count"
-        info-icon="el-ksd-icon-more_info_22"
+        info-icon="el-icon-ksd-what"
         :info-tooltip="$t('lookupModelsTip')"
         :label="$t('lookupModels')"
         header-align="right"
@@ -113,7 +113,7 @@
       </el-table-column>
       <el-table-column
         prop="fact_table_count"
-        info-icon="el-ksd-icon-more_info_22"
+        info-icon="el-icon-ksd-what"
         :info-tooltip="$t('factModelsTip')"
         :label="$t('factModels')"
         header-align="right"
@@ -127,7 +127,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <kap-pager :totalSize="snapshotTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="snapshotPager" :refTag="pageRefTags.snapshotPager" :perPageSize="20" class="ksd-mtb-16 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="snapshotTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="snapshotPager" :refTag="pageRefTags.snapshotPager" :perPageSize="20" class="ksd-mtb-10 ksd-center" ></kap-pager>
 
     <!-- 添加Snapshot -->
     <SnapshotModel v-on:reloadSnapshotList="getSnapshotList"/>
@@ -246,7 +246,7 @@
       <el-checkbox class="ksd-mt-10" v-model="refreshNewPartition" v-if="refreshSnapshotTables.length">
         {{$t('refreshNewPartitionTip')}}
         <el-tooltip :content="$t('refreshNewPartitionInfo')" effect="dark" placement="top">
-          <i class="el-ksd-icon-more_info_22"></i>
+          <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </el-checkbox>
       <span slot="footer" class="dialog-footer">
@@ -635,7 +635,7 @@ export default class Snapshot extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 #snapshot {
-  margin: 32px 24px 24px;
+  margin: 20px;
   .snapshot-desc {
     color: @text-disabled-color;
   }
@@ -643,6 +643,12 @@ export default class Snapshot extends Vue {
     width: 248px;
   }
   .snapshot-table {
+    .el-icon-ksd-filter {
+      position: relative;
+      font-size: 17px;
+      top: 2px;
+      left: 5px;
+    }
     .el-table__row.no-authority-model {
       background-color: @table-stripe-color;
       color: @text-disabled-color;

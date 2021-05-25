@@ -14,7 +14,7 @@
           <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text">{{extraoption.queryId}}</span>
           <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL && insightActions.includes('viewAppMasterURL')">
-            <a target="_blank" :href="extraoption.appMasterURL"><i class="el-ksd-icon-spark_link_16"></i></a>
+            <a target="_blank" :href="extraoption.appMasterURL"><i class="el-icon-ksd-go"></i></a>
           </common-tip>
         </p>
         <!-- <p class="resultText">
@@ -58,12 +58,14 @@
           <span class="label">{{$t('kylinLang.query.snapshot')}}: </span>
           <span class="text" :title="snapshots">{{snapshots}}</span>
         </p>
-        <el-button type="primary" text size="small" @click="toggleDetail" :iconr="showDetail ? 'el-ksd-icon-arrow_up_16': 'el-ksd-icon-arrow_down_16'" class="show-more-btn">
+        <el-button type="primary" text size="mini" @click="toggleDetail" class="show-more-btn">
           {{$t('kylinLang.common.seeDetail')}}
+          <i class="el-icon-arrow-down" v-show="!showDetail"></i>
+          <i class="el-icon-arrow-up" v-show="showDetail"></i>
         </el-button>
       </div>
       <div class="resultTips" v-show="showDetail">
-        <p class="resultText ksd-mt-8">
+        <p class="resultText">
           <span class="label">{{$t('kylinLang.query.queryNode')}}: </span>
           <span class="text">{{extraoption.server}}</span>
         </p>
@@ -659,7 +661,7 @@ export default class queryResult extends Vue {
     .show-more-btn {
       position: absolute;
       right: 10px;
-      top: 16px;
+      top: 10px;
     }
     .resultTips{
       align-items: center;
@@ -681,10 +683,7 @@ export default class queryResult extends Vue {
           }
         }
         a {
-          color: @color-text-primary;
-          &:hover {
-            color: @base-color;
-          }
+          color: @base-color;
         }
         &.query-obj {
           .text {

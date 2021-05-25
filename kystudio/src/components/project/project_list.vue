@@ -17,6 +17,7 @@
     <el-table
       :data="projectList"
       tooltip-effect="dark"
+      border
       v-scroll-shadow
       :empty-text="emptyText"
       class="project-table"
