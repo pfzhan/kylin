@@ -26,7 +26,11 @@ package io.kyligence.kap.utils;
 
 import static org.apache.kylin.common.util.AbstractKylinTestCase.getTestConfig;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Maps;
@@ -52,12 +56,17 @@ public class AccelerationContextUtil {
 
     public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
-        return new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray);
+        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray);
+        context.getExtraMeta().setOnlineModelIds(getOnlineModelIds(project));
+        return context;
     }
 
     public static AbstractSemiContextV2 newModelReuseContextOfSemiAutoMode(KylinConfig kylinConfig, String project,
             String[] sqlArray, boolean canCreateNewModel) {
-        return new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, canCreateNewModel);
+        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray,
+                canCreateNewModel);
+        context.getExtraMeta().setOnlineModelIds(getOnlineModelIds(project));
+        return context;
     }
 
     public static void transferProjectToSemiAutoMode(KylinConfig kylinConfig, String project) {
@@ -98,5 +107,10 @@ public class AccelerationContextUtil {
             }
             dfManager.updateDataflowStatus(model.getId(), RealizationStatusEnum.ONLINE);
         });
+    }
+
+    private static Set<String> getOnlineModelIds(String project) {
+        return NDataflowManager.getInstance(getTestConfig(), project).listOnlineDataModels().stream()
+                .map(RootPersistentEntity::getUuid).collect(Collectors.toSet());
     }
 }

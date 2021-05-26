@@ -33,9 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -59,6 +57,7 @@ import io.kyligence.kap.guava20.shaded.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -94,10 +93,21 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         Set<String> excludedTableSet = ruleManager.getExcludedTables();
 
         List<String> resources = Lists.newArrayList();
-        NDataflowManager.getInstance(config, project).listDataModelsByStatus(RealizationStatusEnum.ONLINE)
-                .forEach(model -> resources.addAll(generateResource(model, project)));
-        Set<String> allModelNames = NDataflowManager.getInstance(config, project).listUnderliningDataModels(true)
-                .stream().map(model -> model.getAlias().toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
+        Set<String> onlineModelIdSet = Sets.newHashSet();
+        Set<String> allModelNames = Sets.newHashSet();
+
+        NDataflowManager.getInstance(config, project).listAllDataflows(true).forEach(df -> {
+            NDataModel model = df.getModel();
+            allModelNames.add(model.getAlias().toLowerCase(Locale.ROOT));
+            if (model.isBroken()) {
+                return;
+            }
+            resources.add(model.getResourcePath());
+            resources.add(IndexPlan.concatResourcePath(model.getId(), project));
+            if (df.getStatus() == RealizationStatusEnum.ONLINE) {
+                onlineModelIdSet.add(model.getUuid());
+            }
+        });
 
         Function<Collection<String>, Boolean> orElse = a -> a != null ? resources.addAll(a) : null;
         orElse.apply(Sets.newHashSet(ResourceStore.PROJECT_ROOT + "/" + project + ".json"));
@@ -115,7 +125,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
 
             val contextParamsFile = jobTmpDir + "/context_params.json";
             JsonUtil.writeValue(new File(contextParamsFile), new ContextParams(project, context.isCanCreateNewModel(),
-                    Lists.newArrayList(sqls), allModelNames, excludedTableSet));
+                    Lists.newArrayList(sqls), allModelNames, excludedTableSet, onlineModelIdSet));
             params.put("contextParams", contextParamsFile);
 
             val contextOutputFile = jobTmpDir + "/context_output.json";
@@ -144,13 +154,6 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             runner.cleanupEnv();
         }
         return context;
-    }
-
-    private static List<String> generateResource(NDataModel model, String project) {
-        List<String> resources = Lists.newArrayList();
-        resources.add(model.getResourcePath());
-        resources.add(IndexPlan.concatResourcePath(model.getId(), project));
-        return resources;
     }
 
     private static String generateJobId(String project) {
@@ -203,6 +206,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             Unsafe.setProperty("needCheckCC", "true");
             context.getExtraMeta().setAllModels(contextParams.getAllModels());
             context.getExtraMeta().setExcludedTables(contextParams.getExcludedTables());
+            context.getExtraMeta().setOnlineModelIds(contextParams.getOnlineModelIds());
             context.setCanCreateNewModel(contextParams.isCanCreateNewModel());
             new SmartMaster(context).runWithContext(null);
             val output = ContextOutput.from(context);
@@ -224,6 +228,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         private Set<String> allModels = Sets.newHashSet();
 
         private Set<String> excludedTables = Sets.newHashSet();
+
+        private Set<String> onlineModelIds = Sets.newHashSet();
     }
 
     public interface RunnerFactoryBuilder {
