@@ -65,7 +65,7 @@
         <kafka.version>2.1.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>3.1.1-kylin-4.x-r21</spark.version>
+        <spark.version>3.1.1-kylin-4.x-r22</spark.version>
 
         <roaring.version>0.9.2-kylin-r3</roaring.version>
 
@@ -114,6 +114,7 @@
         <log4j.version>1.2.17</log4j.version>
         <log4j-extras.version>${log4j.version}</log4j-extras.version>
         <slf4j.version>1.7.30</slf4j.version>
+        <apache-log4j.version>2.12.1</apache-log4j.version>
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
         <apache-httpclient.version>4.5.13</apache-httpclient.version>
@@ -127,7 +128,7 @@
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
         <cors.version>2.5</cors.version>
-        <tomcat.version>8.5.51</tomcat.version>
+        <tomcat.version>8.5.63</tomcat.version>
         <t-digest.version>3.1</t-digest.version>
         <jsonpath.version>2.3.0</jsonpath.version>
         <lombok.version>1.18.2</lombok.version>
@@ -140,8 +141,8 @@
         <spring.cloud.version>Edgware.RELEASE</spring.cloud.version>
         <spring.boot.version>1.5.16.0-kylin-r2</spring.boot.version>
         <spring.session.version>1.3.6-kylin-r7</spring.session.version>
-        <spring.framework.version>4.3.20.RELEASE</spring.framework.version>
-        <spring.framework.security.version>4.2.16.RELEASE</spring.framework.security.version>
+        <spring.framework.version>4.3.30.RELEASE</spring.framework.version>
+        <spring.framework.security.version>4.2.20.RELEASE</spring.framework.security.version>
         <spring.framework.security.extensions.version>1.0.10.RELEASE</spring.framework.security.extensions.version>
         <spring.ldap-test.version>2.3.2.RELEASE</spring.ldap-test.version>
         <opensaml.version>2.6.6</opensaml.version>
@@ -239,7 +240,6 @@
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
         <janino.version>3.0.9</janino.version>
-        <log4j.version>1.2.17</log4j.version>
 
         <!-- AWS versions -->
         <aws-java-sdk-s3.version>1.11.791</aws-java-sdk-s3.version>
@@ -1273,6 +1273,26 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>${spring.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-beans</artifactId>
+                <version>${spring.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${spring.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-web</artifactId>
+                <version>${spring.framework.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter</artifactId>
                 <version>${spring.boot.version}</version>
@@ -1755,7 +1775,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
-                <version>4.1.17.Final</version>
+                <version>4.1.59.Final</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
@@ -1831,6 +1851,22 @@
                 <artifactId>clickhouse</artifactId>
                 <version>${test.container.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${apache-log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${apache-log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-web</artifactId>
+                <version>${apache-log4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
