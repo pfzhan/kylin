@@ -70,13 +70,6 @@
                 </div>
                 <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
                   <div class="contain">
-                    <div>
-                      <p>{{$t('indexTimeRange')}}</p>
-                      <el-radio-group v-model="indexTimeRange">
-                        <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
-                        <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
-                      </el-radio-group>
-                    </div>
                     <el-tabs v-model="aggregate.activeTab" @tab-click="handleClickTab">
                       <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
                     </el-tabs>
@@ -637,7 +630,6 @@ export default class AggregateModal extends Vue {
   pageSize = 50
   generateDeletedIndexes = true
   displayExcludedTables = false
-  indexTimeRange = 'BATCH' // 默认离线
 
   @Watch('$lang')
   changeCurrentLang (newVal, oldVal) {

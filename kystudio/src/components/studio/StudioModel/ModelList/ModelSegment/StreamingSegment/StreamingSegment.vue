@@ -29,7 +29,7 @@
         <el-button-group>
           <el-button size="small" icon="el-icon-ksd-repair" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
         </el-button-group> -->
-        <el-button size="small" icon="el-ksd-icon-table_delete_22" type="default" :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button icon="el-ksd-icon-table_delete_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="ksd-fright">
         <div class="segment-action ky-no-br-space" v-if="!filterSegment">
@@ -115,7 +115,7 @@
         <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
             <common-tip :content="$t('showDetail')">
-              <i class="el-icon-ksd-desc" @click="handleShowDetail(scope.row)"></i>
+              <i class="el-ksd-icon-view_16 ksd-icon-center-text-18" @click="handleShowDetail(scope.row)"></i>
             </common-tip>
           </template>
         </el-table-column>

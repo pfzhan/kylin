@@ -83,7 +83,7 @@
               ref="modelAggregateItem"
               v-if="currentIndexTab === 'indexOverview'" />
           </el-tab-pane>
-          <el-tab-pane class="tab-pane-item" :label="$t('recommendationsBtn')" name="recommendations" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+          <el-tab-pane class="tab-pane-item" :label="$t('recommendationsBtn')" name="recommendations" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions') && currentModelRow.model_type !== 'STREAMING'">
             <recommendations :modelDesc="currentModelRow" @accept="acceptRecommend" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" v-if="datasourceActions.includes('editAggGroup')" :label="$t('aggregateGroup')" name="aggGroup">
@@ -105,7 +105,7 @@
       <el-tab-pane class="tab-pane-item" :label="$t('developers')" name="fifth">
         <Developers v-if="currentModelRow.tabTypes === 'fifth'" :currentModelRow="currentModelRow"/>
       </el-tab-pane>
-      <el-tab-pane class="tab-pane-item" :label="$t('streaming')" name="streaming">
+      <el-tab-pane class="tab-pane-item" :label="$t('streaming')" name="streaming" v-if="currentModelRow.model_type !== 'BATCH'">
         <ModelStreamingJob v-if="currentModelRow.tabTypes === 'streaming'" class="ksd-mrl-15 ksd-mt-15" :model="currentModelRow.uuid"/>
       </el-tab-pane>
     </el-tabs>
@@ -503,6 +503,15 @@ export default class ModelLayout extends Vue {
     .model-detail-tabs.el-tabs--left {
       .el-tabs__item.is-left {
         padding: 0 20px;
+      }
+      .segment-actions {
+        margin-bottom: 10px;
+        .segment-header-title {
+          i {
+            color: @text-disabled-color;
+            vertical-align: text-top;
+          }
+        }
       }
     }
     .el-tabs__header.is-left {

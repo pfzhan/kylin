@@ -15,7 +15,11 @@
         <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-repair_22']"></i></span>
         <el-button v-else class="item" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-repair_22" type="primary" text>{{editText}}</el-button>
       </common-tip>
-      <common-tip :disabled="!!buildText" class="ksd-mr-8" :content="(!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc) ? $t('multilParTip') : currentModel.total_indexes ? $t('build') : $t('noIndexTips')" v-if="currentModel.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
+      <common-tip
+        :disabled="!!buildText"
+        class="ksd-mr-8"
+        :content="getDisableBuildTips(currentModel)"
+        v-if="currentModel.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
         <el-popover
           ref="popoverBuild"
           placement="bottom-end"
@@ -27,8 +31,24 @@
             <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(currentModel.uuid)">{{$t('iKnow')}}</el-button>
           </div>
         </el-popover>
-        <span v-if="!buildText" :class="['item', {'build-disabled':!currentModel.total_indexes || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}]" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(currentModel)"><i :class="['icon-item', 'el-ksd-icon-build_index_22', {'ksd-mr-5': buildText}]"></i></span>
-        <el-button v-else class="item" :disabled="!currentModel.total_indexes || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(currentModel)" icon="el-ksd-icon-build_index_22" type="primary" text>{{buildText}}</el-button>
+        <span
+          v-if="!buildText"
+          :class="['item', {'build-disabled':disableLineBuildBtn(currentModel)}]"
+          v-popover:popoverBuild
+          v-guide.setDataRangeBtn
+          @click="setModelBuldRange(currentModel)">
+          <i :class="['icon-item', 'el-ksd-icon-build_index_22', {'ksd-mr-5': buildText}]"></i>
+        </span>
+        <el-button
+          v-else
+          class="item"
+          :disabled="disableLineBuildBtn(currentModel)"
+          v-popover:popoverBuild
+          v-guide.setDataRangeBtn
+          @click="setModelBuldRange(currentModel)"
+          icon="el-ksd-icon-build_index_22"
+          type="primary"
+          text>{{buildText}}</el-button>
       </common-tip>
       <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-mr-8" :disabled="!!moreText" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
         <el-dropdown @command="(command) => {handleCommand(command, currentModel)}" :id="currentModel.name" trigger="click" >
@@ -47,13 +67,18 @@
             <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="importMDX" divided disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="exportMDX" disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
-            <el-dropdown-item command="exportMetadata" :class="{'disabled-export': currentModel.status === 'BROKEN'}" v-if="metadataActions.includes('executeModelMetadata')">
-              <common-tip :content="$t('bokenModelExportMetadatasTip')" :disabled="currentModel.status !== 'BROKEN'">
+            <el-dropdown-item
+              command="exportMetadata"
+              :class="{'disabled-action': currentModel.status === 'BROKEN' || currentModel.model_type !== 'BATCH'}"
+              v-if="metadataActions.includes('executeModelMetadata')">
+              <common-tip
+                :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips') : $t('bokenModelExportMetadatasTip')"
+                :disabled="currentModel.status !== 'BROKEN' && currentModel.model_type === 'BATCH'">
                 {{$t('exportMetadatas')}}
               </common-tip>
             </el-dropdown-item>
-            <el-dropdown-item command="exportTDS" :class="{'disabled-export': currentModel.status === 'BROKEN'}" v-if="modelActions.includes('exportTDS')">
-              <common-tip :content="$t('bokenModelExportTDSTip')" :disabled="currentModel.status !== 'BROKEN'">
+            <el-dropdown-item command="exportTDS" :class="{'disabled-action': currentModel.status === 'BROKEN' || currentModel.model_type !== 'BATCH'}" v-if="modelActions.includes('exportTDS')">
+              <common-tip :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips') : $t('bokenModelExportTDSTip')" :disabled="currentModel.status !== 'BROKEN' && currentModel.model_type === 'BATCH'">
                 <span>{{$t('exportTds')}}</span>
               </common-tip>
             </el-dropdown-item>
@@ -274,6 +299,38 @@ export default class ModelActions extends Vue {
     {value: 'TABLEAU_CONNECTOR_TDS', text: 'connectTableau'}
   ]
 
+  // 处理每行的构建按钮的 disable 状态
+  disableLineBuildBtn (row) {
+    if (row.model_type === 'STREAMING') {
+      return true
+    } else {
+      if (!row.total_indexes || (!this.$store.state.project.multi_partition_enabled && row.multi_partition_desc)) {
+        return true
+      } else {
+        return false
+      }
+    }
+  }
+
+  // 处理构建按钮上的文案提示
+  getDisableBuildTips (row) {
+    let tips = this.$t('build')
+    if (row.model_type === 'STREAMING') {
+      tips = this.$t('disableActionTips')
+    } else {
+      if (!this.$store.state.project.multi_partition_enabled && row.multi_partition_desc) {
+        tips = this.$t('multilParTip')
+      } else {
+        if (row.total_indexes) {
+          tips = this.$t('build')
+        } else {
+          tips = this.$t('noIndexTips')
+        }
+      }
+    }
+    return tips
+  }
+
   getDisabledOnlineTips (row) {
     let tips = this.$t('cannotOnlineTips')
     if (row.forbidden_online) {
@@ -336,6 +393,10 @@ export default class ModelActions extends Vue {
   }
 
   async setModelBuldRange (modelDesc, isNeedBuildGuild) {
+    // 纯流模型中，构建按钮禁用
+    if (modelDesc.model_type === 'STREAMING') {
+      return false
+    }
     if (!modelDesc.total_indexes && !isNeedBuildGuild || (!this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc)) return
     const projectName = this.currentSelectedProject
     const modelName = modelDesc.uuid
@@ -398,6 +459,10 @@ export default class ModelActions extends Vue {
   }
 
   async handleCommand (command, modelDesc) {
+    // 纯流的不能导入导出
+    if (modelDesc.model_type === 'STREAMING' && (command === 'exportMetadata' || command === 'exportTDS')) {
+      return false
+    }
     if (command === 'dataCheck') {
       this.checkModelData({
         modelDesc: modelDesc
@@ -620,6 +685,14 @@ export default class ModelActions extends Vue {
     vertical-align: middle;
     margin-top: -2px;
     cursor: pointer;
+  }
+}
+.disabled-action {
+  color: #bbbbbb;
+  cursor: not-allowed;
+  &:hover {
+    background: none;
+    color: #bbbbbb;
   }
 }
 .disabled-online {
