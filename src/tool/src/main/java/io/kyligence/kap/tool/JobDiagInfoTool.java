@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.CANDIDATE_LOG;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.JOB_EVENTLOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.JOB_TMP;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.LOG;
@@ -167,7 +168,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         exportConf(exportDir, recordTime, includeConf, includeBin);
 
         exportSparkLog(exportDir, recordTime, project, jobId, job);
-
+        exportCandidateLog(exportDir, recordTime, project, startTime, endTime);
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
         exportTieredStorage(project, exportDir, startTime, endTime, recordTime);
@@ -185,6 +186,16 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         KylinLogTool.extractOtherLogs(exportDir, startTime, endTime);
         recordTaskExecutorTimeToFile(LOG, recordTime);
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
+    }
+
+    private void exportCandidateLog(File exportDir, File recordTime, String project, long startTime, long endTime) {
+        // candidate log
+        val candidateLogTask = executorService.submit(() -> {
+            recordTaskStartTime(CANDIDATE_LOG);
+            KylinLogTool.extractJobTmpCandidateLog(exportDir, project, startTime, endTime);
+            recordTaskExecutorTimeToFile(CANDIDATE_LOG, recordTime);
+        });
+        scheduleTimeoutTask(candidateLogTask, CANDIDATE_LOG);
     }
 
     private void exportSparkLog(File exportDir, final File recordTime, String project, String jobId,

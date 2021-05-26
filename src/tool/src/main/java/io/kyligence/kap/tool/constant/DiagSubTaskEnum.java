@@ -44,5 +44,6 @@ public enum DiagSubTaskEnum {
     JOB_EVENTLOGS, //
     YARN, //
     TIERED_STORAGE_LOGS,
-    SPARK_STREAMING_LOGS
+    SPARK_STREAMING_LOGS,
+    CANDIDATE_LOG
 }

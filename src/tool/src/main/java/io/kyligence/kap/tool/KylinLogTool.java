@@ -864,6 +864,20 @@ public class KylinLogTool {
         }
     }
 
+    private static File getJobTmpDir(File exportDir) throws IOException {
+        File jobTmpDir = new File(exportDir, "job_tmp");
+        FileUtils.forceMkdir(jobTmpDir);
+        return jobTmpDir;
+    }
+
+    private static boolean notExistHdfsPath(FileSystem fs, String hdfsPath) throws IOException {
+        if (!fs.exists(new Path(hdfsPath))) {
+            logger.error("Can not find the hdfs path: {}", hdfsPath);
+            return true;
+        }
+        return false;
+    }
+
     /**
      * extract the job tmp by project and jobId.
      * for job diagnosis.
@@ -873,21 +887,46 @@ public class KylinLogTool {
      * @param jobId
      */
     public static void extractJobTmp(File exportDir, String project, String jobId) {
-        File jobTmpDir = new File(exportDir, "job_tmp");
-
         try {
-            FileUtils.forceMkdir(jobTmpDir);
-
+            File jobTmpDir = getJobTmpDir(exportDir);
             String hdfsPath = ToolUtil.getJobTmpDir(project, jobId);
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
-            if (!fs.exists(new Path(hdfsPath))) {
-                logger.error("Can not find the job tmp: {}", hdfsPath);
+            if (notExistHdfsPath(fs, hdfsPath)) {
                 return;
             }
 
             fs.copyToLocalFile(false, new Path(hdfsPath), new Path(jobTmpDir.getAbsolutePath()), true);
         } catch (Exception e) {
             logger.error("Failed to extract job_tmp, ", e);
+        }
+    }
+
+    public static void extractJobTmpCandidateLog(File exportDir, String project, long startTime, long endTime) {
+        logger.info("extract job tmp candidate log for {}", project);
+        try {
+            File jobTmpDir = getJobTmpDir(exportDir);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            String hdfsPath = ToolUtil.getHdfsJobTmpDir(project);
+            if (notExistHdfsPath(fs, hdfsPath)) {
+                return;
+            }
+            FileStatus[] fileStatuses = fs.listStatus(new Path(hdfsPath));
+            for (FileStatus fileStatus : fileStatuses) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("Candidate log task is interrupt");
+                }
+                String fileName = fileStatus.getPath().getName();
+                if (fileName.startsWith(project) && fileName.endsWith(".zip")) {
+                    String dateString = fileName.substring(project.length() + 1, fileName.length() - 4);
+                    long date = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS",
+                            Locale.getDefault(Locale.Category.FORMAT)).parse(dateString).getTime();
+                    if (startTime <= date && date <= endTime) {
+                        fs.copyToLocalFile(false, fileStatus.getPath(), new Path(jobTmpDir.getAbsolutePath()), true);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to extract job_tmp candidate log", e);
         }
     }
 
