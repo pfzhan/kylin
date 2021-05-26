@@ -37,7 +37,7 @@
                 <el-col :span="4">
                   <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                 </el-col>
-                <el-col :span="6">
+                <el-col :span="6" v-if="querySteps&&querySteps[0].duration>0">
                   <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                 </el-col>
               </el-row>
@@ -50,9 +50,15 @@
           <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
           <span class="text" :title="answeredBy">{{answeredBy}}</span>
         </p>
-        <p class="resultText query-obj" v-if="layoutIds">
+        <p class="resultText" v-if="layoutIds.length">
           <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
-          <span class="text" :title="layoutIds">{{layoutIds}}</span>
+          <span class="text" :title="layoutIds.join(',')">
+            <span class="realizations-layout-id" v-for="(item, index) in layoutIds" :key="item.layoutId">
+              <span>{{item.layoutId}}</span><el-tooltip placement="top" :content="$t('secStorage')">
+                <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
+              </el-tooltip><span>{{`${index !== layoutIds.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+            </span>
+          </span>
         </p>
         <p class="resultText query-obj" v-if="snapshots">
           <span class="label">{{$t('kylinLang.query.snapshot')}}: </span>
@@ -218,7 +224,8 @@ import echarts from 'echarts'
       SQL_PUSHDOWN_TRANSFORMATION: 'SQL pushdown transformation',
       CONSTANT_QUERY: 'Constant query',
       HIT_CACHE: 'Cache hit',
-      pleaseSelect: 'Please select'
+      pleaseSelect: 'Please select',
+      secStorage: 'Secondary Storage'
     },
     'zh-cn': {
       username: '用户名',
@@ -259,7 +266,8 @@ import echarts from 'echarts'
       SQL_PUSHDOWN_TRANSFORMATION: '下压 SQL 转换',
       CONSTANT_QUERY: '常数查询',
       HIT_CACHE: '击中缓存',
-      pleaseSelect: '请选择'
+      pleaseSelect: '请选择',
+      secStorage: '二级存储'
     }
   },
   filters: {
@@ -481,12 +489,12 @@ export default class queryResult extends Vue {
       let filterIds = []
       for (let i of this.extraoption.realizations) {
         if (i.layoutId !== -1 && i.layoutId !== null) {
-          filterIds.push(i.layoutId)
+          filterIds.push(i)
         }
       }
-      return filterIds.join(', ')
+      return filterIds
     } else {
-      return ''
+      return []
     }
   }
   get snapshots () {
@@ -678,6 +686,11 @@ export default class queryResult extends Vue {
           .duration {
             color: @base-color;
             cursor: pointer;
+          }
+          .realizations-layout-id {
+            align-items: center;
+            display: inline-flex;
+            line-height: 16px;
           }
         }
         a {

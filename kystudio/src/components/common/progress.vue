@@ -54,7 +54,7 @@ export default {
       padding-right: 55px;
     }
     i {
-      font-size: 18px !important;
+      cursor: default !important;
     }
     &.success {
       .el-progress-bar__inner {

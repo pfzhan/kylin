@@ -137,6 +137,14 @@
       <div v-show="isExpand">
         <div class="ksd-mb-24">
           <el-alert
+            :title="$t('openSecStorageTips')"
+            type="tip"
+            :closable="false"
+            class="ksd-mb-8"
+            v-if="modelDesc.simplified_dimensions.length>=20"
+            show-icon>
+          </el-alert>
+          <el-alert
             :title="$t('secStorageTips')"
             type="warning"
             :closable="false"

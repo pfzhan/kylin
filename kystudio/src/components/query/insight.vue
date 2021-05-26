@@ -536,7 +536,7 @@ export default class NewQuery extends Vue {
       }
     }
     .smyles_editor_wrap {
-      border-bottom: none;
+      border: none;
       border-bottom-left-radius: 0px;
       border-bottom-right-radius: 0px;
       .smyles_editor {
