@@ -98,7 +98,7 @@ object ResultPlan extends LogEx {
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
       val rows = df.collect()
-      jobTrace.jobFinished()
+      if (kapConfig.isQuerySparkJobTraceEnabled) jobTrace.jobFinished()
       QueryContext.current.record("collect_result")
 
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
@@ -192,6 +192,7 @@ object ResultPlan extends LogEx {
   }
 
   def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {
+    val kapConfig = KapConfig.getInstanceFromEnv
     SparderEnv.setDF(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
@@ -213,6 +214,9 @@ object ResultPlan extends LogEx {
     }
     AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
     jobTrace.jobFinished()
+    if (kapConfig.isQuerySparkJobTraceEnabled) {
+      jobTrace.jobFinished()
+    }
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
     val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
     logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")

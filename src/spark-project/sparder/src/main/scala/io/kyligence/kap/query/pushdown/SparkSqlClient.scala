@@ -37,7 +37,7 @@ import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
-import org.apache.kylin.common.{KylinConfig, QueryContext}
+import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
@@ -105,6 +105,7 @@ object SparkSqlClient {
   }
 
   private def dfToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
+    val config = KapConfig.getInstanceFromEnv
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
@@ -117,7 +118,8 @@ object SparkSqlClient {
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), SparderEnv.getSparkSession.sparkContext)
       val rawList = df.collect()
-      jobTrace.jobFinished()
+
+      if (config.isQuerySparkJobTraceEnabled) jobTrace.jobFinished()
       val rowList = convertResultWithMemLimit(rawList)(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
       jobTrace.resultConverted()
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
