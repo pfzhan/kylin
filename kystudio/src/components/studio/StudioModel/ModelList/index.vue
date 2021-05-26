@@ -176,7 +176,7 @@
                   </div>
                 </div>
               </el-popover>
-              <span class="model-alias-title" @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
+              <span class="model-alias-title" @click.stop @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
             </div>
             <el-tooltip class="last-modified-tooltip" effect="dark" :content="$t('dataLoadTime')" placement="top">
               <span>{{scope.row.gmtTime}}</span>
@@ -229,6 +229,7 @@
         <el-table-column
           width="100"
           prop="usage"
+          align="right"
           sortable="custom"
           show-overflow-tooltip
           :info-tooltip="$t('usageTip', {mode: $t(isAutoProject ? 'indexGroup' : 'model')})"
@@ -241,7 +242,7 @@
           :label="$t('rowCount')">
           <template slot-scope="scope">
             <div>{{sliceNumber(scope.row.source)}}</div>
-            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
+            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: `${$t('lastBuildTime')}${transToServerGmtTime(scope.row.last_build_time)}`, w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
           </template>
         </el-table-column>
         <el-table-column
@@ -997,7 +998,7 @@ export default class ModelList extends Vue {
 
   modelRowClickEvent (row, e) {
     if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
-    if (e.target.localName === 'td' || [...e.target.classList].includes('cell')) {
+    if (e.target.localName === 'td' || [...e.target.classList].includes('cell') || [...e.target.classList].includes('alias')) {
       this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
     }
   }
@@ -1411,6 +1412,7 @@ export default class ModelList extends Vue {
 }
 .filter-button {
   margin-left: 5px;
+  vertical-align: bottom;
   .el-ksd-icon-arrow_up_22 {
     transform: rotate(180deg);
   }

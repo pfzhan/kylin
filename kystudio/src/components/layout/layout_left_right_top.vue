@@ -1202,6 +1202,7 @@ export default class LayoutLeftRightTop extends Vue {
     .grid-content.bg-purple-light {
       overflow: auto;
       height: 100%;
+      min-width: 1280px;
       .main-content {
         box-sizing: border-box;
         background: white;
@@ -1294,7 +1295,7 @@ export default class LayoutLeftRightTop extends Vue {
           top: 48px;
           bottom: 0;
           left: 184px;
-          overflow-x: hidden;
+          overflow-x: auto;
         }
         .left-menu {
           width: 184px;

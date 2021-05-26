@@ -2209,6 +2209,14 @@ export default class AggregateModal extends Vue {
   .action-layout {
     .filter-dimension {
       text-align: right;
+      .el-checkbox {
+        font-size: 0;
+        display: inline-block;
+        top: -4px;
+        .el-checkbox__inner {
+          vertical-align: middle;
+        }
+      }
     }
   }
   .alert {

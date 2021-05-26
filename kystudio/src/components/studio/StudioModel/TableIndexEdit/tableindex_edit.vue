@@ -18,7 +18,7 @@
             show-icon>
           </el-alert>
           <p class="anit-table-tips" v-if="hasManyToManyAndAntiTable">{{$t('manyToManyAntiTableTip')}}</p>
-          <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
+          <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="exclude-table-checkbox ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
           <el-input v-model="searchColumn" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
         </div>
        <div class="ky-simple-table">
@@ -513,6 +513,14 @@
           text-align: left;
           margin-left: 22px;
           margin-bottom: 10px;
+        }
+        .exclude-table-checkbox {
+          display: inline-block;
+          font-size: 0;
+          top: -4px;
+          .el-checkbox__inner {
+            vertical-align: middle;
+          }
         }
       }
     }

@@ -1117,7 +1117,7 @@ class NModel extends Schama {
   // 添加维度
   addDimension (dimension) {
     return new Promise((resolve, reject) => {
-      if (indexOfObjWithSomeKey(this.dimensions, 'name', dimension.name) <= 0) {
+      if (indexOfObjWithSomeKey(this._mount.dimensions, 'name', dimension.name) <= 0) {
         dimension.guid = sampleGuid()
         this._mount.dimensions.push(dimension)
         resolve(dimension)
