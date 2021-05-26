@@ -176,7 +176,7 @@ object AggregatePlan extends LogEx {
                   case (percentageLitRex: RexLiteral, accuracyArgLitRex: Option[RexLiteral]) =>
                     val percentage = percentageLitRex.getValue
                     val accuracy = accuracyArgLitRex.map(arg => arg.getValue).getOrElse(ApproximatePercentile.DEFAULT_PERCENTILE_ACCURACY)
-                    percentile_approx(col(argNames.head), lit(percentage), lit(accuracy))
+                    percentile_approx(col(argNames.head), lit(percentage), lit(accuracy)).alias(aggName)
                 }
               case _ =>
                 throw new UnsupportedOperationException(s"Invalid percentile_approx parameters, " +
