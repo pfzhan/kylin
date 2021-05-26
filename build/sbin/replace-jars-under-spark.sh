@@ -199,8 +199,7 @@ fi
 
 if [[ $(is_cdh_6_x) == 1 ]]; then
     find ${SPARK_HOME}/jars -name "hadoop-hdfs-*.jar" -exec rm -f {} \;
-    find ${SPARK_HOME}/jars -name "hive-exec-*.jar" -exec rm -f {} \;
-    cp ${SPARK_HOME}/hadoop3/cdh6.1/*.jar ${SPARK_HOME}/jars
+    cp ${SPARK_HOME}/hadoop3/cdh6.1/stax2*.jar ${SPARK_HOME}/jars
 fi
 
 find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
