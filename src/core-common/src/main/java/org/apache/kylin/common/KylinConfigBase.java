@@ -56,7 +56,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1343,20 +1342,6 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
     // QUERY
     // ============================================================================
-
-    public List<Class<?>> pushdownOnErrors() {
-        String errorsStr = getOptional("kylin.query.pushdown.pushdown-with-errors",
-                "org.apache.kylin.metadata.realization.NoRealizationFoundException");
-        List<Class<?>> errors = new LinkedList<>();
-        for (String errorStr : errorsStr.split(",")) {
-            try {
-                errors.add(Class.forName(errorStr));
-            } catch (ClassNotFoundException e) {
-                logger.error("Invalid config kylin.query.pushdown.pushdown-with-errors", e);
-            }
-        }
-        return errors;
-    }
 
     public boolean isHeterogeneousSegmentEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.heterogeneous-segment-enabled", TRUE));

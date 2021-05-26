@@ -34,10 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -70,6 +68,9 @@ import lombok.val;
 public class QueryRoutingEngine {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryRoutingEngine.class);
+
+    // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
+    public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> queryWithSqlMassage(QueryParams queryParams) throws Exception {
         QueryContext.current().setAclInfo(queryParams.getAclInfo());
@@ -147,13 +148,7 @@ public class QueryRoutingEngine {
             return false;
         }
 
-        Throwable cause = e instanceof SQLException ? e : e.getCause();
-        for (Class<?> pushdownOnError : queryParams.getKylinConfig().pushdownOnErrors()) {
-            if (ExceptionUtils.indexOfThrowable(cause, pushdownOnError) != -1) {
-                return true;
-            }
-        }
-        return false;
+        return e instanceof SQLException && !e.getMessage().contains(SPARK_MEM_LIMIT_EXCEEDED);
     }
 
     private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
@@ -166,8 +161,7 @@ public class QueryRoutingEngine {
         }
     }
 
-    @VisibleForTesting
-    public Pair<List<List<String>>, List<SelectedColumnMeta>> execute(String correctedSql, QueryExec queryExec)
+    protected Pair<List<List<String>>, List<SelectedColumnMeta>> execute(String correctedSql, QueryExec queryExec)
             throws Exception {
         QueryResult queryResult = queryExec.executeQuery(correctedSql);
 
