@@ -74,7 +74,7 @@
             <el-pagination v-if="!loadingData" class="ksd-center ksd-mtb-10" ref="dataFeaturesPager" layout="total, sizes, prev, pager, next, jumper" :total="statistics.totalSize" :page-size="statistics.pageSize" :current-page="statistics.pageOffset + 1" @size-change="(val) => pageStatisticsChange('size', val)" @current-change="(val) => pageStatisticsChange('page', val)"></el-pagination>
           </template>
         </el-tab-pane>
-        <el-tab-pane :label="$t('sample')" name="sample">
+        <el-tab-pane :label="$t('sample')" name="sample" v-if="!isStreamingDatasource">
           <template v-if="tabType === 'sample'">
             <el-table
               v-scroll-shadow
@@ -152,6 +152,7 @@ export default class DataFeatures extends Vue {
   }
   defaultCheckKeys = []
   loadingData = false
+  isStreamingDatasource = false
 
   created () {
     this.initData()
@@ -164,9 +165,26 @@ export default class DataFeatures extends Vue {
       const dbs = {}
       result.forEach((item) => {
         if (item.database in dbs) {
-          dbs[item.database].children.push({ label: item.name, db: item.database, id: `${item.database}.${item.name}`, type: 'table' })
+          dbs[item.database].children.push({
+            label: item.name,
+            db: item.database,
+            id: `${item.database}.${item.name}`,
+            source_type: item.source_type,
+            type: 'table'
+          })
         } else {
-          dbs[item.database] = { children: [{ label: item.name, db: item.database, id: `${item.database}.${item.name}` }], source_type: item.source_type, type: 'table' }
+          dbs[item.database] = {
+            children: [
+              {
+                label: item.name,
+                db: item.database,
+                id: `${item.database}.${item.name}`,
+                source_type: item.source_type
+              }
+            ],
+            source_type: item.source_type,
+            type: 'table'
+          }
         }
       })
       this.dbList = Object.keys(dbs).map(it => ({
@@ -188,11 +206,20 @@ export default class DataFeatures extends Vue {
   }
 
   handleNodeClick (data, node) {
-    const { label, db } = data
+    const { label, db, source_type } = data
+    // todo 识别 kafka 数据源的字段标识
+    this.isStreamingDatasource = source_type === 1
     this.statistics.pageOffset = 0
     this.sample.pageOffset = 0
     this.loadingData = true
-    this.fetchTables({ projectName: this.currentSelectedProject, databaseName: db, tableName: label, isExt: true, isFuzzy: false }).then(async res => {
+    this.fetchTables({
+      projectName: this.currentSelectedProject,
+      databaseName: db,
+      sourceType: source_type,
+      tableName: label,
+      isExt: true,
+      isFuzzy: false
+    }).then(async res => {
       const result = await handleSuccessAsync(res)
       if (!result.tables.length) return
       this.loadingData = false

@@ -99,14 +99,14 @@
 
                 </el-dropdown-menu>
               </el-dropdown>
-              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
-              <template v-if="isRealTimeMode">
+              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')&&!isRealTimeMode" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
+              <!-- <template v-if="isRealTimeMode">
                 <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
                   <el-button v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex" :disabled="isDisableDelBaseIndex" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
                 </common-tip>
                 <el-button v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
-              </template>
-              <template v-else>
+              </template> -->
+              <template v-if="!isRealTimeMode">
                 <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
                   <el-dropdown
                     split-button
@@ -218,7 +218,7 @@
                   <!-- <common-tip :content="$t('viewDetail')">
                     <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
                   </common-tip> -->
-                  <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')">
+                  <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')&&!isRealTimeMode">
                     <i class="el-icon-ksd-icon_build-index ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
                   </common-tip>
                   <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
@@ -428,7 +428,7 @@ export default class ModelAggregate extends Vue {
 
   // 判断是否时实时模式
   get isRealTimeMode () {
-    return this.showModelTypeSwitch && this.switchModelType === 'STREAMING'
+    return (this.showModelTypeSwitch && this.switchModelType === 'STREAMING') || (this.model.model_type === 'STREAMING')
   }
 
   formatDataSize (dataSize) {

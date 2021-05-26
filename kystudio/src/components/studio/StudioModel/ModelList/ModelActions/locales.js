@@ -56,7 +56,8 @@ export default {
     disableModelTitle: 'Offline Model',
     noIndexTips: 'You should add indexes first before building.',
     changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.',
-    jobSuccess: 'jobSuccess'
+    jobSuccess: 'jobSuccess',
+    disableActionTips: 'Unavailable for streaming model'
   },
   'zh-cn': {
     authorityDetails: '权限详情',
@@ -115,6 +116,7 @@ export default {
     disableModelTitle: '下线模型',
     noIndexTips: '您需要先添加索引，才可以进行构建',
     changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。',
-    jobSuccess: '任务已提交，可到任务页'
+    jobSuccess: '任务已提交，可到任务页',
+    disableActionTips: '实时模型不可用'
   }
 }
