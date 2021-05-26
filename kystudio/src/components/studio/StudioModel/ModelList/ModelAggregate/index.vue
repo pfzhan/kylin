@@ -88,7 +88,7 @@
               </div>
             </div>
             <div class="clearfix" v-if="isShowAggregateAction">
-              <el-dropdown class="ksd-ml-5 ksd-fleft" v-if="isShowAggregateAction && isShowIndexActions">
+              <el-dropdown style="margin-left:-14px !important;" class="ksd-ml-5 ksd-fleft" v-if="isShowAggregateAction && isShowIndexActions">
                 <el-button icon="el-ksd-icon-add_22" type="primary" text>{{$t('index')}}</el-button>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>

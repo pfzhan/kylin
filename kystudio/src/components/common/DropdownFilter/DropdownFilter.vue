@@ -118,7 +118,9 @@ export default class DropdownFilter extends Vue {
 
     return (
       <el-checkbox-group value={value} onInput={this.handleInput}>
-        {options.map(option => (
+        {options.filter(o => {
+          return !o.unavailable
+        }).map(option => (
           <el-checkbox
             class="dropdown-filter-checkbox"
             key={option.value}

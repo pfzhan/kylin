@@ -1190,7 +1190,7 @@ export default class ModelSegment extends Vue {
       }
     }
     .segment-button-groups {
-      margin-left: -14px;
+      // margin-left: -14px;
     }
     .el-icon-question {
       color: @base-color;

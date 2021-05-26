@@ -81,12 +81,12 @@
           hideArrow
           :value="filterArgs.model_attributes"
           :options="[
-            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE' },
+            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE', unavailable: !$store.state.project.second_storage_enabled },
             { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
             { renderLabel: renderModelTypeLabel, value: 'BATCH' }
           ]"
           @input="v => filterContent(v, 'model_attributes')">
-          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedStatus}}</el-button>
+          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedModelAttributes}}</el-button>
         </DropdownFilter>
         <div class="actions">
           <el-button
@@ -503,7 +503,7 @@ export default class ModelList extends Vue {
   transToServerGmtTime = transToServerGmtTime
   filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
-  modelTypeList = ['STREAMING', 'BATCH']
+  modelTypeList = ['STREAMING', 'BATCH', 'SECOND_STORAGE']
   currentEditModel = null
   showFull = false
   showSearchResult = false
@@ -598,10 +598,10 @@ export default class ModelList extends Vue {
     }
     return this.$t('allTimeRange')
   }
-  get selectedModeType () {
+  get selectedModelAttributes () {
     const { filterArgs } = this
-    return filterArgs.model_types.length && this.modelTypeList.length !== filterArgs.model_types.length
-      ? filterArgs.model_types.map(status => this.$t(status)).join(', ')
+    return filterArgs.model_attributes.length && this.modelTypeList.length !== filterArgs.model_attributes.length
+      ? filterArgs.model_attributes.map(attributes => this.$t(attributes)).join(', ')
       : this.$t('ALL')
   }
   get isResetFilterDisabled () {

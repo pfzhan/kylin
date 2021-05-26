@@ -29,7 +29,7 @@
         <el-button-group>
           <el-button size="small" icon="el-icon-ksd-repair" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
         </el-button-group> -->
-        <el-button icon="el-ksd-icon-table_delete_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button style="margin-left: -14px;" icon="el-ksd-icon-table_delete_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="ksd-fright">
         <div class="segment-action ky-no-br-space" v-if="!filterSegment">
@@ -56,7 +56,7 @@
       </div>
     </div>
     <div class="segment-views ksd-mb-15">
-      <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom">
