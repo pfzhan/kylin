@@ -106,11 +106,14 @@ public class NQueryLayoutChooser {
         List<NLayoutCandidate> candidates = new ArrayList<>();
         val commonLayouts = getLayoutsFromSegments(prunedSegments, dataflow);
         val model = dataflow.getModel();
+        logger.debug("Matching dataflow with seg num: {} layout num: {}", prunedSegments.size(), commonLayouts.size());
         for (NDataLayout dataLayout : commonLayouts) {
+            logger.trace("Matching layout {}", dataLayout);
             CapabilityResult tempResult = new CapabilityResult();
             // check indexEntity
             IndexEntity indexEntity = dataflow.getIndexPlan().getIndexEntity(dataLayout.getIndexId());
             LayoutEntity layout = dataflow.getIndexPlan().getLayoutEntity(dataLayout.getLayoutId());
+            logger.trace("Matching indexEntity {}", indexEntity);
 
             Set<TblColRef> unmatchedCols = Sets.newHashSet();
             Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
@@ -119,6 +122,7 @@ public class NQueryLayoutChooser {
 
             if (indexEntity.isTableIndex()
                     && (sqlDigest.isRawQuery || dataflow.getConfig().isUseTableIndexAnswerNonRawQuery())) {
+                logger.trace("Matching table index");
                 unmatchedCols.addAll(sqlDigest.allColumns);
                 matched = matchTableIndex(layout, model, unmatchedCols, needDerive, tempResult);
                 if (!matched && logger.isDebugEnabled()) {
@@ -126,6 +130,7 @@ public class NQueryLayoutChooser {
                 }
             }
             if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
+                logger.trace("Matching agg index");
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
                 matched = matchAggIndex(sqlDigest, layout, model, unmatchedCols, unmatchedMetrics, needDerive,
@@ -136,9 +141,11 @@ public class NQueryLayoutChooser {
                 }
             }
             if (!matched) {
+                logger.trace("Matching failed");
                 continue;
             }
 
+            logger.trace("Matching succeeded");
             NLayoutCandidate candidate = new NLayoutCandidate(layout);
             candidate.setCost(dataLayout.getRows() * (tempResult.influences.size() + 1.0));
             if (!needDerive.isEmpty()) {
@@ -153,6 +160,7 @@ public class NQueryLayoutChooser {
                     + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds() + "s. Current step: Layout chooser. ");
         }
 
+        logger.debug("Matched candidates num : {}", candidates.size());
         if (candidates.isEmpty()) {
             return null;
         }

@@ -61,16 +61,19 @@ public class NDataflowCapabilityChecker {
         String rootFactTable = dataflow.getModel().getRootFactTableName();
         IRealizationCandidate chosenCandidate = null;
         if (digest.joinDescs.isEmpty() && !rootFactTable.equals(digest.factTable)) {
+            logger.trace("Snapshot dataflow matching");
             chosenCandidate = tryMatchLookup(dataflow, digest, result);
             if (chosenCandidate != null) {
                 logger.debug("Matched table {} snapshot in dataflow {} ", digest.factTable, dataflow);
             }
         } else {
             // for query-on-facttable
+            logger.trace("Normal dataflow matching");
             boolean partialMatchIndex = QueryContext.current().isPartialMatchIndex();
             NLayoutCandidate candidateAndInfluence = NQueryLayoutChooser
                     .selectLayoutCandidate(dataflow, prunedSegments, digest);
             if (partialMatchIndex && candidateAndInfluence == null) {
+                logger.trace("Partial dataflow matching");
                 candidateAndInfluence = NQueryLayoutChooser.selectPartialLayoutCandidate(dataflow, prunedSegments, digest);
             }
             if (candidateAndInfluence != null) {
