@@ -7,17 +7,20 @@
         <div class="left-block">
           <div class="card ksd-fright clearfix">
             <div class="ksd-fleft card-img">
-              <img src="../../assets/img/data_source@2x.png" alt="">
+              <!-- <img src="../../assets/img/data_source@2x.png" alt=""> -->
+              <el-icon name="el-ksd-icon-data_storge_24" type="mult"></el-icon>
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('datasource')}}</div>
               <div class="content" v-html="$t('datasourceDesc', {database_size: infoData.database_size, table_size: infoData.table_size})"></div>
-              <div class="card-link ky-a-like" @click="gotoDatasource('create')">{{$t('manageDatasource')}}</div>
+              <!-- <div class="card-link ky-a-like" @click="gotoDatasource('create')">{{$t('manageDatasource')}}</div> -->
+              <el-button class="card-link" type="primary" text @click="gotoDatasource('create')">{{$t('manageDatasource')}}</el-button>
             </div>
           </div>
           <div class="card ksd-fright clearfix">
             <div class="ksd-fleft card-img">
-              <img src="../../assets/img/history@2x.png" alt="">
+              <!-- <img src="../../assets/img/history@2x.png" alt=""> -->
+              <el-icon name="el-ksd-icon-query_history_24" type="mult"></el-icon>
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('history')}}</div>
@@ -27,17 +30,20 @@
                   <i class="el-icon-ksd-info ksd-ml-2 tips"></i>
                 </el-tooltip>
               </div>
-              <div class="card-link ky-a-like" @click="gotoHistory">{{$t('viewDetail')}}</div>
+              <!-- <div class="card-link ky-a-like" @click="gotoHistory">{{$t('viewDetail')}}</div> -->
+              <el-button class="card-link" type="primary" text @click="gotoHistory">{{$t('viewDetail')}}</el-button>
             </div>
           </div>
           <div class="card ksd-fright clearfix">
             <div class="ksd-fleft card-img">
-              <img src="../../assets/img/data_profile@2x.png" alt="">
+              <!-- <img src="../../assets/img/data_profile@2x.png" alt=""> -->
+              <el-icon name="el-ksd-icon-data_characteristics_24" type="mult"></el-icon>
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('dataProfile')}}</div>
               <div class="content">{{$t('dataProfileDesc')}}</div>
-              <div class="card-link ky-a-like" @click="gotoDatasource('load')">{{$t('viewDetail')}}</div>
+              <!-- <div class="card-link ky-a-like" @click="gotoDatasource('load')">{{$t('viewDetail')}}</div> -->
+              <el-button class="card-link" type="primary" text @click="gotoDatasource('load')">{{$t('viewDetail')}}</el-button>
             </div>
           </div>
         </div>
@@ -47,67 +53,66 @@
               <img src="../../assets/img/arrow_left@2x.png" height="460px" alt="">
             </div> -->
             <div class="ksd-fleft circle-img" @mouseenter="isShowGif = true" @mouseleave="isShowGif = false">
-              <img class="ksd-fleft" v-if="isAcceing" src="../../assets/img/animation_loading@2.gif" width="100%" alt=""/>
+              <img class="ksd-fleft" v-if="isAcceing" src="../../assets/img/CUT2_comp.gif" width="100%" alt=""/>
               <template v-else>
-                <img class="ksd-fleft" v-if="isShowGif" src="../../assets/img/circle_hover@2.gif" width="100%" alt=""/>
-                <img class="ksd-fleft" v-else src="../../assets/img/circle_arrow.png" width="100%" alt=""/>
+                <img class="ksd-fleft" v-if="isShowGif" src="../../assets/img/CUT1_comp.gif" width="100%" alt=""/>
+                <img class="ksd-fleft" v-else src="../../assets/img/CUT3.png" width="100%" alt=""/>
               </template>
               <div class="circle-content">
-                <img :class="{'en-img': isOpenSemiAutomatic}" src="../../assets/img/AItitle_EN@2x.png" v-if="$lang === 'en'" alt="">
-                <img src="../../assets/img/AItitle_CN@2x.png" v-else alt="">
+                <img :class="{'en-img': isOpenSemiAutomatic}" src="../../assets/img/language=EN.png" v-if="$lang === 'en'" alt="">
+                <img src="../../assets/img/language=CN.png" v-else alt="">
                 <div v-if="!isOpenSemiAutomatic">
                   <div class="circle-desc" :class="{'en': $lang === 'en'}">{{$t('openRecommendationDesc')}}</div>
                   <common-tip :content="$t('noPermissionTips')" v-if="!datasourceActions.includes('acceRuleSettingActions')" placement="top">
                     <div class="circle-btn disabled">
-                      <i class="ksd-fs-20 el-icon-ksd-project_status"></i>
+                      <!-- <i class="ksd-fs-20 el-icon-ksd-project_status"></i> -->
                       {{$t('turnOnRecommendation')}}
                     </div>
                   </common-tip>
                   <div class="circle-btn" v-else @click="turnOnRecommendation">
-                    <i class="ksd-fs-20 el-icon-ksd-project_status"></i>
+                    <!-- <i class="ksd-fs-20 el-icon-ksd-project_status"></i> -->
                     {{$t('turnOnRecommendation')}}
                   </div>
+                  <!-- <el-button class="circle-btn" type="primary" v-else @click="turnOnRecommendation">{{$t('turnOnRecommendation')}}</el-button> -->
                 </div>
                 <div v-else>
-                  <div class="circle-desc" :class="{'en': $lang === 'en'}" v-if="+infoData.unhandled_query_count>0" v-html="$t('optimizeDesc', {unhandled_query_count: infoData.unhandled_query_count})"></div>
-                  <div class="circle-desc none-opt" :class="{'en': $lang === 'en'}" v-else>{{$t('noneOptimizeDesc')}}</div>
+                  <!-- <div class="circle-desc" :class="{'en': $lang === 'en'}" v-if="+infoData.unhandled_query_count>0" v-html="$t('optimizeDesc', {unhandled_query_count: infoData.unhandled_query_count})"></div> -->
+                  <div class="circle-desc none-opt" :class="{'en': $lang === 'en'}" v-html="$t('recommendCount', {count: infoData.rec_pattern_count + infoData.acceptable_rec_size})"/>
                   <common-tip :content="disabledAcceTips" v-if="(isAcce || isAcceing) && +infoData.unhandled_query_count !== 0 || !datasourceActions.includes('accelerationActions')" placement="top">
                     <div class="circle-btn disabled">
-                      <i class="ksd-fs-20" :class="{'el-icon-ksd-project_status': !isAcceing, 'el-icon-loading': isAcceing}"></i>
+                      <!-- <i class="ksd-fs-20" :class="{'el-icon-ksd-project_status': !isAcceing, 'el-icon-loading': isAcceing}"></i> -->
                       <span v-if="isAcceing">{{$t('optimizing')}}</span>
                       <span v-else>{{$t('optimize')}}</span>
                     </div>
                   </common-tip>
-                  <div class="circle-btn" v-else :class="{'disabled': +infoData.unhandled_query_count == 0}" @click="toAcce">
-                    <i class="ksd-fs-20" :class="{'el-icon-ksd-project_status': !isAcceing, 'el-icon-loading': isAcceing}"></i>
+                  <div class="circle-btn" v-else @click="toAcce">
+                    <!-- <i class="ksd-fs-20" :class="{'el-icon-ksd-project_status': !isAcceing, 'el-icon-loading': isAcceing}"></i> -->
                     <span v-if="isAcceing">{{$t('optimizing')}}</span>
                     <span v-else>{{$t('optimize')}}</span>
                   </div>
                 </div>
-                <div class="recommend-block clearfix" :class="{'recmmend-zh': $lang !== 'en'}">
+                <div class="recommend-block" :class="{'recmmend-zh': $lang !== 'en'}">
                   <el-popover
                     ref="patternPopover"
                     placement="top"
-                    :title="$t('pattern')"
-                    width="460"
+                    :title="$t('recommendation')"
+                    width="310"
                     popper-class="recommend-popover"
-                    v-if="isOpenSemiAutomatic"
                     trigger="click">
-                      <div v-html="$t('patternDsec', {
-                        rec_pattern_count: infoData.rec_pattern_count,
-                        additional_rec_pattern_count: infoData.additional_rec_pattern_count,
-                        removal_rec_pattern_count: infoData.removal_rec_pattern_count,
-                        max_rec_show_size: infoData.max_rec_show_size
-                      })"></div>
-                      <div class="recommend-content no-border clearfix" slot="reference">
-                        <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-pattern ksd-fleft"></i></div>
+                      <div v-html="isOpenSemiAutomatic ? $t('recommendationDsec', {
+                        approved_rec_count: infoData.approved_rec_count,
+                        approved_additional_rec_count: infoData.approved_additional_rec_count,
+                        approved_removal_rec_count: infoData.approved_removal_rec_count
+                      }) : $t('recommendationDsecByTurnOff')"></div>
+                      <div class="recommend-content no-border" slot="reference">
+                        <!-- <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-pattern ksd-fleft"></i></div> -->
                         <div class="ksd-fleft ksd-ml-5 re-content">
-                          <div class="popover-btn">{{$t('pattern')}}</div>
-                          <div class="re-count">{{infoData.rec_pattern_count}}</div>
+                          <div class="re-count">{{isOpenSemiAutomatic ? infoData.rec_pattern_count : '-'}}</div>
+                          <div class="popover-btn">{{$t('acceptedRecs')}}</div>
                         </div>
                       </div>
                   </el-popover>
-                  <el-popover
+                  <!-- <el-popover
                     ref="patternPopoverOff"
                     placement="top"
                     :title="$t('pattern')"
@@ -123,28 +128,28 @@
                         <div class="re-count">{{infoData.rec_pattern_count}}</div>
                       </div>
                     </div>
-                  </el-popover>
+                  </el-popover> -->
                   <el-popover
-                    ref="rulePopover"
+                    ref="pendingAcceptPopover"
                     placement="top"
-                    :title="$t('rule')"
-                    width="460"
+                    :title="$t('pendingAcceptTitle')"
+                    width="310"
                     popper-class="recommend-popover"
-                    v-if="isOpenSemiAutomatic"
                     trigger="click">
-                    <div v-html="$t('ruleDsec')"></div>
+                    <!-- <div v-html="$t('ruleDsec')"></div>
                     <div class="ksd-mt-5" style="text-align: right; margin: 0" v-if="isOpenSemiAutomatic&&datasourceActions.includes('acceRuleSettingActions')">
                       <el-button type="primary" text size="mini" @click="gotoSettingRules">{{$t('modifySettings')}}</el-button>
-                    </div>
+                    </div> -->
+                    <p>{{isOpenSemiAutomatic ? $t('pendingAcceptContent', {recs: infoData.acceptable_rec_size}) : $t('recommendationDsecByPendingTurnOff')}}</p>
                     <div class="recommend-content" slot="reference">
-                      <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-rules ksd-fleft"></i></div>
+                      <!-- <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-rules ksd-fleft"></i></div> -->
                       <div class="ksd-fleft ksd-ml-5 re-content">
-                        <div class="popover-btn">{{$t('rule')}}</div>
-                        <div class="re-count">{{infoData.effective_rule_size}}</div>
+                        <div class="re-count">{{isOpenSemiAutomatic ? infoData.acceptable_rec_size : '-'}}</div>
+                        <div class="popover-btn">{{$t('pendingAccept')}}</div>
                       </div>
                     </div>
                   </el-popover>
-                  <el-popover
+                  <!-- <el-popover
                     ref="rulePopoverOff"
                     placement="top"
                     :title="$t('rule')"
@@ -160,29 +165,32 @@
                         <div class="re-count">{{infoData.effective_rule_size}}</div>
                       </div>
                     </div>
-                  </el-popover>
+                  </el-popover> -->
                   <el-popover
-                    ref="recommendationPopover"
+                    ref="rulePopover"
                     placement="top"
-                    :title="$t('recommendation')"
+                    :title="$t('preference')"
                     width="260"
                     popper-class="recommend-popover"
-                    v-if="isOpenSemiAutomatic"
                     trigger="click">
-                    <div v-html="$t('recommendationDsec', {
+                    <!-- <div v-html="$t('recommendationDsec', {
                       approved_rec_count: infoData.approved_rec_count,
                       approved_additional_rec_count: infoData.approved_additional_rec_count,
                       approved_removal_rec_count: infoData.approved_removal_rec_count
-                    })"></div>
+                    })"></div> -->
+                    <div v-html="$t('ruleDsec')"></div>
+                    <div class="ksd-mt-5" style="text-align: right; margin: 0" v-if="isOpenSemiAutomatic&&datasourceActions.includes('acceRuleSettingActions')">
+                      <el-button type="primary" text size="mini" @click="gotoSettingRules">{{$t('modifySettings')}}</el-button>
+                    </div>
                     <div class="recommend-content" slot="reference">
-                      <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-status ksd-fleft"></i></div>
+                      <!-- <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-status ksd-fleft"></i></div> -->
                       <div class="ksd-fleft ksd-ml-5 re-content">
-                        <div class="popover-btn">{{$t('recommendation')}}</div>
-                        <div class="re-count">{{infoData.approved_rec_count}}</div>
+                        <div class="re-count">{{isOpenSemiAutomatic ? infoData.effective_rule_size : '-'}}</div>
+                        <div class="popover-btn">{{$t('preference')}}</div>
                       </div>
                     </div>
                   </el-popover>
-                  <el-popover
+                  <!-- <el-popover
                     ref="recommendationPopoverOff"
                     placement="top"
                     :title="$t('recommendation')"
@@ -198,11 +206,11 @@
                         <div class="re-count">{{infoData.approved_rec_count}}</div>
                       </div>
                     </div>
-                  </el-popover>
+                  </el-popover> -->
                 </div>
-                <div class="ky-a-like advance-setting" v-if="isOpenSemiAutomatic&&datasourceActions.includes('modelActions')&&this.currentSelectedProject">
+                <div :class="['ky-a-like', 'advance-setting', {'is-disabled': !(isOpenSemiAutomatic && datasourceActions.includes('modelActions') && this.currentSelectedProject)}]">
                   <span @click="showGenerateModelDialog">
-                    <i class="el-icon-ksd-load"></i>
+                    <!-- <i class="el-icon-ksd-load"></i> -->
                     <span>{{$t('importQueries')}}</span>
                   </span>
                 </div>
@@ -216,7 +224,8 @@
         <div class="right-block">
           <div class="card ksd-mr-20 clearfix">
             <div class="ksd-fleft card-img">
-              <img src="../../assets/img/model@2x.png" width="44px" alt="">
+              <!-- <img src="../../assets/img/model@2x.png" width="44px" alt=""> -->
+              <el-icon name="el-ksd-icon-model_24" type="mult"></el-icon>
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('model')}}</div>
@@ -224,32 +233,37 @@
                 <div class="ksd-inline" v-if="!$store.state.project.isSemiAutomatic" v-html="$t('modelDesc', {model_size: infoData.model_size})"></div>
                 <div class="ksd-inline" v-else v-html="$t('modelDesc2', {model_size: infoData.model_size, acceptable_rec_size: infoData.acceptable_rec_size})"></div>
               </div>
-              <div class="card-link ky-a-like" @click="gotoModelList">{{$t('viewDetail')}}</div>
+              <!-- <div class="card-link ky-a-like" @click="gotoModelList">{{$t('viewDetail')}}</div> -->
+              <el-button class="card-link" type="primary" text @click="gotoModelList">{{$t('viewDetail')}}</el-button>
               <el-tag class="new-tag" size="mini" type="success" v-if="infoData.is_refreshed">New</el-tag>
             </div>
           </div>
           <div class="card ksd-mr-20 clearfix">
             <div class="ksd-fleft card-img">
-              <img src="../../assets/img/insight@2x.png" width="44px" alt="">
+              <!-- <img src="../../assets/img/insight@2x.png" width="44px" alt=""> -->
+              <el-icon name="el-ksd-icon-query_24" type="mult"></el-icon>
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('quickInsight')}}</div>
               <div class="content">{{$t('quickInsightDesc')}}</div>
-              <div class="card-link ky-a-like" @click="gotoInsight">{{$t('queryNow')}}</div>
+              <!-- <div class="card-link ky-a-like" @click="gotoInsight">{{$t('queryNow')}}</div> -->
+              <el-button class="card-link" type="primary" text @click="gotoInsight">{{$t('queryNow')}}</el-button>
             </div>
           </div>
           <div class="card ksd-mr-20 clearfix">
             <div class="ksd-fleft card-img">
-              <img src="../../assets/img/connect_to_BI@2x.png" width="44px" alt="">
+              <!-- <img src="../../assets/img/connect_to_BI@2x.png" width="44px" alt=""> -->
+              <el-icon name="el-ksd-icon-connect_BI_24" type="mult"></el-icon>
             </div>
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('connectToBI')}}</div>
               <div v-if="platform === 'iframe'" class="content">{{$t('connectToBIDescForKC')}}</div>
               <div class="content" v-else>{{$t('connectToBIDesc')}}</div>
-              <p class="card-link ky-a-like" @click="openManualUrl" :href="$t('manualUrl')" target="_blank">
+              <!-- <p class="card-link ky-a-like" @click="openManualUrl" :href="$t('manualUrl')" target="_blank">
                 <span v-if="platform === 'iframe'">{{$t('connectNow')}}</span>
                 <span v-else>{{$t('learnMore')}}</span>
-              </p>
+              </p> -->
+              <el-button class="card-link" type="primary" text @click="openManualUrl" :href="$t('manualUrl')">{{platform === 'iframe' ? $t('connectNow') : $t('learnMore')}}</el-button>
             </div>
           </div>
         </div>
@@ -419,7 +433,14 @@ export default class Homepage extends Vue {
     return this.$store.state.project.isSemiAutomatic
   }
   async toAcce () {
-    if (this.isAcceing || this.isAcce || this.infoData.unhandled_query_count === '0') return
+    if (this.isAcceing || this.isAcce) return
+    if (this.infoData.unhandled_query_count === '0') {
+      this.$message({
+        type: 'success',
+        message: this.$t('noPendingRecommendations')
+      })
+      return
+    }
     const res = await this.getModelByModelName({status: 'ONLINE,WARNING', project: this.currentSelectedProject})
     const data = await handleSuccessAsync(res)
     if (data.total_size === 0) {
@@ -552,12 +573,13 @@ export default class Homepage extends Vue {
         }
       }
       .card {
-        padding: 0.016em;
+        padding: 0.0128em;
         background-color: @fff;
-        box-shadow: 0px 0px 10px 0px #D8D8D8;
-        min-width: 200px;
-        width: 0.23em;
-        height: 0.1em;
+        box-shadow: 0px 1px 4px rgba(63, 89, 128, 0.16);
+        border-radius: 12px;
+        min-width: 290px;
+        width: 0.232em;
+        height: 0.1152em;
         position: relative;
         box-sizing: border-box;
         margin-top: 0.028em;
@@ -567,17 +589,28 @@ export default class Homepage extends Vue {
         }
         .card-img {
           font-size: 0.225em;
-          width: 0.1549em;
-          height: 0.1549em;
-          img {
-            width: 0.1549em;
-            height: 0.1549em;
-            float: left;
+          width: 0.19915em;
+          height: 0.19915em;
+          background: linear-gradient(180deg, #EBF6FF 0%, rgba(240, 248, 255, 0) 100%);
+          border-radius: 100%;
+          position: relative;
+          // img {
+          //   width: 0.1549em;
+          //   height: 0.1549em;
+          //   float: left;
+          // }
+          .mutiple-color-icon {
+            width: 0.1em;
+            height: 0.1em;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
           }
         }
         .card-content {
           box-sizing: border-box;
-          width: 0.16em;
+          width: 0.15em;
           .ksd-title-label {
             font-size: 0.015em;
             height: 1.2em;
@@ -585,7 +618,7 @@ export default class Homepage extends Vue {
           }
           .content {
             color: @text-normal-color;
-            font-size: 0.01em;
+            font-size: 0.011em;
             margin-top: 0.8em;
             line-height: 1.4em;
             span {
@@ -603,7 +636,9 @@ export default class Homepage extends Vue {
           .card-link {
             position: absolute;
             bottom: 1.1em;
+            right: 10px;
             font-size: 0.01em;
+            color: #0875DA;
           }
           .new-tag {
             position: absolute;
@@ -652,8 +687,14 @@ export default class Homepage extends Vue {
             }
             .advance-setting {
               font-size: 0.01em;
-              margin-top: 5em;
+              margin-top: 6em;
               padding-top: 15px;
+              color: @ke-color-primary;
+              font-weight: 400;
+              &.is-disabled {
+                pointer-events: none;
+                color: @text-disabled-color;
+              }
             }
             .circle-desc {
               width: 13em;
@@ -665,48 +706,70 @@ export default class Homepage extends Vue {
               display: flex;
               align-items: flex-end;
               justify-content: center;
+              color: @text-placeholder-color;
               span {
                 font-weight: bold;
                 font-size: 1.1em;
-                color: @text-title-color;
+                color: @text-placeholder-color;
               }
               &.en {
                 width: 17em;
+              }
+              &.none-opt {
+                color: @text-normal-color;
+                b {
+                  font-size: 16px;
+                }
               }
             }
             .circle-btn {
               margin: 0 auto;
               margin-top: 1.1em;
-              color: @fff;
-              width: 19em;
-              height: 3.2em;
-              line-height: 3.2em;
+              color: #fff;
+              width: 14.334em;
+              height: 2.534em;
+              line-height: 2.534em;
               font-size: 0.012em;
-              background: linear-gradient(141deg, #3EA8EF 0%, #0474C1 100%);
-              box-shadow: 0px 0px 4px 0px rgba(163, 163, 163, 0.5);
-              border-radius: 2em;
+              background: #0875DA;
+              box-shadow: 0px 0px 4px 0px rgba(163, 163, 163, 50%);
+              border-radius: 0.4em;
               cursor: pointer;
+              position: relative;
               &.disabled {
                 background: linear-gradient(141deg, #3EA8EF 0%, #0474C1 100%);
                 box-shadow: 0px 0px 4px 0px rgba(163, 163, 163, 0.5);
                 opacity: 0.49;
                 cursor: default;
               }
+              &::after {
+                content: '';
+                width: 80%;
+                height: 10%;
+                box-shadow: 0px 1px 32px 6px #0875da;
+                opacity: 0.3;
+                position: absolute;
+                bottom: 0px;
+                left: 10%;
+              }
             }
             .recommend-block {
               position: absolute;
               left: 50%;
               transform: translate(-50%);
-              width: 0.25em;
+              width: 0.16em;
               margin-top: 0.01em;
               display: flex;
-              justify-content: center;
+              justify-content: space-between;
               .recommend-content {
-                margin: 0.7em;
+                margin-top: 0.7em;
                 height: 44px;
                 font-size: 0.01em;
                 cursor: pointer;
-                border-left: 1px solid #EAEAEA;
+                min-width: 3.5em;
+                // border-left: 1px solid #EAEAEA;
+                .popover-btn {
+                  color: @text-disabled-color;
+                }
                 &.no-pointer {
                   cursor: default;
                 }

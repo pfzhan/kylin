@@ -93,7 +93,7 @@
           header-align="right"
           align="right"
           sortable="custom"
-          prop="indexAmount"
+          prop="multi_partition_count"
           width="185"
           show-overflow-tooltip
           :label="$t('subPratitionAmount')"
@@ -111,7 +111,7 @@
           header-align="right"
           align="right"
           sortable="custom"
-          prop="indexAmount"
+          prop="index_count"
           width="145"
           show-overflow-tooltip
           :label="$t('kylinLang.common.indexAmount')"
@@ -483,7 +483,7 @@ export default class ModelSegment extends Vue {
     startDate: '',
     endDate: '',
     reverse: true,
-    sortBy: 'last_modify'
+    sortBy: 'last_modified_time'
   }
   pagination = {
     page_offset: 0,

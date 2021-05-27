@@ -85,22 +85,22 @@ export const menusData = [
   {
     name: 'project',
     path: '/admin/project',
-    icon: 'el-icon-ksd-project_list'
+    icon: 'el-ksd-icon-nav_project_24'
   },
   {
     name: 'user',
     path: '/admin/user',
-    icon: 'el-icon-ksd-table_admin'
+    icon: 'el-ksd-icon-nav_user_management_24'
   },
   {
     name: 'group',
     path: '/admin/group',
-    icon: 'el-icon-ksd-table_group'
+    icon: 'el-ksd-icon-nav_user_group_24'
   },
   {
     name: 'systemcapacity',
     path: '/admin/systemcapacity',
-    icon: 'el-icon-ksd-Combined_Shape'
+    icon: 'el-ksd-icon-nav_quota_management_24'
   }
 ]
 
