@@ -30,8 +30,6 @@ import java.util.concurrent.Executors
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.utils.LogUtils
 import io.kyligence.kap.metadata.model.NTableMetadataManager
-import org.apache.hadoop.fs.Path
-import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.kylin.metadata.model.TableDesc
@@ -56,8 +54,13 @@ class SnapshotPartitionBuilder extends SnapshotBuilder {
         val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
         val copyTable = tableMetadataManager.copyForWrite(tableMetadataManager.getTableDesc(tableName))
         val copyExt = tableMetadataManager.copyForWrite(tableMetadataManager.getOrCreateTableExt(tableName))
-        copyExt.setTotalRows(copyExt.getTotalRows + result.totalRows)
-        copyTable.putPartitionSize(partition, result.originalSize)
+        if (result.totalRows != -1) {
+          copyExt.setTotalRows(copyExt.getTotalRows + result.totalRows)
+          copyTable.putPartitionSize(partition, result.originalSize)
+        } else {
+          // -1 in partitionSize means not build
+          copyTable.putPartitionSize(partition, 0)
+        }
         tableMetadataManager.updateTableDesc(copyTable)
         tableMetadataManager.saveTableExt(copyExt)
         copyTable
@@ -136,7 +139,7 @@ class SnapshotPartitionBuilder extends SnapshotBuilder {
     } else {
       sourceData.repartition(repartitionNum).write.mode(SaveMode.Overwrite).parquet(resourcePath)
     }
-    val (originSize, totalRows) = computeSnapshotSize(sourceData, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
+    val (originSize, totalRows) = computeSnapshotSize(sourceData)
     Result(snapshotTablePath, originSize, totalRows)
   }
 

@@ -60,6 +60,7 @@ class SnapshotBuilder extends Logging with Serializable {
   private val PARQUET_SUFFIX = ".parquet"
   private val MB = 1024 * 1024
   protected val kylinConfig = KylinConfig.getInstanceFromEnv
+  protected val needCollectStat = KapConfig.getInstanceFromEnv.isRecordSourceUsage;
 
   @transient
   private val ParquetPathFilter: PathFilter = new PathFilter {
@@ -134,8 +135,8 @@ class SnapshotBuilder extends Logging with Serializable {
     val result = map.get(table.getIdentity)
     if (result.totalRows != -1) {
       tableExt.setOriginalSize(result.originalSize)
+      tableExt.setTotalRows(result.totalRows)
     }
-    tableExt.setTotalRows(result.totalRows)
 
     // define the updating operations
     class TableUpdateOps extends UnitOfWork.Callback[TableExtDesc] {
@@ -149,6 +150,9 @@ class SnapshotBuilder extends Logging with Serializable {
 
   @throws[IOException]
   def calculateTotalRows(ss: SparkSession, model: NDataModel, ignoredSnapshotTables: util.Set[String]): Unit = {
+    if (!needCollectStat) {
+      return
+    }
     val toCalculateTableDesc = toBeCalculateTableDesc(model, ignoredSnapshotTables)
     val map = new ConcurrentHashMap[String, Result]
 
@@ -300,7 +304,7 @@ class SnapshotBuilder extends Logging with Serializable {
     var snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
     sourceData.coalesce(1).write.parquet(resourcePath)
-    val (originSize, totalRows) = computeSnapshotSize(sourceData, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
+    val (originSize, totalRows) = computeSnapshotSize(sourceData)
     val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
     val currSnapMd5 = getFileMd5(currSnapFile)
     val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
@@ -371,31 +375,35 @@ class SnapshotBuilder extends Logging with Serializable {
     } else {
       sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
-    val (originSize, totalRows) = computeSnapshotSize(sourceData, calculateTableTotalRows(snapshotTablePath, tableDesc, ss))
+    val (originSize, totalRows) = computeSnapshotSize(sourceData)
     resultMap.put(tableDesc.getIdentity, Result(snapshotTablePath, originSize, totalRows))
   }
 
-  private[builder] def computeSnapshotSize(sourceData: Dataset[Row], totalRows: Long) = {
+  private[builder] def computeSnapshotSize(sourceData: Dataset[Row]): (Long, Long) = {
+    if (!needCollectStat) {
+      return (-1L, -1L)
+    }
     val columnSize = sourceData.columns.length
     val ds = sourceData.mapPartitions {
       iter =>
-        var totalSize = 0L;
+        var totalSize = 0L
+        var totalRows = 0L
         iter.foreach(row => {
-          for (i <- 0 until columnSize - 1) {
+          for (i <- 0 until columnSize) {
             val value = row.get(i)
             val strValue = if (value == null) null
             else value.toString
             totalSize += DFChooser.utf8Length(strValue)
           }
+          totalRows += 1
         })
-        List(totalSize).toIterator
-    }(Encoders.scalaLong)
+        List((totalSize, totalRows)).toIterator
+    }(Encoders.tuple(Encoders.scalaLong, Encoders.scalaLong))
 
     if (ds.isEmpty) {
-      (0L, totalRows)
+      (0L, 0L)
     } else {
-      val size = ds.reduce(_ + _)
-      (size, totalRows)
+      ds.reduce((a, b) => (a._1 + b._1, a._2 + b._2))
     }
   }
 
