@@ -36,13 +36,14 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model._
 import org.apache.spark.sql.functions.{col, expr}
-import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
-
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparkSession}
 import java.util.{Locale, Objects}
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
+import scala.util.{Failure, Success, Try}
 
 class SegmentFlatTable(private val sparkSession: SparkSession, //
                        private val tableDesc: SegmentFlatTableDesc) extends LogEx {
@@ -274,7 +275,12 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     // +----------+---+---+---+---+-----------+-----------+
     // |         0|  2|  3|  4|  1|2_KE_ENCODE|4_KE_ENCODE|
     // +----------+---+---+---+---+-----------+-----------+
-    val tableDS = sparkSession.read.parquet(flatTablePath.toString)
+    val tableDS: DataFrame = Try(sparkSession.read.parquet(flatTablePath.toString)) match {
+      case Success(df) => df
+      case Failure(f) =>
+        logInfo(s"Handled AnalysisException: Unable to infer schema for Parquet. Flat table path $flatTablePath is empty", f)
+        sparkSession.emptyDataFrame
+    }
     // ([2_KE_ENCODE,4_KE_ENCODE], [0,1,2,3,4])
     val (coarseEncodes, noneEncodes) = tableDS.schema.map(sf => sf.name).partition(_.endsWith(ENCODE_SUFFIX))
     val encodes = coarseEncodes.map(_.stripSuffix(ENCODE_SUFFIX))
