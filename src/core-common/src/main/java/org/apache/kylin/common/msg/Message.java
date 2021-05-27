@@ -1547,4 +1547,8 @@ public class Message {
     public String getPARSE_STREAMING_MESSAGE_ERROR() {
         return "The parser cannot parse the sample data. Please check the options or modify the parser, and parse again.";
     }
+
+    public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
+        return "Cannot force the query to pushdown and index at the same time. Please check the forcedToPushDown and forced_to_index parameters";
+    }
 }

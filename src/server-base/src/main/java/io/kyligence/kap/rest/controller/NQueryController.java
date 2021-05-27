@@ -56,6 +56,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
@@ -135,6 +136,10 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest,
             @RequestHeader(value = "User-Agent") String userAgent) {
+        if (sqlRequest.isForcedToIndex() && sqlRequest.isForcedToPushDown()) {
+            throw new KylinException(
+                    QueryErrorCode.INVALID_QUERY_PARAMS, MsgPicker.getMsg().getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX());
+        }
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);

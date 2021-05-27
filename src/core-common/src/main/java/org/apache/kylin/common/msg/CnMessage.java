@@ -1737,4 +1737,9 @@ public class CnMessage extends Message {
     public String getPARSE_STREAMING_MESSAGE_ERROR() {
         return "解析器无法解析样例数据，建议检查选项设置或者修改解析器后再尝试解析。";
     }
+
+    @Override
+    public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
+        return "不能同时强制下推和击中模型。请检查传入的 forcedToPushDown 和 forced_to_index 参数";
+    }
 }
