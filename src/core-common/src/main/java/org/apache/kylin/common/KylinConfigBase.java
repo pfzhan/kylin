@@ -67,6 +67,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -1148,6 +1149,8 @@ public abstract class KylinConfigBase implements Serializable {
 
     private static final String JOB_JAR_NAME_PATTERN = "newten-job(.?)\\.jar";
 
+    private static final String JAR_NAME_PATTERN = "(.*)\\.jar";
+
     public String getExtraJarsPath() {
         return getOptional("kylin.engine.extra-jars-path", "");
     }
@@ -1166,6 +1169,23 @@ public abstract class KylinConfigBase implements Serializable {
             return "";
         }
         return jar.getAbsolutePath();
+    }
+
+    public String getKylinExtJarsPath() {
+        String kylinHome = getKylinHome();
+        if (StringUtils.isEmpty(kylinHome)) {
+            return "";
+        }
+        List<File> files = FileUtils.findFiles(kylinHome + File.separator + "lib/ext", JAR_NAME_PATTERN);
+        if (CollectionUtils.isEmpty(files)) {
+            return "";
+        }
+        StringBuilder extJar = new StringBuilder();
+        for (File file : files) {
+            extJar.append(",");
+            extJar.append(file.getAbsolutePath());
+        }
+        return extJar.toString();
     }
 
     public String getSnapshotBuildClassName() {

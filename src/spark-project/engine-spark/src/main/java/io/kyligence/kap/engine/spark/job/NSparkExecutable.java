@@ -485,9 +485,9 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append("--jars %s %s %s ");
 
         // Three parameters at most per line.
-        String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, //
-                KylinConfigBase.getSparkHome(), getId(), jars, //
-                kylinJobJar, appArgs);
+        String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, // 
+                KylinConfigBase.getSparkHome(), getId(), jars + getExtJar(), //
+                kylinJobJar + getExtJar(), appArgs);
         logger.info("spark submit cmd: {}", cmd);
         return cmd;
     }
@@ -628,6 +628,10 @@ public class NSparkExecutable extends AbstractExecutable {
 
     protected String getJobNamePrefix() {
         return "job_step_";
+    }
+
+    protected String getExtJar() {
+        return "";
     }
 
     public boolean needMergeMetadata() {

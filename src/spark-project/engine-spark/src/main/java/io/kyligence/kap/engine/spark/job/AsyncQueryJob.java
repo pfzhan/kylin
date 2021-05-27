@@ -111,6 +111,11 @@ public class AsyncQueryJob extends NSparkExecutable {
     }
 
     @Override
+    protected String getExtJar() {
+        return getConfig().getKylinExtJarsPath();
+    }
+
+    @Override
     public String getId() {
         return ASYNC_QUERY_JOB_ID_PRE + super.getId();
     }

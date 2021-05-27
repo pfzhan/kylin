@@ -31,12 +31,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.util.OrderedProperties;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import lombok.val;
 
@@ -50,6 +54,14 @@ public final class FileUtils {
             }
         }
         return null;
+    }
+
+    public static List<File> findFiles(String dir, String ptn) {
+        File[] files = new File(dir).listFiles();
+        if (files != null) {
+            return Arrays.stream(files).filter(f -> f.getName().matches(ptn)).collect(Collectors.toList());
+        }
+        return Lists.newArrayList();
     }
 
     public static Map<String, String> readFromPropertiesFile(File file) {
