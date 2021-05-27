@@ -47,10 +47,16 @@ public class EscapeParser implements IKeep {
 
 PARSER_END(EscapeParser)
 
-<ESCAPE, FUNCTION, TIMEUNIT >
+<ESCAPE, FUNCTION, TIMEUNIT>
 SKIP :
 {
   < SKIP_SPACE : <SPACE> >
+}
+
+<NILADIC>
+SKIP :
+{
+    <PAREN: ((<SPACE>)* <LPAREN> (<SPACE>)* <RPAREN>)? > : DEFAULT
 }
 
 < DEFAULT >
@@ -84,7 +90,7 @@ TOKEN :
 | < PLACING : "PLACING" >
 | < GROUPING : "GROUPING" >
 | < SETS : "SETS" >
-| < PI : "PI" >
+| < PI : "PI" > : NILADIC
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "'", "\t", "\n", "\r", "\"", ".",
     "=", ">", "<", "?", ":", "!", "+", "-", "*", "/", "%", "|", "^", "$" ])+ >
 }
@@ -571,11 +577,7 @@ String PiFunction() :
 {
     <PI>
     {
-        function = getToken(0).image;
-    }
-    (<SPACE> )* <LPAREN> (<SPACE>)* <RPAREN>
-    {
-        return String.format(Locale.ROOT, "%s()", function);
+        return dialect.transformNiladicFunction("PI");
     }
 }
 

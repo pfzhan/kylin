@@ -167,6 +167,11 @@ public abstract class EscapeDialect {
             }
             return type;
         }
+
+        @Override
+        public String transformNiladicFunction(String funcName) {
+            return String.format(Locale.ROOT, "%s()", funcName);
+        }
     };
 
     public static final EscapeDialect HIVE = new EscapeDialect() {
@@ -275,5 +280,9 @@ public abstract class EscapeDialect {
             return;
         }
         registeredFunction.put(fnAlias, fnType);
+    }
+
+    public String transformNiladicFunction(String funcName) {
+        return funcName;
     }
 }

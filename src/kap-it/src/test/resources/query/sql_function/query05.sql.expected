@@ -1,1 +1,0 @@
-select pi() from test_kylin_fact limit 2
