@@ -194,6 +194,9 @@ import ModelStreamingJob from '../ModelStreamingJob/ModelStreamingJob.vue'
     }),
     ...mapActions('ConfirmSegment', {
       callConfirmSegmentModal: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelBuildModal', {
+      callModelBuildDialog: 'CALL_MODAL'
     })
   },
   components: {

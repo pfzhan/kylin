@@ -636,9 +636,10 @@ export default class Homepage extends Vue {
           .card-link {
             position: absolute;
             bottom: 1.1em;
-            right: 10px;
+            right: 1em;
             font-size: 0.01em;
             color: #0875DA;
+            padding: .4em .7em;
           }
           .new-tag {
             position: absolute;
@@ -718,7 +719,7 @@ export default class Homepage extends Vue {
               &.none-opt {
                 color: @text-normal-color;
                 b {
-                  font-size: 16px;
+                  font-size: 1.6em;
                 }
               }
             }
@@ -730,11 +731,14 @@ export default class Homepage extends Vue {
               height: 2.534em;
               line-height: 2.534em;
               font-size: 0.012em;
-              background: #0875DA;
+              background: @ke-color-primary;
               box-shadow: 0px 0px 4px 0px rgba(163, 163, 163, 50%);
               border-radius: 0.4em;
               cursor: pointer;
               position: relative;
+              &:hover {
+                background: @ke-color-primary-hover;
+              }
               &.disabled {
                 background: linear-gradient(141deg, #3EA8EF 0%, #0474C1 100%);
                 box-shadow: 0px 0px 4px 0px rgba(163, 163, 163, 0.5);
@@ -745,7 +749,7 @@ export default class Homepage extends Vue {
                 content: '';
                 width: 80%;
                 height: 10%;
-                box-shadow: 0px 1px 32px 6px #0875da;
+                box-shadow: 0px 1px 32px 6px @ke-color-primary;
                 opacity: 0.3;
                 position: absolute;
                 bottom: 0px;
