@@ -251,6 +251,10 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     if (!shouldPersistFT) {
       return tableDS
     }
+    if (tableDS.schema.isEmpty) {
+      logInfo("No available FLAT-TABLE schema.")
+      return tableDS
+    }
     logInfo(s"Persist FLAT-TABLE $flatTablePath")
     sparkSession.sparkContext.setJobDescription("Persist FLAT-TABLE.")
     tableDS.write.mode(SaveMode.Overwrite).parquet(flatTablePath.toString)
