@@ -70,6 +70,18 @@
                 </div>
                 <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
                   <div class="contain">
+                    <div class="row" v-if="model.model_type === 'HYBRID'">
+                      <h2 class="title font-medium">
+                        <span class="is-required">*</span>
+                        <span>{{$t('indexTimeRange')}}</span>
+                        <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
+                      </h2>
+                      <el-radio-group v-model="form.aggregateArray[aggregateIdx].index_range" :disabled="form.aggregateArray[aggregateIdx].curAggIsEdit">
+                        <el-radio :label="'HYBRID'">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+                        <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
+                        <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+                      </el-radio-group>
+                    </div>
                     <el-tabs v-model="aggregate.activeTab" @tab-click="handleClickTab">
                       <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
                     </el-tabs>
@@ -77,10 +89,18 @@
                       <!-- Include聚合组 -->
                       <div class="row">
                         <div class="ksd-mb-10">
-                          <span class="title font-medium include-title">{{$t('include')}}</span>
+                          <span class="title font-medium include-title"><span class="is-required">*</span> {{$t('include')}}</span>
                           <div class="row ksd-fright ky-no-br-space">
                             <el-button plain class="ksd-ml-10" size="mini" @click="handleRemoveAllIncludes(aggregateIdx, aggregateIdx + 1, aggregate.id)">{{$t('clearAll')}}</el-button>
-                            <el-button plain size="mini" icon="el-ksd-icon-edit_22" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleEditIncludes(aggregateIdx, aggregate.id)">{{$t('edit')}}</el-button>
+                            <el-button
+                              plain
+                              size="mini"
+                              icon="el-ksd-icon-edit_22"
+                              class="add-all-item"
+                              type="primary"
+                              :disabled="model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range"
+                              v-guide.selectAllIncludesBtn
+                              @click="handleEditIncludes(aggregateIdx, aggregate.id)">{{$t('edit')}}</el-button>
                           </div>
                         </div>
                         <!-- <el-select
@@ -108,7 +128,10 @@
                           </template>
                           <div class="no-includes" v-else>
                             <span>{{$t('noIncludesTip')}}</span>
-                            <span class="add-includes-btn" @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-table_add_old ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
+                            <span
+                              class="add-includes-btn"
+                              :class="{'disabled': model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range}"
+                              @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-table_add_old ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
                           </div>
                         </div>
                       </div>
@@ -354,7 +377,7 @@
           </template>
         </div>
       </div>
-      
+
       <div slot="footer" class="dialog-footer clearfix">
         <div class="left">
           <span class="ksd-fleft">
@@ -405,7 +428,7 @@
           </div>
         </div>
         <div class="right">
-          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button><el-button type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
+          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button><el-button v-if="isShow && model.model_type !== 'HYBRID'" type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
         </div>
       </div>
     </div>
@@ -929,6 +952,10 @@ export default class AggregateModal extends Vue {
   }
   editDimCan (aggregateIdx, isEdit) {
     const aggregateArray = get(this.form, 'aggregateArray')
+    // 如果没有选具体类型，就不往下执行
+    if (!aggregateArray[aggregateIdx].index_range) {
+      return false
+    }
     aggregateArray[aggregateIdx].isEditDim = isEdit
     this.setModalForm({ aggregateArray })
     this.groupsDim[aggregateIdx] = aggregateArray[aggregateIdx].dimCap
@@ -1331,6 +1358,7 @@ export default class AggregateModal extends Vue {
       globalDimCap,
       dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
       aggregationGroups: aggregateArray.map(aggregate => ({
+        index_range: aggregate.index_range || 'EMPTY', // 纯批或纯流，这个参数为空
         includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
         measures: aggregate.measures.map(measure => measureIdMapping[measure]),
         select_rule: {
@@ -1457,6 +1485,9 @@ export default class AggregateModal extends Vue {
 
   // 编辑 Includes 包含的维度
   handleEditIncludes (aggregateIdx, id) {
+    if (this.model.model_type === 'HYBRID' && !this.form.aggregateArray[aggregateIdx].index_range) {
+      return false
+    }
     this.searchName = ''
     this.editIncludeDimension = true
     // 此处用方法调用避免 getters 数据缓存
@@ -1953,6 +1984,9 @@ export default class AggregateModal extends Vue {
         position: relative;
         top: 6px;
       }
+      .is-required{
+        color:@color-danger;
+      }
     }
     .include-agg, .include-measure {
       width: calc(~'100% - 3px');
@@ -1994,6 +2028,10 @@ export default class AggregateModal extends Vue {
       .add-includes-btn {
         color: #0988DE;
         cursor: pointer;
+        &.disabled{
+          color: @color-text-disabled;
+          cursor:not-allowed;
+        }
       }
     }
     .header {

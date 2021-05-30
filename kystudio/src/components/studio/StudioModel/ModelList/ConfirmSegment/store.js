@@ -15,6 +15,7 @@ const initialState = JSON.stringify({
   isRemoveIndex: false,
   submitText: '',
   model: null,
+  isHybridBatch: false, // 标识是否是融合模型下的离线模型
   callback: null
 })
 export default {
@@ -37,6 +38,7 @@ export default {
       state.indexes = payload.indexes
       state.isRemoveIndex = payload.isRemoveIndex
       state.submitText = payload.submitText
+      state.isHybridBatch = payload.isHybridBatch || false
       state.model = payload.model
     },
     [types.RESET_MODAL_FORM]: state => {
@@ -44,9 +46,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { title, subTitle, refrashWarningSegment, indexes, isRemoveIndex, submitText, model }) {
+    [types.CALL_MODAL] ({ commit }, { title, subTitle, refrashWarningSegment, indexes, isRemoveIndex, submitText, isHybridBatch = false, model }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL_FORM, { callback: resolve, title: title, subTitle: subTitle, refrashWarningSegment: refrashWarningSegment, indexes: indexes, isRemoveIndex: isRemoveIndex, submitText: submitText, model: model })
+        commit(types.SET_MODAL_FORM, { callback: resolve, title: title, subTitle: subTitle, refrashWarningSegment: refrashWarningSegment, indexes: indexes, isRemoveIndex: isRemoveIndex, submitText: submitText, isHybridBatch: isHybridBatch, model: model })
         commit(types.SHOW_MODAL)
       })
     }

@@ -221,7 +221,8 @@ exports.default = {
     queryNode: 'Query node',
     jobNode: 'Job node',
     BATCH: 'Batch',
-    STREAMING: 'Streaming'
+    STREAMING: 'Streaming',
+    HYBRID: 'Batch and Streaming'
   },
   model: {
     generateModel: 'From SQL',

@@ -127,15 +127,29 @@ public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateStreamingJob() {
         val id = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
-        mgr.updateStreamingJob(id, copyForWrite -> {
+        val result = mgr.updateStreamingJob(id, copyForWrite -> {
             copyForWrite.setProcessId("9999");
             copyForWrite.setNodeInfo("localhost:7070");
             copyForWrite.setCurrentStatus(JobStatusEnum.ERROR);
         });
+        Assert.assertNotNull(result);
         val meta = mgr.getStreamingJobByUuid(id);
         Assert.assertEquals("9999", meta.getProcessId());
         Assert.assertEquals("localhost:7070", meta.getNodeInfo());
         Assert.assertEquals(JobStatusEnum.ERROR, meta.getCurrentStatus());
+    }
+
+    @Test
+    public void testUpdateStreamingJobOfErrorId() {
+        val id = "e78a89dd-847f-4574-8afa-8768b4228b7_build";
+        val result = mgr.updateStreamingJob(id, copyForWrite -> {
+            copyForWrite.setProcessId("9999");
+            copyForWrite.setNodeInfo("localhost:7070");
+            copyForWrite.setCurrentStatus(JobStatusEnum.ERROR);
+        });
+        Assert.assertNull(result);
+        val meta = mgr.getStreamingJobByUuid(id);
+        Assert.assertNull(meta);
     }
 
     @Test
@@ -150,7 +164,7 @@ public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testListAllStreamingJobMeta() {
         val lists = mgr.listAllStreamingJobMeta();
-        Assert.assertEquals(2, lists.size());
+        Assert.assertEquals(4, lists.size());
     }
 
     private NDataModel mockModel(String uuid) {

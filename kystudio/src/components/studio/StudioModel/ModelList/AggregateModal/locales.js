@@ -110,7 +110,8 @@ export default {
     excludeTableCheckboxTip: 'Exclude Rules can be modified in project setting',
     excludedTableIconTip: 'Excluded from recommendations',
     indexTimeRange: 'Index’s Time Range',
-    manyToManyAntiTableTip: 'For the tables excluded from recommendations, if the join relationship of a table is One-to-Many or Many-to-Many, dimensions from this table can\'t be used in indexes. '
+    manyToManyAntiTableTip: 'For the tables excluded from recommendations, if the join relationship of a table is One-to-Many or Many-to-Many, dimensions from this table can\'t be used in indexes. ',
+    indexTimeRangeTips: 'The data range that the indexes will be built in. With “Batch and Streaming“ selected, there will be generated batch indexes and streaming indexes with same content respectively. '
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合组',
@@ -223,6 +224,7 @@ export default {
     excludeTableCheckboxTip: '可在项目设置中配置',
     excludedTableIconTip: '被优化建议屏蔽的列',
     indexTimeRange: '索引时间范围',
-    manyToManyAntiTableTip: '在优化建议中被屏蔽的表，若关联关系为一对多或多对多，则表中的维度无法在索引中使用。'
+    manyToManyAntiTableTip: '在优化建议中被屏蔽的表，若关联关系为一对多或多对多，则表中的维度无法在索引中使用。',
+    indexTimeRangeTips: '索引构建的数据范围。选择“离线和实时”将分别生成相同内容的实时和离线索引。'
   }
 }

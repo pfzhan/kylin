@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.request;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.model.IStorageAware;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -70,4 +71,7 @@ public class CreateTableIndexRequest implements ProjectInsensitiveRequest {
     @Builder.Default
     @JsonProperty("load_data")
     private boolean isLoadData = true;
+
+    @JsonProperty("index_range")
+    private IndexEntity.Range indexRange;
 }

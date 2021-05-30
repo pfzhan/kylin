@@ -131,7 +131,7 @@ export default class SourceKafka extends Vue {
       brokers: []
     }],
     has_shadow_table: false,
-    hive_table_identity: '',
+    batch_table_identity: '',
     starting_offsets: 'laster'
   }
   brokers = []

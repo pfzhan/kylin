@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.common.KylinConfig;
@@ -55,6 +56,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -62,6 +65,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -425,5 +429,32 @@ public class NDataModelResponse extends NDataModel {
             excludedTables.addAll(favoriteRuleManager.getExcludedTables());
         }
         return excludedTables;
+    }
+
+    public void computedInfo(long inconsistentCount, ModelStatusToDisplayEnum status, boolean isScd2,
+            NDataModel modelDesc, boolean onlyNormalDim) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        if (!onlyNormalDim) {
+            this.enrichDerivedDimension();
+        }
+        this.setForbiddenOnline(isScd2);
+        this.setBroken(modelDesc.isBroken());
+        this.setStatus(status);
+        this.setLastBuildTime(dfManager.getDataflowLastBuildTime(modelDesc.getUuid()));
+        this.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
+        this.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
+        this.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
+        this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
+        this.setUsage(dfManager.getDataflow(modelDesc.getUuid()).getQueryHitCount());
+        this.setInconsistentSegmentCount(inconsistentCount);
+        if (!modelDesc.isBroken()) {
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
+            this.setAvailableIndexesCount(indexPlanManager.getAvailableIndexesCount(getProject(), modelDesc.getId()));
+            this.setTotalIndexes(indexPlan.getAllLayouts().size());
+            this.setEmptyIndexesCount(this.totalIndexes - this.availableIndexesCount);
+            this.setHasBaseAggIndex(indexPlan.containBaseAggLayout());
+            this.setHasBaseTableIndex(indexPlan.containBaseTableLayout());
+        }
     }
 }

@@ -67,6 +67,7 @@ import StreamingSegment from './StreamingSegment/StreamingSegment.vue'
 })
 export default class SegmentTabs extends Vue {
   activeTab = 'batch'
+
   purgeModel (model) {
     this.$emit('purgeModel', model)
   }

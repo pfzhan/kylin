@@ -34,6 +34,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.rest.service.FusionModelService;
+import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -104,6 +106,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private FusionModelService fusionModelService;
 
     @InjectMocks
     private NModelController nModelController = Mockito.spy(new NModelController());
@@ -306,7 +311,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDeleteModel() throws Exception {
-        Mockito.doNothing().when(modelService).dropModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        Mockito.doNothing().when(fusionModelService).dropModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model}", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -533,9 +538,10 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request2.setStart("100");
         request2.setEnd("200");
         request2.setPartitionDesc(new PartitionDesc());
-        Mockito.doAnswer(x -> null).when(modelService).incrementBuildSegmentsManually("default",
+        IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request2.getStart(), request2.getEnd(),
-                request2.getPartitionDesc(), request2.getSegmentHoles());
+                request2.getPartitionDesc(), null, request2.getSegmentHoles(), true, null);
+        Mockito.doAnswer(x -> null).when(fusionModelService).incrementBuildSegmentsManually(incrParams);
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/model_segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request2))

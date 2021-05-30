@@ -163,7 +163,7 @@ public class IndexPlanService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         try {
             val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
-            val layout = parseToLayout(project, request);
+            val layout = parseToLayout(project, request, indexPlan.getNextTableIndexId() + 1);
             for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
                 if (cuboidLayout.equals(layout) && cuboidLayout.isManual()) {
                     return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
@@ -178,12 +178,12 @@ public class IndexPlanService extends BasicService {
         }
     }
 
-    private LayoutEntity parseToLayout(String project, CreateTableIndexRequest request) {
+    private LayoutEntity parseToLayout(String project, CreateTableIndexRequest request, long layoutId) {
         val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
         NDataModel model = indexPlan.getModel();
 
         val newLayout = new LayoutEntity();
-        newLayout.setId(indexPlan.getNextTableIndexId() + 1);
+        newLayout.setId(layoutId);
 
         // handle remove the latest table index
         if (Objects.equals(newLayout.getId(), request.getId())) {
@@ -196,6 +196,7 @@ public class IndexPlanService extends BasicService {
         newLayout.setUpdateTime(System.currentTimeMillis());
         newLayout.setOwner(getUsername());
         newLayout.setManual(true);
+        newLayout.setIndexRange(request.getIndexRange());
 
         Map<Integer, String> layoutOverride = Maps.newHashMap();
         if (request.getLayoutOverrideIndexes() != null) {
@@ -210,7 +211,14 @@ public class IndexPlanService extends BasicService {
     @Transaction(project = 0)
     public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        val newLayout = parseToLayout(project, request);
+        val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
+        return createTableIndex(project, request, indexPlan.getNextTableIndexId() + 1);
+    }
+
+    @Transaction(project = 0)
+    public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request, long layoutId) {
+        aclEvaluate.checkProjectWritePermission(project);
+        val newLayout = parseToLayout(project, request, layoutId);
         return createTableIndex(project, request.getModelId(), newLayout, request.isLoadData());
     }
 

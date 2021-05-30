@@ -252,4 +252,17 @@ public class NIndexPlanManagerTest {
                 plan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList()).toString());
     }
 
+    @Test
+    public void testAvailableIndexesCount() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NIndexPlanManager manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
+        long count = manager.getAvailableIndexesCount(DEFAULT_PROJECT, "741ca86a-1f13-46da-a59f-95fb68615e3a");
+        Assert.assertEquals(5, count);
+
+        long count1 = manager.getAvailableIndexesCount(DEFAULT_PROJECT, "741ca86a-1f13-46da-a59f-95fb68615e3b");
+        Assert.assertEquals(0, count1);
+
+        long count2 = manager.getAvailableIndexesCount(DEFAULT_PROJECT, "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
+        Assert.assertEquals(0, count2);
+    }
 }

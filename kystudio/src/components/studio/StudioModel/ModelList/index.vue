@@ -81,7 +81,8 @@
           hideArrow
           :value="filterArgs.model_attributes"
           :options="[
-            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE', unavailable: !$store.state.project.second_storage_enabled },
+            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE' },
+            { renderLabel: renderModelTypeLabel, value: 'HYBRID' },
             { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
             { renderLabel: renderModelTypeLabel, value: 'BATCH' }
           ]"
@@ -187,7 +188,10 @@
 
           </template>
         </el-table-column>
-        <el-table-column width="150px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+        <el-table-column
+          width="150px"
+          :label="$t('recommendationsTiTle')"
+          v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
             <template v-if="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">-</template>
             <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom" v-else>
@@ -504,7 +508,7 @@ export default class ModelList extends Vue {
   transToServerGmtTime = transToServerGmtTime
   filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
-  modelTypeList = ['STREAMING', 'BATCH', 'SECOND_STORAGE']
+  modelTypeList = ['HYBRID', 'STREAMING', 'BATCH', 'SECOND_STORAGE']
   currentEditModel = null
   showFull = false
   showSearchResult = false
@@ -1087,14 +1091,6 @@ export default class ModelList extends Vue {
       position:absolute;
       top:4px;
       right:10px;
-    }
-  }
-  .disabled-export {
-    color: @text-disabled-color;
-    cursor: pointer;
-    &:hover {
-      background: none;
-      color: #bbbbbb;
     }
   }
   .model_list_table {

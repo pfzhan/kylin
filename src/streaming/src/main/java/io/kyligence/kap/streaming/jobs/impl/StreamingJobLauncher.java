@@ -95,7 +95,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                 }
             } else {
                 String driverExtraConf = "-Dfile.encoding=UTF-8 -Dhdp.version=current -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${KYLIN_HOME}/logs -D"
-                        + StreamingConstants.REST_SERVER_IP + "=" + getLocalHost();
+                        + StreamingConstants.REST_SERVER_IP + "=" + NetworkUtils.getLocalIp();
                 String executorExtraConf = "-Dfile.encoding=UTF-8 -Dhdp.version=current -Dlog4j.configuration=spark-executor-log4j.properties -Dlog4j.debug -Dkylin.hdfs.working.dir=${kylin.env.hdfs-working-dir} -Dkap.metadata.identifier=${kylin.metadata.url.identifier} -Dkap.spark.category=job -Dkap.spark.project=${job.project} -Dkap.spark.identifier=${job.id} -Dkap.spark.jobName=${job.stepId} -Duser.timezone=${user.timezone} -Dkap.spark.mountDir=${job.mountDir}";
                 Map<String, String> sparkConf = config.getStreamingSparkConfigOverride();
                 sparkConf.entrySet().forEach(entry -> launcher.setConf(entry.getKey(), entry.getValue()));
@@ -156,9 +156,5 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
 
     private String calcMaxCores(String executors, String cores) {
         return String.valueOf(Integer.parseInt(executors) * Integer.parseInt(cores));
-    }
-
-    private String getLocalHost() {
-        return NetworkUtils.getLocalIp();
     }
 }

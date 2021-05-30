@@ -119,7 +119,7 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
 
         val config = getTestConfig();
         try {
-            val tableDescList = tableService.getTableDesc(PROJECT, true, "P_LINEORDER_STR", database, true);
+            val tableDescList = tableService.getTableDesc(PROJECT, true, "P_LINEORDER_STR", database, false);
             Assert.assertEquals(1, tableDescList.size());
             val tableDesc = tableDescList.get(0);
             val tableExtDesc = tableService.getOrCreateTableExt(PROJECT, tableDesc);

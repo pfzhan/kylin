@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.collections.CollectionUtils;
@@ -150,6 +151,9 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    private FusionModelService fusionModelService;
 
     @Autowired
     private IndexPlanService indexPlanService;
@@ -546,7 +550,7 @@ public class NModelController extends NBasicController {
             if (request.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
                 modelService.repairBrokenModel(request.getProject(), request);
             } else {
-                response = modelService.updateDataModelSemantic(request.getProject(), request);
+                response = fusionModelService.updateDataModelSemantic(request.getProject(), request);
             }
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
         } catch (LookupTableException e) {
@@ -619,7 +623,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> deleteModel(@PathVariable("model") String model,
             @RequestParam("project") String project) {
         checkProjectName(project);
-        modelService.dropModel(model, project);
+        fusionModelService.dropModel(model, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -917,7 +921,7 @@ public class NModelController extends NBasicController {
                         .withPriority(buildSegmentsRequest.getPriority())
                         .withBuildAllSubPartitions(buildSegmentsRequest.isBuildAllSubPartitions());
 
-        JobInfoResponse response = modelService.incrementBuildSegmentsManually(incrParams);
+        JobInfoResponse response = fusionModelService.incrementBuildSegmentsManually(incrParams);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

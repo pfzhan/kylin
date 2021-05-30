@@ -33,8 +33,6 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -42,8 +40,6 @@ import java.util.Locale;
 import java.util.Set;
 
 public class MetaInfoUpdater {
-    private static final Logger logger = LoggerFactory.getLogger(MetaInfoUpdater.class);
-
     public static void update(String project, NDataSegment seg, NDataLayout layout) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
@@ -54,23 +50,16 @@ public class MetaInfoUpdater {
     }
 
     public static void updateJobState(String project, String jobId, JobStatusEnum state) {
-        updateJobState(project, jobId, state, null);
-    }
-
-    public static void updateJobState(String project, String jobId, JobStatusEnum state, String errorMsg) {
-        updateJobState(project, jobId, Sets.newHashSet(state), state, errorMsg);
+        updateJobState(project, jobId, Sets.newHashSet(state), state);
     }
 
     public static void updateJobState(String project, String jobId, Set<JobStatusEnum> excludeStates,
-            JobStatusEnum state, String errorMsg) {
+            JobStatusEnum state) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             StreamingJobManager mgr = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             mgr.updateStreamingJob(jobId, copyForWrite -> {
                 if (!excludeStates.contains(copyForWrite.getCurrentStatus())) {
                     copyForWrite.setCurrentStatus(state);
-                    if (errorMsg != null) {
-                        logger.warn(errorMsg, jobId);
-                    }
                     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                             Locale.getDefault(Locale.Category.FORMAT));
                     Date date = new Date(System.currentTimeMillis());
@@ -78,6 +67,7 @@ public class MetaInfoUpdater {
                     switch (state) {
                     case RUNNING:
                         copyForWrite.setLastStartTime(format.format(date));
+                        copyForWrite.setSkipListener(false);
                         break;
                     case STOPPED:
                     case ERROR:

@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
+import io.kyligence.kap.rest.service.FusionIndexService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -64,6 +65,9 @@ public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
     private IndexPlanService indexPlanService;
 
     @Mock
+    private FusionIndexService fusionIndexService;
+
+    @Mock
     private ModelService modelService;
 
     @InjectMocks
@@ -91,7 +95,7 @@ public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateRule() throws Exception {
         val request = UpdateRuleBasedCuboidRequest.builder().project("default")
                 .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").aggregationGroups(Lists.newArrayList()).build();
-        Mockito.when(indexPlanService.updateRuleBasedCuboid(Mockito.anyString(),
+        Mockito.when(fusionIndexService.updateRuleBasedCuboid(Mockito.anyString(),
                 Mockito.any(UpdateRuleBasedCuboidRequest.class)))
                 .thenReturn(new Pair<>(new IndexPlan(), new BuildIndexResponse()));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)

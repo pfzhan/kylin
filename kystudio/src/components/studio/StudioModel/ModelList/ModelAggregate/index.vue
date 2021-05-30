@@ -8,7 +8,7 @@
         </el-tabs>
       </div> -->
       <div class="btn-groups" v-if="showModelTypeSwitch">
-        <el-tabs class="btn-group-tabs" v-model="switchModelType" type="button">
+        <el-tabs class="btn-group-tabs" v-model="switchModelType" type="button" @tab-click="changeModelTab">
           <el-tab-pane :label="$t('kylinLang.common.BATCH')" name="BATCH" />
           <el-tab-pane :label="$t('kylinLang.common.STREAMING')" name="STREAMING" />
         </el-tabs>
@@ -37,7 +37,7 @@
             v-else
             :data="cuboids"
             :search-id="filterArgs.key"
-            :idTag="model.uuid"
+            :idTag="modelId"
             ref="indexTreeMap"
             @searchId="handleClickNode"/>
         </el-card>
@@ -99,53 +99,24 @@
 
                 </el-dropdown-menu>
               </el-dropdown>
-              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex')&&!isRealTimeMode" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
-              <!-- <template v-if="isRealTimeMode">
-                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
-                  <el-button v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex" :disabled="isDisableDelBaseIndex" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
-                </common-tip>
-                <el-button v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
-              </template> -->
-              <template v-if="!isRealTimeMode">
-                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
-                  <el-dropdown
-                    split-button
-                    type="primary"
-                    text
-                    btn-icon="el-ksd-icon-table_delete_22"
-                    class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
-                    :class="{'is-disabled': isDisableDelBaseIndex}"
-                    placement="bottom-start"
-                    :loading="removeLoading"
-                    v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
-                    <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
-                      <el-dropdown-item
-                        :disabled="isDisableDelBaseIndex">
-                        {{$t('deletePart')}}
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </el-dropdown>
-                </common-tip>
-                <el-dropdown
-                  split-button
-                  type="primary"
-                  text
-                  btn-icon="el-ksd-icon-table_delete_22"
-                  class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
-                  :class="{'is-disabled': !checkedList.length}"
-                  placement="bottom-start"
-                  :loading="removeLoading"
-                  @click="removeIndexes"
-                  v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
-                  <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
-                    <el-dropdown-item
-                      :disabled="!checkedList.length"
-                      @click="complementedIndexes('deleteIndexes')">
-                      {{$t('deletePart')}}
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </el-dropdown>
-              </template>
+              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex') && !isRealTimeMode" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
+              <el-button v-if="datasourceActions.includes('delAggIdx') && isRealTimeMode" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+              <el-dropdown
+                class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
+                :class="{'is-disabled': !checkedList.length}"
+                placement="bottom-start"
+                :loading="removeLoading"
+                v-if="datasourceActions.includes('delAggIdx') && !isRealTimeMode"
+              >
+                <el-button type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}<i class="el-ksd-icon-arrow_down_22"></i></el-button>
+                <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                  <el-dropdown-item
+                    :disabled="!checkedList.length"
+                    @click="complementedIndexes('deleteIndexes')">
+                    {{$t('deletePart')}}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
               <!-- <el-button
               icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10 ksd-ml-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button> -->
               <div class="right fix">
@@ -431,6 +402,28 @@ export default class ModelAggregate extends Vue {
     return (this.showModelTypeSwitch && this.switchModelType === 'STREAMING') || (this.model.model_type === 'STREAMING')
   }
 
+  get modelId () {
+    if (this.model.model_type !== 'HYBRID') {
+      return this.model.uuid
+    } else {
+      return this.switchModelType === 'BATCH' ? this.model.batch_id : this.model.uuid
+    }
+  }
+
+  // 标识是融合模型下的离线模式
+  get isHybridBatch () {
+    this.model.model_type === 'HYBRID' && this.switchModelType === 'BATCH'
+  }
+
+  async changeModelTab (name) {
+    // 切换tab 时需要重刷列表
+    this.filterArgs.page_offset = 0
+    this.filterArgs.page_size = +localStorage.getItem(this.pageRefTags.indexPager) || 10
+    this.indexLoading = true
+    await this.loadAggIndices()
+    this.indexLoading = false
+  }
+
   formatDataSize (dataSize) {
     const [size = +size, ext] = this.$root.$options.filters.dataSize(dataSize).split(' ')
     const intType = ['B', 'KB']
@@ -471,12 +464,14 @@ export default class ModelAggregate extends Vue {
     } else {
       indexes.push(id)
     }
+    // 这里的 model id 需要根据条件判断传递
     await this.callConfirmSegmentModal({
       title: title,
       subTitle: subTitle,
       indexes: indexes,
       submitText: submitText,
       isRemoveIndex: isRemoveIndex,
+      isHybridBatch: this.isHybridBatch,
       model: this.model
     })
     this.refreshIndexGraphAfterSubmitSetting()
@@ -539,7 +534,7 @@ export default class ModelAggregate extends Vue {
     try {
       await kapConfirm(this.$t('delIndexesTips', {indexNum: this.checkedList.length}), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('delIndex'))
       this.removeLoading = true
-      await this.deleteIndexes({project: this.projectName, model: this.model.uuid, layout_ids: layout_ids})
+      await this.deleteIndexes({project: this.projectName, model: this.modelId, layout_ids: layout_ids})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.removeLoading = false
       this.refreshIndexGraphAfterSubmitSetting()
@@ -599,6 +594,7 @@ export default class ModelAggregate extends Vue {
   }
   editTableIndex (indexDesc) {
     this.showTableIndexEditModal({
+      isHybridBatch: this.isHybridBatch,
       modelInstance: this.modelInstance,
       tableIndexDesc: indexDesc || {name: 'TableIndex_1'}
     }).then((res) => {
@@ -676,7 +672,7 @@ export default class ModelAggregate extends Vue {
             selectSegmentHoles = segments.map((seg) => {
               return {start: seg.date_range_start, end: seg.date_range_end}
             })
-            await this.autoFixSegmentHoles({project: this.projectName, model_id: this.model.uuid, segment_holes: selectSegmentHoles})
+            await this.autoFixSegmentHoles({project: this.projectName, model_id: this.modelId, segment_holes: selectSegmentHoles})
             this.confirmBuild()
           }
         })
@@ -694,7 +690,7 @@ export default class ModelAggregate extends Vue {
       this.buildIndexLoading = true
       let res = await this.buildIndex({
         project: this.projectName,
-        model_id: this.model.uuid
+        model_id: this.modelId
       })
       let data = await handleSuccessAsync(res)
       this.handleBuildIndexTip(data)
@@ -718,7 +714,7 @@ export default class ModelAggregate extends Vue {
   async removeIndex (row) {
     try {
       await kapConfirm(this.$t('delIndexTip'), null, this.$t('delIndex'))
-      await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: row.id})
+      await this.deleteIndex({project: this.projectName, model: this.modelId, id: row.id})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.refreshIndexGraphAfterSubmitSetting()
       this.getIndexInfo()
@@ -765,7 +761,7 @@ export default class ModelAggregate extends Vue {
     try {
       const res = await this.fetchIndexGraph({
         project: this.projectName,
-        model: this.model.uuid
+        model: this.modelId
       })
       const data = await handleSuccessAsync(res)
       this.dataRange = [data.start_time, data.end_time]
@@ -809,7 +805,7 @@ export default class ModelAggregate extends Vue {
       }
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
-        model: this.model.uuid,
+        model: this.modelId,
         ids: ids || this.indexesByQueryHistory ? this.layoutId : ''
       }, this.filterArgs))
       const data = await handleSuccessAsync(res)
@@ -936,7 +932,7 @@ export default class ModelAggregate extends Vue {
       confirmButtonText: this.$t('update')
     }).then(async () => {
       await this.updateBaseIndex({
-        model_id: this.model.uuid,
+        model_id: this.modelId,
         project: this.projectName,
         load_data: false,
         source_types: [row.source]
@@ -951,7 +947,7 @@ export default class ModelAggregate extends Vue {
   createBaseIndex () {
     if (Object.keys(this.indexStat).length && !this.indexStat.need_create_base_agg_index && !this.indexStat.need_create_base_table_index) return
     this.loadBaseIndex({
-      model_id: this.model.uuid,
+      model_id: this.modelId,
       project: this.projectName,
       load_data: false,
       source_type: ['BASE_TABLE_INDEX', 'BASE_AGG_INDEX']
@@ -975,7 +971,7 @@ export default class ModelAggregate extends Vue {
 
   // 获取索引特征信息(是否有聚合或明细基础索引。。。)
   getIndexInfo () {
-    this.fetchIndexStat({model_id: this.model.uuid, project: this.projectName}).then(async res => {
+    this.fetchIndexStat({model_id: this.modelId, project: this.projectName}).then(async res => {
       const result = await handleSuccessAsync(res)
       this.indexStat = result
     }).catch((e) => {

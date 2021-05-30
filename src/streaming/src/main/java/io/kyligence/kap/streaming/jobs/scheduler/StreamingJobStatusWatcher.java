@@ -53,22 +53,26 @@ public class StreamingJobStatusWatcher {
     private static final Logger logger = LoggerFactory.getLogger(StreamingJobStatusWatcher.class);
 
     /**
+     * hold the jobs whose status is starting
+     */
+    private Map<String, AtomicInteger> startingJobMap = Maps.newHashMap();
+    /**
      * hold the jobs whose status is stopping
      */
-    private static Map<String, AtomicInteger> stoppingJobMap = Maps.newHashMap();
+    private Map<String, AtomicInteger> stoppingJobMap = Maps.newHashMap();
     /**
      * hold the jobs whose status is error or running
      */
-    private static Map<String, AtomicInteger> jobMap = Maps.newHashMap();
+    private Map<String, AtomicInteger> jobMap = Maps.newHashMap();
     /**
      * keep the jobs whose process is killed
      */
-    private static Map<String, Long> jobKeepMap = Maps.newHashMap();
+    private Map<String, Long> jobKeepMap = Maps.newHashMap();
 
     private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     private boolean init = false;
     private static List<JobStatusEnum> STATUS_LIST = Arrays.asList(JobStatusEnum.ERROR, JobStatusEnum.RUNNING,
-            JobStatusEnum.STOPPING);
+            JobStatusEnum.STARTING, JobStatusEnum.STOPPING);
 
     private static int WATCH_INTERVAL = 5;
     private static int JOB_KEEP_TIMEOUT = 30;
@@ -89,7 +93,7 @@ public class StreamingJobStatusWatcher {
     private List<String> getRunningJobs() {
         val config = KylinConfig.getInstanceFromEnv();
         final IClusterManager cm = ClusterManagerFactory.create(config);
-        val runningJobsOnYarn = cm.getRunningJobs(Collections.EMPTY_SET);
+        val runningJobsOnYarn = cm.getRunningJobs(Collections.emptySet());
         return runningJobsOnYarn;
     }
 
@@ -130,21 +134,15 @@ public class StreamingJobStatusWatcher {
         if (jobMap.containsKey(jobId)) {
             killProcess(jobId, project, meta);
         } else {
-            if (meta.getCurrentStatus() == JobStatusEnum.STOPPING) {
-                if (!stoppingJobMap.containsKey(jobId)) {
-                    stoppingJobMap.put(jobId, new AtomicInteger(0));
-                } else {
-                    stoppingJobMap.get(jobId).getAndIncrement();
-                    if (stoppingJobMap.get(jobId).get() >= 3) {
-                        jobMap.put(jobId, new AtomicInteger(0));
-                        stoppingJobMap.remove(jobId);
-                    }
-                }
+            if (meta.getCurrentStatus() == JobStatusEnum.STARTING) {
+                moveJobId(startingJobMap, jobId);
+            } else if (meta.getCurrentStatus() == JobStatusEnum.STOPPING) {
+                moveJobId(stoppingJobMap, jobId);
             } else if (meta.getCurrentStatus() == JobStatusEnum.RUNNING) {
                 jobMap.put(jobId, new AtomicInteger(0));
             } else {
                 String lastUpdateTime = meta.getLastUpdateTime();
-                SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss",
+                SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                         Locale.getDefault(Locale.Category.FORMAT));
                 try {
                     if (lastUpdateTime != null) {
@@ -173,6 +171,23 @@ public class StreamingJobStatusWatcher {
                 MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
             }
             jobKeepMap.put(jobId, System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Move jobId to jobMap from starting or stopping status
+     * @param tmpMap
+     * @param jobId
+     */
+    private void moveJobId(Map<String, AtomicInteger> tmpMap, String jobId) {
+        if (!tmpMap.containsKey(jobId)) {
+            tmpMap.put(jobId, new AtomicInteger(0));
+        } else {
+            tmpMap.get(jobId).getAndIncrement();
+            if (tmpMap.get(jobId).get() >= 3) {
+                jobMap.put(jobId, new AtomicInteger(0));
+                tmpMap.remove(jobId);
+            }
         }
     }
 }

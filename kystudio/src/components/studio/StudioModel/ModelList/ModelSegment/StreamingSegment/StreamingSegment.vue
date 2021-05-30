@@ -1,6 +1,6 @@
 <template>
   <div class="streaming-list">
-    <div class="segment-actions clearfix">
+    <div class="segment-actions clearfix" v-if="isShowPageTitle">
       <el-popover
         ref="segmentPopover"
         placement="right"
@@ -234,6 +234,10 @@ import { formatStreamSegments } from '../handler'
     isShowSegmentActions: {
       type: Boolean,
       default: true
+    },
+    isShowPageTitle: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {

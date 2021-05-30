@@ -122,6 +122,10 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     @Setter
     private boolean isInProposing; // only used in the process of propose
 
+    @Setter
+    @JsonProperty("index_range")
+    private IndexEntity.Range indexRange;
+
     // computed fields below
 
     /**

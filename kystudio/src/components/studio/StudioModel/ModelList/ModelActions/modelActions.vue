@@ -17,7 +17,6 @@
       </common-tip>
       <common-tip
         :disabled="!!buildText"
-        class="ksd-mr-8"
         :content="getDisableBuildTips(currentModel)"
         v-if="currentModel.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
         <el-popover
@@ -33,7 +32,7 @@
         </el-popover>
         <span
           v-if="!buildText"
-          :class="['item', {'build-disabled':disableLineBuildBtn(currentModel)}]"
+          :class="['item', 'ksd-mr-10', {'build-disabled':disableLineBuildBtn(currentModel)}]"
           v-popover:popoverBuild
           v-guide.setDataRangeBtn
           @click="setModelBuldRange(currentModel)">
@@ -60,10 +59,36 @@
             <!-- 数据检测移动至project 级别处理， -->
             <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
             <!-- 设置partition -->
-            <el-dropdown-item command="recommendations" v-if="currentModel.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
-            <el-dropdown-item command="dataLoad" v-if="currentModel.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="subParValMana(currentModel)" v-if="currentModel.status !== 'BROKEN' && $store.state.project.multi_partition_enabled && currentModel.multi_partition_desc && modelActions.includes('manageSubPartitionValues')">{{$t('subPartitionValuesManage')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="openSecStorageDialog()" v-if="currentModel.status !== 'BROKEN' && $store.state.project.second_storage_enabled&&modelActions.includes('secStorageAction')">{{$t('secStorage')}}</el-dropdown-item>
+            <el-dropdown-item
+              command="recommendations"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('recommendations')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="dataLoad"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'BROKEN' && modelActions.includes('dataLoad')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('modelPartitionSet')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              :class="{'disabled-action': currentModel.model_type !== 'BATCH'}"
+              @click.native="subParValMana(currentModel)"
+              v-if="currentModel.status !== 'BROKEN' && $store.state.project.multi_partition_enabled && currentModel.multi_partition_desc && modelActions.includes('manageSubPartitionValues')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type === 'BATCH'">
+                {{$t('subPartitionValuesManage')}}
+              </common-tip>
+            </el-dropdown-item>
             <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="importMDX" divided disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="exportMDX" disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
@@ -77,19 +102,79 @@
                 {{$t('exportMetadatas')}}
               </common-tip>
             </el-dropdown-item>
-            <el-dropdown-item command="exportTDS" :class="{'disabled-action': currentModel.status === 'BROKEN' || currentModel.model_type !== 'BATCH'}" v-if="modelActions.includes('exportTDS')">
-              <common-tip :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips') : $t('bokenModelExportTDSTip')" :disabled="currentModel.status !== 'BROKEN' && currentModel.model_type === 'BATCH'">
+            <el-dropdown-item
+              command="exportTDS"
+              :class="{'disabled-action': currentModel.status === 'BROKEN' || currentModel.model_type !== 'BATCH'}"
+              v-if="modelActions.includes('exportTDS')">
+              <common-tip
+                :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips') : $t('bokenModelExportTDSTip')"
+                :disabled="currentModel.status !== 'BROKEN' && currentModel.model_type === 'BATCH'">
                 <span>{{$t('exportTds')}}</span>
               </common-tip>
             </el-dropdown-item>
-            <el-dropdown-item command="rename" divided v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('rename')}}</el-dropdown-item>
-            <el-dropdown-item command="clone" v-if="currentModel.status !== 'BROKEN' && modelActions.includes('clone')">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
-            <el-dropdown-item v-if="currentModel.status !== 'BROKEN' && modelActions.includes('changeModelOwner')" @click.native="openChangeModelOwner(currentModel.alias, currentModel.uuid)">{{$t('changeModelOwner')}}</el-dropdown-item>
-            <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
-            <el-dropdown-item command="purge" v-if="currentModel.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
-            <el-dropdown-item command="offline" v-if="currentModel.status !== 'OFFLINE' && currentModel.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
-            <el-dropdown-item command="online" :class="{'disabled-online': currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}" v-if="currentModel.status !== 'ONLINE' && currentModel.status !== 'BROKEN' && currentModel.status !== 'WARNING' && modelActions.includes('online')">
-              <common-tip :content="getDisabledOnlineTips(currentModel)" v-if="currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)">
+            <el-dropdown-item
+              command="rename"
+              divided
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('rename')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="clone"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'BROKEN' && modelActions.includes('clone')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('kylinLang.common.clone')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'BROKEN' && modelActions.includes('changeModelOwner')"
+              @click.native="openChangeModelOwner(currentModel, currentModel.uuid)">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('changeModelOwner')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="delete"
+              v-if="modelActions.includes('delete')">
+              {{$t('delete')}}
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="purge"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'BROKEN' && modelActions.includes('purge')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('purge')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="offline"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              v-if="currentModel.status !== 'OFFLINE' && currentModel.status !== 'BROKEN' && modelActions.includes('offline')">
+              <common-tip
+                :content="$t('disableActionTips')"
+                :disabled="currentModel.model_type !== 'HYBRID'">
+                {{$t('offLine')}}
+              </common-tip>
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="online"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID' || currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}"
+              v-if="currentModel.status !== 'ONLINE' && currentModel.status !== 'BROKEN' && currentModel.status !== 'WARNING' && modelActions.includes('online')">
+              <common-tip
+                :content="currentModel.model_type === 'HYBRID' ? $t('disableActionTips') : getDisabledOnlineTips(currentModel)"
+                v-if="currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)">
                 <span>{{$t('onLine')}}</span>
               </common-tip>
               <span v-else>{{$t('onLine')}}</span>
@@ -399,7 +484,8 @@ export default class ModelActions extends Vue {
     }
     if (!modelDesc.total_indexes && !isNeedBuildGuild || (!this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc)) return
     const projectName = this.currentSelectedProject
-    const modelName = modelDesc.uuid
+    // 如果是融合模型，这里的构建入口是针对离线的，所以要传batch id
+    const modelName = modelDesc.model_type === 'HYBRID' ? modelDesc.batch_id : modelDesc.uuid
     const res = await this.fetchSegments({ projectName, modelName })
     const { total_size, value } = await handleSuccessAsync(res)
     let type = 'incremental'
@@ -419,8 +505,11 @@ export default class ModelActions extends Vue {
     })
   }
 
-  async openChangeModelOwner (modelName, modelId) {
-    this.modelOwner.modelName = modelName
+  async openChangeModelOwner (model, modelId) {
+    if (model.model_type === 'HYBRID') {
+      return false
+    }
+    this.modelOwner.modelName = model.alias
     this.modelOwner.model = modelId
     this.ownerFilter.project = this.currentSelectedProject
     this.ownerFilter.model = modelId
@@ -458,9 +547,50 @@ export default class ModelActions extends Vue {
     }
   }
 
+  checkActionCanDo (command, modelDesc) {
+    let flag = true
+    switch (command) {
+      case 'recommendations':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      case 'dataLoad':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      case 'exportMetadata':
+        flag = modelDesc.model_type === 'BATCH'
+        break
+      case 'exportTDS':
+        flag = modelDesc.model_type === 'BATCH'
+        break
+      case 'rename':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      case 'clone':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      case 'delete':
+        flag = true
+        break
+      case 'purge':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      case 'offline':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      case 'online':
+        flag = modelDesc.model_type !== 'HYBRID'
+        break
+      default:
+        flag = true
+        break
+    }
+    return flag
+  }
+
   async handleCommand (command, modelDesc) {
-    // 纯流的不能导入导出
-    if (modelDesc.model_type === 'STREAMING' && (command === 'exportMetadata' || command === 'exportTDS')) {
+    const canDoAction = this.checkActionCanDo(command, modelDesc)
+    // 如果是不可操作的情况，直接 return 掉
+    if (!canDoAction) {
       return false
     }
     if (command === 'dataCheck') {
@@ -545,6 +675,9 @@ export default class ModelActions extends Vue {
 
   // 子分区值管理
   subParValMana (model) {
+    if (model.model_type !== 'BATCH') {
+      return false
+    }
     this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.alias, modelId: model.uuid }})
   }
 
@@ -688,15 +821,7 @@ export default class ModelActions extends Vue {
   }
 }
 .disabled-action {
-  color: #bbbbbb;
-  cursor: not-allowed;
-  &:hover {
-    background: none;
-    color: #bbbbbb;
-  }
-}
-.disabled-online {
-  color: #bbbbbb;
+  color: @text-disabled-color;
   cursor: not-allowed;
   &:hover {
     background: none;

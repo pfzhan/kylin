@@ -1532,8 +1532,12 @@ public class Message {
         return "The project %s has import tasks in progress. Please try again later.\n";
     }
 
-    public String getINVALID_BREOK_DEFINITION() {
+    public String getINVALID_BROKER_DEFINITION() {
         return "Invalid input.";
+    }
+
+    public String getBROKER_TIMEOUT_MESSAGE() {
+        return "Can’t get cluster information. Please check and try again.";
     }
 
     public String getEMPTY_STREAMING_MESSAGE() {
@@ -1546,6 +1550,10 @@ public class Message {
 
     public String getPARSE_STREAMING_MESSAGE_ERROR() {
         return "The parser cannot parse the sample data. Please check the options or modify the parser, and parse again.";
+    }
+
+    public String getBATCH_STREAM_TABLE_NOT_MATCH() {
+        return "Table %s’s columns are different from the Kafka table’s. Please check and try again.";
     }
 
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {

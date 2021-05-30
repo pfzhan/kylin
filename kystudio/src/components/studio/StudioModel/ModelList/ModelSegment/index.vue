@@ -553,6 +553,15 @@ export default class ModelSegment extends Vue {
     }
   }
 
+  get modelId () {
+    // batch 和 streaming 的都是取 uuid
+    if (this.model.model_type !== 'HYBRID') {
+      return this.model.uuid
+    } else { // HYBRID 模式的，又需要渲染这个，说明是离线segment
+      return this.model.batch_id
+    }
+  }
+
   hasSubPartitionEventAuthority (type) {
     if (type === 'refresh') {
       return this.selectedSubPartitionSegments.length !== this.selectedSubPartitionSegments.filter(it => it.status === 'ONLINE').length
@@ -576,7 +585,7 @@ export default class ModelSegment extends Vue {
         index >= 0 && partitionValues.splice(index, 1)
       }
       const partitionValuesArr = split_array(partitionValues, 1)
-      await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, sub_partition_values: partitionValuesArr, build_all_sub_partitions, parallel_build_by_segment: this.isMultipleBuild })
+      await this.buildSubPartitions({ project: this.currentSelectedProject, model_id: this.modelId, segment_id: this.currentSegment.id, sub_partition_values: partitionValuesArr, build_all_sub_partitions, parallel_build_by_segment: this.isMultipleBuild })
       this.buildSubParValueLoading = false
       this.buildSubParValueVisible = false
       this.$message({
@@ -607,7 +616,7 @@ export default class ModelSegment extends Vue {
   async showSubParSegments (row) {
     if (row.status_to_display === 'LOCKED' || !this.model.multi_partition_desc) return
     this.currentSegment = row
-    this.subSegmentfilter.model_id = this.model.uuid
+    this.subSegmentfilter.model_id = this.modelId
     this.subSegmentfilter.segment_id = this.currentSegment.id
     await this.loadSubPartitions()
     this.isSubPartitionList = true
@@ -666,7 +675,7 @@ export default class ModelSegment extends Vue {
   }
   async buildSubSegment () {
     try {
-      const res = await this.fetchSubPartitionValues({ project: this.currentSelectedProject, model_id: this.model.uuid })
+      const res = await this.fetchSubPartitionValues({ project: this.currentSelectedProject, model_id: this.modelId })
       const data = await handleSuccessAsync(res)
       this.modelSubPartitionValues = data.map((p) => {
         return p.partition_value[0]
@@ -700,7 +709,7 @@ export default class ModelSegment extends Vue {
       const ids = this.selectedSubPartitionSegments.map((sub) => {
         return sub.id
       })
-      const isSubmit = await this.refreshSubPartition({project: this.currentSelectedProject, model_id: this.model.uuid, segment_id: this.currentSegment.id, partition_ids: ids})
+      const isSubmit = await this.refreshSubPartition({project: this.currentSelectedProject, model_id: this.modelId, segment_id: this.currentSegment.id, partition_ids: ids})
       if (isSubmit) {
         await this.loadSubPartitions()
         this.$message({
@@ -728,7 +737,7 @@ export default class ModelSegment extends Vue {
       const ids = this.selectedSubPartitionSegments.map((sub) => {
         return sub.id
       })
-      await this.deleteSubPartition({project: this.currentSelectedProject, model: this.model.uuid, segment: this.currentSegment.id, ids: ids.join(',')})
+      await this.deleteSubPartition({project: this.currentSelectedProject, model: this.modelId, segment: this.currentSegment.id, ids: ids.join(',')})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.loadSubPartitions()
     } catch (e) {
@@ -753,7 +762,7 @@ export default class ModelSegment extends Vue {
   }
   // 子分区值管理
   subParValMana (model) {
-    this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.name, modelId: model.uuid, expandTab: 'first' }})
+    this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.name, modelId: this.modelId, expandTab: 'first' }})
   }
   @Watch('filter.startDate')
   @Watch('filter.endDate')
@@ -850,7 +859,7 @@ export default class ModelSegment extends Vue {
     try {
       const { startDate, endDate, sortBy, reverse } = this.filter
       const projectName = this.currentSelectedProject
-      const modelName = this.model.uuid
+      const modelName = this.modelId
       const startTime = startDate && transToUTCMs(startDate)
       const endTime = endDate && transToUTCMs(endDate)
       this.isSegmentLoading = true
@@ -873,7 +882,7 @@ export default class ModelSegment extends Vue {
   async handleSubmit () {
     try {
       const projectName = this.currentSelectedProject
-      const modelId = this.model.uuid
+      const modelId = this.modelId
       const segmentIds = this.selectedSegmentIds
       const refresh_all_indexes = this.refreshType === 'refreshAll'
       this.refreshLoading = true
@@ -927,7 +936,7 @@ export default class ModelSegment extends Vue {
         this.$message(this.$t('pleaseSelectSegments'))
       } else {
         const projectName = this.currentSelectedProject
-        const modelId = this.model.uuid
+        const modelId = this.modelId
         // let tableData = []
         // this.selectedSegments.forEach((seg) => {
         //   const obj = {}
@@ -960,7 +969,7 @@ export default class ModelSegment extends Vue {
   async handleSubmitMerge () {
     this.mergeLoading = true
     const projectName = this.currentSelectedProject
-    const modelId = this.model.uuid
+    const modelId = this.modelId
     const segmentIds = this.selectedSegmentIds
     try {
       // 合并segment
@@ -1041,7 +1050,7 @@ export default class ModelSegment extends Vue {
         this.$message(this.$t('pleaseSelectSegments'))
       } else {
         const projectName = this.currentSelectedProject
-        const modelId = this.model.uuid
+        const modelId = this.modelId
         const segmentIdStr = this.selectedSegmentIds.join(',')
         let tableData = []
         let msg = this.$t('confirmDeleteSegments', {modelName: this.model.name})
@@ -1177,18 +1186,8 @@ export default class ModelSegment extends Vue {
 .model-segment {
   height: 100%;
   background-color: @fff;
-  // padding: 10px;
-  // border: 1px solid @line-border-color4;
-  // margin: 15px;
   box-sizing: border-box;
   .segment-actions {
-    margin-bottom: 10px;
-    .segment-header-title {
-      i {
-        color: @text-disabled-color;
-        vertical-align: text-top;
-      }
-    }
     .segment-button-groups {
       // margin-left: -14px;
     }

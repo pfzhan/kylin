@@ -39,9 +39,11 @@ import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAI
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_REFRESH;
+import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -118,6 +120,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -203,6 +206,10 @@ public class TableService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    @Qualifier("kafkaService")
+    private KafkaService kafkaService;
 
     @Autowired
     @Qualifier("aclTCRService")
@@ -326,7 +333,7 @@ public class TableService extends BasicService {
                     MsgPicker.getMsg().getTABLE_PARAM_EMPTY());
             databaseTables.put(parts[0], parts[1]);
         }
-        // load all tables first  Pair<TableDesc, TableExtDesc>
+        // load all tables first Pair<TableDesc, TableExtDesc>
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         ISourceMetadataExplorer explr = SourceFactory.getSource(projectInstance).getSourceMetadataExplorer();
         List<Pair<Map.Entry<String, String>, Object>> results = databaseTables.entries().parallelStream().map(entry -> {
@@ -763,8 +770,25 @@ public class TableService extends BasicService {
                     "Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
         try {
-            String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
-            return DateFormat.proposeDateFormat(cell);
+            if (tableDesc.getKafkaConfig() != null) {
+                List<ByteBuffer> messages = kafkaService.getMessages(tableDesc.getKafkaConfig(), project, 0);
+                if (messages == null || messages.isEmpty()) {
+                    throw new KylinException(EMPTY_TABLE,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
+                }
+                Map<String, Object> resp = kafkaService.getMessageTypeAndDecodedMessages(messages);
+                String json = ((List<String>) resp.get("message")).get(0);
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> mapping = mapper.readValue(json, Map.class);
+                Map<String, Object> mappingAllCaps = new HashMap<>();
+                mapping.forEach((key, value) -> mappingAllCaps.put(key.toUpperCase(Locale.ROOT), value));
+                String cell = (String) mappingAllCaps.get(partitionColumn);
+                return DateFormat.proposeDateFormat(cell);
+            } else {
+                String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
+                return DateFormat.proposeDateFormat(cell);
+            }
+
         } catch (Exception e) {
             logger.error("Failed to get date format.", e);
             throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPUSHDOWN_PARTITIONFORMAT_ERROR());

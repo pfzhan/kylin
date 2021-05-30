@@ -54,7 +54,7 @@ public class KafkaTableUtil {
     // =========get message from topic==========
     public static List<ByteBuffer> getMessages(KafkaConfig kafkaConfig, int clusterIndex) {
         if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
-            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BREOK_DEFINITION());
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
         }
         return CollectKafkaStats.getMessages(kafkaConfig, clusterIndex);
     }
@@ -95,7 +95,7 @@ public class KafkaTableUtil {
 
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, final String fuzzyTopic) {
         if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
-            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BREOK_DEFINITION());
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
         }
         return CollectKafkaStats.getTopics(kafkaConfig, fuzzyTopic);
     }

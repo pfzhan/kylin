@@ -367,4 +367,24 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
             streamingJobsStatsDAO.insert(new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 60000L, now - i * 1000));
         }
     }
+
+    @Test
+    public void testForceStopStreamingJob() {
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(buildJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        streamingJobService.forceStopStreamingJob(PROJECT, MODEL_ID);
+        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.STOPPED, mergeJobMeta.getCurrentStatus());
+    }
 }

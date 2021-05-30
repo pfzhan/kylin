@@ -24,10 +24,13 @@
 
 package io.kyligence.kap.source.kafka;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.BROKER_TIMEOUT_MESSAGE;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,7 +44,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +74,12 @@ public class CollectKafkaStats {
         index++;
         List<String> topics = Lists.newArrayList();
         Consumer consumer = KafkaClient.getKafkaConsumer(kafkaConfig.getKafkaBootstrapServers(), DEFAULT_CONSUMER_GROUP);
-        Map<String, List<PartitionInfo>> topicsMap = consumer.listTopics();
+        Map<String, List<PartitionInfo>> topicsMap = new HashMap<>();
+        try {
+            topicsMap.putAll(consumer.listTopics());
+        } catch (TimeoutException e) {
+            throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBROKER_TIMEOUT_MESSAGE());
+        }
 
         for (String topic : topicsMap.keySet()) {
             if (isUsefulTopic(topic)) {

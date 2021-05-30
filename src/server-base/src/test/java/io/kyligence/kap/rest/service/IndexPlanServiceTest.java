@@ -466,7 +466,57 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         int after = origin.getIndexes().size();
         Assert.assertEquals(before, after);
+    }
 
+    @Test
+    public void testCreateTableIndexWithId() throws Exception {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val origin = indexPlanManager.getIndexPlan(modelId);
+        val originLayoutSize = origin.getAllLayouts().size();
+        var response = indexPlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(true)
+                        .layoutOverrideIndexes(new HashMap<String, String>() {
+                            {
+                                put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
+                            }
+                        }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build(),
+                20000040000L);
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
+        val saved = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(originLayoutSize + 1, saved.getAllLayouts().size());
+        LayoutEntity newLayout = null;
+        for (LayoutEntity layout : saved.getAllLayouts()) {
+            if (newLayout == null) {
+                newLayout = layout;
+            } else {
+                if (newLayout.getId() < layout.getId()) {
+                    newLayout = layout;
+                }
+            }
+        }
+        Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(1, 2, 3, 4)));
+        Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(1)));
+        Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(2)));
+
+        indexPlanService.updateTableIndex("default",
+                CreateTableIndexRequest.builder().id(20000040000L).project("default")
+                        .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).build());
+
+        Assert.assertFalse(
+                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040000L));
+        Assert.assertTrue(
+                indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040000L + IndexEntity.INDEX_ID_STEP));
     }
 
     @Test

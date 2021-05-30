@@ -29,6 +29,8 @@ import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.app.StreamingEntry;
+import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
@@ -37,6 +39,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +92,11 @@ public class JobKiller {
 
         int statusCode = 2;
         if (!StreamingUtils.isJobOnCluster()) {
+            if (jobMeta.getJobType() == JobTypeEnum.STREAMING_BUILD) {
+                StreamingEntry.stop();
+            } else if (jobMeta.getJobType() == JobTypeEnum.STREAMING_MERGE) {
+                StreamingMergeEntry.shutdown();
+            }
             return statusCode;
         }
         String nodeInfo = jobMeta.getNodeInfo();

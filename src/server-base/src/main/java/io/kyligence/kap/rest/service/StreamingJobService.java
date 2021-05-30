@@ -82,6 +82,23 @@ public class StreamingJobService extends BasicService {
         scheduler.stopJob(modelId);
     }
 
+    public void forceStopStreamingJob(String project, String modelId) {
+        StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
+        scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()), true);
+        try {
+            scheduler.killJob(modelId, JobTypeEnum.STREAMING_MERGE, JobStatusEnum.STOPPED);
+        }finally {
+            scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()), false);
+        }
+
+        scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()), true);
+        try{
+            scheduler.killJob(modelId, JobTypeEnum.STREAMING_BUILD, JobStatusEnum.STOPPED);
+        }finally {
+            scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()), false);
+        }
+    }
+
     public void updateStreamingJobParams(String project, String modelId, Map<String, String> buildParams,
             Map<String, String> mergeParams) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -110,6 +127,9 @@ public class StreamingJobService extends BasicService {
         case STOP:
             stopStreamingJob(project, modelId);
             break;
+        case FORCE_STOP:
+            forceStopStreamingJob(project, modelId);
+            break;
         default:
             throw new IllegalStateException("This streaming job can not do this action: " + action);
         }
@@ -127,7 +147,7 @@ public class StreamingJobService extends BasicService {
                 copyForWrite.setNodeInfo(streamingJobUpdateRequest.getNodeInfo());
                 copyForWrite.setYarnAppId(streamingJobUpdateRequest.getYarnAppId());
                 copyForWrite.setYarnAppUrl(streamingJobUpdateRequest.getYarnAppUrl());
-                SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss",
+                SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                         Locale.getDefault(Locale.Category.FORMAT));
                 copyForWrite.setLastUpdateTime(simpleFormat.format(new Date()));
             });
@@ -139,39 +159,53 @@ public class StreamingJobService extends BasicService {
             String newSegId) {
         if (!StringUtils.isEmpty(currLayer)) {
             int layer = Integer.parseInt(currLayer) + 1;
-            val afterMergeSeg = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataSegment afterMergeSeg = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                return dfMgr.mergeSegments(dfMgr.getDataflow(modelId), rangeToMerge, true, layer, newSegId);
+                val df = dfMgr.getDataflow(modelId);
+                if (df != null) {
+                    return dfMgr.mergeSegments(df, rangeToMerge, true, layer, newSegId);
+                } else {
+                    return null;
+                }
             }, project);
-            return afterMergeSeg.getId();
+            return getSegmentId(afterMergeSeg);
         } else {
             val newSegment = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 NDataflow df = dfMgr.getDataflow(modelId);
-                NDataSegment ds = dfMgr.appendSegmentForStreaming(df, rangeToMerge, newSegId);
-                return ds;
+                if (df != null) {
+                    return dfMgr.appendSegmentForStreaming(df, rangeToMerge, newSegId);
+                } else {
+                    return null;
+                }
             }, project);
-            return newSegment.getId();
+            return getSegmentId(newSegment);
         }
+    }
+
+    private String getSegmentId(NDataSegment newSegment) {
+        return newSegment != null ? newSegment.getId() : StringUtils.EMPTY;
     }
 
     public void updateSegment(String project, String modelId, String segId, List<NDataSegment> removeSegmentList,
             String status) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            NDataflow copy = dfMgr.getDataflow(modelId).copy();
-
-            val seg = copy.getSegment(segId);
-            seg.setStatus(SegmentStatusEnum.READY);
-            val dfUpdate = new NDataflowUpdate(modelId);
-            dfUpdate.setToUpdateSegs(seg);
-            if (removeSegmentList != null) {
-                dfUpdate.setToRemoveSegs(removeSegmentList.toArray(new NDataSegment[0]));
+            val df = dfMgr.getDataflow(modelId);
+            if (df != null) {
+                NDataflow copy = df.copy();
+                val seg = copy.getSegment(segId);
+                seg.setStatus(SegmentStatusEnum.READY);
+                val dfUpdate = new NDataflowUpdate(modelId);
+                dfUpdate.setToUpdateSegs(seg);
+                if (removeSegmentList != null) {
+                    dfUpdate.setToRemoveSegs(removeSegmentList.toArray(new NDataSegment[0]));
+                }
+                if (!StringUtils.isEmpty(status)) {
+                    dfUpdate.setStatus(RealizationStatusEnum.valueOf(status));
+                }
+                dfMgr.updateDataflow(dfUpdate);
             }
-            if (!StringUtils.isEmpty(status)) {
-                dfUpdate.setStatus(RealizationStatusEnum.valueOf(status));
-            }
-            dfMgr.updateDataflow(dfUpdate);
             return 0;
         }, project);
     }
@@ -184,8 +218,9 @@ public class StreamingJobService extends BasicService {
             if (removeSegmentList != null) {
                 dfUpdate.setToRemoveSegs(removeSegmentList.toArray(new NDataSegment[0]));
             }
-
-            dfMgr.updateDataflow(dfUpdate);
+            if (dfMgr.getDataflow(modelId) != null) {
+                dfMgr.updateDataflow(dfUpdate);
+            }
             return 0;
         }, project);
     }
@@ -194,7 +229,10 @@ public class StreamingJobService extends BasicService {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataflowUpdate update = new NDataflowUpdate(modelId);
             update.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
-            NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);
+            val mgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            if (mgr.getDataflow(modelId) != null) {
+                mgr.updateDataflow(update);
+            }
             return 0;
         }, project);
     }

@@ -26,19 +26,36 @@ package io.kyligence.kap.streaming.jobs;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.engine.spark.utils.HDFSUtils;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
+import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-class StreamingJobListener implements SparkAppHandle.Listener {
+public class StreamingJobListener implements SparkAppHandle.Listener {
+    private static final Logger logger = LoggerFactory.getLogger(StreamingJobListener.class);
 
     private String project;
     private String jobId;
-    private String runnnable;
+    private String runnable;
+
+    public StreamingJobListener() {
+
+    }
 
     public StreamingJobListener(String project, String jobId) {
         this.project = project;
@@ -48,22 +65,44 @@ class StreamingJobListener implements SparkAppHandle.Listener {
     @Override
     public void stateChanged(SparkAppHandle handler) {
         if (handler.getState().isFinal()) {
-            runnnable = null;
+            runnable = null;
             if(isFailed(handler.getState())) {
-                MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR,
-                        "The streaming job {} has terminated unexpectedly…");
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
-                HDFSUtils.touchzMarkFile(config.getStreamingBaseJobsLocation()
-                        + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project, jobId));
-                handler.kill();
+                val mgr = StreamingJobManager.getInstance(config, project);
+                val jobMeta = mgr.getStreamingJobByUuid(jobId);
+                if (!skipListener(jobMeta)) {
+                    logger.warn("The streaming job {} has terminated unexpectedly…", jobId);
+                    MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
+                    HDFSUtils.touchzMarkFile(config.getStreamingBaseJobsLocation()
+                            + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project, jobId));
+                    handler.kill();
+                }
             } else if(isFinished(handler.getState())) {
                 MetaInfoUpdater.updateJobState(project, jobId, Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED),
-                        JobStatusEnum.STOPPED, null);
+                        JobStatusEnum.STOPPED);
             }
-        } else if (runnnable == null && SparkAppHandle.State.RUNNING == handler.getState()) {
-            runnnable = "true";
+        } else if (runnable == null && SparkAppHandle.State.RUNNING == handler.getState()) {
+            runnable = "true";
             MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.RUNNING);
         }
+    }
+
+    private boolean skipListener(StreamingJobMeta jobMeta) {
+        SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                Locale.getDefault(Locale.Category.FORMAT));
+        String lastUpdateTime = jobMeta.getLastUpdateTime();
+        try {
+            if (jobMeta.isSkipListener() && lastUpdateTime != null) {
+                val lastDateTime = simpleFormat.parse(lastUpdateTime);
+                val diff = (System.currentTimeMillis() - lastDateTime.getTime()) / (60 * 1000);
+                if (diff <= 2) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+        return false;
     }
 
     private boolean isFailed(SparkAppHandle.State state) {
@@ -84,5 +123,26 @@ class StreamingJobListener implements SparkAppHandle.Listener {
     @Override
     public void infoChanged(SparkAppHandle handler) {
 
+    }
+
+    @Subscribe
+    public void onStreamingJobKill(StreamingJobKillEvent streamingJobKillEvent) {
+        val project = streamingJobKillEvent.getProject();
+        val modelId = streamingJobKillEvent.getModelId();
+        StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
+        scheduler.killJob(modelId, JobTypeEnum.STREAMING_MERGE, JobStatusEnum.STOPPED);
+        scheduler.killJob(modelId, JobTypeEnum.STREAMING_BUILD, JobStatusEnum.STOPPED);
+    }
+
+    @Subscribe
+    public void onStreamingJobDrop(StreamingJobDropEvent streamingJobDropEvent) {
+        val project = streamingJobDropEvent.getProject();
+        val modelId = streamingJobDropEvent.getModelId();
+        val config = KylinConfig.getInstanceFromEnv();
+        val mgr = StreamingJobManager.getInstance(config, project);
+        val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
+        val mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.toString());
+        mgr.deleteStreamingJob(buildJobId);
+        mgr.deleteStreamingJob(mergeJobId);
     }
 }

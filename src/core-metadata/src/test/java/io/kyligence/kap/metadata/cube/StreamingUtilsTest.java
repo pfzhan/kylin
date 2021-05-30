@@ -109,7 +109,7 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void TestIsJobOnCluster() {
+    public void testIsJobOnCluster() {
         val config = StreamingUtils.isJobOnCluster();
         Assert.assertEquals(false, config);
     }

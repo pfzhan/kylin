@@ -267,7 +267,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.get(id);
     }
 
-    // TODO not support in streaming model
     public NDataflow getDataflowByModelAlias(String name) {
         return listAllDataflows(true).stream().filter(dataflow -> Objects.equals(dataflow.getModelAlias(), name))
                 .findFirst().orElse(null);

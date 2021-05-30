@@ -1719,8 +1719,13 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getINVALID_BREOK_DEFINITION() {
+    public String getINVALID_BROKER_DEFINITION() {
         return "无效输入。";
+    }
+
+    @Override
+    public String getBROKER_TIMEOUT_MESSAGE() {
+        return "无法获取集群信息，请检查后重试";
     }
 
     @Override
@@ -1736,6 +1741,11 @@ public class CnMessage extends Message {
     @Override
     public String getPARSE_STREAMING_MESSAGE_ERROR() {
         return "解析器无法解析样例数据，建议检查选项设置或者修改解析器后再尝试解析。";
+    }
+
+    @Override
+    public String getBATCH_STREAM_TABLE_NOT_MATCH() {
+        return "表 %s 与 Kafka 表的列不一致，请确认两者的列完全一致后重试。";
     }
 
     @Override
