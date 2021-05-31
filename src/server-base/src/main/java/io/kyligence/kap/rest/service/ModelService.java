@@ -638,7 +638,7 @@ public class ModelService extends BasicService {
             boolean exactMatch, String owner, List<String> modelTypes, List<String> status, String sortBy,
             boolean reverse, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
         return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
-                lastModifyFrom, lastModifyTo).stream()
+                lastModifyFrom, lastModifyTo, onlyNormalDim).stream()
                         .filter(dataModel -> isTypesContains(modelTypes, dataModel.getModelType()))
                         .collect(Collectors.toList());
     }
