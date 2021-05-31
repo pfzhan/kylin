@@ -86,7 +86,7 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import TreeList from '../../TreeList'
 import arealabel from '../../area_label.vue'
-import { handleSuccess, handleError, objectClone } from 'util'
+import { handleSuccess, handleError, objectClone, ArrayFlat } from 'util'
 @Component({
   props: {
     convertDataStore: {
@@ -249,8 +249,8 @@ export default class SourceKafka extends Vue {
   }
   kafkaData (kafkaMeta) {
     const kafkaMetaObj = objectClone(kafkaMeta)
-    const broder = kafkaMetaObj.clusters[0].brokers[0]
-    kafkaMetaObj.kafka_bootstrap_servers = broder.host && broder.port ? broder.host + ':' + broder.port : broder
+    const broder = ArrayFlat(kafkaMetaObj.clusters.map(it => it.brokers)).map(item => item.host && item.port ? `${item.host}:${item.port}` : '')
+    kafkaMetaObj.kafka_bootstrap_servers = broder.join(',')
     delete kafkaMetaObj.clusters
     return kafkaMetaObj
   }

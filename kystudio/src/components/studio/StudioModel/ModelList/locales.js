@@ -1,7 +1,7 @@
 export default {
   'en': {
     capbility: 'Favorite Rate',
-    dataLoadTime: 'Last Updated Time',
+    dataLoadTime: 'Last Updated Time: ',
     status: 'Status',
     streamingTips: '实时模型，部分功能不可用',
     modelPartitionSet: 'Model Partition',
@@ -110,7 +110,7 @@ export default {
   },
   'zh-cn': {
     capbility: '加速比例',
-    dataLoadTime: '最近更新时间',
+    dataLoadTime: '最近更新时间：',
     status: '状态',
     streamingTips: '实时模型，部分功能不可用',
     modelPartitionSet: '分区设置',

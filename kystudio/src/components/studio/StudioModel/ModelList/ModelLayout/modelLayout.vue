@@ -477,10 +477,12 @@ export default class ModelLayout extends Vue {
       // box-shadow: 1px 1px 4px #ccc;
       border-bottom: 1px solid #ECF0F8;
       background-color: @ke-background-color-secondary;
+      position: relative;
       .title {
         display: inline-block;
-        height: 100%;
+        // height: 100%;
         font-weight: 600;
+        line-height: 23px\0;
         .el-button {
           vertical-align: middle;
         }
@@ -493,8 +495,10 @@ export default class ModelLayout extends Vue {
       }
       .action-items {
         position: absolute;
-        top: 0;
+        top: 50%;
         right: 10px;
+        transform: translate(0, -50%);
+        line-height: 23px;
         .el-dropdown {
           position: inherit;
         }
@@ -561,6 +565,7 @@ export default class ModelLayout extends Vue {
       padding: 0 0 14px 0;
       box-sizing: border-box;
       z-index: 10;
+      line-height: 56px;
       background: @ke-background-color-white;
       box-shadow: 0px 2px 8px rgba(50, 73, 107, 24%);
       border-radius: 6px;
@@ -574,6 +579,7 @@ export default class ModelLayout extends Vue {
         max-height: 300px;
         overflow: auto;
         font-weight: initial;
+        font-weight: normal\0;
         .no-data {
           text-align: center;
           color: @text-disabled-color;
@@ -581,6 +587,7 @@ export default class ModelLayout extends Vue {
         .items {
           font-size: 14px;
           line-height: initial;
+          line-height: normal\0;
           padding: 5px 16px;
           box-sizing: border-box;
           cursor: pointer;

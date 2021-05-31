@@ -179,7 +179,7 @@
               </el-popover>
               <span class="model-alias-title" @click.stop @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
             </div>
-            <el-tooltip class="last-modified-tooltip" effect="dark" :content="$t('dataLoadTime')" placement="top">
+            <el-tooltip class="last-modified-tooltip" effect="dark" :content="`${$t('dataLoadTime')}${scope.row.gmtTime}`" placement="top">
               <span>{{scope.row.gmtTime}}</span>
             </el-tooltip>
 
@@ -214,8 +214,8 @@
               >
                 <div class="model-ER-layout"><ModelERDiagram v-if="scope.row.showER" :model="dataGenerator.generateModel(scope.row)" /></div>
               </el-popover>
-              <span class="model-ER">
-                <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-22" type="mult"></el-icon>
+              <span class="model-ER" v-popover="`${scope.row.alias}-ERPopover`">
+                <el-icon name="el-ksd-icon-table_er_diagram_22" class="ksd-fs-22" type="mult"></el-icon>
               </span>
               <div class="fact-table" v-if="scope.row.fact_table.split('.').length === 2"><span v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 0, tableClassName: 'model_list_table'}">{{scope.row.fact_table.split('.')[1]}}</span></div>
             </template>
@@ -246,7 +246,7 @@
           :label="$t('rowCount')">
           <template slot-scope="scope">
             <div>{{sliceNumber(scope.row.source)}}</div>
-            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: `${$t('lastBuildTime')}${transToServerGmtTime(scope.row.last_build_time)}`, w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
+            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: `${$t('lastBuildTime')}${transToServerGmtTime(scope.row.last_build_time)}`, content: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
           </template>
         </el-table-column>
         <el-table-column
@@ -1515,6 +1515,13 @@ export default class ModelList extends Vue {
     width: 100%;
     height: 100%;
     position: relative;
+  }
+}
+.el-tooltip__popper {
+  .popper__arrow {
+    &::after {
+      content: none\0;
+    }
   }
 }
 </style>

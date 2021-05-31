@@ -301,6 +301,7 @@ export default class DataFeatures extends Vue {
     box-sizing: border-box;
     border: 1px solid @ke-border-divider-color;
     border-top: 0;
+    vertical-align: top;
     .el-col {
       padding: 10px 0;
     }
