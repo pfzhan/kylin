@@ -460,7 +460,7 @@ exports.default = {
     signIn: 'Kyligence Account | Sign In'
   },
   menu: {
-    dashboard: 'Homepage',
+    dashboard: 'Home',
     studio: 'Studio',
     insight: 'Insight',
     monitor: 'Monitor',

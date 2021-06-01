@@ -25,7 +25,7 @@
             <div class="ksd-fleft card-content ksd-pl-15">
               <div class="ksd-title-label">{{$t('history')}}</div>
               <div class="content">
-                <p v-html="$t('historyDesc', {last_week_query_count: infoData.last_week_query_count})"/>
+                <span v-html="$t('historyDesc', {last_week_query_count: infoData.last_week_query_count})"/>
                 <el-tooltip placement="top" :content="$t('historyDescTip')">
                   <i class="el-icon-ksd-info ksd-ml-2 tips"></i>
                 </el-tooltip>
@@ -81,7 +81,7 @@
                   <common-tip :content="disabledAcceTips" v-if="(isAcce || isAcceing) && +infoData.unhandled_query_count !== 0 || !datasourceActions.includes('accelerationActions')" placement="top">
                     <div class="circle-btn disabled">
                       <!-- <i class="ksd-fs-20" :class="{'el-icon-ksd-project_status': !isAcceing, 'el-icon-loading': isAcceing}"></i> -->
-                      <span v-if="isAcceing">{{$t('optimizing')}}</span>
+                      <span v-if="isAcce || isAcceing">{{$t('optimizing')}}</span>
                       <span v-else>{{$t('optimize')}}</span>
                     </div>
                   </common-tip>
@@ -621,8 +621,8 @@ export default class Homepage extends Vue {
             font-size: 0.011em;
             margin-top: 0.8em;
             line-height: 1.4em;
-            span {
-              font-weight: bold;
+            b {
+              // font-weight: bold;
               font-size: 1.1em;
               color: @text-title-color;
             }
