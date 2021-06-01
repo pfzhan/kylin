@@ -47,7 +47,7 @@
       </el-form-item>
       <el-form-item  :label="$t('partitionDateColumn')" v-if="partitionMeta.table">
         <el-row :gutter="5">
-          <el-col :span="partitionMeta.column&&$store.state.project.projectPushdownConfig ? 11 : 12" v-if="partitionMeta.table">
+          <el-col :span="partitionMeta.column && $store.state.project.projectPushdownConfig && factTableType !== 1 ? 11 : 12" v-if="partitionMeta.table">
             <el-form-item prop="column">
               <el-select
                 :disabled="isLoadingNewRange"
@@ -67,7 +67,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="partitionMeta.column&&$store.state.project.projectPushdownConfig ? 11 : 12">
+          <el-col :span="partitionMeta.column && $store.state.project.projectPushdownConfig && factTableType !== 1 ? 11 : 12">
             <el-select
               :disabled="isLoadingFormat"
               v-guide.partitionColumnFormat
@@ -82,7 +82,7 @@
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
           </el-col>
-          <el-col :span="1" v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig">
+          <el-col :span="1" v-if="partitionMeta.column && $store.state.project.projectPushdownConfig && factTableType !== 1">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
               <div style="display: inline-block;">
                 <el-button
@@ -319,6 +319,12 @@ export default class ModelPartitionModal extends Vue {
       return this.$t('fullLoadTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
     }
   }
+
+  get factTableType () {
+    const obj = this.modelInstance.getFactTable()
+    return obj.source_type
+  }
+
   handChangeBuildType (val) {
     this.isShowWarning = typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0 && (this.defaultBuildType !== this.buildType || this.isChangePartition)
     if (val === 'incremental' && !this.partitionMeta.table) {

@@ -7,9 +7,10 @@
         </el-form-item>
       </el-form> -->
       <!-- <div class="ky-line ksd-mtb-10"></div> -->
-      <div>
+      <div class="table-index-list">
         <div class="ksd-mb-10" v-if="modelInstance.model_type === 'HYBRID'">
           <h4>
+            <span class="is-required">*</span>
             {{$t('indexTimeRange')}}
             <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
           </h4>
@@ -29,11 +30,16 @@
             :show-background="false"
             show-icon>
           </el-alert>
-          <p class="anit-table-tips" v-if="hasManyToManyAndAntiTable">{{$t('manyToManyAntiTableTip')}}</p>
-          <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="exclude-table-checkbox ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
-          <el-input v-model="searchColumn" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
+          <template v-if="modelInstance.model_type !== 'HYBRID' || modelInstance.model_type === 'HYBRID' && tableIndexMeta.index_range">
+            <p class="anit-table-tips" v-if="hasManyToManyAndAntiTable">{{$t('manyToManyAntiTableTip')}}</p>
+            <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
+            <el-input v-model="searchColumn" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
+          </template>
         </div>
-       <div class="ky-simple-table">
+        <div class="no-index-range" v-if="modelInstance.model_type === 'HYBRID' && !tableIndexMeta.index_range">
+          <span>{{$t('noIndexRangeByHybrid')}}</span>
+        </div>
+        <div class="ky-simple-table" v-else>
           <el-row class="table-header table-row ksd-mt-10">
             <el-col :span="1"><el-checkbox v-model="isSelectAllTableIndex" :indeterminate="getSelectedColumns.length !== 0 && allColumns.length > getSelectedColumns.length" @change="selectAllTableIndex" size="small" /></el-col>
             <el-col :span="14" class="column-name">{{$t('kylinLang.model.columnName')}}</el-col>
@@ -536,6 +542,16 @@
             vertical-align: middle;
           }
         }
+      }
+      .table-index-list {
+        .is-required{
+          color: @color-danger;
+        }
+      }
+      .no-index-range {
+        text-align: center;
+        padding: 16px 8px;
+        color: @text-disabled-color;
       }
     }
     .flip-list-move {
