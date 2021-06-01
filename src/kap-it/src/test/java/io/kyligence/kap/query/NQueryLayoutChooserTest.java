@@ -177,6 +177,26 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
     }
 
     @Test
+    public void testDerivedDimWhenModelHasMultipleSameDimTable() {
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+
+        // prepare table desc snapshot path
+        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject()).getTableDesc("DEFAULT.TEST_ACCOUNT")
+                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ACCOUNT/d6ba492b-13bf-444d-b6e3-71bfa903344d");
+
+        String sql = "select b.ACCOUNT_BUYER_LEVEL from \"DEFAULT\".\"TEST_KYLIN_FACT\" a\n"
+                + "left join \"DEFAULT\".\"TEST_ACCOUNT\" b\n"
+                + "on a.SELLER_ID = b.ACCOUNT_ID";
+        OLAPContext context = prepareOlapContext(sql).get(0);
+        Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+        context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+        val layoutId = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context.getSQLDigest()).getLayoutEntity().getId();
+        Assert.assertEquals(20000000001L, layoutId);
+    }
+
+    @Test
     public void testLookupMatch() {
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");

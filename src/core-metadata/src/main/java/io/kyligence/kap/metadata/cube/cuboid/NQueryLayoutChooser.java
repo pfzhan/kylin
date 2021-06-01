@@ -483,7 +483,7 @@ public class NQueryLayoutChooser {
         TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
         TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
 
-        val tables = model.getTableNameMap();
+        val tables = model.getAliasMap();
         if (joinByPKSide.isInnerJoin() && ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
             TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
             if (indexEntity.dimensionsDerive(relatedCol)) {
@@ -493,7 +493,7 @@ public class NQueryLayoutChooser {
                 return true;
             }
         } else if (indexEntity.dimensionsDerive(foreignKeyColumns)
-                && Optional.ofNullable(tables.get(unmatchedDim.getTable()))
+                && Optional.ofNullable(tables.get(unmatchedDim.getTableAlias()))
                         .map(ref -> StringUtils.isNotEmpty(ref.getTableDesc().getLastSnapshotPath())).orElse(false)) {
 
             DeriveInfo.DeriveType deriveType = matchNonEquiJoinFks(indexEntity, joinByPKSide)

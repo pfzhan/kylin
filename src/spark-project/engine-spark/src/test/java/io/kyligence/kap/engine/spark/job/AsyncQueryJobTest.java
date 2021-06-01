@@ -120,6 +120,7 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @org.junit.Ignore
     @Test
     public void testDumpMetadataAndCreateArgsFile() throws ExecuteException, IOException {
         QueryParams queryParams = new QueryParams("default", "select 1", "", false, true, true);

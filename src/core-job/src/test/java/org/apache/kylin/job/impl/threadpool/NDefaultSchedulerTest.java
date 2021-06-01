@@ -1424,6 +1424,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         scheduler.shutdown();
     }
 
+    @org.junit.Ignore
     @Test
     public void testConcurrentJobWithPriorityCrossProject() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
