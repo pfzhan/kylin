@@ -26,7 +26,7 @@ export default {
     excludedTableIconTip: 'Excluded from recommendations',
     manyToManyAntiTableTip: 'For the tables excluded from recommendations, if the join relationship of a table is One-to-Many or Many-to-Many, dimensions from this table can\'t be used in indexes. ',
     indexTimeRange: 'Index’s Time Range',
-    indexTimeRangeTips: 'The data range that the indexes will be built in. With \"Batch and Streaming\" selected, there will be generated batch indexes and streaming indexes with same content respectively. ',
+    indexTimeRangeTips: 'The data range that the indexes will be built in. With "Batch and Streaming" selected, there will be generated batch indexes and streaming indexes with same content respectively. ',
     noIndexRangeByHybrid: 'Select index\'s data range to display available columns.'
   },
   'zh-cn': {
