@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.junit.rule.Repeat;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import lombok.val;
@@ -98,7 +99,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         slowQueryDetector.queryEnd();
     }
 
-    @Ignore("not timeout, need another sql")
+    @Repeat(3)
     @Test
     public void testSparderTimeoutCancelJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -131,7 +132,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         slowQueryDetector.queryEnd();
     }
 
-    @Ignore("not timeout, need another sql")
+    @Repeat(3)
     @Test
     public void testPushdownTimeoutCancelJob() throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
