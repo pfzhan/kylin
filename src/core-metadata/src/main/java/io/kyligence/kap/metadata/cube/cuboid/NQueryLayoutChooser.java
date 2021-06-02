@@ -333,10 +333,19 @@ public class NQueryLayoutChooser {
         return Comparator.comparingInt(candidate -> candidate.getLayoutEntity().getOrderedMeasures().size());
     }
 
+    /**
+     * compare filters in SQL with layout dims
+     * 1. choose the layout if its shardby column is found in filters
+     * 2. otherwise compare position of filter columns appear in the layout dims
+     * @param sortedFilters
+     * @param config
+     * @param project
+     * @return
+     */
     private static Comparator<NLayoutCandidate> filterColumnComparator(List<TblColRef> sortedFilters,
             KylinConfig config, String project) {
-        return Ordering.from(colComparator(sortedFilters, config))
-                .compound(shardByComparator(sortedFilters, config, project));
+        return Ordering.from(shardByComparator(sortedFilters, config, project))
+                .compound(colComparator(sortedFilters, config));
     }
 
     private static Comparator<NLayoutCandidate> nonFilterColumnComparator(List<TblColRef> sortedNonFilters,
@@ -344,6 +353,12 @@ public class NQueryLayoutChooser {
         return colComparator(sortedNonFilters, config);
     }
 
+    /**
+     * compare filters with dim pos in layout, filter columns are sorted by filter type and selectivity (cardinality)
+     * @param sortedCols
+     * @param config
+     * @return
+     */
     private static Comparator<NLayoutCandidate> colComparator(List<TblColRef> sortedCols, KylinConfig config) {
         return (layoutCandidate1, layoutCandidate2) -> {
             List<Integer> position1 = getColumnsPos(layoutCandidate1, config, sortedCols);
@@ -364,6 +379,15 @@ public class NQueryLayoutChooser {
         };
     }
 
+    /**
+     * compare filter columns with shardby columns in layouts
+     * 1. check if shardby columns appears in filters
+     * 2. if both layout has shardy columns in filters, compare the filter type and selectivity (cardinality)
+     * @param columns
+     * @param config
+     * @param project
+     * @return
+     */
     private static Comparator<NLayoutCandidate> shardByComparator(List<TblColRef> columns, KylinConfig config,
             String project) {
         return (candidate1, candidate2) -> {

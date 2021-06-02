@@ -244,6 +244,12 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         // prepare metadata
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        // 1010001 no shard, dims=[trans_id, cal_dt, lstg_format_name]
+        // 1010002 shard=trans_id, dims=[cal_dt, trans_id, lstg_format_name]
+        // 1010003 shard=cal_dt, dims=[cal_dt, trans_id, lstg_format_name]
+        //
+        // card cal_dt = 1000
+        // card trans_id = 10000
         mockShardByLayout(dataflow);
         mockTableStats();
 
@@ -253,7 +259,9 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
         context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
 
-        // same filter level, select the col with smallest cardinality and with shardby col
+        // hit layout 1010002
+        // 1. shardby layout are has higher priority over non-shardby layout, so 1010001 is skipped although it has a better dim order
+        // 2. trans_id has a higher cardinality, so 1010002 with shard on trans_id is preferred over 1010003 with shard on cal_dt
         dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val pair1 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
@@ -740,13 +748,13 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
             val newLayout2 = new LayoutEntity();
             newLayout2.setId(newAggIndex.getId() + 2);
             newLayout2.setAuto(true);
-            newLayout2.setColOrder(Lists.newArrayList(1, 2, 3, 100000));
+            newLayout2.setColOrder(Lists.newArrayList(2, 1, 3, 100000));
             newLayout2.setShardByColumns(Lists.newArrayList(1));
             //mock shardby cal_dt
             val newLayout3 = new LayoutEntity();
             newLayout3.setId(newAggIndex.getId() + 3);
             newLayout3.setAuto(true);
-            newLayout3.setColOrder(Lists.newArrayList(1, 2, 3, 100000));
+            newLayout3.setColOrder(Lists.newArrayList(2, 1, 3, 100000));
             newLayout3.setShardByColumns(Lists.newArrayList(2));
 
             newAggIndex.setLayouts(Lists.newArrayList(newLayout1, newLayout2, newLayout3));
