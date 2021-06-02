@@ -47,8 +47,6 @@ import static java.lang.Math.toIntExact;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -68,6 +66,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -573,13 +572,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     private String getDefaultServerAddress() {
-        String hostAddress = LOOPBACK;
-        try {
-            // eg. 10.1.30.100
-            hostAddress = InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            logger.warn("InetAddress get local host address failed!", e);
-        }
+        String hostAddress = AddressUtil.getLocalHostExactAddress();
         String serverPort = getServerPort();
         return String.format(Locale.ROOT, "%s:%s", hostAddress, serverPort);
     }

@@ -77,6 +77,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
 import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
@@ -668,12 +669,7 @@ public class QueryService extends BasicService {
     }
 
     private String getDefaultServer() {
-        try {
-            return InetAddress.getLocalHost().getHostAddress() + ":" + appConfig.getPort();
-        } catch (UnknownHostException e) {
-            logger.error("Exception happens when get the default server", e);
-        }
-        return UNKNOWN;
+        return AddressUtil.getLocalHostExactAddress() + ":" + appConfig.getPort();
     }
 
     @VisibleForTesting

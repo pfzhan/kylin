@@ -24,7 +24,9 @@
 package io.kyligence.kap.common.util;
 
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 
 import org.apache.kylin.common.KylinConfig;
 
@@ -42,12 +44,7 @@ public class AddressUtil implements IKeep {
     public static String MAINTAIN_MODE_MOCK_PORT = "0000";
 
     public static String getLocalInstance() {
-        String serverIp = "127.0.0.1";
-        try {
-            serverIp = InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            log.warn("use the InetAddress get local ip failed!", e);
-        }
+        String serverIp = getLocalHostExactAddress();
         return serverIp + ":" + KylinConfig.getInstanceFromEnv().getServerPort();
     }
 
@@ -85,5 +82,31 @@ public class AddressUtil implements IKeep {
         }
         String host = hostName + "_" + KylinConfig.getInstanceFromEnv().getServerPort();
         return host.replaceAll("[^(_a-zA-Z0-9)]", "");
+    }
+
+    public static String getLocalHostExactAddress() {
+        try {
+            InetAddress candidateAddress = null;
+
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface iface = networkInterfaces.nextElement();
+                for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
+                    InetAddress inetAddr = inetAddrs.nextElement();
+                    if (!inetAddr.isLoopbackAddress()) {
+                        if (inetAddr.isSiteLocalAddress()) {
+                            return inetAddr.getHostAddress();
+                        }
+                        if (candidateAddress == null) {
+                            candidateAddress = inetAddr;
+                        }
+                    }
+                }
+            }
+            return candidateAddress == null ? InetAddress.getLocalHost().getHostAddress() : candidateAddress.getHostAddress();
+        } catch (Exception e) {
+            log.warn("use the NetworkInterface get local ip failed!", e);
+        }
+        return "127.0.0.1";
     }
 }

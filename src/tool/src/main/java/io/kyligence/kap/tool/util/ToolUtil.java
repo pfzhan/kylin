@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -122,7 +123,7 @@ public class ToolUtil {
                 InetAddress address = InetAddress.getLocalHost();
                 hostname = address.getHostName();
                 if (StringUtils.isEmpty(hostname)) {
-                    hostname = address.getHostAddress();
+                    hostname = AddressUtil.getLocalHostExactAddress();
                 }
             } catch (UnknownHostException uhe) {
                 String host = uhe.getMessage(); // host = "hostname: hostname"

@@ -32,6 +32,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.Singletons;
@@ -85,14 +86,7 @@ public class MonitorReporter {
     }
 
     private static String getLocalIp() {
-        String ip = "127.0.0.1";
-        try {
-            ip = InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException e) {
-            logger.warn("Use the InetAddress get local ip failed!", e);
-        }
-
-        return ip;
+        return AddressUtil.getLocalHostExactAddress();
     }
 
     private static String getLocalHost() {
