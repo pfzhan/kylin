@@ -488,15 +488,6 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     private Map<String, String> getApplicationSparkConfig(KylinConfig config) {
-        Map<String, String> sparkConfigOverride = getSparkConfigOverride(config);
-        String sparkExecutorExtraJavaOptionsKey = "spark.executor.extraJavaOptions";
-        StringBuilder sb = new StringBuilder();
-        if (sparkConfigOverride.containsKey(sparkExecutorExtraJavaOptionsKey)) {
-            sb.append(sparkConfigOverride.get(sparkExecutorExtraJavaOptionsKey));
-        }
-        sb.append(String.format(Locale.ROOT, " -Dkylin.dictionary.globalV2-store-class-name=%s ",
-                config.getGlobalDictV2StoreImpl()));
-        sparkConfigOverride.put(sparkExecutorExtraJavaOptionsKey, sb.toString());
-        return sparkConfigOverride;
+        return getSparkConfigOverride(config);
     }
 }

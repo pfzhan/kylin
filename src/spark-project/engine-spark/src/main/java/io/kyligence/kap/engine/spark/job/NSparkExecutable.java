@@ -91,8 +91,6 @@ public class NSparkExecutable extends AbstractExecutable {
     private static final String DRIVER_OPS = "spark.driver.extraJavaOptions";
     private static final String AM_OPS = "spark.yarn.am.extraJavaOptions";
     private static final String EXECUTOR_OPS = "spark.executor.extraJavaOptions";
-    private static final String KYLIN_AM_OPS = "kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions";
-    private static final String KYLIN_EXECUTOR_OPS = "kylin.engine.spark-conf.spark.executor.extraJavaOptions";
     private static final String KRB5CONF_PROPS = "java.security.krb5.conf";
     private static final String HADOOP_CONF_PATH = "./__spark_conf__/__hadoop_conf__/";
     private static final String APP_JAR_NAME = "__app__.jar";
@@ -362,9 +360,20 @@ public class NSparkExecutable extends AbstractExecutable {
         };
         wrapKrb5Conf(AM_OPS, krb5Conf, confMap);
         wrapKrb5Conf(EXECUTOR_OPS, krb5Conf, confMap);
+        wrapExecutorGlobalDictionary(config, sparkConf);
 
         overrideDriverOps(config, sparkConf);
         return sparkConf;
+    }
+
+    private void wrapExecutorGlobalDictionary(KylinConfig config, Map<String, String> sparkConf) {
+        StringBuilder sb = new StringBuilder();
+        if (sparkConf.containsKey(EXECUTOR_OPS)) {
+            sb.append(sparkConf.get(EXECUTOR_OPS));
+        }
+        sb.append(String.format(Locale.ROOT, " -Dkylin.dictionary.globalV2-store-class-name=%s ",
+                config.getGlobalDictV2StoreImpl()));
+        sparkConf.put(EXECUTOR_OPS, sb.toString());
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
@@ -557,21 +566,8 @@ public class NSparkExecutable extends AbstractExecutable {
         File tmpDir = File.createTempFile("kylin_job_meta", EMPTY);
         FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
-        String krb5Conf = KapConfig.wrap(config).getKerberosKrb5Conf();
         final Properties props = config.exportToProperties();
-        ConfMap confMap = new ConfMap() {
-            @Override
-            public String get(String key) {
-                return props.getProperty(key);
-            }
-
-            @Override
-            public void set(String key, String value) {
-                props.setProperty(key, value);
-            }
-        };
-        wrapKrb5Conf(KYLIN_AM_OPS, krb5Conf, confMap);
-        wrapKrb5Conf(KYLIN_EXECUTOR_OPS, krb5Conf, confMap);
+        removeUnNecessaryDump(props);
 
         props.setProperty("kylin.metadata.url", metaDumpUrl);
 
@@ -603,6 +599,17 @@ public class NSparkExecutable extends AbstractExecutable {
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);
+    }
+
+    private void removeUnNecessaryDump(Properties props) {
+        props.remove("kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions");
+        props.remove("kylin.engine.spark-conf.spark.executor.extraJavaOptions");
+
+        props.remove("kylin.query.async-query.spark-conf.spark.yarn.am.extraJavaOptions");
+        props.remove("kylin.query.async-query.spark-conf.spark.executor.extraJavaOptions");
+
+        props.remove("kylin.storage.columnar.spark-conf.spark.yarn.am.extraJavaOptions");
+        props.remove("kylin.storage.columnar.spark-conf.spark.executor.extraJavaOptions");
     }
 
     private void deleteJobTmpDirectoryOnExists() {
