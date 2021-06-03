@@ -2251,6 +2251,10 @@ public abstract class KylinConfigBase implements Serializable {
         }
         return StorageURL.valueOf(getOptional("kylin.query.queryhistory.url"));
     }
+    
+    public void setQueryHistoryUrl(String queryHistoryUrl) {
+        setProperty("kylin.query.queryhistory.url", queryHistoryUrl);
+    }
 
     public int getQueryHistoryMaxSize() {
         return Integer.parseInt(getOptional("kylin.query.queryhistory.max-size", "10000000"));

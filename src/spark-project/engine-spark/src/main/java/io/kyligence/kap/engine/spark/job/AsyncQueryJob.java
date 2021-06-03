@@ -145,7 +145,7 @@ public class AsyncQueryJob extends NSparkExecutable {
 
         try {
             // dump kylin.properties to HDFS
-            config.setProperty("kylin.query.queryhistory.url", config.getMetadataUrl().toString());
+            config.setQueryHistoryUrl(config.getQueryHistoryUrl().toString());
             attachMetadataAndKylinProps(config, true);
 
             // dump metadata to HDFS
