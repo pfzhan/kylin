@@ -70,7 +70,7 @@ export default {
     datasourceDesc: '已加载 <b>{database_size}</b> 个数据库，<b>{table_size}</b> 张源表',
     manageDatasource: '管理',
     history: '查询历史',
-    historyDesc: '过去一周共有 <b>{last_week_query_count}</b> 条 SQLs 查询',
+    historyDesc: '过去一周共有 <b>{last_week_query_count}</b> 条 SQL 查询',
     viewDetail: '查看',
     viewDetail2: '查看详情',
     dataProfile: '数据特征',

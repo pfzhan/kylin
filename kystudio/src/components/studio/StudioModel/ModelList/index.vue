@@ -177,7 +177,7 @@
                   </div>
                 </div>
               </el-popover>
-              <span class="model-alias-title" @click.stop @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
+              <span class="model-alias-title" @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
             </div>
             <el-tooltip class="last-modified-tooltip" effect="dark" :content="`${$t('dataLoadTime')}${scope.row.gmtTime}`" placement="top">
               <span>{{scope.row.gmtTime}}</span>
@@ -1002,9 +1002,9 @@ export default class ModelList extends Vue {
 
   modelRowClickEvent (row, e) {
     if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
-    if (e.target.localName === 'td' || [...e.target.classList].includes('cell') || [...e.target.classList].includes('alias')) {
-      this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
-    }
+    // if (e.target.localName === 'td' || [...e.target.classList].includes('cell') || [...e.target.classList].includes('alias')) {
+    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
+    // }
   }
 
   // 展示 E-R 图
@@ -1094,6 +1094,7 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    user-select: none;
     .el-table__header th {
       vertical-align: top;
     }
