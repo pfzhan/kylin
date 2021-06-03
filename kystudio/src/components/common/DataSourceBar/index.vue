@@ -259,7 +259,7 @@ export default class DataSourceBar extends Vue {
   }
   databaseSizeObj = {}
   dataSourceSelectedLabel = ''
-  currentSourceTypes = [9, 1] // 默认试着获取一下Hive和kafka数据源的数据
+  currentSourceTypes = [9, 1, 8] // 默认试着获取一下Hive和kafka数据源的数据
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }

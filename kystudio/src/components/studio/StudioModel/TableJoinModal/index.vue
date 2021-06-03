@@ -533,59 +533,57 @@ export default class TableJoinModal extends Vue {
     }
 
     try {
-      if (!this.isPrecompute) {
-        const res = await this.form.modelInstance.generateMetadata(true)
-        // if (res.uuid) {
-        const currentJoinIndex = res.join_tables.findIndex(it => it.alias === this.pTableName)
-        if (currentJoinIndex > -1) {
-          res.join_tables[currentJoinIndex] = {...res.join_tables[currentJoinIndex], flattenable: this.isPrecompute ? 'flatten' : 'normalized'}
-          res.all_named_columns = this.form.modelInstance.all_named_columns || []
-        } else {
-          res.join_tables.push({
-            alias: this.pTableName,
-            join: joinData,
-            join_relation_type: selectTableRelation,
-            flattenable: this.isPrecompute ? 'flatten' : 'normalized',
-            table: this.form.modelInstance.tables[selectP].name
-          })
-          res.all_named_columns = this.form.modelInstance.all_named_columns || []
-        }
-        const response = await this.invalidIndexes(res)
-        const result = await handleSuccessAsync(response)
-        const {computed_columns, dimensions, measures, agg_index_count, table_index_count, anti_flatten_lookups} = result
-        antiFlattenLookups = anti_flatten_lookups
-        computedColumns = computed_columns
+      const res = await this.form.modelInstance.generateMetadata(true)
+      // if (res.uuid) {
+      const currentJoinIndex = res.join_tables.findIndex(it => it.alias === this.pTableName)
+      if (currentJoinIndex > -1) {
+        res.join_tables[currentJoinIndex] = {...res.join_tables[currentJoinIndex], flattenable: this.isPrecompute ? 'flatten' : 'normalized'}
+        res.all_named_columns = this.form.modelInstance.all_named_columns || []
+      } else {
+        res.join_tables.push({
+          alias: this.pTableName,
+          join: joinData,
+          join_relation_type: selectTableRelation,
+          flattenable: this.isPrecompute ? 'flatten' : 'normalized',
+          table: this.form.modelInstance.tables[selectP].name
+        })
+        res.all_named_columns = this.form.modelInstance.all_named_columns || []
+      }
+      const response = await this.invalidIndexes(res)
+      const result = await handleSuccessAsync(response)
+      const {computed_columns, dimensions, measures, agg_index_count, table_index_count, anti_flatten_lookups} = result
+      antiFlattenLookups = anti_flatten_lookups
+      computedColumns = computed_columns
 
-        if ((computed_columns.length + dimensions.length + measures.length + agg_index_count + table_index_count) > 0) {
-          await this.$msgbox({
-            title: this.$t('kylinLang.common.tip'),
-            message: <div>
-                        <span>{this.$t('deletePrecomputeJoinDialogTips')}</span>
-                        <div class="deleted-precompute-join-content">
-                          <el-collapse>
-                            {dimensions.length ? <el-collapse-item title={this.$t('dimensionCollapse', {num: dimensions.length})}>
-                              {dimensions.map(it => (<p>{it}</p>))}
-                            </el-collapse-item> : null}
-                            {measures.length ? <el-collapse-item title={this.$t('measureCollapse', {num: measures.length})}>
-                              {measures.map(it => (<p>{it}</p>))}
-                            </el-collapse-item> : null}
-                            {computed_columns.length ? <el-collapse-item title={this.$t('computedColumnCollapse', {num: computed_columns.length})}>
-                              {computed_columns.map(it => (<p>{it.columnName}</p>))}
-                            </el-collapse-item> : null}
-                            {(agg_index_count || table_index_count) ? <el-collapse-item title={this.$t('indexesCollapse', {num: agg_index_count + table_index_count})}>
-                              {agg_index_count ? <div>{this.$t('aggIndexes', {len: agg_index_count})}</div> : null}
-                              {table_index_count ? <div>{this.$t('tableIndexes', {len: table_index_count})}</div> : null}
-                            </el-collapse-item> : null}
-                          </el-collapse>
-                        </div>
-                      </div>,
-            type: 'warning',
-            cancelButtonText: this.$t('backEdit'),
-            showCancelButton: true,
-            closeOnClickModal: false,
-            closeOnPressEscape: false
-          })
-        }
+      if ((computed_columns.length + dimensions.length + measures.length + agg_index_count + table_index_count) > 0) {
+        await this.$msgbox({
+          title: this.$t('kylinLang.common.tip'),
+          message: <div>
+                      <span>{this.$t('deletePrecomputeJoinDialogTips')}</span>
+                      <div class="deleted-precompute-join-content">
+                        <el-collapse>
+                          {dimensions.length ? <el-collapse-item title={this.$t('dimensionCollapse', {num: dimensions.length})}>
+                            {dimensions.map(it => (<p>{it}</p>))}
+                          </el-collapse-item> : null}
+                          {measures.length ? <el-collapse-item title={this.$t('measureCollapse', {num: measures.length})}>
+                            {measures.map(it => (<p>{it}</p>))}
+                          </el-collapse-item> : null}
+                          {computed_columns.length ? <el-collapse-item title={this.$t('computedColumnCollapse', {num: computed_columns.length})}>
+                            {computed_columns.map(it => (<p>{it.columnName}</p>))}
+                          </el-collapse-item> : null}
+                          {(agg_index_count || table_index_count) ? <el-collapse-item title={this.$t('indexesCollapse', {num: agg_index_count + table_index_count})}>
+                            {agg_index_count ? <div>{this.$t('aggIndexes', {len: agg_index_count})}</div> : null}
+                            {table_index_count ? <div>{this.$t('tableIndexes', {len: table_index_count})}</div> : null}
+                          </el-collapse-item> : null}
+                        </el-collapse>
+                      </div>
+                    </div>,
+          type: 'warning',
+          cancelButtonText: this.$t('backEdit'),
+          showCancelButton: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: false
+        })
       }
     } catch (e) {
       if ('errorKey' in e) {
