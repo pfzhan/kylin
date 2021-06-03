@@ -189,6 +189,20 @@ function upgrade() {
     fi
     info "...................................................[DONE]"
 
+    logging "Copy hive*-site.xml for spark3"
+    if [[ -f ${OLD_KYLIN_HOME}/hadoop_conf/hive-site.xml ]]; then
+        if [[ -d ${NEW_KYLIN_HOME}/hadoop_conf ]]; then
+          cp -rfv ${OLD_KYLIN_HOME}/hadoop_conf/hive-site.xml ${NEW_KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
+          cp -rfv ${OLD_KYLIN_HOME}/hadoop_conf/hive-site.xml ${NEW_KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
+        fi
+
+        if [[ -d ${NEW_KYLIN_HOME}/write_hadoop_conf ]]; then
+          cp -rfv ${OLD_KYLIN_HOME}/write_hadoop_conf/hive-site.xml ${NEW_KYLIN_HOME}/write_hadoop_conf/hiveserver2-site.xml
+          cp -rfv ${OLD_KYLIN_HOME}/write_hadoop_conf/hive-site.xml ${NEW_KYLIN_HOME}/write_hadoop_conf/hivemetastore-site.xml
+        fi
+    fi
+    info "...................................................[DONE]"
+
     # sed -nE 's/^([#\t ]*)(kylin\..*|kap\..*)/\2/p' kylin.properties | awk '{kv[substr($0,0,index($0,"=")-1)]=substr($0,index($0,"=")+1)} END{print kv["kylin.metadata.url"]}'
     logging "Checking Kylin Conf"
 python <<PY
