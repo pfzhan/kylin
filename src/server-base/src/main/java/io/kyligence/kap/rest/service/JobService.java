@@ -44,6 +44,8 @@ import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -61,6 +63,7 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -361,6 +364,11 @@ public class JobService extends BasicService {
         case DISCARD:
             discardJob(project, jobId);
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, project);
+            JobTypeEnum jobType = executableManager.getJob(jobId).getJobType();
+            Map<String, String> tags = Maps.newHashMap();
+            tags.put(MetricsTag.HOST.getVal(), AddressUtil.getZkLocalInstance());
+            tags.put(MetricsTag.JOB_TYPE.getVal(), jobType == null ? "" : jobType.name());
+            MetricsGroup.counterInc(MetricsName.TERMINATED_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
             break;
         case PAUSE:
             executableManager.pauseJob(jobId);

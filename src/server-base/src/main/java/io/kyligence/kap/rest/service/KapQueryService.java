@@ -193,6 +193,7 @@ public class KapQueryService extends QueryService {
             MetricsGroup.counterInc(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, project, tags);
             MetricsGroup.meterMark(MetricsName.QUERY_SLOW_RATE, MetricsCategory.PROJECT, project, tags);
         }
+        MetricsGroup.counterInc(MetricsName.QUERY_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags, duration);
     }
 
     public List<String> format(List<String> sqls) {

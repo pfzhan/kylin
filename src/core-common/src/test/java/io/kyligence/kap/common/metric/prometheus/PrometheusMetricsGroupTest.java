@@ -26,8 +26,11 @@ package io.kyligence.kap.common.metric.prometheus;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
+import io.micrometer.core.instrument.Tag;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -183,5 +186,48 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
 
         thrown.expect(IllegalArgumentException.class);
         PrometheusMetricsGroup.removeModelMetrics("", "");
+    }
+
+
+    @Test
+    public void testNewJobStatisticsGauge() {
+        List<Meter> meters = meterRegistry.getMeters();
+        Assert.assertFalse(meters.stream().anyMatch(
+                meter -> PrometheusMetricsNameEnum.JOB_COUNT.getValue().equals(meter.getId().getName())));
+
+        Counter counter = Mockito.mock(Counter.class);
+        Mockito.when(counter.getCount()).thenReturn(1L);
+
+        PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT, project, "localhost", "INDEX_BUILD",
+                counter, Counter::getCount);
+
+        meters = meterRegistry.getMeters();
+        Assert.assertTrue(meters.stream().anyMatch(
+                meter -> PrometheusMetricsNameEnum.JOB_COUNT.getValue().equals(meter.getId().getName())));
+    }
+
+    @Test
+    public void testNewIndexUsageGaugeIfAbsent() {
+        List<Meter> meters = meterRegistry.getMeters();
+        Assert.assertFalse(meters.stream().anyMatch(
+                meter -> PrometheusMetricsNameEnum.INDEX_USAGE.getValue().equals(meter.getId().getName())));
+
+        PrometheusMetricsGroup.newIndexUsageGaugeIfAbsent(
+                project,
+                "test",
+                1,
+                null,
+                obj -> 1);
+
+        meters = meterRegistry.getMeters();
+        Meter meter = meters.stream()
+                .filter(mt -> PrometheusMetricsNameEnum.INDEX_USAGE.getValue().equals(mt.getId().getName()))
+                .findAny()
+                .orElse(null);
+        Assert.assertNotNull(meter);
+        Map<String, String> tags = meter.getId().getTags().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+        Assert.assertEquals(project, tags.get("project"));
+        Assert.assertEquals("test", tags.get("model_name"));
+        Assert.assertEquals(1, Integer.parseInt(tags.get("index_id")));
     }
 }

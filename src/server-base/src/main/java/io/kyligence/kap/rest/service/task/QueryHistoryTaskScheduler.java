@@ -34,6 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -207,6 +208,7 @@ public class QueryHistoryTaskScheduler {
             // update metadata
             updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId,
                     hitSnapshotCountMap);
+            registerMetrics(dfHitCountMap, project);
         }
 
         private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,
@@ -464,5 +466,34 @@ public class QueryHistoryTaskScheduler {
         Map<Long, FrequencyMap> layoutHits = Maps.newHashMap();
 
         int dataflowHit;
+    }
+
+    private void registerMetrics(Map<String, DataflowHitCount> dfHitCountMap, String project) {
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        for (val entry : dfHitCountMap.entrySet()) {
+            if (dfManager.getDataflow(entry.getKey()) == null) {
+                continue;
+            }
+            String modelId = entry.getKey();
+            NDataflow dataFlow = dfManager.getDataflow(modelId);
+            String modelName = dataFlow.getModelAlias();
+            val layoutHitCount = entry.getValue().getLayoutHits();
+            for (Long indexId : layoutHitCount.keySet()) {
+                PrometheusMetricsGroup.newIndexUsageGaugeIfAbsent(
+                        project,
+                        modelName,
+                        indexId,
+                        new Object(),
+                        obj -> {
+                            NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                            NDataflow df = dfm.getDataflow(modelId);
+                            if (df == null) {
+                                return 0;
+                            }
+                            return df.getLayoutHitCount().get(indexId).getDateFrequency().values()
+                                    .stream().mapToInt(Integer::intValue).sum();
+                        });
+            }
+        }
     }
 }

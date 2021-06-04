@@ -86,7 +86,7 @@ public class MetricsConfig {
             for (String newProject : newProjects) {
                 log.info("Register project metrics for {}", newProject);
                 MetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
-                MetricsRegistry.registerMicrometerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject);
+                MetricsRegistry.registerMicrometerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
             }
 
             Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);

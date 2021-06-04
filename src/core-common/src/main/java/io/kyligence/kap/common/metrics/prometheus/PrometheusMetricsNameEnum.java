@@ -33,6 +33,7 @@ import lombok.Getter;
 
 @Getter
 public enum PrometheusMetricsNameEnum {
+    //  Used in alert
     // ========== jvm ============
     JVM_GC_PAUSE_TIME("kylin_jvm_gc_milliseconds", Type.INSTANCE_METRIC),
 
@@ -46,14 +47,54 @@ public enum PrometheusMetricsNameEnum {
     JOB_RUNNING_DURATION_MAX("kylin_job_running_duration_max", Type.PROJECT_METRIC),
     JOB_ERROR_NUM("kylin_error_job_num", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_GAUGE_WITHOUT_HOST_TAG),
     JOB_PENDING_NUM("kylin_pending_job_num", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_GAUGE_WITHOUT_HOST_TAG),
-    MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD("kylin_model_job_exceed_last_job_time_threshold", Type.MODEL_METRIC);
+    MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD("kylin_model_job_exceed_last_job_time_threshold", Type.MODEL_METRIC),
+
+
+    // Used in statistics
+    // ========== job ============
+    JOB_COUNT("kylin_job_count", Type.PROJECT_METRIC),
+    SUCCESSFUL_JOB_COUNT("kylin_successful_job_count", Type.PROJECT_METRIC),
+    ERROR_JOB_COUNT("kylin_error_job_count", Type.PROJECT_METRIC),
+    TERMINATED_JOB_COUNT("kylin_terminated_job_count", Type.PROJECT_METRIC),
+    JOB_COUNT_LT_5("kylin_job_count_lt_5", Type.PROJECT_METRIC),
+    JOB_COUNT_5_10("kylin_job_count_5_10", Type.PROJECT_METRIC),
+    JOB_COUNT_10_30("kylin_job_count_10_30", Type.PROJECT_METRIC),
+    JOB_COUNT_30_60("kylin_job_count_30_60", Type.PROJECT_METRIC),
+    JOB_COUNT_GT_60("kylin_job_count_gt_60", Type.PROJECT_METRIC),
+    JOB_TOTAL_DURATION("kylin_job_total_duration", Type.PROJECT_METRIC),
+    // ========== storage ============
+    STORAGE_SIZE("kylin_storage_size", Type.PROJECT_METRIC),
+    GARBAGE_SIZE("kylin_garbage_size", Type.PROJECT_METRIC),
+    INDEX_USAGE("kylin_index_usage", Type.EXTRA),
+    RECOMMENDED_DELETE_INDEX_NUM("kylin_recommended_delete_index_num", Type.MODEL_METRIC),
+
+
+    // Used in report
+    PROJECT_NUM_DAILY("kylin_project_num_daily", Type.GLOBAL),
+    USER_NUM_DAILY("kylin_user_num_daily", Type.GLOBAL),
+    QUERY_COUNT_DAILY("kylin_query_count_daily", Type.PROJECT_METRIC),
+    FAILED_QUERY_COUNT_DAILY("kylin_failed_query_count_daily", Type.PROJECT_METRIC),
+    QUERY_TOTAL_DURATION_DAILY("kylin_query_total_duration_daily", Type.PROJECT_METRIC),
+    QUERY_COUNT_LT_1S_DAILY("kylin_query_count_lt_1s_daily", Type.PROJECT_METRIC),
+    QUERY_COUNT_1S_3S_DAILY("kylin_query_count_1s_3s_daily", Type.PROJECT_METRIC),
+    STORAGE_SIZE_DAILY("kylin_storage_size_daily", Type.PROJECT_METRIC),
+    MODEL_NUM_DAILY("kylin_model_num_daily", Type.PROJECT_METRIC),
+    SNAPSHOT_NUM_DAILY("kylin_snapshot_num_daily", Type.PROJECT_METRIC),
+    JOB_COUNT_DAILY("kylin_job_count_daily", Type.PROJECT_METRIC),
+    SUCCESSFUL_JOB_COUNT_DAILY("kylin_successful_job_count_daily", Type.PROJECT_METRIC),
+    ERROR_JOB_COUNT_DAILY("kylin_error_job_count_daily", Type.PROJECT_METRIC),
+    JOB_TOTAL_DURATION_DAILY("kylin_job_total_duration_daily", Type.PROJECT_METRIC),
+    JOB_COUNT_LT_5_DAILY("kylin_job_count_lt_5_daily", Type.PROJECT_METRIC),
+    JOB_COUNT_5_10_DAILY("kylin_job_count_5_10_daily", Type.PROJECT_METRIC);
 
     private static class Type {
+        public static final int GLOBAL = 0;
         public static final int INSTANCE_METRIC = 0x0001;
         public static final int PROJECT_METRIC = 0x0002;
         public static final int MODEL_METRIC = 0x0004;
         public static final int PROJECT_METRIC_FROM_COUNTER = 0x0008;
         public static final int PROJECT_METRIC_FROM_GAUGE_WITHOUT_HOST_TAG = 0x0010;
+        public static final int EXTRA = 0x1000;
     }
 
     private final String value;
@@ -91,15 +132,23 @@ public enum PrometheusMetricsNameEnum {
     public MetricsName toMetricsName() {
         switch (this) {
             case QUERY_TIMES:
+            case QUERY_COUNT_DAILY:
                 return MetricsName.QUERY;
             case QUERY_SLOW_TIMES:
                 return MetricsName.QUERY_SLOW;
             case QUERY_FAILED_TIMES:
+            case FAILED_QUERY_COUNT_DAILY:
                 return MetricsName.QUERY_FAILED;
             case JOB_ERROR_NUM:
                 return MetricsName.JOB_ERROR_GAUGE;
             case JOB_PENDING_NUM:
                 return MetricsName.JOB_PENDING_GAUGE;
+            case QUERY_TOTAL_DURATION_DAILY:
+                return MetricsName.QUERY_TOTAL_DURATION;
+            case QUERY_COUNT_LT_1S_DAILY:
+                return MetricsName.QUERY_LT_1S;
+            case QUERY_COUNT_1S_3S_DAILY:
+                return MetricsName.QUERY_1S_3S;
             default:
                 throw new IllegalArgumentException("Invalid metrics name: " + this);
         }

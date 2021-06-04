@@ -56,12 +56,7 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.metrics.MetricsCategory;
-import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.MetricsName;
-import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -192,7 +187,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 if (state == ExecutableState.ERROR) {
                     logger.warn("[UNEXPECTED_THINGS_HAPPENED] Unexpected ERROR state discovered here!!!");
                     notifyUserJobIssue(JobIssueEnum.JOB_ERROR);
-                    MetricsGroup.hostTagCounterInc(MetricsName.JOB_ERROR, MetricsCategory.PROJECT, getProject());
                     info = result.getExtraInfo();
                     output = result.getErrorMsg();
                     hook = this::onExecuteErrorHook;
@@ -207,10 +201,9 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }, getEpochId(), project);
 
         // dispatch job-finished message out
-        EventBusFactory.getInstance().postWithLimit(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(),
-                getDuration(), state.toString(), getJobType().toString(), this.getSegmentIds(), this.getLayoutIds()));
-        updateMetrics();
-
+        EventBusFactory.getInstance().postSync(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(),
+                getDuration(), state.toString(), getJobType().toString(), this.getSegmentIds(), this.getLayoutIds(),
+                getWaitTime()));
     }
 
     @Override
@@ -242,31 +235,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
         if (!getOutput().getState().isFinalState()) {
             updateJobOutput(getProject(), getId(), finalState, null, null, hook);
-        }
-    }
-
-    private void updateMetrics() {
-        ExecutableState state = getStatus();
-        if (state != null && state.isFinalState()) {
-            MetricsGroup.hostTagCounterInc(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, getProject());
-            MetricsGroup.hostTagCounterInc(MetricsName.JOB_DURATION, MetricsCategory.PROJECT, getProject(),
-                    getDuration());
-            MetricsGroup.hostTagHistogramUpdate(MetricsName.JOB_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
-                    getProject(), getDuration());
-            MetricsGroup.hostTagCounterInc(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, getProject(),
-                    getWaitTime());
-
-            String modelAlias = getTargetModelAlias();
-            if (modelAlias != null) {
-                Map<String, String> tags = Maps.newHashMap();
-                tags.put(MetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
-                MetricsGroup.counterInc(MetricsName.MODEL_BUILD_DURATION, MetricsCategory.PROJECT, getProject(), tags,
-                        getDuration());
-                MetricsGroup.counterInc(MetricsName.MODEL_WAIT_DURATION, MetricsCategory.PROJECT, getProject(), tags,
-                        getWaitTime());
-                MetricsGroup.histogramUpdate(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
-                        project, tags, getDuration());
-            }
         }
     }
 

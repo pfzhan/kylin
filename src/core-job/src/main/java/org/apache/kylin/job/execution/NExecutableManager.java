@@ -54,6 +54,7 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.metrics.MetricsTag;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -185,8 +186,12 @@ public class NExecutableManager {
         addJobOutput(executablePO);
         executableDao.addJob(executablePO);
 
-        MetricsGroup.hostTagCounterInc(MetricsName.JOB, MetricsCategory.PROJECT,
-                executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME));
+        String project = executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME);
+        MetricsGroup.hostTagCounterInc(MetricsName.JOB, MetricsCategory.PROJECT, project);
+        Map<String, String> tags = Maps.newHashMap();
+        tags.put(MetricsTag.HOST.getVal(), AddressUtil.getZkLocalInstance());
+        tags.put(MetricsTag.JOB_TYPE.getVal(), executablePO.getJobType() == null ? "" : executablePO.getJobType().name());
+        MetricsGroup.counterInc(MetricsName.JOB_COUNT, MetricsCategory.PROJECT, project, tags);
         // dispatch job-created message out
         if (KylinConfig.getInstanceFromEnv().isUTEnv())
             EventBusFactory.getInstance().postWithLimit(new JobReadyNotifier(project));

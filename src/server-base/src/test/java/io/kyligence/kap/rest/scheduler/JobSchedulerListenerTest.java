@@ -174,6 +174,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         String project = "default";
         String subject = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         long duration = 1000L;
+        long waitTime = 0L;
         String jobState = "SUCCEED";
         String jobType = "INDEX_BUILD";
         Set<String> segIds = new HashSet<>();
@@ -181,7 +182,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         Set<Long> layoutIds = new HashSet<>();
         layoutIds.add(1L);
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds);
+                segIds, layoutIds, waitTime);
         JobSchedulerListener.JobInfo jobInfo = JobSchedulerListener.extractJobInfo(notifier);
         Assert.assertEquals(jobId, jobInfo.getJobId());
         Assert.assertEquals(project, jobInfo.getProject());

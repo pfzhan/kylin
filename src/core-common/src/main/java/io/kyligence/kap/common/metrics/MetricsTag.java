@@ -28,7 +28,8 @@ package io.kyligence.kap.common.metrics;
 public enum MetricsTag {
 
     MODEL("model"),
-    HOST("host");
+    HOST("host"),
+    JOB_TYPE("job_type");
 
     private final String value;
 

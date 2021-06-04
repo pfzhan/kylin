@@ -113,7 +113,7 @@ public class AppInitializer {
             streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
 
             // register scheduler listener
-            EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
+            EventBusFactory.getInstance().register(new JobSchedulerListener(), true);
             EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
             EventBusFactory.getInstance().register(epochChangedListener, false);
             EventBusFactory.getInstance().register(broadcastListener, false);

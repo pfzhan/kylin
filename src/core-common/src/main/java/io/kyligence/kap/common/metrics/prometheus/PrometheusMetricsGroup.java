@@ -60,6 +60,8 @@ public class PrometheusMetricsGroup {
     private static final String TAG_NAME_KYLIN_SERVER = "kylin_server";
     private static final String TAG_NAME_PROJECT = "project";
     private static final String TAG_NAME_MODEL = "model_name";
+    private static final String TAG_NAME_JOB_TYPE = "job_type";
+    private static final String TAG_NAME_INDEX = "index_id";
 
     private static MeterRegistry meterRegistry;
 
@@ -77,12 +79,7 @@ public class PrometheusMetricsGroup {
         meterRegistry.getMeters().stream()
                 .map(Meter::getId)
                 .filter(id -> project.equals(id.getTag(TAG_NAME_PROJECT)))
-                .filter(id -> Objects.nonNull(id.getTag(TAG_NAME_MODEL)))
                 .forEach(id -> meterRegistry.remove(id));
-
-        Set<PrometheusMetricsNameEnum> projectMetrics = PrometheusMetricsNameEnum.listProjectMetrics();
-        Tags tags = generateProjectTags(project);
-        projectMetrics.forEach(metricName -> doRemoveMetric(metricName, tags));
 
         logger.info("Remove project prometheus metrics for {} success.", project);
     }
@@ -112,6 +109,14 @@ public class PrometheusMetricsGroup {
         List<GarbageCollectorMXBean> garbageCollectorMXBeans = ManagementFactory.getGarbageCollectorMXBeans();
         newGaugeIfAbsent(PrometheusMetricsNameEnum.JVM_GC_PAUSE_TIME, garbageCollectorMXBeans,
                 v -> v.stream().mapToDouble(GarbageCollectorMXBean::getCollectionTime).sum(), tags);
+    }
+
+    public static <T> void newMetricsWithoutTags(PrometheusMetricsNameEnum metric,
+                                             @Nullable T obj,
+                                             ToDoubleFunction<T> function) {
+        Tags tags = Tags.empty();
+        newGaugeIfAbsent(metric, obj, function, tags);
+
     }
 
     public static void newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum metric, String project) {
@@ -152,10 +157,41 @@ public class PrometheusMetricsGroup {
         newGaugeIfAbsent(metric, obj, function, prometheusTags);
     }
 
+    public static <T> void newProjectGaugeWithoutServerTag(PrometheusMetricsNameEnum metric, String project, @Nullable T obj,
+                                           ToDoubleFunction<T> function) {
+        Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
+        Tags tags = Tags.of(projectTag);
+        newGaugeIfAbsent(metric, obj, function, tags);
+    }
+
     public static <T> void newModelGauge(PrometheusMetricsNameEnum metric, String project, String model,
             @Nullable T obj, ToDoubleFunction<T> function) {
         Tags prometheusTags = generateModelTags(project, model);
         newGaugeIfAbsent(metric, obj, function, prometheusTags);
+    }
+
+    public static <T> void newJobStatisticsGauge(PrometheusMetricsNameEnum metric, String project, String host,
+                                                 String jobType, @Nullable T obj, ToDoubleFunction<T> function) {
+        Tags tags = generateJobStatisticsTags(host, project, jobType);
+        newGaugeIfAbsent(metric, obj, function, tags);
+    }
+
+    public static <T> void newIndexUsageGaugeIfAbsent(String project, String model, long indexId,
+                                             @Nullable T obj, ToDoubleFunction<T> function) {
+        PrometheusMetricsNameEnum metric = PrometheusMetricsNameEnum.INDEX_USAGE;
+        Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
+        Tag modelTag = Tag.of(TAG_NAME_MODEL, model);
+        Tag indexTag = Tag.of(TAG_NAME_INDEX, "" + indexId);
+        Tags tags = Tags.of(projectTag, modelTag, indexTag);
+        Meter.Id tagId = generateMeterId(metric, tags, Meter.Type.GAUGE);
+        boolean exists = meterRegistry.getMeters().stream()
+                .map(Meter::getId)
+                .anyMatch(id -> id.equals(tagId));
+        if (exists) {
+            return;
+        }
+
+        Gauge.builder(metric.getValue(), obj, function).strongReference(true).tags(tags).register(meterRegistry);
     }
 
     private static <T> void newGaugeIfAbsent(PrometheusMetricsNameEnum metric, @Nullable T obj,
@@ -178,6 +214,13 @@ public class PrometheusMetricsGroup {
         Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
 
         return Tags.of(Sets.newHashSet(kylinServer, projectTag));
+    }
+
+    private static Tags generateJobStatisticsTags(String host, String project, String jobType) {
+        Tag hostTag = Tag.of(TAG_NAME_KYLIN_SERVER, host);
+        Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
+        Tag jobTypeTag = Tag.of(TAG_NAME_JOB_TYPE, jobType);
+        return Tags.of(hostTag, projectTag, jobTypeTag);
     }
 
     private static Tags generateModelTags(String project, String modelName) {

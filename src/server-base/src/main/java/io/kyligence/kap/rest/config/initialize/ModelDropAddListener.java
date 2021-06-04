@@ -31,6 +31,8 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.service.OptRecService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -49,6 +51,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.util.ModelUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 public class ModelDropAddListener {
@@ -135,6 +138,14 @@ public class ModelDropAddListener {
                         return 0.0;
                     }
                     return (currentRunningJob.getDuration() - lastSuccessJob.getDuration()) / (double) lastSuccessJob.getDuration();
+                });
+        PrometheusMetricsGroup.newModelGauge(PrometheusMetricsNameEnum.RECOMMENDED_DELETE_INDEX_NUM, project, modelAlias,
+                new Object(), obj -> {
+                    if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
+                        return 0;
+                    }
+                    OptRecService optRecService = SpringContext.getBean(OptRecService.class);
+                    return optRecService.getOptRecLayoutsResponse(project, modelId, OptRecService.RecActionType.REMOVE_INDEX.name()).getSize();
                 });
     }
 

@@ -57,6 +57,7 @@ public enum MetricsName {
 
     //query
     QUERY("query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_TOTAL_DURATION("query_total_duration", ClusterConstant.ALL, ClusterConstant.QUERY),
     QUERY_SLOW("gt10s_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_FAILED("failed_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_PUSH_DOWN("pushdown_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
@@ -168,7 +169,22 @@ public enum MetricsName {
 
     //spark query load
     QUERY_LOAD("query_load", ClusterConstant.ALL, ClusterConstant.QUERY), //
-    CPU_CORES("cpu_cores", ClusterConstant.ALL, ClusterConstant.QUERY);
+    CPU_CORES("cpu_cores", ClusterConstant.ALL, ClusterConstant.QUERY),
+
+
+
+
+    // ################################################################# Used in prometheus
+    JOB_COUNT("job_count", ClusterConstant.ALL, ClusterConstant.JOB),
+    JOB_TOTAL_DURATION("job_total_duration", ClusterConstant.ALL, ClusterConstant.JOB),
+    SUCCESSFUL_JOB_COUNT("successful_job_count", ClusterConstant.ALL, ClusterConstant.JOB),
+    ERROR_JOB_COUNT("error_job_count", ClusterConstant.ALL, ClusterConstant.JOB),
+    TERMINATED_JOB_COUNT("terminated_job_count", ClusterConstant.ALL, ClusterConstant.JOB),
+    JOB_COUNT_LT_5("job_count_lt_5", ClusterConstant.ALL, ClusterConstant.JOB),
+    JOB_COUNT_5_10("job_count_5_10", ClusterConstant.ALL, ClusterConstant.JOB),
+    JOB_COUNT_10_30("job_count_10_30", ClusterConstant.ALL, ClusterConstant.JOB),
+    JOB_COUNT_30_60("job_count_30_60", ClusterConstant.ALL, ClusterConstant.JOB),
+    JOB_COUNT_GT_60("job_count_gt_60", ClusterConstant.ALL, ClusterConstant.JOB);
 
     private final String value;
 

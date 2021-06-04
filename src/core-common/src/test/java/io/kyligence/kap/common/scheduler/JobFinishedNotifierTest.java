@@ -37,6 +37,7 @@ public class JobFinishedNotifierTest {
         String project = "test_project";
         String subject = "test_model";
         long duration = 1000L;
+        long waitTime = 0L;
         String jobState = "test_job_state";
         String jobType = "test_job_type";
         Set<String> segIds = new HashSet<>();
@@ -47,7 +48,7 @@ public class JobFinishedNotifierTest {
         layoutIds.add(2L);
 
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds);
+                segIds, layoutIds, waitTime);
         Assert.assertEquals(jobId, notifier.getJobId());
         Assert.assertEquals(project, notifier.getProject());
         Assert.assertEquals(subject, notifier.getSubject());

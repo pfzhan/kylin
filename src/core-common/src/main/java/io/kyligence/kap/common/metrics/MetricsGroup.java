@@ -298,6 +298,7 @@ public class MetricsGroup {
             numerator = getCounter(MetricsName.QUERY_TABLE_INDEX, MetricsCategory.PROJECT, projectName, tags);
             newGauge(MetricsName.QUERY_TABLE_INDEX_RATIO, MetricsCategory.PROJECT, projectName, tags,
                     new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_TOTAL_DURATION, MetricsCategory.PROJECT, projectName, tags);
             newCounter(MetricsName.QUERY_TIMEOUT, MetricsCategory.PROJECT, projectName, tags);
             newMeter(MetricsName.QUERY_SLOW_RATE, MetricsCategory.PROJECT, projectName, tags);
             newMeter(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, projectName, tags);

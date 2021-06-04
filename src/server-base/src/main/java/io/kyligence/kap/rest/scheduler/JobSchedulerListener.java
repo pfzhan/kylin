@@ -27,8 +27,15 @@ package io.kyligence.kap.rest.scheduler;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -39,6 +46,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.TimeRange;
@@ -74,10 +82,13 @@ public class JobSchedulerListener {
 
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
-        jobFinishedNotified = true;
-        NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
-
-        postJobInfo(extractJobInfo(notifier));
+        try {
+            jobFinishedNotified = true;
+            NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+            postJobInfo(extractJobInfo(notifier));
+        } finally {
+            updateMetrics(notifier);
+        }
     }
 
     static JobInfo extractJobInfo(JobFinishedNotifier notifier) {
@@ -189,6 +200,62 @@ public class JobSchedulerListener {
         }
     }
 
+    private void updateMetrics(JobFinishedNotifier notifier) {
+        try {
+            log.info("Update metrics for {}, duration is {}, waitTime is {}, jobType is {}, state is {}, subject is {}",
+                    notifier.getJobId(), notifier.getDuration(), notifier.getWaitTime(), notifier.getJobType(), notifier.getJobState(),
+                    notifier.getSubject());
+            ExecutableState state = ExecutableState.valueOf(notifier.getJobState());
+            String project = notifier.getProject();
+            if (state.isFinalState()) {
+                long duration = notifier.getDuration();
+                MetricsGroup.hostTagCounterInc(MetricsName.JOB_FINISHED, MetricsCategory.PROJECT, project);
+                MetricsGroup.hostTagCounterInc(MetricsName.JOB_DURATION, MetricsCategory.PROJECT, project, duration);
+                MetricsGroup.hostTagHistogramUpdate(MetricsName.JOB_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
+                        project, duration);
+                MetricsGroup.hostTagCounterInc(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, project, duration);
+
+                NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                NDataflow dataflow = manager.getDataflow(notifier.getSubject());
+                if (dataflow != null) {
+                    String modelAlias = dataflow.getModelAlias();
+                    Map<String, String> tags = Maps.newHashMap();
+                    tags.put(MetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
+                    MetricsGroup.counterInc(MetricsName.MODEL_BUILD_DURATION, MetricsCategory.PROJECT, project, tags,
+                            duration);
+                    MetricsGroup.counterInc(MetricsName.MODEL_WAIT_DURATION, MetricsCategory.PROJECT, project, tags,
+                            notifier.getWaitTime());
+                    MetricsGroup.histogramUpdate(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
+                            project, tags, duration);
+                }
+
+                Map<String, String> tags = getJobStatisticsTags(notifier.getJobType());
+                if (state == ExecutableState.SUCCEED) {
+                    MetricsGroup.counterInc(MetricsName.SUCCESSFUL_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
+                } else if (ExecutableState.ERROR == state) {
+                    MetricsGroup.hostTagCounterInc(MetricsName.JOB_ERROR, MetricsCategory.PROJECT, project);
+                    MetricsGroup.counterInc(MetricsName.ERROR_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
+                }
+
+                if (duration <= 5 * 60 * 1000) {
+                    MetricsGroup.counterInc(MetricsName.JOB_COUNT_LT_5, MetricsCategory.PROJECT, project, tags);
+                } else if (duration <= 10 * 60 * 1000) {
+                    MetricsGroup.counterInc(MetricsName.JOB_COUNT_5_10, MetricsCategory.PROJECT, project, tags);
+                } else if (duration <= 30 * 60 * 1000) {
+                    MetricsGroup.counterInc(MetricsName.JOB_COUNT_10_30, MetricsCategory.PROJECT, project, tags);
+                } else if (duration <= 60 * 60 * 1000) {
+                    MetricsGroup.counterInc(MetricsName.JOB_COUNT_30_60, MetricsCategory.PROJECT, project, tags);
+                } else {
+                    MetricsGroup.counterInc(MetricsName.JOB_COUNT_GT_60, MetricsCategory.PROJECT, project, tags);
+                }
+                MetricsGroup.counterInc(MetricsName.JOB_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags, duration);
+            }
+        } catch (Exception e) {
+            log.error("Fail to update metrics.", e);
+        }
+
+    }
+
     @Subscribe
     public void onCubingJobFinished(CubingJobFinishedNotifier notifier) {
         try {
@@ -197,5 +264,15 @@ public class JobSchedulerListener {
         } catch (Throwable e) {
             log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getModelId(), e);
         }
+    }
+
+    /**
+     * Tags of job statistics used in prometheus
+     */
+    private Map<String, String> getJobStatisticsTags(String jobType) {
+        Map<String, String> tags = Maps.newHashMap();
+        tags.put(MetricsTag.HOST.getVal(), AddressUtil.getZkLocalInstance());
+        tags.put(MetricsTag.JOB_TYPE.getVal(), jobType);
+        return tags;
     }
 }

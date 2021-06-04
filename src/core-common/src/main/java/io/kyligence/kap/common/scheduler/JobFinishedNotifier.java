@@ -38,9 +38,11 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
     private String jobType;
     private Set<String> segmentIds;
     private Set<Long> layoutIds;
+    private long waitTime;
 
     public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
-            String jobType, Set<String> segmentIds, Set<Long> layoutIds) {
+            String jobType, Set<String> segmentIds, Set<Long> layoutIds,
+                               long waitTime) {
         setProject(project);
         setSubject(subject);
         this.jobId = jobId;
@@ -49,5 +51,6 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.jobType = jobType;
         this.segmentIds = segmentIds;
         this.layoutIds = layoutIds;
+        this.waitTime = waitTime;
     }
 }
