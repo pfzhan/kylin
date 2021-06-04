@@ -965,6 +965,20 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertFalse(projectStatistics.isRefreshed());
         Assert.assertEquals(20, projectStatistics.getMaxRecShowSize());
 
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
+        request.setProject("gc_test");
+        request.setExcludeTablesEnable(true);
+        request.setDurationEnable(false);
+        request.setMinDuration("0");
+        request.setMaxDuration("10");
+        request.setSubmitterEnable(true);
+        request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
+        request.setRecommendationEnable(true);
+        request.setRecommendationsValue("30");
+        projectService.updateRegularRule("gc_test", request);
+        ProjectStatisticsResponse projectStatistics2 = projectService.getProjectStatistics("gc_test");
+        Assert.assertEquals(4, projectStatistics2.getEffectiveRuleSize());
+
         ProjectStatisticsResponse statisticsOfProjectDefault = projectService.getProjectStatistics(PROJECT);
         Assert.assertEquals(3, statisticsOfProjectDefault.getDatabaseSize());
         Assert.assertEquals(20, statisticsOfProjectDefault.getTableSize());

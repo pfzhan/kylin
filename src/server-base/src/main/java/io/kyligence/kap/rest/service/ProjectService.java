@@ -358,6 +358,10 @@ public class ProjectService extends BasicService {
                 effectiveRuleSize++;
             }
         }
+        Object excludedTablesEnable = favoriteRules.get("excluded_tables_enable");
+        if (excludedTablesEnable instanceof Boolean && Boolean.TRUE.equals(excludedTablesEnable)) {
+            effectiveRuleSize++;
+        }
 
         return effectiveRuleSize;
     }
