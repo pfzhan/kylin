@@ -102,6 +102,8 @@ public class NSparkExecutable extends AbstractExecutable {
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
     protected static final String YARN_CLUSTER = "cluster";
 
+    protected static final String HIVE_METASTORE_JARS = "spark.sql.hive.metastore.jars";
+
     private volatile boolean isYarnCluster = false;
 
     public String getDataflowId() {
@@ -455,11 +457,18 @@ public class NSparkExecutable extends AbstractExecutable {
         // extra classpath
         wrapClasspathConf(sb, kylinJobJar);
 
-        // extra jars
-        if (sparkConf.containsKey("spark.sql.hive.metastore.jars")
-            && !sparkConf.get("spark.sql.hive.metastore.jars").contains("builtin")) {
-            jars = jars + COMMA + sparkConf.get("spark.sql.hive.metastore.jars");
+        // hive metastore jars
+        String hiveMetastoreJars = sparkConf.get(HIVE_METASTORE_JARS);
+        logger.info("hive metastore jars: {}", hiveMetastoreJars);
+        if (!(Objects.isNull(hiveMetastoreJars) //
+                || "builtin".equals(hiveMetastoreJars) //
+                || "maven".equals(hiveMetastoreJars) //
+                || "path".equals(hiveMetastoreJars))) {
+            // before spark3
+            jars = jars + COMMA + hiveMetastoreJars;
         }
+
+        // extra jars
         final KylinConfig config = getConfig();
         if (StringUtils.isNotEmpty(config.getExtraJarsPath())) {
             jars = jars + COMMA + config.getExtraJarsPath();
