@@ -547,7 +547,7 @@ public class JdbcQueryHistoryStore {
     }
 
     private SelectStatementProvider queryQueryHistoriesSizeProvider(QueryHistoryRequest request) {
-        return filterByConditions(select(count(queryHistoryTable.queryId).as(COUNT)).from(queryHistoryTable), request)
+        return filterByConditions(select(count(queryHistoryTable.id).as(COUNT)).from(queryHistoryTable), request)
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
