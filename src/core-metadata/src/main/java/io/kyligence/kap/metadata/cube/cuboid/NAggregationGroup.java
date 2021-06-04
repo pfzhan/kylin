@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.cube.model.SelectRule;
 
@@ -81,6 +82,11 @@ public class NAggregationGroup implements Serializable {
     @Setter
     @JsonProperty("select_rule")
     private SelectRule selectRule;
+
+    @Setter
+    @Getter
+    @JsonProperty("index_range")
+    private IndexEntity.Range indexRange;
 
     //computed
     private BigInteger partialCubeFullMask;

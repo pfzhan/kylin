@@ -88,7 +88,7 @@
       </div>
       <el-form-item :label="$t('attachedHiveTable')">
         <el-input size="medium" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()" :placeholder="$t('filterTableName')" v-model="filterText"></el-input>
-        <input type="hidden" name="hive_table_identity" v-model="kafkaMeta.hive_table_identity"/>
+        <input type="hidden" name="batch_table_identity" v-model="kafkaMeta.batch_table_identity"/>
       </el-form-item>
       <div class="hive-table-tree" v-loading="isLoadingTreeData">
         <TreeList
@@ -192,7 +192,7 @@ export default class SourceKafkaStep2 extends Vue {
     database: '',
     name: '',
     columns: [],
-    hive_table_identity: '',
+    batch_table_identity: '',
     has_shadow_table: false,
     starting_offsets: 'latest',
     source_type: 1,
@@ -456,7 +456,7 @@ export default class SourceKafkaStep2 extends Vue {
       event && event.stopPropagation()
       event && event.preventDefault()
       data.isSelected = false
-      this.kafkaMeta.hive_table_identity = ''
+      this.kafkaMeta.batch_table_identity = ''
       this.kafkaMeta.has_shadow_table = false
       this.storeKafkaMeta()
     } else {
@@ -471,7 +471,7 @@ export default class SourceKafkaStep2 extends Vue {
     if (node.database && node.label) {
       this.cancelSelected()
       node.isSelected = true
-      this.kafkaMeta.hive_table_identity = node.database + '.' + node.label
+      this.kafkaMeta.batch_table_identity = node.database + '.' + node.label
       this.kafkaMeta.has_shadow_table = true
       this.storeKafkaMeta()
     }

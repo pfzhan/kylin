@@ -41,7 +41,6 @@ public class StreamingJobManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StreamingJobManager.class);
 
-
     private String project;
 
     private KylinConfig config;
@@ -93,11 +92,13 @@ public class StreamingJobManager {
 
     public StreamingJobMeta updateStreamingJob(String jobId, NStreamingJobUpdater updater) {
         StreamingJobMeta cached = getStreamingJobByUuid(jobId);
+        if (cached == null) {
+            return null;
+        }
         StreamingJobMeta copy = copy(cached);
         updater.modify(copy);
         return crud.save(copy);
     }
-
 
     public void deleteStreamingJob(String uuid) {
         StreamingJobMeta job = getStreamingJobByUuid(uuid);
@@ -105,10 +106,11 @@ public class StreamingJobManager {
             logger.warn("Dropping streaming job {} doesn't exists", uuid);
             return;
         }
+        logger.info("deleteStreamingJob:" + uuid);
         crud.delete(uuid);
     }
 
-    public List<StreamingJobMeta> listAllStreamingJobMeta(){
+    public List<StreamingJobMeta> listAllStreamingJobMeta() {
         return crud.listAll();
     }
 
@@ -119,6 +121,5 @@ public class StreamingJobManager {
     public interface NStreamingJobUpdater {
         void modify(StreamingJobMeta copyForWrite);
     }
-
 
 }

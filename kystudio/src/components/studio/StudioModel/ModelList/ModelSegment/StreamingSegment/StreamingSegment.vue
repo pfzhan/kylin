@@ -1,6 +1,6 @@
 <template>
   <div class="streaming-list">
-    <div class="segment-actions clearfix">
+    <div class="segment-actions clearfix" v-if="isShowPageTitle">
       <el-popover
         ref="segmentPopover"
         placement="right"
@@ -56,7 +56,7 @@
       </div>
     </div>
     <div class="segment-views ksd-mb-15">
-      <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom">
@@ -234,6 +234,10 @@ import { formatStreamSegments } from '../handler'
     isShowSegmentActions: {
       type: Boolean,
       default: true
+    },
+    isShowPageTitle: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {

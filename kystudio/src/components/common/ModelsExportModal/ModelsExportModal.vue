@@ -367,9 +367,14 @@ export default class ModelsExportModal extends Vue {
   }
   .export-other {
     margin-top: 15px;
+    font-size: 0;
     .other-content {
       .el-checkbox__input {
         margin-top: -5px;
+      }
+      .el-checkbox__inner {
+        vertical-align: middle;
+        margin-top: 5px;
       }
     }
   }
@@ -457,6 +462,9 @@ export default class ModelsExportModal extends Vue {
       // .el-checkbox__input {
       //   margin-top: -5px;
       // }
+      .el-checkbox__inner {
+        vertical-align: middle;
+      }
     }
     .el-checkbox+.el-checkbox {
       margin-left: 0;

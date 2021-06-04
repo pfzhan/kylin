@@ -59,6 +59,8 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     public void setUp() throws Exception {
         this.createTestMetadata();
         ss = SparkSession.builder().master("local").getOrCreate();
+        val map = (Map<String, StreamingScheduler>)ReflectionUtils.getField(StreamingScheduler.class, "INSTANCE_MAP");
+        map.clear();
     }
 
     @After
@@ -89,7 +91,7 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         val streamingScheduler = StreamingScheduler.getInstance(PROJECT);
         try {
             val streamingScheduler1 = new StreamingScheduler(PROJECT);
-        } catch(Exception e) {
+        } catch (Exception e) {
             Assert.assertEquals(true, e instanceof IllegalStateException);
         }
         streamingScheduler.forceShutdown();
@@ -255,6 +257,7 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
         mgr.updateStreamingJob(buildJobId, copyForWrite -> {
             copyForWrite.setCurrentStatus(JobStatusEnum.STARTING);
+            copyForWrite.setSkipListener(true);
         });
         mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
             copyForWrite.setCurrentStatus(JobStatusEnum.STARTING);
@@ -263,6 +266,7 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
         val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.RUNNING, buildJobMeta.getCurrentStatus());
+        Assert.assertFalse(buildJobMeta.isSkipListener());
         Assert.assertEquals(JobStatusEnum.RUNNING, mergeJobMeta.getCurrentStatus());
     }
 
@@ -284,5 +288,67 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.ERROR, buildJobMeta.getCurrentStatus());
         Assert.assertEquals(JobStatusEnum.ERROR, mergeJobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testKillStreamingJob() {
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+
+        val config = getTestConfig();
+        val instance = new StreamingScheduler(PROJECT);
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(buildJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        instance.killJob(modelId, JobTypeEnum.STREAMING_MERGE, JobStatusEnum.ERROR);
+        instance.killJob(modelId, JobTypeEnum.STREAMING_BUILD, JobStatusEnum.ERROR);
+        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.ERROR, buildJobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.ERROR, mergeJobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testForceStopStreamingJob() {
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+
+        val config = getTestConfig();
+        val instance = new StreamingScheduler(PROJECT);
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(buildJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        instance.killJob(modelId, JobTypeEnum.STREAMING_MERGE, JobStatusEnum.STOPPED);
+        instance.killJob(modelId, JobTypeEnum.STREAMING_BUILD, JobStatusEnum.STOPPED);
+        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.STOPPED, mergeJobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testSkipJobListener() {
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val config = getTestConfig();
+        val instance = new StreamingScheduler(PROJECT);
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        Assert.assertFalse(buildJobMeta.isSkipListener());
+
+        instance.skipJobListener(PROJECT, buildJobId, true);
+        buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        Assert.assertTrue(buildJobMeta.isSkipListener());
+
+        instance.skipJobListener(PROJECT, buildJobId, false);
+        buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        Assert.assertFalse(buildJobMeta.isSkipListener());
     }
 }

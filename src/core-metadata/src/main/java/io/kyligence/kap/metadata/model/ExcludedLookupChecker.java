@@ -300,4 +300,20 @@ public class ExcludedLookupChecker {
         }
         return false;
     }
+
+    public String detectFilterConditionDependsLookups(String exp, Set<String> lookupTables) {
+        for (String table : lookupTables) {
+            Set<String> aliasSet = joinTableAliasMap.get(table);
+            if (aliasSet == null) {
+                continue;
+            }
+            for (String alias : aliasSet) {
+                String aliasWithBacktick = String.format(Locale.ROOT, "`%s`", alias);
+                if (exp.contains(aliasWithBacktick)) {
+                    return alias;
+                }
+            }
+        }
+        return null;
+    }
 }

@@ -57,6 +57,9 @@
             </common-tip>
           </span>
         </div>
+        <h4 v-if="model.model_type === 'HYBRID'">
+          <span>{{$t('indexTimeRange')}}</span> <span v-if="aggregate.index_range">{{$t('kylinLang.common.' + aggregate.index_range)}}</span>
+        </h4>
         <el-tabs v-model="aggregate.activeTab">
           <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
         </el-tabs>

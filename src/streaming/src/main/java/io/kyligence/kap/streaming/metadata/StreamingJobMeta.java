@@ -134,6 +134,9 @@ public class StreamingJobMeta extends RootPersistentEntity {
 
     private String project;
 
+    @JsonProperty("skip_listener")
+    private boolean skipListener;
+
     @Override
     public String getResourcePath() {
         return concatResourcePath(getUuid(), project, jobType.name());

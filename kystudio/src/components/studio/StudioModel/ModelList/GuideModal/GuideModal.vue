@@ -225,18 +225,18 @@ export default class GuideModal extends Vue {
     .index-block {
       position: absolute;
       top: 126px;
-      left: 270px;
+      left: 259px;
       .index-tags {
         position: absolute;
         left: 100px;
         top: 0px;
         background-color: rgba(255,255,255,1);
         border-radius: 5px;
-        width: 240px;
+        width: 250px;
         height: 30px;
         line-height: 30px;
         span {
-          margin: 0 10px;
+          margin: 0 14px;
         }
       }
       .index-desc {

@@ -80,6 +80,9 @@ public class IndexResponse {
     @JsonProperty("need_update")
     private boolean needUpdate;
 
+    @JsonProperty("index_range")
+    private IndexEntity.Range indexRange;
+
     @JsonProperty("source")
     public IndexEntity.Source getSource() {
         if (isBase()) {

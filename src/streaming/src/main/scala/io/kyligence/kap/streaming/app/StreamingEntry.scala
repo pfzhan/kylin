@@ -25,6 +25,7 @@
 package io.kyligence.kap.streaming.app
 
 import java.text.SimpleDateFormat
+import java.util.concurrent.{CountDownLatch, TimeUnit}
 import java.util.{Locale, TimeZone}
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -68,15 +69,19 @@ object StreamingEntry
   }
 
   def stop(): Unit = {
-    entry.forceExit.set(true)
+    if (entry != null) {
+      entry.forceStop.set(true)
+      entry.forceStopLatch.await(10, TimeUnit.SECONDS)
+    }
   }
 }
 
 class StreamingEntry(args: Array[String]) extends StreamingApplication with Logging {
   val (prj, dataflowId, duration, maxRatePerPartition) = (args(0), args(1), args(2).toInt * 1000, args(3))
-  val stop = new AtomicBoolean(false)
-  // for UT TEST exit
-  val forceExit = new AtomicBoolean(false)
+  val gracefulStop = new AtomicBoolean(false)
+  // for Non Cluster Env exit
+  val forceStop = new AtomicBoolean(false)
+  val forceStopLatch = new CountDownLatch(1)
 
   def execute(): Unit = {
     log.info("StreamingBuildEntry:" + prj + "," + dataflowId + "," + duration / 1000 + "," + maxRatePerPartition)
@@ -140,19 +145,21 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
       }
       .trigger(trigger)
       .start()
-    addShutdownListener(markFile, stop, StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
-    while (!forceExit.get() && !ss.sparkContext.isStopped) {
-      if (stop.get()) {
+    addShutdownListener(markFile, gracefulStop, StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
+    while (!forceStop.get() && !ss.sparkContext.isStopped) {
+      if (gracefulStop.get()) {
         ss.streams.active.foreach(_.stop())
         HDFSUtils.deleteMarkFile(markFile)
         builder.shutdown()
-        stop.set(false)
+        gracefulStop.set(false)
         closeSparkSession()
       } else {
         ss.streams.awaitAnyTermination(10000)
       }
     }
-
+    if (forceStop.get()) {
+      forceStopLatch.countDown();
+    }
     closeAuditLogStore(ss)
     closeZkClient(zkClient)
     systemExit(0)

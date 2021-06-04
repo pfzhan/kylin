@@ -46,7 +46,7 @@
           </tr> -->
           <tr>
             <th>{{$t('hiveTable')}}</th>
-            <td>{{streamingData.hive_table_identity}}</td>
+            <td>{{streamingData.batch_table_identity}}</td>
           </tr>
         </table>
     </el-form>

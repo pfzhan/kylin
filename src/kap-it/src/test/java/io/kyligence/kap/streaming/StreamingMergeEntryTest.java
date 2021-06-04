@@ -29,6 +29,7 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -399,4 +400,10 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         Assert.assertFalse(streamingMergeEntry.isJobOnCluster());
     }
 
+    @Ignore
+    @Test
+    public void testShutdown() {
+        val result = StreamingMergeEntry.shutdown();
+        Assert.assertFalse(result);
+    }
 }

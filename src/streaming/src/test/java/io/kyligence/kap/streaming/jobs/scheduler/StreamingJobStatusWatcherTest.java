@@ -23,7 +23,10 @@
  */
 package io.kyligence.kap.streaming.jobs.scheduler;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -80,6 +83,43 @@ public class StreamingJobStatusWatcherTest extends StreamingTestCase {
     }
 
     @Test
+    public void testJobMap() {
+        val runningJobs = new ArrayList<String>();
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    Locale.getDefault(Locale.Category.FORMAT));
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(System.currentTimeMillis() - 2 * 60 * 1000);
+            copyForWrite.setLastUpdateTime(simpleFormat.format(cal.getTime()));
+            copyForWrite.setCurrentStatus(JobStatusEnum.ERROR);
+        });
+        runningJobs.add(buildJobId);
+        val watcher = new StreamingJobStatusWatcher();
+        var jobMap = (Map<String, AtomicInteger>) ReflectionUtils.getField(watcher, "jobMap");
+        Assert.assertTrue(jobMap.isEmpty());
+        watcher.execute(runningJobs);
+        jobMap = (Map<String, AtomicInteger>) ReflectionUtils.getField(watcher, "jobMap");
+        Assert.assertTrue(jobMap.containsKey(mergeJobId));
+        jobMap.clear();
+
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    Locale.getDefault(Locale.Category.FORMAT));
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(System.currentTimeMillis() - 50 * 60 * 1000);
+            copyForWrite.setLastUpdateTime(simpleFormat.format(cal.getTime()));
+            copyForWrite.setCurrentStatus(JobStatusEnum.ERROR);
+        });
+        jobMap = (Map<String, AtomicInteger>) ReflectionUtils.getField(watcher, "jobMap");
+        Assert.assertFalse(jobMap.containsKey(mergeJobId));
+    }
+
+    @Test
     public void testKillBuildJob() {
         val runningJobs = new ArrayList<String>();
         val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
@@ -109,6 +149,27 @@ public class StreamingJobStatusWatcherTest extends StreamingTestCase {
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
         mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
             copyForWrite.setCurrentStatus(JobStatusEnum.STOPPING);
+
+        });
+        runningJobs.add(buildJobId);
+        val watcher = new StreamingJobStatusWatcher();
+        for (int i = 0; i < 8; i++) {
+            watcher.execute(runningJobs);
+        }
+        val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.ERROR, mergeJobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testKillStartingJob() {
+        val runningJobs = new ArrayList<String>();
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.STARTING);
 
         });
         runningJobs.add(buildJobId);

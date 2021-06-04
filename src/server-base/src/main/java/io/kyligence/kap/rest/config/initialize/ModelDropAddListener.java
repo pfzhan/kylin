@@ -27,6 +27,10 @@ package io.kyligence.kap.rest.config.initialize;
 import java.util.Map;
 import java.util.Objects;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -49,10 +53,17 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ModelDropAddListener {
 
-    public static void onDelete(String project, String modelId, String modelName) {
-        log.debug("delete model {} in project {}", modelId, project);
-        MetricsGroup.removeModelMetrics(project, modelId);
-        PrometheusMetricsGroup.removeModelMetrics(project, modelName);
+    @Subscribe
+    public void onDelete(ModelService.ModelDropEvent modelDropEvent) {
+        String project = modelDropEvent.getProject();
+        String modelId = modelDropEvent.getModelId();
+        String modelName = modelDropEvent.getModelName();
+        UnitOfWorkContext context = UnitOfWork.get();
+        context.doAfterUnit(() -> {
+            log.debug("delete model {} in project {}", modelId, project);
+            MetricsGroup.removeModelMetrics(project, modelId);
+            PrometheusMetricsGroup.removeModelMetrics(project, modelName);
+        });
     }
 
     public static void onAdd(String project, String modelId, String modelAlias) {

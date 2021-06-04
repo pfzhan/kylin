@@ -50,6 +50,7 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.streaming.RDBMSStreamingJobStatsDAO;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -129,6 +130,10 @@ public abstract class BasicService {
 
     public NDataflowManager getDataflowManager(String project) {
         return NDataflowManager.getInstance(getConfig(), project);
+    }
+
+    public FusionModelManager getFusionModelManager(String project) {
+        return FusionModelManager.getInstance(getConfig(), project);
     }
 
     public NIndexPlanManager getIndexPlanManager(String project) {

@@ -3,7 +3,8 @@ import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
 import store from '../store'
 import { stopPropagation, on } from 'util/event'
-import commonTip from 'components/common/common_tip'
+// import commonTip from 'components/common/common_tip'
+import ElementUI from 'kyligence-ui'
 const nodeList = []
 const ctx = '@@clickoutsideContext'
 
@@ -695,14 +696,19 @@ Vue.directive('custom-tooltip', {
     }, 500)
   },
   update: (el, binding, oldVnode) => {
-    if (binding.value.text === binding.oldValue.text && binding.value.w === binding.oldValue.w) return
+    const content = binding.value.content || binding.value.text
+    if ('content' in binding.value) {
+      if (binding.value.content === binding.oldValue.content && binding.value.text === binding.oldValue.text && binding.value.w === binding.oldValue.w) return
+    } else {
+      if (binding.value.text === binding.oldValue.text && binding.value.w === binding.oldValue.w) return
+    }
     let id = el.getAttribute('data-id')
     if (!id || !(id in parentList)) return
     let parent = parentList[id].parent
     let textNode = parent.querySelector('.custom-tooltip-text')
     parentList[id].binding = binding
-    let currentWidth = parentList[id].textWidth = getTextWidth(textNode, binding.value.text)
-    textNode.textContent = binding.value.text
+    let currentWidth = parentList[id].textWidth = getTextWidth(textNode, content)
+    textNode.textContent = content
     appendTipDom(textNode, currentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
   },
   unbind: (el) => {
@@ -739,19 +745,30 @@ function licenseDom (id) {
 
 // 自定义创建common-tip组件并挂载
 function createToolTipDom (el, binding, parentWidth) {
-  const renderer = Vue.compile(el.outerHTML)
+  const customLayout = document.createElement('span')
+  const renderer = Vue.compile(createTextDom(el))
   let createCommonTip = (propsData) => {
-    let Dom = Vue.extend(commonTip)
+    let Dom = Vue.extend(ElementUI.Tooltip)
+    // let Dom = Vue.extend(commonTip)
     return new Dom({
       propsData
     })
   }
-  let t = createCommonTip({placement: 'top', effect: 'dark', value: true, content: binding.value.text})
+  let t = createCommonTip({placement: 'top', effect: 'dark', content: binding.value.text})
   t.$slots.default = [t.$createElement(renderer)]
   t.$mount()
-  t.$el.className = `${t.$el.className} custom-tooltip-layout ${binding.value.className || ''}`
-  parentWidth && (t.$el.style.cssText = `width: ${parentWidth - binding.value.w || 0}px;`)
-  return t
+  customLayout.appendChild(t.$el)
+  customLayout.className = `${customLayout.className} tip_box custom-tooltip-layout ${binding.value.className || ''}`
+  parentWidth && (customLayout.style.cssText = `width: ${parentWidth - binding.value.w || 0}px;`)
+  return customLayout
+}
+
+// 组装 text dom 结构
+function createTextDom (el) {
+  const textLayout = document.createElement('span')
+  textLayout.className = 'content'
+  textLayout.appendChild(el)
+  return textLayout.outerHTML
 }
 
 // 窗口resize以及更新数据时重新插入tooltip或去除tooltip
@@ -760,16 +777,16 @@ function appendTipDom (el, currentW, w) {
   if (!id || !(id in parentList)) return
   const { parent, nextElement, binding } = parentList[id]
   const parentW = parent && parent.offsetWidth
-  let comp = createToolTipDom(el, binding, parentW)
 
   // 当前el超过父节点的宽度时插入tooltip否者移出
   if (currentW + w >= parentW) {
+    let comp = createToolTipDom(el, binding, parentW)
     if (!parent.querySelector('.tip_box')) {
       let _El = parent.querySelector('.custom-tooltip-text')
-      nextElement ? parent.insertBefore(comp.$el, nextElement) : parent.appendChild(comp.$el)
-      parent.removeChild(_El)
+      nextElement ? parent.insertBefore(comp, nextElement) : parent.appendChild(comp)
+      _El && parent.removeChild(_El)
     } else {
-      nextElement ? parent.insertBefore(comp.$el, nextElement) : parent.appendChild(comp.$el)
+      nextElement ? parent.insertBefore(comp, nextElement) : parent.appendChild(comp)
       parent.removeChild(parent.querySelector('.tip_box'))
     }
   } else {

@@ -21,6 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
@@ -64,6 +65,7 @@ import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.IndexStatResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
+import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.swagger.annotations.ApiOperation;
@@ -81,6 +83,10 @@ public class NIndexPlanController extends NBasicController {
     private IndexPlanService indexPlanService;
 
     @Autowired
+    @Qualifier("fusionIndexService")
+    private FusionIndexService fusionIndexService;
+
+    @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
 
@@ -91,7 +97,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, request.getModelId());
         modelService.validateCCType(request.getModelId(), request.getProject());
         indexPlanService.checkIndexCountWithinLimit(request);
-        val response = indexPlanService.updateRuleBasedCuboid(request.getProject(), request).getSecond();
+        val response = fusionIndexService.updateRuleBasedCuboid(request.getProject(), request).getSecond();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -101,7 +107,7 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam("model") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val rule = indexPlanService.getRule(project, modelId);
+        val rule = fusionIndexService.getRule(project, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
     }
 
@@ -133,7 +139,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         modelService.validateCCType(request.getModelId(), request.getProject());
-        val response = indexPlanService.createTableIndex(request.getProject(), request);
+        val response = fusionIndexService.createTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -144,7 +150,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, request.getModelId());
         checkRequiredArg("id", request.getId());
         modelService.validateCCType(request.getModelId(), request.getProject());
-        val response = indexPlanService.updateTableIndex(request.getProject(), request);
+        val response = fusionIndexService.updateTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
@@ -189,7 +195,7 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val indexes = indexPlanService.getIndexes(project, modelId, key, status, order, desc, sources, ids);
+        val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 
@@ -208,10 +214,10 @@ public class NIndexPlanController extends NBasicController {
     @DeleteMapping(value = "/index/{layout_id:.+}")
     public EnvelopeResponse<String> deleteIndex(@PathVariable(value = "layout_id") long layoutId,
             @RequestParam(value = "project") String project, //
-            @RequestParam(value = "model") String modelId) {
+            @RequestParam(value = "model") String modelId, @RequestParam("index_range") IndexEntity.Range indexRange) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        indexPlanService.removeIndex(project, modelId, layoutId);
+        fusionIndexService.removeIndex(project, modelId, layoutId, indexRange);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -251,7 +257,7 @@ public class NIndexPlanController extends NBasicController {
     @ApiOperation(value = "getIndex", tags = { "AI" })
     @GetMapping(value = "/index_stat")
     public EnvelopeResponse<IndexStatResponse> getIndexStat(@RequestParam(value = "project") String project,
-                                                            @RequestParam(value = "model_id") String modelId) {
+            @RequestParam(value = "model_id") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val response = indexPlanService.getStat(project, modelId);

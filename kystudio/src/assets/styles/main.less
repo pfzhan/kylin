@@ -48,6 +48,15 @@ i[class^=el-icon-]{
   &:not(.disabled){
     &:hover {
       color:@base-color;
+      cursor: pointer;
+    }
+  }
+}
+.ky-hover-icon i[class^=el-ksd-icon-]{
+  &:not(.disabled){
+    &:hover {
+      color:@base-color;
+      cursor: pointer;
     }
   }
 }
@@ -213,7 +222,7 @@ i[class^=el-icon-]{
   font-size: 26px;
   line-height: 38px;
   color: @text-title-color;
-  font-weight: @font-medium;
+  font-weight: @font-700;
 }
 .ksd-title-module {
   font-size: 20px;
@@ -513,15 +522,15 @@ i[class^=el-icon-]{
 .query_panel_box {
   border: 1px solid @ke-border-secondary;
   border-radius: 6px;
-  .smyles_editor_wrap {
-    margin: -1px;
+  // .smyles_editor_wrap {
+    // margin: -1px;
     // .ace-chrome {
     //   border-top-left-radius: 5px;
     //   border-top-right-radius: 5px;
     //   border-bottom-left-radius: 0;
     //   border-bottom-right-radius: 0;
     // }
-  }
+  // }
   .operatorBox{
     display: flex;
     padding: 8px 15px;
@@ -1060,6 +1069,11 @@ i[class^=el-icon-]{
 
 .pull-right {
   float: right;
+}
+
+.el-menu-item .mutiple-color-icon,
+.el-submenu .mutiple-color-icon {
+  margin-bottom: 0px;
 }
 
 input[type=file] {

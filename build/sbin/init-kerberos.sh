@@ -41,6 +41,10 @@ function exportKRB5() {
     export KRB5CCNAME=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_CACHE}
 
     KAP_KERBEROS_KRB5=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.krb5-conf`
+    if [ ! -n "$KAP_KERBEROS_KRB5" ]; then
+        quit "kylin.kerberos.krb5-conf cannot be set to empty in kylin.properties"
+    fi
+
     export KRB5_CONFIG=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_KRB5}
     echo "KRB5_CONFIG is set to ${KRB5_CONFIG}"
 }
@@ -56,6 +60,11 @@ function initKerberos() {
     KAP_KERBEROS_PRINCIPAL=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.principal`
     KAP_KERBEROS_KEYTAB=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.keytab`
     KAP_KERBEROS_KEYTAB_PATH=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_KEYTAB}
+
+    if [ ! -e ${KRB5_CONFIG} ]; then
+        quit "${KRB5_CONFIG} file doesn't exist"
+    fi
+
     echo "Kerberos is enabled, init..."
     kinit -kt $KAP_KERBEROS_KEYTAB_PATH $KAP_KERBEROS_PRINCIPAL
 }

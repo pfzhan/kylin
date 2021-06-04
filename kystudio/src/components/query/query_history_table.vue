@@ -12,8 +12,7 @@
           id="exportSql"
           btn-icon="el-ksd-icon-export_22"
           placement="bottom-start"
-          @click="exportHistory(false)">
-          {{$t('kylinLang.query.export')}}
+          @click="exportHistory(false)">{{$t('kylinLang.query.export')}}
           <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
             <el-dropdown-item
               :disabled="!queryHistoryTotalSize"
@@ -88,7 +87,7 @@
                           <el-col :span="4">
                             <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                           </el-col>
-                          <el-col :span="6">
+                          <el-col :span="6" v-if="props.row.query_steps&&props.row.query_steps[0].duration>0">
                             <el-progress v-if="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, props.row.query_steps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                           </el-col>
                         </el-row>
@@ -116,10 +115,13 @@
                   <p class="list" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
                     <span class="label">{{$t('kylinLang.query.index_id')}}</span>
                     <span class="text">
-                      <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId" @click="openLayoutDetails(item)">
+                      <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId">
                         <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                          <span>{{`${item.layoutId}${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                          <span @click="openLayoutDetails(item)">{{item.layoutId}}</span>
                         </el-tooltip>
+                        <el-tooltip placement="top" :content="$t('secStorage')">
+                          <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
+                        </el-tooltip><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                       </span>
                     </span>
                   </p>
@@ -312,7 +314,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       aggDetailTitle: 'Aggregate Detail',
       tabelDetailTitle: 'Table Index Detail',
       unExistLayoutTip: 'This index has been deleted',
-      filteredTotalSize: '{totalSize} result(s)'
+      filteredTotalSize: '{totalSize} result(s)',
+      secStorage: 'Secondary Storage'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -348,7 +351,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       aggDetailTitle: '聚合索引详情',
       tabelDetailTitle: '明细索引详情',
       unExistLayoutTip: '该索引已被删除',
-      filteredTotalSize: '{totalSize} 条结果'
+      filteredTotalSize: '{totalSize} 条结果',
+      secStorage: '二级存储'
     }
   },
   filters: {
@@ -1084,6 +1088,7 @@ export default class QueryHistoryTable extends Vue {
           .el-tag{
             max-width: calc(~"100% - 85px");
             &.showMore{
+              padding-left: 7px;
               width:auto;
               max-width: 80px;
               min-width: 60px;
@@ -1110,6 +1115,7 @@ export default class QueryHistoryTable extends Vue {
           width:auto;
           max-width: 80px;
           min-width: 60px;
+          padding-left: 7px;
           text-overflow: ellipsis;
           font-size:12px;
           line-height: 20px;
@@ -1166,8 +1172,13 @@ export default class QueryHistoryTable extends Vue {
         }
       }
       .realizations-layout-id {
-        color: @base-color;
-        cursor: pointer;
+        align-items: center;
+        display: inline-flex;
+        line-height: 16px;
+        span:first-child {
+          color: @base-color;
+          cursor: pointer;
+        }
         &.is-disabled {
           color: @text-normal-color;
           cursor: default;
@@ -1177,10 +1188,12 @@ export default class QueryHistoryTable extends Vue {
         line-height: 1;
         padding: 0;
         position: relative;
-        top: 4px;
+        top: 3px;
         left: 5px;
       }
-      .el-icon-ksd-data_range {
+      .el-ksd-icon-data_range_old {
+        position: relative;
+        top: 1px;
         &.isFilter,
         &:hover {
           color: @base-color;

@@ -452,7 +452,7 @@ public class EscapeTransformerTest {
     @Test
     public void testPI() {
         String originalSQL = "select sum({fn pi()}), count(pi() + price), lstg_format_name  from test_kylin_fact";
-        String expectedSQL = "select sum(pi()), count(pi() + price), lstg_format_name  from test_kylin_fact";
+        String expectedSQL = "select sum(pi()), count(PI + price), lstg_format_name  from test_kylin_fact";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

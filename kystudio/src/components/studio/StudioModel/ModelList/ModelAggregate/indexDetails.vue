@@ -10,7 +10,7 @@
     :visible="true">
     <div class="ksd-mb-10 ksd-fs-12 indexes-content-details">
       <span>{{$t(cuboidData.source) + $t('kylinLang.common.colon')}}
-        <span v-if="detailType === 'aggDetail' && cuboidDetail.cuboidContent">{{$t('indexContentTips', {dimensionNum: cuboidDetail.cuboidContent.filter(it => it.type === 'dimension').length, measureNum: cuboidDetail.cuboidContent.filter(it => it.type === 'measure').length})}}</span>
+        <span v-if="detailType === 'aggDetail' && cuboidData.col_order">{{$t('indexContentTips', {dimensionNum: cuboidData.col_order.filter(it => it.value !== 'measure').length, measureNum: cuboidData.col_order.filter(it => it.value === 'measure').length})}}</span>
         <span v-else-if="detailType !== 'aggDetail' && cuboidData.col_order">{{$t('tableIndexContentTip', {num: cuboidData.col_order.length})}}</span>
       </span>
       <span><el-tooltip :content="$t('modifiedTime')" placement="top"><i class="el-icon-ksd-type_time"></i></el-tooltip> {{cuboidDetail.modifiedTime || showTableIndexDetail.modifiedTime}}</span>
@@ -44,7 +44,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.IndexDetailPager" :perpage_size="currentCount" :curPage="currentAggPage+1" :totalSize="totalAggIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+      <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :refTag="pageRefTags.IndexDetailPager" :perpage_size="currentCount" :curPage="currentAggPage+1" :totalSize="totalAggIndexColumnSize"  v-on:handleCurrentChange='changeAggPage'></kap-pager>
     </template>
     <div v-else>
         <el-table
@@ -156,10 +156,17 @@ export default class indexDetails extends Vue {
     this.currentCount = count
   }
 
+  changeAggPage (size, count) {
+    this.currentAggPage = size
+    this.currentCount = count
+  }
+
   resetDetail () {
     this.currentPage = 0
     this.currentCount = 10
     this.totalTableIndexColumnSize = 0
+    this.currentAggPage = 0
+    this.totalAggIndexColumnSize = 0
     this.$emit('close')
   }
 

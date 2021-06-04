@@ -516,7 +516,7 @@ import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm, postCloudUrlMessage } from '../../../../util/business'
-import { isIE, groupData, objectClone, filterObjectArray, handleSuccessAsync, getQueryString } from '../../../../util'
+import { isIE, groupData, objectClone, filterObjectArray, handleSuccessAsync, getQueryString, indexOfObjWithSomeKey } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import BatchMeasureModal from '../BatchMeasureModal/index.vue'
@@ -1760,6 +1760,7 @@ export default class ModelEdit extends Vue {
           project: this.currentSelectedProject,
           renderDom: this.renderBox
         }), this.modelRender, this)
+        this.updateTableInfo()
         if (this.isSchemaBrokenModel) {
           kapConfirm(this.$t('brokenEditTip'), {
             showCancelButton: false,
@@ -1796,6 +1797,15 @@ export default class ModelEdit extends Vue {
     })
     if (localStorage.getItem('isFirstAddModel') === 'true') {
       await this.showGuide()
+    }
+  }
+
+  // 更新 model.js 里的 tables 数据
+  updateTableInfo () {
+    for (let key in this.modelInstance.tables) {
+      const { name } = this.modelInstance.tables[key]
+      const index = indexOfObjWithSomeKey(this.datasource, 'table', name)
+      index >= 0 && (this.modelInstance.tables[key].source_type = this.datasource[index].source_type)
     }
   }
 

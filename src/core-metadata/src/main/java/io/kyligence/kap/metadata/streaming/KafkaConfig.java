@@ -112,6 +112,10 @@ public class KafkaConfig extends RootPersistentEntity implements Serializable {
                 .append(name).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
+    public String getBatchTableAlias() {
+        return this.batchTable.split("\\.")[1];
+    }
+
     public boolean hasBatchTable() {
         return StringUtils.isNotEmpty(this.batchTable);
     }

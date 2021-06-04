@@ -82,11 +82,12 @@
           :value="filterArgs.model_attributes"
           :options="[
             { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE' },
+            { renderLabel: renderModelTypeLabel, value: 'HYBRID' },
             { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
             { renderLabel: renderModelTypeLabel, value: 'BATCH' }
           ]"
           @input="v => filterContent(v, 'model_attributes')">
-          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedStatus}}</el-button>
+          <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedModelAttributes}}</el-button>
         </DropdownFilter>
         <div class="actions">
           <el-button
@@ -178,7 +179,7 @@
               </el-popover>
               <span class="model-alias-title" @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
             </div>
-            <el-tooltip class="last-modified-tooltip" effect="dark" :content="$t('dataLoadTime')" placement="top">
+            <el-tooltip class="last-modified-tooltip" effect="dark" :content="`${$t('dataLoadTime')}${scope.row.gmtTime}`" placement="top">
               <span>{{scope.row.gmtTime}}</span>
             </el-tooltip>
 
@@ -187,7 +188,10 @@
 
           </template>
         </el-table-column>
-        <el-table-column width="150px" :label="$t('recommendationsTiTle')" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+        <el-table-column
+          width="150px"
+          :label="$t('recommendationsTiTle')"
+          v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
             <template v-if="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">-</template>
             <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom" v-else>
@@ -210,8 +214,8 @@
               >
                 <div class="model-ER-layout"><ModelERDiagram v-if="scope.row.showER" :model="dataGenerator.generateModel(scope.row)" /></div>
               </el-popover>
-              <span class="model-ER">
-                <el-icon name="el-ksd-icon-table_er_diagram_22" v-popover="`${scope.row.alias}-ERPopover`" class="ksd-fs-22" type="mult"></el-icon>
+              <span class="model-ER" v-popover="`${scope.row.alias}-ERPopover`">
+                <el-icon name="el-ksd-icon-table_er_diagram_22" class="ksd-fs-22" type="mult"></el-icon>
               </span>
               <div class="fact-table" v-if="scope.row.fact_table.split('.').length === 2"><span v-custom-tooltip="{text: scope.row.fact_table.split('.')[1], w: 0, tableClassName: 'model_list_table'}">{{scope.row.fact_table.split('.')[1]}}</span></div>
             </template>
@@ -229,6 +233,7 @@
         <el-table-column
           width="100"
           prop="usage"
+          align="right"
           sortable="custom"
           show-overflow-tooltip
           :info-tooltip="$t('usageTip', {mode: $t(isAutoProject ? 'indexGroup' : 'model')})"
@@ -241,7 +246,7 @@
           :label="$t('rowCount')">
           <template slot-scope="scope">
             <div>{{sliceNumber(scope.row.source)}}</div>
-            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
+            <div class="update-time ksd-fs-12"><span v-custom-tooltip="{text: `${$t('lastBuildTime')}${transToServerGmtTime(scope.row.last_build_time)}`, content: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span></div>
           </template>
         </el-table-column>
         <el-table-column
@@ -503,7 +508,7 @@ export default class ModelList extends Vue {
   transToServerGmtTime = transToServerGmtTime
   filterArgs = getDefaultFilters(this)
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
-  modelTypeList = ['STREAMING', 'BATCH']
+  modelTypeList = ['HYBRID', 'STREAMING', 'BATCH', 'SECOND_STORAGE']
   currentEditModel = null
   showFull = false
   showSearchResult = false
@@ -598,10 +603,10 @@ export default class ModelList extends Vue {
     }
     return this.$t('allTimeRange')
   }
-  get selectedModeType () {
+  get selectedModelAttributes () {
     const { filterArgs } = this
-    return filterArgs.model_types.length && this.modelTypeList.length !== filterArgs.model_types.length
-      ? filterArgs.model_types.map(status => this.$t(status)).join(', ')
+    return filterArgs.model_attributes.length && this.modelTypeList.length !== filterArgs.model_attributes.length
+      ? filterArgs.model_attributes.map(attributes => this.$t(attributes)).join(', ')
       : this.$t('ALL')
   }
   get isResetFilterDisabled () {
@@ -997,9 +1002,9 @@ export default class ModelList extends Vue {
 
   modelRowClickEvent (row, e) {
     if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
-    if (e.target.localName === 'td' || [...e.target.classList].includes('cell')) {
-      this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
-    }
+    // if (e.target.localName === 'td' || [...e.target.classList].includes('cell') || [...e.target.classList].includes('alias')) {
+    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
+    // }
   }
 
   // 展示 E-R 图
@@ -1088,15 +1093,8 @@ export default class ModelList extends Vue {
       right:10px;
     }
   }
-  .disabled-export {
-    color: @text-disabled-color;
-    cursor: pointer;
-    &:hover {
-      background: none;
-      color: #bbbbbb;
-    }
-  }
   .model_list_table {
+    user-select: none;
     .el-table__header th {
       vertical-align: top;
     }
@@ -1411,6 +1409,7 @@ export default class ModelList extends Vue {
 }
 .filter-button {
   margin-left: 5px;
+  vertical-align: bottom;
   .el-ksd-icon-arrow_up_22 {
     transform: rotate(180deg);
   }
@@ -1517,6 +1516,13 @@ export default class ModelList extends Vue {
     width: 100%;
     height: 100%;
     position: relative;
+  }
+}
+.el-tooltip__popper {
+  .popper__arrow {
+    &::after {
+      content: none\0;
+    }
   }
 }
 </style>

@@ -42,6 +42,11 @@
             </common-tip>
           </span>
         </div>
+        <p class="ksd-mb-10" v-if="model.model_type === 'HYBRID'">
+          <span>{{$t('indexTimeRange')}}</span>
+          <span v-if="index.index_range">{{$t('kylinLang.common.' + index.index_range)}}</span>
+        </p>
+        <p class="ksd-mb-10" v-if="model.model_type === 'HYBRID'">包含的列</p>
         <div class="table-index-content">
           <el-table
           size="medium"
@@ -177,7 +182,16 @@ export default class TableIndexView extends Vue {
   async removeIndex (index) {
     try {
       await kapConfirm(this.$t('delIndexTip'), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('delIndex'))
-      await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: index.id})
+      const params = {
+        project: this.projectName,
+        model: this.model.uuid,
+        id: index.id
+      }
+      // 如果是融合模型，删除的时候，要多带一个参数
+      if (this.model.model_type === 'HYBRID' || this.model.model_type === 'STREAMING') {
+        params.index_range = index.index_range || 'EMPTY'
+      }
+      await this.deleteIndex(params)
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.loadTableIndices()
       this.$emit('loadModels')

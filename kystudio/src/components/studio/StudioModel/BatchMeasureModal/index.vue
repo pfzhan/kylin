@@ -30,7 +30,6 @@
           </div>
           <el-table
             v-if="table.show || isGuideMode"
-            border
             :data="table.columns"
             :ref="table.guid">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
@@ -74,7 +73,6 @@
           </div>
           <el-table
             v-if="table.show || isGuideMode"
-            border
             :class="{'disabled-checkbox': flattenLookupTables.includes(table.alias)}"
             :data="table.columns"
             :ref="table.guid">
@@ -118,7 +116,6 @@
             </div>
             <el-table
               v-if="ccTable.show || isGuideMode"
-              border
               :data="ccTable.columns"
               :ref="ccTable.guid">
               <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
@@ -151,7 +148,6 @@
         <div v-for="searchTable in pagerSearchTable" class="scroll-table-item" :key="searchTable.guid">
           {{searchTable.table_alias}}
           <el-table
-            border
             :empty-text="emptyText"
             v-if="isShowSearchTable || isGuideMode"
             :data="searchTable.columns">
@@ -593,12 +589,12 @@ export default class BatchMeasureModal extends Vue {
       this.$set(table, 'meaColNum', numArr)
     }
     totalNums === 0 && (column.isAllSelected = false)
-    return (<span>
+    return (<span class="layout">
       <el-checkbox
         disabled={ store.states.data && store.states.data.length === 0 }
         indeterminate={ totalNums > 0 && len > totalNums}
         onChange={ toggleAllMeasures }
-        value={ column.isAllSelected }></el-checkbox> <span>{ column.property }({column.totalNums}/{len})</span>
+        value={ column.isAllSelected }></el-checkbox> <span class="title">{ column.property }({column.totalNums}/{len})</span>
     </span>)
   }
   getTableTops () {
@@ -663,6 +659,17 @@ export default class BatchMeasureModal extends Vue {
             background-color: @background-disabled-color;
             border-color: @line-border-color3;
           }
+        }
+      }
+    }
+    .el-table__header {
+      .layout {
+        font-size: 0;
+        .title {
+          vertical-align: middle;
+          line-height: 23px;
+          font-size: 14px;
+          margin-left: 5px;
         }
       }
     }

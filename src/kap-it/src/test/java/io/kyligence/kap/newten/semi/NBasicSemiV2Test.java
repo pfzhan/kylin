@@ -870,12 +870,13 @@ public class NBasicSemiV2Test extends SemiAutoTestBase {
     }
 
     @Test
-    public void testExplictUseCC() {
+    public void testExplicitUseCC() {
         String project = "cc_test";
 
         String[] sqls = new String[] {
                 "SELECT min(CC_LTAX) FROM SSB.LINEORDER LINEORDER INNER JOIN SSB.CUSTOMER as CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY" };
-        AbstractContext proposeContext = new ModelReuseContextOfSemiV2(getTestConfig(), project, sqls, true);
+        AbstractContext proposeContext = AccelerationContextUtil.newModelReuseContextOfSemiAutoMode(getTestConfig(),
+                project, sqls, true);
         val smartMaster = new SmartMaster(proposeContext);
         smartMaster.executePropose();
 

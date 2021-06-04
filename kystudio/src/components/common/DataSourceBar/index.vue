@@ -783,6 +783,7 @@ export default class DataSourceBar extends Vue {
   .icon-btns {
     position: relative;
     height: 22px;
+    top: 2px;
   }
   .header-icons {
     float: right;

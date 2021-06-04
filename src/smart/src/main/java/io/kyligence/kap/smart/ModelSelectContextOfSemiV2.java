@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
@@ -67,7 +68,9 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels();
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels().stream()
+                .filter(model -> getExtraMeta().getOnlineModelIds().contains(model.getUuid()))
+                .collect(Collectors.toList());
 
     }
 

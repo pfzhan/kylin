@@ -23,9 +23,15 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
@@ -50,55 +56,100 @@ public class StreamingJobListenerTest extends StreamingTestCase {
     private static String PROJECT = "streaming_test";
     private static String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
 
-    private StreamingJobListener listener;
+    private StreamingJobListener eventListener = new StreamingJobListener();
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
+        EventBusFactory.getInstance().register(eventListener, true);
     }
 
     @After
     public void tearDown() {
+        EventBusFactory.getInstance().unregister(eventListener);
+        EventBusFactory.getInstance().restart();
         this.cleanupTestMetadata();
     }
 
     @Test
     public void testStateChangedToRunning() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.toString());
-        listener = new StreamingJobListener(PROJECT, jobId);
-        listener.stateChanged(mockRunningState());
+        val listener = new StreamingJobListener(PROJECT, jobId);
         val testConfig = getTestConfig();
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setSkipListener(true);
+        });
+        listener.stateChanged(mockRunningState());
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.RUNNING, jobMeta.getCurrentStatus());
+        Assert.assertFalse(jobMeta.isSkipListener());
     }
 
     @Test
-    public void testStateChangedForFailure() {
+    public void testStateChangedToFailure() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.toString());
-        listener = new StreamingJobListener(PROJECT, jobId);
+        val listener = new StreamingJobListener(PROJECT, jobId);
         listener.stateChanged(mockFailedState());
         val testConfig = getTestConfig();
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.ERROR, jobMeta.getCurrentStatus());
+
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.STOPPING);
+            copyForWrite.setSkipListener(true);
+        });
+        listener.stateChanged(mockFailedState());
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.STOPPING, jobMeta.getCurrentStatus());
+
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    Locale.getDefault(Locale.Category.FORMAT));
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(System.currentTimeMillis() - 2 * 60 * 1000);
+            copyForWrite.setLastUpdateTime(simpleFormat.format(cal.getTime()));
+        });
+        listener.stateChanged(mockKilledState());
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.STOPPING, jobMeta.getCurrentStatus());
     }
 
     @Test
-    public void testStateChangedForKilled() {
+    public void testStateChangedToKilled() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.toString());
-        listener = new StreamingJobListener(PROJECT, jobId);
-        listener.stateChanged(mockKilledState());
+        val listener = new StreamingJobListener(PROJECT, jobId);
         val testConfig = getTestConfig();
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        listener.stateChanged(mockKilledState());
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.ERROR, jobMeta.getCurrentStatus());
+
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+            copyForWrite.setSkipListener(true);
+        });
+        listener.stateChanged(mockKilledState());
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, jobMeta.getCurrentStatus());
+
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    Locale.getDefault(Locale.Category.FORMAT));
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(System.currentTimeMillis() - 3 * 60 * 1000);
+            copyForWrite.setLastUpdateTime(simpleFormat.format(cal.getTime()));
+        });
+        listener.stateChanged(mockKilledState());
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.ERROR, jobMeta.getCurrentStatus());
     }
 
     @Test
     public void testStateChangedToFinish() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.toString());
-        listener = new StreamingJobListener(PROJECT, jobId);
+        val listener = new StreamingJobListener(PROJECT, jobId);
         listener.stateChanged(mockRunningState());
         val testConfig = getTestConfig();
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
@@ -108,6 +159,50 @@ public class StreamingJobListenerTest extends StreamingTestCase {
         mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.STOPPED, jobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testOnStreamingJobKill() {
+        String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        String project = "streaming_test";
+        val config = getTestConfig();
+        var mgr = StreamingJobManager.getInstance(config, project);
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        mgr.updateStreamingJob(buildJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        var mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, buildJobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.RUNNING, mergeJobMeta.getCurrentStatus());
+        EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
+        buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.STOPPED, mergeJobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testOnStreamingJobDrop() {
+        String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        String project = "streaming_test";
+        val config = getTestConfig();
+        var mgr = StreamingJobManager.getInstance(config, project);
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        var mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertNotNull(buildJobMeta);
+        Assert.assertNotNull(mergeJobMeta);
+        EventBusFactory.getInstance().postSync(new StreamingJobDropEvent(project, modelId));
+        buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertNull(buildJobMeta);
+        Assert.assertNull(mergeJobMeta);
     }
 
     private SparkAppHandle mockRunningState() {

@@ -357,6 +357,10 @@ public class IndexEntity implements Serializable, IKeep {
         RECOMMENDED_AGG_INDEX, RECOMMENDED_TABLE_INDEX, CUSTOM_AGG_INDEX, CUSTOM_TABLE_INDEX, BASE_AGG_INDEX, BASE_TABLE_INDEX
     }
 
+    public enum Range {
+        BATCH, STREAMING, HYBRID, EMPTY
+    }
+
     public static class IndexIdentifier {
         int[] dims;
         int[] measures;

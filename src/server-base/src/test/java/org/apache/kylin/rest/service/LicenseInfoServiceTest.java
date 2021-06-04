@@ -269,4 +269,10 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
         return projectCapacityDetailList;
     }
 
+    @Test
+    public void testRefreshLicenseVolume() {
+        licenseInfoService.refreshLicenseVolume();
+        Mockito.verify(licenseInfoService, Mockito.times(1)).updateSourceUsage();
+    }
+
 }

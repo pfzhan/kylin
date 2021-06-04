@@ -24,14 +24,21 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.StreamingRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.service.StreamingTableService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.swagger.annotations.ApiOperation;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +53,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping(value = "/api/streaming_tables", produces = { HTTP_VND_APACHE_KYLIN_JSON,
@@ -68,6 +80,15 @@ public class StreamingTableController extends NBasicController {
         checkProjectName(project);
         TableExtDesc tableExt = streamingTableService.getOrCreateTableExt(project, streamingRequest.getTableDesc());
         try {
+            String batchTableName = streamingRequest.getKafkaConfig().getBatchTable();
+            if (!StringUtils.isEmpty(batchTableName)) {
+                TableDesc batchTableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getTableDesc(batchTableName);
+                if (!checkColumnsMatch(batchTableDesc.getColumns(), streamingRequest.getTableDesc().getColumns())) {
+                    throw new KylinException(RELOAD_TABLE_FAILED,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
+                }
+            }
+
             tableExtService.checkAndLoadTable(project, streamingRequest.getTableDesc(), tableExt);
             streamingTableService.createKafkaConfig(project, streamingRequest.getKafkaConfig());
             LoadTableResponse loadTableResponse = new LoadTableResponse();
@@ -77,6 +98,19 @@ public class StreamingTableController extends NBasicController {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
+    }
+
+    private boolean checkColumnsMatch(ColumnDesc[] batchColumnDescs, ColumnDesc[] streamColumnDescs) {
+        if (batchColumnDescs.length != streamColumnDescs.length) {
+            return false;
+        }
+
+        List<String> batchColumns = Arrays.stream(batchColumnDescs).map(ColumnDesc::getName).sorted().collect(Collectors.toList());
+        List<String> streamColumns = Arrays.stream(streamColumnDescs).map(ColumnDesc::getName).sorted().collect(Collectors.toList());
+        if (!batchColumns.equals(streamColumns)) {
+            return false;
+        }
+        return true;
     }
 
     @ApiOperation(value = "updateTables")

@@ -319,4 +319,21 @@ public class NIndexPlanManager implements IKeepNames {
         Preconditions.checkState(allDistinct, "there are same layout that have different id");
     }
 
+    public long getAvailableIndexesCount(String project, String id) {
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+        val dataflow = dataflowManager.getDataflow(id);
+        if (dataflow == null) {
+            return 0;
+        }
+
+        val readySegments = dataflow.getLatestReadySegment();
+
+        if (readySegments == null) {
+            return 0;
+        }
+
+        val readLayouts = readySegments.getLayoutsMap().keySet();
+        return dataflow.getIndexPlan().getAllLayouts().stream()
+                .filter(l -> readLayouts.contains(l.getId()) && !l.isToBeDeleted()).count();
+    }
 }

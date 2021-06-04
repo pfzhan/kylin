@@ -25,11 +25,14 @@
 package io.kyligence.kap.rest.controller;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.rest.request.StreamingRequest;
 import io.kyligence.kap.rest.service.StreamingTableService;
 import io.kyligence.kap.rest.service.TableExtService;
 import lombok.val;
+
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -116,6 +119,43 @@ public class StreamingTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(streamingTableController).saveStreamingTable(Mockito.any(StreamingRequest.class));
+    }
+
+    @Test
+    public void testSaveStreamingTableColumnsMatch() throws Exception {
+        String streamingTable = "DEFAULT.SSB_TOPIC";
+        val request = new StreamingRequest();
+        request.setProject(PROJECT);
+        val kafkaConfig = new KafkaConfig();
+        kafkaConfig.setSubscribe("ssb_topic");
+        kafkaConfig.setBatchTable("SSB.P_LINEORDER_STR");
+        request.setKafkaConfig(kafkaConfig);
+        val tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).getTableDesc(streamingTable);
+        request.setTableDesc(tableDesc);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_tables/table")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(streamingTableController).saveStreamingTable(Mockito.any(StreamingRequest.class));
+    }
+
+    @Test
+    public void testSaveStreamingTableColumnsNotMatch() throws Exception {
+        String streamingTable = "DEFAULT.SSB_TOPIC";
+        val request = new StreamingRequest();
+        request.setProject(PROJECT);
+        val kafkaConfig = new KafkaConfig();
+        kafkaConfig.setSubscribe("ssb_topic");
+        kafkaConfig.setBatchTable("SSB.P_LINEORDER");
+        request.setKafkaConfig(kafkaConfig);
+        val tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).getTableDesc(streamingTable);
+        request.setTableDesc(tableDesc);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_tables/table")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(streamingTableController).saveStreamingTable(Mockito.any(StreamingRequest.class));
     }
 

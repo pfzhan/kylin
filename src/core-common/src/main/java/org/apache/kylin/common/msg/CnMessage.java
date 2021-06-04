@@ -774,6 +774,10 @@ public class CnMessage extends Message {
         return "无法在可计算列中使用维度表 “%s” 中的列，因为该表的关联关系不进行预计算。";
     }
 
+    public String getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP() {
+        return "无法在数据筛选条件中使用维度表 “%s” 中的列，因为该表的关联关系不进行预计算。";
+    }
+
     @Override
     public String getCHANGE_GLOBALADMIN() {
         return "您不可以添加，修改，删除系统管理员的权限。";
@@ -1715,8 +1719,13 @@ public class CnMessage extends Message {
     }
 
     @Override
-    public String getINVALID_BREOK_DEFINITION() {
+    public String getINVALID_BROKER_DEFINITION() {
         return "无效输入。";
+    }
+
+    @Override
+    public String getBROKER_TIMEOUT_MESSAGE() {
+        return "无法获取集群信息，请检查后重试";
     }
 
     @Override
@@ -1732,5 +1741,15 @@ public class CnMessage extends Message {
     @Override
     public String getPARSE_STREAMING_MESSAGE_ERROR() {
         return "解析器无法解析样例数据，建议检查选项设置或者修改解析器后再尝试解析。";
+    }
+
+    @Override
+    public String getBATCH_STREAM_TABLE_NOT_MATCH() {
+        return "表 %s 与 Kafka 表的列不一致，请确认两者的列完全一致后重试。";
+    }
+
+    @Override
+    public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
+        return "不能同时强制下推和击中模型。请检查传入的 forcedToPushDown 和 forced_to_index 参数";
     }
 }

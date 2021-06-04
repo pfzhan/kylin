@@ -373,6 +373,15 @@
       this.inputMultiType = this.inputMultiType === 'select' ? 'textarea' : 'select'
     }
 
+    get modelId () {
+      // batch 和 streaming 的都是取 uuid
+      if (this.modelDesc.model_type !== 'HYBRID') {
+        return this.modelDesc.uuid
+      } else { // HYBRID 模式的，传离线id
+        return this.modelDesc.batch_id
+      }
+    }
+
     get toggleText () {
       return this.inputMultiType === 'select' ? this.$t('selectInput') : this.$t('batchInput')
     }
@@ -637,7 +646,7 @@
         this.isShowWarning = false
         if (this.$store.state.project.multi_partition_enabled && this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns.length) {
           try {
-            const res = await this.fetchSubPartitionValues({ project: this.currentSelectedProject, model_id: this.modelDesc.uuid })
+            const res = await this.fetchSubPartitionValues({ project: this.currentSelectedProject, model_id: this.modelId })
             const data = await handleSuccessAsync(res)
             this.modelSubPartitionValues = data.map((p) => {
               return p.partition_value[0]
@@ -676,11 +685,11 @@
       try {
         const submitData = {
           project: this.currentSelectedProject,
-          model: this.modelDesc.uuid,
+          model: this.modelId,
           partition_desc: partition_desc
         }
         const response = await this.fetchNewestModelRange(submitData)
-        if (submitData.model !== this.modelDesc.uuid) { // 避免ajax耗时太长导致会覆盖新的model的load range数据
+        if (submitData.model !== this.modelId) { // 避免ajax耗时太长导致会覆盖新的model的load range数据
           return
         }
         if (response.body.code === '000') {
@@ -828,11 +837,11 @@
               index >= 0 && partitionValues.splice(index, 1)
             }
             if (isChangePatition || isChangeBuildType) {
-              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
+              this._buildModel({start: start, end: end, modelId: this.modelId, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
             } else {
               let res
               try {
-                res = await this.checkDataRange({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, start: start, end: end})
+                res = await this.checkDataRange({modelId: this.modelId, project: this.currentSelectedProject, start: start, end: end})
               } catch (e) {
                 this.btnLoading = false
                 handleError(e)
@@ -876,19 +885,19 @@
                           return {start: seg.date_range_start, end: seg.date_range_end}
                         })
                         try {
-                          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions, segment_holes: selectSegmentHoles})
+                          this._buildModel({start: start, end: end, modelId: this.modelId, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions, segment_holes: selectSegmentHoles})
                         } catch (e) {
                           handleError(e)
                         }
                       }
                     })
-                    this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
+                    this._buildModel({start: start, end: end, modelId: this.modelId, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
                   } catch (e) {
                     this.btnLoading = false
                     handleError(e)
                   }
                 } else {
-                  this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
+                  this._buildModel({start: start, end: end, modelId: this.modelId, modelName: this.modelDesc.alias, isBuild: isBuild, partition_desc: partition_desc, multi_partition_desc, multi_partition_values: partitionValues, build_all_sub_partitions})
                 }
               }
             }
@@ -903,10 +912,10 @@
               return false
             }
             this.btnLoading = true
-            await this.setModelPartition({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, partition_desc: null})
+            await this.setModelPartition({modelId: this.modelId, project: this.currentSelectedProject, partition_desc: null})
           }
           this.buildFullLoadModel({
-            model_id: this.modelDesc.uuid,
+            model_id: this.modelId,
             start: null,
             end: null,
             build_all_indexes: isBuild,
@@ -978,7 +987,7 @@
                 return {start: seg.date_range_start, end: seg.date_range_end}
               })
               try {
-                await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: this.modelDesc.uuid, segment_holes: selectSegmentHoles})
+                await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: this.modelId, segment_holes: selectSegmentHoles})
               } catch (e) {
                 handleError(e)
               }
@@ -999,7 +1008,7 @@
         this.btnLoading = true
         let res = await this.buildIndex({
           project: this.currentSelectedProject,
-          model_id: this.modelDesc.uuid
+          model_id: this.modelId
         })
         let data = await handleSuccessAsync(res)
         this.handleBuildIndexTip(data)

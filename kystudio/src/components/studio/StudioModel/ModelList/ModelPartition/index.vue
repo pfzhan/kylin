@@ -56,7 +56,7 @@
                   :loading="isLoadingFormat"
                   icon="el-ksd-icon-data_range_search_old"
                   v-guide.getPartitionColumnFormat
-                  v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
+                  v-if="partitionMeta.column && $store.state.project.projectPushdownConfig && modelDesc.model_type === 'BATCH'"
                   @click="handleLoadFormat">
                 </el-button>
               </div>

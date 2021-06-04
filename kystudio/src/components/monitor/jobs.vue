@@ -1,7 +1,7 @@
 <template>
   <div id="jobListPage">
   <el-alert :title="$t('adminTips')" type="tip" class="admin-tips" v-if="isShowAdminTips" @close="closeTips" show-icon></el-alert>
-  <div class="jobs_list ksd-mrl-20">
+  <div class="jobs_list ksd-mrl-24">
     <div class="ksd-title-page ksd-mt-32">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="16">
@@ -135,9 +135,7 @@
             class-name="job-fc-icon"
             width="96">
             <template slot-scope="scope">
-              <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-                <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project, '', scope.row)"></i>
-              </common-tip><common-tip :content="$t('jobPause')" v-if="(scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING') && !delSecJobTypes.includes(scope.row.job_name)">
+              <common-tip :content="$t('jobPause')" v-if="(scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING') && !delSecJobTypes.includes(scope.row.job_name)">
                 <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
               :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
@@ -151,6 +149,8 @@
               </common-tip><common-tip
               :content="$t('jobDiagnosis')" v-if="monitorActions.includes('diagnostic') && (scope.row.job_status =='FINISHED' || scope.row.job_status == 'DISCARDED' || scope.row.job_status=='PENDING')">
                 <i class="el-icon-ksd-ostin_diagnose ksd-fs-14" @click.stop="showDiagnosisDetail(scope.row.id)"></i>
+              </common-tip><common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
+                <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project, '', scope.row)"></i>
               </common-tip><common-tip
               :content="$t('kylinLang.common.moreActions')">
                 <el-dropdown trigger="click">
@@ -314,7 +314,7 @@
               </div>
             </li>
           </ul>
-          <div class='job-btn' id="jobDetailBtn" v-show="isShowBtn" :class="{'is-filter-list': filterTags.length}" @click='showStep=false'><i class='el-icon-ksd-more_02' aria-hidden='true'></i>
+          <div class='job-btn' id="jobDetailBtn" v-show="isShowBtn" :class="{'is-filter-list': filterTags.length}" @click='showStep=false'><i class='el-ksd-icon-arrow_right_16' aria-hidden='true'></i>
           </div>
         </el-card>
       </el-col>
@@ -1611,9 +1611,6 @@ export default class JobsList extends Vue {
         top: 230px;
         height: 24px;
         width: 24px;
-        line-height: 24px;
-        padding-left: 0px;
-        font-size: 12px;
         border-radius: 100%;
         box-shadow: 0px 2px 8px rgba(50, 73, 107, 0.24);
         cursor: pointer;
@@ -1623,7 +1620,8 @@ export default class JobsList extends Vue {
           top: 270px;
         }
         i {
-          transform: scale(0.8);
+          font-size: 16px;
+          margin-top: 2px;
         }
         &:hover {
           background-color: @ke-color-primary-hover;
@@ -1758,8 +1756,8 @@ export default class JobsList extends Vue {
     .jobs-table {
       .icon-column {
         .cell {
-          padding-left: 8px;
-          padding-right: 8px;
+          padding-left: 5px;
+          padding-right: 5px;
         }
       }
       .el-ksd-icon-arrow_table_right_22,

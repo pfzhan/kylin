@@ -670,4 +670,8 @@ public class KapConfig {
     public String getSwitchBackupFsExceptionAllowString() {
         return config.getOptional("kylin.query.switch-backup-fs-exception-allow-string", "alluxio");
     }
+
+    public boolean isQuerySparkJobTraceEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.spark-job-trace-enabled", TRUE));
+    }
 }

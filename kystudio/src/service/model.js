@@ -275,7 +275,12 @@ export default {
     return Vue.http.put(apiUrl + 'index_plans/base_index', paras)
   },
   deleteIndex: (para) => {
-    return Vue.resource(apiUrl + `index_plans/index/${para.id}?project=${para.project}&model=${para.model}`).delete()
+    const params = {
+      ...para
+    }
+    delete params.id
+    return Vue.resource(apiUrl + `index_plans/index/${para.id}`).delete(params)
+    // return Vue.resource(apiUrl + `index_plans/index/${para.id}?project=${para.project}&model=${para.model}`).delete()
   },
   deleteIndexes: (para) => {
     return Vue.resource(apiUrl + 'index_plans/index').delete(para)

@@ -220,7 +220,8 @@ exports.default = {
     queryNode: '查询节点',
     jobNode: '任务节点',
     BATCH: '离线',
-    STREAMING: '实时'
+    STREAMING: '实时',
+    HYBRID: '离线和实时'
   },
   model: {
     generateModel: 'SQL 建模',

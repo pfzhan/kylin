@@ -9,7 +9,8 @@ export default {
     aggTableIndexTips: 'No table indexes are defined. Please add dimensions that would be used in detail queries into indexes.',
     tableIndex: 'Table Index',
     addTableIndex: 'Add Table Index',
-    cardinality: 'Cardinality'
+    cardinality: 'Cardinality',
+    indexTimeRange: 'Index’s Time Range'
   },
   'zh-cn': {
     viewAll: '查看所有',
@@ -24,6 +25,7 @@ export default {
     aggTableIndexTips: '当前无明细索引。请将被使用在明细查询中的列设为明细索引。',
     tableIndex: '明细索引',
     addTableIndex: '添加明细索引',
-    cardinality: '基数'
+    cardinality: '基数',
+    indexTimeRange: '索引时间范围'
   }
 }

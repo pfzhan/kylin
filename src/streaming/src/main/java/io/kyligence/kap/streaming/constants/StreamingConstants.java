@@ -30,7 +30,7 @@ public class StreamingConstants {
 
     // spark job conf
     public static final String SPARK_MASTER = "spark.master";
-    public static final String SPARK_MASTER_DEFAULT = "yarn-client";
+    public static final String SPARK_MASTER_DEFAULT = "yarn";
     public static final String SPARK_DRIVER_MEM = "spark.driver.memory";
     public static final String SPARK_DRIVER_MEM_DEFAULT = "512m";
     public static final String SPARK_EXECUTOR_INSTANCES = "spark.executor.instances";

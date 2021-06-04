@@ -150,28 +150,6 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetCubes() throws Exception {
-        Mockito.when(modelService.getCubes("model1", "default")).thenReturn(mockModels());
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/cubes").contentType(MediaType.APPLICATION_JSON)
-                .param("pageOffset", "0").param("projectName", "default").param("modelName", "model1")
-                .param("pageSize", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).getCubes("default", "model1", 0, 10);
-    }
-
-    @Test
-    public void testGetCube() throws Exception {
-        Mockito.when(modelService.getCube("model1", "default")).thenReturn(mockModels().get(0));
-
-        mockMvc.perform(
-                MockMvcRequestBuilders.get("/api/cubes/{cubeName}", "model1").contentType(MediaType.APPLICATION_JSON)
-                        .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).getCube("model1", "default");
-    }
-
-    @Test
     public void testRebuild() throws Exception {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
         String startTime = String.valueOf(0L);

@@ -14,6 +14,8 @@ const types = {
 }
 export const initialAggregateData = JSON.stringify({
   id: 0,
+  index_range: '',
+  curAggIsEdit: false,
   includes: [],
   measures: [],
   mandatory: [],
@@ -101,8 +103,10 @@ export default {
         state.form.globalDimCap = payload.aggregateGroupRule.global_dim_cap
         state.form.isDimClearable = !!payload.aggregateGroupRule.global_dim_cap
         state.form.aggregateArray = payload.aggregateGroupRule.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
+          const index_range = aggregationGroup.index_range
           const id = payload.aggregateGroupRule.aggregation_groups.length - aggregateIdx
           const includes = aggregationGroup.includes.map(include => nameMapping[include])
+          const curAggIsEdit = includes.length > 0 // 为了区分是否是编辑的聚合组
           let measures = aggregationGroup.measures.map(measures => measuresMapping[measures])
           const selectRules = aggregationGroup.select_rule
           const mandatory = selectRules.mandatory_dims.map(mandatory => nameMapping[mandatory])
@@ -128,7 +132,7 @@ export default {
             jointArray.push({ id: 0, items: [] })
           }
           measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
-          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap, isEditDim }
+          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap, isEditDim, index_range, curAggIsEdit }
         })
         if (payload.editType === 'new') {
           const initAggregate = JSON.parse(initialAggregateData)
@@ -161,6 +165,7 @@ export default {
             item.label && (item.label === 'COUNT_ALL' ? measuresList.unshift(item.label) : measuresList.push(item.label))
           }
           state.form.aggregateArray[0].measures = measuresList
+          state.form.aggregateArray[0].index_range = ''
           return
         }
         setTimeout(() => {

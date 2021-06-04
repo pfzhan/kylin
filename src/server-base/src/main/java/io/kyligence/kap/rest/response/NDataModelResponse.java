@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.common.KylinConfig;
@@ -47,6 +48,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.google.common.collect.Lists;
@@ -54,6 +56,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -61,6 +65,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -140,7 +145,12 @@ public class NDataModelResponse extends NDataModel {
 
     private long lastModify;
 
+    @JsonIgnore
     private List<SimplifiedNamedColumn> simplifiedDims;
+
+    @Getter(lazy = true)
+    @JsonIgnore
+    private final NDataModel lazyModel = originModel();
 
     public NDataModelResponse() {
         super();
@@ -177,7 +187,8 @@ public class NDataModelResponse extends NDataModel {
         }
 
         Set<String> excludedTables = loadExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, getJoinTables(), getModel());
+        List<JoinTableDesc> joinTables = getLazyModel().getJoinTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, getLazyModel());
         List<SimplifiedNamedColumn> dimList = Lists.newArrayList();
         for (NamedColumn col : getAllNamedColumns()) {
             if (col.isDimension()) {
@@ -210,7 +221,7 @@ public class NDataModelResponse extends NDataModel {
     }
 
     private boolean isFkAllDim(String[] foreignKeys, Map<String, NamedColumn> columnMap) {
-        if(foreignKeys == null){
+        if (foreignKeys == null) {
             return false;
         }
         for (String fkCol : foreignKeys) {
@@ -221,7 +232,7 @@ public class NDataModelResponse extends NDataModel {
         return true;
     }
 
-    private NDataModel getModel() {
+    private NDataModel originModel() {
         return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .getDataModelDesc(this.getUuid());
     }
@@ -385,12 +396,12 @@ public class NDataModelResponse extends NDataModel {
             tableMetadata = NTableMetadataManager.getInstance(getConfig(), this.getProject());
         }
         Set<String> excludedTables = loadExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, getJoinTables(), getModel());
+        List<JoinTableDesc> joinTables = getLazyModel().getJoinTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, joinTables, getLazyModel());
         for (NamedColumn namedColumn : getAllSelectedColumns()) {
             SimplifiedNamedColumn simplifiedNamedColumn = new SimplifiedNamedColumn(namedColumn);
             TblColRef colRef = findColumnByAlias(simplifiedNamedColumn.getAliasDotColumn());
-            if (simplifiedNamedColumn.getStatus() == DIMENSION && colRef != null
-                    && tableMetadata != null) {
+            if (simplifiedNamedColumn.getStatus() == DIMENSION && colRef != null && tableMetadata != null) {
                 if (checker.isColRefDependsLookupTable(colRef)) {
                     simplifiedNamedColumn.setDependLookupTable(true);
                 }
@@ -418,5 +429,32 @@ public class NDataModelResponse extends NDataModel {
             excludedTables.addAll(favoriteRuleManager.getExcludedTables());
         }
         return excludedTables;
+    }
+
+    public void computedInfo(long inconsistentCount, ModelStatusToDisplayEnum status, boolean isScd2,
+            NDataModel modelDesc, boolean onlyNormalDim) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        if (!onlyNormalDim) {
+            this.enrichDerivedDimension();
+        }
+        this.setForbiddenOnline(isScd2);
+        this.setBroken(modelDesc.isBroken());
+        this.setStatus(status);
+        this.setLastBuildTime(dfManager.getDataflowLastBuildTime(modelDesc.getUuid()));
+        this.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
+        this.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
+        this.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
+        this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
+        this.setUsage(dfManager.getDataflow(modelDesc.getUuid()).getQueryHitCount());
+        this.setInconsistentSegmentCount(inconsistentCount);
+        if (!modelDesc.isBroken()) {
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
+            this.setAvailableIndexesCount(indexPlanManager.getAvailableIndexesCount(getProject(), modelDesc.getId()));
+            this.setTotalIndexes(indexPlan.getAllLayouts().size());
+            this.setEmptyIndexesCount(this.totalIndexes - this.availableIndexesCount);
+            this.setHasBaseAggIndex(indexPlan.containBaseAggLayout());
+            this.setHasBaseTableIndex(indexPlan.containBaseTableLayout());
+        }
     }
 }

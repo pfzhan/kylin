@@ -211,7 +211,7 @@ public class ZKUtil {
         try {
             CuratorFramework zkClient = getZookeeperClient(kylinConfig);
             int retry = 0;
-            while (retry++ < kylinConfig.getZKMaxRetries()) {
+            while (retry++ <= (kylinConfig.getZKMaxRetries() * 3)) {
                 if (zkClient.checkExists().forPath(path) != null) {
                     Thread.sleep((long) 10000 * retry);
                 } else {

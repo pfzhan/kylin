@@ -240,6 +240,9 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("multi_partition_key_mapping")
     private MultiPartitionKeyMappingImpl multiPartitionKeyMapping;
 
+    @JsonProperty("fusion_id")
+    private String fusionId;
+
     // computed fields below
     private String project;
 
@@ -1433,4 +1436,24 @@ public class NDataModel extends RootPersistentEntity {
         }
         return Lists.newArrayList(colIds);
     }
+
+    public boolean skipFusionModel() {
+        return StringUtils.isNotEmpty(fusionId) && ModelType.BATCH == getModelType();
+    }
+
+    public boolean showFusionModel() {
+        return StringUtils.isNotEmpty(fusionId) && ModelType.HYBRID == getModelType();
+    }
+
+    public boolean isFusionModel() {
+        return StringUtils.isNotEmpty(fusionId);
+    }
+
+    public boolean isStreaming() {
+        if (getModelType() == NDataModel.ModelType.STREAMING || getModelType() == NDataModel.ModelType.HYBRID) {
+            return true;
+        }
+        return false;
+    }
+
 }

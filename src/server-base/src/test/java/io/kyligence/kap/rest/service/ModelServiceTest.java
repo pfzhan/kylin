@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
@@ -65,6 +63,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.streaming.jobs.StreamingJobListener;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
@@ -268,6 +268,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private final static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
+    private StreamingJobListener eventListener = new StreamingJobListener();
+
     @Before
     public void setup() {
         super.setup();
@@ -298,13 +300,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             //
         }
-
+        EventBusFactory.getInstance().register(eventListener, true);
         EventBusFactory.getInstance().register(modelBrokenListener, false);
     }
 
     @After
     public void tearDown() {
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
+        EventBusFactory.getInstance().unregister(eventListener);
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
         cleanupTestMetadata();
@@ -971,6 +974,33 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
         // Assert.assertTrue(clean.get());
+    }
+
+    @Test
+    public void testDropStreamingModelPass() throws NoSuchFieldException, IllegalAccessException {
+        String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        String project = "streaming_test";
+
+        val config = getTestConfig();
+        val prjMgr = NProjectManager.getInstance(config);
+        prjMgr.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        });
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.dropModel(modelId, project);
+            return null;
+        }, project);
+        List<NDataModelResponse> models = modelService.getModels("stream_merge", project, true, "", null, "last_modify",
+                true);
+        Assert.assertTrue(CollectionUtils.isEmpty(models));
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertNull(buildJobMeta);
+        Assert.assertNull(mergeJobMeta);
     }
 
     @Test
@@ -4279,6 +4309,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
         originSql = "trans_id between 1 and 10";
         newSql = modelService.addTableNameIfNotExist(originSql, model);
         Assert.assertEquals("(TEST_KYLIN_FACT.TRANS_ID BETWEEN 1 AND 10)", newSql);
+
+        modelManager.updateDataModel(model.getUuid(), copyForWrite -> {
+            List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.get(0).setFlattenable(JoinTableDesc.NORMALIZED);
+            copyForWrite.setJoinTables(joinTables);
+        });
+        NDataModel updatedModel = modelManager.getDataModelDesc(model.getUuid());
+
+        try {
+            originSql = "TEST_ORDER.ORDER_ID > 10";
+            modelService.addTableNameIfNotExist(originSql, updatedModel);
+            Assert.fail();
+        } catch (KylinException e) {
+            Assert.assertEquals("KE-010011006", e.getErrorCode().getCodeString());
+            Assert.assertEquals(String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), "TEST_ORDER"), e.getMessage());
+        }
+
     }
 
     @Test
@@ -5559,5 +5607,42 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Mockito.doCallRealMethod().when(modelService).disableSecondStorageIfNeeded("default", request);
         modelService.disableSecondStorageIfNeeded("default", request);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
+    }
+
+    @Test
+    public void testGetFusionModel() {
+        String project = "streaming_test";
+        String modelName = "streaming_test";
+        NDataModelResponse model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
+                .get(0);
+        Assert.assertEquals(0, model.getAvailableIndexesCount());
+        Assert.assertEquals(6, model.getTotalIndexes());
+        Assert.assertEquals(0, model.getStorage());
+        Assert.assertEquals(0, model.getSource());
+
+        String modelName1 = "AUTO_MODEL_P_LINEORDER_1";
+        NDataModelResponse model1 = modelService
+                .getModels(modelName1, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
+                .get(0);
+        Assert.assertEquals(0, model1.getAvailableIndexesCount());
+        Assert.assertEquals(1, model1.getTotalIndexes());
+        Assert.assertEquals(0, model1.getStorage());
+        Assert.assertEquals(0, model1.getSource());
+    }
+
+    @Test
+    public void testCreateFusionModel() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "streaming_test");
+        NDataModel model = modelManager.getDataModelDesc("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setAlias("new_model");
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        modelRequest.setProject("streaming_test");
+        NDataModel result = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertNotEquals(0L, result.getLastModified());
+        Assert.assertEquals(result.getUuid(), result.getFusionId());
     }
 }

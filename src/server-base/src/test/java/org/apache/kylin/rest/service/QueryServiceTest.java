@@ -84,7 +84,6 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
@@ -187,6 +186,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+        overwriteSystemProp("kylin.query.transaction-enable", "true");
         overwriteSystemProp("kylin.query.cache-threshold-duration", String.valueOf(-1));
         overwriteSystemProp("HADOOP_USER_NAME", "root");
 
@@ -298,10 +298,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testQueryPushDownErrorMessage() throws Exception {
         final String sql = "select * from success_table_2";
         final String project = "default";
-
-        Mockito.doAnswer(invocation -> {
-            throw new SQLException(new NoRealizationFoundException("no real"));
-        }).when(queryService.queryRoutingEngine).execute(Mockito.anyString(), Mockito.any());
 
         Mockito.doAnswer(invocation -> {
             QueryContext.current().setPushdownEngine(PUSHDOWN_HIVE);

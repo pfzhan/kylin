@@ -25,7 +25,8 @@ export default {
     colon: ': ',
     maxDimComTips: 'MDC (Max Dimension Combination) is the maximum amount of dimensions in the aggregate index. Please set this number carefully according to your query requirements. The MDC set here applies to all aggregate groups without separate MDC.',
     cardinalityMultiple: 'The Product of Cardinality: ',
-    showAll: 'Show More'
+    showAll: 'Show More',
+    indexTimeRange: 'Index’s Time Range'
   },
   'zh-cn': {
     viewAll: '查看所有',
@@ -53,6 +54,7 @@ export default {
     colon: '：',
     maxDimComTips: '最大维度组合数是聚合索引中所包含的最大维度个数，设置该数据可以有效控制多维度索引的构建和存储开销，请根据您的查询特征谨慎设置。此处设置的最大维度组合数将应用于所有未单独设置最大维度组合数的聚合组。',
     cardinalityMultiple: '当前基数乘积：',
-    showAll: '显示全部'
+    showAll: '显示全部',
+    indexTimeRange: '索引时间范围'
   }
 }

@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-alert show-icon :show-background="false" type="info" class="download-tips">
-      <span slot="title">{{$t('outputTips')}}<el-button type="primary" size="mini" text @click="downloadLogs">{{$t('download')}}</el-button><span v-if="$store.state.config.platform === 'iframe'">{{$t('or')}}<el-button type="primary" size="mini" text @click="goSystemLog">{{$t('gotoSystemLog')}}</el-button></span>{{$t('end')}}</span>
+      <span slot="title">{{$t('outputTips')}}<el-button size="mini" nobg-text @click="downloadLogs">{{$t('download')}}</el-button><span v-if="$store.state.config.platform === 'iframe'">{{$t('or')}}<el-button type="primary" size="mini" text @click="goSystemLog">{{$t('gotoSystemLog')}}</el-button></span>{{$t('end')}}</span>
       <!-- 只在 KC 中使用 -->
     </el-alert>
     <!-- <el-alert show-icon :show-background="false" type="info" class="download-tips" v-else>
@@ -46,7 +46,8 @@ export default {
   },
   data () {
     return {
-      hasClickDownloadLogBtn: false
+      hasClickDownloadLogBtn: false,
+      cloudService: localStorage.getItem('cloud_service') ? localStorage.getItem('cloud_service') : 'AWSChinaCloud'
     }
   },
   computed: {
@@ -112,6 +113,9 @@ export default {
   .el-button {
     padding: 0;
     font-size: 14px;
+    span {
+      vertical-align: bottom;
+    }
   }
   .el-alert__closebtn{
     top:3px;

@@ -54,7 +54,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,7 +65,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.util.AddressUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -89,6 +88,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.ClusterConstant;
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.common.util.SizeConvertUtil;
@@ -1142,6 +1142,8 @@ public abstract class KylinConfigBase implements Serializable {
 
     private static final String JOB_JAR_NAME_PATTERN = "newten-job(.?)\\.jar";
 
+    private static final String JAR_NAME_PATTERN = "(.*)\\.jar";
+
     public String getExtraJarsPath() {
         return getOptional("kylin.engine.extra-jars-path", "");
     }
@@ -1160,6 +1162,23 @@ public abstract class KylinConfigBase implements Serializable {
             return "";
         }
         return jar.getAbsolutePath();
+    }
+
+    public String getKylinExtJarsPath() {
+        String kylinHome = getKylinHome();
+        if (StringUtils.isEmpty(kylinHome)) {
+            return "";
+        }
+        List<File> files = FileUtils.findFiles(kylinHome + File.separator + "lib/ext", JAR_NAME_PATTERN);
+        if (CollectionUtils.isEmpty(files)) {
+            return "";
+        }
+        StringBuilder extJar = new StringBuilder();
+        for (File file : files) {
+            extJar.append(",");
+            extJar.append(file.getAbsolutePath());
+        }
+        return extJar.toString();
     }
 
     public String getSnapshotBuildClassName() {
@@ -1336,20 +1355,6 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
     // QUERY
     // ============================================================================
-
-    public List<Class<?>> pushdownOnErrors() {
-        String errorsStr = getOptional("kylin.query.pushdown.pushdown-with-errors",
-                "org.apache.kylin.metadata.realization.NoRealizationFoundException");
-        List<Class<?>> errors = new LinkedList<>();
-        for (String errorStr : errorsStr.split(",")) {
-            try {
-                errors.add(Class.forName(errorStr));
-            } catch (ClassNotFoundException e) {
-                logger.error("Invalid config kylin.query.pushdown.pushdown-with-errors", e);
-            }
-        }
-        return errors;
-    }
 
     public boolean isHeterogeneousSegmentEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.heterogeneous-segment-enabled", TRUE));

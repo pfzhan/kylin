@@ -71,6 +71,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,7 +107,7 @@ public class StreamingMergeEntry extends StreamingApplication {
         logger.info("StreamingMergeEntry:" + project + "," + dataflowId + "," + thresholdOfSegSize + "," + numberOfSeg);
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        val modelId = dataflowId.substring(0, dataflowId.length() - 3);
+        val modelId = dataflowId;
         // step1. write markfile for stop job graceful
         String markFile = config.getStreamingBaseJobsLocation()
                 + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project,
@@ -132,8 +133,7 @@ public class StreamingMergeEntry extends StreamingApplication {
                 process(project, dataflowId);
                 if (!HDFSUtils.isExistsMarkFile(markFile)) {
                     sleep(config.getStreamingSegmentMergeInterval() * 1000);
-                }
-                if (!config.isUTEnv() && HDFSUtils.isExistsMarkFile(markFile)) {
+                } else if (!config.isUTEnv()) {
                     shutdown.set(true);
                     HDFSUtils.deleteMarkFile(markFile);
                     logger.info("begin to shutdown streaming merge job (" + (project + ":" + dataflowId + ")"));
@@ -219,7 +219,7 @@ public class StreamingMergeEntry extends StreamingApplication {
     private void sleep(long times) {
         try {
             Thread.sleep(times);
-        }catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         }
@@ -358,15 +358,17 @@ public class StreamingMergeEntry extends StreamingApplication {
         }
     }
 
-    public static void shutdown() {
+    public static boolean shutdown() {
         shutdown.set(true);
+        var result = false;
         try {
-            latch.await();
-        }catch (InterruptedException e) {
+            result = latch.await(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+        return result;
     }
 }

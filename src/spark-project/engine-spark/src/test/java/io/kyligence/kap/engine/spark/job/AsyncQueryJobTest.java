@@ -33,6 +33,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
@@ -149,10 +151,66 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(workingFileSystem.exists(new Path(asyncQueryJobPath)));
         Assert.assertEquals(2, workingFileSystem.listStatus(new Path(asyncQueryJobPath)).length);
 
+        FileStatus[] jobFileStatuses = workingFileSystem.listStatus(new Path(asyncQueryJobPath));
+        Comparator<FileStatus> fileStatusComparator = new Comparator<FileStatus>() {
+            @Override
+            public int compare(FileStatus o1, FileStatus o2) {
+                return o1.getPath().toString().compareTo(o2.getPath().toString());
+            }
+        };
+        Arrays.sort(jobFileStatuses, fileStatusComparator);
+
         // validate spark job args
+        testSparkArgs(asyncQueryJobPath, workingFileSystem
+                .open(jobFileStatuses[1].getPath()), jobFileStatuses[1]);
+
+        FileStatus[] metaFileStatus = workingFileSystem.listStatus(jobFileStatuses[0].getPath());
+        Arrays.sort(metaFileStatus, fileStatusComparator);
+
+        // validate kylin properties
+        testKylinConfig(workingFileSystem, metaFileStatus[0]);
+
+        // validate metadata
+        testMetadata(workingFileSystem, metaFileStatus[1]);
+    }
+
+    private void testMetadata(FileSystem workingFileSystem, FileStatus metaFileStatus) throws IOException {
+        val rawResourceMap = Maps.<String, RawResource> newHashMap();
+        FileStatus metadataFile = metaFileStatus;
+        try (FSDataInputStream inputStream = workingFileSystem.open(metadataFile.getPath());
+             ZipInputStream zipIn = new ZipInputStream(inputStream)) {
+            ZipEntry zipEntry = null;
+            while ((zipEntry = zipIn.getNextEntry()) != null) {
+                if (!zipEntry.getName().startsWith("/")) {
+                    continue;
+                }
+                long t = zipEntry.getTime();
+                RawResource raw = new RawResource(zipEntry.getName(), ByteSource.wrap(IOUtils.toByteArray(zipIn)), t,
+                        0);
+                rawResourceMap.put(zipEntry.getName(), raw);
+            }
+        }
+        Assert.assertEquals(73, rawResourceMap.size());
+    }
+
+    private void testKylinConfig(FileSystem workingFileSystem, FileStatus metaFileStatus) throws IOException {
+        FileStatus kylinPropertiesFile = metaFileStatus;
+        Properties properties = new Properties();
+        try (FSDataInputStream inputStream = workingFileSystem.open(kylinPropertiesFile.getPath())) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, Charset.defaultCharset()));
+            properties.load(br);
+        }
+        Assert.assertTrue(properties.size() > 0);
+        Assert.assertFalse(properties.getProperty("kylin.query.queryhistory.url").contains("hdfs"));
+        Assert.assertEquals(properties.getProperty("kylin.query.async-query.spark-conf.spark.yarn.queue"),
+                ASYNC_QUERY_SPARK_QUEUE);
+        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_CORES), "5");
+        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_MEMORY), "12288m");
+    }
+
+    private void testSparkArgs(String asyncQueryJobPath, FSDataInputStream open, FileStatus jobFileStatus) throws IOException {
         String argsLine = null;
-        try (FSDataInputStream inputStream = workingFileSystem
-                .open(workingFileSystem.listStatus(new Path(asyncQueryJobPath))[0].getPath())) {
+        try (FSDataInputStream inputStream = open) {
             BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, Charset.defaultCharset()));
             argsLine = br.readLine();
         }
@@ -171,40 +229,6 @@ public class AsyncQueryJobTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(readQueryContext.getQueryTagInfo().isAsyncQuery());
         Assert.assertTrue(argsMap.get(P_DIST_META_URL).contains(
                 asyncQueryJobPath.substring(asyncQueryJobPath.indexOf("working-dir/") + "working-dir/".length())));
-
-        // validate kylin properties
-        FileStatus kylinPropertiesFile = workingFileSystem
-                .listStatus(workingFileSystem.listStatus(new Path(asyncQueryJobPath))[1].getPath())[0];
-        Properties properties = new Properties();
-        try (FSDataInputStream inputStream = workingFileSystem.open(kylinPropertiesFile.getPath())) {
-            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream, Charset.defaultCharset()));
-            properties.load(br);
-        }
-        Assert.assertTrue(properties.size() > 0);
-        Assert.assertFalse(properties.getProperty("kylin.query.queryhistory.url").contains("hdfs"));
-        Assert.assertEquals(properties.getProperty("kylin.query.async-query.spark-conf.spark.yarn.queue"),
-                ASYNC_QUERY_SPARK_QUEUE);
-        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_CORES), "5");
-        Assert.assertEquals(properties.getProperty(ASYNC_QUERY_SPARK_EXECUTOR_MEMORY), "12288m");
-
-        // validate metadata
-        val rawResourceMap = Maps.<String, RawResource> newHashMap();
-        FileStatus metadataFile = workingFileSystem
-                .listStatus(workingFileSystem.listStatus(new Path(asyncQueryJobPath))[1].getPath())[1];
-        try (FSDataInputStream inputStream = workingFileSystem.open(metadataFile.getPath());
-                ZipInputStream zipIn = new ZipInputStream(inputStream)) {
-            ZipEntry zipEntry = null;
-            while ((zipEntry = zipIn.getNextEntry()) != null) {
-                if (!zipEntry.getName().startsWith("/")) {
-                    continue;
-                }
-                long t = zipEntry.getTime();
-                RawResource raw = new RawResource(zipEntry.getName(), ByteSource.wrap(IOUtils.toByteArray(zipIn)), t,
-                        0);
-                rawResourceMap.put(zipEntry.getName(), raw);
-            }
-        }
-        Assert.assertEquals(73, rawResourceMap.size());
     }
 
     @Test

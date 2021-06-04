@@ -30,7 +30,9 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,7 +48,9 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -118,6 +122,9 @@ import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 @Slf4j
 public class TableServiceTest extends CSVSourceTestCase {
 
@@ -139,6 +146,9 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Mock
     protected IUserGroupService userGroupService = Mockito.spy(NUserGroupService.class);
 
+    @Mock
+    private KafkaService kafkaServiceMock = Mockito.mock(KafkaService.class);
+
     @Before
     public void setup() {
         super.setup();
@@ -150,6 +160,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(tableService, "kafkaService", kafkaServiceMock);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -761,8 +772,37 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     private void testgetPartitionColumnFormat() throws Exception {
+        // Test on batch table
         String format = tableService.getPartitionColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
         Assert.assertEquals("yyyy-MM-dd", format);
+
+        // Test on streaming table
+        NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        TableDesc desc = mgr.listAllTables().get(0);
+        desc.setKafkaConfig(new KafkaConfig());
+
+        val msg = "{\"a\": 2, \"b\": 2, \"minute_start\": \"2000-01-01 05:06:12\"}";
+        val base64Msg = new String(Base64.encodeBase64(msg.getBytes()));
+        ByteBuffer buffer = ByteBuffer.wrap(base64Msg.getBytes(StandardCharsets.UTF_8));
+        List<ByteBuffer> encodedMessages = new ArrayList<>();
+        encodedMessages.add(buffer);
+        encodedMessages.add(buffer);
+        List<String> messages = new ArrayList<>();
+        messages.add(msg);
+        messages.add(msg);
+        when(kafkaServiceMock.getMessages(any(), any(String.class), any(Integer.class))).thenReturn(encodedMessages);
+
+        Map<String, Object> mockResp = new HashMap<>();
+        mockResp.put("message_type", true);
+        mockResp.put("message", messages);
+        when(kafkaServiceMock.getMessageTypeAndDecodedMessages(any())).thenReturn(mockResp);
+
+        String format2 = tableService.getPartitionColumnFormat("default", "DEFAULT.STREAMING_TABLE", "MINUTE_START");
+        Assert.assertEquals("yyyy-MM-dd HH:mm:ss", format2);
+
+        when(kafkaServiceMock.getMessages(any(), any(String.class), any(Integer.class))).thenCallRealMethod();
+        when(kafkaServiceMock.getMessageTypeAndDecodedMessages(any())).thenCallRealMethod();
+        desc.setKafkaConfig(null);
     }
 
     private void testGetLatestData() throws Exception {

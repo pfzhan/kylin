@@ -64,8 +64,10 @@ import org.apache.kylin.metadata.model.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -198,7 +200,7 @@ public class StreamingScheduler {
         jobPool.execute(jobRunner);
         if (!StreamingUtils.isJobOnCluster()) {
             MetaInfoUpdater.updateJobState(project, jobId, Sets.newHashSet(JobStatusEnum.RUNNING, JobStatusEnum.ERROR),
-                    JobStatusEnum.RUNNING, null);
+                    JobStatusEnum.RUNNING);
         }
     }
 
@@ -235,10 +237,11 @@ public class StreamingScheduler {
         } else {
             doStop(modelId, jobType);
             if (StreamingUtils.isJobOnCluster()) {
-                MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
+                MetaInfoUpdater.updateJobState(project, jobId,
+                        Sets.newHashSet(JobStatusEnum.STOPPED, JobStatusEnum.ERROR), JobStatusEnum.ERROR);
             } else {
                 MetaInfoUpdater.updateJobState(project, jobId,
-                        Sets.newHashSet(JobStatusEnum.STOPPED, JobStatusEnum.ERROR), JobStatusEnum.STOPPED, null);
+                        Sets.newHashSet(JobStatusEnum.STOPPED, JobStatusEnum.ERROR), JobStatusEnum.STOPPED);
             }
         }
     }
@@ -288,7 +291,7 @@ public class StreamingScheduler {
         jobMap.entrySet().stream().forEach(entry -> {
             if (!entry.getValue().get()) {
                 logger.info("begin to kill job:" + entry.getKey());
-                killJob(entry.getKey());
+                killJob(entry.getKey(), JobStatusEnum.ERROR);
             }
         });
         releaseResources();
@@ -492,16 +495,20 @@ public class StreamingScheduler {
     }
 
     private void killJob(String modelId, JobTypeEnum jobTypeEnum) {
-        killJob(StreamingUtils.getJobId(modelId, jobTypeEnum.name()));
+        killJob(modelId, jobTypeEnum, JobStatusEnum.ERROR);
     }
 
-    private void killJob(String jobId) {
+    public void killJob(String modelId, JobTypeEnum jobTypeEnum, JobStatusEnum status) {
+        killJob(StreamingUtils.getJobId(modelId, jobTypeEnum.name()), status);
+    }
+
+    private void killJob(String jobId, JobStatusEnum status) {
         val config = KylinConfig.getInstanceFromEnv();
         var jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
         JobKiller.killProcess(jobMeta);
         JobKiller.killApplication(jobId);
 
-        MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
+        MetaInfoUpdater.updateJobState(project, jobId, status);
     }
 
     private void resumeJobs(KylinConfig config) {
@@ -520,6 +527,9 @@ public class StreamingScheduler {
         retryJobMetaList.forEach(meta -> {
             val modelId = meta.getModelId();
             val jobType = meta.getJobType();
+            if (meta.isSkipListener()) {
+                skipJobListener(project, StreamingUtils.getJobId(modelId, jobType.name()), false);
+            }
             if (JobStatusEnum.RUNNING == meta.getCurrentStatus() || JobStatusEnum.STARTING == meta.getCurrentStatus()) {
                 killJob(meta.getModelId(), meta.getJobType());
                 submitJob(project, modelId, jobType);
@@ -527,5 +537,22 @@ public class StreamingScheduler {
                 killJob(meta.getModelId(), meta.getJobType());
             }
         });
+    }
+
+    public void skipJobListener(String project, String uuid, boolean skip) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val config = KylinConfig.getInstanceFromEnv();
+            val mgr = StreamingJobManager.getInstance(config, project);
+            mgr.updateStreamingJob(uuid, copyForWrite -> {
+                if (copyForWrite != null) {
+                    copyForWrite.setSkipListener(skip);
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                            Locale.getDefault(Locale.Category.FORMAT));
+                    Date date = new Date(System.currentTimeMillis());
+                    copyForWrite.setLastUpdateTime(format.format(date));
+                }
+            });
+            return null;
+        }, project);
     }
 }

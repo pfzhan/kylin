@@ -48,7 +48,8 @@ export default {
     addBaseIndexCheckBox: 'Add Base Indexes',
     secStorage: 'Secondary Storage',
     secStorageDesc: 'With this switch ON, the system will create a base table index, which will be sync to the secondary storage. It will improve the performance of ad-hoc query and detail query analysis scenarios.<br/>The index can\'t be deleted when the secondary storage is ON.',
-    secStorageTips: 'With this switch OFF, the model\'s secondary storage data will be cleared。'
+    secStorageTips: 'With this switch OFF, the model\'s secondary storage data will be cleared。',
+    openSecStorageTips: 'It\'s recommended to turn on the secondary storage, as too many dimensions are included.'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -99,6 +100,7 @@ export default {
     addBaseIndexCheckBox: '添加基础索引',
     secStorage: '二级存储',
     secStorageDesc: '开启后系统将为模型创建一个基础明细索引。二级存储用于同步该索引数据，以提高多维度灵活查询和明细查询的查询性能。<br/>且在开启二级存储时该索引不可删除。',
-    secStorageTips: '关闭后，模型的二级存储数据将被清空，可能会影响查询效率。'
+    secStorageTips: '关闭后，模型的二级存储数据将被清空，可能会影响查询效率。',
+    openSecStorageTips: '检测到模型维度数较多，建议开启二级存储。'
   }
 }

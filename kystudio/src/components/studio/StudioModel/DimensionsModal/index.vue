@@ -33,7 +33,6 @@
                 </div>
                 <el-table
                   v-if="table.show || isGuideMode"
-                  border
                   :data="table.columns"
                   @row-click="(row) => {rowClick(row, table.guid)}"
                   :ref="table.guid"
@@ -45,7 +44,10 @@
                     width="44">
                   </el-table-column>
                   <el-table-column
-                    :render-header="renderNameHeader">
+                    info-icon="el-ksd-icon-more_info_22"
+                    :info-tooltip="$t('nameTip')"
+                    :label="$t('name')"
+                  >
                     <template slot-scope="scope">
                       <div @click.stop>
                         <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
@@ -71,7 +73,9 @@
                     header-align="right"
                     align="right"
                     show-overflow-tooltip
-                    :render-header="renderCardinalityHeader"
+                    info-icon="el-ksd-icon-more_info_22"
+                    :info-tooltip="$t('cardinalityTip')"
+                    :label="$t('cardinality')"
                     width="100">
                     <span slot-scope="scope">
                       <template v-if="!scope.row.cardinality"><i class="no-data_placeholder">NULL</i></template>
@@ -80,7 +84,10 @@
                   </el-table-column>
                   <el-table-column
                     prop="comment"
-                    :render-header="renderCommentHeader">
+                    info-icon="el-ksd-icon-more_info_22"
+                    :info-tooltip="$t('commentTip')"
+                    :label="$t('comment')"
+                  >
                   </el-table-column>
                 </el-table>
               </div>
@@ -106,7 +113,6 @@
                 <el-table
                   v-if="table.show || isGuideMode"
                   :class="[flattenLookupTables.includes(table.alias) && 'is-disabled']"
-                  border
                   :row-class-name="(para) => tableRowClassName(para, table)"
                   :data="table.columns" :ref="table.guid"
                   @row-click="(row) => {rowClick(row, table.guid)}"
@@ -119,7 +125,10 @@
                     width="44">
                   </el-table-column>
                   <el-table-column
-                    :render-header="renderNameHeader">
+                    info-icon="el-ksd-icon-more_info_22"
+                    :info-tooltip="$t('nameTip')"
+                    :label="$t('name')"
+                  >
                     <template slot-scope="scope">
                       <div @click.stop>
                         <el-input size="small" v-model.trim="scope.row.alias" @change="checkDimensionForm" :disabled="!scope.row.isSelected || flattenLookupTables.includes(table.alias)" :maxlength="+dimMeasNameMaxLength">
@@ -144,7 +153,9 @@
                     header-align="right"
                     align="right"
                     show-overflow-tooltip
-                    :render-header="renderCardinalityHeader"
+                    :info-icon="el-ksd-icon-more_info_22"
+                    :info-tooltip="$t('cardinalityTip')"
+                    :label="$t('cardinality')"
                     width="100">
                     <span slot-scope="scope">
                       <template v-if="!scope.row.cardinality"><i class="no-data_placeholder">NULL</i></template>
@@ -153,7 +164,10 @@
                   </el-table-column>
                   <el-table-column
                     prop="comment"
-                    :render-header="renderCommentHeader">
+                    info-icon="el-ksd-icon-more_info_22"
+                    :info-tooltip="$t('commentTip')"
+                    :label="$t('comment')"
+                  >
                   </el-table-column>
                 </el-table>
               </div>
@@ -177,7 +191,6 @@
                   </div>
                   <el-table
                     v-if="ccTable.show || isGuideMode"
-                    border
                     :row-class-name="(para) => tableRowClassName(para, ccTable)"
                     :data="ccTable.columns" :ref="ccTable.guid"
                     @row-click="(row) => {rowClick(row, ccTable.guid)}"
@@ -191,7 +204,10 @@
                     </el-table-column>
                     <el-table-column
                       prop="alias"
-                      :render-header="renderNameHeader">
+                      info-icon="el-ksd-icon-more_info_22"
+                      :info-tooltip="$t('nameTip')"
+                      :label="$t('name')"
+                    >
                       <template slot-scope="scope">
                         <div @click.stop>
                           <el-input size="small" v-model.trim="scope.row.alias" @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
@@ -224,7 +240,6 @@
           </div>
           <div v-show="searchChar.trim()">
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
-              border
               :empty-text="emptyText"
               :row-class-name="(para) => tableRowClassName(para, searchTable)"
               :data="searchTable.columns" :ref="searchTable.guid"
@@ -239,7 +254,10 @@
               </el-table-column>
               <el-table-column
                 prop="alias"
-                :render-header="renderNameHeader">
+                info-icon="el-ksd-icon-more_info_22"
+                :info-tooltip="$t('nameTip')"
+                :label="$t('name')"
+              >
                 <template slot-scope="scope">
                   <div @click.stop>
                     <el-input size="small" v-model.trim="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected" :maxlength="+dimMeasNameMaxLength">
@@ -415,32 +433,32 @@ export default class DimensionsModal extends Vue {
     })
   }
 
-  renderNameHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('name')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('nameTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderNameHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('name')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('nameTip')}>
+  //      <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
 
-  renderCardinalityHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('cardinality')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('cardinalityTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderCardinalityHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('cardinality')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('cardinalityTip')}>
+  //      <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
 
-  renderCommentHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('comment')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('commentTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderCommentHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('comment')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('commentTip')}>
+  //      <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
 
   changeSearchVal (val) {
     clearTimeout(this.ST)
@@ -883,7 +901,10 @@ export default class DimensionsModal extends Vue {
     }
     .checkbox-all {
       float: left;
-      line-height: 45px;
+      line-height: 40px;
+      .el-checkbox__inner {
+        vertical-align: middle;
+      }
     }
     .table-icon {
       float: left;

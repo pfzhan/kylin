@@ -43,6 +43,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_M
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
@@ -90,11 +91,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.ToString;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -202,6 +209,8 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
@@ -213,6 +222,7 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -230,6 +240,7 @@ import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.FusionModelResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
@@ -257,7 +268,6 @@ import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.transaction.Transaction;
-import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
@@ -628,7 +638,7 @@ public class ModelService extends BasicService {
             boolean exactMatch, String owner, List<String> modelTypes, List<String> status, String sortBy,
             boolean reverse, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
         return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
-                lastModifyFrom, lastModifyTo).stream()
+                lastModifyFrom, lastModifyTo, onlyNormalDim).stream()
                         .filter(dataModel -> isTypesContains(modelTypes, dataModel.getModelType()))
                         .collect(Collectors.toList());
     }
@@ -659,31 +669,8 @@ public class ModelService extends BasicService {
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
-                if (!onlyNormalDim) {
-                    nDataModelResponse.enrichDerivedDimension();
-                }
-                nDataModelResponse.setForbiddenOnline(isScd2ForbiddenOnline);
-                nDataModelResponse.setBroken(modelDesc.isBroken());
-                nDataModelResponse.setStatus(modelResponseStatus);
-                nDataModelResponse.setLastBuildTime(dfManager.getDataflowLastBuildTime(modelDesc.getUuid()));
-                nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
-                nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
-                nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
-                nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
-                        nDataModelResponse.getSource()));
-                nDataModelResponse.setUsage(dataflow.getQueryHitCount());
-                nDataModelResponse.setInconsistentSegmentCount(inconsistentSegmentCount);
-                if (!modelDesc.isBroken()) {
-                    nDataModelResponse
-                            .setAvailableIndexesCount(getAvailableIndexesCount(projectName, modelDesc.getId()));
-                    nDataModelResponse.setTotalIndexes(
-                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
-                    nDataModelResponse.setEmptyIndexesCount(getEmptyIndexesCount(projectName, modelDesc.getId()));
-                    nDataModelResponse.setHasBaseAggIndex(
-                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).containBaseAggLayout());
-                    nDataModelResponse.setHasBaseTableIndex(
-                            getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).containBaseTableLayout());
-                }
+                nDataModelResponse.computedInfo(inconsistentSegmentCount, modelResponseStatus, isScd2ForbiddenOnline,
+                        modelDesc, onlyNormalDim);
                 filterModels.add(nDataModelResponse);
             }
         });
@@ -712,7 +699,7 @@ public class ModelService extends BasicService {
                         && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
                                 || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
                         && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
-                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()))
+                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()) && !p.getValue().skipFusionModel())
                 .collect(Collectors.toList());
     }
 
@@ -733,28 +720,10 @@ public class ModelService extends BasicService {
         return modelResponseStatus;
     }
 
-    private long getAvailableIndexesCount(String project, String id) {
-        val dataflowManager = getDataflowManager(project);
-        val dataflow = dataflowManager.getDataflow(id);
-        if (dataflow == null) {
-            return 0;
-        }
-
-        val readySegments = dataflow.getLatestReadySegment();
-
-        if (readySegments == null) {
-            return 0;
-        }
-
-        val readLayouts = readySegments.getLayoutsMap().keySet();
-        return dataflow.getIndexPlan().getAllLayouts().stream()
-                .filter(l -> readLayouts.contains(l.getId()) && !l.isToBeDeleted()).count();
-    }
-
     private long getEmptyIndexesCount(String project, String id) {
         val indexPlanManager = getIndexPlanManager(project);
         val indexPlan = indexPlanManager.getIndexPlan(id);
-        return indexPlan.getAllLayouts().size() - getAvailableIndexesCount(project, id);
+        return indexPlan.getAllLayouts().size() - indexPlanManager.getAvailableIndexesCount(project, id);
     }
 
     private List<NDataModelResponse> sortExpansionRate(boolean reverse, List<NDataModelResponse> filterModels) {
@@ -783,7 +752,8 @@ public class ModelService extends BasicService {
     }
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
-        NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
+        NDataModelResponse nDataModelResponse = modelDesc.isFusionModel() ? new FusionModelResponse(modelDesc)
+                : new NDataModelResponse(modelDesc);
 
         if (modelDesc.isBroken()) {
             val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
@@ -889,7 +859,7 @@ public class ModelService extends BasicService {
     }
 
     private void addSecondStorageResponse(String modelId, String project,
-            List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
+                                          List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
 
         if (!SecondStorageUtil.isModelEnable(project, modelId))
             return;
@@ -1091,10 +1061,14 @@ public class ModelService extends BasicService {
     public void dropModel(String modelId, String project) {
         aclEvaluate.checkProjectWritePermission(project);
         checkModelPermission(project, modelId);
-        val modelName = getModelById(modelId, project).getAlias();
+        val model = getModelById(modelId, project);
+        val modelName = model.getAlias();
+        if (model.isStreaming()) {
+            EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
+            EventBusFactory.getInstance().postSync(new StreamingJobDropEvent(project, modelId));
+        }
         dropModel(modelId, project, false);
-        UnitOfWorkContext context = UnitOfWork.get();
-        context.doAfterUnit(() -> ModelDropAddListener.onDelete(project, modelId, modelName));
+        EventBusFactory.getInstance().postSync(new ModelDropEvent(project, modelId, modelName));
     }
 
     void dropModel(String modelId, String project, boolean ignoreType) {
@@ -1958,6 +1932,7 @@ public class ModelService extends BasicService {
 
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         preProcessBeforeModelSave(dataModel, project);
+        createStreamingJob(project, dataModel, modelRequest);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -1981,17 +1956,51 @@ public class ModelService extends BasicService {
         if (range != null) {
             dataflowManager.fillDfManually(df, Lists.newArrayList(range));
         }
-        createStreamingModel(project, model, modelRequest);
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
-    private void createStreamingModel(String project, NDataModel model, ModelRequest request) {
+    private void createStreamingJob(String project, NDataModel model, ModelRequest request) {
         if (NDataModel.ModelType.BATCH != model.getModelType()) {
             val jobManager = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
             jobManager.createStreamingJob(model);
+            createStreamingModel(project, model, request);
         }
+    }
+
+    private void createStreamingModel(String project, NDataModel model, ModelRequest request) {
+        KafkaConfig kafkaConfig = model.getRootFactTableRef().getTableDesc().getKafkaConfig();
+        if (kafkaConfig.hasBatchTable()) {
+            String tableName = kafkaConfig.getBatchTable();
+
+            ModelRequest copy = JsonUtil.deepCopyQuietly(request, ModelRequest.class);
+            copy.setAlias(request.getAlias() + "_batch");
+            copy.setRootFactTableName(tableName);
+            copy.setFusionId(model.getUuid());
+            model.setFusionId(model.getUuid());
+
+            String tableAlias = kafkaConfig.getBatchTableAlias();
+            String oldAliasName = model.getRootFactTableRef().getTableName();
+            convertModel(copy, tableAlias, oldAliasName);
+            NDataModel copyModel = saveModel(project, copy);
+            createFusionModel(project, model, copyModel);
+        }
+    }
+
+    private void createFusionModel(String project, NDataModel model, NDataModel copyModel) {
+        FusionModel fusionModel = new FusionModel(model, copyModel);
+        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        fusionModelManager.createModel(fusionModel);
+    }
+
+    private void convertModel(ModelRequest copy, String tableName, String oldAliasName) {
+        copy.getSimplifiedJoinTableDescs().stream()
+                .forEach(x -> x.getSimplifiedJoinDesc().changeFKTableAlias(oldAliasName, tableName));
+        copy.getSimplifiedDimensions().stream().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
+        copy.getSimplifiedMeasures().stream().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
+        copy.getPartitionDesc().changeTableAlias(oldAliasName, tableName);
     }
 
     void updateIndexPlan(String project, IndexPlan indexPlan) {
@@ -3165,7 +3174,7 @@ public class ModelService extends BasicService {
         NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
 
         String uuid = request.getUuid();
-        NDataModel convertedModel = convertAndInitDataModel(request, project);
+        NDataModel convertedModel = modelManager.getDataModelDesc(uuid);
         List<JoinTableDesc> joinTables = convertedModel.getJoinTables();
 
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(uuid);
@@ -3673,6 +3682,15 @@ public class ModelService extends BasicService {
         SqlVisitor<Object> sqlVisitor = new AddTableNameSqlVisitor(expr, colToTable, ambiguityCol, allColumn);
 
         sqlNode.accept(sqlVisitor);
+
+        Set<String> excludedTables = getFavoriteRuleManager(model.getProject()).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
+        String antiFlattenLookup = checker.detectFilterConditionDependsLookups(sqlNode.toString(),
+                checker.getExcludedLookups());
+        if (antiFlattenLookup != null) {
+            throw new KylinException(FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+        }
         return sqlNode
                 .toSqlString(new CalciteSqlDialect(
                         SqlDialect.EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)), true)
@@ -3719,7 +3737,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updateDataModelParatitionDesc(String project, String modelAlias,
-            ModelParatitionDescRequest modelParatitionDescRequest) {
+                                              ModelParatitionDescRequest modelParatitionDescRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         if (getProjectManager().getProject(project) == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
@@ -3741,7 +3759,7 @@ public class ModelService extends BasicService {
         }
 
         getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite ->
-            copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc())
+                copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc())
         );
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                 modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
@@ -3810,7 +3828,7 @@ public class ModelService extends BasicService {
         }
 
         getDataModelManager(project).updateDataModel(modelId, copyForWrite ->
-            copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping())
+                copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping())
         );
     }
 
@@ -4326,5 +4344,15 @@ public class ModelService extends BasicService {
             cc.setInnerExpression(innerExp);
         }
         return model;
+    }
+
+    @Setter
+    @Getter
+    @AllArgsConstructor
+    @ToString
+    public static class ModelDropEvent {
+        private String project;
+        private String modelId;
+        private String modelName;
     }
 }

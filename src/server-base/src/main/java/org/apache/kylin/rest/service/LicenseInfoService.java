@@ -172,6 +172,7 @@ public class LicenseInfoService extends BasicService {
             gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
             val info = extractLicenseInfo();
             verifyLicense(info);
+            updateSourceUsage();
         } catch (Exception e) {
             log.error("license is invalid", e);
             onError.accept(1);
@@ -806,5 +807,6 @@ public class LicenseInfoService extends BasicService {
         log.debug("refresh license volume");
         LicenseExtractorFactory.ILicenseExtractor licenseExtractor = getLicenseExtractor();
         licenseExtractor.refreshLicenseVolume();
+        updateSourceUsage();
     }
 }

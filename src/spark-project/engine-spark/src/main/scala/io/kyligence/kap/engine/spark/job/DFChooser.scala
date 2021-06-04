@@ -41,6 +41,7 @@ import org.apache.spark.sql._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 class DFChooser(toBuildTree: NSpanningTree,
                 var seg: NDataSegment,
@@ -229,7 +230,14 @@ class DFChooser(toBuildTree: NSpanningTree,
   def shouldUpdateFlatTable(flatTablePath: Path, df: DataFrame): Boolean = {
     if (seg.isFlatTableReady && HadoopUtil.getWorkingFileSystem.exists(flatTablePath)) {
       val curr = df.schema.fieldNames
-      val prev = ss.read.parquet(flatTablePath.toString).schema.fieldNames
+
+      val flatDF: DataFrame = Try(ss.read.parquet(flatTablePath.toString)) match {
+        case Success(df) => df
+        case Failure(f) =>
+          logInfo(s"Handled AnalysisException: Unable to infer schema for Parquet. Flat table path $flatTablePath is empty", f)
+          ss.emptyDataFrame
+      }
+      val prev = flatDF.schema.fieldNames
       if (curr.forall(prev.contains(_))) {
         logInfo(s"Reuse persisted flat table on dataFlow: ${seg.getDataflow.getId}, segment: ${seg.getId}." +
           s" Prev schema: [${prev.mkString(", ")}], curr schema: [${curr.mkString(", ")}]")

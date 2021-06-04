@@ -7,9 +7,22 @@
         </el-form-item>
       </el-form> -->
       <!-- <div class="ky-line ksd-mtb-10"></div> -->
-      <div>
+      <div class="table-index-list">
+        <div class="ksd-mb-10" v-if="modelInstance.model_type === 'HYBRID'">
+          <h4>
+            <span class="is-required">*</span>
+            {{$t('indexTimeRange')}}
+            <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
+          </h4>
+          <el-radio-group v-model="tableIndexMeta.index_range" :disabled="tableIndexMeta.id !== ''">
+            <el-radio :label="'HYBRID'">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+            <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
+            <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+          </el-radio-group>
+        </div>
         <!-- <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button> -->
         <div class="header">
+          <h4 class="ksd-left" v-if="modelInstance.model_type === 'HYBRID'">选择列</h4>
           <el-alert
             :title="$t('tableIndexShardByTips')"
             type="info"
@@ -17,11 +30,16 @@
             :show-background="false"
             show-icon>
           </el-alert>
-          <p class="anit-table-tips" v-if="hasManyToManyAndAntiTable">{{$t('manyToManyAntiTableTip')}}</p>
-          <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
-          <el-input v-model="searchColumn" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
+          <template v-if="modelInstance.model_type !== 'HYBRID' || modelInstance.model_type === 'HYBRID' && tableIndexMeta.index_range">
+            <p class="anit-table-tips" v-if="hasManyToManyAndAntiTable">{{$t('manyToManyAntiTableTip')}}</p>
+            <el-tooltip :content="$t('excludeTableCheckboxTip')" effect="dark" placement="top"><el-checkbox class="ksd-mr-5" v-if="showExcludedTableCheckBox" v-model="displayExcludedTables">{{$t('excludeTableCheckbox')}}</el-checkbox></el-tooltip>
+            <el-input v-model="searchColumn" size="medium" prefix-icon="el-ksd-icon-search_22" style="width:200px" :placeholder="$t('filterByColumns')"></el-input>
+          </template>
         </div>
-       <div class="ky-simple-table">
+        <div class="no-index-range" v-if="modelInstance.model_type === 'HYBRID' && !tableIndexMeta.index_range">
+          <span>{{$t('noIndexRangeByHybrid')}}</span>
+        </div>
+        <div class="ky-simple-table" v-else>
           <el-row class="table-header table-row ksd-mt-10">
             <el-col :span="1"><el-checkbox v-model="isSelectAllTableIndex" :indeterminate="getSelectedColumns.length !== 0 && allColumns.length > getSelectedColumns.length" @change="selectAllTableIndex" size="small" /></el-col>
             <el-col :span="14" class="column-name">{{$t('kylinLang.model.columnName')}}</el-col>
@@ -70,7 +88,7 @@
         <!-- <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox> -->
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
-        <el-button type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
+        <el-button v-if="modelInstance.model_type !== 'HYBRID'" type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -95,6 +113,7 @@
       ]),
       ...mapState('TableIndexEditModal', {
         isShow: state => state.isShow,
+        isHybridBatch: state => state.isHybridBatch,
         modelInstance: state => state.form.data.modelInstance,
         tableIndexDesc: state => objectClone(state.form.data.tableIndexDesc),
         callback: state => state.callback
@@ -127,7 +146,8 @@
       col_order: [],
       sort_by_columns: [],
       shard_by_columns: [],
-      load_data: false
+      load_data: false,
+      index_range: ''
     })
     tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
     rules = {
@@ -450,12 +470,12 @@
         }
       })
       this.tableIndexMeta.project = this.currentSelectedProject
-      this.tableIndexMeta.model_id = this.modelInstance.uuid
+      this.tableIndexMeta.model_id = this.isHybridBatch ? this.modelInstance.batch_id : this.modelInstance.uuid
       'name' in this.tableIndexMeta && delete this.tableIndexMeta.name
       if (this.tableIndexMeta.id) {
-        this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+        this.editTableIndex({...this.tableIndexMeta, index_range: this.tableIndexMeta.index_range || 'EMPTY'}).then(successCb, errorCb)
       } else {
-        this.addTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+        this.addTableIndex({...this.tableIndexMeta, index_range: this.tableIndexMeta.index_range || 'EMPTY'}).then(successCb, errorCb)
       }
     }
     async submit (isLoadData) {
@@ -514,6 +534,24 @@
           margin-left: 22px;
           margin-bottom: 10px;
         }
+        .exclude-table-checkbox {
+          display: inline-block;
+          font-size: 0;
+          top: -4px;
+          .el-checkbox__inner {
+            vertical-align: middle;
+          }
+        }
+      }
+      .table-index-list {
+        .is-required{
+          color: @color-danger;
+        }
+      }
+      .no-index-range {
+        text-align: center;
+        padding: 16px 8px;
+        color: @text-disabled-color;
       }
     }
     .flip-list-move {
