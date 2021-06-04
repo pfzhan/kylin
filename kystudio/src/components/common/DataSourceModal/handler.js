@@ -30,7 +30,8 @@ export const titleMaps = {
   [editTypes.RDBMS]: 'loadTables',
   [editTypes.RDBMS2]: 'loadTables',
   [editTypes.KAFKA]: 'loadTables',
-  [editTypes.KAFKA2]: 'loadTables'
+  [editTypes.KAFKA2]: 'loadTables',
+  [editTypes.GBASE]: 'loadTables'
 }
 
 export const cancelMaps = {
@@ -45,7 +46,8 @@ export const cancelMaps = {
   [editTypes.RDBMS]: '',
   [editTypes.RDBMS2]: '',
   [editTypes.KAFKA]: 'kylinLang.common.prev',
-  [editTypes.KAFKA2]: 'kylinLang.common.prev'
+  [editTypes.KAFKA2]: 'kylinLang.common.prev',
+  [editTypes.GBASE]: 'kylinLang.common.prev'
 }
 
 export const confirmMaps = {
@@ -61,7 +63,8 @@ export const confirmMaps = {
   [editTypes.RDBMS2]: 'kylinLang.common.sync',
   [editTypes.KAFKA]: 'kylinLang.common.next',
   [editTypes.KAFKA2]: 'kylinLang.common.load',
-  [editTypes.SETTING]: 'kylinLang.common.save'
+  [editTypes.SETTING]: 'kylinLang.common.save',
+  [editTypes.GBASE]: 'kylinLang.common.loadMetadata'
 }
 
 function _getSelectSourceSubmitData (form) {

@@ -696,7 +696,8 @@ export const sourceTypes = getFullMapping({
   RDBMS: 16,
   KAFKA: 1,
   RDBMS2: 8,
-  CSV: 13
+  CSV: 13,
+  GBASE: 8
 })
 
 export const sourceNameMapping = {
@@ -704,7 +705,8 @@ export const sourceNameMapping = {
   RDBMS: 'RDBMS',
   KAFKA: 'Kafka',
   RDBMS2: 'RDBMS',
-  CSV: 'CSV'
+  CSV: 'CSV',
+  GBASE: 'GBASE'
 }
 
 export const pageSizeMapping = {

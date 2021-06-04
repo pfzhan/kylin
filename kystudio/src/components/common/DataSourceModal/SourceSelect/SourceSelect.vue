@@ -3,10 +3,12 @@
   <div class="ksd-title-label-small ksd-ml-20 ksd-mt-20">{{$t('dataSourceTypeCheckTip')}}</div>
   <div class="source-new">
     <ul>
-      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.HIVE])">
-        <div class="datasource-icon" @click="clickHandler(sourceTypes.HIVE)" v-guide.selectHive>
-          <i class="el-icon-ksd-hive"></i>
+      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.HIVE])" @click="clickHandler(sourceTypes.HIVE)">
+        <div class="datasource-icon" v-guide.selectHive>
+          <!-- <i class="el-icon-ksd-hive"></i> -->
+          <img src="../../../../assets/img/Hive_logo.png" alt="">
         </div>
+        <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
         <div class="datasource-name">Hive</div>
       </li>
       <!-- <li class="datasouce ksd-center disabled"> -->
@@ -23,25 +25,26 @@
         </div>
         -->
       <!-- </li> -->
-      <!--
-      <li class="datasouce disabled ksd-center">
+     
+      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.KAFKA])" @click="clickHandler(sourceTypes.KAFKA)">
         <div class="datasource-icon">
-          <i class="el-icon-ksd-mysql"></i>
+          <!-- <i class="el-icon-ksd-kafka"></i> -->
+          <img src="../../../../assets/img/Kafka_logo.png" alt="">
         </div>
-        <div class="datasource-name">MySQL</div>
-        <div class="status">
-          <span>{{$t('upcoming')}}</span>
-        </div>
-      </li>
-      -->
-      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.KAFKA])">
-        <div class="datasource-icon" @click="clickHandler(sourceTypes.KAFKA)">
-          <i class="el-icon-ksd-kafka"></i>
-        </div>
+        <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
         <div class="datasource-name">Kafka</div>
         <!-- <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div> -->
+      </li>
+
+      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.GBASE])" @click="clickHandler(sourceTypes.GBASE)" v-if="showGbaseData">
+        <div class="datasource-icon">
+          <!-- <i class="el-icon-ksd-mysql"></i> -->
+          <img src="../../../../assets/img/datasource.png" alt="">
+        </div>
+        <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
+        <div class="datasource-name">JDBC(Beta)</div>
       </li>
     </ul>
     <!--
@@ -71,7 +74,7 @@
 </template>
 <script>
 import Vue from 'vue'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapState } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import * as config from '../../../../config'
@@ -81,12 +84,21 @@ import * as config from '../../../../config'
   computed: {
     ...mapGetters([
       'globalDefaultDatasource'
-    ])
+    ]),
+    ...mapState({
+      allProject: state => state.project.allProject,
+      currentProject: state => state.project.selected_project
+    })
   },
   locales
 })
 export default class SourceSelect extends Vue {
   sourceTypes = config.sourceTypes
+
+  get showGbaseData () {
+    const [{override_kylin_properties}] = this.allProject.filter(it => it.name === this.currentProject)
+    return 'kylin.source.default' in override_kylin_properties && override_kylin_properties['kylin.source.default'] === '8'
+  }
 
   getSourceClass (sourceTypes = []) {
     return {
@@ -125,31 +137,64 @@ export default class SourceSelect extends Vue {
   }
   .datasouce {
     display: inline-block;
-    height: 150px;
-    width: 90px;
+    height: 112px;
+    width: 120px;
     vertical-align: top;
     color: @text-secondary-color;
     margin-right: 50px;
     border: 1px solid transparent;
+    border-radius: 4px;
+    background: @ke-background-color-white;
+    box-shadow: 0px 1px 4px rgba(63, 89, 128, 0.16);
+    box-sizing: border-box;
+    cursor: pointer;
     * {
       vertical-align: middle;
     }
     &:last-child {
       margin-right: 0;
     }
-  }
-  .datasource-icon:hover {
-    border-color: @base-color;
-  }
-  .datasouce.active {
-    color: @text-normal-color;
-    .datasource-icon {
-      color: @fff;
-      background: @base-color;
-      box-shadow: 2px 2px 4px 0 @text-placeholder-color;
+    .checked-icon {
+      display: none;
     }
+    .datasource-icon {
+      img {
+        width: 62px;
+      }
+    }
+  }
+  // .datasource-icon:hover {
+  //   border-color: @base-color;
+  // }
+  .datasouce.active {
+    position: relative;
+    color: @text-normal-color;
+    border: 1px solid @ke-color-primary;
+    box-shadow: 0px 2px 8px rgba(50, 73, 107, 0.24);
     .datasource-name {
-      color: @base-color;
+      color: @ke-color-primary;
+    }
+    .checked-icon {
+      display: block;
+      position: absolute;
+      bottom: 3px;
+      right: 5px;
+      z-index: 10;
+      color: @text-darkbg-color;
+      font-weight: bold;
+    }
+    &::after {
+      content: '';
+      display: block;
+      border-top: 24px solid transparent;
+      border-left: 24px solid @ke-color-primary;
+      border-bottom: 24px solid transparent;
+      border-right: 24px solid transparent;
+      /* border-color: #0875DA; */
+      position: absolute;
+      right: -24px;
+      bottom: -24px;
+      transform: rotate(45deg);
     }
   }
   .datasouce.disabled {
@@ -173,18 +218,18 @@ export default class SourceSelect extends Vue {
   }
   .datasource-icon {
     font-size: 65px;
-    height: 90px;
+    // height: 90px;
     line-height: 1.2;
     border-radius: 6px;
-    background: @grey-4;
-    margin-bottom: 10px;
+    // background: @grey-4;
+    // margin-bottom: 10px;
     color: @base-color;
     cursor: pointer;
     border: 1px solid transparent;
   }
   .datasource-name {
     color: @text-normal-color;
-    margin-bottom: 5px;
+    margin-top: 5px;
     font-size: 14px;
     font-weight: @font-medium;
   }

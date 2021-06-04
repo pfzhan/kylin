@@ -33,8 +33,8 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | toGMTDate}}</h2>
             <div class="table-actions ky-no-br-space">
-              <el-button type="primary" text icon="el-ksd-icon-sample_22" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable') && selectedTable.datasource == 9">{{$t('sample')}}</el-button>
-              <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-resure_22" :loading="reloadBtnLoading" @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable') && selectedTable.datasource == 9">{{$t('reload')}}</el-button>
+              <el-button type="primary" text icon="el-ksd-icon-sample_22" @click="sampleTable" v-if="datasourceActions.includes('sampleSourceTable') && [9, 8].includes(selectedTable.datasource)">{{$t('sample')}}</el-button>
+              <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-resure_22" :loading="reloadBtnLoading" @click="handleReload" v-if="datasourceActions.includes('reloadSourceTable') && [9, 8].includes(selectedTable.datasource)">{{$t('reload')}}</el-button>
               <el-button type="primary" class="ksd-ml-2" text icon="el-ksd-icon-table_delete_22" :loading="delBtnLoading" v-if="datasourceActions.includes('delSourceTable')" @click="handleDelete">{{$t('delete')}}</el-button>
             </div>
           </div>

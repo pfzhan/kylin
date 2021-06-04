@@ -163,16 +163,17 @@ export default class DataSourceModal extends Vue {
     }
   }
 
-  get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : (this.editType === editTypes.SELECT_SOURCE ? '480px' : '780px') }
+  get modelWidth () { return this.editType === editTypes.HIVE || this.editType === editTypes.GBASE ? '960px' : (this.editType === editTypes.SELECT_SOURCE ? '600px' : '780px') }
   get confirmText () { return this.$t(confirmMaps[this.editType]) }
   get cancelText () {
     return this.firstEditType === this.editType ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType])
   }
   get sourceType () { return this.form.project.override_kylin_properties['kylin.source.default'] }
-  get sourceHive () { return [this.editTypes.HIVE, this.editTypes.RDBMS, this.editTypes.RDBMS2].includes(this.editType) }
+  get sourceHive () { return [this.editTypes.HIVE, this.editTypes.RDBMS, this.editTypes.RDBMS2, this.editTypes.GBASE].includes(this.editType) }
   get sourceKafka () { return this.editType === this.editTypes.KAFKA }
   get sourceKafkaStep2 () { return this.editType === this.editTypes.KAFKA2 }
   handleInput (key, value) {
+    console.log(key, value, this.form)
     this.setModalForm(set(this.form, key, value))
   }
   handleInputTableOrDatabase (payload) {
@@ -223,6 +224,8 @@ export default class DataSourceModal extends Vue {
         if (results) {
           if (this.editTypes.HIVE === this.editType) {
             results.sourceType = 9
+          } else if (this.editTypes.GBASE === this.editType) {
+            results.sourceType = 8
           } else { // 目前只有Hive和Kafka数据源
             results.sourceType = 1
           }
