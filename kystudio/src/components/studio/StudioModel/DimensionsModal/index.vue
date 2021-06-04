@@ -153,7 +153,7 @@
                     header-align="right"
                     align="right"
                     show-overflow-tooltip
-                    :info-icon="el-ksd-icon-more_info_22"
+                    info-icon="el-ksd-icon-more_info_22"
                     :info-tooltip="$t('cardinalityTip')"
                     :label="$t('cardinality')"
                     width="100">

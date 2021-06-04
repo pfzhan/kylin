@@ -537,7 +537,13 @@ export default class TableJoinModal extends Vue {
       // if (res.uuid) {
       const currentJoinIndex = res.join_tables.findIndex(it => it.alias === this.pTableName)
       if (currentJoinIndex > -1) {
-        res.join_tables[currentJoinIndex] = {...res.join_tables[currentJoinIndex], flattenable: this.isPrecompute ? 'flatten' : 'normalized'}
+        res.join_tables[currentJoinIndex] = {
+          ...res.join_tables[currentJoinIndex],
+          join: joinData,
+          join_relation_type: selectTableRelation,
+          flattenable: this.isPrecompute ? 'flatten' : 'normalized',
+          table: this.form.modelInstance.tables[selectP].name
+        }
         res.all_named_columns = this.form.modelInstance.all_named_columns || []
       } else {
         res.join_tables.push({
