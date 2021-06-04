@@ -72,8 +72,8 @@ class MetaExplorerTest extends SQLTestUtils with WithKylinExternalCatalog {
       tableType = CatalogTableType.MANAGED,
       storage = CatalogStorageFormat.empty,
       schema = new StructType()
-        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
-        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "varchar(33)").build())
         .add("c", "int"),
       properties = Map()
     )

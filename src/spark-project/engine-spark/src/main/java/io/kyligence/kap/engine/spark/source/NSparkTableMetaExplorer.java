@@ -76,12 +76,7 @@ public class NSparkTableMetaExplorer implements Serializable {
     }
 
     private static final List<String> UNSUPOORT_TYPE = Lists.newArrayList("array", "map", "struct", "binary");
-
-    private static final Map<PROVIDER, String> PROVIDER_METADATA_TYPE_STRING = new EnumMap<>(PROVIDER.class);
-
-    static {
-        PROVIDER_METADATA_TYPE_STRING.put(PROVIDER.HIVE, "HIVE_TYPE_STRING");
-    }
+    private static final String CHAR_VARCHAR_TYPE_STRING_METADATA_KEY = "__CHAR_VARCHAR_TYPE_STRING";
 
     public NSparkTableMeta getSparkTableMeta(String database, String tableName) {
         SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
@@ -151,11 +146,8 @@ public class NSparkTableMetaExplorer implements Serializable {
         List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists.newArrayListWithCapacity(schema.size());
         for (org.apache.spark.sql.types.StructField field : schema.fields()) {
             String type = field.dataType().simpleString();
-            // fetch provider specified type
-            PROVIDER provider = PROVIDER.fromString(tableMetadata.provider());
-            if (provider != PROVIDER.UNSPECIFIED
-                    && field.metadata().contains(PROVIDER_METADATA_TYPE_STRING.get(provider))) {
-                type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
+            if (field.metadata().contains(CHAR_VARCHAR_TYPE_STRING_METADATA_KEY)) {
+                type = field.metadata().getString(CHAR_VARCHAR_TYPE_STRING_METADATA_KEY);
             }
             String finalType = type;
             if (UNSUPOORT_TYPE.stream().anyMatch(finalType::contains)) {

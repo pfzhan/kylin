@@ -119,8 +119,8 @@ object KylinExternalCatalog {
 
   /** Converts the native StructField to Hive's FieldSchema. */
   def toExternalColumn(c: StructField): FieldSchema = {
-    val typeString = if (c.metadata.contains("HIVE_TYPE_STRING")) {
-      c.metadata.getString("HIVE_TYPE_STRING")
+    val typeString = if (c.metadata.contains("__CHAR_VARCHAR_TYPE_STRING")) {
+      c.metadata.getString("__CHAR_VARCHAR_TYPE_STRING")
     } else {
       c.dataType.catalogString
     }

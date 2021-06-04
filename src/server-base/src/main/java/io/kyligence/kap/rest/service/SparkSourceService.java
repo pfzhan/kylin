@@ -79,7 +79,7 @@ import scala.collection.Iterator;
 public class SparkSourceService extends BasicService {
 
     //key in hive metadata map
-    private static final String HIVE_TYPE_STRING = "HIVE_TYPE_STRING";
+    private static final String CHAR_VARCHAR_TYPE_STRING = "__CHAR_VARCHAR_TYPE_STRING";
     private static final String HIVE_COMMENT = "comment";
 
     // constants for samples
@@ -188,7 +188,7 @@ public class SparkSourceService extends BasicService {
             columnModel.setDescription(metadata.contains(HIVE_COMMENT) ? metadata.getString(HIVE_COMMENT) : "");
             //use hive datatype if it exists , otherwise use spark datatype
             columnModel
-                    .setDataType(metadata.contains(HIVE_TYPE_STRING) ? metadata.getString(HIVE_TYPE_STRING) : datatype);
+                    .setDataType(metadata.contains(CHAR_VARCHAR_TYPE_STRING) ? metadata.getString(CHAR_VARCHAR_TYPE_STRING) : datatype);
             columnModels.add(columnModel);
         }
 

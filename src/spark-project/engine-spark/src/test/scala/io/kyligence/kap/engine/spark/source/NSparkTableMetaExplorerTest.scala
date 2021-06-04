@@ -68,8 +68,8 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       tableType = CatalogTableType.MANAGED,
       storage = CatalogStorageFormat.empty,
       schema = new StructType()
-        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
-        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "varchar(33)").build())
         .add("c", "int"),
       properties = Map()
     )
@@ -92,10 +92,10 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       storage = CatalogStorageFormat.empty,
       partitionColumnNames = List("dayno"),
       schema = new StructType()
-        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
-        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "varchar(33)").build())
         .add("c", "int")
-        .add("dayno", "string", nullable = false, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(8)").build()),
+        .add("dayno", "string", nullable = false, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(8)").build()),
       properties = Map()
     )
     spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
@@ -120,11 +120,11 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
       storage = CatalogStorageFormat.empty,
       partitionColumnNames = List("year", "month", "day"),
       schema = new StructType()
-        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
-        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "varchar(33)").build())
         .add("c", "int")
-        .add("year", "string", nullable = false, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(4)").build())
-        .add("month", "string", nullable = false, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(2)").build())
+        .add("year", "string", nullable = false, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(4)").build())
+        .add("month", "string", nullable = false, new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", "char(2)").build())
         .add("day", "int"),
       properties = Map()
     )
