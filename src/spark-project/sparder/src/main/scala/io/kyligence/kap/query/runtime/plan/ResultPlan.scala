@@ -213,7 +213,6 @@ object ResultPlan extends LogEx {
         .option("encoding", encode).option("charset", "utf-8").mode(SaveMode.Append).csv(path)
     }
     AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
-    jobTrace.jobFinished()
     if (kapConfig.isQuerySparkJobTraceEnabled) {
       jobTrace.jobFinished()
     }
