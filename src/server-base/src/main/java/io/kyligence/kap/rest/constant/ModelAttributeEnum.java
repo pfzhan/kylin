@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.constant;
 
-
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 
@@ -40,10 +39,35 @@ public enum ModelAttributeEnum {
                 return modelResponse.isSecondStorageEnabled();
             }).collect(Collectors.toList());
         }
+    },
+
+    STREAMING {
+        @Override
+        public List<NDataModel> filter(List<NDataModel> models) {
+            return models.stream() //
+                    .filter(model -> model.getModelType() == NDataModel.ModelType.STREAMING) //
+                    .collect(Collectors.toList());
+        }
+    },
+
+    BATCH {
+        @Override
+        public List<NDataModel> filter(List<NDataModel> models) {
+            return models.stream() //
+                    .filter(model -> model.getModelType() == NDataModel.ModelType.BATCH) //
+                    .collect(Collectors.toList());
+        }
+    },
+
+    HYBRID {
+        @Override
+        public List<NDataModel> filter(List<NDataModel> models) {
+            return models.stream() //
+                    .filter(model -> model.getModelType() == NDataModel.ModelType.HYBRID) //
+                    .collect(Collectors.toList());
+        }
     };
 
-
     public abstract List<NDataModel> filter(List<NDataModel> models);
-
 
 }

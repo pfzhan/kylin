@@ -92,6 +92,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.secondstorage.SecondStorage;
@@ -157,6 +158,7 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -632,6 +634,56 @@ public class ModelService extends BasicService {
             final List<String> status) {
         return getModels(null, projectName, false, null, status, LAST_MODIFY, true, null, null, null).stream()
                 .filter(NDataModel::isMultiPartitionModel).collect(Collectors.toList());
+    }
+
+    public DataResult<List<NDataModel>> getModels(String modelAlias, boolean exactMatch, String project, String owner,
+                                                  List<String> status, String table, Integer offset, Integer limit, String sortBy, boolean reverse,
+                                                  String modelAliasOrOwner, List<ModelAttributeEnum> modelAttributes, Long lastModifyFrom, Long lastModifyTo,
+                                                  boolean onlyNormalDim) {
+        List<NDataModel> models = new ArrayList<>();
+        if (StringUtils.isEmpty(table)) {
+            models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
+                    lastModifyFrom, lastModifyTo, onlyNormalDim));
+
+        } else {
+            models.addAll(getRelateModels(project, table, modelAlias));
+        }
+        Set<NDataModel> filteredModels = getFilteredModels(project, modelAttributes, models);
+
+        if (CollectionUtils.isNotEmpty(modelAttributes)) {
+            models = models.stream().filter(filteredModels::contains).collect(Collectors.toList());
+        }
+
+        DataResult<List<NDataModel>> filterModels = DataResult.get(models, offset, limit);
+        filterModels.setValue(addOldParams(project, filterModels.getValue()));
+        filterModels.setValue(updateReponseAcl(filterModels.getValue(), project));
+        return filterModels;
+    }
+
+    private Set<NDataModel> getFilteredModels(String project, List<ModelAttributeEnum> modelAttributes,
+                                              List<NDataModel> models) {
+        Set<ModelAttributeEnum> modelAttributeSet = Sets
+                .newHashSet(modelAttributes == null ? Collections.emptyList() : modelAttributes);
+        Set<NDataModel> filteredModels = new HashSet<>();
+        if (SecondStorageUtil.isProjectEnable(project)) {
+            val secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models);
+            val it = models.listIterator();
+            while (it.hasNext()) {
+                val secondStorageInfo = secondStorageInfos.get(it.nextIndex());
+                NDataModelResponse modelResponse = (NDataModelResponse) it.next();
+                modelResponse.setSecondStorageNodes(secondStorageInfo.getSecondStorageNodes());
+                modelResponse.setSecondStorageSize(secondStorageInfo.getSecondStorageSize());
+                modelResponse.setSecondStorageEnabled(secondStorageInfo.isSecondStorageEnabled());
+            }
+            if (modelAttributeSet.contains(ModelAttributeEnum.SECOND_STORAGE)) {
+                filteredModels.addAll(ModelAttributeEnum.SECOND_STORAGE.filter(models));
+                modelAttributeSet.remove(ModelAttributeEnum.SECOND_STORAGE);
+            }
+        }
+        for (val attr : modelAttributeSet) {
+            filteredModels.addAll(attr.filter(models));
+        }
+        return filteredModels;
     }
 
     public List<NDataModelResponse> getModelsByTypes(final String modelAlias, final String projectName,

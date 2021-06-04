@@ -179,7 +179,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModels() throws Exception {
-        Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", null, Arrays.asList("NEW"), "", 1, 5,
+        Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
                 "last_modify", false, null, null, null, null, true))
                 .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
@@ -189,7 +189,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", null, Arrays.asList("NEW"), "", 1,
+        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", Arrays.asList("NEW"), "", 1,
                 5, "last_modify", true, null, null, null, true);
     }
 

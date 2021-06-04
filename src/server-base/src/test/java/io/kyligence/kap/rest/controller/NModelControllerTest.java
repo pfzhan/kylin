@@ -22,12 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +35,7 @@ import java.util.UUID;
 
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -139,7 +139,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModelSql() throws Exception {
         String sql = "SELECT * FROM TABLE1";
-        Mockito.when(modelService.getModelSql("model1", "default")).thenReturn(sql);
+        when(modelService.getModelSql("model1", "default")).thenReturn(sql);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/{model}/sql", "model1")
                         .contentType(MediaType.APPLICATION_JSON).param("model", "model1").param("project", "default")
@@ -152,7 +152,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModelJson() throws Exception {
         String json = "testjson";
-        Mockito.when(modelService.getModelJson("model1", "default")).thenReturn(json);
+        when(modelService.getModelJson("model1", "default")).thenReturn(json);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/{model}/json", "model1")
                         .contentType(MediaType.APPLICATION_JSON).param("model", "model1").param("project", "default")
@@ -164,7 +164,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTableIndices() throws Exception {
-        Mockito.when(modelService.getTableIndices("model1", "default")).thenReturn(mockIndicesResponse());
+        when(modelService.getTableIndices("model1", "default")).thenReturn(mockIndicesResponse());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/table_indices", "model1")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -175,7 +175,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAggIndices() throws Exception {
-        Mockito.when(modelService.getAggIndices("model1", "default", null, null, false, 0, 10, null, true))
+        when(modelService.getAggIndices("model1", "default", null, null, false, 0, 10, null, true))
                 .thenReturn(mockIndicesResponse());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/agg_indices", "model1")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("model", "model1")
@@ -193,7 +193,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         index.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         IndicesResponse indices = new IndicesResponse(index.getIndexPlan());
-        Mockito.when(modelService.getIndicesById("default", "model1", 432323L)).thenReturn(indices);
+        when(modelService.getIndicesById("default", "model1", 432323L)).thenReturn(indices);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/agg_indices", "model1")
                 .contentType(MediaType.APPLICATION_JSON).param("index", "432323").param("project", "default")
                 .param("model", "model1").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -204,7 +204,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSegments() throws Exception {
-        Mockito.when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234",
+        when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234",
                 "", "end_time", true)).thenReturn(mockSegments());
         mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -219,23 +219,40 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModels() throws Exception {
+        List<NDataModelResponse> mockedModels = mockModels();
+        // Adding spy models for condition coverage in tests; Mocking cannot be nested so I declare them here.
+        NDataModel modelSpy1 = Mockito.spy(new NDataModel());
+        when(modelSpy1.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
+        mockedModels.add(new NDataModelResponse(modelSpy1));
+        NDataModel modelSpy2 = Mockito.spy(new NDataModel());
+        when(modelSpy2.getModelType()).thenReturn(NDataModel.ModelType.HYBRID);
+        mockedModels.add(new NDataModelResponse(modelSpy2));
+        NDataModel modelSpy3 = Mockito.spy(new NDataModel());
+        when(modelSpy3.getModelType()).thenReturn(NDataModel.ModelType.STREAMING);
+        mockedModels.add(new NDataModelResponse(modelSpy3));
+        NDataModelResponse modelSpy4 = Mockito.spy(new NDataModelResponse(new NDataModel()));
+        when(modelSpy4.isSecondStorageEnabled()).thenReturn(true);
+        mockedModels.add(modelSpy4);
 
-        Mockito.when(modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify",
-                false)).thenReturn(mockModels());
+        when(modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify",
+                true, null, null, null)).thenReturn(mockedModels);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
                 .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "ONLINE")
                 .param("sortBy", "last_modify").param("reverse", "true")
+                .param("model_attributes", "BATCH,STREAMING,HYBRID,SECOND_STORAGE")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", null, Arrays.asList("ONLINE"), "", 0,
-                10, "last_modify", true, null, null, null, null, true);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"), "", 0,
+                10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING,
+                        ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
+                null, null, true);
     }
 
     @Test
     public void testGetRelatedModels() throws Exception {
 
-        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1"))
+        when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1"))
                 .thenReturn(mockRelatedModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
@@ -243,13 +260,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", null, Arrays.asList("ONLINE"),
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
     @Test
     public void testGetModelsWithOutModelName() throws Exception {
-        Mockito.when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify", true))
+        when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify", true))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "").param("limit", "10")
@@ -257,7 +274,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", null, Arrays.asList("ONLINE"),
+        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 

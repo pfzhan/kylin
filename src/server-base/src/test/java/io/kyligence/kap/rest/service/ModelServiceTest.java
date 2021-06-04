@@ -27,6 +27,10 @@ package io.kyligence.kap.rest.service;
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -63,6 +67,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -104,6 +109,7 @@ import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -468,6 +474,53 @@ public class ModelServiceTest extends CSVSourceTestCase {
             String modelStatus = modelService.getModelStatus(id, projectName).toString();
             Assert.assertEquals("ONLINE", modelStatus);
         }
+    }
+
+    @Test
+    public void testGetFilteredModels() {
+        // Prepare mocked batch, hybrid, streaming, and second storage models
+        List<NDataModelResponse> mockedModels = Lists.newArrayList();
+        NDataModel modelSpy1 = Mockito.spy(new NDataModel());
+        when(modelSpy1.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
+        mockedModels.add(new NDataModelResponse(modelSpy1));
+        NDataModel modelSpy2 = Mockito.spy(new NDataModel());
+        when(modelSpy2.getModelType()).thenReturn(NDataModel.ModelType.HYBRID);
+        mockedModels.add(new NDataModelResponse(modelSpy2));
+        mockedModels.add(new NDataModelResponse(modelSpy2));
+        NDataModel modelSpy3 = Mockito.spy(new NDataModel());
+        when(modelSpy3.getModelType()).thenReturn(NDataModel.ModelType.STREAMING);
+        mockedModels.add(new NDataModelResponse(modelSpy3));
+        NDataModelResponse modelSpy4 = Mockito.spy(new NDataModelResponse(new NDataModel()));
+        when(modelSpy4.isSecondStorageEnabled()).thenReturn(true);
+        mockedModels.add(modelSpy4);
+        mockedModels.add(modelSpy4);
+        mockedModels.add(modelSpy4);
+
+        when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify",
+                true, null, null, null, true)).thenReturn(mockedModels);
+        doReturn(new ArrayList<>()).when(modelService).addOldParams(anyString(), any());
+
+        DataResult<List<NDataModel>> modelResult1 = modelService.getModels("", true, "default", "ADMIN",
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
+        null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING,
+                        ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
+
+        DataResult<List<NDataModel>> modelResult2 = modelService.getModels("", true, "default", "ADMIN",
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
+                null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING), null, null, true);
+
+        DataResult<List<NDataModel>> modelResult3 = modelService.getModels("", true, "default", "ADMIN",
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
+                null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
+
+        DataResult<List<NDataModel>> modelResult4 = modelService.getModels("", true, "default", "ADMIN",
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
+                null, Arrays.asList(ModelAttributeEnum.SECOND_STORAGE), null, null, true);
+
+        Assert.assertEquals(7, modelResult1.getTotalSize());
+        Assert.assertEquals(2, modelResult2.getTotalSize());
+        Assert.assertEquals(4, modelResult3.getTotalSize());
+        Assert.assertEquals(3, modelResult4.getTotalSize());
     }
 
     @Test

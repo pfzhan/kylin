@@ -76,7 +76,7 @@ public class KICompatibleController {
             @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
             @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
             @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
-        val result = modelController.getModels(null, true, project, null, null, null, null, offset, limit, sortBy,
+        val result = modelController.getModels(null, true, project, null, null, null, offset, limit, sortBy,
                 reverse, modelAliasOrOwner, null, lastModifyFrom, lastModifyTo, true);
         Map<String, Object> response = Maps.newHashMap();
         response.put("models", result.getData().getValue());

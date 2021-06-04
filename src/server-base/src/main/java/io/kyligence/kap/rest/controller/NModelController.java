@@ -45,7 +45,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -54,7 +53,6 @@ import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.CommonErrorCode;
@@ -127,7 +125,6 @@ import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.MultiPartitionValueResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
@@ -137,7 +134,6 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
@@ -170,7 +166,6 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "owner", required = false) String owner,
-            @RequestParam(value = "model_types", required = false) List<String> modelTypes,
             @RequestParam(value = "status", required = false) List<String> status,
             @RequestParam(value = "table", required = false) String table,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
@@ -184,41 +179,10 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "only_normal_dim", required = false, defaultValue = "true") boolean onlyNormalDim) {
         checkProjectName(project);
         status = formatStatus(status, ModelStatusToDisplayEnum.class);
-        List<NDataModel> models = new ArrayList<>();
-        if (StringUtils.isEmpty(table)) {
-            models.addAll(modelService.getModelsByTypes(modelAlias, project, exactMatch, owner, modelTypes, status,
-                    sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo, onlyNormalDim));
-        } else {
-            models.addAll(modelService.getRelateModels(project, table, modelAlias));
-        }
-        Set<ModelAttributeEnum> modelAttributeSet = Sets.newHashSet(modelAttributes == null ? Collections.emptyList()
-                : modelAttributes);
-        List<NDataModel> filteredModels = new ArrayList<>();
-        if (SecondStorageUtil.isProjectEnable(project)) {
-            val secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models);
-            val it = models.listIterator();
-            while (it.hasNext()) {
-                val secondStorageInfo = secondStorageInfos.get(it.nextIndex());
-                NDataModelResponse modelResponse = (NDataModelResponse) it.next();
-                modelResponse.setSecondStorageNodes(secondStorageInfo.getSecondStorageNodes());
-                modelResponse.setSecondStorageSize(secondStorageInfo.getSecondStorageSize());
-                modelResponse.setSecondStorageEnabled(secondStorageInfo.isSecondStorageEnabled());
-            }
-            if (modelAttributeSet.contains(ModelAttributeEnum.SECOND_STORAGE)) {
-                filteredModels.addAll(ModelAttributeEnum.SECOND_STORAGE.filter(models));
-                modelAttributeSet.remove(ModelAttributeEnum.SECOND_STORAGE);
-            }
-        }
-        for (val attr : modelAttributeSet) {
-            filteredModels.addAll(attr.filter(models));
-        }
-        if (CollectionUtils.isNotEmpty(modelAttributes)) {
-            models = filteredModels;
-        }
 
-        DataResult<List<NDataModel>> filterModels = DataResult.get(models, offset, limit);
-        filterModels.setValue(modelService.addOldParams(project, filterModels.getValue()));
-        filterModels.setValue(modelService.updateReponseAcl(filterModels.getValue(), project));
+        DataResult<List<NDataModel>> filterModels = modelService.getModels(modelAlias, exactMatch, project,
+                owner, status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes,
+                lastModifyFrom, lastModifyTo, onlyNormalDim);
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, filterModels, "");
     }
