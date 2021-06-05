@@ -25,7 +25,6 @@ package io.kyligence.kap.engine.spark.source;
 
 import java.io.Serializable;
 import java.net.URI;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
