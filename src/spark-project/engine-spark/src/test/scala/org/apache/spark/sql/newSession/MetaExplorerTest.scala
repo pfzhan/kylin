@@ -80,8 +80,8 @@ class MetaExplorerTest extends SQLTestUtils with WithKylinExternalCatalog {
     spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
     withTable(table) {
       val meta = new NSparkTableMetaExplorer().getSparkTableMeta("", table)
-      assertResult("string")(meta.getAllColumns.get(0).getDataType)
-      assertResult("string")(meta.getAllColumns.get(1).getDataType)
+      assertResult("char(10)")(meta.getAllColumns.get(0).getDataType)
+      assertResult("varchar(33)")(meta.getAllColumns.get(1).getDataType)
       assertResult("int")(meta.getAllColumns.get(2).getDataType)
     }
   }
