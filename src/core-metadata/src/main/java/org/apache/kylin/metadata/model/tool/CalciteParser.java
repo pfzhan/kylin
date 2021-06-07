@@ -45,7 +45,6 @@ package org.apache.kylin.metadata.model.tool;
 
 import static org.apache.calcite.sql.SqlDialect.EMPTY_CONTEXT;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -188,16 +187,13 @@ public class CalciteParser {
         return sql.substring(SQL_PREFIX.length(), sql.length() - SQL_SUFFIX.length());
     }
 
-    public static void descSortByPosition(List<SqlIdentifier> sqlIdentifiers) {
-        Collections.sort(sqlIdentifiers, new Comparator<SqlIdentifier>() {
-            @Override
-            public int compare(SqlIdentifier o1, SqlIdentifier o2) {
-                int linegap = o2.getParserPosition().getLineNum() - o1.getParserPosition().getLineNum();
-                if (linegap != 0)
-                    return linegap;
+    public static void descSortByPosition(List<? extends SqlNode> sqlNodes) {
+        sqlNodes.sort((Comparator<SqlNode>) (o1, o2) -> {
+            int linegap = o2.getParserPosition().getLineNum() - o1.getParserPosition().getLineNum();
+            if (linegap != 0)
+                return linegap;
 
-                return o2.getParserPosition().getColumnNum() - o1.getParserPosition().getColumnNum();
-            }
+            return o2.getParserPosition().getColumnNum() - o1.getParserPosition().getColumnNum();
         });
     }
 
