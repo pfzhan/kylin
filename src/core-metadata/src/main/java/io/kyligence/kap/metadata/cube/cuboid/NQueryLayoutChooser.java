@@ -124,7 +124,7 @@ public class NQueryLayoutChooser {
                     && (sqlDigest.isRawQuery || dataflow.getConfig().isUseTableIndexAnswerNonRawQuery())) {
                 logger.trace("Matching table index");
                 unmatchedCols.addAll(sqlDigest.allColumns);
-                matched = matchTableIndex(layout, model, unmatchedCols, needDerive, tempResult);
+                matched = matchTableIndex(layout, sqlDigest, model, unmatchedCols, needDerive, tempResult);
                 if (!matched && logger.isDebugEnabled()) {
                     logger.debug("Table index {} with unmatched columns {}", dataLayout, unmatchedCols);
                 }
@@ -212,7 +212,7 @@ public class NQueryLayoutChooser {
                 .compound(filterColumnComparator(filterCols, config, dataflow.getProject())) // L2 comparator, order filter columns
                 .compound(dimensionSizeComparator()) // the lower dimension the best
                 .compound(measureSizeComparator()) // L3 comparator, order size of cuboid columns
-                .compound(nonFilterColumnComparator(nonFilterColumns, config)); // L4 comparator, order non-filter columns
+                .compound(nonFilterColumnComparator(nonFilterColumns)); // L4 comparator, order non-filter columns
         candidates.sort(ordering);
     }
 
@@ -232,23 +232,23 @@ public class NQueryLayoutChooser {
             Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
             Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(layoutEntity.getOrderedDimensions().values());
-        goThruDerivedDims(layoutEntity.getIndex(), model, needDerive, unmatchedCols);
+        goThruDerivedDims(layoutEntity.getIndex(), model, needDerive, unmatchedCols, sqlDigest);
         unmatchedAggregations(unmatchedMetrics, layoutEntity);
         unmatchedCountColumnIfExistCountStar(unmatchedMetrics);
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {
             applyAdvanceMeasureStrategy(layoutEntity.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics, result);
-            applyDimAsMeasureStrategy(layoutEntity.getIndex(), model, unmatchedMetrics, needDerive, result);
+            applyDimAsMeasureStrategy(layoutEntity.getIndex(), sqlDigest, model, unmatchedMetrics, needDerive, result);
         }
 
         return unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
     }
 
-    private static boolean matchTableIndex(final LayoutEntity layout, final NDataModel model,
+    private static boolean matchTableIndex(final LayoutEntity layout, SQLDigest sqlDigest, final NDataModel model,
             Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(layout.getOrderedDimensions().values());
-        goThruDerivedDims(layout.getIndex(), model, needDerive, unmatchedCols);
+        goThruDerivedDims(layout.getIndex(), model, needDerive, unmatchedCols, sqlDigest);
         if (!unmatchedCols.isEmpty()) {
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.TABLE_INDEX_MISSING_COLS);
@@ -265,7 +265,7 @@ public class NQueryLayoutChooser {
                 .removeIf(functionDesc -> FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(functionDesc.getExpression()));
     }
 
-    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, NDataModel model,
+    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, SQLDigest sqlDigest, NDataModel model,
             Collection<FunctionDesc> unmatchedAggs, Map<TblColRef, DeriveInfo> needDeriveCollector,
             CapabilityResult result) {
         Iterator<FunctionDesc> it = unmatchedAggs.iterator();
@@ -282,7 +282,7 @@ public class NQueryLayoutChooser {
             val leftUnmatchedCols = Sets.newHashSet(
                     CollectionUtils.subtract(functionDesc.getSourceColRefs(), indexEntity.getDimensionSet()));
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
-                goThruDerivedDims(indexEntity, model, needDeriveCollector, leftUnmatchedCols);
+                goThruDerivedDims(indexEntity, model, needDeriveCollector, leftUnmatchedCols, sqlDigest);
             }
 
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols))
@@ -352,25 +352,22 @@ public class NQueryLayoutChooser {
      */
     private static Comparator<NLayoutCandidate> filterColumnComparator(List<TblColRef> sortedFilters,
             KylinConfig config, String project) {
-        return Ordering.from(shardByComparator(sortedFilters, config, project))
-                .compound(colComparator(sortedFilters, config));
+        return Ordering.from(shardByComparator(sortedFilters, config, project)).compound(colComparator(sortedFilters));
     }
 
-    private static Comparator<NLayoutCandidate> nonFilterColumnComparator(List<TblColRef> sortedNonFilters,
-            KylinConfig config) {
-        return colComparator(sortedNonFilters, config);
+    private static Comparator<NLayoutCandidate> nonFilterColumnComparator(List<TblColRef> sortedNonFilters) {
+        return colComparator(sortedNonFilters);
     }
 
     /**
      * compare filters with dim pos in layout, filter columns are sorted by filter type and selectivity (cardinality)
      * @param sortedCols
-     * @param config
      * @return
      */
-    private static Comparator<NLayoutCandidate> colComparator(List<TblColRef> sortedCols, KylinConfig config) {
+    private static Comparator<NLayoutCandidate> colComparator(List<TblColRef> sortedCols) {
         return (layoutCandidate1, layoutCandidate2) -> {
-            List<Integer> position1 = getColumnsPos(layoutCandidate1, config, sortedCols);
-            List<Integer> position2 = getColumnsPos(layoutCandidate2, config, sortedCols);
+            List<Integer> position1 = getColumnsPos(layoutCandidate1, sortedCols);
+            List<Integer> position2 = getColumnsPos(layoutCandidate2, sortedCols);
             Iterator<Integer> iter1 = position1.iterator();
             Iterator<Integer> iter2 = position2.iterator();
 
@@ -428,8 +425,7 @@ public class NQueryLayoutChooser {
         };
     }
 
-    private static List<Integer> getColumnsPos(final NLayoutCandidate candidate, KylinConfig config,
-            List<TblColRef> sortedColumns) {
+    private static List<Integer> getColumnsPos(final NLayoutCandidate candidate, List<TblColRef> sortedColumns) {
 
         List<Integer> positions = Lists.newArrayList();
         for (TblColRef col : sortedColumns) {
@@ -458,7 +454,7 @@ public class NQueryLayoutChooser {
     }
 
     private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataModel model,
-            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims) {
+            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, SQLDigest sqlDigest) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
@@ -480,11 +476,31 @@ public class NQueryLayoutChooser {
         model.getJoinTables().forEach(joinTableDesc -> {
             if (joinTableDesc.isDerivedToManyJoinRelation()) {
                 JoinDesc join = joinTableDesc.getJoin();
+                if (!needJoinSnapshot(sqlDigest, join)) {
+                    return;
+                }
                 TblColRef foreignKeyColumn = join.getForeignKeyColumns()[0];
                 needDeriveCollector.put(foreignKeyColumn, new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, join,
                         new TblColRef[] { foreignKeyColumn }, false));
             }
         });
+    }
+
+    private static boolean needJoinSnapshot(SQLDigest sqlDigest, JoinDesc join) {
+        List<JoinDesc> sqlDigestJoins = sqlDigest.joinDescs == null ? Lists.newArrayList() : sqlDigest.joinDescs;
+        for (JoinDesc digestJoin : sqlDigestJoins) {
+            Set<TblColRef> digestPKs = Sets.newHashSet(digestJoin.getPrimaryKeyColumns());
+            Set<TblColRef> digestFKs = Sets.newHashSet(digestJoin.getForeignKeyColumns());
+            Set<TblColRef> joinPKs = Sets.newHashSet(join.getPrimaryKeyColumns());
+            Set<TblColRef> joinFKs = Sets.newHashSet(join.getForeignKeyColumns());
+            if (!CollectionUtils.isEmpty(digestFKs) && !CollectionUtils.isEmpty(digestPKs)
+                    && !CollectionUtils.isEmpty(joinFKs) && !CollectionUtils.isEmpty(joinPKs)
+                    && digestFKs.containsAll(joinFKs) && digestPKs.containsAll(joinPKs)
+                    && joinFKs.containsAll(digestFKs) && joinPKs.containsAll(digestPKs)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void goThruDerivedDimsFromFactTable(IndexEntity indexEntity,

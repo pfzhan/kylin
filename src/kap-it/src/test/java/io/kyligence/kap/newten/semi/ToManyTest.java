@@ -138,6 +138,13 @@ public class ToManyTest extends SemiAutoTestBase {
         QueryHistoryTaskScheduler.shutdownByProject(getProject());
     }
 
+    /**
+     * precondition:
+     *      SSB.P_LINEORDER   ====  SSB.CUSTOMER
+     *      SSB.P_LINEORDER   ----  SSB.DATES
+     * assertion:
+     *      push-down result is the same as index result
+     */
     @Test
     public void basicTest() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
@@ -201,6 +208,136 @@ public class ToManyTest extends SemiAutoTestBase {
 
         // compare sql
         List<Pair<String, String>> queryList = readSQL();
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+    }
+
+    /**
+     * precondition:
+     *      ssb.p_lineorder === ssb.customer
+     *      ssb.p_lineorder --- ssb.dates
+     *      turn on patial match join & ssb.customer without pre-calculation
+     * assertion:
+     *      1) SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER
+     *         INNER JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY
+     *         GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY
+     *      2) SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER
+     *         INNER JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY
+     *         INNER JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY
+     *         GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY
+     *      query result are the same
+     */
+    @Test
+    public void partialJoinTest() throws InterruptedException {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "TRUE");
+        String sql1 = "SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER\n"
+                + "  INNER JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
+                + "  GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY";
+        String sql2 = "SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER\n"
+                + "  INNER JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
+                + "  INNER JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY\n"
+                + "  GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY";
+
+        // prepare an origin model
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { sql2 });
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+        String modelId = smartMaster.getContext().getModelContexts().get(0).getTargetModel().getUuid();
+
+        NDataModel originModel = modelManager.getDataModelDesc(modelId);
+        originModel.getJoinTables().forEach(join -> {
+            Assert.assertTrue(join.isFlattenable());
+            Assert.assertEquals(ModelJoinRelationTypeEnum.MANY_TO_ONE, join.getJoinRelationTypeEnum());
+        });
+        IndexPlan originIndexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertEquals(1, originIndexPlan.getAllLayouts().size());
+
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            final List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.forEach(join -> {
+                if (join.getTable().equals("SSB.CUSTOMER")) {
+                    join.setFlattenable(JoinTableDesc.NORMALIZED);
+                    join.setKind(NDataModel.TableKind.LOOKUP);
+                    join.setJoinRelationTypeEnum(ModelJoinRelationTypeEnum.ONE_TO_MANY);
+                }
+            });
+        });
+
+        // build indexes
+        buildAllCubes(getTestConfig(), getProject());
+
+        // query and assert
+        List<Pair<String, String>> queryList = Lists.newArrayList();
+        queryList.add(Pair.newPair("sql1", sql1));
+        queryList.add(Pair.newPair("sql2", sql2));
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+    }
+
+    /**
+     * precondition:
+     *      ssb.p_lineorder === ssb.customer
+     *      ssb.p_lineorder --- ssb.dates
+     *      turn on patial match join & ssb.customer without pre-calculation
+     * assertion:
+     *      1) SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER
+     *         LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY
+     *         GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY
+     *      2) SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER
+     *         LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY
+     *         LEFT JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY
+     *         GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY
+     *      query result are the same
+     */
+    @Test
+    public void leftJoinRelationTest() throws InterruptedException {
+        getTestConfig().setProperty("kylin.query.match-partial-inner-join-model", "TRUE");
+        String sql1 = "SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER\n"
+                + "  LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
+                + "  GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY";
+        String sql2 = "SELECT LO_CUSTKEY, SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER\n"
+                + "  LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
+                + "  LEFT JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY\n"
+                + "  GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY";
+
+        // prepare an origin model
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { sql2 });
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+        String modelId = smartMaster.getContext().getModelContexts().get(0).getTargetModel().getUuid();
+
+        NDataModel originModel = modelManager.getDataModelDesc(modelId);
+        originModel.getJoinTables().forEach(join -> {
+            Assert.assertTrue(join.isFlattenable());
+            Assert.assertEquals(ModelJoinRelationTypeEnum.MANY_TO_ONE, join.getJoinRelationTypeEnum());
+        });
+        IndexPlan originIndexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertEquals(1, originIndexPlan.getAllLayouts().size());
+
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            final List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.forEach(join -> {
+                if (join.getTable().equals("SSB.CUSTOMER")) {
+                    join.setFlattenable(JoinTableDesc.NORMALIZED);
+                    join.setKind(NDataModel.TableKind.LOOKUP);
+                    join.setJoinRelationTypeEnum(ModelJoinRelationTypeEnum.ONE_TO_MANY);
+                }
+            });
+        });
+
+        // build indexes
+        buildAllCubes(getTestConfig(), getProject());
+
+        // query and assert
+        List<Pair<String, String>> queryList = Lists.newArrayList();
+        queryList.add(Pair.newPair("sql1", sql1));
+        queryList.add(Pair.newPair("sql2", sql2));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
     }
