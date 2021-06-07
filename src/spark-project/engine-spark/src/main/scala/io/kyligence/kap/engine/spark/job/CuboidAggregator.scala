@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
@@ -34,12 +33,13 @@ import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.measure.hllc.HLLCMeasureType
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.functions.{col, _}
-import org.apache.spark.sql.types.{StringType, _}
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.udaf._
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SparkSession}
 
+import java.util
 import java.util.Locale
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -213,12 +213,8 @@ object CuboidAggregator {
               .toAggregateExpression()).as(measureEntry._1.toString)
           }
         case "PERCENTILE_APPROX" =>
-          val udfName = UdfManager.register(returnType, function.getExpression, null, !reuseLayout)
-          if (!reuseLayout) {
-            callUDF(udfName, columns.head.cast(StringType)).as(measureEntry._1.toString)
-          } else {
-            callUDF(udfName, columns.head).as(measureEntry._1.toString)
-          }
+          new Column(Percentile(columns.head.expr, returnType.getPrecision)
+            .toAggregateExpression()).as(measureEntry._1.toString)
         case "COLLECT_SET" =>
           if (reuseLayout) {
             array_distinct(flatten(collect_set(columns.head))).as(measureEntry._1.toString)

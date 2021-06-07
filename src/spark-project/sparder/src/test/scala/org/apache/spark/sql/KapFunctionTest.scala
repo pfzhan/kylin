@@ -44,10 +44,10 @@ class KapFunctionsTest extends SparderBaseFunSuite with SharedSparkSession {
   }
 
   test("kapAddMonths") {
-    Assert.assertEquals(KapDateTimeUtils.subtractMonths( 1585411200000L, 1582819200000L), 1)
-    Assert.assertEquals(KapDateTimeUtils.subtractMonths( 1585497600000L, 1582905600000L), 0)
-    Assert.assertEquals(KapDateTimeUtils.subtractMonths( 1585584000000L, 1582905600000L), 1)
-    Assert.assertEquals(KapDateTimeUtils.subtractMonths(  1593446400000L, 1585584000000L), 3)
+    Assert.assertEquals(KapDateTimeUtils.subtractMonths(1585411200000L, 1582819200000L), 1)
+    Assert.assertEquals(KapDateTimeUtils.subtractMonths(1585497600000L, 1582905600000L), 0)
+    Assert.assertEquals(KapDateTimeUtils.subtractMonths(1585584000000L, 1582905600000L), 1)
+    Assert.assertEquals(KapDateTimeUtils.subtractMonths(1593446400000L, 1585584000000L), 3)
     var time = 1420048800000L
     // 4 year,include leap year
     for (i <- 0 to 35040) {
@@ -59,7 +59,7 @@ class KapFunctionsTest extends SparderBaseFunSuite with SharedSparkSession {
         Assert.assertEquals(d1, d2)
       }
       // add hour
-      time += 3600*1000L
+      time += 3600 * 1000L
     }
   }
 

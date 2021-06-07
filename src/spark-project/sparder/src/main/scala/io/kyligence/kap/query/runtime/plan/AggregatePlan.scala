@@ -154,6 +154,9 @@ object AggregatePlan extends LogEx {
             case FunctionDesc.FUNC_INTERSECT_BITMAP_UUID_V2 => KapFunctions.intersect_bitmap_v2(columnName.last, separator, upperBound, columns.toList: _*).alias(aggName)
             case func => throw new UnsupportedOperationException(s"Unsupported intersect count function: $func, please check the sql.")
           }
+        } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_PERCENTILE)) {
+          require(columnName.size == 2, s"Input columns size ${columnName.size} don't equal to 2.")
+          KapFunctions.k_percentile(columnName.head, columnName(1), dataType.getPrecision).alias(aggName)
         } else {
           callUDF(registeredFuncName, columnName.toList: _*).alias(aggName)
         }
