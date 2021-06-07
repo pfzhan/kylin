@@ -34,11 +34,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -71,6 +74,8 @@ import lombok.val;
 @RequestMapping(value = "/api/snapshots", produces = { HTTP_VND_APACHE_KYLIN_JSON,
         HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NSnapshotController extends NBasicController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);
 
     @Autowired
     @Qualifier("snapshotService")
@@ -118,6 +123,7 @@ public class NSnapshotController extends NBasicController {
                     request.getTable());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, responses, "");
         } catch (Exception e) {
+            logger.error("reload partition column failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(SNAPSHOT_RELOAD_PARTITION_FAILED, root.getMessage());
         }
@@ -194,6 +200,7 @@ public class NSnapshotController extends NBasicController {
         try {
             SnapshotInfoResponse.class.getDeclaredField(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, sortBy));
         } catch (NoSuchFieldException e) {
+            logger.error(String.format(Locale.ROOT, "No field called '%s'.", sortBy), e);
             throw new KylinException(INVALID_PARAMETER, String.format(Locale.ROOT, "No field called '%s'.", sortBy));
         }
         List<SnapshotInfoResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter,

@@ -68,6 +68,8 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -147,6 +149,7 @@ import lombok.val;
 public class NModelController extends NBasicController {
     public static final String MODEL_ID = "modelId";
     private static final String NEW_MODEL_NAME = "newModelNAME";
+    private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
 
     @Autowired
     @Qualifier("modelService")
@@ -554,8 +557,10 @@ public class NModelController extends NBasicController {
             }
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
         } catch (LookupTableException e) {
+            logger.error("Update model failed", e);
             throw new KylinException(FAILED_UPDATE_MODEL, e);
         } catch (Exception e) {
+            logger.error("Update model failed", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(FAILED_UPDATE_MODEL, root.getMessage());
         }
@@ -574,6 +579,7 @@ public class NModelController extends NBasicController {
                     request.getMultiPartitionDesc());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
+            logger.error("Change partition failed", e);
             throw new KylinException(FAILED_UPDATE_MODEL, e);
         }
     }

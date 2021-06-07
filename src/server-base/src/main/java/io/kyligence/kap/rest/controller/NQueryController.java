@@ -111,7 +111,7 @@ import lombok.val;
 @RequestMapping(value = "/api/query", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NQueryController extends NBasicController {
     @SuppressWarnings("unused")
-    private static final Logger logger = LoggerFactory.getLogger("query");
+    private static final Logger logger = LoggerFactory.getLogger(NQueryController.class);
     private static final Pattern queryNamePattern = Pattern.compile("^[a-zA-Z0-9_]*$");
     public static final String CN = "zh-cn";
 
@@ -227,6 +227,7 @@ public class NQueryController extends NBasicController {
         try {
             zoneOffset = ZoneOffset.ofHours(timeZoneOffsetHour);
         } catch (Exception e) {
+            logger.error("Download file error", e);
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
         }
         if (CN.equals(language)) {
@@ -410,6 +411,7 @@ public class NQueryController extends NBasicController {
                 csvWriter.write(row);
             }
         } catch (IOException e) {
+            logger.error("Download query result failed...", e);
             throw new InternalErrorException(e);
         } finally {
             IOUtils.closeQuietly(csvWriter);

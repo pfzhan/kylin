@@ -244,6 +244,7 @@ public class NUserGroupService implements IUserGroupService {
             }
             return result;
         } catch (IOException e) {
+            logger.error("List user groups failed...", e);
             throw new RuntimeException(e);
         }
     }

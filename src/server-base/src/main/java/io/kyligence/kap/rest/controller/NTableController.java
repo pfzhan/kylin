@@ -62,6 +62,8 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.response.TableRefreshAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -111,6 +113,7 @@ public class NTableController extends NBasicController {
     private static final String TABLE = "table";
     private static final int MAX_SAMPLING_ROWS = 20_000_000;
     private static final int MIN_SAMPLING_ROWS = 10_000;
+    private static final Logger logger = LoggerFactory.getLogger(NTableController.class);
 
     @Autowired
     @Qualifier("tableService")
@@ -313,8 +316,10 @@ public class NTableController extends NBasicController {
         try {
             response = tableService.getLatestDataRange(project, table);
         } catch (KylinTimeoutException ke) {
+            logger.error(MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT(), ke);
             throw new KylinException(FAILED_DETECT_DATA_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
         } catch (Exception e) {
+            logger.error(MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR(), e);
             throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
 
@@ -568,6 +573,7 @@ public class NTableController extends NBasicController {
             val result = tableService.preProcessBeforeReloadWithFailFast(project, table);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
         } catch (Exception e) {
+            logger.error("Reload Table Failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
@@ -590,6 +596,7 @@ public class NTableController extends NBasicController {
                     request.getMaxRows(), request.isNeedBuild(), request.getPriority());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (Exception e) {
+            logger.error("Reload Table Failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }

@@ -42,6 +42,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.controller.NQueryController;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -74,6 +75,8 @@ import org.apache.kylin.metadata.model.tool.NonEquiJoinConditionVisitor;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Throwables;
@@ -119,12 +122,15 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ModelSemanticHelper extends BasicService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);
+
     public NDataModel deepCopyModel(NDataModel originModel) {
         NDataModel nDataModel;
         try {
             nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(originModel), NDataModel.class);
             nDataModel.setJoinTables(SCD2SimplificationConvertUtil.deepCopyJoinTables(originModel.getJoinTables()));
         } catch (IOException e) {
+            logger.error("Parse json failed...", e);
             throw new KylinException(CommonErrorCode.FAILED_PARSE_JSON, e);
         }
         return nDataModel;
@@ -136,6 +142,7 @@ public class ModelSemanticHelper extends BasicService {
         try {
             dataModel = JsonUtil.deepCopy(modelRequest, NDataModel.class);
         } catch (IOException e) {
+            logger.error("Parse json failed...", e);
             throw new KylinException(CommonErrorCode.FAILED_PARSE_JSON, e);
         }
         dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
@@ -214,6 +221,7 @@ public class ModelSemanticHelper extends BasicService {
                 modelJoinDesc.setForeignTable(suggModelJoin.getForeignTable());
                 modelJoinDesc.setPrimaryTable(suggModelJoin.getPrimaryTable());
             } catch (SCD2Exception e) {
+                logger.error("Update datamodel failed...", e);
                 throw new KylinException(QueryErrorCode.SCD2_COMMON_ERROR, Throwables.getRootCause(e).getMessage());
             }
 

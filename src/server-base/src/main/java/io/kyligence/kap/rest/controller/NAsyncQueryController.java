@@ -204,6 +204,7 @@ public class NAsyncQueryController extends NBasicController {
                         MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
             }
         } catch (ParseException e) {
+            logger.error(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR(), e);
             throw new NAsyncQueryIllegalParamException(MsgPicker.getMsg().getASYNC_QUERY_TIME_FORMAT_ERROR());
         }
     }

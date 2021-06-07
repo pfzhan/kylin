@@ -848,6 +848,7 @@ public class NExecutableManager {
             }
             return result;
         } catch (ReflectiveOperationException e) {
+            logger.error("Cannot parse this job...", e);
             throw new IllegalStateException("Cannot parse this job: " + executablePO.getId(), e);
         }
     }

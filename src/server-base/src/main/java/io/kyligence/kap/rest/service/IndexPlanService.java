@@ -43,6 +43,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.controller.NUserController;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -67,6 +68,8 @@ import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -116,6 +119,7 @@ import lombok.extern.slf4j.Slf4j;
 public class IndexPlanService extends BasicService {
 
     public static final String DATA_SIZE = "data_size";
+    private static final Logger logger = LoggerFactory.getLogger(IndexPlanService.class);
 
     @Setter
     @Autowired
@@ -154,6 +158,7 @@ public class IndexPlanService extends BasicService {
             updateListeners.forEach(listener -> listener.onUpdate(project, request.getModelId()));
             return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
         } catch (Exception e) {
+            logger.error("Update agg index failed...", e);
             throw new KylinException(FAILED_UPDATE_AGG_INDEX, e);
         }
     }
@@ -174,6 +179,7 @@ public class IndexPlanService extends BasicService {
             }
             return createTableIndex(project, request);
         } catch (Exception e) {
+            logger.error("Update table index failed...", e);
             throw new KylinException(FAILED_UPDATE_TABLE_INDEX, e);
         }
     }

@@ -520,6 +520,7 @@ public class KylinConfig extends KylinConfigBase {
             OrderedProperties trimProps = OrderedProperties.copyAndTrim(loadPropertiesFromInputStream(inputStream));
             properties.putAll(BCC.check(trimProps));
         } catch (Exception e) {
+            logger.error(" loadAndTrimProperties error ", e);
             throw new KylinException(UNKNOWN_ERROR_CODE, " loadAndTrimProperties error ", e);
         }
     }
