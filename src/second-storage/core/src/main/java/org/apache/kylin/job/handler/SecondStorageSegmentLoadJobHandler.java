@@ -25,6 +25,7 @@
 package org.apache.kylin.job.handler;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -61,8 +62,8 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
         NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, jobParam.getProject())
                 .getDataflow(jobParam.getModel());
         List<String> segIds = jobParam.getTargetSegments().stream().map(dataflow::getSegment)
-                .filter(segment -> segment.getIndexPlan().getAllLayouts()
-                        .stream().noneMatch(index -> index.isBaseIndex() && IndexEntity.isTableIndex(index.getId())))
+                .filter(segment -> segment.getLayoutsMap().values()
+                        .stream().map(NDataLayout::getLayout).noneMatch(index -> index.isBaseIndex() && IndexEntity.isTableIndex(index.getId())))
                 .map(NDataSegment::getId)
                 .collect(Collectors.toList());
         Preconditions.checkState(segIds.isEmpty(), "segments " + segIds + " don't have base index. Please build base table index firstly");

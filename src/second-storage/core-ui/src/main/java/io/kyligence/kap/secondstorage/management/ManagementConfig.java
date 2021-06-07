@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +34,7 @@ import javax.annotation.PostConstruct;
 
 @Configuration
 @Order(2)
-public class ManagementConfig {
+public class ManagementConfig implements IKeep {
 
     @PostConstruct
     public void init() {

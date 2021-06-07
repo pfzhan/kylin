@@ -240,8 +240,8 @@ public class SecondStorageUtil {
                     .forEach(tableFlow -> {
                         tableFlow.update(copy -> {
                             copy.getTableDataList().stream().filter(tableData ->
-                                    tableData.getDatabase().equals(getDatabase(config, project))
-                                            && tableData.getTable().startsWith(getTablePrefix(model)))
+                                    tableData.getDatabase().equals(NameUtil.getDatabase(config, project))
+                                            && tableData.getTable().startsWith(NameUtil.tablePrefix(model)))
                                     .forEach(tableData -> tableData.removePartitions(
                                             tablePartition -> segments.contains(tablePartition.getSegmentId())));
                         });
@@ -264,27 +264,5 @@ public class SecondStorageUtil {
 
     public static Optional<NManager<NodeGroup>> nodeGroupManager(KylinConfig config, String project) {
         return isGlobalEnable() ? Optional.of(SecondStorage.nodeGroupManager(config, project)) : Optional.empty();
-    }
-
-    public static String getDatabase(NDataflow df) {
-        final String databasePrefix = df.getConfig().isUTEnv() ? "UT" : df.getConfig().getMetadataUrlPrefix();
-        return String.format(Locale.ROOT, "%s_%s", databasePrefix, df.getProject());
-    }
-
-    public static String getDatabase(KylinConfig config, String project) {
-        final String databasePrefix = config.isUTEnv() ? "UT" : config.getMetadataUrlPrefix();
-        return String.format(Locale.ROOT, "%s_%s", databasePrefix, project);
-    }
-
-    public static String getTable(NDataflow df, long layoutId) {
-        return getTable(df.getModel().getId(), layoutId);
-    }
-
-    public static String getTable(String modelId, long layoutId){
-        return String.format(Locale.ROOT, "%s_%d", modelId.replace("-", ""), layoutId);
-    }
-
-    public static String getTablePrefix(String modelId) {
-        return modelId.replace("-", "") + "_";
     }
 }

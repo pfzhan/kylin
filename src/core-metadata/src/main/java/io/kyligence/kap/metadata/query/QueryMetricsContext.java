@@ -142,6 +142,8 @@ public class QueryMetricsContext extends QueryMetrics {
         collectErrorType(context);
         List<RealizationMetrics> realizationMetricList = collectRealizationMetrics(
                 QueryContext.current().getNativeQueryRealizationList());
+        realizationMetricList.forEach(metric ->
+                metric.setSecondStorage(context.getSecondStorageUsageMap().getOrDefault(Long.parseLong(metric.getLayoutId()), false)));
 
         QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo(context.getMetrics().isExactlyMatch(),
                 context.getMetrics().getSegCount(),

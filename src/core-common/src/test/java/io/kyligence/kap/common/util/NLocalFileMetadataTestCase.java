@@ -52,6 +52,10 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     protected static File tempMetadataDirectory = null;
     Map<Object, Object> originManager = Maps.newHashMap();
 
+    public static File getTempMetadataDirectory() {
+        return tempMetadataDirectory;
+    }
+
     public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProjectFromSingleton()
             throws Exception {
         Field instanceField = Singletons.class.getDeclaredField("instance");
@@ -210,8 +214,8 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
         clearTestConfig();
         QueryContext.reset();
     }
-    
-    static protected String getLocalWorkingDirectory() {
+
+    public static String getLocalWorkingDirectory() {
         String dir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
         if (dir.startsWith("file://"))
             dir = dir.substring("file://".length());

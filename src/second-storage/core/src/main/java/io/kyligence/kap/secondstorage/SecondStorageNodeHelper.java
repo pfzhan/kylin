@@ -62,7 +62,7 @@ public class SecondStorageNodeHelper {
     }
 
     public static List<String> resolveToJDBC(List<String> names) {
-        return resolve(names).stream().map(url -> url.split("\\?")[0]).collect(Collectors.toList());
+        return resolve(names);
     }
 
     public static String resolve(String name) {

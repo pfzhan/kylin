@@ -27,6 +27,7 @@ package io.kyligence.kap.metadata.query;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -189,10 +190,12 @@ public class QueryHistory implements IKeep {
         List<QueryMetrics.RealizationMetrics> realizationMetrics = queryHistoryInfo.realizationMetrics;
 
         for (QueryMetrics.RealizationMetrics metrics : realizationMetrics) {
-            realizations.add(new NativeQueryRealization(metrics.modelId,
+            val realization = new NativeQueryRealization(metrics.modelId,
                     metrics.layoutId == null || metrics.layoutId.equals("null") ? null : Long.parseLong(metrics.layoutId),
                     metrics.indexType == null || metrics.indexType.equals("null") ? null : metrics.indexType,
-                    metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots));
+                    metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots);
+            realization.setSecondStorage(metrics.isSecondStorage);
+            realizations.add(realization);
         }
         return realizations;
     }

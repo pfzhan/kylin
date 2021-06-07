@@ -44,7 +44,7 @@ import io.kyligence.kap.common.util.HostInfoFetcher;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = { HostInfoFetcher.class, ZookeeperHostInfoFetcher.class })
 @TestPropertySource(properties = "spring.cloud.zookeeper.enabled=true")
-@EnableAutoConfiguration
+@EnableAutoConfiguration(excludeName = {"io.kyligence.kap.secondstorage.management.ManagementConfig"})
 public class ZookeeperHostInfoFetcherTest extends AbstractTestCase {
 
     @Autowired

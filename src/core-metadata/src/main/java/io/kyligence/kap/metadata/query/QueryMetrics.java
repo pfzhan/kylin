@@ -119,6 +119,8 @@ public class QueryMetrics implements IKeep {
 
         protected String projectName;
 
+        protected boolean isSecondStorage;
+
         protected List<String> snapshots;
 
         // For serialize

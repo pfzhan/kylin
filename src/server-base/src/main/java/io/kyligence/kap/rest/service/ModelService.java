@@ -3115,7 +3115,7 @@ public class ModelService extends BasicService {
         checkModelRequest(request);
         checkModelPermission(project, request.getUuid());
         validatePartitionDateColumn(request);
-        disableSecondStorageIfNeeded(project, request);
+        changeSecondStorageIfNeeded(project, request);
 
         val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
@@ -3153,13 +3153,22 @@ public class ModelService extends BasicService {
         return baseIndexResponse;
     }
 
-    public void disableSecondStorageIfNeeded(String project, ModelRequest request) {
+    public void changeSecondStorageIfNeeded(String project, ModelRequest request) {
         // disable second storage
         if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
                 && !request.isWithSecondStorage()) {
             SecondStorageUtil.validateDisableModel(project, request.getId());
             triggerModelClean(project, request.getId());
             SecondStorageUtil.disableModel(project, request.getId());
+        } else if (request.getId() != null && !SecondStorageUtil.isModelEnable(project, request.getId())
+                && request.isWithSecondStorage()) {
+            val indexPlanManager = getIndexPlanManager(project);
+            if (!indexPlanManager.getIndexPlan(request.getId()).containBaseTableLayout()) {
+                indexPlanManager.updateIndexPlan(request.getId(), copied -> {
+                    copied.createAndAddBaseIndex(Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
+                });
+            }
+            SecondStorageUtil.initModelMetaData(project, request.getId());
         }
     }
 

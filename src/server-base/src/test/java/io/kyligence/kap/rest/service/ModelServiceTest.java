@@ -5596,7 +5596,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void disableSecondStorageIfNeeded() throws IOException {
+    public void changeSecondStorageIfNeeded() throws IOException {
         val models = new ArrayList<>(modelService.listAllModelIdsInProject("default"));
         val model = models.get(0);
         MockSecondStorage.mock("default", new ArrayList<>(), this);
@@ -5604,9 +5604,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(false);
         request.setUuid(model);
-        Mockito.doCallRealMethod().when(modelService).disableSecondStorageIfNeeded("default", request);
-        modelService.disableSecondStorageIfNeeded("default", request);
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request);
+        modelService.changeSecondStorageIfNeeded("default", request);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
+
+        ModelRequest request2 = new ModelRequest();
+        request2.setWithSecondStorage(true);
+        request2.setUuid(model);
+        modelService.changeSecondStorageIfNeeded("default", request2);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
     }
 
     @Test

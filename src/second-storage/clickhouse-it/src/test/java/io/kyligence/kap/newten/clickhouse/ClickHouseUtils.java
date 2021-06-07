@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
+import com.google.common.collect.ImmutableMap;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.ddl.InsertInto;
-import io.kyligence.kap.ddl.exp.ColumnWithType;
+import io.kyligence.kap.secondstorage.ddl.InsertInto;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.engine.spark.utils.RichOption;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
@@ -53,6 +54,7 @@ import scala.collection.JavaConverters;
 import scala.runtime.AbstractFunction1;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.nio.charset.Charset;
@@ -263,11 +265,21 @@ public class ClickHouseUtils {
         return String.join(",", nameUrls);
     }
 
-    static public <T> T configClickhouseWith(JdbcDatabaseContainer<?>[] clickhouse, int replica, String queryCatalog, final Callable<T> lambda) throws Exception {
-        Cluster cluster = new Cluster();
-        cluster.setKeepAliveTimeout("600000");
-        cluster.setSocketTimeout("600000");
-        cluster.setNodes(new ArrayList<>(clickhouse.length));
+    public static <T> T configClickhouseWith(JdbcDatabaseContainer<?>[] clickhouse, int replica, String queryCatalog, final Callable<T> lambda) throws Exception {
+        internalConfigClickHouse(clickhouse, replica);
+        Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
+        try {
+            return lambda.call();
+        } finally {
+            Unsafe.clearProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG);
+        }
+    }
+
+    public static void internalConfigClickHouse(JdbcDatabaseContainer<?>[] clickhouse, int replica) throws IOException {
+        Cluster cluster = new Cluster()
+                .setKeepAliveTimeout("600000")
+                .setSocketTimeout("600000")
+                .setNodes(new ArrayList<>(clickhouse.length));
         int i = 1;
         for (JdbcDatabaseContainer<?> jdbcDatabaseContainer : clickhouse) {
             Node node = new Node();
@@ -285,15 +297,9 @@ public class ClickHouseUtils {
         Unsafe.setProperty(CONFIG_SECOND_STORAGE_CLUSTER, file.getAbsolutePath());
         Unsafe.setProperty(SecondStorageConstants.NODE_REPLICA, String.valueOf(replica));
         SecondStorage.init(true);
-        Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
-        try {
-            return lambda.call();
-        } finally {
-            Unsafe.clearProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG);
-        }
     }
 
-    static boolean findShardJDBCTable(LogicalPlan logicalPlan) {
+    public static boolean findShardJDBCTable(LogicalPlan logicalPlan) {
         return !logicalPlan.find(new AbstractFunction1<LogicalPlan, Object>() {
             @Override
             public Object apply(LogicalPlan v1) {
@@ -335,7 +341,15 @@ public class ClickHouseUtils {
         return s;
     }
 
-    static void checkGroupBy(ShardJDBCScan shardJDBCScan, List<String> expectGroupBy) {
+    /* See
+      1. src/examples/test_case_data/localmeta/metadata/table_index/table/DEFAULT.TEST_KYLIN_FACT.json
+        2. src/examples/test_case_data/localmeta/metadata/table_index_incremental/table/DEFAULT.TEST_KYLIN_FACT.json
+         * PRICE  <=>  9, hence its column name in ck is c9
+    */
+    public static final Map<String, String> columnMapping = ImmutableMap.of(
+            "PRICE", "c9");
+
+    public static void checkGroupBy(ShardJDBCScan shardJDBCScan, List<String> expectGroupBy) {
         SingleSQLStatement statement = shardJDBCScan.pushedStatement();
         Assert.assertNotNull(statement);
         Assert.assertNotNull(statement.groupBy().get());

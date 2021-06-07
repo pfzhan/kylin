@@ -253,6 +253,10 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     }
 
     protected void fullBuildCube(String dfName, String prj) throws Exception {
+        fullBuildAllCube(dfName, prj);
+    }
+
+    public static void fullBuildAllCube(String dfName, String prj) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

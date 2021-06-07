@@ -146,6 +146,8 @@ public class NClickHouseFlowManagerTest {
         Assert.assertSame(flow1.getTableDataList().get(0), flow1.getEntity(layout0).orElse(null));
         TableData data = flow1.getTableDataList().get(0);
         Assert.assertEquals(0, data.getPartitions().size());
+        Assert.assertNull(data.getSchemaURL());
+        Assert.assertNull(data.getShardJDBCURLs());
 
         TableFlow flow2 = flow1.update(copied ->
                 copied.upsertTableData(

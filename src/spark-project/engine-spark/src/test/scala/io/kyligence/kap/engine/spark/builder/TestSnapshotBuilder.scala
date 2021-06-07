@@ -103,7 +103,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     fs.delete(new Path(snapPath), true)
   }
 
-  test("test concurrent snapshot with timeout") {
+  ignore("test concurrent snapshot with timeout") {
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
     val df: NDataflow = dsMgr.getDataflow(DF_NAME)

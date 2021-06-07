@@ -29,6 +29,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -60,8 +61,8 @@ public class ClickHouseTableClean extends AbstractClickHouseClean {
         nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
             if (tableFlow.isPresent() && !tableFlow.get().getTableDataList().isEmpty()) {
                 ShardClean shardClean = new ShardClean(node,
-                        SecondStorageUtil.getDatabase(dataflow),
-                        SecondStorageUtil.getTable(dataflow, tableFlow.get().getTableDataList().get(0).getLayoutID()));
+                        NameUtil.getDatabase(dataflow),
+                        NameUtil.getTable(dataflow, tableFlow.get().getTableDataList().get(0).getLayoutID()));
                 shardCleanList.add(shardClean);
             }
         });

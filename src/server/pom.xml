@@ -242,6 +242,19 @@
         </dependency>
 
         <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-clickhouse</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-second-storage-ui</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
             <scope>test</scope>
@@ -379,22 +392,7 @@
                     <artifactId>hive-exec</artifactId>
                 </dependency>
 
-                <dependency>
-                    <groupId>io.kyligence.ke</groupId>
-                    <artifactId>kap-second-storage-clickhouse</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>io.kyligence.ke</groupId>
-                    <artifactId>kap-second-storage-core</artifactId>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>io.kyligence.ke</groupId>
-                    <artifactId>kap-second-storage-ui</artifactId>
-                    <scope>provided</scope>
-                </dependency>
+
 
                 <!-- jdbc -->
                 <dependency>

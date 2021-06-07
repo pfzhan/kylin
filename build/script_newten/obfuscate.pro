@@ -83,6 +83,7 @@
 -keep class io.kyligence.kap.shaded.** {*;}
 -keep class io.kyligence.kap.ext.** {*;}
 -keep class io.kyligence.api.** {*;}
+-keep class io.kyligence.kap.secondstorage.** {*;}
 
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** {
     **[] $VALUES;

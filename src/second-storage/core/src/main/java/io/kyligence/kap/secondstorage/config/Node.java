@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.secondstorage.config;
 
+import io.kyligence.kap.common.util.EncryptUtil;
+
 public class Node {
     private String name;
     private String ip;
@@ -84,7 +86,7 @@ public class Node {
     }
 
     public String getPassword() {
-        return password;
+        return EncryptUtil.isEncrypted(password) ? EncryptUtil.decrypt(password) : password;
     }
 
     public Node setPassword(String password) {

@@ -28,6 +28,7 @@ import com.clearspring.analytics.util.Preconditions;
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
+import io.kyligence.kap.clickhouse.tool.ClickHouseSanityCheckTool;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -37,7 +38,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.secondstorage.SchemaCache$;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -45,6 +46,7 @@ import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
+import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableEntity;
@@ -87,6 +89,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -103,6 +106,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.configClickhouseWith;
 import static org.awaitility.Awaitility.await;
 
@@ -113,6 +117,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     private SecondStorageService secondStorageService = new SecondStorageService();
+    private ModelService modelService = Mockito.mock(ModelService.class);
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
 
 
@@ -161,6 +166,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     @Before
     public void setUp() throws Exception {
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
+        secondStorageEndpoint.setModelService(modelService);
         prepareMeta();
         ExecutableUtils.initJobFactory();
 
@@ -191,7 +197,6 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
         ResourceStore.clearCache();
         FileUtils.deleteDirectory(new File("../clickhouse-it/metastore_db"));
-        SchemaCache$.MODULE$.reset();
         super.tearDown();
     }
 
@@ -327,6 +332,28 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         }
     }
 
+    @Test
+    public void testRecoverProject() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testRecoverProject", false, clickhouse);
+            val request = new RecoverRequest();
+            request.setProject(getProject());
+            val response = secondStorageEndpoint.recoverProject(request);
+            Assert.assertEquals(1, response.getData().getSubmittedModels().size());
+            Assert.assertEquals(0, response.getData().getFailedModels().size());
+        }
+    }
+
+    @Test
+    public void testCheckUtil() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
+            configClickhouseWith(new JdbcDatabaseContainer[]{clickhouse}, 1, "testCheckUtil", ()-> {
+                ClickHouseSanityCheckTool.execute(new String[]{"1"});
+                return null;
+            });
+        }
+    }
+
     private JobParam triggerSegmentClean() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val dfManager = NDataflowManager.getInstance(config, getProject());
@@ -347,8 +374,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         NDataflow df = dsMgr.getDataflow(dfName);
 
         val timeRange1 = new SegmentRange.TimePartitionedSegmentRange("2012-01-01", "2012-01-02");
-        val indexes = df.getIndexPlan().getAllLayouts().stream().filter(layoutEntity -> layoutEntity.getId() == 20000000001L)
-                .collect(Collectors.toSet());
+        val indexes = new HashSet<>(df.getIndexPlan().getAllLayouts());
         buildCuboid(dfName, timeRange1, indexes, true);
         val timeRange2 = new SegmentRange.TimePartitionedSegmentRange("2012-01-02", "2012-01-03");
         buildCuboid(dfName, timeRange2, indexes, true);
@@ -522,12 +548,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
                     NExecAndComp.queryCubeAndSkipCompute(getProject(), "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE");
             ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(groupPlan.queryExecution().optimizedPlan());
             Assert.assertEquals(clickhouse.length/replica, shardJDBCScan.relation().parts().length);
-            /* See
-              1. src/examples/test_case_data/localmeta/metadata/table_index/table/DEFAULT.TEST_KYLIN_FACT.json
-              2. src/examples/test_case_data/localmeta/metadata/table_index_incremental/table/DEFAULT.TEST_KYLIN_FACT.json
-             * PRICE  <=>  9, hence its column name in ck is c9
-            */
-            List<String> expected = ImmutableList.of("c9");
+            List<String> expected = ImmutableList.of(columnMapping.get("PRICE"));
             ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());

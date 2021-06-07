@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.clickhouse.ddl;
 
-import io.kyligence.kap.ddl.AlterTable;
-import io.kyligence.kap.ddl.CreateTable;
-import io.kyligence.kap.ddl.visitor.DefaultSQLRender;
+import io.kyligence.kap.secondstorage.ddl.AlterTable;
+import io.kyligence.kap.secondstorage.ddl.CreateTable;
+import io.kyligence.kap.secondstorage.ddl.visitor.DefaultSQLRender;
 
 public class ClickHouseRender extends DefaultSQLRender {
 

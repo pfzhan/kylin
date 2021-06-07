@@ -1,3 +1,0 @@
-# Auto Configure
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  io.kyligence.kap.secondstorage.management.ManagementConfig

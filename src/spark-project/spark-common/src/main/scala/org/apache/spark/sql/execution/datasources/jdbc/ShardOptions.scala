@@ -38,8 +38,8 @@ case class ShardOptions(sharding: String) {
 
 object ShardOptions {
   val SHARD_URLS = "shard_urls"
-  val SPLIT_CHAR = '|'
-  val REPLICA_SPLIT_CHAR = ";"
+  val SPLIT_CHAR = "<url_split>"
+  val REPLICA_SPLIT_CHAR = "<replica_split>"
 
   def create(options: JDBCOptions): ShardOptions = {
     ShardOptions(options.parameters.get(SHARD_URLS).getOrElse(options.url))

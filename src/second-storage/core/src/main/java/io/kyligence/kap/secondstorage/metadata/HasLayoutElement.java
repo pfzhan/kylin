@@ -32,7 +32,11 @@ public interface HasLayoutElement<E extends WithLayout> {
 
     // utility
     static <E extends WithLayout> boolean sameLayout(E e, LayoutEntity layoutEntity){
-        return e.getLayoutID() == layoutEntity.getId();
+        return sameLayout(e, layoutEntity.getId());
+    }
+
+    static <E extends WithLayout> boolean sameLayout(E e, long layoutId){
+        return e.getLayoutID() == layoutId;
     }
 
     static <E extends WithLayout> boolean sameIndex(E e, LayoutEntity layoutEntity){
@@ -40,13 +44,21 @@ public interface HasLayoutElement<E extends WithLayout> {
     }
 
     List<E> all();
+
     default Optional<E> getEntity(LayoutEntity layoutEntity, boolean sameLayout){
         return all().stream()
                 .filter(e -> sameLayout ? sameLayout(e, layoutEntity): sameIndex(e, layoutEntity))
                 .findFirst();
     }
+
     default Optional<E> getEntity(LayoutEntity layoutEntity) {
-        return getEntity(layoutEntity, true);
+        return getEntity(layoutEntity.getId());
+    }
+
+    default Optional<E> getEntity(long layout) {
+        return all().stream()
+                .filter(e -> sameLayout(e, layout))
+                .findFirst();
     }
 
     default boolean containIndex(LayoutEntity layoutEntity, boolean throwOnDifferentLayout){

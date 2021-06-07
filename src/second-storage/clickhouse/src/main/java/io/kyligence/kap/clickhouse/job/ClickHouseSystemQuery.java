@@ -25,10 +25,10 @@
 package io.kyligence.kap.clickhouse.job;
 
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
-import io.kyligence.kap.ddl.Select;
-import io.kyligence.kap.ddl.exp.ColumnWithAlias;
-import io.kyligence.kap.ddl.exp.GroupBy;
-import io.kyligence.kap.ddl.exp.TableIdentifier;
+import io.kyligence.kap.secondstorage.ddl.Select;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithAlias;
+import io.kyligence.kap.secondstorage.ddl.exp.GroupBy;
+import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import lombok.Builder;
 import lombok.Data;
 import org.apache.commons.lang3.exception.ExceptionUtils;

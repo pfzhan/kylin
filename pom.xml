@@ -393,6 +393,11 @@
             <!-- second storage -->
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-second-storage-clickhouse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-second-storage-core</artifactId>
                 <version>${project.version}</version>
             </dependency>

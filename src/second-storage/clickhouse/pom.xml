@@ -12,7 +12,7 @@
 
     <artifactId>kap-second-storage-clickhouse</artifactId>
     <packaging>jar</packaging>
-    <name>KAP - Storage Storage Clickhouse</name>
+    <name>KAP - Second Storage Clickhouse</name>
     <url>http://kyligence.io</url>
     <description>KAP Clickhouse</description>
 

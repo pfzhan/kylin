@@ -28,6 +28,7 @@ package io.kyligence.kap.clickhouse.job;
 import com.clearspring.analytics.util.Preconditions;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -76,8 +77,8 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
             List<Date> partitions = IncrementalLoad.rangeToPartition(segmentRangeMap.get(segment));
             nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
                 if (!tableFlow.getTableDataList().isEmpty()) {
-                    database = SecondStorageUtil.getDatabase(dataflow);
-                    table = SecondStorageUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
+                    database = NameUtil.getDatabase(dataflow);
+                    table = NameUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
                     ShardClean shardClean = new ShardClean(node,
                             database,
                             table,

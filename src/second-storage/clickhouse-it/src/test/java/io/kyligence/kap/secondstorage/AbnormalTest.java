@@ -1,0 +1,102 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package io.kyligence.kap.secondstorage;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.SharedSparkSession;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+
+import java.util.List;
+
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
+
+public class AbnormalTest {
+    static private final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
+    static private final String project = "table_index";
+
+    @ClassRule
+    public static SharedSparkSession sharedSpark = new SharedSparkSession(
+            ImmutableMap.of("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions")
+    );
+
+    @Rule
+    public EnableClickHouseJob test = new EnableClickHouseJob(1, 1, project, cubeName, "src/test/resources/ut_meta");
+    private final SparkSession sparkSession = sharedSpark.getSpark();
+
+    /**
+     * When set spark.sql.catalog.{queryCatalog}.url to an irrelevant clickhouse JDBC URL, there is an bug before
+     * KE-27650
+     */
+    @Test
+    public void testSparkJdbcUrlNotExist() throws Exception {
+        final String queryCatalog = "xxxxx";
+        try (JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
+
+            //build
+            NLocalWithSparkSessionTest.fullBuildAllCube(cubeName, project);
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+
+            // check
+            test.checkHttpServer();
+            test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog,
+                    "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog + ".url",
+                    clickhouse2.getJdbcUrl());
+            sparkSession.sessionState().conf().setConfString(
+                    "spark.sql.catalog." + queryCatalog + ".driver",
+                    clickhouse2.getDriverClassName());
+
+            Dataset<Row> groupPlan =
+                    NExecAndComp.queryCubeAndSkipCompute(project, "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE");
+            ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(groupPlan.queryExecution().optimizedPlan());
+            List<String> expected = ImmutableList.of(columnMapping.get("PRICE"));
+            ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
+        } finally {
+            Unsafe.clearProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG);
+        }
+    }
+}

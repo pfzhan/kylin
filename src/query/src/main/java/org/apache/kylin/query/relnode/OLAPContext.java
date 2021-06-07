@@ -319,9 +319,10 @@ public class OLAPContext {
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
                     List<String> snapshots = Lists.newArrayList(tableSets);
-                    realizations
-                            .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
-                                    realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
+                    val realization = new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
+                            realizationType, ctx.storageContext.isPartialMatchModel(), snapshots);
+                    realization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
+                    realizations.add(realization);
                 }
             }
         }

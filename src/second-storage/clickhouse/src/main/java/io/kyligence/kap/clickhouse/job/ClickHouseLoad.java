@@ -31,6 +31,7 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.NManager;
@@ -186,8 +187,8 @@ public class ClickHouseLoad extends AbstractExecutable {
             this.config = KylinConfig.getInstanceFromEnv();
             final NDataflowManager dfMgr = NDataflowManager.getInstance(config, load.getProject());
             this.df = dfMgr.getDataflow(dataflowId);
-            this.database = SecondStorageUtil.getDatabase(df);
-            this.prefixTableName = s -> SecondStorageUtil.getTable(df, s.getId());
+            this.database = NameUtil.getDatabase(df);
+            this.prefixTableName = s -> NameUtil.getTable(df, s.getId());
         }
 
         IndexPlan indexPlan() {

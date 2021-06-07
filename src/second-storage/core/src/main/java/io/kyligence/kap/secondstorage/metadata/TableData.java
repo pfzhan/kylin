@@ -31,9 +31,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
+import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
+import scala.collection.JavaConverters;
 
 import java.io.Serializable;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,6 +57,8 @@ import java.util.stream.Collectors;
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 @DataDefinition
 public class TableData implements Serializable, IKeep, WithLayout {
+
+    private static final SecureRandom replicaRandom = new SecureRandom();
 
     public static final class Builder {
 
@@ -112,6 +118,8 @@ public class TableData implements Serializable, IKeep, WithLayout {
     @JsonProperty("partitions")
     private final List<TablePartition> partitions = Lists.newArrayList();
 
+    private Set<String> allSegmentIds;
+
     public String getDatabase() {
         return database;
     }
@@ -138,9 +146,9 @@ public class TableData implements Serializable, IKeep, WithLayout {
    public void addPartition(TablePartition partition) {
        Preconditions.checkArgument(partition != null);
        checkIsNotCachedAndShared();
-       partitions.removeIf(p -> {
-           return isSameGroup(p.getShardNodes(), partition.getShardNodes()) && p.getSegmentId().equals(partition.getSegmentId());
-       });
+       partitions.removeIf(p ->
+               isSameGroup(p.getShardNodes(), partition.getShardNodes()) && p.getSegmentId().equals(partition.getSegmentId())
+       );
        partitions.add(partition);
    }
 
@@ -149,23 +157,25 @@ public class TableData implements Serializable, IKeep, WithLayout {
         return Collections.unmodifiableList(partitions);
     }
 
-    // delete
+    // update & delete
     public void removePartitions(Predicate<? super TablePartition> filter) {
+        checkIsNotCachedAndShared();
         partitions.removeIf(filter);
     }
 
     public void mergePartitions(Set<String> oldSegIds, String mergeSegId) {
+        checkIsNotCachedAndShared();
         List<Set<String>> nodeGroups = new ArrayList<>();
         Map<String, Long> sizeInNode = new HashMap<>();
         Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>();
         getPartitions().stream().filter(partition -> oldSegIds.contains(partition.getSegmentId()))
                 .forEach(partition -> {
-                    partition.getSizeInNode().forEach((key, value) -> {
-                        sizeInNode.put(key, sizeInNode.getOrDefault(key, 0L) + value);
-                    });
-                    partition.getNodeFileMap().forEach((key, value) -> {
-                        nodeFileMap.computeIfAbsent(key, k -> new ArrayList<>()).addAll(value);
-                    });
+                    partition.getSizeInNode().forEach((key, value) ->
+                        sizeInNode.put(key, sizeInNode.getOrDefault(key, 0L) + value));
+
+                    partition.getNodeFileMap().forEach((key, value) ->
+                        nodeFileMap.computeIfAbsent(key, k -> new ArrayList<>()).addAll(value));
+
                     for (Set<String> nodeGroup : nodeGroups) {
                         if (isSameGroup(nodeGroup, partition.getShardNodes())) {
                             nodeGroup.addAll(partition.getShardNodes());
@@ -174,8 +184,8 @@ public class TableData implements Serializable, IKeep, WithLayout {
                     }
                     nodeGroups.add(new HashSet<>(partition.getShardNodes()));
                 });
-        List<TablePartition> mergedPartitions = nodeGroups.stream().map(nodeGroup -> {
-            return TablePartition.builder()
+        List<TablePartition> mergedPartitions = nodeGroups.stream().map(nodeGroup ->
+                TablePartition.builder()
                     .setSizeInNode(nodeGroup.stream().collect(
                             Collectors.toMap(node -> node, node -> sizeInNode.getOrDefault(node, 0L))))
                     .setSegmentId(mergeSegId)
@@ -183,17 +193,42 @@ public class TableData implements Serializable, IKeep, WithLayout {
                     .setId(UUID.randomUUID().toString())
                     .setNodeFileMap(nodeGroup.stream().collect(
                             Collectors.toMap(node -> node, node -> nodeFileMap.getOrDefault(node, Collections.emptyList()))
-                    )).build();
-        }).collect(Collectors.toList());
+                    )).build()
+        ).collect(Collectors.toList());
         removePartitions(tablePartition -> oldSegIds.contains(tablePartition.getSegmentId()));
         this.partitions.addAll(mergedPartitions);
     }
 
+    // utility
     private boolean isSameGroup(Collection<String> a, Collection<String> b) {
         Set<String> aSet = Sets.newHashSet(a);
         Set<String> bSet = Sets.newHashSet(b);
         return aSet.containsAll(bSet) || bSet.containsAll(aSet);
     }
 
+    public String getShardJDBCURLs() {
+        if (partitions.isEmpty()) {
+            return null;
+        }
+        // random choice available shards replica
+        final int index = replicaRandom.nextInt(partitions.size());
+        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(partitions.get(index).getShardNodes());
+        return ShardOptions$.MODULE$.buildSharding(JavaConverters.asScalaBuffer(nodes));
+    }
+
+    public String getSchemaURL() {
+        if (partitions.isEmpty()) {
+            return null;
+        }
+        List<String> nodes = SecondStorageNodeHelper.resolveToJDBC(partitions.get(0).getShardNodes());
+        return nodes.get(0);
+    }
+
+    public boolean containSegments(Set<String> segmentIds) {
+        if (allSegmentIds == null) {
+            allSegmentIds = partitions.stream().map(TablePartition::getSegmentId).collect(Collectors.toSet());
+        }
+        return allSegmentIds.containsAll(segmentIds);
+    }
     // replace?
 }

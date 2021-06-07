@@ -26,13 +26,13 @@ package io.kyligence.kap.secondstorage
 import io.kyligence.kap.engine.spark.utils.JavaOptionals._
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
-import io.kyligence.kap.secondstorage.metadata.{NManager, NodeGroup, TableFlow, TablePlan}
-import org.apache.kylin.common.KylinConfig
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD, ShardOptions}
+import io.kyligence.kap.secondstorage.metadata.{NManager, NodeGroup, TableData, TableFlow, TablePlan}
+import org.apache.kylin.common.{KylinConfig, QueryContext}
+import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.JavaConverters
-import scala.util.Random
+import scala.collection.JavaConverters._
 
 object SecondStorage extends LogEx {
 
@@ -60,7 +60,7 @@ object SecondStorage extends LogEx {
     }
   }
 
-  private var secondStoragePlugin: SecondStoragePlugin = _;
+  private var secondStoragePlugin: SecondStoragePlugin = _
 
   def init(force: Boolean): Unit = {
     if (force || secondStoragePlugin == null) {
@@ -82,46 +82,45 @@ object SecondStorage extends LogEx {
   def nodeGroupManager(config: KylinConfig, project: String): NManager[NodeGroup] =
     secondStoragePlugin.nodeGroupManager(config, project)
 
+  private def queryCatalog() = Option.apply(secondStoragePlugin.queryCatalog())
+
   def trySecondStorage(
-                        sparkSession: SparkSession,
-                        dataflow: NDataflow,
-                        layout: LayoutEntity,
-                        pruningInfo: String): Option[DataFrame] = {
+    sparkSession: SparkSession,
+    dataflow: NDataflow,
+    layout: LayoutEntity,
+    pruningInfo: String): Option[DataFrame] = {
     // Only support table index
     if (enabled && layout.getIndex.isTableIndex) {
       val tableData = tableFlowManager(dataflow)
         .get(dataflow.getUuid)
         .flatMap(f => f.getEntity(layout))
         .toOption
-      if (tableData.isDefined) {
-        val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet
-        val pruningSegIds = JavaConverters.asScalaBuffer(tableData.get.getPartitions).map(p => p.getSegmentId).toSet
-        val missingSegs = allSegIds.diff(pruningSegIds).toList
-        if (missingSegs.nonEmpty) return Option.empty
-      }
-      for {
-        externalJDBCURL <- tableData.filter(_.getPartitions.size() > 0)
-          .map(t => {
-            // random choice available shards replica
-            val nodes = t.getPartitions.get(Random.nextInt(t.getPartitions.size())).getShardNodes
-            ShardOptions.buildSharding(JavaConverters.asScalaBuffer(SecondStorageNodeHelper.resolveToJDBC(nodes)): _*)
-          })
-        database <- tableData.map(_.getDatabase)
-        table <- tableData.map(_.getTable)
-        catalog <- Option.apply(secondStoragePlugin.queryCatalog())
-      } yield {
-        SchemaCache.putIfAbsent(s"$database.$table", key => {
-          val immutable = Map(
-            JDBCOptions.JDBC_TABLE_NAME -> key,
-            JDBCOptions.JDBC_URL -> ShardOptions(externalJDBCURL).shards(0))
-          JDBCRDD.resolveTable(new JDBCOptions(immutable))
-        })
-        sparkSession.read
-          .option(ShardOptions.SHARD_URLS, externalJDBCURL)
-          .table(s"$catalog.$database.$table")
+
+      val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
+      if (tableData.exists(_.containSegments(allSegIds))) {
+        val result = tryCreateDataFrame(tableData, sparkSession)
+        if (tableData.isDefined) {
+          QueryContext.current().getSecondStorageUsageMap.put(tableData.get.getLayoutID, true)
+        }
+        result
+      } else {
+        None
       }
     } else {
-      Option.empty
+      None
+    }
+  }
+
+  private def tryCreateDataFrame(tableData: Option[TableData], sparkSession: SparkSession) = {
+    for {
+      shardJDBCURLs <- tableData.map(_.getShardJDBCURLs)
+      database <- tableData.map(_.getDatabase)
+      table <- tableData.map(_.getTable)
+      catalog <- queryCatalog()
+    } yield {
+      sparkSession.read
+        .option(ShardOptions.SHARD_URLS, shardJDBCURLs)
+        .table(s"$catalog.$database.$table")
     }
   }
 }

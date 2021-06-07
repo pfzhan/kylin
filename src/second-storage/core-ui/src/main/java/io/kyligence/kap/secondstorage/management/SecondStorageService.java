@@ -81,6 +81,8 @@ public class SecondStorageService extends BasicService {
     }
 
     public Optional<JobInfoResponse.JobInfo> changeModelSecondStorageState(String project, String modelId, boolean enabled) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv())
+            aclEvaluate.checkProjectAdminPermission(project);
         JobInfoResponse.JobInfo jobInfo = null;
         if (enabled) {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -190,6 +192,12 @@ public class SecondStorageService extends BasicService {
         if (isEnabled(project, modelId)) {
             return;
         }
+        val indexPlanManager = getIndexPlanManager(project);
+        if (!indexPlanManager.getIndexPlan(modelId).containBaseTableLayout()) {
+            indexPlanManager.updateIndexPlan(modelId, copied -> {
+                copied.createAndAddBaseIndex(Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
+            });
+        }
         SecondStorageUtil.initModelMetaData(project, modelId);
     }
 
@@ -228,5 +236,11 @@ public class SecondStorageService extends BasicService {
             }
         });
         return Lists.newArrayList(models);
+    }
+
+    public void isProjectAdmin(String project) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            aclEvaluate.checkProjectAdminPermission(project);
+        }
     }
 }

@@ -22,16 +22,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.apache.spark.sql.execution.datasources.jdbc.v2
-import io.kyligence.kap.secondstorage.SchemaCache
+import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
+import io.kyligence.kap.engine.spark.utils.JavaOptionals.toRichOptional
+import io.kyligence.kap.secondstorage.NameUtil
+import io.kyligence.kap.secondstorage.SecondStorage.tableFlowManager
+import org.apache.kylin.common.KylinConfig
+import org.apache.spark.sql.connector.catalog.Identifier
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD}
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCTableCatalog
 import org.apache.spark.sql.types.StructType
 
 class SecondStorageCatalog extends ShardJDBCTableCatalog {
 
-  override def resolveTable(options: JDBCOptions): StructType = {
-    SchemaCache.get(options.tableOrQuery).getOrElse(
-      JDBCRDD.resolveTable(options)
-    )
+  protected val cache: LoadingCache[Identifier, StructType] = CacheBuilder.newBuilder()
+    .maximumSize(100L)
+    .build(
+      new CacheLoader[Identifier, StructType]() {
+        override def load(ident: Identifier): StructType = {
+          val config = KylinConfig.getInstanceFromEnv
+          val project = NameUtil.recoverProject(ident.namespace()(0), config)
+          val pair = NameUtil.recoverLayout(ident.name())
+          val model_id = pair.getFirst
+          val layout = pair.getSecond
+
+          val schemaURL = tableFlowManager(config, project)
+            .get(model_id)
+            .flatMap(f => f.getEntity(layout))
+            .toOption
+            .map(_.getSchemaURL)
+            .get
+
+          val immutable = Map(
+            JDBCOptions.JDBC_TABLE_NAME -> getTableName(ident),
+            JDBCOptions.JDBC_URL -> schemaURL)
+          JDBCRDD.resolveTable(new JDBCOptions(immutable))
+        }
+      })
+
+  override protected def resolveTable(ident: Identifier): Option[StructType] = {
+    Option.apply(cache.get(ident))
   }
 }

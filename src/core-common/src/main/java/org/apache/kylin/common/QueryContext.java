@@ -44,8 +44,10 @@ package org.apache.kylin.common;
 
 import java.io.Closeable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -122,6 +124,13 @@ public class QueryContext implements Closeable {
     @Getter
     @Setter
     private boolean partialMatchIndex = false;
+
+    /**
+     * mark table index use second storage, key is layout id
+     */
+    @Getter
+    @Setter
+    private Map<Long, Boolean> secondStorageUsageMap = new HashMap<>();
 
     private QueryContext() {
         // use QueryContext.current() instead

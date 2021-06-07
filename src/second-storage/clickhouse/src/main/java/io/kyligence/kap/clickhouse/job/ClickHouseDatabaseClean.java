@@ -25,6 +25,7 @@
 package io.kyligence.kap.clickhouse.job;
 
 import com.clearspring.analytics.util.Preconditions;
+import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -50,10 +51,8 @@ public class ClickHouseDatabaseClean extends AbstractClickHouseClean {
         setNodeCount(Math.toIntExact(nodeGroupManager.map(manager -> manager.listAll().stream()
                 .mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum()).orElse(0L)));
         nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
-            ShardClean shardClean = new ShardClean(node,
-                    SecondStorageUtil.getDatabase(config, getProject()));
+            ShardClean shardClean = new ShardClean(node, NameUtil.getDatabase(config, getProject()));
             shardCleanList.add(shardClean);
-
         });
     }
 

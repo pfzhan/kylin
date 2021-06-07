@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import io.kyligence.kap.ddl.exp.ColumnWithType;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.datatype.DataType;
 

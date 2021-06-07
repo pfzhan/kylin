@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.clickhouse.ddl;
 
-import io.kyligence.kap.ddl.CreateTable;
+import io.kyligence.kap.secondstorage.ddl.CreateTable;
 
-import io.kyligence.kap.ddl.exp.TableIdentifier;
+import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 
 import java.util.ArrayList;
 import java.util.Arrays;

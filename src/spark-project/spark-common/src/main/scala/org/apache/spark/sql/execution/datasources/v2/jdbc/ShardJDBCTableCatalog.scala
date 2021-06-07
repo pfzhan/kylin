@@ -60,22 +60,26 @@ class ShardJDBCTableCatalog extends  JDBCTableCatalog with SupportsSQL {
 
   override def loadTable(ident: Identifier): Table = {
     checkNamespace(ident.namespace())
-    val name = getTableName(ident)
-    val optionsWithTableName = new JDBCOptions(
-      options2.parameters + (JDBCOptions.JDBC_TABLE_NAME -> name))
     try {
-        val schema = resolveTable(optionsWithTableName)
-        ShardJDBCTable(ident, schema, optionsWithTableName)
+      val name = getTableName(ident)
+      val optionsWithTableName = new JDBCOptions(
+        options2.parameters + (JDBCOptions.JDBC_TABLE_NAME -> name))
+      val schema = resolveTable(ident).getOrElse(defaultResolveTable(optionsWithTableName))
+      ShardJDBCTable(ident, schema, optionsWithTableName)
     } catch {
       case _: SQLException => throw new NoSuchTableException(ident)
     }
   }
 
-  def resolveTable(options: JDBCOptions): StructType = {
+  protected def resolveTable(ident: Identifier): Option[StructType] = {
+    None
+  }
+
+  def defaultResolveTable(options: JDBCOptions): StructType = {
     JDBCRDD.resolveTable(options)
   }
 
-  private def getTableName(ident: Identifier): String = {
+  protected def getTableName(ident: Identifier): String = {
     (ident.namespace() :+ ident.name()).map(dialect2.quoteIdentifier).mkString(".")
   }
 
