@@ -126,10 +126,12 @@ import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -3403,6 +3405,7 @@ public class ModelService extends BasicService {
         broken.setPartitionDesc(modelRequest.getPartitionDesc());
         broken.setFilterCondition(modelRequest.getFilterCondition());
         broken.setJoinTables(modelRequest.getJoinTables());
+        discardInvalidColumnAndMeasure(broken, modelRequest);
         broken.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
@@ -3418,6 +3421,29 @@ public class ModelService extends BasicService {
             getDataflowManager(project).updateDataflowStatus(broken.getId(), RealizationStatusEnum.ONLINE);
             return modelMgr.getDataModelDesc(model.getUuid());
         }, project);
+    }
+
+    public void discardInvalidColumnAndMeasure(NDataModel brokenModel, ModelRequest modelRequest) {
+        NDataModel newModel = convertAndInitDataModel(modelRequest, brokenModel.getProject());
+        Set<String> aliasDotColumns = newModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toSet());
+        for (NDataModel.NamedColumn column : brokenModel.getAllNamedColumns()) {
+            if (!aliasDotColumns.contains(column.getAliasDotColumn())) {
+                column.setStatus(NDataModel.ColumnStatus.TOMB);
+            }
+        }
+        for (NDataModel.Measure measure : brokenModel.getAllMeasures()) {
+            if (measure.isTomb()) {
+                continue;
+            }
+            FunctionDesc function = measure.getFunction();
+            for (ParameterDesc param : function.getParameters()) {
+                if (!param.isConstant() && !aliasDotColumns.contains(param.getValue())) {
+                    measure.setTomb(true);
+                    break;
+                }
+            }
+        }
     }
 
     public NDataModel convertToDataModel(ModelRequest modelDesc) {
