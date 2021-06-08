@@ -35,10 +35,10 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model._
+import org.apache.spark.sql._
 import org.apache.spark.sql.functions.{col, expr}
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode, SparkSession}
-import java.util.{Locale, Objects}
 
+import java.util.{Locale, Objects}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -195,7 +195,14 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     val ret = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
     dataModel.getJoinTables.asScala
       .foreach { joinDesc =>
-        if (joinDesc.isFlattenable && !dataSegment.getExcludedTables.contains(joinDesc.getTable)) {
+        val fkCols = joinDesc.getJoin.getForeignKeyColumns
+        val fkTableRef = joinDesc.getJoin.getForeignTableRef
+        val fkTable = fkCols match {
+          case null => throw new IllegalArgumentException("foreign key is empty!")
+          case _ => if (fkCols.nonEmpty) fkCols(0).getTable else if (fkTableRef != null) fkTableRef.getTableDesc.getIdentity else null
+        }
+        if (joinDesc.isFlattenable && !dataSegment.getExcludedTables.contains(joinDesc.getTable)
+          && !dataSegment.getExcludedTables.contains(fkTable)) {
           val tableRef = joinDesc.getTableRef
           val tableDS = newTableDS(tableRef)
           ret.put(joinDesc, fulfillDS(tableDS, cols, tableRef))

@@ -220,6 +220,9 @@ public class SegmentFlatTableDesc {
         if (columnIndexMap.containsKey(colRef.getIdentity())) {
             return;
         }
+        if (dataSegment.getExcludedTables().contains(colRef.getTable())) {
+            return;
+        }
         columnIndexMap.put(colRef.getIdentity(), columnIndexMap.size());
         columns.add(colRef);
 

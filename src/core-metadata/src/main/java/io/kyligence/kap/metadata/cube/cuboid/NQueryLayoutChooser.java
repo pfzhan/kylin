@@ -65,6 +65,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -473,8 +474,10 @@ public class NQueryLayoutChooser {
         // suppose: A join B && A join C, the relation of A->C is TO_MANY and C need to derive,
         // then the built index of this join relation only based on the flat table of A join B,
         // in order to get the correct result, the query result must join the snapshot of C.
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(config, model.getProject()).getExcludedTables();
         model.getJoinTables().forEach(joinTableDesc -> {
-            if (joinTableDesc.isDerivedToManyJoinRelation()) {
+            if (joinTableDesc.isDerivedToManyJoinRelation() || excludedTables.contains(joinTableDesc.getTable())) {
                 JoinDesc join = joinTableDesc.getJoin();
                 if (!needJoinSnapshot(sqlDigest, join)) {
                     return;

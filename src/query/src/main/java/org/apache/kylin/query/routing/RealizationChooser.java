@@ -101,6 +101,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -293,8 +294,10 @@ public class RealizationChooser {
     }
 
     private static boolean needToManyDerived(NDataModel model) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        Set<String> excludedTables = FavoriteRuleManager.getInstance(config, model.getProject()).getExcludedTables();
         for (JoinTableDesc joinTable : model.getJoinTables()) {
-            if (joinTable.isDerivedToManyJoinRelation()) {
+            if (joinTable.isDerivedToManyJoinRelation() || excludedTables.contains(joinTable.getTable())) {
                 return true;
             }
         }
