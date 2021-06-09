@@ -499,7 +499,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         expectedRanges.add(segmentRange1);
         assertPrunedSegmentsRange(
                 project, sql1_date, dfId, expectedRanges, layout_20000000001, null,
-                "AND(=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01), =(DEFAULT.TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL, 1))");
+                "AND(=(DEFAULT.TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL, 1), =(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01))");
     }
 
     private void assertPrunedSegmentsRange(String project, String sql, String dfId,

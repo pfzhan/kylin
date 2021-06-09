@@ -27,6 +27,7 @@ package io.kyligence.kap.query.util;
 import io.kyligence.kap.query.optrule.CountDistinctCaseWhenFunctionRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
+import io.kyligence.kap.query.optrule.KapFilterJoinRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
 import io.kyligence.kap.query.optrule.KapSumCastTransposeRule;
@@ -39,6 +40,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 
@@ -89,6 +91,13 @@ public class HepUtils {
             KapProjectRule.INSTANCE,
             KapAggregateRule.INSTANCE,
             KapJoinRule.EQUAL_NULL_SAFE_INSTANT
+    );
+
+    public static final ImmutableList<RelOptRule> FilterPushDownRules = ImmutableList.of(
+            KapFilterJoinRule.KAP_FILTER_ON_JOIN_JOIN,
+            KapFilterJoinRule.KAP_FILTER_ON_JOIN_SCAN,
+            FilterAggregateTransposeRule.INSTANCE,
+            KapFilterRule.INSTANCE
     );
 
 

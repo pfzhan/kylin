@@ -65,17 +65,8 @@ import com.google.common.collect.Sets;
  *  rewrite the cross join to the equal-semantic inner Join.
  *
  */
-public class KapFilterJoinRule extends RelOptRule {
-    //
-    //                  filter
-    //                    |
-    //                  join
-    //                /     \
-    //             join   rel-node(not join)
-    //            /   \      |
-    //         any   any    any
-    //
-    public static final KapFilterJoinRule KAP_FILTER_ON_JOIN_JOIN = new KapFilterJoinRule(operand(Filter.class,
+public class KapFilterCrossJoinRule extends RelOptRule {
+    public static final KapFilterCrossJoinRule KAP_FILTER_ON_CROSSJOIN_JOIN = new KapFilterCrossJoinRule(operand(Filter.class,
             operand(Join.class,
                     operand(Join.class, operand(RelNode.class, RelOptRule.any()),
                             operand(RelNode.class, RelOptRule.any())),
@@ -85,17 +76,9 @@ public class KapFilterJoinRule extends RelOptRule {
                             return !(input instanceof Join);
                         }
                     }, RelOptRule.any()))),
-            RelFactories.LOGICAL_BUILDER, true, "KapFilterJoinRule:filter-join-join");
-    //
-    //                  filter
-    //                    |
-    //                  join
-    //                /     \
-    //  rel-node(not join)   rel-node(not join)
-    //              |        |
-    //             any      any
-    //
-    public static final KapFilterJoinRule KAP_FILTER_ON_JOIN_SCAN = new KapFilterJoinRule(
+            RelFactories.LOGICAL_BUILDER, true, "KapFilterCrossJoinRule:filter-crossjoin-join");
+
+    public static final KapFilterCrossJoinRule KAP_FILTER_ON_CROSSJOIN_SCAN = new KapFilterCrossJoinRule(
             operand(Filter.class, operand(Join.class, operand(RelNode.class, null, new Predicate<RelNode>() {
                 @Override
                 public boolean apply(@Nullable RelNode input) {
@@ -106,13 +89,13 @@ public class KapFilterJoinRule extends RelOptRule {
                 public boolean apply(@Nullable RelNode input) {
                     return !(input instanceof Join);
                 }
-            }, RelOptRule.any()))), RelFactories.LOGICAL_BUILDER, false, "KapFilterJoinRule:filter-join-scan");
+            }, RelOptRule.any()))), RelFactories.LOGICAL_BUILDER, false, "KapFilterCrossJoinRule:filter-crossjoin-scan");
 
 
     private boolean needTranspose;
 
-    private KapFilterJoinRule(RelOptRuleOperand relOptRuleOperand, RelBuilderFactory relBuilderFactory,
-            boolean needTranspose, String discription) {
+    private KapFilterCrossJoinRule(RelOptRuleOperand relOptRuleOperand, RelBuilderFactory relBuilderFactory,
+                              boolean needTranspose, String discription) {
         super(relOptRuleOperand, relBuilderFactory, discription);
         this.needTranspose = needTranspose;
     }
@@ -130,7 +113,7 @@ public class KapFilterJoinRule extends RelOptRule {
         RuleMatchHandler handler = new RuleMatchHandler(call);
         handler.perform();
     }
-    
+
     private class RuleMatchHandler {
         private Filter filterRel;
         private Join topJoinRel;
@@ -159,28 +142,28 @@ public class KapFilterJoinRule extends RelOptRule {
 
         protected void perform() {
             List<RexNode> joinFilters = RelOptUtil.conjunctions(topJoinRel.getCondition());
-            // only match not-null filter
-            if (filterRel == null) {
+            // only match cross join and not-null filter
+            if (!joinFilters.isEmpty() || filterRel == null) {
                 return;
             }
-    
+
             List<RexNode> aboveFilters = RelOptUtil.conjunctions(filterRel.getCondition());
             // replace filters with pattern cast(col1 as ...) = col2 with col1 = col2
             // to make such filters to be able to be pushed down to join conditions
             aboveFilters = aboveFilters.stream().map(RexUtils::stripOffCastInColumnEqualPredicate).collect(Collectors.toList());
             final ImmutableList<RexNode> origAboveFilters = ImmutableList.copyOf(aboveFilters);
-    
+
             JoinRelType joinType = topJoinRel.getJoinType();
             List<RexNode> leftFilters = new ArrayList<>();
             List<RexNode> rightFilters = new ArrayList<>();
             boolean filterPushed = pushDownFilter(aboveFilters, leftFilters, rightFilters, joinFilters);
-    
+
             // if nothing actually got pushed and there is nothing leftover, then this rule is a no-op
             if ((!filterPushed && joinType == topJoinRel.getJoinType())
                     || (joinFilters.isEmpty() && leftFilters.isEmpty() && rightFilters.isEmpty())) {
                 return;
             }
-    
+
             // try transpose relNodes of joinRel to make as many relNodes be rewritten to inner join node as possible
             boolean isNeedProject = false;
             if (needTranspose && bottomJoin instanceof Join
@@ -188,7 +171,7 @@ public class KapFilterJoinRule extends RelOptRule {
                     && !(relA instanceof Aggregate)) {
                 final int originFilterSize = joinFilters.size();
                 final Join originTopJoin = topJoinRel.copy(topJoinRel.getTraitSet(), topJoinRel.getInputs());
-    
+
                 Filter newFilter = (Filter) transposeJoinRel();
                 // retry to push down new filters
                 List<RexNode> newLeftFilters = Lists.newArrayList();
@@ -207,12 +190,12 @@ public class KapFilterJoinRule extends RelOptRule {
                     topJoinRel = originTopJoin;
                 }
             }
-    
+
             // create Filters on top of the children if any filters were pushed to them
             final RexBuilder rexBuilder = topJoinRel.getCluster().getRexBuilder();
             final RelNode leftRel = relBuilder.push(topJoinRel.getLeft()).filter(leftFilters).build();
             final RelNode rightRel = relBuilder.push(topJoinRel.getRight()).filter(rightFilters).build();
-    
+
             // create the new join node referencing the new children and
             // containing its new join filters (if there are any)
             final ImmutableList<RelDataType> fieldTypes = ImmutableList.<RelDataType> builder()
@@ -220,14 +203,14 @@ public class KapFilterJoinRule extends RelOptRule {
                     .addAll(RelOptUtil.getFieldTypeList(rightRel.getRowType())).build();
             final RexNode joinFilter = RexUtil.composeConjunction(rexBuilder,
                     RexUtil.fixUp(rexBuilder, joinFilters, fieldTypes), false);
-    
+
             // If nothing actually got pushed and there is nothing leftover,
             // then this rule is a no-op
             if (joinFilter.isAlwaysTrue() && leftFilters.isEmpty() && rightFilters.isEmpty()
                     && joinType == topJoinRel.getJoinType()) {
                 return;
             }
-    
+
             RelNode newJoinRel = topJoinRel.copy(topJoinRel.getTraitSet(), joinFilter, leftRel, rightRel, joinType,
                     topJoinRel.isSemiJoinDone());
             call.getPlanner().onCopy(topJoinRel, newJoinRel);
@@ -237,7 +220,7 @@ public class KapFilterJoinRule extends RelOptRule {
             if (!rightFilters.isEmpty()) {
                 call.getPlanner().onCopy(filterRel, rightRel);
             }
-    
+
             relBuilder.push(newJoinRel);
             // Create a project on top of the join if some of the columns have become
             // NOT NULL due to the join-type getting stricter.
@@ -255,9 +238,9 @@ public class KapFilterJoinRule extends RelOptRule {
             }
             call.transformTo(relBuilder.build());
         }
-    
+
         private boolean pushDownFilter(List<RexNode> aboveFilters, List<RexNode> leftFilters, List<RexNode> rightFilters,
-                List<RexNode> joinFilters) {
+                                       List<RexNode> joinFilters) {
             // Try to push down above filters. These are typically where clause
             // filters. They can be pushed down if they are not on the NULL
             // generating side.
@@ -269,14 +252,17 @@ public class KapFilterJoinRule extends RelOptRule {
                     rightFilters)) {
                 filterPushed = true;
             }
-    
+            pullUpNonEquiFilters(joinFilters, false, topJoinRel.getRowType().getFieldList(), aboveFilters);
+            pullUpNonEquiFilters(leftFilters, false, topJoinRel.getInput(0).getRowType().getFieldList(), aboveFilters);
+            pullUpNonEquiFilters(rightFilters, true, topJoinRel.getInput(1).getRowType().getFieldList(), aboveFilters);
+
             // If no filter got pushed after validate, reset filterPushed flag
             if (leftFilters.isEmpty() && rightFilters.isEmpty() && joinFilters.size() == origJoinFilters.size()) {
                 if (Sets.newHashSet(joinFilters).equals(Sets.newHashSet(origJoinFilters))) {
                     filterPushed = false;
                 }
             }
-    
+
             // Try to push down filters in ON clause. A ON clause filter can only be
             // pushed down if it does not affect the non-matching set, i.e. it is
             // not on the side which is preserved.
@@ -286,7 +272,7 @@ public class KapFilterJoinRule extends RelOptRule {
             }
             return filterPushed;
         }
-    
+
         private RelNode transposeJoinRel() {
             final RexBuilder rexBuilder = topJoinRel.getCluster().getRexBuilder();
             final int aCount = relA.getRowType().getFieldCount();
@@ -294,7 +280,7 @@ public class KapFilterJoinRule extends RelOptRule {
             final int cCount = relC.getRowType().getFieldCount();
             final Mappings.TargetMapping originJoinFieldsToNew = Mappings.createShiftMapping(aCount + bCount + cCount, 0, 0,
                     cCount, cCount + aCount, cCount, bCount, cCount, cCount + bCount, aCount);
-    
+
             // 1. to transpose relA with relB, create new join rels
             //          filter                       filter
             //            |                           |
@@ -303,7 +289,7 @@ public class KapFilterJoinRule extends RelOptRule {
             //   bottomJoin   A              bottomJoin   B
             //      /   \                     /   \
             //    C      B                  C      A
-    
+
             final RelNode newRightRel = relBuilder.push(((Join) bottomJoin).getRight()).build();
             Join oldLeft = (Join) bottomJoin;
             final RelNode newLeftRel = oldLeft.copy(oldLeft.getTraitSet(), rexBuilder.makeLiteral(true),
@@ -311,7 +297,7 @@ public class KapFilterJoinRule extends RelOptRule {
                     oldLeft.getJoinType(), oldLeft.isSemiJoinDone());
             topJoinRel = topJoinRel.copy(topJoinRel.getTraitSet(), rexBuilder.makeLiteral(true), newLeftRel, newRightRel,
                     topJoinRel.getJoinType(), topJoinRel.isSemiJoinDone());
-    
+
             // 2. adjust new filter condition, for the fields of top-join changed
             List<RexNode> newFilterList = Lists.newArrayList();
             new RexPermuteInputsShuttle(originJoinFieldsToNew, topJoinRel)
@@ -320,7 +306,7 @@ public class KapFilterJoinRule extends RelOptRule {
         }
 
         private void pullUpNonEquiFilters(List<RexNode> filters, boolean isFromRight, List<RelDataTypeField> srcFields,
-                List<RexNode> aboveFilters) {
+                                          List<RexNode> aboveFilters) {
             // Move filters up if filters are not eq-cols, e.g (colA > 23) should be move up
             RexBuilder rexBuilder = topJoinRel.getCluster().getRexBuilder();
             int[] offsets = new int[srcFields.size()];
