@@ -25,10 +25,6 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Date;
 
-import io.kyligence.kap.metadata.streaming.JdbcStreamingJobStatsStore;
-import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
-import io.kyligence.kap.rest.scheduler.JobSyncListener;
-import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -51,21 +47,27 @@ import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.metadata.streaming.JdbcStreamingJobStatsStore;
 import io.kyligence.kap.rest.broadcaster.BroadcastListener;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.config.initialize.CacheCleanListner;
+import io.kyligence.kap.rest.config.initialize.CacheCleanListener;
 import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
+import io.kyligence.kap.rest.config.initialize.JobSchedulerListener;
+import io.kyligence.kap.rest.config.initialize.JobSyncListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
+import io.kyligence.kap.rest.config.initialize.QueryMetricsListener;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
+import io.kyligence.kap.rest.config.initialize.SparderTaskListener;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
-import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
-import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
+import io.kyligence.kap.rest.service.QueryCacheManager;
+import io.kyligence.kap.rest.service.QueryHistoryScheduler;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.util.JStackDumpTask;
+import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.tool.daemon.KapGuardianHATask;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -152,9 +154,12 @@ public class AppInitializer {
         EventListenerRegistry.getInstance(kylinConfig).register(new TableSchemaChangeListener(queryCacheManager),
                 "table");
         // register for clean cache when delete
-        EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListner(), "cacheInManager");
+        EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListener(), "cacheInManager");
+
+        EventBusFactory.getInstance().register(new SparderTaskListener(), false);
+        EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
         try {
-            NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+            QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();
         } catch (Exception ex) {
             log.error("NQueryHistoryScheduler init fail");

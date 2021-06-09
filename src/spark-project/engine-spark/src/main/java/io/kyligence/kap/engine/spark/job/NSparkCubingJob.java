@@ -24,10 +24,31 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static java.util.stream.Collectors.joining;
+import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableParams;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
+
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -40,29 +61,6 @@ import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
-import org.apache.kylin.job.exception.JobStoppedException;
-import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.ExecutableParams;
-import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.joining;
-import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 /**
  *
@@ -309,14 +307,4 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         return true;
     }
 
-    @Override
-    protected void onExecuteFinished(ExecuteResult result) throws JobStoppedException {
-        super.onExecuteFinished(result);
-
-        // post cubing job finished event with project and model Id
-        if (result.succeed()) {
-            EventBusFactory.getInstance().postAsync(
-                    new CubingJobFinishedNotifier(getProject(), getTargetSubject(), getSubmitter(), getId()));
-        }
-    }
 }

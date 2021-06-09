@@ -23,16 +23,17 @@
  */
 package io.kyligence.kap.rest.health;
 
-import io.kyligence.kap.rest.monitor.SparkContextCanary;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.rest.monitor.SparkContextCanary;
 
 @Component
 public class SparkSqlContextHealthIndicator extends AbstractKylinHealthIndicator {
 
     @Override
     public Health health() {
-        if (SparkContextCanary.isError()) {
+        if (SparkContextCanary.getInstance().isError()) {
             return Health.down().build();
         }
 

@@ -41,7 +41,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class CacheCleanListner implements EventListenerRegistry.ResourceEventListener {
+public class CacheCleanListener implements EventListenerRegistry.ResourceEventListener {
 
     private static final List<Pattern> PROJECT_RESOURCE_PATTERN = Lists.newArrayList(
             Pattern.compile(ResourceStore.PROJECT_ROOT + "/([^/]+)$"));

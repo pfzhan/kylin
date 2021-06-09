@@ -49,7 +49,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -140,12 +140,12 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         executableManager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
 
         MetricsRegistry.registerMicrometerJobMetrics(executableManager, project,
-                PrometheusMetricsNameEnum.JOB_RUNNING_DURATION_MAX, ExecutableState.RUNNING);
+                PrometheusMetrics.JOB_RUNNING_DURATION_MAX, ExecutableState.RUNNING);
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertEquals(1, meters.size());
 
         thrown.expect(IllegalStateException.class);
         MetricsRegistry.registerMicrometerJobMetrics(executableManager, project,
-                PrometheusMetricsNameEnum.QUERY_SLOW_TIMES, ExecutableState.SUCCEED);
+                PrometheusMetrics.QUERY_SLOW_TIMES, ExecutableState.SUCCEED);
     }
 }

@@ -46,29 +46,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.service;
+package io.kyligence.kap.rest.config.initialize;
 
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.calcite.KEDialect;
-import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.request.SQLRequest;
-import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.service.QueryService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.constant.Constant;
@@ -76,98 +59,76 @@ import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
-import lombok.val;
 
-@Component("kapQueryService")
-public class KapQueryService extends QueryService {
-    private static final Logger logger = LoggerFactory.getLogger("query");
+public class QueryMetricsListener {
 
-    @Override
-    protected String makeErrorMsgUserFriendly(Throwable e) {
-        String message = QueryUtil.makeErrorMsgUserFriendly(e);
-
-        /**
-         * TODO: enable adviser
-         ISQLAdvisor advisor = new BasicSQLAdvisor();
-         List<SQLAdvice> advices = advisor.provideAdvice(SQLResult.failedSQL(message),
-         OLAPContext.getThreadLocalContexts());
-         if (!CollectionUtils.isEmpty(advices)) {
-         StringBuilder sb = new StringBuilder();
-         for (SQLAdvice advice : advices) {
-         if (advice != null)
-         sb.append(advice.getIncapableReason()).append(' ').append(advice.getSuggestion()).append(' ');
-         }
-         message = sb.toString();
-         }
-        
-         */
-        return message;
-    }
-
-    @Override
-    protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws Throwable {
-        if (sqlResponse.isPrepare()) {
-            // preparing statement should not be recorded
-            return;
-        }
-
-        if (QueryMetricsContext.isStarted()) {
-            final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
-            NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
-            queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
-        }
-
-        String project = sqlRequest.getProject();
+    @Subscribe
+    public void recordMetric(QueryMetrics queryMetric) {
+        String project = queryMetric.getProjectName();
 
         Map<String, String> tags = Maps.newHashMap();
-        tags.put(MetricsTag.HOST.getVal(), sqlResponse.getServer().concat("-").concat(project));
+        tags.put(MetricsTag.HOST.getVal(), queryMetric.getServer().concat("-").concat(project));
 
         MetricsGroup.counterInc(MetricsName.QUERY, MetricsCategory.PROJECT, project, tags);
 
-        updateQueryTimeMetrics(sqlResponse.getDuration(), project, tags);
-        updateQueryTypeMetrics(sqlResponse, project, tags);
+        updateQueryTimeMetrics(queryMetric.getQueryDuration(), project, tags);
+        updateQueryTypeMetrics(queryMetric, project, tags);
 
-        MetricsGroup.counterInc(MetricsName.QUERY_HOST, MetricsCategory.HOST, sqlResponse.getServer());
-        MetricsGroup.counterInc(MetricsName.QUERY_SCAN_BYTES_HOST, MetricsCategory.HOST, sqlResponse.getServer(),
-                sqlResponse.getTotalScanBytes());
+        MetricsGroup.counterInc(MetricsName.QUERY_HOST, MetricsCategory.HOST, queryMetric.getServer());
+        MetricsGroup.counterInc(MetricsName.QUERY_SCAN_BYTES_HOST, MetricsCategory.HOST, queryMetric.getServer(),
+                queryMetric.getTotalScanBytes());
 
-        MetricsGroup.histogramUpdate(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, sqlRequest.getProject(), tags,
-                sqlResponse.getDuration());
-        MetricsGroup.histogramUpdate(MetricsName.QUERY_TIME_HOST, MetricsCategory.HOST, sqlResponse.getServer(),
-                sqlResponse.getDuration());
+        MetricsGroup.histogramUpdate(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, queryMetric.getProjectName(),
+                tags, queryMetric.getQueryDuration());
+        MetricsGroup.histogramUpdate(MetricsName.QUERY_TIME_HOST, MetricsCategory.HOST, queryMetric.getServer(),
+                queryMetric.getQueryDuration());
 
         MetricsGroup.histogramUpdate(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, project, tags,
-                sqlResponse.getTotalScanBytes());
+                queryMetric.getTotalScanBytes());
 
-        super.recordMetric(sqlRequest, sqlResponse);
+        PrometheusMetricsGroup.summary(queryMetric.getQueryDuration() * 1.0 / 1000, PrometheusMetrics.QUERY_SECONDS, //
+                "pushdown", queryMetric.isPushdown() + "", //
+                "cache", queryMetric.isCacheHit() + "", "hit_index", queryMetric.isIndexHit() + "", //
+                "hit_exactly_index", queryMetric.getQueryHistoryInfo().isExactlyMatch() + "", //
+                "instance", queryMetric.getServer(), "project", queryMetric.getProjectName());
+
+        PrometheusMetricsGroup.summary(queryMetric.getTotalScanBytes(), PrometheusMetrics.QUERY_SCAN_BYTES, "project",
+                project, "model", queryMetric.getRealizationMetrics().stream()
+                        .map(QueryMetrics.RealizationMetrics::getModelId).collect(Collectors.joining(",")),
+                "instance", queryMetric.getServer());
+
     }
 
-    private void updateQueryTypeMetrics(SQLResponse sqlResponse, String project, Map<String, String> tags) {
-        if (sqlResponse.isException()) {
+    private void updateQueryTypeMetrics(QueryMetrics queryMetrics, String project, Map<String, String> tags) {
+        if (queryMetrics.getErrorType() != null) {
             MetricsGroup.counterInc(MetricsName.QUERY_FAILED, MetricsCategory.PROJECT, project, tags);
             MetricsGroup.meterMark(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, project, tags);
         }
 
-        if (sqlResponse.isQueryPushDown()) {
+        if (queryMetrics.isPushdown()) {
             MetricsGroup.counterInc(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, project, tags);
             MetricsGroup.meterMark(MetricsName.QUERY_PUSH_DOWN_RATE, MetricsCategory.PROJECT, project, tags);
         }
 
-        if (sqlResponse.isTimeout()) {
+        if (queryMetrics.isTimeout()) {
             MetricsGroup.counterInc(MetricsName.QUERY_TIMEOUT, MetricsCategory.PROJECT, project, tags);
             MetricsGroup.meterMark(MetricsName.QUERY_TIMEOUT_RATE, MetricsCategory.PROJECT, project, tags);
         }
 
-        if (sqlResponse.isHitExceptionCache() || sqlResponse.isStorageCacheUsed()) {
+        if (queryMetrics.isCacheHit()) {
             MetricsGroup.counterInc(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, project, tags);
         }
 
-        if (sqlResponse.getNativeRealizations() != null) {
-            boolean hitAggIndex = sqlResponse.getNativeRealizations().stream()
+        if (queryMetrics.getRealizationMetrics() != null) {
+            boolean hitAggIndex = queryMetrics.getRealizationMetrics().stream()
                     .anyMatch(realization -> realization != null
                             && QueryMetricsContext.AGG_INDEX.equals(realization.getIndexType()));
-            boolean hitTableIndex = sqlResponse.getNativeRealizations().stream()
+            boolean hitTableIndex = queryMetrics.getRealizationMetrics().stream()
                     .anyMatch(realization -> realization != null
                             && QueryMetricsContext.TABLE_INDEX.equals(realization.getIndexType()));
             if (hitAggIndex) {
@@ -196,24 +157,4 @@ public class KapQueryService extends QueryService {
         MetricsGroup.counterInc(MetricsName.QUERY_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags, duration);
     }
 
-    public List<String> format(List<String> sqls) {
-        List<Pair<Integer, String>> pairs = Lists.newArrayList();
-        int index = 0;
-        for (String sql : sqls) {
-            pairs.add(Pair.newPair(index, sql));
-        }
-        return pairs.parallelStream().map(pair -> {
-            try {
-                val node = CalciteParser.parse(pair.getSecond());
-                val writer = new SqlPrettyWriter(KEDialect.DEFAULT);
-                writer.setIndentation(2);
-                writer.setSelectListExtraIndentFlag(true);
-                writer.setSelectListItemsOnSeparateLines(true);
-                return Pair.newPair(pair.getFirst(), writer.format(node));
-            } catch (SqlParseException e) {
-                logger.info("Sql {} cannot be formatted", pair.getSecond());
-                return pair;
-            }
-        }).sorted(Comparator.comparingInt(Pair::getFirst)).map(Pair::getSecond).collect(Collectors.toList());
-    }
 }

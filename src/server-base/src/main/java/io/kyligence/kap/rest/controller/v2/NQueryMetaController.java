@@ -30,15 +30,14 @@ import java.util.List;
 
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.rest.request.MetaRequest;
+import org.apache.kylin.rest.service.QueryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.swagger.annotations.ApiOperation;
 
 /**
@@ -57,8 +56,7 @@ import io.swagger.annotations.ApiOperation;
 public class NQueryMetaController extends NBasicController {
 
     @Autowired
-    @Qualifier("kapQueryService")
-    private KapQueryService queryService;
+    private QueryService queryService;
 
     @ApiOperation(value = "getMetadataForDriver", tags = { "QE" })
     @GetMapping(value = "/tables_and_columns", produces = { "application/json", HTTP_VND_APACHE_KYLIN_V2_JSON })

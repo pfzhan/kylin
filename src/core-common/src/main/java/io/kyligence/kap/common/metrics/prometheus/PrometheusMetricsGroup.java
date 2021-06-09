@@ -32,7 +32,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,14 +45,17 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import com.codahale.metrics.Counter;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.lang.Nullable;
@@ -76,9 +83,7 @@ public class PrometheusMetricsGroup {
             throw new IllegalArgumentException("Remove prometheus project metrics, project shouldn't be empty.");
         }
 
-        meterRegistry.getMeters().stream()
-                .map(Meter::getId)
-                .filter(id -> project.equals(id.getTag(TAG_NAME_PROJECT)))
+        meterRegistry.getMeters().stream().map(Meter::getId).filter(id -> project.equals(id.getTag(TAG_NAME_PROJECT)))
                 .forEach(id -> meterRegistry.remove(id));
 
         logger.info("Remove project prometheus metrics for {} success.", project);
@@ -86,16 +91,17 @@ public class PrometheusMetricsGroup {
 
     public static void removeModelMetrics(String project, String modelName) {
         if (StringUtils.isBlank(project) || StringUtils.isBlank(modelName)) {
-            throw new IllegalArgumentException("Remove prometheus model metrics, project or modelName shouldn't be empty.");
+            throw new IllegalArgumentException(
+                    "Remove prometheus model metrics, project or modelName shouldn't be empty.");
         }
 
-        Set<PrometheusMetricsNameEnum> modelMetrics = PrometheusMetricsNameEnum.listModelMetrics();
+        Set<PrometheusMetrics> modelMetrics = PrometheusMetrics.listModelMetrics();
         Tags tags = generateModelTags(project, modelName);
 
         modelMetrics.forEach(metricName -> doRemoveMetric(metricName, tags));
     }
 
-    private static void doRemoveMetric(PrometheusMetricsNameEnum metricName, Tags tags) {
+    private static void doRemoveMetric(PrometheusMetrics metricName, Tags tags) {
         Meter.Id id = generateMeterId(metricName, tags, Meter.Type.GAUGE);
         Meter result = meterRegistry.remove(id);
         if (Objects.isNull(result)) {
@@ -103,32 +109,52 @@ public class PrometheusMetricsGroup {
         }
     }
 
-    public static void newJvmGcPauseMetric() {
+    public static void newMetrics() {
         Tags tags = generateInstanceTags();
 
         List<GarbageCollectorMXBean> garbageCollectorMXBeans = ManagementFactory.getGarbageCollectorMXBeans();
-        newGaugeIfAbsent(PrometheusMetricsNameEnum.JVM_GC_PAUSE_TIME, garbageCollectorMXBeans,
+        newGaugeIfAbsent(PrometheusMetrics.JVM_GC_PAUSE_TIME, garbageCollectorMXBeans,
                 v -> v.stream().mapToDouble(GarbageCollectorMXBean::getCollectionTime).sum(), tags);
+
+        for (String state : Lists.newArrayList("idle", "active")) {
+            JdbcDataSource.getDataSources().stream()
+                    .collect(Collectors.groupingBy(ds -> ((BasicDataSource) ds).getDriverClassName()))
+                    .forEach((driver, sources) -> {
+                        newGaugeIfAbsent(PrometheusMetrics.JVM_DB_CONNECTIONS, sources, dataSources -> {
+                            int count = 0;
+                            for (DataSource dataSource : dataSources) {
+                                BasicDataSource basicDataSource = (BasicDataSource) dataSource;
+                                if (state.equals("idle")) {
+                                    count += basicDataSource.getNumIdle();
+                                } else {
+                                    count += basicDataSource.getNumActive();
+                                }
+                            }
+                            return count;
+                        }, Tags.of("state", state, "pool", "dbcp2", "type", driver, "instance",
+                                AddressUtil.getZkLocalInstance()));
+                    });
+        }
+
     }
 
-    public static <T> void newMetricsWithoutTags(PrometheusMetricsNameEnum metric,
-                                             @Nullable T obj,
-                                             ToDoubleFunction<T> function) {
+    public static <T> void newMetricsWithoutTags(PrometheusMetrics metric, @Nullable T obj,
+            ToDoubleFunction<T> function) {
         Tags tags = Tags.empty();
         newGaugeIfAbsent(metric, obj, function, tags);
 
     }
 
-    public static void newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum metric, String project) {
+    public static void newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics metric, String project) {
         Map<String, String> dropwizardTags = MetricsGroup.getHostTagMap(AddressUtil.getZkLocalInstance(), project);
         newMetricFromDropwizard(metric, project, dropwizardTags, MetricSourceType.COUNTER);
     }
 
-    public static void newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetricsNameEnum metric, String project) {
+    public static void newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetrics metric, String project) {
         newMetricFromDropwizard(metric, project, Collections.emptyMap(), MetricSourceType.GAUGE_WITHOUT_HOST);
     }
 
-    private static void newMetricFromDropwizard(PrometheusMetricsNameEnum metric, String project,
+    private static void newMetricFromDropwizard(PrometheusMetrics metric, String project,
             Map<String, String> dropwizardTags, MetricSourceType type) {
         Tags prometheusTags = generateProjectTags(project);
         switch (type) {
@@ -151,42 +177,40 @@ public class PrometheusMetricsGroup {
         }
     }
 
-    public static <T> void newProjectGauge(PrometheusMetricsNameEnum metric, String project, @Nullable T obj,
+    public static <T> void newProjectGauge(PrometheusMetrics metric, String project, @Nullable T obj,
             ToDoubleFunction<T> function) {
         Tags prometheusTags = generateProjectTags(project);
         newGaugeIfAbsent(metric, obj, function, prometheusTags);
     }
 
-    public static <T> void newProjectGaugeWithoutServerTag(PrometheusMetricsNameEnum metric, String project, @Nullable T obj,
-                                           ToDoubleFunction<T> function) {
+    public static <T> void newProjectGaugeWithoutServerTag(PrometheusMetrics metric, String project, @Nullable T obj,
+            ToDoubleFunction<T> function) {
         Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
         Tags tags = Tags.of(projectTag);
         newGaugeIfAbsent(metric, obj, function, tags);
     }
 
-    public static <T> void newModelGauge(PrometheusMetricsNameEnum metric, String project, String model,
-            @Nullable T obj, ToDoubleFunction<T> function) {
+    public static <T> void newModelGauge(PrometheusMetrics metric, String project, String model, @Nullable T obj,
+            ToDoubleFunction<T> function) {
         Tags prometheusTags = generateModelTags(project, model);
         newGaugeIfAbsent(metric, obj, function, prometheusTags);
     }
 
-    public static <T> void newJobStatisticsGauge(PrometheusMetricsNameEnum metric, String project, String host,
-                                                 String jobType, @Nullable T obj, ToDoubleFunction<T> function) {
+    public static <T> void newJobStatisticsGauge(PrometheusMetrics metric, String project, String host, String jobType,
+            @Nullable T obj, ToDoubleFunction<T> function) {
         Tags tags = generateJobStatisticsTags(host, project, jobType);
         newGaugeIfAbsent(metric, obj, function, tags);
     }
 
-    public static <T> void newIndexUsageGaugeIfAbsent(String project, String model, long indexId,
-                                             @Nullable T obj, ToDoubleFunction<T> function) {
-        PrometheusMetricsNameEnum metric = PrometheusMetricsNameEnum.INDEX_USAGE;
+    public static <T> void newIndexUsageGaugeIfAbsent(String project, String model, long indexId, @Nullable T obj,
+            ToDoubleFunction<T> function) {
+        PrometheusMetrics metric = PrometheusMetrics.INDEX_USAGE;
         Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
         Tag modelTag = Tag.of(TAG_NAME_MODEL, model);
         Tag indexTag = Tag.of(TAG_NAME_INDEX, "" + indexId);
         Tags tags = Tags.of(projectTag, modelTag, indexTag);
         Meter.Id tagId = generateMeterId(metric, tags, Meter.Type.GAUGE);
-        boolean exists = meterRegistry.getMeters().stream()
-                .map(Meter::getId)
-                .anyMatch(id -> id.equals(tagId));
+        boolean exists = meterRegistry.getMeters().stream().map(Meter::getId).anyMatch(id -> id.equals(tagId));
         if (exists) {
             return;
         }
@@ -194,14 +218,22 @@ public class PrometheusMetricsGroup {
         Gauge.builder(metric.getValue(), obj, function).strongReference(true).tags(tags).register(meterRegistry);
     }
 
-    private static <T> void newGaugeIfAbsent(PrometheusMetricsNameEnum metric, @Nullable T obj,
-            ToDoubleFunction<T> function, Tags tags) {
+    private static <T> void newGaugeIfAbsent(PrometheusMetrics metric, @Nullable T obj, ToDoubleFunction<T> function,
+            Tags tags) {
         Meter.Id meterId = generateMeterId(metric, tags, Meter.Type.GAUGE);
         boolean exists = meterRegistry.getMeters().stream().map(Meter::getId).anyMatch(id -> id.equals(meterId));
         if (!exists) {
             Gauge.builder(metric.getValue(), obj, function).strongReference(true).tags(tags).register(meterRegistry);
             logger.info("Create a new gauge, metric name: {}, tags: {}", metric.getValue(), tags);
         }
+    }
+
+    public static void summary(double amount, PrometheusMetrics metric, String... tags) {
+        Metrics.summary(metric.getValue(), tags).record(amount);
+    }
+
+    public static void gauge(double amount, PrometheusMetrics metric, String... tags) {
+        Metrics.gauge(metric.getValue(), Tags.of(tags), amount);
     }
 
     private static Tags generateInstanceTags() {
@@ -228,7 +260,7 @@ public class PrometheusMetricsGroup {
         return generateProjectTags(project).and(modelTag);
     }
 
-    private static Meter.Id generateMeterId(PrometheusMetricsNameEnum metric, Tags tags, Meter.Type type) {
+    private static Meter.Id generateMeterId(PrometheusMetrics metric, Tags tags, Meter.Type type) {
         return new Meter.Id(metric.getValue(), tags, null, null, type);
     }
 

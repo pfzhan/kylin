@@ -28,10 +28,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.Singletons;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -51,7 +53,6 @@ import lombok.val;
 
 public class SparkContextCanary {
     private static final Logger logger = LoggerFactory.getLogger(SparkContextCanary.class);
-    private static volatile boolean isStarted = false;
 
     private static final int THRESHOLD_TO_RESTART_SPARK = KapConfig.getInstanceFromEnv().getThresholdToRestartSpark();
     private static final int PERIOD_MINUTES = KapConfig.getInstanceFromEnv().getSparkCanaryPeriodMinutes();
@@ -59,33 +60,29 @@ public class SparkContextCanary {
     private static final String CHECK_TYPE = KapConfig.getInstanceFromEnv().getSparkCanaryType();
 
     @Getter
-    private static volatile int errorAccumulated = 0;
+    private volatile int errorAccumulated = 0;
     @Getter
-    private static volatile long lastResponseTime = -1;
+    private volatile long lastResponseTime = -1;
     @Getter
-    private static volatile boolean sparkRestarting = false;
+    private volatile boolean sparkRestarting = false;
+
+    public static SparkContextCanary getInstance() {
+        return Singletons.getInstance(SparkContextCanary.class, v -> new SparkContextCanary());
+    }
 
     private SparkContextCanary() {
     }
 
-    public static void init() {
-        if (!isStarted) {
-            synchronized (SparkContextCanary.class) {
-                if (!isStarted) {
-                    isStarted = true;
-                    logger.info("Start monitoring Spark");
-                    Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(SparkContextCanary::monitor,
-                            PERIOD_MINUTES, PERIOD_MINUTES, TimeUnit.MINUTES);
-                }
-            }
-        }
+    public void init(ScheduledExecutorService executorService) {
+        logger.info("Start monitoring Spark");
+        executorService.scheduleWithFixedDelay(this::monitor, PERIOD_MINUTES, PERIOD_MINUTES, TimeUnit.MINUTES);
     }
 
-    public static boolean isError() {
+    public boolean isError() {
         return errorAccumulated >= THRESHOLD_TO_RESTART_SPARK;
     }
 
-    static void monitor() {
+    void monitor() {
         try {
             long startTime = System.currentTimeMillis();
             // check spark sql context
@@ -141,7 +138,7 @@ public class SparkContextCanary {
     }
 
     // for canary
-    private static Future<Boolean> check() {
+    private Future<Boolean> check() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         return executor.submit(() -> {
             val ss = SparderEnv.getSparkSession();

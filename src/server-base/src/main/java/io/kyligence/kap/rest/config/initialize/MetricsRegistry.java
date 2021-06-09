@@ -31,17 +31,10 @@ import java.lang.management.MemoryUsage;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Gauge;
-import io.kyligence.kap.common.metrics.MetricsTag;
-import io.kyligence.kap.rest.response.SnapshotInfoResponse;
-import io.kyligence.kap.rest.service.SnapshotService;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -51,6 +44,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.util.SpringContext;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.google.common.collect.Lists;
@@ -59,13 +54,13 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.cube.storage.StorageVolumeInfo;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -74,8 +69,11 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.query.util.LoadCounter;
 import io.kyligence.kap.query.util.LoadDesc;
+import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.SnapshotService;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MetricsRegistry {
@@ -92,7 +90,7 @@ public class MetricsRegistry {
     }
 
     public static void removeProjectFromStorageSizeMap(String project) {
-            totalStorageSizeMap.remove(project);
+        totalStorageSizeMap.remove(project);
     }
 
     public static void registerGlobalMetrics(KylinConfig config, String host) {
@@ -150,16 +148,14 @@ public class MetricsRegistry {
         MetricsGroup.newMetricSet(MetricsName.JVM_GC, MetricsCategory.HOST, host, new GarbageCollectorMetricSet());
         MetricsGroup.newGauge(MetricsName.JVM_AVAILABLE_CPU, MetricsCategory.HOST, host,
                 () -> Runtime.getRuntime().availableProcessors());
-        MetricsGroup.newGauge(MetricsName.QUERY_LOAD, MetricsCategory.HOST,
-                host, () -> {
-                    LoadDesc loadDesc = LoadCounter.getLoadDesc();
-                    return loadDesc.getLoad();
+        MetricsGroup.newGauge(MetricsName.QUERY_LOAD, MetricsCategory.HOST, host, () -> {
+            LoadDesc loadDesc = LoadCounter.getInstance().getLoadDesc();
+            return loadDesc.getLoad();
         });
 
-        MetricsGroup.newGauge(MetricsName.CPU_CORES, MetricsCategory.HOST,
-                host, () -> {
-                    LoadDesc loadDesc = LoadCounter.getLoadDesc();
-                    return loadDesc.getCoreNum();
+        MetricsGroup.newGauge(MetricsName.CPU_CORES, MetricsCategory.HOST, host, () -> {
+            LoadDesc loadDesc = LoadCounter.getInstance().getLoadDesc();
+            return loadDesc.getCoreNum();
         });
 
     }
@@ -184,12 +180,13 @@ public class MetricsRegistry {
         val projectService = SpringContext.getBean(ProjectService.class);
         totalStorageSizeMap.put(project, projectService.getStorageVolumeInfoResponse(project).getTotalStorageSize());
 
-        MetricsGroup.newGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project, () ->
-                totalStorageSizeMap.getOrDefault(project, 0L));
+        MetricsGroup.newGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project,
+                () -> totalStorageSizeMap.getOrDefault(project, 0L));
 
         MetricsGroup.newGauge(MetricsName.PROJECT_GARBAGE_SIZE, MetricsCategory.PROJECT, project, () -> {
             val collector = new ProjectStorageInfoCollector(Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
-            StorageVolumeInfo storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
+            StorageVolumeInfo storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(),
+                    project);
             return storageVolumeInfo.getGarbageStorageSize();
         });
     }
@@ -216,12 +213,6 @@ public class MetricsRegistry {
 
         registerJobMetrics(config, project);
 
-        final FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(config, project);
-        MetricsGroup.newGauge(MetricsName.FQ_BLACKLIST, MetricsCategory.PROJECT, project, () -> {
-            final Set<String> list = favoriteRuleManager.getBlacklistSqls();
-            return list == null ? 0 : list.size();
-        });
-
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.TABLE_GAUGE, MetricsCategory.PROJECT, project, () -> {
             final List<TableDesc> list = tableMetadataManager.listAllTables();
@@ -246,44 +237,45 @@ public class MetricsRegistry {
     }
 
     public static void registerMicrometerGlobalMetrics() {
-        PrometheusMetricsGroup.newJvmGcPauseMetric();
+        PrometheusMetricsGroup.newMetrics();
     }
 
     public static void registerMicrometerProjectMetrics(KylinConfig config, String project, String host) {
-        val counterMetrics = PrometheusMetricsNameEnum.listProjectMetricsFromCounter();
-        counterMetrics.forEach(metricName -> PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(metricName, project));
+        val counterMetrics = PrometheusMetrics.listProjectMetricsFromCounter();
+        counterMetrics.forEach(
+                metricName -> PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(metricName, project));
 
-        val metricsWithoutHostTag = PrometheusMetricsNameEnum.listProjectMetricsFromGaugeWithoutHostTag();
-        metricsWithoutHostTag.forEach(metricName -> PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(metricName, project));
+        val metricsWithoutHostTag = PrometheusMetrics.listProjectMetricsFromGaugeWithoutHostTag();
+        metricsWithoutHostTag.forEach(
+                metricName -> PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(metricName, project));
 
         NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
-        registerMicrometerJobMetrics(executableManager, project, PrometheusMetricsNameEnum.JOB_WAIT_DURATION_MAX, ExecutableState.READY);
-        registerMicrometerJobMetrics(executableManager, project, PrometheusMetricsNameEnum.JOB_RUNNING_DURATION_MAX, ExecutableState.RUNNING);
+        registerMicrometerJobMetrics(executableManager, project, PrometheusMetrics.JOB_WAIT_DURATION_MAX,
+                ExecutableState.READY);
+        registerMicrometerJobMetrics(executableManager, project, PrometheusMetrics.JOB_RUNNING_DURATION_MAX,
+                ExecutableState.RUNNING);
         registerMicrometerJobStatisticsMetrics(project, host);
         registerMicrometerStorageMetrics(project);
         registerMicrometerReportMetrics(project, host);
     }
 
     public static void registerMicrometerJobMetrics(NExecutableManager executableManager, String project,
-            PrometheusMetricsNameEnum metricsName, ExecutableState state) {
+                                                    PrometheusMetrics metricsName, ExecutableState state) {
         ToDoubleFunction<AbstractExecutable> function;
         switch (metricsName) {
-            case JOB_WAIT_DURATION_MAX:
-                function = AbstractExecutable::getWaitTime;
-                break;
-            case JOB_RUNNING_DURATION_MAX:
-                function = AbstractExecutable::getDuration;
-                break;
-            default:
-                throw new IllegalStateException("Invalid metric name: " + metricsName.getValue());
+        case JOB_WAIT_DURATION_MAX:
+            function = AbstractExecutable::getWaitTime;
+            break;
+        case JOB_RUNNING_DURATION_MAX:
+            function = AbstractExecutable::getDuration;
+            break;
+        default:
+            throw new IllegalStateException("Invalid metric name: " + metricsName.getValue());
         }
 
         PrometheusMetricsGroup.newProjectGauge(metricsName, project, executableManager, manager -> {
             List<AbstractExecutable> specificStatusJob = manager.getExecutablesByStatus(state);
-            return specificStatusJob.stream()
-                    .mapToDouble(function)
-                    .max()
-                    .orElse(0);
+            return specificStatusJob.stream().mapToDouble(function).max().orElse(0);
         });
     }
 
@@ -316,80 +308,85 @@ public class MetricsRegistry {
             tags.put(MetricsTag.JOB_TYPE.getVal(), type.name());
 
             Counter counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.SUCCESSFUL_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.SUCCESSFUL_JOB_COUNT, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.SUCCESSFUL_JOB_COUNT, project, host,
+                    type.name(), counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.ERROR_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.ERROR_JOB_COUNT, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.ERROR_JOB_COUNT, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.TERMINATED_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.TERMINATED_JOB_COUNT, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.TERMINATED_JOB_COUNT, project, host,
+                    type.name(), counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_LT_5, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_LT_5, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_LT_5, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_5_10, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_5_10, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_5_10, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_10_30, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_10_30, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_10_30, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_30_60, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_30_60, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_30_60, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_GT_60, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_GT_60, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_GT_60, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_TOTAL_DURATION, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_TOTAL_DURATION, project, host,
+                    type.name(), counter, Counter::getCount);
         }
     }
 
     private static void registerMicrometerStorageMetrics(String project) {
-        Gauge<Long> gauge = MetricsGroup.getGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project, Collections.emptyMap());
-        PrometheusMetricsGroup.newProjectGaugeWithoutServerTag(PrometheusMetricsNameEnum.STORAGE_SIZE, project, gauge, Gauge::getValue);
+        Gauge<Long> gauge = MetricsGroup.getGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project,
+                Collections.emptyMap());
+        PrometheusMetricsGroup.newProjectGaugeWithoutServerTag(PrometheusMetrics.STORAGE_SIZE, project, gauge,
+                Gauge::getValue);
 
-        gauge = MetricsGroup.getGauge(MetricsName.PROJECT_GARBAGE_SIZE, MetricsCategory.PROJECT, project, Collections.emptyMap());
-        PrometheusMetricsGroup.newProjectGaugeWithoutServerTag(PrometheusMetricsNameEnum.GARBAGE_SIZE, project, gauge, Gauge::getValue);
+        gauge = MetricsGroup.getGauge(MetricsName.PROJECT_GARBAGE_SIZE, MetricsCategory.PROJECT, project,
+                Collections.emptyMap());
+        PrometheusMetricsGroup.newProjectGaugeWithoutServerTag(PrometheusMetrics.GARBAGE_SIZE, project, gauge,
+                Gauge::getValue);
     }
 
     private static void registerMicrometerReportMetrics(String project, String host) {
         // Metrics without tags
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        PrometheusMetricsGroup.newMetricsWithoutTags(PrometheusMetricsNameEnum.PROJECT_NUM_DAILY,
-                projectManager, manager -> manager.listAllProjects().size());
+        PrometheusMetricsGroup.newMetricsWithoutTags(PrometheusMetrics.PROJECT_NUM_DAILY, projectManager,
+                manager -> manager.listAllProjects().size());
         NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
-        PrometheusMetricsGroup.newMetricsWithoutTags(PrometheusMetricsNameEnum.USER_NUM_DAILY,
-                userManager,
+        PrometheusMetricsGroup.newMetricsWithoutTags(PrometheusMetrics.USER_NUM_DAILY, userManager,
                 um -> um.list().size());
 
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.QUERY_COUNT_DAILY, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.FAILED_QUERY_COUNT_DAILY,
+                project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.QUERY_TOTAL_DURATION_DAILY,
+                project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.QUERY_COUNT_LT_1S_DAILY,
+                project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.QUERY_COUNT_1S_3S_DAILY,
+                project);
 
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.QUERY_COUNT_DAILY, project);
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.FAILED_QUERY_COUNT_DAILY, project);
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.QUERY_TOTAL_DURATION_DAILY, project);
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.QUERY_COUNT_LT_1S_DAILY, project);
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.QUERY_COUNT_1S_3S_DAILY, project);
-
-        Gauge<Long> gauge = MetricsGroup.getGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project, Collections.emptyMap());
-        PrometheusMetricsGroup.newProjectGauge(PrometheusMetricsNameEnum.STORAGE_SIZE_DAILY, project, gauge, Gauge::getValue);
+        Gauge<Long> gauge = MetricsGroup.getGauge(MetricsName.PROJECT_STORAGE_SIZE, MetricsCategory.PROJECT, project,
+                Collections.emptyMap());
+        PrometheusMetricsGroup.newProjectGauge(PrometheusMetrics.STORAGE_SIZE_DAILY, project, gauge, Gauge::getValue);
 
         gauge = MetricsGroup.getGauge(MetricsName.MODEL_GAUGE, MetricsCategory.PROJECT, project, Maps.newHashMap());
-        PrometheusMetricsGroup.newProjectGauge(PrometheusMetricsNameEnum.MODEL_NUM_DAILY, project, gauge, Gauge::getValue);
+        PrometheusMetricsGroup.newProjectGauge(PrometheusMetrics.MODEL_NUM_DAILY, project, gauge, Gauge::getValue);
         NProjectManager pjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        PrometheusMetricsGroup.newProjectGauge(PrometheusMetricsNameEnum.SNAPSHOT_NUM_DAILY, project,
-                pjManager,
-                pm -> {
-                    if (pm.getProject(project).getConfig().isSnapshotManualManagementEnabled()) {
-                        SnapshotService snapshotService = SpringContext.getBean(SnapshotService.class);
-                        List<SnapshotInfoResponse> responses = snapshotService.getProjectSnapshots(project, null, Collections.emptySet(),
-                                Collections.emptySet(), null, true);
-                        return responses.size();
-                    }
-                    return 0;
-                });
+        PrometheusMetricsGroup.newProjectGauge(PrometheusMetrics.SNAPSHOT_NUM_DAILY, project, pjManager, pm -> {
+            if (pm.getProject(project).getConfig().isSnapshotManualManagementEnabled()) {
+                SnapshotService snapshotService = SpringContext.getBean(SnapshotService.class);
+                List<SnapshotInfoResponse> responses = snapshotService.getProjectSnapshots(project, null,
+                        Collections.emptySet(), Collections.emptySet(), null, true);
+                return responses.size();
+            }
+            return 0;
+        });
 
         List<JobTypeEnum> types = Stream.of(JobTypeEnum.values()).collect(Collectors.toList());
         Map<String, String> tags;
@@ -399,23 +396,23 @@ public class MetricsRegistry {
             tags.put(MetricsTag.JOB_TYPE.getVal(), type.name());
 
             Counter counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_DAILY, project, host, type.name(),
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_DAILY, project, host, type.name(),
                     counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.SUCCESSFUL_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.SUCCESSFUL_JOB_COUNT_DAILY, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.SUCCESSFUL_JOB_COUNT_DAILY, project, host,
+                    type.name(), counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.ERROR_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.ERROR_JOB_COUNT_DAILY, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.ERROR_JOB_COUNT_DAILY, project, host,
+                    type.name(), counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_TOTAL_DURATION_DAILY, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_TOTAL_DURATION_DAILY, project, host,
+                    type.name(), counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_LT_5, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_LT_5_DAILY, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_LT_5_DAILY, project, host,
+                    type.name(), counter, Counter::getCount);
             counter = MetricsGroup.getCounter(MetricsName.JOB_COUNT_5_10, MetricsCategory.PROJECT, project, tags);
-            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT_5_10_DAILY, project, host, type.name(),
-                    counter, Counter::getCount);
+            PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT_5_10_DAILY, project, host,
+                    type.name(), counter, Counter::getCount);
         }
     }
 }

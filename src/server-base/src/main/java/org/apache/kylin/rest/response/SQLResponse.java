@@ -127,8 +127,6 @@ public class SQLResponse implements Serializable {
 
     protected byte[] queryStatistics;
 
-    protected String traceUrl = null;
-
     protected String queryId;
 
     private String server;

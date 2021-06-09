@@ -22,48 +22,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.scheduler;
+package io.kyligence.kap.rest.config.initialize;
 
 import java.util.Map;
 
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
+
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
-import io.kyligence.kap.common.util.AddressUtil;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
-
-import io.kyligence.kap.common.scheduler.CubingJobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JobSchedulerListener {
-    // only for test usage
-    @Getter
-    @Setter
-    private boolean jobReadyNotified = false;
-
     @Subscribe
     public void onJobIsReady(JobReadyNotifier notifier) {
-        jobReadyNotified = true;
         NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 
     @Subscribe
-    public void onCubingJobFinished(CubingJobFinishedNotifier notifier) {
+    public void onBuildJobFinished(JobFinishedNotifier notifier) {
         try {
-            SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getModelId(),
-                    notifier.getOwner());
+            if (notifier.getJobClass().equals(NSparkCubingJob.class.getName()) && notifier.isSucceed()) {
+                SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getSubject(),
+                        notifier.getOwner());
+            }
         } catch (Throwable e) {
-            log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getModelId(), e);
+            log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getSubject(), e);
         }
     }
 

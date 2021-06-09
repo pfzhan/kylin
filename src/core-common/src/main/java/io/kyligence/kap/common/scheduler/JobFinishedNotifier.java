@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -42,9 +44,19 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
     private Set<Long> layoutIds;
     private long waitTime;
     private Map<String, Set<Long>> segmentPartitionsMap;
+    private String jobClass;
+    private String owner;
+    private boolean isSucceed;
 
     public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
-            String jobType, Set<String> segmentIds, Set<Long> layoutIds, long waitTime, Set<Long> partitionIds) {
+            String jobType, Set<String> segmentIds, Set<Long> layoutIds, long waitTime, String jobClass) {
+        this(jobId, project, subject, duration, jobState, jobType, segmentIds, layoutIds, waitTime, jobClass, "", true,
+                Sets.newHashSet());
+    }
+
+    public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
+            String jobType, Set<String> segmentIds, Set<Long> layoutIds, long waitTime, String jobClass, String owner,
+            boolean result, Set<Long> partitionIds) {
         setProject(project);
         setSubject(subject);
         this.jobId = jobId;
@@ -60,5 +72,8 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
                 segmentPartitionsMap.put(segmentId, partitionIds);
             }
         }
+        this.jobClass = jobClass;
+        this.owner = owner;
+        this.isSucceed = result;
     }
 }

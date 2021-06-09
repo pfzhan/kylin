@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
+import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;

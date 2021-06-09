@@ -46,7 +46,7 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.util.ModelUtils;
@@ -129,7 +129,7 @@ public class ModelDropAddListener {
                 project);
 
         JobTypeEnum[] jobTypeEnums = JobTypeEnum.getTypesForPrometheus();
-        PrometheusMetricsGroup.newModelGauge(PrometheusMetricsNameEnum.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD,
+        PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD,
                 project, modelAlias, executableManager, manager -> {
                     AbstractExecutable lastSuccessJob = manager.getLastSuccessExecByModel(modelId, jobTypeEnums);
                     AbstractExecutable currentRunningJob = manager.getMaxDurationRunningExecByModel(modelId, jobTypeEnums);
@@ -139,7 +139,7 @@ public class ModelDropAddListener {
                     }
                     return (currentRunningJob.getDuration() - lastSuccessJob.getDuration()) / (double) lastSuccessJob.getDuration();
                 });
-        PrometheusMetricsGroup.newModelGauge(PrometheusMetricsNameEnum.RECOMMENDED_DELETE_INDEX_NUM, project, modelAlias,
+        PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.RECOMMENDED_DELETE_INDEX_NUM, project, modelAlias,
                 new Object(), obj -> {
                     if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
                         return 0;

@@ -321,10 +321,6 @@ public class MetricsGroup {
             newCounter(MetricsName.METADATA_BACKUP, MetricsCategory.PROJECT, projectName, tags);
             newCounter(MetricsName.METADATA_BACKUP_DURATION, MetricsCategory.PROJECT, projectName, tags);
             newCounter(MetricsName.METADATA_BACKUP_FAILED, MetricsCategory.PROJECT, projectName, tags);
-            // favorite queue
-            newCounter(MetricsName.FQ_FE_INVOKED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.FQ_ADJUST_INVOKED, MetricsCategory.PROJECT, projectName, tags);
-            newCounter(MetricsName.FQ_ADJUST_INVOKED_DURATION, MetricsCategory.PROJECT, projectName, tags);
 
             newHistogram(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, projectName, tags);
 

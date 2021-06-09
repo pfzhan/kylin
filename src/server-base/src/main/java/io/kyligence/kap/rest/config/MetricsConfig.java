@@ -64,9 +64,9 @@ public class MetricsConfig {
 
     @EventListener(ApplicationReadyEvent.class)
     public void registerMetrics() {
-        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
-            return;
-        }
+//        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
+//            return;
+//        }
 
         String host = clusterManager.getLocalServer();
 

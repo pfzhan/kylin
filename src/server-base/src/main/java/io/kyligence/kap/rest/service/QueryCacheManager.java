@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.cache;
+package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 

@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.scheduler;
+package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -54,6 +54,8 @@ import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
@@ -69,14 +71,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JobSyncListener {
 
-    @Getter
-    @Setter
-    private boolean jobFinishedNotified = false;
-
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
         try {
-            jobFinishedNotified = true;
             NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
             postJobInfo(extractJobInfo(notifier));
         } finally {
@@ -258,6 +255,9 @@ public class JobSyncListener {
                             notifier.getWaitTime());
                     MetricsGroup.histogramUpdate(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
                             project, tags, duration);
+
+                    PrometheusMetricsGroup.summary(duration, PrometheusMetrics.MODEL_BUILD_DURATION, "project", project,
+                            "model", modelAlias);
                 }
 
                 Map<String, String> tags = getJobStatisticsTags(notifier.getJobType());

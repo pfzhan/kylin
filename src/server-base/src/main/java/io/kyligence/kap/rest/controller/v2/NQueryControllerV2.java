@@ -34,6 +34,7 @@ import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.QueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,7 +46,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.swagger.annotations.ApiOperation;
 
 @RestController
@@ -53,8 +53,8 @@ import io.swagger.annotations.ApiOperation;
 public class NQueryControllerV2 extends NBasicController {
 
     @Autowired
-    @Qualifier("kapQueryService")
-    private KapQueryService queryService;
+    @Qualifier("queryService")
+    private QueryService queryService;
 
     @Deprecated
     @ApiOperation(value = "query4JDBC", tags = { "QE" })
@@ -63,7 +63,7 @@ public class NQueryControllerV2 extends NBasicController {
     public SQLResponse query4JDBC(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         String projectName = checkProjectName(sqlRequest.getProject());
         sqlRequest.setProject(projectName);
-        return queryService.doQueryWithCache(sqlRequest, false);
+        return queryService.doQueryWithCache(sqlRequest);
     }
 
 
@@ -73,7 +73,7 @@ public class NQueryControllerV2 extends NBasicController {
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         String projectName = checkProjectName(sqlRequest.getProject());
         sqlRequest.setProject(projectName);
-        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
+        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
@@ -89,6 +89,6 @@ public class NQueryControllerV2 extends NBasicController {
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
     }
 }

@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.scheduler;
+package io.kyligence.kap.rest.config.initialize;
 
 import java.util.ArrayList;
 import java.util.HashSet;

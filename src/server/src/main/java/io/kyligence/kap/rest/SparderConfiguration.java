@@ -23,23 +23,19 @@
  */
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.query.util.LoadCounter;
-import java.io.File;
-import java.nio.file.Paths;
+import java.util.concurrent.Executors;
 
-import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.spark.scheduler.SparkInfoCollector;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
-
-import io.kyligence.kap.rest.monitor.SparkContextCanary;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
+
+import io.kyligence.kap.query.util.LoadCounter;
+import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
+import io.kyligence.kap.rest.monitor.SparkContextCanary;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
@@ -59,27 +55,15 @@ public class SparderConfiguration {
 
     public void init() {
         SparderEnv.init();
-        SparkInfoCollector.collectSparkInfo();
         if (System.getProperty("spark.local", "false").equals("true")) {
             log.debug("spark.local=true");
             return;
         }
 
         // monitor Spark
-        SparkContextCanary.init();
-        LoadCounter.init();
-
-        // write appid to ${KYLIN_HOME} or ${user.dir}
-        final String kylinHome = StringUtils.defaultIfBlank(KylinConfig.getKylinHome(), "./");
-        final File appidFile = Paths.get(kylinHome, "appid").toFile();
-        String appid = null;
-        try {
-            appid = SparderEnv.getSparkSession().sparkContext().applicationId();
-            FileUtils.writeStringToFile(appidFile, appid);
-            log.info("spark context appid is {}", appid);
-        } catch (Exception e) {
-            log.error("Failed to generate spark context appid[{}] file", StringUtils.defaultString(appid), e);
-        }
+        val service = Executors.newSingleThreadScheduledExecutor();
+        SparkContextCanary.getInstance().init(service);
+        LoadCounter.getInstance().init(service);
     }
 
 }

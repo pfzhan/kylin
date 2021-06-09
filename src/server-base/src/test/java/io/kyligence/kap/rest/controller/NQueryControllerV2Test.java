@@ -28,6 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
+import org.apache.kylin.rest.service.QueryService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +47,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.v2.NQueryControllerV2;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 
 public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
@@ -54,7 +54,7 @@ public class NQueryControllerV2Test extends NLocalFileMetadataTestCase {
     private MockMvc mockMvc;
 
     @Mock
-    private KapQueryService kapQueryService;
+    private QueryService kapQueryService;
 
     @Mock
     private QueryHistoryService queryHistoryService;

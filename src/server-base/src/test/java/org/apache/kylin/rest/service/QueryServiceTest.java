@@ -138,11 +138,11 @@ import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.data.QueryResult;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.service.NUserGroupService;
+import io.kyligence.kap.rest.service.QueryCacheManager;
 import lombok.val;
 import net.sf.ehcache.CacheManager;
 
@@ -209,7 +209,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
         pushdownCount = 0;
 
-        userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
+        userService.createUser(
+                new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @After
@@ -258,9 +259,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine)
+                .tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
-        final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
+        final SQLResponse response = queryService.doQueryWithCache(sqlRequest);
 
         Assert.assertTrue(response.isQueryPushDown());
     }
@@ -288,9 +290,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
         Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine)
+                .tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
-        final SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
+        final SQLResponse response = queryService.doQueryWithCache(sqlRequest);
         Assert.assertFalse(response.isQueryPushDown());
     }
 
@@ -302,13 +305,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doAnswer(invocation -> {
             QueryContext.current().setPushdownEngine(PUSHDOWN_HIVE);
             throw new SQLException("push down error");
-        }).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
+        }).when(queryService.queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(),
+                Mockito.anyBoolean());
 
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
 
-        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        final SQLResponse response = queryService.doQueryWithCache(request);
         Assert.assertTrue(response.isException());
         Assert.assertTrue(StringUtils.contains(response.getExceptionMessage(), "[HIVE Exception] push down error"));
     }
@@ -321,7 +325,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(notExistProject);
         request.setSql(sql);
         try {
-            queryService.doQueryWithCache(request, false);
+            queryService.doQueryWithCache(request);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -337,7 +341,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(notExistProject);
         request.setSql(sql);
         try {
-            queryService.doQueryWithCache(request, false);
+            queryService.doQueryWithCache(request);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -358,7 +362,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // case of not hitting cache
         String expectedQueryID = QueryContext.current().getQueryId();
-        final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
+        final SQLResponse firstSuccess = queryService.doQueryWithCache(request);
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
         Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, firstSuccess.getNativeRealizations().get(0).getIndexType());
@@ -374,7 +378,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // case of hitting cache
         expectedQueryID = QueryContext.current().getQueryId();
-        final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
+        final SQLResponse secondSuccess = queryService.doQueryWithCache(request);
         Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
         Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
         Assert.assertEquals(2, secondSuccess.getNativeRealizations().size());
@@ -498,10 +502,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
 
-        Mockito.doThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")))
-                .when(queryService).query(request);
+        Mockito.doThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception"))).when(queryService)
+                .query(request);
 
-        final SQLResponse sqlResponse = queryService.doQueryWithCache(request, false);
+        final SQLResponse sqlResponse = queryService.doQueryWithCache(request);
         Assert.assertTrue(sqlResponse.isException());
         String log = queryService.logQuery(request, sqlResponse);
         Assert.assertTrue(log.contains("Is Timeout: true"));
@@ -520,18 +524,17 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         stubQueryConnectionException();
         try {
             final String expectedQueryID = QueryContext.current().getQueryId();
-            final SQLResponse response = queryService.doQueryWithCache(request, false);
+            final SQLResponse response = queryService.doQueryWithCache(request);
             Assert.assertEquals(false, response.isHitExceptionCache());
             Assert.assertEquals(true, response.isException());
             Assert.assertEquals(expectedQueryID, response.getQueryId());
-            Mockito.verify(queryService).recordMetric(request, response);
         } catch (InternalErrorException ex) {
             // ignore
         }
 
         try {
             final String expectedQueryID = QueryContext.current().getQueryId();
-            final SQLResponse response = queryService.doQueryWithCache(request, false);
+            final SQLResponse response = queryService.doQueryWithCache(request);
             Assert.assertEquals(true, response.isHitExceptionCache());
             Assert.assertEquals(true, response.isException());
             Assert.assertEquals(expectedQueryID, response.getQueryId());
@@ -553,16 +556,16 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             SQLRequest request = new SQLRequest();
             request.setProject("default");
             request.setSql(create_table1);
-            queryService.doQueryWithCache(request, false);
+            queryService.doQueryWithCache(request);
 
             request.setSql(create_table2);
-            queryService.doQueryWithCache(request, false);
+            queryService.doQueryWithCache(request);
 
             request.setSql(select_table);
-            SQLResponse response = queryService.doQueryWithCache(request, true);
+            SQLResponse response = queryService.doQueryWithCache(request);
 
-            Assert.assertEquals(
-                    "WITH tableId as (select * from some_table1) , tableId2 AS (select * FROM some_table2) select * from tableId join tableId2 on tableId.a = tableId2.b;",
+            Assert.assertEquals("From line 1, column 32 to line 1, column 42: Object 'SOME_TABLE1' not found\n"
+                    + "while executing SQL: \"WITH tableId as (select * from some_table1) , tableId2 AS (select * FROM some_table2) select * from tableId join tableId2 on tableId.a = tableId2.b\"",
                     response.getExceptionMessage());
         }
     }
@@ -831,7 +834,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLRequest request = new SQLRequest();
         request.setProject("default");
         request.setSql(sql);
-        SQLResponse response = queryService.doQueryWithCache(request, false);
+        SQLResponse response = queryService.doQueryWithCache(request);
         Assert.assertEquals("CONSTANTS", response.getEngineType());
     }
 
@@ -844,7 +847,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLRequest request = new SQLRequest();
         request.setProject("default");
         request.setSql(sql);
-        SQLResponse response = queryService.doQueryWithCache(request, false);
+        SQLResponse response = queryService.doQueryWithCache(request);
         Assert.assertEquals(1, response.getNativeRealizations().size());
         NativeQueryRealization realization = response.getNativeRealizations().get(0);
         Assert.assertEquals("mock_model_alias1", realization.getModelAlias());
@@ -963,10 +966,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
 
         // case of not hitting cache
-        final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
+        final SQLResponse firstSuccess = queryService.doQueryWithCache(request);
 
         // case of hitting cache
-        final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
+        final SQLResponse secondSuccess = queryService.doQueryWithCache(request);
         Assert.assertTrue(secondSuccess.isStorageCacheUsed());
         Assert.assertEquals(1, secondSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getNativeRealizations().get(0).getIndexType());
@@ -991,13 +994,13 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
 
         // case of not hitting cache
-        final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
+        final SQLResponse firstSuccess = queryService.doQueryWithCache(request);
 
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
         // case of cache expired
-        final SQLResponse thirdSuccess = queryService.doQueryWithCache(request, false);
+        final SQLResponse thirdSuccess = queryService.doQueryWithCache(request);
         Assert.assertFalse(thirdSuccess.isStorageCacheUsed());
         Assert.assertEquals(1, thirdSuccess.getNativeRealizations().size());
         Assert.assertEquals(QueryMetricsContext.AGG_INDEX, thirdSuccess.getNativeRealizations().get(0).getIndexType());
@@ -1016,7 +1019,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
 
-        SQLResponse sqlResponse = queryService.queryWithCache(request, false);
+        SQLResponse sqlResponse = queryService.queryWithCache(request);
         Assert.assertNull(QueryContext.current().getEngineType());
         Assert.assertEquals(-1, QueryContext.current().getMetrics().getScannedBytes());
         Assert.assertEquals(-1, QueryContext.current().getMetrics().getScannedRows());
@@ -1027,7 +1030,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         sqlResponse.setResultRowCount(500);
         queryCacheManager.cacheSuccessQuery(request, sqlResponse);
 
-        queryService.queryWithCache(request, false);
+        queryService.queryWithCache(request);
         Assert.assertEquals("NATIVE", QueryContext.current().getEngineType());
         Assert.assertEquals(1024, QueryContext.current().getMetrics().getScannedBytes());
         Assert.assertEquals(10000, QueryContext.current().getMetrics().getScannedRows());
@@ -1048,7 +1051,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         QueryMetricsContext.start(request.getQueryId(), "");
 
-        SQLResponse sqlResponse = queryService.queryWithCache(request, false);
+        SQLResponse sqlResponse = queryService.queryWithCache(request);
         Assert.assertTrue(sqlResponse.isException());
         Assert.assertTrue(QueryContext.current().getMetrics().isException());
         Assert.assertFalse(QueryContext.current().getQueryTagInfo().isPushdown());
@@ -1073,7 +1076,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         try {
             getTestConfig().setProperty("kylin.server.mode", "job");
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
-            queryService.queryWithCache(request, false);
+            queryService.queryWithCache(request);
         } catch (KylinException e) {
             Assert.assertEquals("Job node is unavailable for queries. Please select a query node.", e.getMessage());
         }
@@ -1081,7 +1084,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         try {
             getTestConfig().setProperty("kylin.server.mode", "query");
             NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
-            val queryWithCache = queryService.queryWithCache(request, false);
+            val queryWithCache = queryService.queryWithCache(request);
             Assert.assertTrue(queryWithCache.isException());
         } catch (Exception e) {
             Assert.fail();
@@ -1100,7 +1103,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
         request.setQueryId(queryId);
 
-        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        final SQLResponse response = queryService.doQueryWithCache(request);
         Assert.assertEquals(queryId, response.getQueryId());
     }
 
@@ -1119,7 +1122,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setBackdoorToggles(backdoorToggles);
         request.setUserAgent("Chrome/89.0.4389.82 Safari/537.36");
 
-        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        final SQLResponse response = queryService.doQueryWithCache(request);
 
         // Current QueryContext will be reset in doQueryWithCache
         QueryContext.current().setUserSQL(sql);
@@ -1180,12 +1183,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryContext queryContext = QueryContext.current();
 
         overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "true");
-        queryService.queryWithCache(request, false);
+        queryService.queryWithCache(request);
         Assert.assertEquals(queryContext.getUserSQL(), sql);
         Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
 
         overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "false");
-        queryService.queryWithCache(request, false);
+        queryService.queryWithCache(request);
         Assert.assertEquals(queryContext.getUserSQL(), sql);
         Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
 
@@ -1266,7 +1269,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Predicate<SQLResponse> scannedRows = (s -> s.getTotalScanRows() == 0);
         Predicate<SQLResponse> scannedBytes = (s -> s.getTotalScanBytes() == 0);
 
-        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        final SQLResponse response = queryService.doQueryWithCache(request);
         Assert.assertTrue(scannedRows.and(scannedBytes).test(response));
     }
 
@@ -1344,7 +1347,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Configuration item \"kylin.query.query-with-execute-as\" "
                 + "is not enabled. So you cannot use the \"executeAs\" parameter now");
-        queryService.doQueryWithCache(request, false);
+        queryService.doQueryWithCache(request);
     }
 
     @Test
@@ -1361,7 +1364,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             thrown.expect(KylinException.class);
             thrown.expectMessage("User [testuser] does not have permissions for all tables, rows, "
                     + "and columns in the project [default] and cannot use the executeAs parameter");
-            queryService.doQueryWithCache(request, false);
+            queryService.doQueryWithCache(request);
         } finally {
             SecurityContextHolder.getContext()
                     .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
@@ -1380,7 +1383,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setExecuteAs("testuser");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Access is denied.");
-        queryService.doQueryWithCache(request, false);
+        queryService.doQueryWithCache(request);
     }
 
     @Test
@@ -1430,15 +1433,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testQuerySelectStar() {
         overwriteSystemProp("kylin.query.return-empty-result-on-select-star", "true");
         String[] select_star_sqls = { "select * from TEST_KYLIN_FACT", "select * from TEST_ACCOUNT",
-                "select * from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID"
-        };
+                "select * from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID" };
         for (String sql : select_star_sqls) {
             SQLRequest request = new SQLRequest();
             request.setProject("default");
             request.setSql(sql);
             request.setQueryId(UUID.randomUUID().toString());
 
-            final SQLResponse response = queryService.doQueryWithCache(request, false);
+            final SQLResponse response = queryService.doQueryWithCache(request);
             Assert.assertEquals(0, response.getResults().size());
         }
     }

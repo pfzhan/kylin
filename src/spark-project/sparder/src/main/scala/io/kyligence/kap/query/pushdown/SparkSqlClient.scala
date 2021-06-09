@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.query.pushdown
 
-import java.sql.Timestamp
-import java.util.{UUID, List => JList}
-
 import io.kyligence.kap.guava20.shaded.common.collect.Lists
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
@@ -40,7 +37,6 @@ import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
-import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
@@ -48,6 +44,8 @@ import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv, SparkSession}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.sql.Timestamp
+import java.util.{UUID, List => JList}
 import scala.collection.JavaConverters._
 import scala.collection.{immutable, mutable}
 
@@ -63,7 +61,6 @@ object SparkSqlClient {
     val queryId = QueryContext.current().getQueryId
     ss.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     logger.info(s)
-    Trace.addTimelineAnnotation(s)
 
     try {
       val db = if (StringUtils.isNotBlank(project)) {
@@ -79,7 +76,6 @@ object SparkSqlClient {
       val msg = "SparkSQL returned result DataFrame"
       logger.info(msg)
 
-      Trace.addTimelineAnnotation(msg)
       dfToList(ss, sql, uuid, df)
     } finally {
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, null)

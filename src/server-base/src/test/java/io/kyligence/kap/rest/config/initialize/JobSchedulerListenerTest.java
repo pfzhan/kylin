@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.scheduler;
+package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -184,7 +184,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         layoutIds.add(1L);
         Set<Long> partitionIds = null;
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, waitTime, partitionIds);
+                segIds, layoutIds, waitTime, "");
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
 
         Assert.assertEquals(jobId, jobInfo.getJobId());
@@ -220,7 +220,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         partitionIds.add(7L);
         partitionIds.add(8L);
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, 0L, partitionIds);
+                segIds, layoutIds, 0L, null, "", true, partitionIds);
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
         Assert.assertTrue(jobInfo.getSegmentIds().containsAll(segIds));
         Assert.assertEquals(segIds.size(), jobInfo.getSegmentIds().size());

@@ -113,9 +113,9 @@ public class MonitorService extends BasicService {
             protected MonitorMetric collect() {
                 QueryMonitorMetric queryMonitorMetric = MonitorReporter.getInstance().createQueryMonitorMetric();
 
-                queryMonitorMetric.setLastResponseTime(SparkContextCanary.getLastResponseTime());
-                queryMonitorMetric.setErrorAccumulated(SparkContextCanary.getErrorAccumulated());
-                queryMonitorMetric.setSparkRestarting(SparkContextCanary.isSparkRestarting());
+                queryMonitorMetric.setLastResponseTime(SparkContextCanary.getInstance().getLastResponseTime());
+                queryMonitorMetric.setErrorAccumulated(SparkContextCanary.getInstance().getErrorAccumulated());
+                queryMonitorMetric.setSparkRestarting(SparkContextCanary.getInstance().isSparkRestarting());
 
                 return queryMonitorMetric;
             }

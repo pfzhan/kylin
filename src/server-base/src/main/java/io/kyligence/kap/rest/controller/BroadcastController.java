@@ -29,14 +29,12 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.io.IOException;
 
-import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
-import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
-import io.kyligence.kap.rest.service.JobService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
+import org.apache.kylin.rest.service.QueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -50,16 +48,18 @@ import io.kyligence.kap.common.persistence.transaction.AccessGrantEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AccessRevokeEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AclGrantEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AclRevokeEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
 import io.kyligence.kap.common.persistence.transaction.EpochCheckBroadcastNotifier;
 import io.kyligence.kap.common.persistence.transaction.RefreshVolumeBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.StopQueryBroadcastEventNotifier;
+import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.AuditLogService;
-import io.kyligence.kap.rest.service.KapQueryService;
+import io.kyligence.kap.rest.service.JobService;
 
 @Controller
 @RequestMapping(value = "/api/broadcast", produces = { HTTP_VND_APACHE_KYLIN_JSON,
@@ -70,8 +70,8 @@ public class BroadcastController extends NBasicController {
     private AuditLogService auditLogService;
 
     @Autowired
-    @Qualifier("kapQueryService")
-    private KapQueryService queryService;
+    @Qualifier("queryService")
+    private QueryService queryService;
 
     @Autowired
     private LicenseInfoService licenseInfoService;

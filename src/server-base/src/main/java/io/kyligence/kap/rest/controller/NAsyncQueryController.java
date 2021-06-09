@@ -50,6 +50,7 @@ import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
@@ -73,7 +74,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
 import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.swagger.annotations.ApiOperation;
 
 @RestController
@@ -86,8 +86,8 @@ public class NAsyncQueryController extends NBasicController {
     private static final List<String> FILE_FORMAT = Lists.newArrayList("csv", "json", "xlsx");
 
     @Autowired
-    @Qualifier("kapQueryService")
-    private KapQueryService queryService;
+    @Qualifier("queryService")
+    private QueryService queryService;
 
     @Autowired
     @Qualifier("asyncQueryService")
@@ -142,7 +142,7 @@ public class NAsyncQueryController extends NBasicController {
                 queryIdRef.set(queryId);
                 try {
                     asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
-                    SQLResponse response = queryService.doQueryWithCache(sqlRequest, false);
+                    SQLResponse response = queryService.doQueryWithCache(sqlRequest);
                     if (response.isException()) {
                         AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
                                 response.getExceptionMessage());

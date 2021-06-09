@@ -44,5 +44,6 @@ public class LoadDesc {
     private Integer coreNum;
     @Getter
     @Setter
-    private List<Integer> pionts;
+    private List<Integer> pendingPoints;
+
 }

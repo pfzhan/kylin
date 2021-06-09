@@ -253,6 +253,7 @@ class DFChooser(toBuildTree: NSpanningTree,
   }
 }
 
+
 object DFChooser extends Logging {
   def apply(toBuildTree: NSpanningTree,
             seg: NDataSegment,

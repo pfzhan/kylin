@@ -152,10 +152,6 @@
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kylin-external-htrace</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-guava20</artifactId>
         </dependency>
 
@@ -171,10 +167,6 @@
             <artifactId>oshi-core</artifactId>
         </dependency>
 
-        <!--<dependency>-->
-        <!--<groupId>io.kyligence.ke</groupId>-->
-        <!--<artifactId>kap-external</artifactId>-->
-        <!--</dependency>-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-influxdb</artifactId>

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
  * http://kyligence.io
@@ -21,3 +21,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.query.util;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class TaskStatusEvent {
+
+    private int pendingTaskCount;
+
+    private int activeTaskCount;
+
+    private int finishedTaskCount;
+
+}
