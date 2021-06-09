@@ -174,7 +174,7 @@ export default class ReloadTableModal extends Vue {
     let delModelCount = this.checkData.broken_model_count
     let msg = this.$t('reloadTips')
     if (this.checkData.broken_model_count > 0 && this.checkData.snapshot_deleted) {
-      msg += this.$t('modelChangeAndSnapshotDel')
+      msg += this.$t('modelChangeAndSnapshotDel', { modelCount: delModelCount })
     } else {
       if (this.checkData.broken_model_count > 0) {
         msg += this.$t('modelchangeTip', { modelCount: delModelCount })

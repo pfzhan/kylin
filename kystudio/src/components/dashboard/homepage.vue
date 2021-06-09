@@ -698,7 +698,7 @@ export default class Homepage extends Vue {
               }
             }
             .circle-desc {
-              width: 13em;
+              width: 14em;
               height: 3em;
               line-height: 1.4em;
               margin: 0 auto;
