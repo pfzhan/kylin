@@ -89,6 +89,16 @@
                 {{$t('subPartitionValuesManage')}}
               </common-tip>
             </el-dropdown-item>
+            <el-dropdown-item
+              :class="{'disabled-action': currentModel.model_type !== 'BATCH'}"
+              @click.native="openSecStorageDialog()"
+              v-if="currentModel.status !== 'BROKEN' && $store.state.project.second_storage_enabled && modelActions.includes('secStorageAction')">
+              <common-tip
+                :content="$t('disableSecStorageActionTips')"
+                :disabled="currentModel.model_type === 'BATCH'">
+                {{$t('secStorage')}}
+              </common-tip>
+            </el-dropdown-item>
             <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="importMDX" divided disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item> -->
             <!-- <el-dropdown-item command="exportMDX" disabled v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
@@ -233,7 +243,7 @@
       </div>
     </el-dialog>
 
-    <!-- 二级存储 -->
+    <!-- 分层存储 -->
     <el-dialog width="600px" :title="$t('secStorage')" class="sec_storage_dialog" v-if="showSecStorageDialog" :append-to-body="true" :visible="true" @close="closeSecStorageDialog" :close-on-click-modal="false">
       <el-alert v-if="isShowSecStorageTips" show-icon :title="secStorageTips" :type="secStorageTipsType" class="ksd-mb-24" :closable="false"></el-alert>
       <div>{{$t('secStorageDesc')}}</div>
@@ -269,9 +279,9 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccessAsync, objectClone } from 'util'
+import { handleSuccessAsync, objectClone, getQueryString } from 'util'
 import { apiUrl } from '../../../../../config'
-import { handleError, kapConfirm, kapMessage, handleSuccess } from 'util/business'
+import { handleError, kapConfirm, kapMessage, handleSuccess, postCloudUrlMessage } from 'util/business'
 import locales from './locales'
 
 @Component({
@@ -752,10 +762,21 @@ export default class ModelActions extends Vue {
       }
       this.secStorageLoading = false
       this.showSecStorageDialog = false
+      this.isShowSecStorageTips = false
       this.$emit('loadModelsList')
     } catch (e) {
       handleError(e)
       this.secStorageLoading = false
+      this.isShowSecStorageTips = false
+    }
+  }
+
+  // 跳转至job页面
+  jumpToJobs () {
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'kapJob' })
+    } else {
+      this.$router.push('/monitor/job')
     }
   }
 

@@ -180,7 +180,7 @@
         </div>
       </el-form>
     </EditableBlock>
-    <!-- 二级存储 -->
+    <!-- 分层存储 -->
     <EditableBlock
       :header-content="$t('secondaryStorage')"
       :is-keep-editing="true"
@@ -510,7 +510,10 @@ export default class SettingAdvanced extends Vue {
     this.loadDataBases()
     this.initForm()
     this.getConfigList()
-    this.loadAvailableNodes()
+    // 系统配置分层存储集群节点时可调用
+    if (this.$store.state.system.isShowSecondStorage) {
+      this.loadAvailableNodes()
+    }
   }
   async loadAvailableNodes () {
     const res = await this.fetchAvailableNodes()
@@ -682,7 +685,7 @@ export default class SettingAdvanced extends Vue {
             break
           } else {
             const h = this.$createElement
-            // 抓取下是二级存储 的model，如果存在，需要二次确认
+            // 抓取下是分层存储 的model，如果存在，需要二次确认
             this.getSecStorageModels({project: this.currentSelectedProject}).then(async (modeldata) => {
               try {
                 const data = await handleSuccessAsync(modeldata)
@@ -711,7 +714,7 @@ export default class SettingAdvanced extends Vue {
                     showCancelButton: true,
                     showClose: false,
                     $type: 'prompt',
-                    inputPattern: this.$lang === 'en' ? /^Turn Off Secondary Storage$/ : /^关闭分层存储$/,
+                    inputPattern: this.$lang === 'en' ? /^Turn Off Tiered Storage$/ : /^关闭分层存储$/,
                     inputErrorMessage: '',
                     confirmButtonText: this.$t('confirmClose'),
                     cancelButtonText: this.$t('kylinLang.common.cancel')
@@ -743,6 +746,7 @@ export default class SettingAdvanced extends Vue {
                     try {
                       await handleSuccessAsync(res)
                       successCallback()
+                      this.$emit('reload-setting')
                       this.form.second_storage_nodes = []
                       this.nodes = []
                       this.loadAvailableNodes()

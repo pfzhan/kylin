@@ -17,11 +17,11 @@ export default {
     modelPartitionSet: 'Model Partition',
     recommendations: 'Recommendation',
     subPartitionValuesManage: 'Manage Sub-Partition Values',
-    secStorage: 'Secondary Storage',
-    openSecStorageTips: 'The system will create a base table index for model "{modelName}". The index can\'t be deleted when the secondary storage is ON.',
-    closeSecStorageTips: 'With this switch OFF, the model\'s secondary storage data will be cleared。',
-    secStorageDesc: 'With this switch ON, the basic table index will be synchronized to the secondary storage. It will improve the performance of ad-hoc query and detail query analysis scenarios.',
-    supportSecStoage: 'Support Secondary Storage',
+    secStorage: 'Tiered Storage',
+    openSecStorageTips: 'The system will create a base table index for model "{modelName}". The index can\'t be deleted when the tiered storage is ON.',
+    closeSecStorageTips: 'With this switch OFF, the model\'s tiered storage data will be cleared。',
+    secStorageDesc: 'With this switch ON, the basic table index will be synchronized to the tiered storage. It will improve the performance of ad-hoc query and detail query analysis scenarios.',
+    supportSecStoage: 'Support Tiered Storage',
     node: 'Node',
     exportMetadatas: 'Export Model',
     bokenModelExportTDSTip: 'Can\'t export TDS file at the moment as the model is BROKEN',
@@ -56,8 +56,9 @@ export default {
     disableModelTitle: 'Offline Model',
     noIndexTips: 'You should add indexes first before building.',
     changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.',
-    jobSuccess: 'jobSuccess',
-    disableActionTips: 'Unavailable for streaming model'
+    jobSuccess: 'Submitted successfully. You may go to  the job page to ',
+    disableActionTips: 'Unavailable for streaming model',
+    disableSecStorageActionTips: 'The tiered storage can\'t be used for hybrid or streaming models at the moment.'
   },
   'zh-cn': {
     authorityDetails: '权限详情',
@@ -77,11 +78,11 @@ export default {
     modelPartitionSet: '分区设置',
     recommendations: '优化建议',
     subPartitionValuesManage: '子分区值设置',
-    secStorage: '二级存储',
-    openSecStorageTips: '开启后系统将为模型“{modelName}”创建一个基础明细索引。在开启二级存储时该索引不可删除。',
-    closeSecStorageTips: '关闭后，模型的二级存储数据将被清空，可能会影响查询效率。',
-    secStorageDesc: '二级存储用于同步模型中的基础明细索引数据，以提高多维度灵活查询和明细查询的查询性能。',
-    supportSecStoage: '支持二级存储',
+    secStorage: '分层存储',
+    openSecStorageTips: '开启后系统将为模型“{modelName}”创建一个基础明细索引。在开启分层存储时该索引不可删除。',
+    closeSecStorageTips: '关闭后，模型的分层存储数据将被清空，可能会影响查询效率。',
+    secStorageDesc: '分层存储用于同步模型中的基础明细索引数据，以提高多维度灵活查询和明细查询的查询性能。',
+    supportSecStoage: '支持分层存储',
     node: '节点',
     exportMetadatas: '导出模型',
     bokenModelExportTDSTip: '该模型状态为 BROKEN，无法导出 TDS 文件',
@@ -116,7 +117,8 @@ export default {
     disableModelTitle: '下线模型',
     noIndexTips: '您需要先添加索引，才可以进行构建',
     changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。',
-    jobSuccess: '任务已提交，可到任务页',
-    disableActionTips: '实时模型不可用'
+    jobSuccess: '任务已提交。可到任务页',
+    disableActionTips: '实时模型不可用',
+    disableSecStorageActionTips: '融合模型或实时模型暂无法使用分层存储'
   }
 }

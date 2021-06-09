@@ -315,7 +315,7 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       tabelDetailTitle: 'Table Index Detail',
       unExistLayoutTip: 'This index has been deleted',
       filteredTotalSize: '{totalSize} result(s)',
-      secStorage: 'Secondary Storage'
+      secStorage: 'Tiered Storage'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -352,7 +352,7 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       tabelDetailTitle: '明细索引详情',
       unExistLayoutTip: '该索引已被删除',
       filteredTotalSize: '{totalSize} 条结果',
-      secStorage: '二级存储'
+      secStorage: '分层存储'
     }
   },
   filters: {

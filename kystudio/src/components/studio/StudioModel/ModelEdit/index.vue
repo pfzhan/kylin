@@ -68,6 +68,7 @@
             :draggable-node-types="['table']"
             :searchable-node-types="['table']"
             :is-model-have-fact="modelInstance && !!modelInstance.fact_table"
+            :is-second-storage-enabled="modelInstance && modelInstance.second_storage_enabled"
             @drag="dragTable">
           </DataSourceBar>
           <!-- </div> -->
@@ -158,10 +159,12 @@
                 <ul class="dimension-list">
                   <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
                     <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowCheckbox}]">
-                      <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name" class="text">{{d.name}}</el-checkbox>
+                      <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :disabled="modelInstance.second_storage_enabled&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column" :label="d.name" class="text">{{d.name}}</el-checkbox>
                       <span v-else :title="d.name" class="text">{{d.name}}</span>
                       <span class="icon-group">
-                        <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
+                        <el-tooltip :content="$t('disableDelDimTips')" placement="top-end" :disabled="!(modelInstance.second_storage_enabled&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column)">
+                          <span class="icon-span" :class="{'is-disabled': modelInstance.second_storage_enabled&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column}" @click="deleteDimenison(d)"><i class="el-icon-ksd-table_delete"></i></span>
+                        </el-tooltip>
                         <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
                         <span class="li-type ky-option-sub-info">{{d.datatype && d.datatype.toLocaleLowerCase()}}</span>
                       </span>
@@ -235,7 +238,7 @@
                 <ul class="measure-list">
                   <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1, 'error-measure': ['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type && m.return_type.indexOf('varchar') > -1}">
                     <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
-                      <el-tooltip :offset="isShowMeaCheckbox ? 50 : 60" :content="m.name ==='COUNT_ALL' ? $t('disabledConstantMeasureTip') : $t('measureRuleErrorTip', {type: m.expression})" effect="dark" placement="bottom" :disabled="!(['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type && m.return_type.indexOf('varchar') > -1) && m.name !== 'COUNT_ALL'">
+                      <el-tooltip class="count-all" :offset="isShowMeaCheckbox ? 50 : 60" :content="m.name ==='COUNT_ALL' ? $t('disabledConstantMeasureTip') : $t('measureRuleErrorTip', {type: m.expression})" effect="dark" placement="bottom" :disabled="!(['SUM', 'PERCENTILE_APPROX'].includes(m.expression) && m.return_type && m.return_type.indexOf('varchar') > -1) && m.name !== 'COUNT_ALL'">
                         <span>
                           <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name === 'COUNT_ALL'" :label="m.name" class="text">{{m.name}}</el-checkbox>
                           <span v-else class="text">{{m.name}}</span>
@@ -771,6 +774,7 @@ export default class ModelEdit extends Vue {
         table: data.tableName,
         alias: data.tableName.split('.')[1],
         guid: data.guid,
+        isSecStorageEnabled: this.modelInstance.second_storage_enabled,
         drawSize: {
           left: data.x - left - this.modelRender.zoomXSpace,
           top: data.y - top - this.modelRender.zoomYSpace
@@ -988,7 +992,8 @@ export default class ModelEdit extends Vue {
   }
   batchSetDimension () {
     this.showDimensionDialog({
-      modelDesc: this.modelRender
+      modelDesc: this.modelRender,
+      modelInstance: this.modelInstance
     })
   }
   addCCDimension () {
@@ -1020,8 +1025,11 @@ export default class ModelEdit extends Vue {
       modelInstance: this.modelInstance
     })
   }
-  deleteDimenison (name) {
-    this.modelInstance.delDimension(name)
+  deleteDimenison (d) {
+    if (this.modelInstance.second_storage_enabled && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === d.column) {
+      return
+    }
+    this.modelInstance.delDimension(d.name)
   }
   toggleCheckAllDimension () {
     if (this.dimensionSelectedList.length === this.allDimension.length) {
@@ -1175,6 +1183,9 @@ export default class ModelEdit extends Vue {
     if (!this.currentDragTable) {
       return
     }
+    if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
+      this.showChangeTips()
+    }
     // 优化缩放时候的table位置算法 （鼠标相对文档位置 - drawbox相对于文档位置）* (10-缩放的倍数）保证缩放的时候拖入table位置精准
     let drawBoxDom = document.querySelector(modelRenderConfig.drawBox)
     let domPos = drawBoxDom && drawBoxDom.getBoundingClientRect() || {}
@@ -1182,14 +1193,12 @@ export default class ModelEdit extends Vue {
       this.modelInstance.addTable({
         table: this.currentDragTable,
         alias: this.currentDragTable.split('.')[1],
+        isSecStorageEnabled: this.modelInstance.second_storage_enabled,
         drawSize: {
           left: (e.clientX - domPos.left) * (10 / this.modelRender.zoom),
           top: (e.clientY - domPos.top) * (10 / this.modelRender.zoom)
         }
       })
-    }
-    if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
-      this.showChangeTips()
     }
     // 拖拽首张表时，如果其它模型用了该表做为了事实表则默认为事实表，否者默认展开编辑菜单
     const databaseArray = this.$refs.datasourceTree ? this.$refs.datasourceTree.databaseArray : []
@@ -1649,6 +1658,7 @@ export default class ModelEdit extends Vue {
         modelDesc: data,
         modelInstance: this.modelInstance,
         mode: 'saveModel',
+        allDimension: this.allDimension,
         isChangeModelLayout: this.isIgnore // isIgnore为true说明至少改动过一次模型join关系等重大变化
       }).then((res) => {
         if (data.uuid && res.isPurgeSegment) {
@@ -2248,9 +2258,14 @@ export default class ModelEdit extends Vue {
               display: inline-block;
               .el-checkbox__label {
                 display: initial;
+                position: relative;
+                top: -1px;
+              }
+              .el-checkbox__input {
+                top: 2px;
               }
             }
-            .el-tooltip {
+            .count-all {
               display: inline-grid;
               height: 100%;
             }
@@ -2317,6 +2332,16 @@ export default class ModelEdit extends Vue {
                 &:hover {
                   background-color: @background-color-regular;
                   color: @base-color;
+                }
+                &.is-disabled {
+                  i {
+                    cursor: not-allowed;
+                    color: @text-disabled-color;
+                  }
+                  &:hover {
+                    background-color: transparent;
+                    color: @text-title-color;
+                  }
                 }
               }
             }

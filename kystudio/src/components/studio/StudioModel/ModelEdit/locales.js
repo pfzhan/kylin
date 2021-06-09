@@ -24,6 +24,7 @@ export default {
     switchLookup: 'Switch to Lookup Table',
     switchFact: 'Switch to Fact Table',
     kafakFactTips: 'Kafka tables can only be used as fact tables. Please delete the current fact table or switch it to a dimension table before loading a Kafka table.',
+    kafakDisableSecStorageTips: 'Can\'t use Kafka tables when the tiered storage is ON.',
     editTableAlias: 'Edit table alias',
     deleteTable: 'Delete the table',
     noSelectJobs: 'Please check at least one item',
@@ -86,7 +87,8 @@ export default {
     pleaseModify: 'Please modify.',
     iKnow: 'Got It',
     disabledConstantMeasureTip: 'Can\'t modify the default measure.',
-    flattenLookupTableTips: 'Unable to use columns from this table for dimension and measure. Because the join relationship of this dimension table won\'t be precomputed.'
+    flattenLookupTableTips: 'Unable to use columns from this table for dimension and measure. Because the join relationship of this dimension table won\'t be precomputed.',
+    disableDelDimTips: 'When the tiered storage is ON, the time partition column can\'t be deleted from the dimension.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -113,6 +115,7 @@ export default {
     switchLookup: '设置为维度表',
     switchFact: '设置为事实表',
     kafakFactTips: 'Kafka 表只能作为事实表，如需替换请先将当前事实表设为维度表或删除。',
+    kafakDisableSecStorageTips: '开启分层存储时无法使用 Kafka 表。',
     editTableAlias: '编辑别名',
     deleteTable: '删除本表',
     noSelectJobs: '请勾选至少一条',
@@ -176,6 +179,7 @@ export default {
     iKnow: '知道了',
     disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。',
     flattenLookupTableTips: '无法在维度和度量中使用该表中的列，因为该维度表的关联关系不进行预计算。',
-    batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。'
+    batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
+    disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。'
   }
 }

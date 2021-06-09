@@ -11,7 +11,8 @@ export default {
     returnType: 'Return Type',
     sameName: 'The name of dimension can\'t be duplicated within the same model',
     sameColumn: 'The column has been used by another dimension',
-    addCCTip: 'Create Computed Column'
+    addCCTip: 'Create Computed Column',
+    disableDelDimTips: 'When the tiered storage is ON, the time partition column can\'t be deleted from the dimension.'
   },
   'zh-cn': {
     columns: '普通列',
@@ -25,6 +26,7 @@ export default {
     returnType: '返回类型',
     sameName: '维度名称在同一模型下不可重复',
     sameColumn: '该列已被其他维度使用',
-    addCCTip: '创建可计算列'
+    addCCTip: '创建可计算列',
+    disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。'
   }
 }

@@ -441,6 +441,9 @@ export default {
     },
     [types.SYNC_SEGMENTS_SEC_STORAGE] (_, params) {
       return api.model.syncSegmentsSecStorage(params)
+    },
+    [types.DELETE_SYNC_SEGMENTS] (_, params) {
+      return api.model.deleteSyncSegments(params)
     }
   },
   getters: {

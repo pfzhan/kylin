@@ -41,6 +41,7 @@
           :default-expanded-keys="defaultExpandedKeys"
           :draggable-node-types="draggableNodeTypes"
           :is-model-have-fact="isModelHaveFact"
+          :is-second-storage-enabled="isSecondStorageEnabled"
           :is-expand-all="isExpandAll"
           :is-show-filter="false"
           :is-expand-on-click-node="isExpandOnClickNode"
@@ -204,6 +205,10 @@ import { handleSuccessAsync, handleError, kapConfirm, objectClone } from '../../
       default: ''
     },
     isModelHaveFact: {
+      type: Boolean,
+      default: false
+    },
+    isSecondStorageEnabled: {
       type: Boolean,
       default: false
     }

@@ -66,6 +66,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
       type: Boolean,
       default: false
     },
+    isSecondStorageEnabled: {
+      type: Boolean,
+      default: false
+    },
     filterWhiteListTypes: {
       type: Array,
       default: () => []
@@ -247,7 +251,7 @@ export default class TreeList extends Vue {
       this.patchNodeMore(data, node)
     }
     return (
-      <div class={ this.isModelHaveFact && data.datasource === 1 ? 'tree-item nodraggable' : className }
+      <div class={ (this.isModelHaveFact || this.isSecondStorageEnabled) && data.datasource === 1 ? 'tree-item nodraggable' : className }
         style={treeItemStyle}
         draggable={isNodeDraggable}
         onMousedown={event => this.handleMouseDown(event, data, node)}

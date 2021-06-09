@@ -18,8 +18,8 @@
         <div class="action_groups ksd-fleft" v-if="monitorActions.includes('jobActions')">
           <el-button type="primary" text size="medium" icon="el-ksd-icon-play_outline_22" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
-          <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause&&getBatchJobNameEnabled" @click="batchPause">{{$t('jobPause')}}</el-button>
-          <el-button type="primary" text size="medium" icon="el-ksd-icon-close_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.discard&&getBatchJobNameEnabled" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause||getBatchJobNameEnabled" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button type="primary" text size="medium" icon="el-ksd-icon-close_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.discard||getBatchJobNameEnabled" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-table_delete_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </div>
       </el-col>
@@ -480,9 +480,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SNAPSHOT_BUILD: 'Build Snapshot',
       SNAPSHOT_REFRESH: 'Refresh Snapshot',
       EXPORT_TO_SECOND_STORAGE: 'Export To Second Storage',
-      SECOND_STORAGE_MODEL_CLEAN: 'Delete Secondary Storage',
-      SECOND_STORAGE_NODE_CLEAN: 'Delete Secondary Storage',
-      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Secondary Storage',
+      SECOND_STORAGE_MODEL_CLEAN: 'Delete Tiered Storage',
+      SECOND_STORAGE_NODE_CLEAN: 'Delete Tiered Storage',
+      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Tiered Storage',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
@@ -503,8 +503,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       tableSampling: 'Table Sampling',
       buildSnapshot: 'Build Snapshot',
       filteredTotalSize: '{totalSize} result(s)',
-      secondaryStorage: 'Secondary Storage',
-      delSecondaryStorage: 'Delete Secondary Storage'
+      secondaryStorage: 'Tiered Storage',
+      delSecondaryStorage: 'Delete Tiered Storage'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -583,10 +583,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SUB_PARTITION_REFRESH: '刷新子分区数据',
       SNAPSHOT_BUILD: '构建快照',
       SNAPSHOT_REFRESH: '刷新快照',
-      EXPORT_TO_SECOND_STORAGE: '导入二级存储数据',
-      SECOND_STORAGE_MODEL_CLEAN: '删除二级存储',
-      SECOND_STORAGE_NODE_CLEAN: '删除二级存储',
-      SECOND_STORAGE_SEGMENT_CLEAN: '删除二级存储',
+      EXPORT_TO_SECOND_STORAGE: '导入分层存储数据',
+      SECOND_STORAGE_MODEL_CLEAN: '删除分层存储',
+      SECOND_STORAGE_NODE_CLEAN: '删除分层存储',
+      SECOND_STORAGE_SEGMENT_CLEAN: '删除分层存储',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
@@ -607,8 +607,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       tableSampling: '表抽样',
       buildSnapshot: '构建快照',
       filteredTotalSize: '{totalSize} 条结果',
-      secondaryStorage: '二级存储',
-      delSecondaryStorage: '删除二级存储'
+      secondaryStorage: '分层存储',
+      delSecondaryStorage: '删除分层存储'
     }
   }
 })

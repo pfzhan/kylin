@@ -19,23 +19,13 @@
         <!-- <span class="right ky-a-like" v-if="$store.state.project.multi_partition_enabled && model.multi_partition_desc" @click="subParValMana(model)">{{$t('viewSubParValuesBtn')}}</span> -->
       </div>
       <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
-        <el-button v-if="$store.state.project.emptySegmentEnable" type="primary" icon="el-ksd-icon-add_22" :disabled="!model.partition_desc && segments.length>0" class="ksd-mr-8 ksd-fleft" @click="addSegment">Segment</el-button>
-        <el-dropdown split-button @click="handleRefreshSegment" class="ksd-fleft" btn-icon="el-ksd-icon-refresh_22" size="medium">
+        <el-button v-if="$store.state.project.emptySegmentEnable" type="primary" text icon="el-ksd-icon-add_22" :disabled="!model.partition_desc && segments.length>0" style="margin-left:-14px !important;" class="ksd-mr-2 ksd-fleft" @click="addSegment">Segment</el-button>
+        <el-dropdown split-button @click="handleRefreshSegment" type="primary" text class="ksd-mr-2 ksd-fleft" btn-icon="el-ksd-icon-refresh_22" size="medium">
           {{$t('kylinLang.common.refresh')}}
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="handleMergeSegment" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')">
               <i class="el-ksd-icon-merge_22 ksd-fs-16"></i>
               <span class="ksd-fs-12">{{$t('merge')}}</span>
-            </el-dropdown-item>
-            <el-dropdown-item @click="handleSyncSegment" v-if="model.second_storage_enabled" :disabled="!selectedSegments.length || hasEventAuthority('sync')">
-              <common-tip :content="$t('syncTips')" v-if="hasEventAuthority('sync')">
-                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
-                <span class="ksd-fs-12">{{$t('sync')}}</span>
-              </common-tip>
-              <template v-else>
-                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
-                <span class="ksd-fs-12">{{$t('sync')}}</span>
-              </template>
             </el-dropdown-item>
             <el-dropdown-item @click.native="handleDeleteSegment" :disabled="!selectedSegments.length || hasEventAuthority('delete')">
               <i class="el-ksd-icon-table_delete_16 ksd-fs-16"></i>
@@ -43,6 +33,26 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
+        <common-tip :content="$t('syncTips')" v-if="hasEventAuthority('sync')&&model.second_storage_enabled">
+          <el-dropdown split-button @click="handleSyncSegment" type="primary" text class="ksd-fleft" btn-icon="el-ksd-icon-sync_old" size="medium" :disabled="hasEventAuthority('sync')">
+            {{$t('sync')}}
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item @click="handleDelSyncSegment" :disabled="hasEventAuthority('sync')">
+                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
+                <span class="ksd-fs-12">{{$t('delSync')}}</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+         </common-tip>
+         <el-dropdown split-button @click="handleSyncSegment" type="primary" text class="ksd-fleft" v-if="!hasEventAuthority('sync')&&model.second_storage_enabled" btn-icon="el-ksd-icon-sync_old" size="medium" :disabled="!selectedSegments.length">
+            {{$t('sync')}}
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item @click="handleDelSyncSegment" :disabled="!selectedSegments.length">
+                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
+                <span class="ksd-fs-12">{{$t('delSync')}}</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
         <el-button icon="el-ksd-icon-repair_22" type="primary" class="ksd-ml-2" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
       </div>
       <!-- <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
@@ -196,7 +206,7 @@
           <span class="label">{{$t('endTime')}}</span>
           <span class="text">{{segmentTime(detailSegment, detailSegment.endTime) | toServerGMTDate}}</span>
         </p>
-        <p class="list">
+        <p class="list" v-if="model.second_storage_enabled">
           <span class="label">{{$t('secStorageNode')}}</span>
           <span class="text">{{getSecStorageNodes(detailSegment)}}</span>
         </p>
@@ -459,7 +469,8 @@ import arealabel from '../../../../common/area_label.vue'
       deleteSubPartition: 'DELETE_SUB_PARTITION',
       refreshSubPartition: 'REFRESH_SUB_PARTITION',
       fetchSubPartitionValues: 'FETCH_SUB_PARTITION_VALUES',
-      syncSegmentsSecStorage: 'SYNC_SEGMENTS_SEC_STORAGE'
+      syncSegmentsSecStorage: 'SYNC_SEGMENTS_SEC_STORAGE',
+      deleteSyncSegments: 'DELETE_SYNC_SEGMENTS'
     }),
     ...mapActions('ModelBuildModal', {
       callModelBuildDialog: 'CALL_MODAL'
@@ -1013,7 +1024,7 @@ export default class ModelSegment extends Vue {
         })
         await this.callGlobalDetailDialog({
           msg: this.$t('confirmSyncSegments'),
-          title: this.$t('syncSegmentTip'),
+          title: this.$t('sync'),
           detailTableData: tableData,
           detailColumns: [
             {column: 'start', label: this.$t('kylinLang.common.startTime')},
@@ -1021,7 +1032,7 @@ export default class ModelSegment extends Vue {
           ],
           dialogType: '',
           showDetailBtn: false,
-          submitText: this.$t('kylinLang.common.ok')
+          submitText: this.$t('kylinLang.common.load')
         })
         await this.syncSegmentsSecStorage({ project: projectName, model: modelId, segment_ids: this.selectedSegmentIds, type: 'CLICKHOUSE' })
         this.$message({
@@ -1036,7 +1047,54 @@ export default class ModelSegment extends Vue {
           )
         })
         await this.loadSegments()
-        this.$emit('loadModels')
+        // this.$emit('loadModels')
+      }
+    } catch (e) {
+      e !== 'cancel' && handleError(e)
+      this.loadSegments()
+    }
+  }
+  async handleDelSyncSegment () {
+    try {
+      const segmentIds = this.selectedSegmentIds
+      if (!segmentIds.length) {
+        this.$message(this.$t('pleaseSelectSegments'))
+      } else {
+        const projectName = this.currentSelectedProject
+        const modelId = this.modelId
+        let tableData = []
+        this.selectedSegments.forEach((seg) => {
+          const obj = {}
+          obj['start'] = transToServerGmtTime(this.segmentTime(seg, seg.startTime))
+          obj['end'] = transToServerGmtTime(this.segmentTime(seg, seg.endTime))
+          tableData.push(obj)
+        })
+        await this.callGlobalDetailDialog({
+          msg: this.$t('confirmDelSycSegments', {modelName: this.model.name}),
+          title: this.$t('delSync'),
+          detailTableData: tableData,
+          detailColumns: [
+            {column: 'start', label: this.$t('kylinLang.common.startTime')},
+            {column: 'end', label: this.$t('kylinLang.common.endTime')}
+          ],
+          dialogType: 'warning',
+          showDetailBtn: false,
+          submitText: this.$t('kylinLang.common.delete')
+        })
+        await this.deleteSyncSegments({ project: projectName, model: modelId, segment_ids: this.selectedSegmentIds, type: 'CLICKHOUSE' })
+        this.$message({
+          dangerouslyUseHTMLString: true,
+          type: 'success',
+          customClass: 'sync-segment-success',
+          message: (
+            <div>
+              <span>{this.$t('kylinLang.common.delSuccess')}</span>
+              <a href="javascript:void(0)" onClick={() => this.jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
+            </div>
+          )
+        })
+        await this.loadSegments()
+        // this.$emit('loadModels')
       }
     } catch (e) {
       e !== 'cancel' && handleError(e)

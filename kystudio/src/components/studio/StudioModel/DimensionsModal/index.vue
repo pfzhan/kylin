@@ -41,6 +41,7 @@
                   @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
                   <el-table-column
                     type="selection"
+                    :selectable="setSelectable"
                     width="44">
                   </el-table-column>
                   <el-table-column
@@ -319,6 +320,7 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       isShow: state => state.isShow,
       tables: state => objectClone(state.modelDesc && state.modelDesc.tables),
       modelDesc: state => state.modelDesc,
+      modelInstance: state => state.modelInstance,
       usedColumns: state => state.modelDesc.dimensions,
       otherColumns: state => state.otherColumns,
       callback: state => state.callback,
@@ -387,6 +389,10 @@ export default class DimensionsModal extends Vue {
     //   row.isSelected = false
     // }
     return !this.flattenLookupTables.includes(row.tableName)
+  }
+
+  setSelectable (row) {
+    return !(this.modelInstance.second_storage_enabled && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === row.tableName + '.' + row.name)
   }
 
   // 判断 cc 是否引用了不预计算的维表

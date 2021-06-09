@@ -373,5 +373,8 @@ export default {
   },
   syncSegmentsSecStorage (para) {
     return Vue.resource(apiUrl + 'storage/segments').save(para)
+  },
+  deleteSyncSegments (para) {
+    return Vue.resource(apiUrl + 'storage/segments{?segment_ids}').delete(para)
   }
 }

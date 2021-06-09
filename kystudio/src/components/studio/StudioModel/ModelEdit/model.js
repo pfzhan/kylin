@@ -997,14 +997,17 @@ class NModel extends Schama {
       options.plumbTool = this.plumbTool
       options.source_type = tableInfo.source_type
       options.fact = tableInfo.fact
-      if (tableInfo.source_type === 1) {
+      if (tableInfo.source_type === 1 && !options.isSecStorageEnabled) {
         if (!this.getFactTable()) {
           options.kind = modelRenderConfig.tableKind.fact
           this.fact_table = options.table // kafka的table直接为fact表
         } else {
-          this.vm.$message({ type: 'info', message: this.vm.$t('kafakFactTips') })
+          this.vm.$message({ type: 'info', message: this.vm.$t('kafakFactTips'), showClose: true, duration: 0 })
           return
         }
+      } else if (tableInfo.source_type === 1 && options.isSecStorageEnabled) {
+        this.vm.$message({ type: 'info', message: this.vm.$t('kafakDisableSecStorageTips'), showClose: true, duration: 0 })
+        return
       } else {
         if (options.fact) {
           if (this.getFactTable()) {

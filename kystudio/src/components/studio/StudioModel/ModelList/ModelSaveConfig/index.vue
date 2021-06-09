@@ -12,6 +12,14 @@
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
     <div class="partition-set ksd-mb-10" v-if="mode === 'saveModel'">
       <el-alert
+        :title="$t('secondStoragePartitionTips')"
+        type="error"
+        :closable="false"
+        class="ksd-mb-10"
+        v-if="isShowSecondStoragePartitionTips"
+        show-icon>
+      </el-alert>
+      <el-alert
         :title="$t('changeBuildTypeTips')"
         type="warning"
         :closable="false"
@@ -141,7 +149,7 @@
             type="tip"
             :closable="false"
             class="ksd-mb-8"
-            v-if="modelDesc.simplified_dimensions.length>=20"
+            v-if="modelDesc.simplified_dimensions.length>=20&&!isStreamModel"
             show-icon>
           </el-alert>
           <el-alert
@@ -153,8 +161,18 @@
             show-icon>
           </el-alert>
           <span class="ksd-title-label-mini">{{$t('secStorage')}}</span>
-          <span>
+          <span class="sec-switch">
+            <common-tip :content="$t('disableSecStorageActionTips')" v-if="isStreamModel">
+              <el-switch
+                disabled
+                v-model="modelDesc.with_second_storage"
+                @change="val => handleSecStorageEnabled(val)"
+                :active-text="$t('kylinLang.common.OFF')"
+                :inactive-text="$t('kylinLang.common.ON')">
+              </el-switch>
+            </common-tip>
             <el-switch
+              v-else
               v-model="modelDesc.with_second_storage"
               @change="val => handleSecStorageEnabled(val)"
               :active-text="$t('kylinLang.common.OFF')"
@@ -207,7 +225,7 @@ import store, { types } from './store'
 import { timeDataType, dateFormats } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { objectClone, isSubPartitionType } from '../../../../../util'
+import { objectClone, isSubPartitionType, indexOfObjWithSomeKey } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelSaveConfig'], store)
@@ -224,6 +242,7 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
       mode: state => state.form.mode,
       modelDesc: state => state.form.modelDesc,
       modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
+      allDimension: state => state.form.allDimension,
       isChangeModelLayout: state => state.form.isChangeModelLayout,
       callback: state => state.callback
     }),
@@ -293,6 +312,7 @@ export default class ModelPartitionModal extends Vue {
   defaultBuildType = 'incremental'
   addBaseIndex = true
   isShowSecStorageTips = false
+  isShowSecondStoragePartitionTips = false
 
   handleSecStorageEnabled (val) {
     if (!val && this.modelDesc.second_storage_size > 0) {
@@ -494,7 +514,7 @@ export default class ModelPartitionModal extends Vue {
       // this.$nextTick(() => {
       //   this.$refs.partitionForm && this.$refs.partitionForm.validate()
       // })
-      this.isExpand = !this.modelDesc.uuid
+      this.isExpand = !this.modelDesc.uuid && !this.isStreamModel
       if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) && !this.isStreamModel) {
         this.buildType = 'fullLoad'
         this.defaultBuildType = 'fullLoad'
@@ -546,6 +566,8 @@ export default class ModelPartitionModal extends Vue {
     this.isLoadingFormat = false
     this.isShowWarning = false
     this.defaultBuildType = 'incremental'
+    this.isShowSecStorageTips = false
+    this.isShowSecondStoragePartitionTips = false
   }
 
   get isChangeToFullLoad () {
@@ -559,6 +581,15 @@ export default class ModelPartitionModal extends Vue {
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+    // 开启了分层存储，时间分区列必须选做维度列
+    if (this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental' && this.modelDesc.with_second_storage) {
+      const partitionColumn = this.partitionMeta.table + '.' + this.partitionMeta.column
+      const index = indexOfObjWithSomeKey(this.allDimension, 'column', partitionColumn)
+      if (index === -1) {
+        this.isShowSecondStoragePartitionTips = true
+        return
+      }
+    }
     let isOnlySave = true
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
       // if (this.prevPartitionMeta.table && this.buildType === 'fullLoad') {
@@ -723,6 +754,9 @@ export default class ModelPartitionModal extends Vue {
 <style lang="less" scoped>
 @import '../../../../../assets/styles/variables.less';
 .model-partition-dialog {
+  .sec-switch .el-switch__button {
+    top: 2px;
+  }
   .secStorage-desc {
     font-size: 12px;
     line-height: 16px;

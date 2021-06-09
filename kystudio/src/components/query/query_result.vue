@@ -225,7 +225,7 @@ import echarts from 'echarts'
       CONSTANT_QUERY: 'Constant query',
       HIT_CACHE: 'Cache hit',
       pleaseSelect: 'Please select',
-      secStorage: 'Secondary Storage'
+      secStorage: 'Tiered Storage'
     },
     'zh-cn': {
       username: '用户名',
@@ -267,7 +267,7 @@ import echarts from 'echarts'
       CONSTANT_QUERY: '常数查询',
       HIT_CACHE: '击中缓存',
       pleaseSelect: '请选择',
-      secStorage: '二级存储'
+      secStorage: '分层存储'
     }
   },
   filters: {
