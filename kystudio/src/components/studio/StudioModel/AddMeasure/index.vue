@@ -716,7 +716,7 @@ export default class AddMeasure extends Vue {
 
   // SUM 或 PERCENTILE_APPROX 度量不适用 varchar 列
   handlerErrorTip (m) {
-    return (m.expression.indexOf('SUM') >= 0 || m.expression === 'PERCENTILE_APPROX') && m.return_type.indexOf('varchar') >= 0
+    return (m.expression.indexOf('SUM') >= 0 || m.expression === 'PERCENTILE_APPROX') && m.return_type && m.return_type.indexOf('varchar') >= 0
   }
 }
 </script>

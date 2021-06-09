@@ -1511,7 +1511,7 @@ export default class AggregateModal extends Vue {
 
   scrollEvent (e) {
     const { clientHeight, scrollHeight, scrollTop } = e.target
-    if (clientHeight + scrollTop === scrollHeight) {
+    if (clientHeight + scrollTop + 40 >= scrollHeight) {
       if (this.pageOffset * this.pageSize >= this.backUpDimensions.length) return
       this.pageOffset += 1
       this.getDimensionList()
