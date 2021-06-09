@@ -44,8 +44,7 @@ import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.MetricsTag;
-import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -363,12 +362,10 @@ public class JobService extends BasicService {
             break;
         case DISCARD:
             discardJob(project, jobId);
-            MetricsGroup.hostTagCounterInc(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, project);
-            JobTypeEnum jobType = executableManager.getJob(jobId).getJobType();
-            Map<String, String> tags = Maps.newHashMap();
-            tags.put(MetricsTag.HOST.getVal(), AddressUtil.getZkLocalInstance());
-            tags.put(MetricsTag.JOB_TYPE.getVal(), jobType == null ? "" : jobType.name());
-            MetricsGroup.counterInc(MetricsName.TERMINATED_JOB_COUNT, MetricsCategory.PROJECT, project, tags);
+            JobTypeEnum jobTypeEnum = executableManager.getJob(jobId).getJobType();
+            String jobType = jobTypeEnum == null ? "" : jobTypeEnum.name();
+            UnitOfWork.get().doAfterUnit(() ->
+                    EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
             break;
         case PAUSE:
             executableManager.pauseJob(jobId);

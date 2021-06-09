@@ -67,7 +67,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
 
     static CountDownLatch latch;
 
-    static JobSchedulerListener.JobInfo modelInfo = new JobSchedulerListener.JobInfo(
+    static JobSyncListener.JobInfo modelInfo = new JobSyncListener.JobInfo(
             "f26641d7-2094-473b-972a-4e1cebe55091", "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
             Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"), Sets.newHashSet(1L), 1000L, "SUCCEED",
             "INDEX_BUILD", new ArrayList<>());
@@ -89,7 +89,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
                 server.createContext("/test", new ModelHandler());
                 server.start();
 
-                JobSchedulerListener.postJobInfo(modelInfo);
+                JobSyncListener.postJobInfo(modelInfo);
 
                 latch.await(10, TimeUnit.SECONDS);
                 server.stop(0);
@@ -123,7 +123,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
                     server.createContext("/test", new TimeoutHandler());
                     server.start();
 
-                    JobSchedulerListener.postJobInfo(modelInfo);
+                    JobSyncListener.postJobInfo(modelInfo);
 
                     latch.await(10, TimeUnit.SECONDS);
                     server.stop(0);
@@ -183,7 +183,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         layoutIds.add(1L);
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
                 segIds, layoutIds, waitTime);
-        JobSchedulerListener.JobInfo jobInfo = JobSchedulerListener.extractJobInfo(notifier);
+        JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
         Assert.assertEquals(jobId, jobInfo.getJobId());
         Assert.assertEquals(project, jobInfo.getProject());
         Assert.assertEquals(subject, jobInfo.getModelId());
@@ -192,7 +192,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(jobType, jobInfo.getJobType());
         Assert.assertTrue(jobInfo.getSegmentIds().containsAll(segIds));
         Assert.assertEquals(segIds.size(), jobInfo.getSegmentIds().size());
-        JobSchedulerListener.SegRange segRange = jobInfo.getSegRanges().get(0);
+        JobSyncListener.SegRange segRange = jobInfo.getSegRanges().get(0);
         Assert.assertEquals("11124840-b3e3-43db-bcab-2b78da666d00", segRange.getSegmentId());
         Assert.assertEquals(1309891513770L, segRange.getStart());
         Assert.assertEquals(1509891513770L, segRange.getEnd());

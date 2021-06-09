@@ -74,6 +74,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT_NEWTEN = "newten";
 
     private final JobSchedulerListener jobSchedulerListener = new JobSchedulerListener();
+    private final JobSyncListener jobSyncListener = new JobSyncListener();
 
     @InjectMocks
     private final JobService jobService = Mockito.spy(new JobService());
@@ -106,7 +107,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         EventBusFactory.getInstance().restart();
 
         jobSchedulerListener.setJobReadyNotified(false);
-        jobSchedulerListener.setJobFinishedNotified(false);
+        jobSyncListener.setJobFinishedNotified(false);
         cleanupTestMetadata();
     }
 
@@ -117,7 +118,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
         overwriteSystemProp("kylin.scheduler.schedule-limit-per-minute", "6000");
         Assert.assertFalse(jobSchedulerListener.isJobReadyNotified());
-        Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
+        Assert.assertFalse(jobSyncListener.isJobFinishedNotified());
 
         val df = NDataflowManager.getInstance(getTestConfig(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -138,13 +139,13 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
         // job created message got dispatched
         Assert.assertTrue(jobSchedulerListener.isJobReadyNotified());
-        Assert.assertFalse(jobSchedulerListener.isJobFinishedNotified());
+        Assert.assertFalse(jobSyncListener.isJobFinishedNotified());
 
         // wait for job finished
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
             Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task.getId()).getState());
-            Assert.assertTrue(jobSchedulerListener.isJobFinishedNotified());
+            Assert.assertTrue(jobSyncListener.isJobFinishedNotified());
         });
     }
 

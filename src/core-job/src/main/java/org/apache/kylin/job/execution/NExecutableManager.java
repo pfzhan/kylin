@@ -54,7 +54,7 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -84,9 +84,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.metrics.MetricsCategory;
-import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
@@ -186,18 +183,17 @@ public class NExecutableManager {
         addJobOutput(executablePO);
         executableDao.addJob(executablePO);
 
-        String project = executablePO.getParams().get(NBatchConstants.P_PROJECT_NAME);
-        MetricsGroup.hostTagCounterInc(MetricsName.JOB, MetricsCategory.PROJECT, project);
-        Map<String, String> tags = Maps.newHashMap();
-        tags.put(MetricsTag.HOST.getVal(), AddressUtil.getZkLocalInstance());
-        tags.put(MetricsTag.JOB_TYPE.getVal(), executablePO.getJobType() == null ? "" : executablePO.getJobType().name());
-        MetricsGroup.counterInc(MetricsName.JOB_COUNT, MetricsCategory.PROJECT, project, tags);
+        String jobType = executablePO.getJobType() == null ? "" : executablePO.getJobType().name();
         // dispatch job-created message out
-        if (KylinConfig.getInstanceFromEnv().isUTEnv())
-            EventBusFactory.getInstance().postWithLimit(new JobReadyNotifier(project));
-        else
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            EventBusFactory.getInstance().postAsync(new JobReadyNotifier(project));
+            EventBusFactory.getInstance().postAsync(new JobAddedNotifier(project, jobType));
+        } else
             UnitOfWork.get()
-                    .doAfterUnit(() -> EventBusFactory.getInstance().postWithLimit(new JobReadyNotifier(project)));
+                    .doAfterUnit(() -> {
+                        EventBusFactory.getInstance().postAsync(new JobReadyNotifier(project));
+                        EventBusFactory.getInstance().postAsync(new JobAddedNotifier(project, jobType));
+                    });
     }
 
     private void addJobOutput(ExecutablePO executable) {

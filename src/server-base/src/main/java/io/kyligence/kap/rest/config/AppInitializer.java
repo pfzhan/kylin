@@ -27,6 +27,7 @@ import java.util.Date;
 
 import io.kyligence.kap.metadata.streaming.JdbcStreamingJobStatsStore;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
+import io.kyligence.kap.rest.scheduler.JobSyncListener;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -113,7 +114,8 @@ public class AppInitializer {
             streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
 
             // register scheduler listener
-            EventBusFactory.getInstance().register(new JobSchedulerListener(), true);
+            EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
+            EventBusFactory.getInstance().register(new JobSyncListener(), true);
             EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
             EventBusFactory.getInstance().register(epochChangedListener, false);
             EventBusFactory.getInstance().register(broadcastListener, false);
