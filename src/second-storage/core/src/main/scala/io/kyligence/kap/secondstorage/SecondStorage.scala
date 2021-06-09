@@ -31,8 +31,8 @@ import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-import scala.collection.JavaConverters
 import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 
 object SecondStorage extends LogEx {
 
@@ -90,37 +90,42 @@ object SecondStorage extends LogEx {
     layout: LayoutEntity,
     pruningInfo: String): Option[DataFrame] = {
     // Only support table index
-    if (enabled && layout.getIndex.isTableIndex) {
-      val tableData = tableFlowManager(dataflow)
+    val enableSSForThisQuery = enabled  &&  layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
+    val result = Option.apply(enableSSForThisQuery)
+      .filter(_ == true)
+      .flatMap(_ =>
+        tableFlowManager(dataflow)
         .get(dataflow.getUuid)
         .flatMap(f => f.getEntity(layout))
-        .toOption
+        .toOption)
+      .filter { tableData =>
+        val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
+        tableData.containSegments(allSegIds)}
+      .flatMap (tableData => tryCreateDataFrame(Some(tableData), sparkSession) )
 
-      val allSegIds = pruningInfo.split(",").map(s => s.split(":")(0)).toSet.asJava
-      if (tableData.exists(_.containSegments(allSegIds))) {
-        val result = tryCreateDataFrame(tableData, sparkSession)
-        if (tableData.isDefined) {
-          QueryContext.current().getSecondStorageUsageMap.put(tableData.get.getLayoutID, true)
-        }
-        result
-      } else {
-        None
-      }
-    } else {
-      None
+    if (result.isDefined) {
+      QueryContext.current().getSecondStorageUsageMap.put(layout.getId, true)
     }
+
+    result
   }
 
   private def tryCreateDataFrame(tableData: Option[TableData], sparkSession: SparkSession) = {
-    for {
-      shardJDBCURLs <- tableData.map(_.getShardJDBCURLs)
-      database <- tableData.map(_.getDatabase)
-      table <- tableData.map(_.getTable)
-      catalog <- queryCatalog()
-    } yield {
-      sparkSession.read
-        .option(ShardOptions.SHARD_URLS, shardJDBCURLs)
-        .table(s"$catalog.$database.$table")
+    try {
+      for {
+        shardJDBCURLs <- tableData.map(_.getShardJDBCURLs)
+        database <- tableData.map(_.getDatabase)
+        table <- tableData.map(_.getTable)
+        catalog <- queryCatalog()
+      } yield {
+        sparkSession.read
+          .option(ShardOptions.SHARD_URLS, shardJDBCURLs)
+          .table(s"$catalog.$database.$table")
+      }
+    } catch {
+      case NonFatal(e) =>
+        logDebug("Failed to use second storage table-index", e)
+        None
     }
   }
 }

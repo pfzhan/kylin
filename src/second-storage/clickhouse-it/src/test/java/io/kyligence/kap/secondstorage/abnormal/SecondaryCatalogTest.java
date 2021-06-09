@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.secondstorage;
+package io.kyligence.kap.secondstorage.abnormal;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +30,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import org.apache.kylin.common.KylinConfig;
@@ -48,7 +49,7 @@ import java.util.List;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 
-public class AbnormalTest {
+public class SecondaryCatalogTest {
     static private final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
     static private final String project = "table_index";
 

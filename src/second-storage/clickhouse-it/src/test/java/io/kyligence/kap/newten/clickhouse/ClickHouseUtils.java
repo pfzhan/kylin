@@ -39,6 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.apache.spark.sql.execution.datasource.FilePruner;
+import org.apache.spark.sql.execution.datasources.HadoopFsRelation;
+import org.apache.spark.sql.execution.datasources.LogicalRelation;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation;
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation;
@@ -339,6 +342,26 @@ public class ClickHouseUtils {
             s = m.group(2);
         }
         return s;
+    }
+
+    static public FilePruner findFilePruner(LogicalPlan logicalPlan) {
+        return new RichOption<>(
+                logicalPlan.find(new AbstractFunction1<LogicalPlan, Object>() {
+                    @Override
+                    public Object apply(LogicalPlan v1) {
+                        if (v1 instanceof LogicalRelation
+                                && ((LogicalRelation) v1).relation() instanceof HadoopFsRelation) {
+                            HadoopFsRelation fsRelation = (HadoopFsRelation)(((LogicalRelation) v1).relation());
+                            return fsRelation.location() instanceof FilePruner;
+                        } else {
+                            return false;
+                        }
+                    }
+                }))
+                .toOptional()
+                .map(logical -> (HadoopFsRelation)(((LogicalRelation) logical).relation()))
+                .map(fsRelation -> (FilePruner)fsRelation.location())
+                .orElseThrow(() -> new IllegalStateException(" no FilePruner found"));
     }
 
     /* See

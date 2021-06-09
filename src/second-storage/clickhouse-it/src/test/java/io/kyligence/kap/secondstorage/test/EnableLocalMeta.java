@@ -24,6 +24,7 @@
 package io.kyligence.kap.secondstorage.test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.rules.ExternalResource;
 
@@ -39,6 +40,10 @@ public class EnableLocalMeta extends ExternalResource implements KapTest {
     public EnableLocalMeta(String project, String... extraMeta) {
         this.project = project;
         this.overlay = extraMeta;
+    }
+
+    public KylinConfig getTestConfig() {
+        return NLocalFileMetadataTestCase.getTestConfig();
     }
 
     @Override

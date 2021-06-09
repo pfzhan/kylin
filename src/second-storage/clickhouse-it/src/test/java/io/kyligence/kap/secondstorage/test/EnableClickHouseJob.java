@@ -73,7 +73,7 @@ public class EnableClickHouseJob extends EnableScheduler {
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
         ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
         secondStorageService.changeProjectSecondStorageState(project, SecondStorageNodeHelper.getAllNames(), true);
-        Assert.assertEquals(1, SecondStorageUtil.listProjectNodes(project).size());
+        Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(project).size());
         secondStorageService.changeModelSecondStorageState(project, modelName, true);
     }
 

@@ -132,6 +132,10 @@ public class QueryContext implements Closeable {
     @Setter
     private Map<Long, Boolean> secondStorageUsageMap = new HashMap<>();
 
+    @Getter
+    @Setter
+    private boolean forceTableIndex = false;
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryId = UUID.randomUUID().toString();

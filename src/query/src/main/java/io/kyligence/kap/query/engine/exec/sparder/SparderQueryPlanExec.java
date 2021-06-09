@@ -50,6 +50,7 @@ import io.kyligence.kap.query.relnode.KapRel;
 import io.kyligence.kap.query.util.QueryContextCutter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.spark.SparkException;
 
 /**
  * implement and execute a physical plan with Sparder
@@ -97,10 +98,32 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 "io.kyligence.kap.query.runtime.SparkEngine");
         try {
             QueryEngine queryEngine = (QueryEngine) Class.forName(queryEngineClazz).newInstance();
-            return queryEngine.compute(dataContext, rel.getInput(0));
+            return internalCompute(queryEngine, dataContext, rel.getInput(0));
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private static boolean forceTableIndexAtException(Exception e) {
+        return !QueryContext.current().isForceTableIndex()
+                && e instanceof SparkException
+                && !QueryContext.current().getSecondStorageUsageMap().isEmpty();
+    }
+
+    protected List<List<String>> internalCompute(QueryEngine queryEngine, DataContext dataContext, RelNode rel) {
+        try {
+            return queryEngine.compute(dataContext, rel);
+        } catch (final Exception e) {
+            if (forceTableIndexAtException(e)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Failed to use second storage table-index", e);
+                }
+                QueryContext.current().setForceTableIndex(true);
+            } else {
+                throw e;
+            }
+        }
+        return queryEngine.compute(dataContext, rel);
     }
 
     /**
