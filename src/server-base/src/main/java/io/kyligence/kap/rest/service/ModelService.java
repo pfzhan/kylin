@@ -91,18 +91,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.rest.constant.ModelAttributeEnum;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import io.kyligence.kap.rest.response.InvalidIndexesResponse;
-import io.kyligence.kap.secondstorage.SecondStorage;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
-import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.ToString;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -124,6 +112,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.InMemoryJobRunner;
 import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobSubmissionException;
@@ -136,7 +125,6 @@ import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
-import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -188,6 +176,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
 import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -227,6 +216,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
@@ -237,6 +227,7 @@ import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnCheckResponse;
@@ -244,6 +235,7 @@ import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.FusionModelResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.InvalidIndexesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -270,6 +262,9 @@ import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
@@ -278,11 +273,16 @@ import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.BISyncTool;
 import io.kyligence.kap.tool.bisync.SyncContext;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.val;
 import lombok.var;
 
@@ -880,7 +880,7 @@ public class ModelService extends BasicService {
         // filtering on index
         IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getIndexPlan(modelId);
-        Set<Long> allIndexes = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        Set<Long> allIndexes = indexPlan.getAllLayoutIds(true);
         if (CollectionUtils.isNotEmpty(withAllIndexes)) {
             for (Long idx : withAllIndexes) {
                 if (!allIndexes.contains(idx)) {
@@ -896,7 +896,8 @@ public class ModelService extends BasicService {
             }
         }
         List<NDataSegment> indexFiltered = new LinkedList<>();
-        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement, allIndexes, indexFiltered,
+        segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement,
+                indexPlan.getAllLayoutIds(false), indexFiltered,
                 segment));
         segmentResponseList = indexFiltered.stream()
                 .filter(segment -> !StringUtils.isNotEmpty(status) || status
@@ -937,10 +938,12 @@ public class ModelService extends BasicService {
     }
 
     private void filterSeg(Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes, boolean allToComplement,
-            Set<Long> allIndexes, List<NDataSegment> indexFiltered, NDataSegment segment) {
+            Set<Long> allIndexWithoutTobeDel, List<NDataSegment> indexFiltered, NDataSegment segment) {
         if (allToComplement) {
-            // find seg that does not have all indexes
-            if (segment.getSegDetails().getLayouts().size() != allIndexes.size()) {
+            // find seg that does not have all indexes(don't include tobeDeleted)
+            val segLayoutIds = segment.getSegDetails().getLayouts().stream().map(layout -> layout.getLayoutId())
+                    .collect(Collectors.toSet());
+            if (!Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty()) {
                 indexFiltered.add(segment);
             }
         } else if (withAllIndexes != null && !withAllIndexes.isEmpty()) {

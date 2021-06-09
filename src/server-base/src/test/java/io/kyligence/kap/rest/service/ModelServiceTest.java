@@ -67,10 +67,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.constant.ModelAttributeEnum;
-import io.kyligence.kap.streaming.jobs.StreamingJobListener;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -192,6 +188,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -222,9 +219,12 @@ import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.streaming.jobs.StreamingJobListener;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -538,6 +538,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Segments<NDataSegment> segments = modelService.getSegmentsByRange("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "default", "0", "" + Long.MAX_VALUE);
         Assert.assertEquals(1, segments.size());
+    }
+
+    @Test
+    public void testGetSegmentNotFullIndex() {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.markIndexesToBeDeleted(modelId,
+                    indexPlan.getAllLayouts().stream().collect(Collectors.toSet()));
+            copyForWrite.getIndexes().clear();
+        });
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+        dataflowUpdate.setToRemoveLayouts(dataflow.getSegments().get(0).getSegDetails().getLayouts().get(0));
+        dataflowManager.updateDataflow(dataflowUpdate);
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default", "0", "" + Long.MAX_VALUE, "ONLINE", null, null, true, "start_time", false);
+        Assert.assertThat(segments.size(), is(0));
     }
 
     @Test

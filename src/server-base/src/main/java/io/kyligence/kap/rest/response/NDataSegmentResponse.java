@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.response;
 import java.io.Serializable;
 import java.util.List;
 
-import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
@@ -38,6 +37,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -115,7 +115,7 @@ public class NDataSegmentResponse extends NDataSegment {
         endTime = Long.parseLong(getSegRange().getEnd().toString());
         storage = bytesSize;
         indexCount = segment.getLayoutSize();
-        indexCountTotal = segment.getIndexPlan().getAllLayouts().size();
+        indexCountTotal = segment.getIndexPlan().getAllLayoutsSize();
         multiPartitionCount = segment.getMultiPartitions().size();
         hasBaseAggIndex = segment.getIndexPlan().containBaseAggLayout();
         hasBaseTableIndex = segment.getIndexPlan().containBaseTableLayout();

@@ -978,6 +978,14 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return baseTableLayout != null ? baseTableLayout.getId() : null;
     }
 
+    public Set<Long> getAllLayoutIds(boolean withTobeDel) {
+        return getIdMapping().getAllLayoutIds(withTobeDel);
+    }
+
+    public long getAllLayoutsSize() {
+        return getIdMapping().getAllLayoutsSize();
+    }
+
     public class IndexPlanUpdateHandler {
         IndexPlan indexPlan;
         Map<IndexEntity.IndexIdentifier, IndexEntity> whiteIndexesMap;
@@ -1139,6 +1147,18 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
         public LayoutEntity getLayoutEntity(Long layoutId) {
             return allLayoutMapping.get(layoutId);
+        }
+
+        public Set<Long> getAllLayoutIds(boolean withTobeDel) {
+            if (withTobeDel) {
+                return allLayoutMapping.keySet();
+            }
+            return allLayoutMapping.values().stream().filter(layout -> !layout.isToBeDeleted()).map(LayoutEntity::getId)
+                    .collect(Collectors.toSet());
+        }
+
+        public long getAllLayoutsSize() {
+            return allLayoutMapping.size();
         }
     }
 }
