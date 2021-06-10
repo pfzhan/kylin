@@ -21,22 +21,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.clickhouse;
 
-public class ClickHouseConstants {
+package io.kyligence.kap.secondstorage.test;
 
-    private ClickHouseConstants() {
-        throw new IllegalStateException("Utility class");
+import org.apache.kylin.rest.constant.Constant;
+import org.junit.rules.ExternalResource;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+public class EnableTestUser extends ExternalResource {
+    public static final String ADMIN = "ADMIN";
+    private final Authentication authentication = new TestingAuthenticationToken(ADMIN, ADMIN, Constant.ROLE_ADMIN);
+
+    @Override
+    protected void before() throws Throwable {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    // root path => /project/clickhouse_plan
-    public static final String RES_PATH_FMT = "/%s/%s_%s";
+    public String getUser() {
+        return ADMIN;
+    }
 
-    public static final String STORAGE_NAME = "clickhouse";
-    public static final String PLAN = "plan";
-    public static final String DATA = "data";
-    public static final String NODE_GROUP = "node_group";
-
-    // property
-    public static final String CONFIG_CLICKHOUSE_QUERY_CATALOG = "kylin.second-storage.jdbc-catalog";
+    @Override
+    protected void after() {
+        SecurityContextHolder.getContext().setAuthentication(null);
+    }
 }

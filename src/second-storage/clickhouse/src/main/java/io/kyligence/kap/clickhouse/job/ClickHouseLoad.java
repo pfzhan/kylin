@@ -163,7 +163,7 @@ public class ClickHouseLoad extends AbstractExecutable {
         return getSegmentIds() // Equivalent to scala `for comprehension`
                 .stream()
                 .flatMap(segId ->
-                        getLayoutIds().stream().map(indexPlan::getLayoutEntity).filter(SecondStorageUtil::isBaseIndex).map(layoutEntity -> {
+                        getLayoutIds().stream().map(indexPlan::getLayoutEntity).filter(SecondStorageUtil::isBaseTableIndex).map(layoutEntity -> {
                             TableEntity tableEntity = tablePlan.getEntity(layoutEntity).orElse(null);
                             Preconditions.checkArgument(tableEntity != null);
                             int shardNumber = Math.min(ckInstances, tableEntity.getShardNumbers());

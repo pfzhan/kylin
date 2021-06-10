@@ -27,17 +27,23 @@ package io.kyligence.kap.secondstorage.management;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.NManager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
@@ -49,6 +55,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.handler.SecondStorageProjectCleanJobHandler;
+import org.apache.kylin.job.handler.SecondStorageSegmentCleanJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -65,7 +72,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 
-public class SecondStorageService extends BasicService {
+public class SecondStorageService extends BasicService implements SecondStorageUpdater {
 
     @Autowired
     public AclEvaluate aclEvaluate;
@@ -80,6 +87,7 @@ public class SecondStorageService extends BasicService {
         return tableFlowManager.get().listAll().stream().filter(tableFlow -> tableFlow.getId().equals(modelId)).findFirst();
     }
 
+    @Transaction(project = 0)
     public Optional<JobInfoResponse.JobInfo> changeModelSecondStorageState(String project, String modelId, boolean enabled) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv())
             aclEvaluate.checkProjectAdminPermission(project);
@@ -96,6 +104,7 @@ public class SecondStorageService extends BasicService {
         return Optional.ofNullable(jobInfo);
     }
 
+    @Transaction(project = 0)
     public Optional<JobInfoResponse.JobInfo> changeProjectSecondStorageState(String project, List<String> nodes, boolean enable) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv())
             aclEvaluate.checkProjectAdminPermission(project);
@@ -174,6 +183,15 @@ public class SecondStorageService extends BasicService {
         return getJobManager(project).addJob(param, jobHandler);
     }
 
+    @Transaction(project = 0)
+    public String triggerSegmentsClean(String project, String model, Set<String> segIds) {
+        Preconditions.checkState(SecondStorageUtil.isModelEnable(project, model));
+        SecondStorageUtil.cleanSegments(project, model, segIds);
+        val jobHandler = new SecondStorageSegmentCleanJobHandler();
+        final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), segIds);
+        return getJobManager(project).addJob(param, jobHandler);
+    }
+
 
     public List<NodeData> listAvailableNodes() {
         val config = KylinConfig.getInstanceFromEnv();
@@ -188,12 +206,13 @@ public class SecondStorageService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    private void enableModelSecondStorage(String project, String modelId) {
+    public void enableModelSecondStorage(String project, String modelId) {
         if (isEnabled(project, modelId)) {
             return;
         }
         val indexPlanManager = getIndexPlanManager(project);
-        if (!indexPlanManager.getIndexPlan(modelId).containBaseTableLayout()) {
+        final IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
+        if (!indexPlan.containBaseTableLayout() && !indexPlan.getModel().getEffectiveDimensions().isEmpty()) {
             indexPlanManager.updateIndexPlan(modelId, copied -> {
                 copied.createAndAddBaseIndex(Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
             });
@@ -241,6 +260,36 @@ public class SecondStorageService extends BasicService {
     public void isProjectAdmin(String project) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             aclEvaluate.checkProjectAdminPermission(project);
+        }
+    }
+
+    @Override
+    @Transaction(project = 0)
+    public void onUpdate(final String project, final String modelId) {
+        if (!SecondStorageUtil.isModelEnable(project, modelId)) return;
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(getConfig(), project);
+        val tablePlanManager = SecondStorageUtil.tablePlanManager(getConfig(), project);
+        val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Preconditions.checkState(tablePlanManager.isPresent());
+        Preconditions.checkState(tableFlowManager.isPresent());
+        val tableFlow = tableFlowManager.get().get(modelId);
+        Preconditions.checkState(tableFlow.isPresent());
+        if (indexPlan.getBaseTableLayout() != null) {
+            val dataflowManager = NDataflowManager.getInstance(getConfig(), project);
+            if (!dataflowManager.getDataflow(modelId).getSegments().isEmpty()) {
+                // when segment exits, trigger model clean job
+                triggerModelClean(project, modelId);
+            }
+            tableFlowManager.get().get(modelId).map(tf -> {
+                tf.update(TableFlow::cleanTableData);
+                return tf;
+            });
+            tablePlanManager.get().get(modelId).map(tp -> {
+                tp = tp.update(TablePlan::cleanTable);
+                tp.createTableEntityIfNotExists(indexPlan.getBaseTableLayout(), true);
+                return tp;
+            });
         }
     }
 }

@@ -181,6 +181,7 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
@@ -5671,9 +5672,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void changeSecondStorageIfNeeded() throws IOException {
         val models = new ArrayList<>(modelService.listAllModelIdsInProject("default"));
-        val model = models.get(0);
+        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, "default");
         SecondStorageUtil.initModelMetaData("default", model);
+        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(false);
         request.setUuid(model);

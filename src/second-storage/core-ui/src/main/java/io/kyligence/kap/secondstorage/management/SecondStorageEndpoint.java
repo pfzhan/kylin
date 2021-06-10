@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.secondstorage.management;
 
+import com.google.common.base.Preconditions;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -42,6 +44,8 @@ import lombok.val;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -49,25 +53,29 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 @RestController
 @RequestMapping(value = "/api/storage", produces = {HTTP_VND_APACHE_KYLIN_JSON})
 @Slf4j
+@ConditionalOnProperty({"kylin.second-storage.class"})
 public class SecondStorageEndpoint extends NBasicController {
+    private static final String MODEL_ARG_NAME = "model";
 
     @Autowired
     @Qualifier("modelService")
@@ -90,13 +98,26 @@ public class SecondStorageEndpoint extends NBasicController {
     @ApiOperation(value = "loadSegments")
     @PostMapping(value = "/segments")
     @ResponseBody
-    public EnvelopeResponse<JobInfoResponse>
-    loadStorage(@RequestBody StorageRequest request) {
+    public EnvelopeResponse<JobInfoResponse> loadStorage(@RequestBody StorageRequest request) {
         checkProjectName(request.getProject());
-        checkRequiredArg("model", request.getModel());
+        checkRequiredArg(MODEL_ARG_NAME, request.getModel());
         checkSegmentParms(request.getSegmentIds().toArray(new String[0]),
                 request.getSegmentNames().toArray(new String[0]));
         return internalLoadIntoStorage(request);
+    }
+
+    @ApiOperation(value = "cleanSegments")
+    @DeleteMapping(value = "/segments")
+    @ResponseBody
+    public EnvelopeResponse cleanStorage(StorageRequest request,
+                                         @RequestParam(name="segment_ids") List<String> segmentIds) {
+        request.setSegmentIds(segmentIds);
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ARG_NAME, request.getModel());
+        checkSegmentParms(request.getSegmentIds().toArray(new String[0]),
+                request.getSegmentNames().toArray(new String[0]));
+        secondStorageService.triggerSegmentsClean(request.getProject(), request.getModel(), new HashSet<>(request.getSegmentIds()));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @ApiOperation(value = "enableModel")
@@ -104,7 +125,8 @@ public class SecondStorageEndpoint extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> enableStorage(@RequestBody ModelEnableRequest modelEnableRequest) {
         checkProjectName(modelEnableRequest.getProject());
-        checkRequiredArg("model", modelEnableRequest.getModel());
+        checkRequiredArg(MODEL_ARG_NAME, modelEnableRequest.getModel());
+        checkModel(modelEnableRequest.getProject(), modelEnableRequest.getModel());
         val jobInfo = secondStorageService.changeModelSecondStorageState(modelEnableRequest.getProject(),
                 modelEnableRequest.getModel(), modelEnableRequest.isEnabled());
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
@@ -161,11 +183,14 @@ public class SecondStorageEndpoint extends NBasicController {
     public EnvelopeResponse<Void> recoverModel(@RequestBody RecoverRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg("modelId", request.getModelId());
+        checkModel(request.getProject(), request.getModelId());
         importSingleModel(request.getProject(), request.getModelId());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     private void importSingleModel(String project, String model) {
+        Preconditions.checkState(SecondStorageUtil.isModelEnable(project, model),
+                "model %s doesn't enable tiered storage.", model);
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val segIds = dataflowManager.getDataflow(model).getQueryableSegments().stream()
@@ -185,7 +210,7 @@ public class SecondStorageEndpoint extends NBasicController {
         List<String> submittedModels = new ArrayList<>();
         val validModels = modelIds.stream().filter(model -> SecondStorageUtil.isModelEnable(request.getProject(), model))
                 .filter(model -> {
-                    val jobs = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning, null);
+                    val jobs = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning);
                     if (!jobs.isEmpty()) {
                         failedModels.add(model);
                     }
@@ -204,5 +229,14 @@ public class SecondStorageEndpoint extends NBasicController {
         response.setSubmittedModels(submittedModels);
         response.setFailedModels(failedModels);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    private void checkModel(String project, String modelId) {
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val model = modelManager.getDataModelDesc(modelId);
+        if (Objects.isNull(model)) {
+            throw new KylinException(MODEL_NOT_EXIST,
+                    "Model " + modelId + "does not exist in project " + project);
+        }
     }
 }

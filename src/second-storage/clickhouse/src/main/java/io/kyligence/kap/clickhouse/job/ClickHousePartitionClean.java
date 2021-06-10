@@ -36,10 +36,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 
-import java.sql.Date;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -74,15 +72,12 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
         setNodeCount(Math.toIntExact(nodeGroupManager.map(manager -> manager.listAll().stream()
                 .mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum()).orElse(0L)));
         segments.forEach(segment -> {
-            List<Date> partitions = IncrementalLoad.rangeToPartition(segmentRangeMap.get(segment));
             nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
                 if (!tableFlow.getTableDataList().isEmpty()) {
                     database = NameUtil.getDatabase(dataflow);
                     table = NameUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
-                    ShardClean shardClean = new ShardClean(node,
-                            database,
-                            table,
-                            partitions);
+                    ShardClean shardClean = segmentRangeMap.get(segment).isInfinite() ? new ShardClean(node, database, table, null, true)
+                            : new ShardClean(node, database, table, IncrementalLoad.rangeToPartition(segmentRangeMap.get(segment)));
                     shardCleanList.add(shardClean);
                 }
             });

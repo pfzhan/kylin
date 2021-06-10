@@ -503,7 +503,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
             Assert.assertNotNull(flow);
 
             Set<LayoutEntity> allLayouts = df.getIndexPlan().getAllLayouts().stream()
-                    .filter(SecondStorageUtil::isBaseIndex).collect(Collectors.toSet());
+                    .filter(SecondStorageUtil::isBaseTableIndex).collect(Collectors.toSet());
             Assert.assertEquals(allLayouts.size(), flow.getTableDataList().size());
             for (LayoutEntity layoutEntity : allLayouts) {
                 TableEntity tableEntity = plan.getEntity(layoutEntity).orElse(null);

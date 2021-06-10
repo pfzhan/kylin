@@ -161,12 +161,12 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         JobStepType.CUBING.createStep(job, config);
         JobStepType.UPDATE_METADATA.createStep(job, config);
         if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())) {
+            boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex);
             if (Objects.equals(jobType, JobTypeEnum.INDEX_BUILD) || Objects.equals(jobType, JobTypeEnum.INC_BUILD)) {
-                boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseIndex);
                 if (hasBaseIndex) {
                     JobStepType.SECOND_STORAGE_EXPORT.createStep(job, config);
                 }
-            } else if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH)) {
+            } else if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH) && hasBaseIndex) {
                 val oldSegs = job.getTargetSegments().stream().map(segId -> {
                     val curSeg = df.getSegment(segId);
                     return Objects.requireNonNull(df.getSegments().stream().filter(seg ->

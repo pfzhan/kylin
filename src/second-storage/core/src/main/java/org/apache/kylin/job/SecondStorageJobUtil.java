@@ -91,7 +91,7 @@ public class SecondStorageJobUtil extends ExecutableUtil {
                 .getLayoutsMap().values()
                 .stream()
                 .map(NDataLayout::getLayout)
-                .filter(SecondStorageUtil::isBaseIndex)
+                .filter(SecondStorageUtil::isBaseTableIndex)
                 .collect(Collectors.groupingBy(LayoutEntity::getIndexId));
 
         NDataModel dataModel = df.getModel();

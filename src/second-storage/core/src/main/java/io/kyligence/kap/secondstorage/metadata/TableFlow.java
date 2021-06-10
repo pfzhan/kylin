@@ -123,6 +123,11 @@ public class TableFlow extends RootPersistentEntity
         Preconditions.checkArgument(HasLayoutElement.sameLayout(data, layoutEntity));
     }
 
+    public void cleanTableData() {
+        checkIsNotCachedAndShared();
+        this.tableDataList.clear();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

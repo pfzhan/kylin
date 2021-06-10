@@ -27,10 +27,10 @@ package io.kyligence.kap.secondstorage;
 public class SecondStorageConstants {
     public static final String P_OLD_SEGMENT_IDS = "oldSegmentIds";
     public static final String P_MERGED_SEGMENT_ID = "mergedSegmentId";
-    public static final String NODE_REPLICA = "kylin.second-storage.node.replica";
+    public static final String NODE_REPLICA = "kylin.second-storage.node-replica";
 
     // config
-    public static final String CONFIG_SECOND_STORAGE_CLUSTER = "kylin.second-storage.cluster.config";
+    public static final String CONFIG_SECOND_STORAGE_CLUSTER = "kylin.second-storage.cluster-config";
 
     // job
     public static final String STEP_EXPORT_TO_SECOND_STORAGE = "STEP_EXPORT_TO_SECOND_STORAGE";

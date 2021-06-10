@@ -1744,18 +1744,16 @@ public class ModelService extends BasicService {
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
 
-        val dataModel = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataModel model = saveModel(project, modelRequest);
             modelRequest.setUuid(model.getUuid());
             updateExcludedCheckerResult(project, modelRequest);
+            // enable second storage
+            if (modelRequest.isWithSecondStorage() && !SecondStorageUtil.isModelEnable(project, model.getId())) {
+                SecondStorageUtil.initModelMetaData(project, model.getId());
+            }
             return getDataModelManager(project).getDataModelDesc(model.getUuid());
         }, project);
-
-        // enable second storage
-        if (modelRequest.isWithSecondStorage() && !SecondStorageUtil.isModelEnable(project, dataModel.getId())) {
-            SecondStorageUtil.initModelMetaData(project, dataModel.getId());
-        }
-        return dataModel;
     }
 
     public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
@@ -3119,7 +3117,7 @@ public class ModelService extends BasicService {
                 SegmentStatusEnumToDisplay.LOCKED);
 
         if (!SecondStorage.enabled()) {
-            throw new KylinException(JOB_CONFIGURATION_ERROR, "!!!No Second Storage is installed!!!");
+            throw new KylinException(JOB_CONFIGURATION_ERROR, "!!!No Tiered Storage is installed!!!");
         }
         val jobHandler = new SecondStorageSegmentLoadJobHandler();
 
@@ -3170,7 +3168,6 @@ public class ModelService extends BasicService {
         checkModelRequest(request);
         checkModelPermission(project, request.getUuid());
         validatePartitionDateColumn(request);
-        changeSecondStorageIfNeeded(project, request);
 
         val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
@@ -3205,6 +3202,7 @@ public class ModelService extends BasicService {
         updateExcludedCheckerResult(project, request);
         BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
+        changeSecondStorageIfNeeded(project, request);
         return baseIndexResponse;
     }
 

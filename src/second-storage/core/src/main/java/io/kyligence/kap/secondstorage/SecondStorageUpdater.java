@@ -21,22 +21,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.clickhouse;
 
-public class ClickHouseConstants {
+package io.kyligence.kap.secondstorage;
 
-    private ClickHouseConstants() {
-        throw new IllegalStateException("Utility class");
-    }
-
-    // root path => /project/clickhouse_plan
-    public static final String RES_PATH_FMT = "/%s/%s_%s";
-
-    public static final String STORAGE_NAME = "clickhouse";
-    public static final String PLAN = "plan";
-    public static final String DATA = "data";
-    public static final String NODE_GROUP = "node_group";
-
-    // property
-    public static final String CONFIG_CLICKHOUSE_QUERY_CATALOG = "kylin.second-storage.jdbc-catalog";
+public interface SecondStorageUpdater {
+    void onUpdate(String project, String modelId);
 }

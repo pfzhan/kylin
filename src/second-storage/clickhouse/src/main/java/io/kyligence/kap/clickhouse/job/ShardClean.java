@@ -27,11 +27,11 @@ package io.kyligence.kap.clickhouse.job;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.ddl.AlterTable;
 import io.kyligence.kap.secondstorage.ddl.DropDatabase;
 import io.kyligence.kap.secondstorage.ddl.DropTable;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -55,6 +55,8 @@ public class ShardClean {
     private String table;
     @JsonProperty("partitions")
     private List<Date> partitions;
+    @JsonProperty("isFull")
+    private boolean isFull = false;
 
     @JsonIgnore
     private ClickHouse clickHouse;
@@ -71,10 +73,16 @@ public class ShardClean {
     }
 
     public ShardClean(String node, String database, String table, List<Date> partitions) {
+        this(node, database, table, partitions, false);
+    }
+
+    public ShardClean(String node, String database, String table, List<Date> partitions, boolean isFull) {
         this.node = Preconditions.checkNotNull(node);
         this.database = Preconditions.checkNotNull(database);
         this.table = table;
         this.partitions = partitions;
+        this.isFull = isFull;
+        Preconditions.checkState(!(isFull && CollectionUtils.isNotEmpty(partitions)));
     }
 
     public ClickHouse getClickHouse() {
@@ -108,14 +116,17 @@ public class ShardClean {
 
     public void cleanPartitions() throws SQLException {
         Preconditions.checkNotNull(table);
-        Preconditions.checkArgument(CollectionUtils.isNotEmpty(partitions));
         AlterTable alterTable;
-        log.debug("drop partitions in table {}.{}: {}", database, table, partitions);
-        for (val partition : partitions) {
-            alterTable = new AlterTable(TableIdentifier.table(database, table),
-                    new AlterTable.ManipulatePartition(Objects.toString(partition),
-                            AlterTable.PartitionOperation.DROP));
-            Preconditions.checkNotNull(getClickHouse()).apply(alterTable.toSql(getRender()));
+        if (isFull) {
+            cleanTable();
+        } else {
+            log.debug("drop partitions in table {}.{}: {}", database, table, partitions);
+            for (val partition : partitions) {
+                alterTable = new AlterTable(TableIdentifier.table(database, table),
+                        new AlterTable.ManipulatePartition(Objects.toString(partition),
+                                AlterTable.PartitionOperation.DROP));
+                Preconditions.checkNotNull(getClickHouse()).apply(alterTable.toSql(getRender()));
+            }
         }
     }
 }

@@ -37,6 +37,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 @TableDefinition
 public class TablePlan extends RootPersistentEntity
@@ -108,6 +109,11 @@ public class TablePlan extends RootPersistentEntity
         this.description = description;
     }
 
+    public void cleanTable() {
+        checkIsNotCachedAndShared();
+        this.tableMetas.clear();
+    }
+
     public String getDescription() {
         return description;
     }
@@ -143,5 +149,10 @@ public class TablePlan extends RootPersistentEntity
                 .setLayoutEntity(layoutEntity)
                 .build();
         return manager.update(uuid, copyForWrite -> copyForWrite.addTable(entity));
+    }
+
+    public TablePlan update(Consumer<TablePlan> updater) {
+        Preconditions.checkArgument(manager != null);
+        return manager.update(uuid, updater);
     }
 }

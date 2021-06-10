@@ -70,6 +70,12 @@ public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
         }
+        if (startTime > endTime) {
+            // when doesn't have segment swap start and end time
+            long tmp = endTime;
+            endTime = startTime;
+            startTime = tmp;
+        }
         setParam(NBatchConstants.P_DATA_RANGE_START, String.valueOf(startTime));
         setParam(NBatchConstants.P_DATA_RANGE_END, String.valueOf(endTime));
         setParam(NBatchConstants.P_JOB_ID, getId());

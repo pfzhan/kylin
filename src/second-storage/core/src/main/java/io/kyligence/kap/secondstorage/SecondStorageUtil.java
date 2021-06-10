@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -71,7 +72,8 @@ public class SecondStorageUtil {
     }
 
     public static void initModelMetaData(String project, String model) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(()-> {
+        checkEnableModel(project, model);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             final KylinConfig config = KylinConfig.getInstanceFromEnv();
             Optional<NManager<TablePlan>> tablePlanManager = tablePlanManager(config, project);
             Optional<NManager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
@@ -81,11 +83,11 @@ public class SecondStorageUtil {
             tableFlowManager.get().makeSureRootEntity(model);
             Map<Long, List<LayoutEntity>> layouts = indexPlanManager.getIndexPlan(model)
                     .getAllLayoutsMap().values().stream()
-                    .filter(SecondStorageUtil::isBaseIndex)
+                    .filter(SecondStorageUtil::isBaseTableIndex)
                     .collect(Collectors.groupingBy(LayoutEntity::getIndexId));
             for (Map.Entry<Long, List<LayoutEntity>> entry : layouts.entrySet()) {
                 LayoutEntity layoutEntity =
-                        entry.getValue().stream().filter(SecondStorageUtil::isBaseIndex).findFirst().orElse(null);
+                        entry.getValue().stream().filter(SecondStorageUtil::isBaseTableIndex).findFirst().orElse(null);
                 Preconditions.checkNotNull(layoutEntity);
                 tablePlan = tablePlan.createTableEntityIfNotExists(layoutEntity, true);
             }
@@ -93,12 +95,24 @@ public class SecondStorageUtil {
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
-    public static boolean isBaseIndex(LayoutEntity index) {
+    private static void checkEnableModel(String project, String model) {
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        final IndexPlan indexPlan = indexPlanManager.getIndexPlan(model);
+        Preconditions.checkState(indexPlan.containBaseTableLayout(), "model must have base table index when enable Tiered Storage.");
+        if (indexPlan.getModel().isIncrementBuildOnExpertMode()) {
+            boolean containPartitionCol = indexPlan.getBaseTableLayout().getColumns().stream().anyMatch(col -> {
+                return col.getTableDotName().equals(indexPlan.getModel().getPartitionDesc().getPartitionDateColumn());
+            });
+            Preconditions.checkState(containPartitionCol, "model base table index must have date partition column when enable Tiered Storage.");
+        }
+    }
+
+    public static boolean isBaseTableIndex(LayoutEntity index) {
         return IndexEntity.isTableIndex(index.getId()) && index.isBaseIndex();
     }
 
     public static Optional<LayoutEntity> getBaseIndex(NDataflow df) {
-        return df.getIndexPlan().getAllLayouts().stream().filter(SecondStorageUtil::isBaseIndex).findFirst();
+        return df.getIndexPlan().getAllLayouts().stream().filter(SecondStorageUtil::isBaseTableIndex).findFirst();
     }
 
     public static List<AbstractExecutable> findSecondStorageRelatedJobByProject(String project) {

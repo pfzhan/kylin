@@ -1428,6 +1428,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getADD_EXPORT_JOB_FAIL() {
+        return "当前无法提交任务，因为已有相同对象的加载任务正在进行。请稍后再试。";
+    }
+
+    @Override
     public String getADD_JOB_EXCEPTION() {
         return "当前没有可执行的任务。请稍后重试。";
     }

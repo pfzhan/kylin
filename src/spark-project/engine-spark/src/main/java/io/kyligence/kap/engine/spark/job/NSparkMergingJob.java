@@ -139,7 +139,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
 
         JobStepType.UPDATE_METADATA.createStep(job, config);
         if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())
-                && layouts.stream().anyMatch(SecondStorageUtil::isBaseIndex)) {
+                && layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex)) {
             AbstractExecutable mergeStep = JobStepType.SECOND_STORAGE_MERGE.createStep(job, config);
             mergeStep.setParam(SecondStorageConstants.P_MERGED_SEGMENT_ID, mergedSegment.getId());
             mergeStep.setParam(NBatchConstants.P_SEGMENT_IDS,

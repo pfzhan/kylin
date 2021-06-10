@@ -1279,6 +1279,10 @@ public class Message {
         return "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
     }
 
+    public String getADD_EXPORT_JOB_FAIL() {
+        return "Can’t submit the job at the moment, as a tiered storage load job for the same object already exists. Please try again later.";
+    }
+
     public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
         return "Can’t submit the job at the moment, segment [%s] hasn't base index. Please refresh this segment.";
     }

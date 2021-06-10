@@ -97,7 +97,7 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
                 .filter(targetSegs::contains).collect(Collectors.toList());
         List<String> noBaseIndexSegs = targetSegs.stream().filter(seg -> {
             NDataSegment segment = dataflow.getSegment(seg);
-            return segment.getIndexPlan().getAllLayouts().stream().anyMatch(SecondStorageUtil::isBaseIndex);
+            return segment.getIndexPlan().getAllLayouts().stream().anyMatch(SecondStorageUtil::isBaseTableIndex);
         }).collect(Collectors.toList());
         if (failedSegs.isEmpty()) {
             return;
@@ -106,11 +106,11 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
                 MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         for (String failedSeg : failedSegs) {
             jobSubmissionException.addJobFailInfo(failedSeg,
-                    new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_FAIL()));
+                    new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_EXPORT_JOB_FAIL()));
         }
         noBaseIndexSegs.forEach(seg -> jobSubmissionException.addJobFailInfo(seg,
                 new KylinException(FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX, String.format(Locale.ROOT,
-                        MsgPicker.getMsg().getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX()), seg)));
+                        MsgPicker.getMsg().getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX(), seg))));
         throw jobSubmissionException;
     }
 }
