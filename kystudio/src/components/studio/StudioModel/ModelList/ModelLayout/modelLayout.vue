@@ -553,6 +553,15 @@ export default class ModelLayout extends Vue {
     }
     .el-tabs--default .model-indexes-tabs {
       height: 100%;
+      .el-tabs__content {
+        overflow: visible;
+        .el-card {
+          overflow: initial;
+          .el-card__body {
+            overflow: initial;
+          }
+        }
+      }
       .el-tabs__nav-scroll {
         background-color: @ke-background-color-white;
       }

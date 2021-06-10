@@ -610,7 +610,7 @@ export default class ModelList extends Vue {
       : this.$t('ALL')
   }
   get isResetFilterDisabled () {
-    return !this.filterArgs.last_modify.length && !this.filterArgs.status.length
+    return !this.filterArgs.last_modify.length && !this.filterArgs.status.length && !this.filterArgs.model_attributes.length
   }
   handleFilterInput (value) {
     this.filterArgs.model_alias_or_owner = value
@@ -1322,9 +1322,6 @@ export default class ModelList extends Vue {
     }
     .actions {
       float: right;
-      .el-button.is-text {
-        padding: 0;
-      }
       .reset-filters-btn.is-disabled {
         i {
           cursor: not-allowed;

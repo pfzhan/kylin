@@ -65,42 +65,42 @@
         </el-tabs>
         <template v-if="aggregate.activeTab === 'dimension'">
           <!-- Include聚合组 -->
-          <div class="row ksd-mb-15">
-            <div class="title font-medium ksd-mb-5">{{$t('include')}}({{aggregate.includes.length}})</div>
+          <div class="row ksd-mb-16">
+            <div class="title font-medium ksd-mb-8">{{$t('include')}}({{aggregate.includes.length}})</div>
             <div class="content">
-              <el-tag :class="['ksd-mr-5', 'ksd-mt-5', {'is-used': showSelectedIncludes(aggregate, item)}]" size="mini" v-for="(item, index) in getIncludesDimension(aggregate)" :key="index">{{item}}</el-tag>
+              <el-tag :class="['ksd-mr-8', 'ksd-mt-8', {'is-used': showSelectedIncludes(aggregate, item)}]" size="mini" v-for="(item, index) in getIncludesDimension(aggregate)" :key="index">{{item}}</el-tag>
               <!-- {{aggregate.includes.join(', ')}} -->
               <span class="show-more" v-if="aggregate.showIncludeMore" @click="toggleMore(aggregate, 'Include')">{{$t('showAll')}}<i class="icon el-icon-ksd-more_01"></i></span>
             </div>
           </div>
           <!-- Mandatory聚合组 -->
-          <div class="row ksd-mb-15">
-            <div class="title font-medium ksd-mb-5">{{$t('mandatory')}}({{aggregate.mandatory.length}})</div>
+          <div class="row ksd-mb-16">
+            <div class="title font-medium ksd-mb-8">{{$t('mandatory')}}({{aggregate.mandatory.length}})</div>
             <div class="content">
-              <el-tag class="ksd-mr-5 ksd-mt-5 is-used" size="mini" v-for="(item, index) in aggregate.mandatory" :key="index">{{item}}</el-tag>
+              <el-tag class="ksd-mr-8 ksd-mt-8 is-used" size="mini" v-for="(item, index) in aggregate.mandatory" :key="index">{{item}}</el-tag>
               <!-- {{aggregate.mandatory.join(', ')}} -->
             </div>
           </div>
           <!-- Hierarchy聚合组 -->
-          <div class="row ksd-mb-15">
+          <div class="row ksd-mb-16">
             <div class="title font-medium ksd-mb-10">{{$t('hierarchy')}}({{aggregate.hierarchyArray.length}})</div>
             <div class="list content"
               v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
               :key="`hierarchy-${hierarchyRowIdx}`">
               {{$t('group') + `${hierarchyRowIdx + 1}`}}: <span>
-                <el-tag class="ksd-mr-5 ksd-mt-5 is-used" size="mini" v-for="(item, index) in hierarchy.items" :key="index">{{item}}</el-tag>
+                <el-tag class="ksd-mr-8 ksd-mt-8 is-used" size="mini" v-for="(item, index) in hierarchy.items" :key="index">{{item}}</el-tag>
                 <!-- {{hierarchy.items.join(', ')}} -->
               </span>
             </div>
           </div>
           <!-- Joint聚合组 -->
-          <div class="row ksd-mb-15">
+          <div class="row ksd-mb-16">
             <div class="title font-medium ksd-mb-10">{{$t('joint')}}({{aggregate.jointArray.length}})</div>
             <div class="list content"
               v-for="(joint, jointRowIdx) in aggregate.jointArray"
               :key="`joint-${jointRowIdx}`">
               {{$t('group') + `-${jointRowIdx + 1}`}}: <span>
-                <el-tag :class="['ksd-mr-5', 'ksd-mt-5', 'is-used']" size="mini" v-for="(item, index) in joint.items" :key="index">{{item}}</el-tag>
+                <el-tag :class="['ksd-mr-8', 'ksd-mt-8', 'is-used']" size="mini" v-for="(item, index) in joint.items" :key="index">{{item}}</el-tag>
                 <!-- {{joint.items.join(', ')}} -->
               </span>
               <p class="cardinality-multiple"><span>{{$t('cardinalityMultiple')}}</span><span>{{getMultipleCardinality(aggregateIdx, jointRowIdx)}}</span></p>
@@ -108,10 +108,10 @@
           </div>
         </template>
         <template v-else>
-          <div class="row ksd-mb-15">
-            <div class="title font-medium ksd-mb-5">{{$t('includeMeasure')}}</div>
+          <div class="row ksd-mb-16">
+            <div class="title font-medium ksd-mb-8">{{$t('includeMeasure')}}</div>
             <div class="content">
-              <el-tag :class="['ksd-mr-5', 'ksd-mt-5', 'is-used']" size="mini" v-for="(item, index) in getAggregateMeasures(aggregate)" :key="index">{{item}}</el-tag>
+              <el-tag :class="['ksd-mr-8', 'ksd-mt-8', 'is-used']" size="mini" v-for="(item, index) in getAggregateMeasures(aggregate)" :key="index">{{item}}</el-tag>
               <!-- {{aggregate.measures.join(', ')}} -->
               <span class="show-more" v-if="aggregate.showMeasureMore" @click="toggleMore(aggregate, 'Measure')">{{$t('showAll')}}<i class="icon el-icon-ksd-more_01"></i></span>
             </div>

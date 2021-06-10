@@ -142,7 +142,7 @@
               <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
                 <template slot-scope="scope">
                   <span class="data-size-text">{{formatDataSize(scope.row.data_size)}}</span>
-                  <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : 0.5" class="data-size-progress"></el-progress>
+                  <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : scope.row.data_size ? 0.5 : 0" class="data-size-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column
@@ -153,7 +153,7 @@
               >
                 <template slot-scope="scope">
                   <span class="usage-text">{{scope.row.usage}}</span>
-                  <el-progress v-if="'max_usage' in indexStat" :percentage="indexStat.max_usage && (scope.row.usage / indexStat.max_usage > 0.05) ? scope.row.usage / indexStat.max_usage * 100 : 0.5" class="usage-progress"></el-progress>
+                  <el-progress v-if="'max_usage' in indexStat" :percentage="indexStat.max_usage && (scope.row.usage / indexStat.max_usage > 0.05) ? scope.row.usage / indexStat.max_usage * 100 : scope.row.usage ? 0.5 : 0" class="usage-progress"></el-progress>
                 </template>
               </el-table-column>
               <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
@@ -1218,6 +1218,9 @@ export default class ModelAggregate extends Vue {
         .actions-header {
           .el-checkbox {
             margin-top: 4px;
+            .el-checkbox__inner {
+              vertical-align: middle;
+            }
           }
         }
       }
