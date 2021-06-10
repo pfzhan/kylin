@@ -30,6 +30,7 @@ source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/../sbin/header.sh
 
 KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
 
+KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
 KYLIN_KRB5CONF=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.krb5-conf`
 
 function fetchCloudHadoopConf() {
@@ -142,7 +143,7 @@ function fetchKylinHadoopConf() {
     fi
 
     # Ensure krb5.conf underlying hadoop_conf
-    if [[ $(is_kap_kerberos_enabled) == 1 ]];then
+    if [[ ${KERBEROS_ENABLED} == "true" ]];then
           checkExactlyAndCopyFile $KYLIN_HOME/conf/$KYLIN_KRB5CONF
     fi
 

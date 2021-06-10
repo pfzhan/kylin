@@ -343,12 +343,26 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private Map<String, String> getSparkConf() {
         KylinConfig config = getConfig();
+        KapConfig kapConfig = KapConfig.wrap(config);
         final Map<String, String> sparkConf = getSparkConfigOverride(config);
         // spark.master is sure here.
         this.isYarnCluster = YARN_CLUSTER.equals(sparkConf.get(DEPLOY_MODE));
 
+        // append krb5.conf for -Djava.security.krb5.conf
+        if (Boolean.TRUE.equals(kapConfig.isKerberosEnabled())) {
+            wrapKrb5Conf(kapConfig, sparkConf);
+        }
+        // append executor global dict ops
+        wrapExecutorGlobalDictionary(config, sparkConf);
+        // append other driver ops
+        overrideDriverOps(config, sparkConf);
+
+        return sparkConf;
+    }
+
+    private void wrapKrb5Conf(KapConfig config, final Map<String, String> sparkConf) {
         // Workaround when there is no underlying file: /etc/krb5.conf
-        String krb5Conf = KapConfig.wrap(config).getKerberosKrb5Conf();
+        String remoteKrb5 = HADOOP_CONF_PATH + config.getKerberosKrb5Conf();
         ConfMap confMap = new ConfMap() {
             @Override
             public String get(String key) {
@@ -360,12 +374,19 @@ public class NSparkExecutable extends AbstractExecutable {
                 sparkConf.put(key, value);
             }
         };
-        wrapKrb5Conf(AM_OPS, krb5Conf, confMap);
-        wrapKrb5Conf(EXECUTOR_OPS, krb5Conf, confMap);
-        wrapExecutorGlobalDictionary(config, sparkConf);
-
-        overrideDriverOps(config, sparkConf);
-        return sparkConf;
+        // There are conventions here:
+        // a) krb5.conf is underlying ${KYLIN_HOME}/conf/
+        // b) krb5.conf is underlying ${KYLIN_HOME}/hadoop_conf/
+        // Wrap driver ops krb5.conf depends on deploy mode
+        if (isYarnCluster) {
+            // remote for 'yarn cluster'
+            wrapKrb5Conf(DRIVER_OPS, remoteKrb5, confMap);
+        } else {
+            // local for 'yarn client' & 'spark local'
+            wrapKrb5Conf(DRIVER_OPS, config.getKerberosKrb5ConfPath(), confMap);
+        }
+        wrapKrb5Conf(AM_OPS, remoteKrb5, confMap);
+        wrapKrb5Conf(EXECUTOR_OPS, remoteKrb5, confMap);
     }
 
     private void wrapExecutorGlobalDictionary(KylinConfig config, Map<String, String> sparkConf) {
@@ -390,10 +411,10 @@ public class NSparkExecutable extends AbstractExecutable {
         return overrides;
     }
 
-    protected void overrideDriverOps(KylinConfig config, Map<String, String> sparkConfigOverride) {
+    protected void overrideDriverOps(KylinConfig config, Map<String, String> sparkConf) {
         StringBuilder sb = new StringBuilder();
-        if (sparkConfigOverride.containsKey(DRIVER_OPS)) {
-            sb.append(sparkConfigOverride.get(DRIVER_OPS).trim());
+        if (sparkConf.containsKey(DRIVER_OPS)) {
+            sb.append(sparkConf.get(DRIVER_OPS).trim());
         }
 
         KapConfig kapConfig = KapConfig.wrap(config);
@@ -423,7 +444,7 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append(String.format(Locale.ROOT, " -Dspark.driver.param.taskId=%s ", getId()));
         sb.append(String.format(Locale.ROOT, " -Dspark.driver.local.logDir=%s ", //
                 KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
-        sparkConfigOverride.put(DRIVER_OPS, sb.toString().trim());
+        sparkConf.put(DRIVER_OPS, sb.toString().trim());
     }
 
     private void wrapKrb5Conf(String key, String value, ConfMap confMap) {
@@ -438,7 +459,6 @@ public class NSparkExecutable extends AbstractExecutable {
         StringBuilder sb = new StringBuilder("-D");
         sb.append(KRB5CONF_PROPS);
         sb.append(EQUALS);
-        sb.append(HADOOP_CONF_PATH);
         sb.append(value);
         sb.append(SPACE);
         sb.append(extraOps);
@@ -499,7 +519,7 @@ public class NSparkExecutable extends AbstractExecutable {
             }
         }
 
-        sb.append("--name " + getJobNamePrefix() + "%s ");
+        sb.append("--name ").append(getJobNamePrefix()).append("%s ");
         sb.append("--jars %s %s %s ");
 
         // Three parameters at most per line.
@@ -532,9 +552,9 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private void wrapKerberosConf(StringBuilder sb, KapConfig kapConfig) {
-        appendSparkConf(sb, "spark.yarn.principal", kapConfig.getKerberosPrincipal());
-        appendSparkConf(sb, "spark.yarn.keytab", kapConfig.getKerberosKeytabPath());
-        appendSparkConf(sb, "spark.yarn.krb5.conf", kapConfig.getKerberosKrb5ConfPath());
+        // conf name for spark 3
+        appendSparkConf(sb, "spark.kerberos.principal", kapConfig.getKerberosPrincipal());
+        appendSparkConf(sb, "spark.kerberos.keytab", kapConfig.getKerberosKeytabPath());
         if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform()) //
                 || Boolean.TRUE.equals(kapConfig.getPlatformZKEnable())) {
             appendSparkConf(sb, "spark.yarn.zookeeper.principal", kapConfig.getKerberosZKPrincipal());
@@ -576,6 +596,8 @@ public class NSparkExecutable extends AbstractExecutable {
         FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
         final Properties props = config.exportToProperties();
+        // If we don't remove these configurations,
+        // they will be overwritten in the SparkApplication
         removeUnNecessaryDump(props);
 
         props.setProperty("kylin.metadata.url", metaDumpUrl);
@@ -611,6 +633,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private void removeUnNecessaryDump(Properties props) {
+        props.remove("kylin.engine.spark-conf.spark.driver.extraJavaOptions");
         props.remove("kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions");
         props.remove("kylin.engine.spark-conf.spark.executor.extraJavaOptions");
 
@@ -647,7 +670,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected String getExtJar() {
-        return "";
+        return EMPTY;
     }
 
     public boolean needMergeMetadata() {
