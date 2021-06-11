@@ -195,6 +195,13 @@ public class QuerySensitiveDataMaskTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(null, mask.defaultMaskResultToString(makeDatatype(SqlTypeName.TIME)));
     }
 
+    @Test
+    public void testSetEmptyMask() {
+        SensitiveDataMaskInfo sensitiveDataMaskInfo = new SensitiveDataMaskInfo();
+        sensitiveDataMaskInfo.addMasks("DEFAULT", "TEST_KYLIN_FACT1", Lists.newArrayList());
+        Assert.assertFalse(sensitiveDataMaskInfo.hasMask());
+    }
+
     private RelDataType makeDatatype(SqlTypeName typeName) {
         return new BasicSqlType(new KylinRelDataTypeSystem(), typeName);
     }

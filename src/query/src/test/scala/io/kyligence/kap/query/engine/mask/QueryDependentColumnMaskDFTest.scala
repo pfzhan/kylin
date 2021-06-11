@@ -154,7 +154,7 @@ class QueryDependentColumnMaskDFTest extends org.scalatest.funsuite.AnyFunSuite 
       StructType(
         List(
           StructField("SUM(ORDER_ID)_&*%$#@\"'`_123", DataTypes.IntegerType),
-          StructField("ACCOUNT_SELLER_LEVEL", DataTypes.IntegerType),
+          StructField("ACCOUNT_SELLER_LEVEL_&*%$#@\"'`._123", DataTypes.IntegerType),
           StructField("NAME", DataTypes.StringType)
         ))
     )

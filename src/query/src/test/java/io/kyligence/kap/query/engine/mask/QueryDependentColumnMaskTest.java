@@ -259,6 +259,13 @@ public class QueryDependentColumnMaskTest extends NLocalFileMetadataTestCase {
         testMask(sql, before1, expected);
     }
 
+    @Test
+    public void testSetEmptyMask() {
+        DependentColumnInfo dependentColumnInfo = new DependentColumnInfo();
+        dependentColumnInfo.add("DEFAULT", "TEST_KYLIN_FACT1", Lists.newArrayList());
+        Assert.assertFalse(dependentColumnInfo.needMask());
+    }
+
     private void testMask(String sql, String[] before, String[] expected) {
         QueryExec queryExec = new QueryExec("default", KylinConfig.getInstanceFromEnv());
         RelNode relNode = null;

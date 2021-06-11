@@ -37,8 +37,8 @@ public class SensitiveDataMaskInfo {
     }
 
     public void addMasks(String dbName, String tableName, Collection<SensitiveDataMask> masks) {
-        infos.putIfAbsent(dbName + "." + tableName, new HashMap<>());
         for (SensitiveDataMask mask : masks) {
+            infos.putIfAbsent(dbName + "." + tableName, new HashMap<>());
             SensitiveDataMask originalMask = infos.get(dbName + "." + tableName).get(mask.column);
             if (originalMask != null) {
                 infos.get(dbName + "." + tableName).put(
