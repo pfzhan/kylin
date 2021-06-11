@@ -32,6 +32,8 @@ import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import lombok.var;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
@@ -54,9 +56,12 @@ import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
 import static org.mybatis.dynamic.sql.SqlBuilder.isGreaterThan;
@@ -72,11 +77,10 @@ public class JdbcStreamingJobStatsStore {
 
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
     public static final String TOTAL_ROW_COUNT = "count";
-    public static final String MIN_RATE = "minRate";
-    public static final String MAX_RATE = "maxRate";
+    public static final String MIN_RATE = "min_rate";
+    public static final String MAX_RATE = "max_rate";
 
     private final StreamingJobStatsTable streamingJobStatsTable;
-
 
     @VisibleForTesting
     @Getter
@@ -88,7 +92,7 @@ public class JdbcStreamingJobStatsStore {
         StorageURL url = config.getMetadataUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         dataSource = JdbcDataSource.getDataSource(props);
-        tableName = StorageURL.replaceUrl(url) + "_" + StreamingJobStats.STREAMING_JOB_STATS_SURFIX;
+        tableName = StorageURL.replaceUrl(url) + "_" + StreamingJobStats.STREAMING_JOB_STATS_SUFFIX;
         streamingJobStatsTable = new StreamingJobStatsTable(tableName);
         sqlSessionFactory = StreamingJobStatsStoreUtil.getSqlSessionFactory(dataSource, tableName);
     }
@@ -98,7 +102,9 @@ public class JdbcStreamingJobStatsStore {
             ScriptRunner sr = new ScriptRunner(connection);
             sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
             sr.runScript(new InputStreamReader(
-                    new ByteArrayInputStream(String.format(Locale.ROOT, "drop table %s;", tableName).getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET));
+                    new ByteArrayInputStream(
+                            String.format(Locale.ROOT, "drop table %s;", tableName).getBytes(DEFAULT_CHARSET)),
+                    DEFAULT_CHARSET));
         }
     }
 
@@ -108,7 +114,8 @@ public class JdbcStreamingJobStatsStore {
             InsertStatementProvider<StreamingJobStats> insertStatement = getInsertSJSProvider(streamingJobStats);
             int rows = sjsMapper.insert(insertStatement);
             if (rows > 0) {
-                log.debug("Insert one streaming job stats(job id:{}, time:{}) into database.", streamingJobStats.getJobId(), streamingJobStats.getCreateTime());
+                log.debug("Insert one streaming job stats(job id:{}, time:{}) into database.",
+                        streamingJobStats.getJobId(), streamingJobStats.getCreateTime());
             }
             session.commit();
             return rows;
@@ -130,11 +137,40 @@ public class JdbcStreamingJobStatsStore {
         }
     }
 
-    public StreamingStatistics queryStreamingStatistics(long startTime, String jobId) {
+    public StreamingJobStats getLatestOneByJobId(String jobId) {
         try (SqlSession session = sqlSessionFactory.openSession()) {
-            StreamingStatisticsMapper mapper = session.getMapper(StreamingStatisticsMapper.class);
-            SelectStatementProvider statementProvider = queryAllTimeAvgConsumerRate(startTime, jobId);
+            val mapper = session.getMapper(StreamingJobStatsMapper.class);
+            SelectStatementProvider statementProvider = getSelectByJobIdStatementProvider(-1, jobId);
             return mapper.selectOne(statementProvider);
+        }
+    }
+
+    public Map<String, Long> queryDataLatenciesByJobIds(List<String> jobIds) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            val mapper = session.getMapper(StreamingJobStatsMapper.class);
+            SelectStatementProvider statementProvider = queryLatestJobIdProvider(jobIds);
+            val idList = mapper.selectLatestJobId(statementProvider).stream().map(item -> item.getValue())
+                    .collect(Collectors.toList());
+            val list = mapper.selectMany(getSelectByIdsStatementProvider(idList));
+            val resultMap = new HashMap<String, Long>();
+            list.stream().forEach(item -> resultMap.put(item.getJobId(), item.getMinDataLatency()));
+            return resultMap;
+        }
+    }
+
+    public List<StreamingJobStats> queryByJobId(long startTime, String jobId) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            val mapper = session.getMapper(StreamingJobStatsMapper.class);
+            SelectStatementProvider statementProvider = getSelectByJobIdStatementProvider(startTime, jobId);
+            return mapper.selectMany(statementProvider);
+        }
+    }
+
+    public ConsumptionRateStats queryAvgConsumptionRate(long startTime, String jobId) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            val mapper = session.getMapper(StreamingJobStatsMapper.class);
+            SelectStatementProvider statementProvider = queryAllTimeAvgConsumerRate(startTime, jobId);
+            return mapper.selectStreamingStatistics(statementProvider);
         }
     }
 
@@ -146,70 +182,106 @@ public class JdbcStreamingJobStatsStore {
         }
     }
 
-    public void deleteStreamingJobStats() {
-        long startTime = System.currentTimeMillis();
-        try (SqlSession session = sqlSessionFactory.openSession()) {
-            StreamingJobStatsMapper mapper = session.getMapper(StreamingJobStatsMapper.class);
-            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(streamingJobStatsTable) //
-                    .build().render(RenderingStrategies.MYBATIS3);
-            int deleteRows = mapper.delete(deleteStatement);
-            session.commit();
-            if (deleteRows > 0) {
-                log.info("Delete {} row streaming job stats takes {} ms", deleteRows, System.currentTimeMillis() - startTime);
-            }
-        }
-    }
-
     public void deleteStreamingJobStats(long timeline) {
         long startTime = System.currentTimeMillis();
         try (SqlSession session = sqlSessionFactory.openSession()) {
             StreamingJobStatsMapper mapper = session.getMapper(StreamingJobStatsMapper.class);
-            DeleteStatementProvider deleteStatement = SqlBuilder.deleteFrom(streamingJobStatsTable) //
-                    .where(streamingJobStatsTable.createTime, isLessThan(timeline)) //
-                    .build().render(RenderingStrategies.MYBATIS3);
+
+            DeleteStatementProvider deleteStatement;
+            if (timeline < 0) {
+                deleteStatement = SqlBuilder.deleteFrom(streamingJobStatsTable) //
+                        .build().render(RenderingStrategies.MYBATIS3);
+            } else {
+                deleteStatement = SqlBuilder.deleteFrom(streamingJobStatsTable) //
+                        .where(streamingJobStatsTable.createTime, isLessThan(timeline)) //
+                        .build().render(RenderingStrategies.MYBATIS3);
+            }
             int deleteRows = mapper.delete(deleteStatement);
             session.commit();
             if (deleteRows > 0) {
-                log.info("Delete {} row streaming job stats takes {} ms", deleteRows, System.currentTimeMillis() - startTime);
+                log.info("Delete {} row streaming job stats takes {} ms", deleteRows,
+                        System.currentTimeMillis() - startTime);
             }
         }
     }
 
-
     InsertStatementProvider<StreamingJobStats> getInsertSJSProvider(StreamingJobStats stats) {
-        return SqlBuilder.insert(stats).into(streamingJobStatsTable)
-                .map(streamingJobStatsTable.jobId).toPropertyWhenPresent("jobId", stats::getJobId) //
+        return SqlBuilder.insert(stats).into(streamingJobStatsTable).map(streamingJobStatsTable.jobId)
+                .toPropertyWhenPresent("jobId", stats::getJobId) //
                 .map(streamingJobStatsTable.projectName).toPropertyWhenPresent("projectName", stats::getProjectName) //
                 .map(streamingJobStatsTable.batchRowNum).toPropertyWhenPresent("batchRowNum", stats::getBatchRowNum) //
-                .map(streamingJobStatsTable.rowsPerSecond).toPropertyWhenPresent("rowsPerSecond", stats::getRowsPerSecond) //
+                .map(streamingJobStatsTable.rowsPerSecond)
+                .toPropertyWhenPresent("rowsPerSecond", stats::getRowsPerSecond) //
                 .map(streamingJobStatsTable.createTime).toPropertyWhenPresent("createTime", stats::getCreateTime) //
-                .map(streamingJobStatsTable.durationMs).toPropertyWhenPresent("durationMs", stats::getDurationMs) //
+                .map(streamingJobStatsTable.processingTime)
+                .toPropertyWhenPresent("processingTime", stats::getProcessingTime) //
+                .map(streamingJobStatsTable.minDataLatency).toPropertyWhenPresent("minDataLatency", stats::getMinDataLatency) //
+                .map(streamingJobStatsTable.maxDataLatency).toPropertyWhenPresent("maxDataLatency", stats::getMaxDataLatency) //
                 .build().render(RenderingStrategies.MYBATIS3);
     }
 
     private SelectStatementProvider queryAllTimeAvgConsumerRate(long startTime, String jobId) {
         return select(min(streamingJobStatsTable.rowsPerSecond).as(MIN_RATE),
                 max(streamingJobStatsTable.rowsPerSecond).as(MAX_RATE),
-                sum(streamingJobStatsTable.batchRowNum).as(TOTAL_ROW_COUNT))
-                .from(streamingJobStatsTable)
-                .where(streamingJobStatsTable.createTime, isGreaterThanOrEqualTo(startTime))
-                .and(streamingJobStatsTable.jobId, isEqualTo(jobId))
-                .build().render(RenderingStrategies.MYBATIS3);
+                sum(streamingJobStatsTable.batchRowNum).as(TOTAL_ROW_COUNT)).from(streamingJobStatsTable)
+                        .where(streamingJobStatsTable.createTime, isGreaterThanOrEqualTo(startTime))
+                        .and(streamingJobStatsTable.jobId, isEqualTo(jobId)).build()
+                        .render(RenderingStrategies.MYBATIS3);
     }
 
     private SelectStatementProvider queryAvgConsumerRateByTime(String jobId, long startTime) {
-        return select(getSelectFields(streamingJobStatsTable))
-                .from(streamingJobStatsTable)
+        return select(getSelectFields(streamingJobStatsTable)).from(streamingJobStatsTable)
                 .where(streamingJobStatsTable.createTime, isGreaterThanOrEqualTo(getLastHourRetainTime()))
                 .and(streamingJobStatsTable.jobId, isEqualTo(jobId))
                 .and(streamingJobStatsTable.batchRowNum, isGreaterThan(0L))
                 .and(streamingJobStatsTable.createTime, isGreaterThanOrEqualTo(startTime))
-                .orderBy(streamingJobStatsTable.createTime.descending())
-                .build().render(RenderingStrategies.MYBATIS3);
+                .orderBy(streamingJobStatsTable.createTime.descending()).build().render(RenderingStrategies.MYBATIS3);
     }
 
     private long getLastHourRetainTime() {
         return new Date(System.currentTimeMillis() - 60 * 60 * 1000).getTime();
+    }
+
+    SelectStatementProvider queryLatestJobIdProvider(List<String> jobIds) {
+        return select(streamingJobStatsTable.jobId, max(streamingJobStatsTable.id).as("id"))
+                .from(streamingJobStatsTable).where(streamingJobStatsTable.jobId, SqlBuilder.isIn(jobIds))
+                .groupBy(BasicColumn.columnList(streamingJobStatsTable.jobId)).build()
+                .render(RenderingStrategies.MYBATIS3);
+    }
+
+    SelectStatementProvider getSelectByJobIdStatementProvider(long startTime, String jobId) {
+        var builder = select(getSelectAllFields(streamingJobStatsTable)) //
+                .from(streamingJobStatsTable) //
+                .where(streamingJobStatsTable.jobId, isEqualTo(jobId)); //
+        if (startTime > 0) {
+            builder = builder.and(streamingJobStatsTable.createTime, isGreaterThanOrEqualTo(startTime));
+            return builder.orderBy(streamingJobStatsTable.createTime.descending()).build()
+                    .render(RenderingStrategies.MYBATIS3);
+        }
+        return builder.orderBy(streamingJobStatsTable.createTime.descending()).limit(1).build()
+                .render(RenderingStrategies.MYBATIS3);
+
+    }
+
+    SelectStatementProvider getSelectByIdsStatementProvider(List<Long> ids) {
+        return select(getSelectAllFields(streamingJobStatsTable)) //
+                .from(streamingJobStatsTable) //
+                .where(streamingJobStatsTable.id, SqlBuilder.isIn(ids))
+                .orderBy(streamingJobStatsTable.createTime.descending()).build().render(RenderingStrategies.MYBATIS3);
+
+    }
+
+    private BasicColumn[] getSelectAllFields(StreamingJobStatsTable statsTable) {
+        return BasicColumn.columnList(//
+                statsTable.id, //
+                statsTable.jobId, //
+                statsTable.projectName, //
+                statsTable.batchRowNum, //
+                statsTable.rowsPerSecond, //
+                statsTable.processingTime, //
+                statsTable.minDataLatency, //
+                statsTable.maxDataLatency, //
+                statsTable.createTime);
     }
 
     private BasicColumn[] getSelectFields(StreamingJobStatsTable streamingJobStatsTable) {

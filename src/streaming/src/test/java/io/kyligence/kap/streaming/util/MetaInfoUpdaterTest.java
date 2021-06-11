@@ -83,7 +83,7 @@ public class MetaInfoUpdaterTest extends NLocalFileMetadataTestCase {
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.STOPPED, jobMeta.getCurrentStatus());
-        Assert.assertNull(jobMeta.getLastUpdateTime());
+        Assert.assertNotNull(jobMeta.getLastUpdateTime());
         Assert.assertNull(jobMeta.getLastEndTime());
         Assert.assertNull(jobMeta.getLastStartTime());
 

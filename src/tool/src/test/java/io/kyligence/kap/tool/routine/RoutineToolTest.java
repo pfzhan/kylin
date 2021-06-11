@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool.routine;
 
+import lombok.val;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.Assert;
 import org.junit.Before;
@@ -106,4 +107,15 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, epoch.getMvcc());
     }
 
+    @Test
+    public void testCleanStreamingStats() throws Exception{
+        val threadName = "executor";
+        val executor = new Thread(() ->{
+            RoutineTool.cleanStreamingStats();
+        });
+        executor.setName(threadName);
+        executor.start();
+        executor.join();
+        Assert.assertEquals(threadName, executor.getName());
+    }
 }

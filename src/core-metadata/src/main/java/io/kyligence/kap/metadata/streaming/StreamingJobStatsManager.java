@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.streaming;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
@@ -34,31 +35,31 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
-public class RDBMSStreamingJobStatsDAO implements StreamingJobStatsDAO {
-    private static final Logger logger = LoggerFactory.getLogger(RDBMSStreamingJobStatsDAO.class);
+public class StreamingJobStatsManager {
+    private static final Logger logger = LoggerFactory.getLogger(StreamingJobStatsManager.class);
     @Setter
+    @Getter
     private String sJSMetricMeasurement;
 
     private JdbcStreamingJobStatsStore jdbcSJSStore;
 
-    public static RDBMSStreamingJobStatsDAO getInstance() {
-        return Singletons.getInstance(RDBMSStreamingJobStatsDAO.class);
+    public static StreamingJobStatsManager getInstance() {
+        return Singletons.getInstance(StreamingJobStatsManager.class);
     }
 
-    public RDBMSStreamingJobStatsDAO() throws Exception {
+    public StreamingJobStatsManager() throws Exception {
         val config = KylinConfig.getInstanceFromEnv();
         if (!UnitOfWork.isAlreadyInTransaction())
-            logger.info("Initializing RDBMSStreamingJobStatsDAO with KylinConfig Id: {} ", System.identityHashCode(config));
+            logger.info("Initializing StreamingJobStatsManager with KylinConfig Id: {} ",
+                    System.identityHashCode(config));
         String metadataIdentifier = StorageURL.replaceUrl(config.getMetadataUrl());
-        this.sJSMetricMeasurement = metadataIdentifier + "_" + StreamingJobStats.STREAMING_JOB_STATS_SURFIX;
+        this.sJSMetricMeasurement = metadataIdentifier + "_" + StreamingJobStats.STREAMING_JOB_STATS_SUFFIX;
         jdbcSJSStore = new JdbcStreamingJobStatsStore(config);
-    }
-
-    public String getSJSMetricMeasurement() {
-        return sJSMetricMeasurement;
     }
 
     public int insert(StreamingJobStats stats) {
@@ -74,7 +75,7 @@ public class RDBMSStreamingJobStatsDAO implements StreamingJobStatsDAO {
     }
 
     public void deleteAllStreamingJobStats() {
-        jdbcSJSStore.deleteStreamingJobStats();
+        jdbcSJSStore.deleteStreamingJobStats(-1L);
     }
 
     public void deleteSJSIfRetainTimeReached() {
@@ -83,8 +84,8 @@ public class RDBMSStreamingJobStatsDAO implements StreamingJobStatsDAO {
     }
 
     public static long getRetainTime() {
-        return new Date(
-                System.currentTimeMillis() - KylinConfig.getInstanceFromEnv().getStreamingJobStatsSurvivalThreshold())
+        return new Date(System.currentTimeMillis()
+                - KylinConfig.getInstanceFromEnv().getStreamingJobStatsSurvivalThreshold() * 24 * 60 * 60 * 1000)
                         .getTime();
     }
 
@@ -92,8 +93,22 @@ public class RDBMSStreamingJobStatsDAO implements StreamingJobStatsDAO {
         return jdbcSJSStore.queryRowCountDetailByTime(startTime, jobId);
     }
 
-    public StreamingStatistics getStreamingStatistics(long startTime, String jobId) {
-        return jdbcSJSStore.queryStreamingStatistics(startTime, jobId);
+    public ConsumptionRateStats countAvgConsumptionRate(long startTime, String jobId) {
+        return jdbcSJSStore.queryAvgConsumptionRate(startTime, jobId);
     }
 
+    public List<StreamingJobStats> queryStreamingJobStats(long startTime, String jobId) {
+        return jdbcSJSStore.queryByJobId(startTime, jobId);
+    }
+
+    public StreamingJobStats getLatestOneByJobId(String jobId) {
+        return jdbcSJSStore.getLatestOneByJobId(jobId);
+    }
+
+    public Map<String, Long> queryDataLatenciesByJobIds(List<String> jobIds) {
+        if (jobIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return jdbcSJSStore.queryDataLatenciesByJobIds(jobIds);
+    }
 }

@@ -24,24 +24,6 @@
 
 package io.kyligence.kap.metadata.streaming.util;
 
-import io.kyligence.kap.common.logging.LogOutputStream;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
-import io.kyligence.kap.metadata.streaming.RowCountDetailByTimeMapper;
-import io.kyligence.kap.metadata.streaming.StreamingJobStatsMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.ibatis.jdbc.ScriptRunner;
-import org.apache.ibatis.mapping.Environment;
-import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.apache.ibatis.session.SqlSessionFactoryBuilder;
-import org.apache.ibatis.transaction.TransactionFactory;
-import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
-import org.apache.ibatis.type.JdbcType;
-import org.apache.kylin.common.Singletons;
-
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -53,32 +35,50 @@ import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Properties;
 
+import javax.sql.DataSource;
+
+import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecordMapper;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.ibatis.jdbc.ScriptRunner;
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.apache.ibatis.transaction.TransactionFactory;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+import org.apache.ibatis.type.JdbcType;
+import org.apache.kylin.common.Singletons;
+
+import io.kyligence.kap.common.logging.LogOutputStream;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
-public class StreamingJobStatsStoreUtil {
+public class StreamingJobRecordStoreUtil {
 
     private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
-    private static final String CREATE_STREAMING_JOB_STATS_TABLE = "create.streamingjobstats.store.table";
-    private static final String CREATE_STREAMING_JOB_STATS_INDEX1 = "create.streamingjobstats.store.tableindex1";
-    private static final String CREATE_STREAMING_JOB_STATS_INDEX2 = "create.streamingjobstats.store.tableindex2";
+    private static final String CREATE_STREAMING_JOB_RECORD_TABLE = "create.streamingjobrecord.store.table";
+    private static final String CREATE_STREAMING_JOB_RECORD_INDEX1 = "create.streamingjobrecord.store.tableindex1";
+    private static final String CREATE_STREAMING_JOB_RECORD_INDEX2 = "create.streamingjobrecord.store.tableindex2";
 
-    private StreamingJobStatsStoreUtil() {
+    private StreamingJobRecordStoreUtil() {
     }
 
     public static SqlSessionFactory getSqlSessionFactory(DataSource dataSource, String tableName) {
-        return Singletons.getInstance("streaming-job-stats-session-factory", SqlSessionFactory.class, clz -> {
+        return Singletons.getInstance("streaming-job-record-session-factory", SqlSessionFactory.class, clz -> {
             TransactionFactory transactionFactory = new JdbcTransactionFactory();
-            Environment environment = new Environment("streaming job stats", transactionFactory, dataSource);
+            Environment environment = new Environment("streaming job record", transactionFactory, dataSource);
             Configuration configuration = new Configuration(environment);
             configuration.setUseGeneratedKeys(true);
             configuration.setJdbcTypeForNull(JdbcType.NULL);
-            configuration.addMapper(StreamingJobStatsMapper.class);
-            configuration.addMapper(RowCountDetailByTimeMapper.class);
-            createStreamingJobStatsIfNotExist((BasicDataSource) dataSource, tableName);
+            configuration.addMapper(StreamingJobRecordMapper.class);
+            createStreamingJobTableIfNotExist((BasicDataSource) dataSource, tableName);
             return new SqlSessionFactoryBuilder().build(configuration);
         });
     }
 
-    private static void createStreamingJobStatsIfNotExist(BasicDataSource dataSource, String tableName)
+    private static void createStreamingJobTableIfNotExist(BasicDataSource dataSource, String tableName)
             throws SQLException, IOException {
         try (Connection connection = dataSource.getConnection()) {
             if (JdbcUtil.isTableExists(connection, tableName)) {
@@ -93,23 +93,24 @@ public class StreamingJobStatsStoreUtil {
             ScriptRunner sr = new ScriptRunner(connection);
             sr.setLogWriter(new PrintWriter(new OutputStreamWriter(new LogOutputStream(log), DEFAULT_CHARSET)));
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(
-                    String.format(Locale.ROOT, properties.getProperty(CREATE_STREAMING_JOB_STATS_TABLE), tableName).getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET));
+                    String.format(Locale.ROOT, properties.getProperty(CREATE_STREAMING_JOB_RECORD_TABLE), tableName).getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET));
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(
-                    String.format(Locale.ROOT, properties.getProperty(CREATE_STREAMING_JOB_STATS_INDEX1), tableName, tableName)
+                    String.format(Locale.ROOT, properties.getProperty(CREATE_STREAMING_JOB_RECORD_INDEX1), tableName, tableName)
                             .getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET));
             sr.runScript(new InputStreamReader(new ByteArrayInputStream(
-                    String.format(Locale.ROOT, properties.getProperty(CREATE_STREAMING_JOB_STATS_INDEX2), tableName, tableName)
+                    String.format(Locale.ROOT, properties.getProperty(CREATE_STREAMING_JOB_RECORD_INDEX2), tableName, tableName)
                             .getBytes(DEFAULT_CHARSET)), DEFAULT_CHARSET));
         }
     }
 
-    public static void cleanStreamingJobStats() {
+    public static void cleanStreamingJobRecord() {
         String oldThreadName = Thread.currentThread().getName();
         try {
-            Thread.currentThread().setName("streamingJobStatsCleanWorker");
-            StreamingJobStatsManager.getInstance().deleteSJSIfRetainTimeReached();
+            Thread.currentThread().setName("streamingJobRecordCleanWorker");
+            StreamingJobRecordManager.getInstance().deleteIfRetainTimeReached();
         } finally {
             Thread.currentThread().setName(oldThreadName);
         }
     }
+
 }

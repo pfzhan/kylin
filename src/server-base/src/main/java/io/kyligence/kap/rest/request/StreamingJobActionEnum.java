@@ -34,14 +34,15 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 
 public enum StreamingJobActionEnum {
 
-    START, STOP, FORCE_STOP;
+    START, STOP, FORCE_STOP, RESTART;
 
-    private static Set<String> actionEnums = Sets.newHashSet(START.name(), STOP.name(), FORCE_STOP.name());
+    private static Set<String> actionEnums = Sets.newHashSet(START.name(), STOP.name(), FORCE_STOP.name(),
+            RESTART.name());
 
     public static void validate(String action) {
         if (!actionEnums.contains(action.toUpperCase(Locale.ROOT))) {
             throw new KylinException(INVALID_PARAMETER,
-                    "Invalid value in parameter “action“. The value should be “START“, “STOP“, “FORCE_STOP“.");
+                    "Invalid value in parameter “action“. The value should be “START“, “STOP“, “FORCE_STOP“, “RESTART“.");
         }
     }
 }

@@ -137,7 +137,7 @@ export default class ModelStreamingJob extends Vue {
   mergeParamsConfigs = [[]]
   mergeParamsConfigsCache = [[]]
   commonParamsConfigs = [[]]
-  buildDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.duration', 'kylin.streaming.job-retry-enabled', 'kylin.streaming.kafka.max-rate-per-partition']
+  buildDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.duration', 'kylin.streaming.job-retry-enabled', 'kylin.streaming.kafka.max-rate-per-partition', 'kylin.streaming.watermark']
   mergeDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.segment-max-size', 'kylin.streaming.segment-merge-threshold', 'kylin.streaming.job-retry-enabled']
   numberParams = ['spark.executor.cores', 'kylin.streaming.duration', 'spark.executor.instances', 'kylin.streaming.segment-merge-threshold']
   get paramsConfigTabs () {

@@ -50,7 +50,9 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
                                seg: NDataSegment,
                                toBuildTree: NSpanningTree,
                                ss: SparkSession,
-                               sourceInfo: NBuildSourceInfo) extends CreateFlatTable(flatTable, seg, toBuildTree, ss, sourceInfo) {
+                               sourceInfo: NBuildSourceInfo,
+                               partitionColumn: String,
+                               watermark: String) extends CreateFlatTable(flatTable, seg, toBuildTree, ss, sourceInfo) {
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
 
@@ -77,21 +79,25 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
           StructField(columnDescs.getName, SparderTypeUtil.toSparkType(columnDescs.getType, false))
         }
       )
+    val rootFactTable = changeSchemaToAliasDotName(
+      CreateStreamingFlatTable.castDF(originFactTable, schema).alias(model.getRootFactTable.getAlias),
+      model.getRootFactTable.getAlias)
 
-    val factTable = CreateStreamingFlatTable.castDF(originFactTable, schema)
+    val factTable =
+      if (!StringUtils.isEmpty(watermark)) {
+        rootFactTable.withWatermark(partitionColumn, watermark)
+      } else {
+        rootFactTable
+      }
+
     val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-
-    var rootFactDataset: Dataset[Row] = factTable.alias(model.getRootFactTable.getAlias)
-
-    rootFactDataset = changeSchemaToAliasDotName(rootFactDataset, model.getRootFactTable.getAlias)
-
-    val cleanLookupCC = cleanComputColumn(ccCols.toSeq, rootFactDataset.columns.toSet)
+    val cleanLookupCC = cleanComputColumn(ccCols.toSeq, factTable.columns.toSet)
     val lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
     lookupTablesGlobal.foreach { case (_, df) =>
       df.persist(StorageLevel.MEMORY_AND_DISK)
     }
 
-    joinFactTableWithLookupTables(rootFactDataset, lookupTablesGlobal, model, ss)
+    joinFactTableWithLookupTables(factTable, lookupTablesGlobal, model, ss)
   }
 
   def encodeStreamingDataset(seg: NDataSegment, model: NDataModel, batchDataset: Dataset[Row]): Dataset[Row] = {
@@ -115,8 +121,10 @@ object CreateStreamingFlatTable {
             seg: NDataSegment,
             toBuildTree: NSpanningTree,
             ss: SparkSession,
-            sourceInfo: NBuildSourceInfo): CreateStreamingFlatTable = {
-    new CreateStreamingFlatTable(flatTable, seg, toBuildTree, ss, sourceInfo)
+            sourceInfo: NBuildSourceInfo,
+            partitionColumn: String,
+            watermark: String): CreateStreamingFlatTable = {
+    new CreateStreamingFlatTable(flatTable, seg, toBuildTree, ss, sourceInfo, partitionColumn, watermark)
   }
 
   def castDF(df: DataFrame, parsedSchema: StructType): DataFrame = {

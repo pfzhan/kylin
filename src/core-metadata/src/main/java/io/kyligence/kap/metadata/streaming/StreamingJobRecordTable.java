@@ -24,25 +24,22 @@
 
 package io.kyligence.kap.metadata.streaming;
 
-import io.kyligence.kap.common.obf.IKeep;
+import java.sql.JDBCType;
+
 import org.mybatis.dynamic.sql.SqlColumn;
 import org.mybatis.dynamic.sql.SqlTable;
 
-import java.sql.JDBCType;
+import io.kyligence.kap.common.obf.IKeep;
 
-public class StreamingJobStatsTable extends SqlTable implements IKeep {
-
+public class StreamingJobRecordTable extends SqlTable implements IKeep {
     public final SqlColumn<Long> id = column("id", JDBCType.BIGINT);
     public final SqlColumn<String> jobId = column("job_id", JDBCType.VARCHAR);
-    public final SqlColumn<String> projectName = column("project_name", JDBCType.VARCHAR);
-    public final SqlColumn<Long> batchRowNum = column("batch_row_num", JDBCType.BIGINT);
-    public final SqlColumn<Double> rowsPerSecond = column("rows_per_second", JDBCType.DOUBLE);
-    public final SqlColumn<Long> processingTime = column("processing_time", JDBCType.BIGINT);
-    public final SqlColumn<Long> minDataLatency = column("min_data_latency", JDBCType.BIGINT);
-    public final SqlColumn<Long> maxDataLatency = column("max_data_latency", JDBCType.BIGINT);
+    public final SqlColumn<String> project = column("project", JDBCType.VARCHAR);;
+    public final SqlColumn<String> action = column("action", JDBCType.VARCHAR);
     public final SqlColumn<Long> createTime = column("create_time", JDBCType.BIGINT);
+    public final SqlColumn<Long> updateTime = column("update_time", JDBCType.BIGINT);
 
-    public StreamingJobStatsTable(String tableName) {
+    public StreamingJobRecordTable(String tableName) {
         super(tableName);
     }
 

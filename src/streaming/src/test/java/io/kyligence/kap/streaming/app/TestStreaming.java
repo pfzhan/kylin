@@ -137,7 +137,7 @@ public class TestStreaming extends StreamingTestCase {
         val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, DATAFLOW_ID);
 
         val ss = createSparkSession();
-        val flatTable = CreateStreamingFlatTable.apply(flatTableDesc, null, nSpanningTree, ss, null);
+        val flatTable = CreateStreamingFlatTable.apply(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
         val dataset = flatTable.generateStreamingDataset(true, 5000, 100);
         val model = flatTableDesc.getDataModel();

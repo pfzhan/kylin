@@ -35,14 +35,9 @@ public class StreamingJobParamsRequest {
 
     private String project;
 
-    @JsonProperty("model_id")
-    private String modelId;
+    @JsonProperty("job_id")
+    private String jobId;
 
-    @JsonProperty("build_params")
-    private Map<String, String> buildParams = Maps.newHashMap();
-
-    @JsonProperty("merge_params")
-    private Map<String, String> mergeParams = Maps.newHashMap();
-
-
+    @JsonProperty("params")
+    private Map<String, String> params = Maps.newHashMap();
 }

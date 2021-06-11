@@ -22,25 +22,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.streaming;
+package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
+import java.util.List;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-public class StreamingStatistics implements IKeep {
+@AllArgsConstructor
+public class StreamingJobFilter {
+    private String modelName;
 
-    @JsonProperty("min_rate")
-    private Double minRate;
+    private List<String> modelNames;
 
-    @JsonProperty("max_rate")
-    private Double maxRate;
+    private List<String> jobTypes;
 
-    @JsonProperty("count")
-    private long count;
+    private List<String> statuses;
+
+    private String project;
+
+    private String sortBy;
+
+    private boolean reverse;
+
 }

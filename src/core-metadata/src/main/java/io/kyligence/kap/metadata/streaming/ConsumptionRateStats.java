@@ -24,31 +24,23 @@
 
 package io.kyligence.kap.metadata.streaming;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.common.obf.IKeep;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.ResultMap;
-import org.apache.ibatis.annotations.Results;
-import org.apache.ibatis.annotations.SelectProvider;
-import org.apache.ibatis.type.JdbcType;
-import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
-import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.List;
+@Getter
+@Setter
+@NoArgsConstructor
+public class ConsumptionRateStats implements IKeep {
 
-@Mapper
-public interface StreamingStatisticsMapper extends IKeep {
+    @JsonProperty("min_rate")
+    private Double minRate;
 
-    @SelectProvider(type = SqlProviderAdapter.class, method = "select")
-    @Results(id = "StatisticsResult", value = {
-            @Result(column = "minRate", property = "minRate", jdbcType = JdbcType.DOUBLE),
-            @Result(column = "maxRate", property = "maxRate", jdbcType = JdbcType.DOUBLE),
-            @Result(column = "count", property = "count", jdbcType = JdbcType.BIGINT)})
-    List<StreamingStatistics> selectMany(SelectStatementProvider selectStatement);
+    @JsonProperty("max_rate")
+    private Double maxRate;
 
-    @SelectProvider(type = SqlProviderAdapter.class, method = "select")
-    @ResultMap("StatisticsResult")
-    StreamingStatistics selectOne(SelectStatementProvider selectStatement);
+    @JsonProperty("count")
+    private long count;
 }
-
-

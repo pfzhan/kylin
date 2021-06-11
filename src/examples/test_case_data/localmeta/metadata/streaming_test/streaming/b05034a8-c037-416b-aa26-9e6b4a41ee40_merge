@@ -8,7 +8,7 @@
   "model_id" : "b05034a8-c037-416b-aa26-9e6b4a41ee40",
   "last_start_time" : null,
   "last_end_time" : null,
-  "last_update_time" : null,
+  "last_update_time" : "2021-05-05 09:11:12",
   "last_batch_count" : null,
   "subscribe" : "ssb_topic",
   "fact_table" : "SSB.P_LINEORDER_STREAMING",

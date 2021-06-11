@@ -27,12 +27,14 @@ package io.kyligence.kap.rest.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class StreamingJobExecuteRequest {
     private String project;
 
-    @JsonProperty("model_id")
-    private String modelId;
+    @JsonProperty("job_ids")
+    private List<String> jobIds;
 
     private String action;
 }

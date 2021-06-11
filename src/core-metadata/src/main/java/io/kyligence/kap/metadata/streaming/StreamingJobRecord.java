@@ -21,28 +21,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.metadata.streaming;
 
-import java.sql.SQLException;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.common.obf.IKeep;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public interface StreamingJobStatsDAO {
+@Getter
+@Setter
+@NoArgsConstructor
+public class StreamingJobRecord implements IKeep {
+    // table names
+    public static final String STREAMING_JOB_RECORD_SUFFIX = "streaming_job_record";
 
-    String getSJSMetricMeasurement();
+    @JsonProperty("id")
+    private Long id;
 
-    int insert(StreamingJobStats metrics);
+    @JsonProperty("job_Id")
+    private String jobId;
 
-    void insert(List<StreamingJobStats> metricsList);
+    @JsonProperty("project")
+    private String project;
 
-    void dropTable() throws SQLException;
+    @JsonProperty("action")
+    private String action;
 
-    void deleteAllStreamingJobStats();
+    @JsonProperty("create_time")
+    private Long createTime;
 
-    void deleteSJSIfRetainTimeReached();
+    @JsonProperty("update_time")
+    private Long updateTime;
 
-    List<RowCountDetailByTime> queryRowCountDetailByTime(long startTime, String jobId);
-
-    StreamingStatistics getStreamingStatistics(long startTime, String jobId);
 
 }

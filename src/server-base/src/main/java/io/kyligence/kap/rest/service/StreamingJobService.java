@@ -31,38 +31,56 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.streaming.RowCountDetailByTime;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobStats;
-import io.kyligence.kap.metadata.streaming.StreamingJobStatsDAO;
-import io.kyligence.kap.metadata.streaming.StreamingStatistics;
+import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import io.kyligence.kap.rest.request.StreamingJobActionEnum;
+import io.kyligence.kap.rest.request.StreamingJobFilter;
+import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
 import io.kyligence.kap.rest.response.StreamingJobResponse;
 import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import lombok.val;
+import lombok.var;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 @Component("streamingJobService")
 public class StreamingJobService extends BasicService {
@@ -72,66 +90,74 @@ public class StreamingJobService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    public void launchStreamingJob(String project, String modelId) {
+    public void launchStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
-        scheduler.submitJob(project, modelId);
+        scheduler.submitJob(project, modelId, jobType);
     }
 
-    public void stopStreamingJob(String project, String modelId) {
+    public void stopStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
-        scheduler.stopJob(modelId);
+        scheduler.stopJob(modelId, jobType);
     }
 
     public void forceStopStreamingJob(String project, String modelId) {
-        StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
-        scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()), true);
-        try {
-            scheduler.killJob(modelId, JobTypeEnum.STREAMING_MERGE, JobStatusEnum.STOPPED);
-        }finally {
-            scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()), false);
-        }
+        forceStopStreamingJob(project, modelId, JobTypeEnum.STREAMING_BUILD);
+        forceStopStreamingJob(project, modelId, JobTypeEnum.STREAMING_MERGE);
+    }
 
-        scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()), true);
-        try{
-            scheduler.killJob(modelId, JobTypeEnum.STREAMING_BUILD, JobStatusEnum.STOPPED);
-        }finally {
-            scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()), false);
+    public void forceStopStreamingJob(String project, String modelId, JobTypeEnum jobType) {
+        StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
+        scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, jobType.name()), true);
+        try {
+            scheduler.killJob(modelId, jobType, JobStatusEnum.STOPPED);
+        } finally {
+            scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, jobType.name()), false);
         }
     }
 
-    public void updateStreamingJobParams(String project, String modelId, Map<String, String> buildParams,
-            Map<String, String> mergeParams) {
+    public void updateStreamingJobParams(String project, String jobId, Map<String, String> params) {
         aclEvaluate.checkProjectOperationPermission(project);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val config = KylinConfig.getInstanceFromEnv();
             StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-            mgr.updateStreamingJob(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()),
-                    copyForWrite -> {
-                        copyForWrite.setParams(buildParams);
-                    });
-            mgr.updateStreamingJob(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()),
-                    copyForWrite -> {
-                        copyForWrite.setParams(mergeParams);
-                    });
+            mgr.updateStreamingJob(jobId, copyForWrite -> {
+                copyForWrite.setParams(params);
+            });
             return null;
         }, project);
     }
 
     public void updateStreamingJobStatus(String project, String modelId, String action) {
+        updateStreamingJobStatus(project,
+                Arrays.asList(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name())), action);
+        updateStreamingJobStatus(project,
+                Arrays.asList(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name())), action);
+    }
+
+    public void updateStreamingJobStatus(String project, List<String> jobIds, String action) {
         aclEvaluate.checkProjectOperationPermission(project);
         StreamingJobActionEnum.validate(action);
-        switch (StreamingJobActionEnum.valueOf(action)) {
-        case START:
-            launchStreamingJob(project, modelId);
-            break;
-        case STOP:
-            stopStreamingJob(project, modelId);
-            break;
-        case FORCE_STOP:
-            forceStopStreamingJob(project, modelId);
-            break;
-        default:
-            throw new IllegalStateException("This streaming job can not do this action: " + action);
+        for (int i = 0; i < jobIds.size(); i++) {
+            val jobId = jobIds.get(i).split("\\_");
+            String modelId = jobId[0];
+            String jobType = "STREAMING_" + jobId[1].toUpperCase(Locale.ROOT);
+            switch (StreamingJobActionEnum.valueOf(action)) {
+            case START:
+                launchStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                break;
+            case STOP:
+                stopStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                break;
+            case FORCE_STOP:
+                forceStopStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                break;
+            case RESTART:
+                forceStopStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                launchStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                break;
+            default:
+                throw new IllegalStateException("This streaming job can not do this action: " + action);
+            }
         }
     }
 
@@ -153,6 +179,11 @@ public class StreamingJobService extends BasicService {
             });
             return null;
         }, project);
+    }
+
+    public List<StreamingJobRecord> getStreamingJobRecordList(String project, String jobId) {
+        val mgr = StreamingJobRecordManager.getInstance(project);
+        return mgr.queryByJobId(jobId);
     }
 
     public String addSegment(String project, String modelId, SegmentRange rangeToMerge, String currLayer,
@@ -237,13 +268,20 @@ public class StreamingJobService extends BasicService {
         }, project);
     }
 
-    public void collectStreamingJobStats(String jobId, String project, Long batchRowNum, Double rowsPerSecond,
-            Long durationMs, Long triggerStartTime) {
-        StreamingJobStatsDAO sjsDao = getStreamingJobStatsDao();
-        StreamingJobStats stats = new StreamingJobStats(jobId, project, batchRowNum, rowsPerSecond, durationMs,
-                triggerStartTime);
+    public void collectStreamingJobStats(StreamingJobStatsRequest statsRequst) {
+        val statsMgr = getStreamingJobStatsManager();
+        val jobId = statsRequst.getJobId();
+        val project = statsRequst.getProject();
+        val batchRowNum = statsRequst.getBatchRowNum();
+        val rowsPerSecond = statsRequst.getRowsPerSecond();
+        val procTime = statsRequst.getProcessingTime();
+        val minDataLatency = statsRequst.getMinDataLatency();
+        val maxDataLatency = statsRequst.getMaxDataLatency();
+        val triggerStartTime = statsRequst.getTriggerStartTime();
+        StreamingJobStats stats = new StreamingJobStats(jobId, project, batchRowNum, rowsPerSecond, procTime,
+                minDataLatency, maxDataLatency, triggerStartTime);
         try {
-            sjsDao.insert(stats);
+            statsMgr.insert(stats);
         } catch (Exception exception) {
             logger.error("Write streaming job stats failed...");
         }
@@ -262,65 +300,131 @@ public class StreamingJobService extends BasicService {
         }, project);
     }
 
-    public StreamingJobResponse getStreamingJobInfo(String modelId, String project) {
-        String jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
-        String mergeId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name());
+    public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
+            int limit) {
+        val config = KylinConfig.getInstanceFromEnv();
+        List<StreamingJobMeta> list;
+        if (StringUtils.isEmpty(jobFilter.getProject())) {
+            val prjMgr = NProjectManager.getInstance(config);
+            val prjList = prjMgr.listAllProjects();
+            list = new ArrayList<>();
+            for (ProjectInstance instance : prjList) {
+                val mgr = StreamingJobManager.getInstance(config, instance.getName());
+                list.addAll(mgr.listAllStreamingJobMeta());
+            }
+        } else {
+            StreamingJobManager mgr = StreamingJobManager.getInstance(config, jobFilter.getProject());
+            list = mgr.listAllStreamingJobMeta();
+        }
+        List<String> jobIdList = list.stream().filter(item -> JobTypeEnum.STREAMING_BUILD == item.getJobType())
+                .map(item -> StreamingUtils.getJobId(item.getModelId(), item.getJobType().name()))
+                .collect(Collectors.toList());
 
+        val statsMgr = StreamingJobStatsManager.getInstance();
+        val dataLatenciesMap = statsMgr.queryDataLatenciesByJobIds(jobIdList);
+        List<StreamingJobResponse> respList = list.stream().map(item -> {
+            val resp = new StreamingJobResponse(item);
+            val jobId = StreamingUtils.getJobId(resp.getModelId(), resp.getJobType().name());
+            if (dataLatenciesMap != null && dataLatenciesMap.containsKey(jobId)) {
+                resp.setDataLatency(dataLatenciesMap.get(jobId));
+            }
+            val recordMgr = StreamingJobRecordManager.getInstance(jobFilter.getProject());
+            val record = recordMgr.getLatestOneByJobId(jobId);
+            if (record != null) {
+                resp.setLastStatusDuration(System.currentTimeMillis() - record.getCreateTime());
+            }
+            return resp;
+        }).collect(Collectors.toList());
+
+        Comparator<StreamingJobResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_update_time" : jobFilter.getSortBy(),
+                !jobFilter.isReverse());
+        val filterList = respList.stream().filter(item -> {
+            if (StringUtils.isEmpty(jobFilter.getModelName())) {
+                return true;
+            }
+            return item.getModelName().contains(jobFilter.getModelName());
+        }).filter(item -> {
+            if (CollectionUtils.isEmpty(jobFilter.getModelNames())) {
+                return true;
+            }
+            return jobFilter.getModelNames().contains(item.getModelName());
+        }).filter(item -> {
+            if (CollectionUtils.isEmpty(jobFilter.getJobTypes())) {
+                return true;
+            }
+            return jobFilter.getJobTypes().contains(item.getJobType().name());
+        }).filter(item -> {
+            if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
+                return true;
+            }
+            return jobFilter.getStatuses().contains(item.getCurrentStatus().name());
+        }).sorted(comparator).collect(Collectors.toList());
+        List<StreamingJobResponse> targetList = PagingUtil.cutPage(filterList, offset, limit).stream()
+                .collect(Collectors.toList());
+        return new DataResult<>(targetList, targetList.size(), offset, limit);
+    }
+
+    public StreamingJobDataStatsResponse getStreamingJobDataStats(String jobId, String project, Integer timeFilter) {
         val config = KylinConfig.getInstanceFromEnv();
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-        StreamingJobMeta meta = mgr.getStreamingJobByUuid(jobId);
-        StreamingJobMeta mergeMeta = mgr.getStreamingJobByUuid(mergeId);
-        if (JobStatusEnum.RUNNING != meta.getCurrentStatus()) {
-            return new StreamingJobResponse(meta, mergeMeta);
+        val resp = new StreamingJobDataStatsResponse();
+        Message msg = MsgPicker.getMsg();
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
+        var startTime = System.currentTimeMillis();
+        if (timeFilter > 0) {
+            switch (timeFilter) {
+            case 1:
+                calendar.add(Calendar.DAY_OF_MONTH, -1);
+                startTime = calendar.getTimeInMillis();
+                break;
+            case 3:
+                calendar.add(Calendar.DAY_OF_MONTH, -3);
+                startTime = calendar.getTimeInMillis();
+                break;
+            case 7:
+                calendar.add(Calendar.DAY_OF_MONTH, -7);
+                startTime = calendar.getTimeInMillis();
+                break;
+            default:
+                throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
+            }
+            val statsMgr = StreamingJobStatsManager.getInstance();
+            val statsList = statsMgr.queryStreamingJobStats(startTime, jobId);
+            val consumptionRateList = new ArrayList<Integer>();
+            val procTimeList = new ArrayList<Long>();
+            val minDataLatencyList = new ArrayList<Long>();
+            val createDateList = new ArrayList<Long>();
+            statsList.stream().forEach(item -> {
+                consumptionRateList.add(item.getRowsPerSecond().intValue());
+                procTimeList.add(item.getProcessingTime());
+                minDataLatencyList.add(item.getMinDataLatency());
+                createDateList.add(item.getCreateTime());
+            });
+            resp.setConsumptionRateHist(consumptionRateList);
+            resp.setProcessingTimeHist(procTimeList);
+            resp.setDataLatencyHist(minDataLatencyList);
+            resp.setCreateTime(createDateList);
         }
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
-                Locale.getDefault(Locale.Category.FORMAT));
-        Long currentTotalCount = 0L;
-        Long currentDuation = 0L;
-        Long lastUpdateTime = 0L;
-        Long lastStartTime = 0L;
-        Long lastCreateTime = 0L;
-        Long latency = 0L;
-        Long currentTime = System.currentTimeMillis();
-        StreamingJobStatsDAO sjsDao = getStreamingJobStatsDao();
-
-        try {
-            if (meta.getLastStartTime() != null) {
-                lastStartTime = format.parse(meta.getLastStartTime()).getTime();
-            }
-            if (meta.getLastUpdateTime() != null) {
-                lastUpdateTime = format.parse(meta.getLastUpdateTime()).getTime();
-            }
-            StreamingStatistics statistics = sjsDao.getStreamingStatistics(lastStartTime, jobId);
-            if (statistics != null && statistics.getCount() > 0) {
-                currentTotalCount = statistics.getCount();
-            }
-            currentDuation = currentTime - lastStartTime;
-        } catch (ParseException exception) {
-            logger.warn("Time format could not be parsed...");
-        }
-        Long countsIn5mins = 0L;
-        Long countsIn15mins = 0L;
-        Long countsIn30mins = 0L;
-        List<RowCountDetailByTime> counts = sjsDao.queryRowCountDetailByTime(lastStartTime, jobId);
-        if (counts.size() > 0) {
-            for (RowCountDetailByTime rowCount : counts) {
-                if (rowCount.getCreateTime() > currentTime - 5 * 60 * 1000) {
-                    countsIn5mins += rowCount.getBatchRowNum();
-                    countsIn15mins += rowCount.getBatchRowNum();
-                    countsIn30mins += rowCount.getBatchRowNum();
-                } else if (rowCount.getCreateTime() > currentTime - 15 * 60 * 1000) {
-                    countsIn15mins += rowCount.getBatchRowNum();
-                    countsIn30mins += rowCount.getBatchRowNum();
-                } else if (rowCount.getCreateTime() >= currentTime - 30 * 60 * 1000) {
-                    countsIn30mins += rowCount.getBatchRowNum();
-                }
-            }
-            lastCreateTime = counts.get(0).getCreateTime();
-            latency = lastUpdateTime - lastCreateTime;
-        }
-        return new StreamingJobResponse(meta, mergeMeta, lastCreateTime, latency, lastUpdateTime,
-                (countsIn5mins / (double) (5 * 60)), (countsIn15mins / (double) (15 * 60)),
-                (countsIn30mins / (double) (30 * 60)), (currentTotalCount * (double) 1000 / currentDuation));
+        return resp;
     }
+
+    public StreamingJobResponse getStreamingJobInfo(String jobId, String project) {
+        val config = KylinConfig.getInstanceFromEnv();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+        StreamingJobMeta jobMeta = mgr.getStreamingJobByUuid(jobId);
+        val resp = new StreamingJobResponse(jobMeta);
+        val statsMgr = StreamingJobStatsManager.getInstance();
+        val stats = statsMgr.getLatestOneByJobId(jobId);
+        if (stats != null) {
+            resp.setDataLatency(stats.getMinDataLatency());
+        }
+        val recordMgr = StreamingJobRecordManager.getInstance(project);
+        val record = recordMgr.getLatestOneByJobId(jobId);
+        if (record != null) {
+            resp.setLastStatusDuration(System.currentTimeMillis() - record.getCreateTime());
+        }
+        return resp;
+    }
+
 }

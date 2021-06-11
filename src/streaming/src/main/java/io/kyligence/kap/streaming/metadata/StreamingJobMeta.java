@@ -37,8 +37,11 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 @Setter
 @Getter
@@ -48,7 +51,11 @@ public class StreamingJobMeta extends RootPersistentEntity {
 
     public static StreamingJobMeta create(NDataModel model, JobStatusEnum status, JobTypeEnum jobType) {
         StreamingJobMeta meta = new StreamingJobMeta();
-        meta.setCreateTime(System.currentTimeMillis());
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
+        meta.setCreateTime(calendar.getTimeInMillis());
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                Locale.getDefault(Locale.Category.FORMAT));
+        meta.setLastUpdateTime(format.format(calendar.getTime()));
         meta.setCurrentStatus(status);
         meta.setJobType(jobType);
         meta.setModelId(model.getUuid());
@@ -75,6 +82,7 @@ public class StreamingJobMeta extends RootPersistentEntity {
             jobMeta.params.put(StreamingConstants.STREAMING_DURATION, StreamingConstants.STREAMING_DURATION_DEFAULT);
             jobMeta.params.put(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION,
                     StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION_DEFAULT);
+            jobMeta.params.put(StreamingConstants.STREAMING_WATERMARK, StreamingConstants.STREAMING_WATERMARK_DEFAULT);
         } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
             jobMeta.params.put(StreamingConstants.STREAMING_SEGMENT_MAX_SIZE,
                     StreamingConstants.STREAMING_SEGMENT_MAX_SIZE_DEFAULT);
@@ -132,6 +140,7 @@ public class StreamingJobMeta extends RootPersistentEntity {
     @JsonProperty("params")
     private Map<String, String> params = Maps.newHashMap();
 
+    @JsonProperty("project")
     private String project;
 
     @JsonProperty("skip_listener")

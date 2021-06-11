@@ -33,14 +33,20 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.metadata.streaming.RDBMSStreamingJobStatsDAO;
+import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobStats;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.request.StreamingJobFilter;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import lombok.val;
+import lombok.var;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -59,12 +65,15 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.beans.BeanUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.UUID;
@@ -127,6 +136,113 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetStreamingJobList() throws Exception {
+        val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val streamingJobsStatsManager = createStatData(jobId);
+
+        var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(6, list.getTotalSize());
+
+        // modelName filter
+        jobFilter = new StreamingJobFilter("stream_merge", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(6, list.getTotalSize());
+
+        jobFilter = new StreamingJobFilter("stream_merge1", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(2, list.getTotalSize());
+
+        jobFilter = new StreamingJobFilter("stream_merge2", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(0, list.getTotalSize());
+
+        jobFilter = new StreamingJobFilter("", Arrays.asList("stream_merge1"), Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(2, list.getTotalSize());
+
+        // job types filter
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Arrays.asList("STREAMING_BUILD"),
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(3, list.getTotalSize());
+
+        // status filter
+        val config = getTestConfig();
+        val jobMgr = StreamingJobManager.getInstance(config, PROJECT);
+        jobMgr.updateStreamingJob(MODEL_ID + "_build", copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList("RUNNING"),
+                PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(1, list.getTotalSize());
+
+        // project filter
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                PROJECT, "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
+        Assert.assertEquals(4, list.getTotalSize());
+
+        // sort & reverse
+        Assert.assertTrue(
+                list.getValue().get(0).getLastUpdateTime().compareTo(list.getValue().get(1).getLastUpdateTime()) > 0);
+        Assert.assertTrue(
+                list.getValue().get(1).getLastUpdateTime().compareTo(list.getValue().get(2).getLastUpdateTime()) > 0);
+        Assert.assertTrue(
+                list.getValue().get(2).getLastUpdateTime().compareTo(list.getValue().get(3).getLastUpdateTime()) > 0);
+
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                "", "last_update_time", false);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertTrue(
+                list.getValue().get(0).getLastUpdateTime().compareTo(list.getValue().get(1).getLastUpdateTime()) < 0);
+        Assert.assertTrue(
+                list.getValue().get(1).getLastUpdateTime().compareTo(list.getValue().get(2).getLastUpdateTime()) < 0);
+        Assert.assertTrue(
+                list.getValue().get(2).getLastUpdateTime().compareTo(list.getValue().get(3).getLastUpdateTime()) < 0);
+
+        // project & page_size filter
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                "", "last_update_time", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
+        Assert.assertEquals(4, list.getTotalSize());
+
+        // offset filter
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 2);
+        Assert.assertEquals(2, list.getTotalSize());
+        streamingJobsStatsManager.deleteAllStreamingJobStats();
+    }
+
+    @Test
+    public void testGetStreamingJobDataStats() throws Exception {
+        val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
+        val meta = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 1);
+        Assert.assertEquals("500,400", StringUtils.join(meta.getDataLatencyHist(), ","));
+        Assert.assertEquals("32,8", StringUtils.join(meta.getConsumptionRateHist(), ","));
+        Assert.assertEquals("1200,3200", StringUtils.join(meta.getProcessingTimeHist(), ","));
+        streamingJobsStatsManager.dropTable();
+    }
+
+    private StreamingJobStatsManager mockStreamingJobDataStats(String jobId) {
+        getTestConfig().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
+        val now = System.currentTimeMillis();
+        streamingJobsStatsManager
+                .insert(new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 1200L, 500L, 600L, now - 300000));
+        streamingJobsStatsManager
+                .insert(new StreamingJobStats(jobId, PROJECT, 120L, 8.17, 3200L, 400L, 800L, now - 400000));
+        return streamingJobsStatsManager;
+    }
+
+    @Test
     public void testUpdateStreamingJobStatusToStart() throws Exception {
         streamingJobService.updateStreamingJobStatus(PROJECT, MODEL_ID, "START");
         KylinConfig testConfig = getTestConfig();
@@ -169,6 +285,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         buildParam.put("spark.executor.instances", "5");
         buildParam.put("kylin.streaming.job-retry-enabled", "true");
         buildParam.put("spark.sql.shuffle.partitions", "10");
+        streamingJobService.updateStreamingJobParams(PROJECT,
+                StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name()), buildParam);
 
         mergeParam.put("spark.executor.memory", "3g");
         mergeParam.put("spark.master", "yarn");
@@ -178,7 +296,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         mergeParam.put("spark.executor.instances", "6");
         buildParam.put("kylin.streaming.job-retry-enabled", "true");
         mergeParam.put("spark.sql.shuffle.partitions", "20");
-        streamingJobService.updateStreamingJobParams(PROJECT, MODEL_ID, buildParam, mergeParam);
+        streamingJobService.updateStreamingJobParams(PROJECT,
+                StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name()), mergeParam);
         KylinConfig testConfig = getTestConfig();
         StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
         String buildJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
@@ -291,7 +410,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     @Test
     public void testCollectStreamingJobStats() {
         val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
-        streamingJobService.collectStreamingJobStats(jobId, PROJECT, 123L, 123.2, 42L, 50L);
+        val req = new StreamingJobStatsRequest(jobId, PROJECT, 123L, 123.2, 42L, 30L, 50L, 60L);
+        streamingJobService.collectStreamingJobStats(req);
         KylinConfig testConfig = getTestConfig();
         StreamingJobManager mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         StreamingJobMeta jobMeta = mgr.getStreamingJobByUuid(jobId);
@@ -303,34 +423,35 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetStreamingJobInfoOfNoData() {
+        val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
+        streamingJobsStatsManager.deleteAllStreamingJobStats();
+
         val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
-        val resp = streamingJobService.getStreamingJobInfo(MODEL_ID, PROJECT);
-        Assert.assertEquals(JobStatusEnum.STOPPED, resp.getBuildJobMeta().getCurrentStatus());
+        val resp = streamingJobService.getStreamingJobInfo(jobId, PROJECT);
+        Assert.assertEquals(JobStatusEnum.STOPPED, resp.getCurrentStatus());
         KylinConfig config = getTestConfig();
 
         val mgr = StreamingJobManager.getInstance(config, PROJECT);
         mgr.updateStreamingJob(jobId, copyForWrite -> {
             copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                    Locale.getDefault(Locale.Category.FORMAT));
+            copyForWrite.setLastUpdateTime(format.format(new Date()));
         });
 
-        val resp1 = streamingJobService.getStreamingJobInfo(MODEL_ID, PROJECT);
-        Assert.assertEquals(JobStatusEnum.RUNNING, resp1.getBuildJobMeta().getCurrentStatus());
-        Assert.assertEquals(0, resp1.getAvgConsumeRateIn5mins().intValue());
-        Assert.assertEquals(0, resp1.getAvgConsumeRateIn15mins().intValue());
-        Assert.assertEquals(0, resp1.getAvgConsumeRateIn30mins().intValue());
-        Assert.assertEquals(0, resp1.getAvgConsumeRateInAll().intValue());
-        Assert.assertEquals(0, resp1.getLatency());
-
-        Assert.assertNotNull(resp1.getLastBuildTime());
+        val resp1 = streamingJobService.getStreamingJobInfo(jobId, PROJECT);
+        Assert.assertEquals(JobStatusEnum.RUNNING, resp1.getCurrentStatus());
+        Assert.assertNotNull(resp1.getLastStatusDuration());
+        Assert.assertNull(resp1.getDataLatency());
         Assert.assertNotNull(resp1.getLastUpdateTime());
     }
 
     @Test
     public void testGetStreamingJobInfo() {
         val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
-        createData(jobId);
-        val resp = streamingJobService.getStreamingJobInfo(MODEL_ID, PROJECT);
-        Assert.assertEquals(JobStatusEnum.STOPPED, resp.getBuildJobMeta().getCurrentStatus());
+        createStatData(jobId);
+        val resp = streamingJobService.getStreamingJobInfo(jobId, PROJECT);
+        Assert.assertEquals(JobStatusEnum.STOPPED, resp.getCurrentStatus());
         KylinConfig config = getTestConfig();
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                 Locale.getDefault(Locale.Category.FORMAT));
@@ -344,28 +465,72 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
             copyForWrite.setLastUpdateTime(format.format(cal.getTime()));
         });
 
-        val resp1 = streamingJobService.getStreamingJobInfo(MODEL_ID, PROJECT);
-        Assert.assertEquals(JobStatusEnum.RUNNING, resp1.getBuildJobMeta().getCurrentStatus());
-        Assert.assertEquals(24, resp1.getAvgConsumeRateIn5mins().intValue());
-        Assert.assertEquals(8, resp1.getAvgConsumeRateIn15mins().intValue());
-        Assert.assertEquals(4, resp1.getAvgConsumeRateIn30mins().intValue());
-        Assert.assertEquals(1, resp1.getAvgConsumeRateInAll().intValue());
-        Assert.assertNotNull(resp1.getLatency());
+        val resp1 = streamingJobService.getStreamingJobInfo(jobId, PROJECT);
+        Assert.assertEquals(JobStatusEnum.RUNNING, resp1.getCurrentStatus());
 
-        Assert.assertNotNull(resp1.getLastBuildTime());
+        Assert.assertNull(resp1.getLastStatusDuration());
+        Assert.assertNotNull(resp1.getDataLatency());
         Assert.assertNotNull(resp1.getLastUpdateTime());
+        val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
+        streamingJobsStatsManager.deleteAllStreamingJobStats();
     }
 
-    private void createData(String jobId) {
+    @Test
+    public void testGetStreamingJobRecordList() throws Exception {
+        val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        createRecordData(jobId);
+        val list = streamingJobService.getStreamingJobRecordList(PROJECT, jobId);
+        Assert.assertEquals(3, list.size());
+        Assert.assertEquals("START", list.get(0).getAction());
+        Assert.assertEquals("STOP", list.get(1).getAction());
+        Assert.assertEquals("START", list.get(2).getAction());
+        Assert.assertTrue(list.get(0).getCreateTime() > list.get(1).getCreateTime());
+        Assert.assertTrue(list.get(1).getCreateTime() > list.get(2).getCreateTime());
+        val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
+        streamingJobsStatsManager.deleteAllStreamingJobStats();
+    }
+
+    private StreamingJobStatsManager createStatData(String jobId) {
         val config = getTestConfig();
         config.setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
 
-        val streamingJobsStatsDAO = RDBMSStreamingJobStatsDAO.getInstance();
+        val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
         val now = System.currentTimeMillis();
         for (int i = 60; i > 0; i--) {
-            streamingJobsStatsDAO.insert(new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 60000L, now - i * 1000));
+            val req = new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 60000L, 500L, 60000L, now - i * 1000);
+            streamingJobsStatsManager.insert(req);
         }
+        return streamingJobsStatsManager;
+    }
+
+    private void createRecordData(String jobId) {
+        val config = getTestConfig();
+        config.setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        val record = new StreamingJobRecord();
+        record.setId(100L);
+        record.setJobId(jobId);
+        record.setAction("START");
+        record.setCreateTime(System.currentTimeMillis() - 90000);
+        record.setUpdateTime(System.currentTimeMillis() - 90000);
+        record.setProject(PROJECT);
+        val mgr = StreamingJobRecordManager.getInstance(PROJECT);
+        mgr.insert(record);
+
+        val record1 = new StreamingJobRecord();
+        BeanUtils.copyProperties(record, record1);
+        record1.setId(101L);
+        record1.setAction("STOP");
+        record1.setCreateTime(System.currentTimeMillis() - 80000);
+        mgr.insert(record1);
+
+        val record2 = new StreamingJobRecord();
+        BeanUtils.copyProperties(record, record2);
+        record2.setId(102L);
+        record2.setAction("START");
+        record2.setCreateTime(System.currentTimeMillis() - 70000);
+        mgr.insert(record2);
     }
 
     @Test
@@ -387,4 +552,5 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
         Assert.assertEquals(JobStatusEnum.STOPPED, mergeJobMeta.getCurrentStatus());
     }
+
 }

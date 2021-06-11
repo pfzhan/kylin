@@ -22,22 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 package io.kyligence.kap.rest.controller;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
 import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
 import io.kyligence.kap.rest.service.StreamingJobService;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
 import io.kyligence.kap.streaming.request.SegmentMergeRequest;
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -63,6 +66,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
@@ -77,8 +82,7 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
-    private StreamingJobService streamingJobService;
-
+    private StreamingJobService streamingJobService = Mockito.spy(StreamingJobService.class);
 
     @InjectMocks
     private StreamingJobController streamingJobController = Mockito.spy(new StreamingJobController());
@@ -93,8 +97,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(streamingJobController).defaultRequest(MockMvcRequestBuilders.get("/"))
-                .build();
+        mockMvc = MockMvcBuilders.standaloneSetup(streamingJobController)
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ReflectionTestUtils.setField(streamingJobController, "streamingJobService", streamingJobService);
@@ -112,11 +116,25 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetStreamingJobList() throws Exception {
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/streaming_jobs").contentType(MediaType.APPLICATION_JSON)
+                        .param("model_name", StringUtils.EMPTY).param("model_names", StringUtils.EMPTY)
+                        .param("job_types", StringUtils.EMPTY)
+                        .param("statuses", StringUtils.EMPTY).param("project", PROJECT)
+                        .param("page_offset", "0").param("page_size", "10").param("sort_by", "last_update_time")
+                        .param("reverse", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(streamingJobController).getStreamingJobList(StringUtils.EMPTY, Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, Collections.EMPTY_LIST, PROJECT, 0, 10, "last_update_time", true);
+    }
+
+    @Test
     public void testUpdateStreamingJobStatus() throws Exception {
         val request = new StreamingJobExecuteRequest();
         request.setProject(PROJECT);
         request.setAction("START");
-        request.setModelId(MODEL_ID);
+        request.setJobIds(Arrays.asList(StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name())));
         mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -129,7 +147,10 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateStreamingJobParams() throws Exception {
         val request = new StreamingJobParamsRequest();
         request.setProject(PROJECT);
-        request.setModelId(MODEL_ID);
+        request.setJobId(StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name()));
+        request.setParams(new HashMap<>());
+        request.getParams().put(StreamingConstants.SPARK_MASTER, StreamingConstants.SPARK_MASTER_DEFAULT);
+
         mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/params").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -139,17 +160,27 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetStreamingJobDataStats() throws Exception {
+        val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs/stats/" + jobId)
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT).param("time_filter", "1")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(streamingJobController).getStreamingJobDataStats(jobId, PROJECT, 1);
+    }
+
+    @Test
     public void testCollectStreamingJobStats() throws Exception {
         val request = new StreamingJobStatsRequest();
         request.setProject(PROJECT);
-        String job_id = "abcef";
+        String job_id = "f6ca1ce7-43fc-4c42-a057-1e95dfb75d92_build";
         request.setJobId(job_id);
         Long batch_row_num = 1234532L;
         request.setBatchRowNum(batch_row_num);
         Double rows_per_second = 123.32;
         request.setRowsPerSecond(rows_per_second);
         Long duration_ms = 12222L;
-        request.setDurationMs(duration_ms);
+        request.setProcessingTime(duration_ms);
         Long trigger_start_time = 999L;
         request.setTriggerStartTime(trigger_start_time);
 
@@ -176,23 +207,23 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetStreamingJobOfBuild() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("model_id", MODEL_ID).param("job_type", "BUILD")
+    public void testGetStreamingJobRecordList() throws Exception {
+        val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs/records")
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT).param("job_id", jobId)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
-        Mockito.verify(streamingJobController).getStreamingJob(PROJECT, MODEL_ID);
+        Mockito.verify(streamingJobController).getStreamingJobRecordList(PROJECT, jobId);
     }
 
     @Test
-    public void testGetStreamingJobOfMerge() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("model_id", MODEL_ID).param("job_type", "MERGE")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+    public void testGetStreamingModelNameList() throws Exception {
+        val modelName = "stream_merge";
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs/model_name")
+                .contentType(MediaType.APPLICATION_JSON).param("model_name", modelName).param("project", PROJECT)
+                .param("page_size", "20").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
-        Mockito.verify(streamingJobController).getStreamingJob(PROJECT, MODEL_ID);
+        Mockito.verify(streamingJobController).getStreamingModelNameList(modelName, PROJECT, 20);
     }
 
     @Test
@@ -203,8 +234,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
         request.setSegmentRange(new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
                 createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_jobs/dataflow/segment").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_jobs/dataflow/segment")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
@@ -222,8 +253,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         request.setRemoveSegment(df.getSegments());
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/dataflow/segment").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/dataflow/segment")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
@@ -240,10 +271,11 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         request.setRemoveSegment(df.getSegments());
 
-        Mockito.doNothing().when(streamingJobService).deleteSegment(Mockito.anyString(), Mockito.anyString(), Mockito.anyList());
+        Mockito.doNothing().when(streamingJobService).deleteSegment(Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyList());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_jobs/dataflow/segment/deletion").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_jobs/dataflow/segment/deletion")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
@@ -266,8 +298,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
         val layouts = segDetails.getLayouts();
         request.setLayouts(layouts);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/dataflow/layout").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/dataflow/layout")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 

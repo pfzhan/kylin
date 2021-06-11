@@ -59,6 +59,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Tuple2;
+import scala.collection.mutable.ArrayBuffer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -121,38 +123,39 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, DATAFLOW_ID);
 
         val ss = SparkSession.builder().master("local").appName("test").getOrCreate();
-        val flatTable = new CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null);
+        val flatTable = new CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
         val dataset = flatTable.generateStreamingDataset(true, 5000, 100);
         val builder = new StreamingDFBuildJob(PROJECT);
 
-        val streamingEntry = new StreamingEntry(new String[]{PROJECT, DATAFLOW_ID, "1000", "-1"});
+        val streamingEntry = new StreamingEntry(new String[]{PROJECT, DATAFLOW_ID, "1000", "", "-1"});
         streamingEntry.setSparkSession(ss);
         val sr1 = createSegmentRange(0L, 10L, 3, 100L, 200);
         val microBatchEntry = new MicroBatchEntry(dataset, 0, "SSB_TOPIC_0_DOT_0_LO_PARTITIONCOLUMN", flatTable,
                 df, nSpanningTree, builder, sr1);
-        streamingEntry.processMicroBatch(microBatchEntry);
+        val minMaxBuffer = new ArrayBuffer<Tuple2<Object, Object>>(1);
+        streamingEntry.processMicroBatch(microBatchEntry, minMaxBuffer);
         df = dfMgr.getDataflow(DATAFLOW_ID);
         Assert.assertEquals(1, df.getSegments().size());
 
         val sr2 = createSegmentRange(10L, 20L, 3, 200L, 300);
         microBatchEntry.setSegmentRange(sr2);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
-        streamingEntry.processMicroBatch(microBatchEntry);
+        streamingEntry.processMicroBatch(microBatchEntry, minMaxBuffer);
         df = dfMgr.getDataflow(DATAFLOW_ID);
         Assert.assertEquals(2, df.getSegments().size());
 
         val sr3 = createSegmentRange(20L, 30L, 3, 300L, 400);
         microBatchEntry.setSegmentRange(sr3);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
-        streamingEntry.processMicroBatch(microBatchEntry);
+        streamingEntry.processMicroBatch(microBatchEntry, minMaxBuffer);
         df = dfMgr.getDataflow(DATAFLOW_ID);
         Assert.assertEquals(3, df.getSegments().size());
 
         val sr4 = createSegmentRange(30L, 40L, 3, 400L, 500);
         microBatchEntry.setSegmentRange(sr4);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
-        streamingEntry.processMicroBatch(microBatchEntry);
+        streamingEntry.processMicroBatch(microBatchEntry, minMaxBuffer);
         df = dfMgr.getDataflow(DATAFLOW_ID);
         Assert.assertEquals(4, df.getSegments().size());
 

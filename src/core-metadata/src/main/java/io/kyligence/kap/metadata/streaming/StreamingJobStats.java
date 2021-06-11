@@ -34,7 +34,7 @@ import lombok.Setter;
 public class StreamingJobStats implements IKeep {
 
     // table names
-    public static final String STREAMING_JOB_STATS_SURFIX = "streaming_job_stats";
+    public static final String STREAMING_JOB_STATS_SUFFIX = "streaming_job_stats";
 
     @JsonProperty("id")
     private Long id;
@@ -51,8 +51,14 @@ public class StreamingJobStats implements IKeep {
     @JsonProperty("rows_per_second")
     private Double rowsPerSecond;
 
-    @JsonProperty("duration_ms")
-    private Long durationMs;
+    @JsonProperty("processing_time")
+    private Long processingTime;
+
+    @JsonProperty("min_data_latency")
+    private Long minDataLatency;
+
+    @JsonProperty("max_data_latency")
+    private Long maxDataLatency;
 
     @JsonProperty("create_time")
     private Long createTime;
@@ -62,12 +68,14 @@ public class StreamingJobStats implements IKeep {
     }
 
     public StreamingJobStats(String jobId, String projectName, Long batchRowNum, Double rowsPerSecond, Long durationMs,
-    Long createTime) {
+            Long minDataLatency, Long maxDataLatency, Long createTime) {
         this.jobId = jobId;
         this.projectName = projectName;
         this.batchRowNum = batchRowNum;
         this.rowsPerSecond = rowsPerSecond;
-        this.durationMs = durationMs;
+        this.processingTime = durationMs;
+        this.minDataLatency = minDataLatency;
+        this.maxDataLatency = maxDataLatency;
         this.createTime = createTime;
     }
 

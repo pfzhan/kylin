@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
+import io.kyligence.kap.metadata.streaming.util.StreamingJobRecordStoreUtil;
 import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -227,5 +228,6 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
 
     public static void cleanStreamingStats() {
         StreamingJobStatsStoreUtil.cleanStreamingJobStats();
+        StreamingJobRecordStoreUtil.cleanStreamingJobRecord();
     }
 }

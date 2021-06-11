@@ -30,7 +30,10 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 
@@ -64,14 +67,27 @@ public class MetaInfoUpdater {
                             Locale.getDefault(Locale.Category.FORMAT));
                     Date date = new Date(System.currentTimeMillis());
                     copyForWrite.setLastUpdateTime(format.format(date));
+                    val recordMgr = StreamingJobRecordManager.getInstance(project);
+                    val record = new StreamingJobRecord();
+                    record.setJobId(jobId);
+                    record.setProject(project);
+                    record.setCreateTime(System.currentTimeMillis());
                     switch (state) {
                     case RUNNING:
                         copyForWrite.setLastStartTime(format.format(date));
                         copyForWrite.setSkipListener(false);
+                        record.setAction("START");
+                        recordMgr.insert(record);
                         break;
                     case STOPPED:
+                        record.setAction("STOP");
+                        copyForWrite.setLastEndTime(format.format(date));
+                        recordMgr.insert(record);
+                        break;
                     case ERROR:
                         copyForWrite.setLastEndTime(format.format(date));
+                        record.setAction("ERROR");
+                        recordMgr.insert(record);
                         break;
                     default:
                     }

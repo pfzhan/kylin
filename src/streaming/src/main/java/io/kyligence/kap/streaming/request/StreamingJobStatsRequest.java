@@ -39,26 +39,40 @@ public class StreamingJobStatsRequest {
     @JsonProperty("batch_row_num")
     private Long batchRowNum;
 
+    @JsonProperty("window_size")
+    private Long windowSize;
+
     @JsonProperty("rows_per_second")
     private Double rowsPerSecond;
 
-    @JsonProperty("duration_ms")
-    private Long durationMs;
-
     @JsonProperty("trigger_start_time")
     private Long triggerStartTime;
+
+    /**
+     * progress.durationMs
+     */
+    @JsonProperty("processing_time")
+    private Long processingTime;
+
+    @JsonProperty("min_data_latency")
+    private Long minDataLatency;
+
+    @JsonProperty("max_data_latency")
+    private Long maxDataLatency;
 
     public StreamingJobStatsRequest() {
 
     }
 
-    public StreamingJobStatsRequest(String jobId, String project, Long batchRowNum, Double rowsPerSecond, Long durationMs,
-                                    Long triggerStartTime) {
+    public StreamingJobStatsRequest(String jobId, String project, Long batchRowNum, Double rowsPerSecond,
+            Long durationMs, Long triggerStartTime, Long minDataLatency, Long maxDataLatency) {
         this.jobId = jobId;
         this.project = project;
         this.batchRowNum = batchRowNum;
         this.rowsPerSecond = rowsPerSecond;
-        this.durationMs = durationMs;
+        this.processingTime = durationMs;
         this.triggerStartTime = triggerStartTime;
+        this.minDataLatency = minDataLatency;
+        this.maxDataLatency = maxDataLatency;
     }
 }

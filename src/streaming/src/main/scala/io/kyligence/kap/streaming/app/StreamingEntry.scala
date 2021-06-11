@@ -25,6 +25,7 @@
 package io.kyligence.kap.streaming.app
 
 import java.text.SimpleDateFormat
+import java.util
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 import java.util.{Locale, TimeZone}
 import java.util.concurrent.atomic.AtomicBoolean
@@ -55,6 +56,8 @@ import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, functions => F}
 import org.apache.spark.storage.StorageLevel
 
+import scala.collection.mutable.ArrayBuffer
+
 object StreamingEntry
   extends Logging {
   var entry: StreamingEntry = null
@@ -77,7 +80,7 @@ object StreamingEntry
 }
 
 class StreamingEntry(args: Array[String]) extends StreamingApplication with Logging {
-  val (prj, dataflowId, duration, maxRatePerPartition) = (args(0), args(1), args(2).toInt * 1000, args(3))
+  val (prj, dataflowId, duration, watermark, maxRatePerPartition) = (args(0), args(1), args(2).toInt * 1000, args(3), args(4))
   val gracefulStop = new AtomicBoolean(false)
   // for Non Cluster Env exit
   val forceStop = new AtomicBoolean(false)
@@ -98,8 +101,9 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val sparkConf = buildEnv.sparkConf
     getOrCreateSparkSession(sparkConf)
     UdfManager.create(ss)
+    val minMaxBuffer = new ArrayBuffer[(Long, Long)](1);
     if (!config.isUTEnv) {
-      registerStreamListener(ss, config, jobId, prj)
+      registerStreamListener(ss, config, jobId, prj, duration / 1000, minMaxBuffer)
     }
     val pid = StreamingUtils.getProcessId
     reportApplicationInfo(config, prj, dataflowId, JobTypeEnum.STREAMING_BUILD.name, pid)
@@ -112,9 +116,8 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val trigger = if (triggerOnce) Trigger.Once() else Trigger.ProcessingTime(duration)
     Preconditions.checkState(prjMgr.getProject(prj) != null, "metastore can not find this project %s", prj)
 
-
     val (query, timeColumn, streamFlatTable) = generateStreamQueryForOneModel(ss, prj, dataflowId, duration,
-      maxRatePerPartition.toInt)
+      maxRatePerPartition.toInt, watermark)
     Preconditions.checkState(query != null, "generate query for one model failed for project:  %s dataflowId: $s", prj, dataflowId)
     Preconditions.checkState(timeColumn != null,
       "streaming query must have time partition column for project:  %s dataflowId: $s", prj, dataflowId)
@@ -124,6 +127,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val layouts = StreamingUtils.getToBuildLayouts(df)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, dataflowId)
     val model = df.getModel
+    val partitionColumn = model.getPartitionDesc.getPartitionDateColumn
 
     logInfo(s"start query for model : ${model.toString}")
     val builder = new StreamingDFBuildJob(prj)
@@ -141,7 +145,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
         // field time have overlap
         val microBatchEntry = new MicroBatchEntry(batchDF, batchId, timeColumn, streamFlatTable,
           df, nSpanningTree, builder, null)
-        processMicroBatch(microBatchEntry)
+        processMicroBatch(microBatchEntry, minMaxBuffer)
       }
       .trigger(trigger)
       .start()
@@ -165,7 +169,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     systemExit(0)
   }
 
-  def processMicroBatch(microBatchEntry: MicroBatchEntry): Unit = {
+  def processMicroBatch(microBatchEntry: MicroBatchEntry, minMaxBuffer: ArrayBuffer[(Long, Long)]): Unit = {
     val batchDF = microBatchEntry.batchDF
     val timeColumn = microBatchEntry.timeColumn
     val minMaxTime = batchDF.persist(StorageLevel.MEMORY_AND_DISK)
@@ -175,9 +179,8 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val batchId = microBatchEntry.batchId
     logInfo(s"start process batch: ${batchId} minMaxTime is ${minMaxTime}")
     if (minMaxTime.getTimestamp(0) != null && minMaxTime.getTimestamp(1) != null) {
-
       val (maxTime, minTime) = (minMaxTime.getTimestamp(0).getTime, minMaxTime.getTimestamp(1).getTime)
-
+      minMaxBuffer.append((minTime, maxTime))
       val batchSeg = StreamingSegmentManager.allocateSegment(ss, microBatchEntry.sr, dataflowId, prj, minTime, maxTime)
       if (batchSeg != null && !StringUtils.isEmpty(batchSeg.getId)) {
         microBatchEntry.streamFlatTable.seg = batchSeg
@@ -200,7 +203,8 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     batchDF.unpersist(true)
   }
 
-  def generateStreamQueryForOneModel(ss: SparkSession, project: String, dataflowId: String, duration: Int, maxRatePerPartition: Int):
+  def generateStreamQueryForOneModel(ss: SparkSession, project: String, dataflowId: String,
+                                     duration: Int, maxRatePerPartition: Int, watermark: String):
   (Dataset[Row], String, CreateStreamingFlatTable) = {
     val config = KylinConfig.getInstanceFromEnv
     val dfMgr: NDataflowManager = NDataflowManager.getInstance(config, project)
@@ -210,18 +214,14 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val layouts = StreamingUtils.getToBuildLayouts(df)
     Preconditions.checkState(CollectionUtils.isNotEmpty(layouts), "layouts is empty", layouts)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, dataflowId)
-
-    val flatTable = CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null)
-
+    val partitionColumn = NSparkCubingUtil.convertFromDot(df.getModel.getPartitionDesc.getPartitionDateColumn)
+    val flatTable = CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, partitionColumn, watermark)
     val flatDataset = flatTable.generateStreamingDataset(true, duration, maxRatePerPartition)
-
-    val partitionColumn = df.getModel.getPartitionDesc.getPartitionDateColumn
-    val timeColumn = NSparkCubingUtil.convertFromDot(partitionColumn)
-
-    (flatDataset, timeColumn, flatTable)
+    (flatDataset, partitionColumn, flatTable)
   }
 
-  def registerStreamListener(ss: SparkSession, config: KylinConfig, jobId: String, projectId: String): Unit = {
+  def registerStreamListener(ss: SparkSession, config: KylinConfig, jobId: String, projectId: String, windowSize: Int,
+                             minMaxBuffer: ArrayBuffer[(Long, Long)]): Unit = {
     def getTime(time: String): Long = {
       // Spark official time format
       // @param timestamp Beginning time of the trigger in ISO8601 format, i.e. UTC timestamps.
@@ -243,11 +243,19 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
       override def onQueryProgress(queryProgress: QueryProgressEvent): Unit = {
         val progress = queryProgress.progress
         val batchRows = progress.numInputRows
-        val rowsPerSecond = progress.inputRowsPerSecond
         val time = getTime(progress.timestamp)
         import scala.collection.JavaConverters._
+        val now = System.currentTimeMillis()
+        var minDataLatency = 0L
+        var maxDataLatency = 0L
+        if (!minMaxBuffer.isEmpty) {
+          minDataLatency = (now - minMaxBuffer(0)._2) + windowSize * 1000
+          maxDataLatency = (now - minMaxBuffer(0)._1) + windowSize * 1000
+          minMaxBuffer.clear()
+        }
         val durationMs = progress.durationMs.asScala.foldLeft(0L)(_ + _._2)
-        val request = new StreamingJobStatsRequest(jobId, projectId, batchRows, rowsPerSecond, durationMs, time)
+        val request = new StreamingJobStatsRequest(jobId, projectId, batchRows, batchRows / windowSize, durationMs,
+          time, minDataLatency, maxDataLatency)
         val rest = new RestSupport(config)
         try {
           rest.execute(rest.createHttpPut("/streaming_jobs/stats"), request)
@@ -263,7 +271,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
   def addShutdownListener(markFile: String, stop: AtomicBoolean, jobId: String): Unit = {
     ss.streams.addListener(new StreamingQueryListener() {
       override def onQueryStarted(event: QueryStartedEvent): Unit = {
-
 
       }
 

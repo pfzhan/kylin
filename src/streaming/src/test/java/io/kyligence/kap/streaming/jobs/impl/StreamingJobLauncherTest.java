@@ -68,11 +68,12 @@ public class StreamingJobLauncherTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(jobParams);
 
         val appArgs = (String[]) ReflectionUtils.getField(launcher, "appArgs");
-        Assert.assertEquals(4, appArgs.length);
+        Assert.assertEquals(5, appArgs.length);
         Assert.assertEquals(PROJECT, appArgs[0]);
         Assert.assertEquals(modelId, appArgs[1]);
         Assert.assertEquals(StreamingConstants.STREAMING_DURATION_DEFAULT, appArgs[2]);
-        Assert.assertEquals("-1", appArgs[3]);
+        Assert.assertEquals("", appArgs[3]);
+        Assert.assertEquals("-1", appArgs[4]);
     }
 
     @Test

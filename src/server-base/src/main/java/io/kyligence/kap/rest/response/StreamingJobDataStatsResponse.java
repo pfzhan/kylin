@@ -22,28 +22,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.streaming;
+package io.kyligence.kap.rest.response;
 
-import io.kyligence.kap.common.obf.IKeep;
-import org.mybatis.dynamic.sql.SqlColumn;
-import org.mybatis.dynamic.sql.SqlTable;
+import java.util.List;
 
-import java.sql.JDBCType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class StreamingJobStatsTable extends SqlTable implements IKeep {
+import lombok.Data;
 
-    public final SqlColumn<Long> id = column("id", JDBCType.BIGINT);
-    public final SqlColumn<String> jobId = column("job_id", JDBCType.VARCHAR);
-    public final SqlColumn<String> projectName = column("project_name", JDBCType.VARCHAR);
-    public final SqlColumn<Long> batchRowNum = column("batch_row_num", JDBCType.BIGINT);
-    public final SqlColumn<Double> rowsPerSecond = column("rows_per_second", JDBCType.DOUBLE);
-    public final SqlColumn<Long> processingTime = column("processing_time", JDBCType.BIGINT);
-    public final SqlColumn<Long> minDataLatency = column("min_data_latency", JDBCType.BIGINT);
-    public final SqlColumn<Long> maxDataLatency = column("max_data_latency", JDBCType.BIGINT);
-    public final SqlColumn<Long> createTime = column("create_time", JDBCType.BIGINT);
+@Data
+public class StreamingJobDataStatsResponse {
 
-    public StreamingJobStatsTable(String tableName) {
-        super(tableName);
-    }
+    @JsonProperty("consumption_rate_hist")
+    private List<Integer> consumptionRateHist;
 
+    @JsonProperty("data_latency_hist")
+    private List<Long> dataLatencyHist;
+
+    @JsonProperty("processing_time_hist")
+    private List<Long> processingTimeHist;
+
+    @JsonProperty("create_time")
+    private List<Long> createTime;
 }

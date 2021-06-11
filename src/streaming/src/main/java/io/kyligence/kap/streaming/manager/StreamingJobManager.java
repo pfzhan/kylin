@@ -82,7 +82,7 @@ public class StreamingJobManager {
     }
 
     public void createStreamingJob(NDataModel model, JobTypeEnum jobType) {
-        StreamingJobMeta job = StreamingJobMeta.create(model, JobStatusEnum.NEW, jobType);
+        StreamingJobMeta job = StreamingJobMeta.create(model, JobStatusEnum.STOPPED, jobType);
         crud.save(job);
     }
 

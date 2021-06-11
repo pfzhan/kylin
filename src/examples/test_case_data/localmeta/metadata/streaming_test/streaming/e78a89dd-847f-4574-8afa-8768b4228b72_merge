@@ -8,7 +8,7 @@
   "model_id" : "e78a89dd-847f-4574-8afa-8768b4228b72",
   "last_start_time" : null,
   "last_end_time" : null,
-  "last_update_time" : null,
+  "last_update_time" : "2021-05-05 11:11:12",
   "last_batch_count" : null,
   "subscribe" : "ssb_topic",
   "fact_table" : "SSB.P_LINEORDER_STR",

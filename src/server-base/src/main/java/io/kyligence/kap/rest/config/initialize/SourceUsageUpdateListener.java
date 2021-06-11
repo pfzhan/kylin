@@ -183,7 +183,7 @@ public class SourceUsageUpdateListener {
 
             return scala.collection.JavaConverters //
                     .seqAsJavaListConverter(catalogTable.partitionColumnNames()).asJava() //
-                    .stream().anyMatch(name -> name.equalsIgnoreCase(colRef.getName()));
+                    .stream().anyMatch(name -> ((String)name).equalsIgnoreCase(colRef.getName()));
         } catch (Exception e) {
             log.warn("[UNEXPECTED_THINGS_HAPPENED] Verify catalog table {} failed.", colRef.getTable(), e);
         }

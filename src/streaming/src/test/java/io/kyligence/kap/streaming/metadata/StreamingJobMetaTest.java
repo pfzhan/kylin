@@ -75,6 +75,8 @@ public class StreamingJobMetaTest extends NLocalFileMetadataTestCase {
                 params.get(StreamingConstants.STREAMING_DURATION));
         Assert.assertEquals(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION_DEFAULT,
                 params.get(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION));
+        Assert.assertEquals(StreamingConstants.STREAMING_WATERMARK_DEFAULT,
+                params.get(StreamingConstants.STREAMING_WATERMARK));
     }
 
     @Test
@@ -97,6 +99,8 @@ public class StreamingJobMetaTest extends NLocalFileMetadataTestCase {
 
     private void assertJobMeta(NDataModel dataModel, StreamingJobMeta jobMeta, JobStatusEnum status,
             JobTypeEnum jobType) {
+        Assert.assertNotNull(jobMeta.getCreateTime());
+        Assert.assertNotNull(jobMeta.getLastUpdateTime());
         Assert.assertEquals(status, jobMeta.getCurrentStatus());
         Assert.assertEquals(dataModel.getUuid(), jobMeta.getModelId());
         Assert.assertEquals(dataModel.getAlias(), jobMeta.getModelName());

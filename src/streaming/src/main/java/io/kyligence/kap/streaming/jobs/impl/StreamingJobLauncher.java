@@ -62,8 +62,12 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
             this.mainClazz = StreamingConstants.SPARK_STREAMING_ENTRY;
             var maxRatePerPartition = jobParams.getOrDefault(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION,
                     KylinConfig.getInstanceFromEnv().getKafkaRatePerPartition());
-            this.appArgs = new String[] { project, modelId, jobParams
-                    .getOrDefault(StreamingConstants.STREAMING_DURATION, StreamingConstants.STREAMING_DURATION_DEFAULT),
+            this.appArgs = new String[] { project,
+                    modelId,
+                    jobParams.getOrDefault(StreamingConstants.STREAMING_DURATION,
+                            StreamingConstants.STREAMING_DURATION_DEFAULT),
+                    jobParams.getOrDefault(StreamingConstants.STREAMING_WATERMARK,
+                            StreamingConstants.STREAMING_WATERMARK_DEFAULT),
                     maxRatePerPartition };
         } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
             this.mainClazz = StreamingConstants.SPARK_STREAMING_MERGE_ENTRY;

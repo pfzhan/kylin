@@ -29,55 +29,30 @@ import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.Data;
 
 @Data
-public class StreamingJobResponse {
+public class StreamingJobResponse extends StreamingJobMeta{
 
-    @JsonProperty("build_job_meta")
-    private StreamingJobMeta buildJobMeta;
-
-    @JsonProperty("merge_job_meta")
-    private StreamingJobMeta mergeJobMeta;
-
-    @JsonProperty("last_build_time")
-    private long lastBuildTime;
-
-    @JsonProperty("latency")
-    private long latency;
-
-    @JsonProperty("last_update_time")
-    private long lastUpdateTime;
-
-    @JsonProperty("avg_consume_rate_in_5mins")
-    private Double avgConsumeRateIn5mins;
-
-    @JsonProperty("avg_consume_rate_in_15mins")
-    private Double avgConsumeRateIn15mins;
-
-    @JsonProperty("avg_consume_rate_in_30mins")
-    private Double avgConsumeRateIn30mins;
-
-    @JsonProperty("avg_consume_rate_in_All")
-    private Double avgConsumeRateInAll;
-
-    public StreamingJobResponse() {
-
+    public StreamingJobResponse(StreamingJobMeta jobMeta) {
+        setUuid(jobMeta.getUuid());
+        setModelId(jobMeta.getModelId());
+        setModelName(jobMeta.getModelName());
+        setJobType(jobMeta.getJobType());
+        setCurrentStatus(jobMeta.getCurrentStatus());
+        setFactTableName(jobMeta.getFactTableName());
+        setProject(jobMeta.getProject());
+        setBroken(jobMeta.isBroken());
+        setSkipListener(jobMeta.isSkipListener());
+        setParams(jobMeta.getParams());
+        setYarnAppId(jobMeta.getYarnAppId());
+        setYarnAppUrl(jobMeta.getYarnAppUrl());
+        setOwner(jobMeta.getOwner());
+        setCreateTime(jobMeta.getCreateTime());
+        setLastUpdateTime(jobMeta.getLastUpdateTime());
     }
 
-    public StreamingJobResponse(StreamingJobMeta meta, StreamingJobMeta mergeMeta) {
-        this(meta, mergeMeta, 0L, 0L, 0L, (double) 0, (double) 0, (double) 0, (double) 0);
-    }
+    @JsonProperty("data_latency")
+    private Long dataLatency;
 
-    public StreamingJobResponse(StreamingJobMeta meta, StreamingJobMeta mergeMeta, long lastBuildTime, long latency,
-                                long lastUpdateTime, Double avgConsumeRateIn5mins, Double avgConsumeRateIn15mins,
-                                Double avgConsumeRateIn30mins, Double avgConsumeRateInAll) {
-        this.buildJobMeta = meta;
-        this.mergeJobMeta = mergeMeta;
-        this.lastBuildTime = lastBuildTime;
-        this.latency = latency;
-        this.lastUpdateTime = lastUpdateTime;
-        this.avgConsumeRateIn5mins = avgConsumeRateIn5mins;
-        this.avgConsumeRateIn15mins = avgConsumeRateIn15mins;
-        this.avgConsumeRateIn30mins = avgConsumeRateIn30mins;
-        this.avgConsumeRateInAll = avgConsumeRateInAll;
-    }
+    @JsonProperty("last_status_duration")
+    private Long lastStatusDuration;
 
 }
