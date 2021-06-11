@@ -42,7 +42,7 @@ export default {
       }
     },
     checkAllProjectView () {
-      if (this.$route.name === 'Job') { // 支持在monitor页面让用户选择全局视角
+      if (this.$route.name === 'Job' || this.$route.name === 'StreamingJob') { // 支持在monitor页面让用户选择全局视角
         this.needAllProjectView = true
       } else {
         this.$store.state.project.isAllProject = false

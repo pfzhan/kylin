@@ -64,8 +64,8 @@
             <el-row :gutter="10" class="ksd-mt-10" v-for="(item, index) in tab.config" :key="index">
               <el-col :span="14"><el-input v-model.trim="tab.config[index][0]" :disabled="tab.config[index] && !!tab.config[index][2]" :placeholder="$t('pleaseInputKey')" /></el-col>
               <el-col :span="6">
-                <el-input v-number2="tab.config[index][1]" v-model.trim="tab.config[index][1]" :placeholder="$t('pleaseInputValue')" v-if="numberParams.indexOf(item[0]) !== -1"></el-input>
-                <el-input v-else v-model.trim="tab.config[index][1]" :placeholder="$t('pleaseInputValue')" />
+                <el-input v-number2="tab.config[index][1]" v-model.trim="tab.config[index][1]" :placeholder="$t('pleaseInputValue')" :class="{'is-empty': !tab.config[index][1]}" v-if="numberParams.indexOf(item[0]) !== -1"></el-input>
+                <el-input v-else v-model.trim="tab.config[index][1]" :class="{'is-empty': !tab.config[index][1]}" :placeholder="$t('pleaseInputValue')" />
               </el-col>
               <!-- <el-col :span="4">
                 <span class="action-btns ksd-ml-5">

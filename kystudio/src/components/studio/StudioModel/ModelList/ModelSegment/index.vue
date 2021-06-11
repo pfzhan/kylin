@@ -1015,6 +1015,7 @@ export default class ModelSegment extends Vue {
       } else {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
+        const segmentIdStr = this.selectedSegmentIds.join(',')
         let tableData = []
         this.selectedSegments.forEach((seg) => {
           const obj = {}
@@ -1030,11 +1031,11 @@ export default class ModelSegment extends Vue {
             {column: 'start', label: this.$t('kylinLang.common.startTime')},
             {column: 'end', label: this.$t('kylinLang.common.endTime')}
           ],
-          dialogType: '',
+          dialogType: 'warning',
           showDetailBtn: false,
           submitText: this.$t('kylinLang.common.load')
         })
-        await this.syncSegmentsSecStorage({ project: projectName, model: modelId, segment_ids: this.selectedSegmentIds, type: 'CLICKHOUSE' })
+        await this.syncSegmentsSecStorage({ projectName, modelId, segmentIds: segmentIdStr, type: 'CLICKHOUSE' })
         this.$message({
           dangerouslyUseHTMLString: true,
           type: 'success',

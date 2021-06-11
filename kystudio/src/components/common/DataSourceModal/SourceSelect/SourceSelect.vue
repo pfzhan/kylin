@@ -74,7 +74,8 @@
 </template>
 <script>
 import Vue from 'vue'
-import { mapGetters, mapState } from 'vuex'
+import { mapGetters, mapState, mapMutations } from 'vuex'
+import { types } from '../store'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import * as config from '../../../../config'
@@ -88,6 +89,11 @@ import * as config from '../../../../config'
     ...mapState({
       allProject: state => state.project.allProject,
       currentProject: state => state.project.selected_project
+    })
+  },
+  methods: {
+    ...mapMutations('DataSourceModal', {
+      initForm: types.INIT_FORM
     })
   },
   locales
@@ -107,6 +113,7 @@ export default class SourceSelect extends Vue {
   }
 
   clickHandler (value = '') {
+    this.initForm()
     this.$emit('input', value)
   }
 

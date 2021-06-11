@@ -167,7 +167,7 @@
                   <el-button
                     size="medium"
                     class="ksd-ml-10"
-                    v-if="$store.state.project.projectPushdownConfig"
+                    v-if="$store.state.project.projectPushdownConfig&&!isStreamModel"
                     :disabled="modelBuildMeta.isLoadExisted || noPartition"
                     :loading="isLoadingNewRange"
                     v-guide.getPartitionRangeDataBtn

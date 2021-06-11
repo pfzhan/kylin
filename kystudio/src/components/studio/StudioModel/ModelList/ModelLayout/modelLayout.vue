@@ -105,9 +105,9 @@
       <el-tab-pane class="tab-pane-item" :label="$t('developers')" name="fifth">
         <Developers v-if="currentModelRow.tabTypes === 'fifth'" :currentModelRow="currentModelRow"/>
       </el-tab-pane>
-      <el-tab-pane class="tab-pane-item" :label="$t('streaming')" name="streaming" v-if="currentModelRow.model_type !== 'BATCH'">
+      <!-- <el-tab-pane class="tab-pane-item" :label="$t('streaming')" name="streaming" v-if="currentModelRow.model_type !== 'BATCH'">
         <ModelStreamingJob v-if="currentModelRow.tabTypes === 'streaming'" class="ksd-mrl-15 ksd-mt-15" :model="currentModelRow.uuid"/>
-      </el-tab-pane>
+      </el-tab-pane> -->
     </el-tabs>
 
     <!-- 模型构建 -->

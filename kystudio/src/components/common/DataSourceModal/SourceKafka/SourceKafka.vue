@@ -164,11 +164,11 @@ export default class SourceKafka extends Vue {
     this.isHaveErrorBlokers = val
   }
   refreshData (brokers) {
-    this.kafkaMeta.clusters[0].brokers = []
+    this.kafkaMeta.clusters[0].brokers = brokers
     this.brokers = brokers
-    brokers.forEach((b, index) => {
-      this.kafkaMeta.clusters[0].brokers.push({ id: index, host: b.trim().split(':')[0], port: b.trim().split(':')[1] })
-    })
+    // brokers.forEach((b, index) => {
+    //   this.kafkaMeta.clusters[0].brokers.push({ id: index, host: b.trim().split(':')[0], port: b.trim().split(':')[1] })
+    // })
     this.showTopicBox = false
     this.resetForm()
     this.handleParseKafkaData()
@@ -249,8 +249,8 @@ export default class SourceKafka extends Vue {
   }
   kafkaData (kafkaMeta) {
     const kafkaMetaObj = objectClone(kafkaMeta)
-    const broder = ArrayFlat(kafkaMetaObj.clusters.map(it => it.brokers)).map(item => item.host && item.port ? `${item.host}:${item.port}` : '')
-    kafkaMetaObj.kafka_bootstrap_servers = broder.join(',')
+    const broders = ArrayFlat(kafkaMetaObj.clusters.map(it => it.brokers))
+    kafkaMetaObj.kafka_bootstrap_servers = broders.join(',')
     delete kafkaMetaObj.clusters
     return kafkaMetaObj
   }

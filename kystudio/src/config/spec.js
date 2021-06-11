@@ -21,6 +21,7 @@ export default {
       { "id": "snapshot", "value": "snapshot", "title": "Snapshot" },
       { "id": "monitor", "value": "monitor", "title": "Monitor" },
       { "id": "job", "value": "job", "title": "Job" },
+      { "id": "streamingJob", "value": "streamingjob", "title": "streamingJob" },
       { "id": "admin", "value": "admin", "title": "Admin" },
       { "id": "project", "value": "project", "title": "Project" },
       { "id": "user", "value": "user", "title": "User" },
@@ -158,11 +159,11 @@ export default {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
         { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic,systemCapacity]", "value": "admin,project,user,group,groupDetail,diagnostic,projectAuthority,systemCapacity" },
-        { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,admin" },
+        { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,streamingJob]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,streamingJob,admin" },
         { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin,projectAuthority" },
-        { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,admin" },
-        { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job" },
-        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,modelDetails,snapshot,index,monitor,job,modelSubPartitionValues" },
+        { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,streamingJob]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,streamingJob,admin" },
+        { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,modelDetails,modelSubPartitionValues,snapshot,monitor,job,streamingJob" },
+        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,modelDetails,snapshot,index,monitor,job,streamingJob,modelSubPartitionValues" },
         { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,modelDetails,snapshot,index" },
         { "key": "systemUser-default-*", "value": "dashboard" }
       ]

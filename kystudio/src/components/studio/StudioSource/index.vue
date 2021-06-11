@@ -46,7 +46,7 @@
             <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS" >
               <TableColumns :table="selectedTable" v-if="viewType === viewTypes.COLUMNS"></TableColumns>
             </el-tab-pane>
-            <el-tab-pane :label="$t('sampling')" :name="viewTypes.SAMPLE">
+            <el-tab-pane :label="$t('sampling')" :name="viewTypes.SAMPLE" v-if="selectedTable.datasource!==1">
               <TableSamples :table="selectedTable" v-if="viewType === viewTypes.SAMPLE"></TableSamples>
             </el-tab-pane>
             <el-tab-pane :label="$t('kafkaCluster')" :name="viewTypes.KAFKA" v-if="selectedTable.datasource===1">

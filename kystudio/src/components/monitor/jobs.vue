@@ -488,7 +488,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       clearAll: 'Clear All',
       filter: 'Filter',
       refreshList: 'Refresh List',
-      pleaseSearch: 'Search Target Subject or Job ID',
+      pleaseSearch: 'Search Object or Job ID',
       diagnosis: 'Diagnosis',
       jobNodes: 'Job Node',
       unknow: 'Unknown',

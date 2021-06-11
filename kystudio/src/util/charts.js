@@ -1,4 +1,4 @@
-import filterElements from '../../../filter/index'
+import filterElements from '../filter/index'
 
 export default {
   // 折线图标options
@@ -13,6 +13,8 @@ export default {
       xAxis: {
         type: 'category',
         boundaryGap: false,
+        min: 'dataMin',
+        max: 'dataMax',
         data: xData || [],
         axisLabel: {
           interval: 'auto',
@@ -60,7 +62,7 @@ export default {
           color: '#323232'
         },
         axisPointer: {
-          type: 'none',
+          type: 'line',
           label: {
             show: false
           }

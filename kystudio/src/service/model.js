@@ -363,10 +363,10 @@ export default {
   },
   // 更改任务状态
   changeStreamingJobStatus (para) {
-    return Vue.http.put(apiUrl + 'streaming_jobs/status', para)
+    return Vue.resource(apiUrl + 'streaming_jobs/status').update(para)
   },
   updateStreamingConfigurations (para) {
-    return Vue.http.put(apiUrl + 'streaming_jobs/params', para)
+    return Vue.resource(apiUrl + 'streaming_jobs/params').update(para)
   },
   updateModelSecStorage (para) {
     return Vue.resource(apiUrl + 'storage/model/state').save(para)
