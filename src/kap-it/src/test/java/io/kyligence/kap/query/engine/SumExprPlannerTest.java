@@ -73,7 +73,7 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
     }
 
     private void checkSQL(String defaultProject, String second, String first, StringOutput output) {
-        super.checkSQL(defaultProject, second, first, output, HepUtils.SumExprRules);
+        super.checkSQLPostOptimize(defaultProject, second, first, output, HepUtils.SumExprRules);
     }
 
     @Test

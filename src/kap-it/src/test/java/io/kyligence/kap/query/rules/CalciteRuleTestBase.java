@@ -147,7 +147,14 @@ public class CalciteRuleTestBase extends NLocalFileMetadataTestCase {
         getDiffRepo().assertEquals(after, afterExpected, planAfter);
     }
 
-    protected void checkSQL(String project, String sql, String prefix, StringOutput StrOut, Collection<RelOptRule> rules) {
+    protected void checkSQLOptimize(String project, String sql, String prefix) {
+        RelNode relBefore = sqlToRelRoot(project, sql, KylinConfig.getInstanceFromEnv()).rel;
+        RelNode relAfter = toCalcitePlan(project, sql, KylinConfig.getInstanceFromEnv());
+        logger.debug("check plan for {}.sql: {}{}", prefix, NL, sql);
+        checkDiff(relBefore, relAfter, prefix);
+    }
+
+    protected void checkSQLPostOptimize(String project, String sql, String prefix, StringOutput StrOut, Collection<RelOptRule> rules) {
         RelNode relBefore = toCalcitePlan(project, sql, KylinConfig.getInstanceFromEnv());
         Assert.assertThat(relBefore, notNullValue());
         RelNode relAfter = HepUtils.runRuleCollection(relBefore, rules);

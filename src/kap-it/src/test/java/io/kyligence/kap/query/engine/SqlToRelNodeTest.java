@@ -63,6 +63,11 @@ public class SqlToRelNodeTest extends CalciteRuleTestBase {
         queryExec = new QueryExec(PROJECT, config);
     }
 
+    @Override
+    protected DiffRepository getDiffRepo() {
+        return diff;
+    }
+
     @Test
     public void testConvertSqlToRelNode_whenManyUnionAndWith() throws Exception {
         Pair<String, String> sql = readOneSQL(config, PROJECT, "query/sql_union", "query07.sql");
@@ -77,6 +82,12 @@ public class SqlToRelNodeTest extends CalciteRuleTestBase {
         RelValidityChecker checker = new RelValidityChecker();
         checker.go(rel);
         Assert.assertEquals(0, checker.invalidCount);
+    }
+
+    @Test
+    public void testInNull() throws Exception {
+        Pair<String, String> sql = readOneSQL(config, PROJECT, "query/sql_in", "query02.sql");
+        checkSQLOptimize(PROJECT, sql.getSecond(), "query_sql_in_query02");
     }
 
     /**
