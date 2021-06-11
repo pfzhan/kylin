@@ -26,6 +26,7 @@ package org.apache.kylin.rest.response;
 import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Getter;
 
 
@@ -48,5 +49,17 @@ public class AggIndexCombResult<T extends Serializable> implements Serializable 
 
     public static AggIndexCombResult errorResult() {
         return new AggIndexCombResult<>("FAIL", "invalid number");
+    }
+
+    public static AggIndexCombResult combine(AggIndexCombResult r1, AggIndexCombResult r2) {
+        if (r1.isFail() || r2.isFail()) {
+            return errorResult();
+        } else {
+            return successResult((Long) r1.result + (Long) r2.result);
+        }
+    }
+
+    private boolean isFail() {
+        return status.equals("FAIL");
     }
 }

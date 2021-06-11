@@ -101,7 +101,9 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -206,10 +208,10 @@ public class RealizationChooser {
         logger.debug("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-            Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
+            List<Candidate> candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
             logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), candidate != null);
-            if (candidate != null) {
-                candidates.add(candidate);
+            if (candidate != null && !candidate.isEmpty()) {
+                candidates.addAll(candidate);
             }
             // discard the props of OLAPContext modified by rewriteCcInnerCol
             QueryRouter.restoreOLAPContextProps(context, preservedOLAPContext);
@@ -220,9 +222,9 @@ public class RealizationChooser {
                 && KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
             for (NDataModel model : modelMap.keySet()) {
                 OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
-                Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
+                List<Candidate> candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
                 if (candidate != null) {
-                    candidates.add(candidate);
+                    candidates.addAll(candidate);
                 }
                 // discard the props of OLAPContext modified by rewriteCcInnerCol
                 QueryRouter.restoreOLAPContextProps(context, preservedOLAPContext);
@@ -244,6 +246,13 @@ public class RealizationChooser {
             if (selectedCandidate.capability.getSelectedCandidate() instanceof NLookupCandidate) {
                 context.storageContext
                         .setUseSnapshot(context.isFirstTableLookupTableInModel(context.realization.getModel()));
+            } else if (context.realization instanceof HybridRealization) {
+                Set<TblColRef> dimensions = Sets.newHashSet();
+                Set<FunctionDesc> metrics = Sets.newHashSet();
+                buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics,
+                        (NDataflow) ((HybridRealization) context.realization).getStreamingRealization());
+                buildStorageContext(context.storageContext, dimensions, metrics, selectedCandidate);
+                fixContextForTableIndexAnswerNonRawQuery(context);
             } else {
                 Set<TblColRef> dimensions = Sets.newHashSet();
                 Set<FunctionDesc> metrics = Sets.newHashSet();
@@ -257,8 +266,8 @@ public class RealizationChooser {
         throw new NoRealizationFoundException("No realization found for " + toErrorMsg(context));
     }
 
-    private static Candidate selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
-            Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap) {
+    private static List<Candidate> selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
+                                                              Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap) {
         final Map<String, String> map = matchJoins(model, context, isPartialMatch);
         if (map == null) {
             return null;
@@ -279,18 +288,16 @@ public class RealizationChooser {
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {
             Candidate candidate = QueryRouter.selectRealization(context, real, model2AliasMap.get(model));
-            candidates.add(candidate);
-
             if (candidate != null) {
+                candidates.add(candidate);
                 logger.trace("Model {} QueryRouter matched", model);
             } else {
                 logger.trace("Model {} failed in QueryRouter matching", model);
             }
         }
         context.setNeedToManyDerived(needToManyDerived(model));
-
         context.unfixModel();
-        return candidates.get(0);
+        return candidates;
     }
 
     private static boolean needToManyDerived(NDataModel model) {
@@ -307,6 +314,13 @@ public class RealizationChooser {
     private static boolean hasReadySegments(NDataModel model) {
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
                 .getDataflow(model.getUuid());
+        if (model.isFusionModel()) {
+            FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+            String batchId = fusionModelManager.getFusionModel(model.getFusionId()).getBatchModel().getUuid();
+            val batchDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+                    .getDataflow(batchId);
+            return dataflow.hasReadySegments() || batchDataflow.hasReadySegments();
+        }
         return dataflow.hasReadySegments();
     }
 
@@ -381,34 +395,61 @@ public class RealizationChooser {
     }
 
     private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
-            Set<FunctionDesc> metrics, Candidate candidate) {
-        val layoutCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedCandidate();
-        val prunedSegments = candidate.getPrunedSegments();
+                                            Set<FunctionDesc> metrics, Candidate candidate) {
+        context.setPrunedStreamingSegments(candidate.getPrunedStreamingSegments());
+        val layoutStreamingCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedStreamingCandidate();
+        context.setCandidateStreaming(layoutStreamingCandidate);
+        if (layoutStreamingCandidate == null || layoutStreamingCandidate.isEmptyCandidate()) {
+            context.setStreamingLayoutId(-1L);
+        } else {
+            context.setStreamingLayoutId(layoutStreamingCandidate.getLayoutEntity().getId());
+        }
+
+        List<NDataSegment> prunedSegments = candidate.getPrunedSegments();
+        NLayoutCandidate layoutCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedCandidate();
+
         val prunedPartitions = candidate.getPrunedPartitions();
-        if (layoutCandidate.isEmptyCandidate()) {
+        if ((layoutCandidate == null || layoutCandidate.isEmptyCandidate())
+                && (layoutStreamingCandidate == null || layoutStreamingCandidate.isEmptyCandidate())) {
             context.setCuboidLayoutId(null);
+            context.setStreamingLayoutId(null);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;
         }
-        LayoutEntity cuboidLayout = layoutCandidate.getLayoutEntity();
+
+        NDataModel model = candidate.getRealization().getModel();
+
         context.setCandidate(layoutCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
-        context.setCuboidLayoutId(cuboidLayout.getId());
+        context.setCuboidLayoutId(layoutCandidate == null ? -1L : layoutCandidate.getLayoutEntity().getId());
         context.setPrunedSegments(prunedSegments);
         context.setPrunedPartitions(prunedPartitions);
-        val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
-        logger.debug(
-                "for context {}, chosen model: {}, its join: {}, layout: {}, dimensions: {}, measures: {}, segments: {}",
-                context.getCtxId(), cuboidLayout.getModel().getAlias(), cuboidLayout.getModel().getJoinsGraph(),
-                cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
-                segmentIds);
-
+        if (layoutCandidate != null && !layoutCandidate.isEmptyCandidate()) {
+            LayoutEntity cuboidLayout = layoutCandidate.getLayoutEntity();
+            val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
+            logger.debug(
+                    "for context {}, chosen model: {}, its join: {}, batch layout: {}, batch layout dimensions: {}, "
+                            + "batch layout measures: {}, batch segments: {}",
+                    context.getCtxId(), model.getAlias(), model.getJoinsGraph(),
+                    cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
+                    segmentIds);
+        }
+        if (layoutStreamingCandidate != null && !layoutStreamingCandidate.isEmptyCandidate()) {
+            LayoutEntity cuboidLayout = layoutStreamingCandidate.getLayoutEntity();
+            val segmentIds = candidate.getPrunedStreamingSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+            logger.debug(
+                    "for context {}, chosen model: {}, its join: {}, streaming layout: {}, streaming layout dimensions: {}, "
+                            + "streaming layout measures: {}, streaming segments: {}",
+                    context.getCtxId(), model.getAlias(), model.getJoinsGraph(),
+                    cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
+                    segmentIds);
+        }
     }
 
     private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
-            Collection<FunctionDesc> metrics, NDataflow dataflow) {
+                                                  Collection<FunctionDesc> metrics, NDataflow dataflow) {
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric() && !func.isGrouping()) {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision

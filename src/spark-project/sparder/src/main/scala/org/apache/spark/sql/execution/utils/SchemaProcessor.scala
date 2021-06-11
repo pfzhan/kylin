@@ -25,7 +25,7 @@ package org.apache.spark.sql.execution.utils
 
 import java.util
 
-import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
+import io.kyligence.kap.metadata.cube.gridtable.NLayoutToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow, NDataflowManager}
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.kylin.common.util.ImmutableBitSet
@@ -42,24 +42,41 @@ import scala.collection.JavaConverters._
 object SchemaProcessor {
 
   def buildGTSchema(cuboid: LayoutEntity,
-                    mapping: NCuboidToGridTableMapping,
+                    mapping: NLayoutToGridTableMapping,
                     tableName: String):Seq[String] = {
 
     genColumnNames(tableName, cuboid, mapping)
   }
 
-  private def genColumnNames(tableName: String, cuboid: LayoutEntity, mapping: NCuboidToGridTableMapping) = {
-    val coolumnMapping = initColumnNameMapping(cuboid).map(_._1)
+  def buildGTIntesectSchema(cuboid: LayoutEntity, cuboidStr: LayoutEntity,
+                            mapping: NLayoutToGridTableMapping,
+                            tableName: String):Seq[String] = {
+
+    genColumnNames(tableName, cuboid, cuboidStr, mapping)
+  }
+
+  private def genColumnNames(tableName: String, cuboid: LayoutEntity, mapping: NLayoutToGridTableMapping) = {
+    val columnMapping = initColumnNameMapping(cuboid).map(_._1)
     val colAll = new ImmutableBitSet(0, mapping.getDataTypes.length)
     val measures = colAll.andNot(mapping.getPrimaryKey).asScala
     mapping.getPrimaryKey.asScala.map { i =>
-      FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString
+      FactTableCulumnInfo(tableName, i, columnMapping.apply(i)).toString
     }.toSeq ++
       measures
         .map { i =>
-          FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString
+          FactTableCulumnInfo(tableName, i, columnMapping.apply(i)).toString
         }
         .toSeq
+  }
+
+  private def genColumnNames(tableName: String, cuboid: LayoutEntity, cuboidStr: LayoutEntity, mapping: NLayoutToGridTableMapping) = {
+    val columnMapping = initColumnNameMapping(cuboid).map(_._1)
+    val columnMappingStr = initColumnNameMapping(cuboidStr).map(_._1)
+    val colAll = new ImmutableBitSet(0, mapping.getDataTypes.length)
+    val measures = colAll.andNot(mapping.getPrimaryKey).asScala
+    mapping.getPrimaryKey.asScala.filter(i => columnMappingStr.contains(columnMapping.apply(i))).
+            map(i => FactTableCulumnInfo(tableName, i, columnMapping.apply(i)).toString).toSeq ++
+            measures.map(i => FactTableCulumnInfo(tableName, i, columnMapping.apply(i)).toString).toSeq
   }
 
 

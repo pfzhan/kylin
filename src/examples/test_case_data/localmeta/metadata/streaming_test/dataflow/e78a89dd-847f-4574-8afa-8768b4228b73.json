@@ -169,7 +169,7 @@
     "segRange" : {
       "@class" : "org.apache.kylin.metadata.model.SegmentRange$KafkaOffsetPartitionedSegmentRange",
       "source_offset_start" : 1613957950000,
-      "source_offset_end" : 1613957196000,
+      "source_offset_end" : 1613957960000,
       "source_partition_offset_start" : {
         "0" : 500,
         "1" : 500,

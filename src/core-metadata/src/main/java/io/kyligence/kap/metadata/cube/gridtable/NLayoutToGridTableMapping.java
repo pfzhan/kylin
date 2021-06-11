@@ -44,11 +44,18 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 
-public class NCuboidToGridTableMapping extends GridTableMapping {
-    private final LayoutEntity cuboidLayout;
+public class NLayoutToGridTableMapping extends GridTableMapping {
+    private final LayoutEntity layoutEntity;
+    private boolean isBatchOfHybrid = false;
 
-    public NCuboidToGridTableMapping(LayoutEntity cuboidLayout) {
-        this.cuboidLayout = cuboidLayout;
+    public NLayoutToGridTableMapping(LayoutEntity layoutEntity) {
+        this.layoutEntity = layoutEntity;
+        init();
+    }
+
+    public NLayoutToGridTableMapping(LayoutEntity layoutEntity, boolean isBatchOfHybrid) {
+        this.layoutEntity = layoutEntity;
+        this.isBatchOfHybrid = isBatchOfHybrid;
         init();
     }
 
@@ -61,7 +68,13 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
         // dimensions
         dim2gt = Maps.newHashMap();
         BitSet pk = new BitSet();
-        for (TblColRef dimension : cuboidLayout.getColumns()) {
+        List<TblColRef> columns = new ArrayList<>();
+        if (isBatchOfHybrid) {
+            columns.addAll(layoutEntity.getStreamingColumns());
+        } else {
+            columns.addAll(layoutEntity.getColumns());
+        }
+        for (TblColRef dimension : columns) {
             gtDataTypes.add(dimension.getType());
             dim2gt.put(dimension, gtColIdx);
             pk.set(gtColIdx);
@@ -71,18 +84,24 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
         gtColBlocks.add(gtPrimaryKey);
 
         nDimensions = gtColIdx;
-        assert nDimensions == cuboidLayout.getColumns().size();
+        assert nDimensions == layoutEntity.getColumns().size();
 
         // column blocks of metrics
         ArrayList<BitSet> metricsColBlocks = Lists.newArrayList();
-        for (int i = 0; i < cuboidLayout.getOrderedMeasures().size(); i++) {
+        for (int i = 0; i < layoutEntity.getOrderedMeasures().size(); i++) {
             metricsColBlocks.add(new BitSet());
         }
 
         // metrics
         metrics2gt = Maps.newHashMap();
         int mColBlock = 0;
-        for (NDataModel.Measure measure : cuboidLayout.getOrderedMeasures().values()) {
+        List<NDataModel.Measure> measureDescs = new ArrayList<>();
+        if (isBatchOfHybrid) {
+            measureDescs.addAll(layoutEntity.getStreamingMeasures());
+        } else {
+            measureDescs.addAll(layoutEntity.getOrderedMeasures().values());
+        }
+        for (NDataModel.Measure measure : measureDescs) {
             // Count distinct & holistic count distinct are equals() but different.
             // Ensure the holistic version if exists is always the first.
             FunctionDesc func = measure.getFunction();
@@ -98,17 +117,17 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
         }
 
         nMetrics = gtColIdx - nDimensions;
-        assert nMetrics == cuboidLayout.getOrderedMeasures().size();
+        assert nMetrics == layoutEntity.getOrderedMeasures().size();
     }
 
     @Override
     public List<TblColRef> getCuboidDimensionsInGTOrder() {
-        return cuboidLayout.getColumns();
+        return layoutEntity.getColumns();
     }
 
     @Override
     public DimensionEncoding[] getDimensionEncodings(IDimensionEncodingMap dimEncMap) {
-        List<TblColRef> dims = cuboidLayout.getColumns();
+        List<TblColRef> dims = layoutEntity.getColumns();
         DimensionEncoding[] dimEncs = new DimensionEncoding[dims.size()];
         for (int i = 0; i < dimEncs.length; i++) {
             dimEncs[i] = dimEncMap.get(dims.get(i));
@@ -119,8 +138,8 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
     @Override
     public Map<Integer, Integer> getDependentMetricsMap() {
         Map<Integer, Integer> result = Maps.newHashMap();
-        Collection<NDataModel.Measure> measures = cuboidLayout.getOrderedMeasures().values();
-        for (NDataModel.Measure child : cuboidLayout.getOrderedMeasures().values()) {
+        Collection<NDataModel.Measure> measures = layoutEntity.getOrderedMeasures().values();
+        for (NDataModel.Measure child : layoutEntity.getOrderedMeasures().values()) {
             if (child.getDependentMeasureRef() != null) {
                 boolean ok = false;
                 for (NDataModel.Measure parent : measures) {
@@ -141,6 +160,6 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
 
     @Override
     public String getTableName() {
-        return "Cuboid " + cuboidLayout.getId();
+        return "Cuboid " + layoutEntity.getId();
     }
 }

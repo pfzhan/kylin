@@ -87,6 +87,7 @@ public class StreamingTableController extends NBasicController {
                     throw new KylinException(RELOAD_TABLE_FAILED,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
                 }
+                streamingRequest.getTableDesc().setColumns(batchTableDesc.getColumns().clone());
             }
 
             tableExtService.checkAndLoadTable(project, streamingRequest.getTableDesc(), tableExt);

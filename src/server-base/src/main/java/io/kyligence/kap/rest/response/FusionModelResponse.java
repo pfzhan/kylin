@@ -24,23 +24,28 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
-import io.kyligence.kap.rest.util.ModelUtils;
-import lombok.val;
+import java.util.List;
+
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.util.ModelUtils;
+
+@Setter
+@Getter
 public class FusionModelResponse extends NDataModelResponse {
 
     @JsonProperty("batch_id")
@@ -48,27 +53,20 @@ public class FusionModelResponse extends NDataModelResponse {
 
     public FusionModelResponse(NDataModel dataModel) {
         super(dataModel);
-        val fusionModel = FusionModelManager.getInstance(getConfig(), getProject())
-                .getFusionModel(dataModel.getFusionId());
-        this.batchId = fusionModel.getBatchModel().getUuid();
     }
 
     @Override
-    public void computedInfo(long inconsistentCount, ModelStatusToDisplayEnum status, boolean isScd2,
-            NDataModel modelDesc, boolean onlyNormalDim) {
+    protected void computedDisplayInfo(NDataModel modelDesc) {
         NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
-        NDataflow batchDataflow = dfManager.getDataflow(batchId);
         NDataflow streamingDataflow = dfManager.getDataflow(modelDesc.getUuid());
-        if (!onlyNormalDim) {
-            this.enrichDerivedDimension();
-        }
-        this.setForbiddenOnline(isScd2);
-        this.setBroken(modelDesc.isBroken());
-        this.setStatus(status);
+        FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
+                .getFusionModel(modelDesc.getFusionId());
+        this.setBatchId(fusionModel.getBatchModel().getUuid());
+        NDataflow batchDataflow = dfManager.getDataflow(batchId);
         this.setLastBuildTime(getMaxLastBuildTime(batchDataflow, streamingDataflow));
         this.setStorage(getTotalStorage(batchDataflow, streamingDataflow));
         this.setSource(getTotalSource(batchDataflow, streamingDataflow));
-        this.setSegmentHoles(calculateTotalSegHoles(batchDataflow, streamingDataflow));
+        this.setSegmentHoles(calculateTotalSegHoles(batchDataflow));
         this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
         this.setUsage(getTotalUsage(batchDataflow, streamingDataflow));
         this.setInconsistentSegmentCount(getTotalInconsistentSegmentCount(batchDataflow, streamingDataflow));
@@ -97,12 +95,9 @@ public class FusionModelResponse extends NDataModelResponse {
         return batchDataflow.getSourceBytesSize() + streamingDataflow.getSourceBytesSize();
     }
 
-    private List<SegmentRange> calculateTotalSegHoles(NDataflow batchDataflow, NDataflow streamingDataflow) {
-        NDataflowManager dfManager = NDataflowManager.getInstance(getConfig(), this.getProject());
-        List<SegmentRange> segHoles = Lists.newArrayList();
-        segHoles.addAll(dfManager.calculateSegHoles(batchDataflow.getUuid()));
-        segHoles.addAll(dfManager.calculateSegHoles(streamingDataflow.getUuid()));
-        return segHoles;
+    private List<SegmentRange> calculateTotalSegHoles(NDataflow batchDataflow) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        return dfManager.calculateSegHoles(batchDataflow.getUuid());
     }
 
     private long getTotalUsage(NDataflow batchDataflow, NDataflow streamingDataflow) {
@@ -115,7 +110,8 @@ public class FusionModelResponse extends NDataModelResponse {
     }
 
     private long getTotalAvailableIndexesCount(IndexPlan batchIndex, IndexPlan streamingIndex) {
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), this.getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                this.getProject());
         return indexPlanManager.getAvailableIndexesCount(getProject(), batchIndex.getId())
                 + indexPlanManager.getAvailableIndexesCount(getProject(), streamingIndex.getId());
     }

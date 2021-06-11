@@ -150,7 +150,8 @@ public class MetaStoreService extends BasicService {
                     } else {
                         return df.getModel();
                     }
-                }).map(modelDesc -> getSimplifiedModelResponse(project, modelDesc)).collect(Collectors.toList());
+                }).filter(model -> !model.isFusionModel() && model.getModelType() != NDataModel.ModelType.STREAMING)
+                .map(modelDesc -> getSimplifiedModelResponse(project, modelDesc)).collect(Collectors.toList());
     }
 
     private ModelPreviewResponse getSimplifiedModelResponse(String project, NDataModel modelDesc) {
@@ -270,8 +271,7 @@ public class MetaStoreService extends BasicService {
             // add version file
             String version = System.getProperty(KE_VERSION) == null ? "unknown" : System.getProperty(KE_VERSION);
             newResourceStore.putResourceWithoutCheck(VERSION_FILE,
-                    ByteSource.wrap(version.getBytes(Charset.defaultCharset())), System.currentTimeMillis(),
-                    -1);
+                    ByteSource.wrap(version.getBytes(Charset.defaultCharset())), System.currentTimeMillis(), -1);
 
             oldResourceStore.copy(ResourceStore.METASTORE_UUID_TAG, newResourceStore);
             writeMetadataToZipOutputStream(zipOutputStream, newResourceStore);
@@ -307,8 +307,7 @@ public class MetaStoreService extends BasicService {
                 .sorted(Comparator.comparingInt(RawRecItem::getId)).collect(Collectors.toList());
 
         resourceStore.putResourceWithoutCheck(String.format(Locale.ROOT, MODEL_REC_PATH, project, modelId),
-                ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(rawRecItems)), System.currentTimeMillis(),
-                -1);
+                ByteSource.wrap(JsonUtil.writeValueAsIndentBytes(rawRecItems)), System.currentTimeMillis(), -1);
     }
 
     private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore)

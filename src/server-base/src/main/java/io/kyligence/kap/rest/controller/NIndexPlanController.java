@@ -118,7 +118,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
 
-        val diffRuleBasedIndexResponse = indexPlanService.calculateDiffRuleBasedIndex(request);
+        val diffRuleBasedIndexResponse = fusionIndexService.calculateDiffRuleBasedIndex(request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, diffRuleBasedIndexResponse, "");
     }
 
@@ -129,7 +129,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
 
-        val aggIndexCount = indexPlanService.calculateAggIndexCount(request);
+        val aggIndexCount = fusionIndexService.calculateAggIndexCount(request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, aggIndexCount, "");
     }
 
@@ -192,10 +192,11 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam(value = "status", required = false, defaultValue = "") List<IndexEntity.Status> status,
             @RequestParam(value = "ids", required = false, defaultValue = "") List<Long> ids,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "range", required = false, defaultValue = "") List<IndexEntity.Range> range) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids);
+        val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids, range);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 

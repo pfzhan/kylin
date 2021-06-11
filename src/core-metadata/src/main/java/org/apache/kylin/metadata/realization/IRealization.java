@@ -62,6 +62,8 @@ public interface IRealization extends IStorageAware {
      */
     CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments);
 
+    CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments, List<NDataSegment> prunedStreamingSegments);
+
     /**
      * Get whether this specific realization is a cube or InvertedIndex
      */
@@ -79,6 +81,8 @@ public interface IRealization extends IStorageAware {
 
     List<MeasureDesc> getMeasures();
 
+    List<IRealization> getRealizations();
+
     boolean isReady();
 
     String getUuid();
@@ -94,5 +98,7 @@ public interface IRealization extends IStorageAware {
     int getCost();
 
     boolean hasPrecalculatedFields();
+
+    public boolean isStreaming();
 
 }

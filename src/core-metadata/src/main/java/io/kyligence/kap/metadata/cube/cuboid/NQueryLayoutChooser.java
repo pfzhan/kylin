@@ -107,6 +107,7 @@ public class NQueryLayoutChooser {
         List<NLayoutCandidate> candidates = new ArrayList<>();
         val commonLayouts = getLayoutsFromSegments(prunedSegments, dataflow);
         val model = dataflow.getModel();
+        val isBatchFusionModel = model.isFusionModel() && !dataflow.isStreaming();
         logger.debug("Matching dataflow with seg num: {} layout num: {}", prunedSegments.size(), commonLayouts.size());
         for (NDataLayout dataLayout : commonLayouts) {
             logger.trace("Matching layout {}", dataLayout);
@@ -125,7 +126,7 @@ public class NQueryLayoutChooser {
                     && (sqlDigest.isRawQuery || dataflow.getConfig().isUseTableIndexAnswerNonRawQuery())) {
                 logger.trace("Matching table index");
                 unmatchedCols.addAll(sqlDigest.allColumns);
-                matched = matchTableIndex(layout, sqlDigest, model, unmatchedCols, needDerive, tempResult);
+                matched = matchTableIndex(layout, sqlDigest, model, unmatchedCols, needDerive, tempResult, isBatchFusionModel);
                 if (!matched && logger.isDebugEnabled()) {
                     logger.debug("Table index {} with unmatched columns {}", dataLayout, unmatchedCols);
                 }
@@ -135,7 +136,7 @@ public class NQueryLayoutChooser {
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
                 matched = matchAggIndex(sqlDigest, layout, model, unmatchedCols, unmatchedMetrics, needDerive,
-                        tempResult);
+                        tempResult, isBatchFusionModel);
                 if (!matched && logger.isDebugEnabled()) {
                     logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", dataLayout,
                             unmatchedCols, unmatchedMetrics);
@@ -217,8 +218,14 @@ public class NQueryLayoutChooser {
         candidates.sort(ordering);
     }
 
-    private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity cuboidLayout) {
-        for (MeasureDesc measureDesc : cuboidLayout.getOrderedMeasures().values()) {
+    private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity layoutEntity, boolean isBatchFusionModel) {
+        List<MeasureDesc> functionDescs = new ArrayList<>();
+        if (isBatchFusionModel) {
+            functionDescs.addAll(layoutEntity.getStreamingMeasures());
+        }
+        functionDescs.addAll(layoutEntity.getOrderedMeasures().values());
+
+        for (MeasureDesc measureDesc : functionDescs) {
             aggregations.remove(measureDesc.getFunction());
         }
     }
@@ -231,10 +238,13 @@ public class NQueryLayoutChooser {
 
     private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity layoutEntity, final NDataModel model,
             Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
-            Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+            Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result, boolean isBatchFusionModel) {
+        if (isBatchFusionModel) {
+            unmatchedCols.removeAll(layoutEntity.getStreamingColumns());
+        }
         unmatchedCols.removeAll(layoutEntity.getOrderedDimensions().values());
         goThruDerivedDims(layoutEntity.getIndex(), model, needDerive, unmatchedCols, sqlDigest);
-        unmatchedAggregations(unmatchedMetrics, layoutEntity);
+        unmatchedAggregations(unmatchedMetrics, layoutEntity, isBatchFusionModel);
         unmatchedCountColumnIfExistCountStar(unmatchedMetrics);
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
@@ -247,7 +257,10 @@ public class NQueryLayoutChooser {
     }
 
     private static boolean matchTableIndex(final LayoutEntity layout, SQLDigest sqlDigest, final NDataModel model,
-            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result, boolean isBatchFusionModel) {
+        if (isBatchFusionModel) {
+            unmatchedCols.removeAll(layout.getStreamingColumns());
+        }
         unmatchedCols.removeAll(layout.getOrderedDimensions().values());
         goThruDerivedDims(layout.getIndex(), model, needDerive, unmatchedCols, sqlDigest);
         if (!unmatchedCols.isEmpty()) {

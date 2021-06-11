@@ -53,6 +53,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public class DiffRuleBasedIndexResponse implements Serializable {
 
+    private static DiffRuleBasedIndexResponse EMPTY = new DiffRuleBasedIndexResponse("", 0, 0, 0);
+
     @JsonProperty("index_plan_id")
     private String indexPlanId;
 
@@ -69,5 +71,27 @@ public class DiffRuleBasedIndexResponse implements Serializable {
         return new DiffRuleBasedIndexResponse(modelId, impact.getDecreaseLayouts().size(),
                 impact.getIncreaseLayouts().size(), impact.getRollbackLayouts().size());
 
+    }
+
+    public static DiffRuleBasedIndexResponse combine(DiffRuleBasedIndexResponse batch,
+            DiffRuleBasedIndexResponse stream) {
+        if (batch.isEmpty()) {
+            return stream;
+        }
+        if (stream.isEmpty()) {
+            return batch;
+        }
+        return new DiffRuleBasedIndexResponse(stream.indexPlanId,
+                stream.getDecreaseLayouts() + batch.getDecreaseLayouts(),
+                stream.getIncreaseLayouts() + batch.getIncreaseLayouts(),
+                stream.getRollbackLayouts() + batch.getRollbackLayouts());
+    }
+
+    private boolean isEmpty() {
+        return this == EMPTY;
+    }
+
+    public static DiffRuleBasedIndexResponse empty() {
+        return EMPTY;
     }
 }

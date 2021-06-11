@@ -24,19 +24,22 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import io.kyligence.kap.rest.response.JobInfoResponse;
-import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import io.kyligence.kap.rest.transaction.Transaction;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
+import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
+import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service("fusionModelService")
@@ -99,4 +102,28 @@ public class FusionModelService extends BasicService {
         copy.getSimplifiedMeasures().stream().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
         copy.getPartitionDesc().changeTableAlias(oldAliasName, tableName);
     }
+
+    @Transaction(project = 0)
+    public void renameDataModel(String project, String modelId, String newAlias) {
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        if (model.isFusionModel()) {
+            val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            String batchId = fusionModelManager.getFusionModel(modelId).getBatchModel().getUuid();
+            modelService.renameDataModel(project, batchId, FusionModel.getBatchName(newAlias));
+        }
+        modelService.renameDataModel(project, modelId, newAlias);
+    }
+
+    @Transaction(project = 0)
+    public void updateModelOwner(String project, String modelId, OwnerChangeRequest ownerChangeRequest) {
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        if (model.isFusionModel()) {
+            val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            String batchId = fusionModelManager.getFusionModel(modelId).getBatchModel().getUuid();
+            OwnerChangeRequest batchRequest = JsonUtil.deepCopyQuietly(ownerChangeRequest, OwnerChangeRequest.class);
+            modelService.updateModelOwner(project, batchId, batchRequest);
+        }
+        modelService.updateModelOwner(project, modelId, ownerChangeRequest);
+    }
+
 }

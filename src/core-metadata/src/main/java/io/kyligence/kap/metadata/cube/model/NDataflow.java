@@ -221,6 +221,16 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return NDataflowCapabilityChecker.check(this, prunedSegments, digest);
     }
 
+    @Override
+    public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments, List<NDataSegment> prunedStreamingSegments){
+        if (isStreaming()) {
+            return isCapable(digest, prunedStreamingSegments);
+        } else {
+            return isCapable(digest, prunedSegments);
+        }
+    }
+
+    @Override
     public boolean isStreaming() {
         return getModel().getModelType() != NDataModel.ModelType.BATCH;
     }
@@ -261,6 +271,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         List<MeasureDesc> result = Lists.newArrayListWithExpectedSize(measures.size());
         result.addAll(measures);
         return result;
+    }
+
+    @Override
+    public List<IRealization> getRealizations() {
+        return Arrays.asList(this);
     }
 
     public FunctionDesc findAggrFuncFromDataflowDesc(FunctionDesc aggrFunc) {

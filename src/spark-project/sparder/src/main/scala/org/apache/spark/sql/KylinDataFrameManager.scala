@@ -22,18 +22,11 @@
 
 package org.apache.spark.sql
 
-import java.sql.Timestamp
-
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
 import io.kyligence.kap.secondstorage.SecondStorage
-import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.SegmentRange
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory
 import org.apache.spark.sql.types.StructType
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.{HashMap => MutableHashMap}
 
 class KylinDataFrameManager(sparkSession: SparkSession) {

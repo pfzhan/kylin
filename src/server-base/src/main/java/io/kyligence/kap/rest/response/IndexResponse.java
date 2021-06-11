@@ -115,5 +115,16 @@ public class IndexResponse {
             this.key = key;
             this.value = value;
         }
+
+        public void changeTableAlias(String oldAlias, String newAlias) {
+            String[] split = this.key.split("\\.");
+            if (split.length == 2) {
+                String table = split[0];
+                String column = split[1];
+                if (table.equalsIgnoreCase(oldAlias)) {
+                    this.key = newAlias + "." + column;
+                }
+            }
+        }
     }
 }

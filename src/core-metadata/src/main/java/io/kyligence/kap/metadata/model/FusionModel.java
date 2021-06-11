@@ -42,22 +42,24 @@
 
 package io.kyligence.kap.metadata.model;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.metadata.model.TableDesc;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.model.TableDesc;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -97,6 +99,10 @@ public class FusionModel extends RootPersistentEntity implements Serializable {
         Map<String, String> tableMapping = Maps.newHashMap();
         tableMapping.put(model.getRootFactTableName(), batchModel.getRootFactTableName());
         this.modelMapping.put(batchModel.getUuid(), tableMapping);
+    }
+
+    public static String getBatchName(String streamAlias) {
+        return streamAlias + "_batch";
     }
 
     public void init(KylinConfig config, String project) {

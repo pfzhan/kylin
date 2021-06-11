@@ -23,15 +23,17 @@
  */
 package io.kyligence.kap.rest.request;
 
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.HYBRID;
+
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.model.IStorageAware;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -73,5 +75,5 @@ public class CreateTableIndexRequest implements ProjectInsensitiveRequest {
     private boolean isLoadData = true;
 
     @JsonProperty("index_range")
-    private IndexEntity.Range indexRange;
+    private IndexEntity.Range indexRange = HYBRID;
 }

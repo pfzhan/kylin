@@ -80,6 +80,18 @@ public class Candidate {
 
     @Getter
     @Setter
+    private List<NDataSegment> prunedStreamingSegments;
+
+    public void setPrunedSegments(List<NDataSegment> prunedSegments, boolean isStreaming) {
+        if (isStreaming) {
+            this.prunedStreamingSegments = prunedSegments;
+        } else {
+            this.prunedSegments = prunedSegments;
+        }
+    }
+
+    @Getter
+    @Setter
     private Map<String, List<Long>> prunedPartitions;
 
     public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx) {
@@ -141,8 +153,7 @@ public class Candidate {
                 return comp;
             }
 
-            comp = Double.compare(c1.capability.getSelectedCandidate().getCost(),
-                    c2.capability.getSelectedCandidate().getCost());
+            comp = Double.compare(c1.capability.cost, c2.capability.cost);
             if (comp != 0) {
                 return comp;
             }

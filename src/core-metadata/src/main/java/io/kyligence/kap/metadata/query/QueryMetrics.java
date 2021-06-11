@@ -111,6 +111,8 @@ public class QueryMetrics implements IKeep {
 
         protected String layoutId;
 
+        protected String strLayoutId;
+
         protected String indexType;
 
         protected String modelId;

@@ -50,6 +50,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
@@ -146,6 +151,21 @@ public class NProjectLoader {
             if (realization == null) {
                 logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
                 return;
+            }
+            NDataflow dataflow = (NDataflow) realization;
+            if (dataflow.getModel().isFusionModel()) {
+                FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .getFusionModel(dataflow.getModel().getFusionId());
+                if (fusionModel != null) {
+                    String batchDataflowId = fusionModel.getBatchModel().getUuid();
+                    NDataflow batchRealization = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                            .getDataflow(batchDataflowId);
+                    HybridRealization hybridRealization = new HybridRealization(batchRealization, realization, project);
+                    hybridRealization.setConfig(dataflow.getConfig());
+                    if (sanityCheck(hybridRealization, projectAllTables)) {
+                        mapTableToRealization(projectBundle, hybridRealization);
+                    }
+                }
             }
 
             if (sanityCheck(realization, projectAllTables)) {

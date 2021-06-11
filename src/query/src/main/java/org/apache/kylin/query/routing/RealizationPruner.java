@@ -65,6 +65,7 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPTableScan;
@@ -78,6 +79,7 @@ import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.MultiPartitionKeyMapping;
 import io.kyligence.kap.metadata.model.MultiPartitionKeyMappingProvider;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
@@ -103,7 +105,9 @@ public class RealizationPruner {
             return allReadySegments;
         }
 
-        val partitionDesc = dataflow.getModel().getPartitionDesc();
+        val isBatchFusionModel = dataflow.getModel().isFusionModel() && !dataflow.isStreaming();
+        val partitionDesc = isBatchFusionModel ? getStreamingPartitionDesc(dataflow.getModel(), kylinConfig, projectName)
+                :dataflow.getModel().getPartitionDesc();
         // no partition column
         if (partitionDesc == null || partitionDesc.getPartitionDateColumn() == null) {
             log.info("No partition column");
@@ -164,6 +168,12 @@ public class RealizationPruner {
         }
 
         return selectedSegments;
+    }
+
+    private static PartitionDesc getStreamingPartitionDesc(NDataModel model, KylinConfig kylinConfig, String project) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
+        NDataModel streamingModel = modelManager.getDataModelDesc(model.getFusionId());
+        return streamingModel.getPartitionDesc();
     }
 
     private static Pair<RexNode, RexNode> transformSegment2RexCall(NDataSegment dataSegment, String dateFormat,

@@ -69,6 +69,10 @@ public class CapabilityResult {
     @Setter
     private IRealizationCandidate selectedCandidate;
 
+    @Getter
+    @Setter
+    private IRealizationCandidate selectedStreamingCandidate;
+
     /**
      * The smaller the cost, the more capable the realization
      */

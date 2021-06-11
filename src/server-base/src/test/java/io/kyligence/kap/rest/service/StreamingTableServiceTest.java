@@ -138,7 +138,7 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
         val config = getTestConfig();
         try {
             val tableDescList = tableService.getTableDesc(PROJECT, true, "", database, true);
-            Assert.assertEquals(1, tableDescList.size());
+            Assert.assertEquals(2, tableDescList.size());
             val tableDesc = tableDescList.get(0);
             val tableExtDesc = tableService.getOrCreateTableExt(PROJECT, tableDesc);
             streamingTableService.reloadTable(PROJECT, tableDesc, tableExtDesc);

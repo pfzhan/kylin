@@ -55,7 +55,7 @@
           @purge-model="model => handleCommand('purge', model)"
           @loadModels="reloadModel"
           @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
-          @auto-fix="autoFix(currentModelRow.alias, currentModelRow.uuid, currentModelRow.segment_holes)"/>
+          @auto-fix="autoFix"/>
         <StreamingSegment
           :isShowPageTitle="true"
           v-if="currentModelRow.tabTypes === 'first' && currentModelRow.model_type === 'STREAMING'"
@@ -69,7 +69,7 @@
           @loadModels="reloadModel"
           @purge-model="model => handleCommand('purge', model)"
           @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
-          @auto-fix="autoFix(currentModelRow.alias, currentModelRow.uuid, currentModelRow.segment_holes)" />
+          @auto-fix="autoFix(currentModelRow.alias, currentModelRow.batch_id, currentModelRow.segment_holes)" />
       </el-tab-pane>
       <el-tab-pane class="tab-pane-item" :label="$t('indexes')" name="second">
         <el-tabs class="model-indexes-tabs" v-if="currentModelRow.tabTypes === 'second'" v-model="currentIndexTab">
@@ -324,8 +324,9 @@ export default class ModelLayout extends Vue {
     }
   }
 
-  async autoFix (modelName, modleId, segmentHoles) {
+  async autoFix (...args) {
     try {
+      const [modelName, modleId, segmentHoles] = args
       const tableData = []
       let selectSegmentHoles = []
       segmentHoles.forEach((seg) => {
@@ -354,7 +355,7 @@ export default class ModelLayout extends Vue {
           try {
             await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
             this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
-            // this.loadModelsList()
+            this.reloadModel()
             this.refreshSegment(modelName)
           } catch (e) {
             handleError(e)
@@ -378,7 +379,7 @@ export default class ModelLayout extends Vue {
       submitText = this.$t('kylinLang.common.refresh')
     } else {
       title = this.$t('buildIndex')
-      subTitle = this.$t('batchBuildSubTitle')
+      subTitle = this.currentModelRow.model_type === 'HYBRID' ? this.$t('hybridModelBuildTitle') : this.$t('batchBuildSubTitle')
       submitText = this.$t('buildIndex')
     }
     this.callConfirmSegmentModal({

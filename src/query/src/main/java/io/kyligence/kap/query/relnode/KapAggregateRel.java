@@ -36,9 +36,9 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ICutContextStrategy;
@@ -59,6 +59,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -323,16 +324,25 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         if (getSubContext().size() > 1) {
             return false;
         }
-        if (getContext().storageContext.getCandidate() == null) {
+        if (getContext().storageContext.getCandidate().isEmptyCandidate() && getContext().storageContext.getCandidateStreaming().isEmptyCandidate()) {
             return false;
         }
-        IndexEntity index = getContext().storageContext.getCandidate().getLayoutEntity().getIndex();
-        if (index.getModel().getStorageType() != 0) {
+        boolean isFastBitmapEnabled;
+        NLayoutCandidate candidate = getContext().storageContext.getCandidate();
+        if (candidate.isEmptyCandidate()) {
             return false;
+        } else {
+            NDataModel model = candidate.getLayoutEntity().getModel();
+            if (model.getStorageType() != 0) {
+                return false;
+            }
+            if (model.getModelType() != NDataModel.ModelType.BATCH) {
+                return false;
+            }
+            isFastBitmapEnabled = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+                    .getIndexPlan(model.getId()).isFastBitmapEnabled();
         }
-        if (index.getModel().getModelType() != NDataModel.ModelType.BATCH) {
-            return false;
-        }
+
         for (AggregateCall call : getRewriteAggCalls()) {
             if (!supportedFunction.contains(getAggrFuncName(call))) {
                 return false;
@@ -354,7 +364,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 }
                 boolean hasBitmap = func.getReturnDataType() != null
                         && func.getReturnDataType().getName().equals("bitmap");
-                if (hasBitmap && !index.getIndexPlan().isFastBitmapEnabled()) {
+                if (hasBitmap && !isFastBitmapEnabled) {
                     return false;
                 }
                 if (hasBitmap) {

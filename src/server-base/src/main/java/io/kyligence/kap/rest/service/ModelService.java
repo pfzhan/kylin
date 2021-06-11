@@ -2030,7 +2030,7 @@ public class ModelService extends BasicService {
             String tableName = kafkaConfig.getBatchTable();
 
             ModelRequest copy = JsonUtil.deepCopyQuietly(request, ModelRequest.class);
-            copy.setAlias(request.getAlias() + "_batch");
+            copy.setAlias(FusionModel.getBatchName(request.getAlias()));
             copy.setRootFactTableName(tableName);
             copy.setFusionId(model.getUuid());
             model.setFusionId(model.getUuid());

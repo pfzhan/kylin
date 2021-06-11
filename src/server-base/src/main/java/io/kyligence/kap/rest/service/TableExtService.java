@@ -128,6 +128,7 @@ public class TableExtService extends BasicService {
      */
     @Transaction(project = 2)
     public void loadTable(TableDesc tableDesc, TableExtDesc extDesc, String project) {
+        checkBeforeLoadTable(tableDesc, project);
         String[] loaded = tableService.loadTableToProject(tableDesc, extDesc, project);
         // sanity check when loaded is empty or loaded table is not the table
         String tableName = tableDesc.getIdentity();
@@ -171,7 +172,6 @@ public class TableExtService extends BasicService {
 
     @Transaction(project = 0, retry = 1)
     public void checkAndLoadTable(String project, TableDesc tableDesc, TableExtDesc extDesc) throws Exception {
-        checkBeforeLoadTable(tableDesc, project);
         try {
             loadTable(tableDesc, extDesc, project);
         } catch (Exception ex) {

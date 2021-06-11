@@ -24,27 +24,33 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.response.AggIndexResponse;
+import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
+import org.apache.kylin.rest.service.BasicService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity.Range;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.rest.service.BasicService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service("fusionIndexService")
@@ -65,18 +71,8 @@ public class FusionIndexService extends BasicService {
             UpdateRuleBasedCuboidRequest streamingCopy = JsonUtil.deepCopyQuietly(request,
                     UpdateRuleBasedCuboidRequest.class);
             batchCopy.setModelId(batchId);
-            batchCopy
-                    .setAggregationGroups(
-                            request.getAggregationGroups().stream()
-                                    .filter(agg -> (agg.getIndexRange() == IndexEntity.Range.BATCH
-                                            || agg.getIndexRange() == IndexEntity.Range.HYBRID))
-                                    .collect(Collectors.toList()));
-            streamingCopy
-                    .setAggregationGroups(
-                            request.getAggregationGroups().stream()
-                                    .filter(agg -> (agg.getIndexRange() == IndexEntity.Range.STREAMING
-                                            || agg.getIndexRange() == IndexEntity.Range.HYBRID))
-                                    .collect(Collectors.toList()));
+            batchCopy.setAggregationGroups(getBatchAggGroup(request.getAggregationGroups()));
+            streamingCopy.setAggregationGroups(getStreamingAggGroup(request.getAggregationGroups()));
 
             indexPlanService.updateRuleBasedCuboid(project, batchCopy);
             return indexPlanService.updateRuleBasedCuboid(project, streamingCopy);
@@ -111,12 +107,7 @@ public class FusionIndexService extends BasicService {
         if (model.showFusionModel()) {
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
-            CreateTableIndexRequest copy = JsonUtil.deepCopyQuietly(request, CreateTableIndexRequest.class);
-            copy.setModelId(batchId);
-            String tableAlias = getDataModelManager(project).getDataModelDesc(batchId).getRootFactTableRef()
-                    .getTableName();
-            String oldAliasName = model.getRootFactTableRef().getTableName();
-            convertTableIndex(copy, tableAlias, oldAliasName);
+            CreateTableIndexRequest copy = convertTableIndexRequest(request, model, batchId);
             if (IndexEntity.Range.BATCH == request.getIndexRange()) {
                 return indexPlanService.createTableIndex(project, copy);
             } else if (IndexEntity.Range.HYBRID == request.getIndexRange()) {
@@ -131,6 +122,17 @@ public class FusionIndexService extends BasicService {
         return indexPlanService.createTableIndex(project, request);
     }
 
+    private CreateTableIndexRequest convertTableIndexRequest(CreateTableIndexRequest request, NDataModel model,
+            String batchId) {
+        CreateTableIndexRequest copy = JsonUtil.deepCopyQuietly(request, CreateTableIndexRequest.class);
+        copy.setModelId(batchId);
+        String tableAlias = getDataModelManager(model.getProject()).getDataModelDesc(batchId).getRootFactTableRef()
+                .getTableName();
+        String oldAliasName = model.getRootFactTableRef().getTableName();
+        convertTableIndex(copy, tableAlias, oldAliasName);
+        return copy;
+    }
+
     private void convertTableIndex(CreateTableIndexRequest copy, String tableName, String oldAliasName) {
         copy.setColOrder(copy.getColOrder().stream().map(x -> changeTableAlias(x, oldAliasName, tableName))
                 .collect(Collectors.toList()));
@@ -140,7 +142,7 @@ public class FusionIndexService extends BasicService {
                 .collect(Collectors.toList()));
     }
 
-    public String changeTableAlias(String col, String oldAlias, String newAlias) {
+    private String changeTableAlias(String col, String oldAlias, String newAlias) {
         String table = col.split("\\.")[0];
         String column = col.split("\\.")[1];
         if (table.equalsIgnoreCase(oldAlias)) {
@@ -155,13 +157,7 @@ public class FusionIndexService extends BasicService {
         if (model.showFusionModel()) {
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
-            CreateTableIndexRequest copy = JsonUtil.deepCopyQuietly(request, CreateTableIndexRequest.class);
-            copy.setModelId(batchId);
-            copy.setModelId(batchId);
-            String tableAlias = getDataModelManager(project).getDataModelDesc(batchId).getRootFactTableRef()
-                    .getTableName();
-            String oldAliasName = model.getRootFactTableRef().getTableName();
-            convertTableIndex(copy, tableAlias, oldAliasName);
+            CreateTableIndexRequest copy = convertTableIndexRequest(request, model, batchId);
             if (IndexEntity.Range.BATCH == request.getIndexRange()) {
                 copy.setModelId(batchId);
                 return indexPlanService.updateTableIndex(project, copy);
@@ -173,20 +169,48 @@ public class FusionIndexService extends BasicService {
     }
 
     public List<IndexResponse> getIndexes(String project, String modelId, String key, List<IndexEntity.Status> status,
-            String orderBy, Boolean desc, List<IndexEntity.Source> sources, List<Long> ids) {
+            String orderBy, Boolean desc, List<IndexEntity.Source> sources, List<Long> ids,
+            List<IndexEntity.Range> range) {
         List<IndexResponse> indexes = indexPlanService.getIndexes(project, modelId, key, status, orderBy, desc,
                 sources);
-        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
-        if (modelDesc.showFusionModel()) {
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        if (model.isFusionModel()) {
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
-            String batchId = fusionModel.getBatchModel().getUuid();
-            indexes.addAll(indexPlanService.getIndexes(project, batchId, key, status, orderBy, desc, sources).stream()
-                    .filter(index -> IndexEntity.Range.BATCH == index.getIndexRange()).collect(Collectors.toList()));
+            if (fusionModel != null) {
+                String batchId = fusionModel.getBatchModel().getUuid();
+                String oldAliasName = getDataModelManager(project).getDataModelDesc(batchId).getRootFactTableRef()
+                        .getTableName();
+                String tableAlias = model.getRootFactTableRef().getTableName();
+                indexes.addAll(indexPlanService.getIndexes(project, batchId, key, status, orderBy, desc, sources)
+                        .stream().filter(index -> IndexEntity.Range.BATCH == index.getIndexRange())
+                        .map(index -> convertTableIndex(index, tableAlias, oldAliasName)).collect(Collectors.toList()));
+            } else {
+                val streamingModel = getDataModelManager(project).getDataModelDesc(model.getFusionId());
+                String oldAliasName = model.getRootFactTableRef().getTableName();
+                String tableAlias = streamingModel.getRootFactTableRef().getTableName();
+                indexes.stream().forEach(index -> convertTableIndex(index, tableAlias, oldAliasName));
+            }
         }
-        if (CollectionUtils.isEmpty(ids)) {
-            return indexes;
+
+        if (!CollectionUtils.isEmpty(ids)) {
+            indexes = indexes.stream().filter(index -> (ids.contains(index.getId()))).collect(Collectors.toList());
         }
-        return indexes.stream().filter(index -> ids.contains(index.getId())).collect(Collectors.toList());
+
+        if (!CollectionUtils.isEmpty(range)) {
+            indexes = indexes.stream()
+                    .filter(index -> (index.getIndexRange() == null || range.contains(index.getIndexRange())))
+                    .collect(Collectors.toList());
+        }
+        return indexes;
+    }
+
+    private IndexResponse convertTableIndex(IndexResponse copy, String tableName, String oldAliasName) {
+        copy.getColOrder().stream().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
+        copy.setShardByColumns(copy.getShardByColumns().stream().map(x -> changeTableAlias(x, oldAliasName, tableName))
+                .collect(Collectors.toList()));
+        copy.setSortByColumns(copy.getSortByColumns().stream().map(x -> changeTableAlias(x, oldAliasName, tableName))
+                .collect(Collectors.toList()));
+        return copy;
     }
 
     @Transaction(project = 0)
@@ -203,5 +227,91 @@ public class FusionIndexService extends BasicService {
             }
         }
         indexPlanService.removeIndex(project, model, id);
+    }
+
+    public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
+        if (isFusionModel(request.getProject(), request.getModelId())) {
+
+            UpdateRuleBasedCuboidRequest batchRequest = convertBatchUpdateRuleReq(request);
+            UpdateRuleBasedCuboidRequest streamRequest = convertStreamUpdateRuleReq(request);
+
+            val batchResponse = batchRequest == null ? AggIndexResponse.empty()
+                    : indexPlanService.calculateAggIndexCount(batchRequest);
+            val streamResponse = streamRequest == null ? AggIndexResponse.empty()
+                    : indexPlanService.calculateAggIndexCount(streamRequest);
+
+            return AggIndexResponse.combine(batchResponse, streamResponse, request.getAggregationGroups().stream()
+                    .map(NAggregationGroup::getIndexRange).collect(Collectors.toList()));
+        }
+
+        return indexPlanService.calculateAggIndexCount(request);
+    }
+
+    public DiffRuleBasedIndexResponse calculateDiffRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
+        if (isFusionModel(request.getProject(), request.getModelId())) {
+            UpdateRuleBasedCuboidRequest batchRequest = convertBatchUpdateRuleReq(request);
+            UpdateRuleBasedCuboidRequest streamRequest = convertStreamUpdateRuleReq(request);
+
+            val batchResponse = batchRequest == null ? DiffRuleBasedIndexResponse.empty()
+                    : indexPlanService.calculateDiffRuleBasedIndex(batchRequest);
+            val streamResponse = streamRequest == null ? DiffRuleBasedIndexResponse.empty()
+                    : indexPlanService.calculateDiffRuleBasedIndex(streamRequest);
+
+            return DiffRuleBasedIndexResponse.combine(batchResponse, streamResponse);
+        }
+
+        return indexPlanService.calculateDiffRuleBasedIndex(request);
+    }
+
+    private UpdateRuleBasedCuboidRequest convertStreamUpdateRuleReq(UpdateRuleBasedCuboidRequest request) {
+        UpdateRuleBasedCuboidRequest streamRequest = JsonUtil.deepCopyQuietly(request,
+                UpdateRuleBasedCuboidRequest.class);
+        streamRequest.setAggregationGroups(getStreamingAggGroup(streamRequest.getAggregationGroups()));
+        if (CollectionUtils.isEmpty(streamRequest.getAggregationGroups())) {
+            return null;
+        }
+        return streamRequest;
+    }
+
+    private UpdateRuleBasedCuboidRequest convertBatchUpdateRuleReq(UpdateRuleBasedCuboidRequest request) {
+        val batchRequest = JsonUtil.deepCopyQuietly(request, UpdateRuleBasedCuboidRequest.class);
+        batchRequest.setAggregationGroups(getBatchAggGroup(batchRequest.getAggregationGroups()));
+        if (CollectionUtils.isEmpty(batchRequest.getAggregationGroups())) {
+            return null;
+        }
+        FusionModel fusionModel = getFusionModelManager(request.getProject()).getFusionModel(request.getModelId());
+        batchRequest.setModelId(fusionModel.getBatchModel().getUuid());
+        return batchRequest;
+    }
+
+    private boolean isFusionModel(String project, String modelId) {
+        return getDataModelManager(project).getDataModelDesc(modelId).showFusionModel();
+    }
+
+    private List<NAggregationGroup> getStreamingAggGroup(List<NAggregationGroup> aggregationGroups) {
+        return aggregationGroups.stream().filter(agg -> (agg.getIndexRange() == IndexEntity.Range.STREAMING
+                || agg.getIndexRange() == IndexEntity.Range.HYBRID)).collect(Collectors.toList());
+    }
+
+    private List<NAggregationGroup> getBatchAggGroup(List<NAggregationGroup> aggregationGroups) {
+        return aggregationGroups.stream()
+                .filter(agg -> (agg.getIndexRange() == Range.BATCH || agg.getIndexRange() == IndexEntity.Range.HYBRID))
+                .collect(Collectors.toList());
+    }
+
+    @Transaction(project = 0)
+    public void updateShardByColumns(String project, AggShardByColumnsRequest aggShardByColumnsRequest) {
+        if (isFusionModel(project, aggShardByColumnsRequest.getModelId())) {
+            val batchId = getBatchModel(project, aggShardByColumnsRequest.getModelId());
+            val batchRequest = JsonUtil.deepCopyQuietly(aggShardByColumnsRequest, AggShardByColumnsRequest.class);
+            batchRequest.setModelId(batchId);
+            indexPlanService.updateShardByColumns(project, batchRequest);
+        }
+        indexPlanService.updateShardByColumns(project, aggShardByColumnsRequest);
+    }
+
+    private String getBatchModel(String project, String modelId) {
+        FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
+        return fusionModel.getBatchModel().getId();
     }
 }

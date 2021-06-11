@@ -6,6 +6,7 @@ export default {
     tableIndexContent: 'Table Index Content:',
     selectColumns: 'Select Columns',
     selectAllColumns: 'Select All Columns',
+    includeColumns: 'Columns',
     clearAll: 'Clear All',
     select: 'Selected',
     catchup: 'Build index now',
@@ -27,7 +28,7 @@ export default {
     manyToManyAntiTableTip: 'For the tables excluded from recommendations, if the join relationship of a table is One-to-Many or Many-to-Many, dimensions from this table can\'t be used in indexes. ',
     indexTimeRange: 'Index’s Time Range',
     indexTimeRangeTips: 'The data range that the indexes will be built in. With "Batch and Streaming" selected, there will be generated batch indexes and streaming indexes with same content respectively. ',
-    noIndexRangeByHybrid: 'Select index\'s data range to display available columns.'
+    noIndexRangeByHybrid: 'Select index’s data range to display available columns.'
   },
   'zh-cn': {
     addTableIndexTitle: '添加明细索引',
@@ -36,6 +37,7 @@ export default {
     tableIndexContent: '索引内容：',
     selectColumns: '选择列',
     selectAllColumns: '选择所有列',
+    includeColumns: '包含的列',
     clearAll: '清空选择',
     select: '选中',
     catchup: '立即构建索引',

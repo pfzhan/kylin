@@ -266,7 +266,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.model + '/agg_indices/shard_columns').get(para)
   },
   loadAllIndex: (para) => {
-    return Vue.resource(apiUrl + 'index_plans/index{?sources}' + '{&status}').get(para)
+    return Vue.resource(apiUrl + 'index_plans/index{?sources}' + '{&status}' + '{&range}').get(para)
   },
   loadBaseIndex: (paras) => {
     return window.kapVm.$http.post(apiUrl + 'index_plans/base_index', paras)

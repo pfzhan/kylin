@@ -109,6 +109,10 @@ public class StorageContext {
     @Setter
     private Long cuboidLayoutId = -1L;
 
+    @Getter
+    @Setter
+    private Long streamingLayoutId = -1L;
+
     private AtomicLong processedRowCount = new AtomicLong();
 
     @Getter
@@ -123,9 +127,17 @@ public class StorageContext {
     @Setter
     private Range<Long> reusedPeriod;
 
-    @Getter
     @Setter
     private NLayoutCandidate candidate;
+    public NLayoutCandidate getCandidate() {
+        return candidate == null ? NLayoutCandidate.EMPTY : candidate;
+    }
+
+    @Setter
+    private NLayoutCandidate candidateStreaming;
+    public NLayoutCandidate getCandidateStreaming() {
+        return candidateStreaming == null ? NLayoutCandidate.EMPTY : candidateStreaming;
+    }
 
     @Getter
     @Setter
@@ -142,6 +154,10 @@ public class StorageContext {
     @Getter
     @Setter
     private List<NDataSegment> prunedSegments;
+
+    @Getter
+    @Setter
+    private List<NDataSegment> prunedStreamingSegments;
 
     @Getter
     @Setter

@@ -170,7 +170,7 @@ public class IndexPlanService extends BasicService {
             val layout = parseToLayout(project, request, indexPlan.getNextTableIndexId() + 1);
             for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
                 if (cuboidLayout.equals(layout) && cuboidLayout.isManual()) {
-                    return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
+                    throw new KylinException(DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
                 }
             }
             if (IndexEntity.isTableIndex(request.getId())) {

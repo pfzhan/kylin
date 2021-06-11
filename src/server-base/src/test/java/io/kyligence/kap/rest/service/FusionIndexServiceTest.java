@@ -23,19 +23,14 @@
  */
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.rest.request.CreateTableIndexRequest;
-import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
-import lombok.val;
-import lombok.var;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Arrays;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.CoreMatchers;
@@ -53,7 +48,18 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Arrays;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity.Range;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.rest.request.CreateTableIndexRequest;
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import lombok.val;
+import lombok.var;
 
 public class FusionIndexServiceTest extends CSVSourceTestCase {
 
@@ -206,6 +212,39 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetTableIndex() throws Exception {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
+
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val origin = indexPlanManager.getIndexPlan(modelId);
+        var response = fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.BATCH)
+                .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_LINENUMBER"))
+                .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_LINENUMBER")).isLoadData(true)
+                .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
+
+        var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
+        Assert.assertEquals(4, streamingIndexes.size());
+
+        streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null,
+                Lists.newArrayList(Range.STREAMING, Range.HYBRID));
+        Assert.assertEquals(3, streamingIndexes.size());
+
+        var batchIndexes = fusionIndexService.getIndexes("streaming_test", batchId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null,
+                Lists.newArrayList(Range.BATCH, Range.HYBRID));
+        Assert.assertEquals(4, batchIndexes.size());
+
+        batchIndexes = fusionIndexService.getIndexes("streaming_test", batchId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null,
+                Lists.newArrayList(Range.HYBRID));
+        Assert.assertEquals(3, batchIndexes.size());
+    }
+
+    @Test
     public void testHybridTableIndex() throws Exception {
         val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
         val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
@@ -237,7 +276,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(IndexEntity.Range.HYBRID, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
-                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null);
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
         Assert.assertEquals(4, streamingIndexes.size());
 
         response = fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
@@ -267,7 +306,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, IndexEntity.Range.HYBRID);
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
-                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null);
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
         Assert.assertEquals(3, streamingIndexes.size());
     }
 
@@ -305,8 +344,15 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(IndexEntity.Range.BATCH, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
-                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null);
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
         Assert.assertEquals(4, streamingIndexes.size());
+
+        var index = fusionIndexService.getIndexes("streaming_test", modelId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null,
+                Lists.newArrayList(20000000001L), null);
+        Assert.assertEquals(1, index.size());
+        Assert.assertEquals(Range.BATCH, index.get(0).getIndexRange());
+        Assert.assertEquals(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY"), index.get(0).getSortByColumns());
 
         response = fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
                 .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.BATCH).id(20000000001L)
@@ -333,7 +379,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, IndexEntity.Range.BATCH);
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
-                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null);
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
         Assert.assertEquals(3, streamingIndexes.size());
     }
 
@@ -371,7 +417,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(IndexEntity.Range.STREAMING, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
-                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null);
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
         Assert.assertEquals(4, streamingIndexes.size());
 
         response = fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
@@ -399,7 +445,55 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, IndexEntity.Range.STREAMING);
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
-                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null);
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
         Assert.assertEquals(3, streamingIndexes.size());
     }
+
+    @Test
+    public void testFusionCalculateAggIndexCount() {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        val aggGroup1 = mkAggGroup(0, 11);
+        aggGroup1.setIndexRange(Range.HYBRID);
+
+        val aggGroup2 = mkAggGroup(12);
+        aggGroup2.setIndexRange(Range.BATCH);
+
+        val aggGroup3 = mkAggGroup(13);
+        aggGroup3.setIndexRange(Range.STREAMING);
+
+        val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Arrays.asList(aggGroup1, aggGroup2, aggGroup3)).build();
+        AggIndexResponse response = fusionIndexService.calculateAggIndexCount(request);
+
+        Assert.assertThat(response.getTotalCount().getResult(), is(10L));
+
+        Assert.assertThat(response.getAggIndexCounts().get(0).getResult(), is(6L));
+        Assert.assertThat(response.getAggIndexCounts().get(1).getResult(), is(1L));
+        Assert.assertThat(response.getAggIndexCounts().get(2).getResult(), is(1L));
+    }
+
+    @Test
+    public void testFusionDiffRuleBaseIndex() {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        // hybrid +8 index
+        val aggGroup1 = mkAggGroup(0, 11, 12);
+        aggGroup1.setIndexRange(Range.HYBRID);
+
+        //batch +1 index
+        val aggGroup2 = mkAggGroup(12);
+        aggGroup2.setIndexRange(Range.BATCH);
+
+        //stream +1 index
+        val aggGroup3 = mkAggGroup(13);
+        aggGroup3.setIndexRange(Range.STREAMING);
+
+        val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Arrays.asList(aggGroup1, aggGroup2, aggGroup3)).build();
+        val response = fusionIndexService.calculateDiffRuleBasedIndex(request);
+
+        Assert.assertThat(response.getIncreaseLayouts(), is(10));
+        Assert.assertThat(response.getDecreaseLayouts(), is(0));
+        Assert.assertThat(response.getRollbackLayouts(), is(0));
+    }
+
 }

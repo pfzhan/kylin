@@ -1214,7 +1214,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDUPLICATE_LAYOUT() {
-        return "无法新建该索引，因为已存在相同的索引。请修改。";
+        return "无法添加该索引，因为已存在相同的索引。请修改。";
     }
 
     @Override

@@ -14,7 +14,7 @@
             {{$t('indexTimeRange')}}
             <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
           </h4>
-          <el-radio-group v-model="tableIndexMeta.index_range" :disabled="tableIndexMeta.id !== ''">
+          <el-radio-group v-model="tableIndexMeta.index_range" :disabled="tableIndexMeta.id !== ''" @change="changeTableIndexType">
             <el-radio :label="'HYBRID'">{{$t('kylinLang.common.HYBRID')}}</el-radio>
             <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
             <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
@@ -22,7 +22,7 @@
         </div>
         <!-- <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button> -->
         <div class="header">
-          <h4 class="ksd-left" v-if="modelInstance.model_type === 'HYBRID'">选择列</h4>
+          <h4 class="ksd-left" v-if="modelInstance.model_type === 'HYBRID'">{{$t('includeColumns')}}</h4>
           <el-alert
             :title="$t('tableIndexShardByTips')"
             type="info"
@@ -88,7 +88,7 @@
         <!-- <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox> -->
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
-        <el-button v-if="modelInstance.model_type !== 'HYBRID'" type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
+        <el-button v-if="(modelInstance.model_type === 'HYBRID' && tableIndexMeta.index_range !== 'STREAMING') || (modelInstance.model_type !== 'STREAMING' && modelInstance.model_type !== 'HYBRID')" type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -380,6 +380,10 @@
         col.isShared = false
         col.isSorted = false
       })
+    }
+    changeTableIndexType () {
+      this.isSelectAllTableIndex = false
+      this.clearAll()
     }
     selectAll () {
       this.allColumns.forEach((col) => {

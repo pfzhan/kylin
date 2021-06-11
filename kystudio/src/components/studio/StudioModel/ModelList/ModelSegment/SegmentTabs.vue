@@ -78,7 +78,8 @@ export default class SegmentTabs extends Vue {
     this.$emit('willAddIndex')
   }
   autoFix (alias, uuid, segment_holes) {
-    this.$emit('auto-fix', alias, uuid, segment_holes)
+    const modelId = this.activeTab === 'batch' ? this.model.batch_id : uuid
+    this.$emit('auto-fix', alias, modelId, segment_holes)
   }
 }
 </script>

@@ -2,7 +2,7 @@
   <!-- 模型构建 -->
     <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal(false)">
       <div>
-        <!-- <p class="segment-tips ksd-fs-12"><i class="el-icon-ksd-alert ksd-mr-5 alert-icon"></i>{{$t('changeBuildTypeTips')}}</p> -->
+        <p class="habird-tips ksd-mb-16">{{$t('habirdModelBuildTips')}}</p>
         <el-alert
           :title="$t('changeBuildTypeTips')"
           type="warning"
@@ -1066,6 +1066,9 @@
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
   .model-build {
+    .habird-tips {
+      font-size: 14px;
+    }
     .tips {
       font-size: 12px;
       color: @text-disabled-color;

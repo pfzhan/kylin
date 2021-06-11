@@ -5720,6 +5720,23 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetBrokenFusionModel() {
+        String project = "streaming_test";
+        String modelName = "model_streaming_broken";
+        val list = modelService.getModels(null, project, false, null, Lists.newArrayList(), null, false, null, null, null, true);
+        Assert.assertEquals(10, list.size());
+
+        NDataModelResponse model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
+                .get(0);
+        Assert.assertTrue(model.isBroken());
+        Assert.assertEquals(0, model.getAvailableIndexesCount());
+        Assert.assertEquals(0, model.getTotalIndexes());
+        Assert.assertEquals(406495, model.getStorage());
+        Assert.assertEquals(1369556, model.getSource());
+    }
+
+    @Test
     public void testCreateFusionModel() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "streaming_test");

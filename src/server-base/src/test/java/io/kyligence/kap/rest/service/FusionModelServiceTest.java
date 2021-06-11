@@ -24,20 +24,15 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.FusionModelManager;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
-import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import lombok.var;
-import lombok.val;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -56,8 +51,21 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
+import lombok.val;
+import lombok.var;
 
 public class FusionModelServiceTest extends CSVSourceTestCase {
 
@@ -82,6 +90,9 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
     @Autowired
     private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
+    @Mock
+    private final AccessService accessService = Mockito.spy(AccessService.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -94,6 +105,7 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
         ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
@@ -175,4 +187,39 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         val fusionMgr = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
         Assert.assertNull(fusionMgr.getFusionModel(modelId));
     }
+
+    @Test
+    public void testRenameFusionModelName() {
+        String modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        String batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
+        String project = "streaming_test";
+        String newModelName = "new_streaming";
+        fusionModelService.renameDataModel(project, modelId, newModelName);
+        Assert.assertEquals(newModelName,
+                NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(modelId).getAlias());
+        Assert.assertEquals(FusionModel.getBatchName(newModelName),
+                NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(batchId).getAlias());
+    }
+
+    @Test
+    public void testUpdateModelOwner() throws IOException {
+        String modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        String batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
+        String project = "streaming_test";
+        String newOwner = "test";
+
+        Set<String> projectManagementUsers1 = Sets.newHashSet();
+        projectManagementUsers1.add(newOwner);
+        Mockito.doReturn(projectManagementUsers1).when(accessService).getProjectManagementUsers(project);
+
+        OwnerChangeRequest request = new OwnerChangeRequest();
+        request.setProject(project);
+        request.setOwner(newOwner);
+        fusionModelService.updateModelOwner(project, modelId, request);
+        Assert.assertEquals(newOwner,
+                NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(modelId).getOwner());
+        Assert.assertEquals(newOwner,
+                NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(batchId).getOwner());
+    }
+
 }

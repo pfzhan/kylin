@@ -565,7 +565,7 @@ export default class ModelList extends Vue {
       submitText = this.$t('kylinLang.common.refresh')
     } else {
       title = this.$t('buildIndex')
-      subTitle = this.$t('batchBuildSubTitle')
+      subTitle = this.model.model_type === 'HYBRID' ? this.$t('hybridModelBuildTitle') : this.$t('batchBuildSubTitle')
       submitText = this.$t('buildIndex')
     }
     this.callConfirmSegmentModal({
@@ -632,39 +632,39 @@ export default class ModelList extends Vue {
   renderFullExpandClass (row) {
     return (row.showModelDetail || this.currentEditModel === row.alias) ? 'full-cell-content' : ''
   }
-  renderUsageHeader (h, { column, $index }) {
-    let modelMode = this.isAutoProject ? 'indexGroup' : 'model'
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('usage')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('usageTip', {mode: this.$t(modelMode)})}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
-  renderAdviceHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('recommendations')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('recommendationsTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
-  renderStorageHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('storage')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('storageTip')}>
-       <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
-  renderExpansionRateHeader (h, { column, $index }) {
-    return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
-      <span>{this.$t('expansionRate')}</span>&nbsp;
-      <common-tip placement="top" content={this.$t('expansionRateTip')}>
-        <span class='el-icon-ksd-what'></span>
-      </common-tip>
-    </span>)
-  }
+  // renderUsageHeader (h, { column, $index }) {
+  //   let modelMode = this.isAutoProject ? 'indexGroup' : 'model'
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('usage')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('usageTip', {mode: this.$t(modelMode)})}>
+  //      <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
+  // renderAdviceHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('recommendations')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('recommendationsTip')}>
+  //      <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
+  // renderStorageHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('storage')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('storageTip')}>
+  //      <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
+  // renderExpansionRateHeader (h, { column, $index }) {
+  //   return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
+  //     <span>{this.$t('expansionRate')}</span>&nbsp;
+  //     <common-tip placement="top" content={this.$t('expansionRateTip')}>
+  //       <span class='el-icon-ksd-what'></span>
+  //     </common-tip>
+  //   </span>)
+  // }
   expandRow (row, expandedRows) {
     this.expandedRows = expandedRows && expandedRows.map((m) => {
       return Object.prototype.toString.call(m) === '[object Object]' ? m.alias : m

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -183,6 +184,22 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         }
     }
 
+    public List<TblColRef> getStreamingColumns() {
+        NDataModel model = getModel();
+        if (model.isFusionModel()) {
+            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getIndexPlan(model.getFusionId());
+            ImmutableBiMap.Builder<Integer, TblColRef> dimsBuilder = ImmutableBiMap.builder();
+            for (int colId : colOrder) {
+                if (colId < NDataModel.MEASURE_ID_BASE)
+                    dimsBuilder.put(colId, indexPlan.getEffectiveDimCols().get(colId));
+            }
+
+            return Lists.newArrayList(dimsBuilder.build().values());
+        } else {
+            return Lists.newArrayList();
+        }
+    }
+
     public ImmutableBiMap<Integer, Measure> getOrderedMeasures() { // measure order abides by column family
         if (orderedMeasures != null)
             return orderedMeasures;
@@ -200,6 +217,22 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
 
             orderedMeasures = measureBuilder.build();
             return orderedMeasures;
+        }
+    }
+
+    public List<Measure> getStreamingMeasures() {
+        NDataModel model = getModel();
+        if (model.isFusionModel()) {
+            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getIndexPlan(model.getFusionId());
+            ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
+            for (int colId : colOrder) {
+                if (colId >= NDataModel.MEASURE_ID_BASE)
+                    measuresBuilder.put(colId, indexPlan.getEffectiveMeasures().get(colId));
+            }
+
+            return Lists.newArrayList(measuresBuilder.build().values());
+        } else {
+            return Lists.newArrayList();
         }
     }
 

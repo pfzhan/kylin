@@ -44,10 +44,12 @@ package org.apache.kylin.query.routing.rules;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.realization.CapabilityResult;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.RealizationPruner;
 import org.apache.kylin.query.routing.RoutingRule;
@@ -61,18 +63,21 @@ public class SegmentPruningRule extends RoutingRule {
         val iterator = candidates.iterator();
         while (iterator.hasNext()) {
             val candidate = iterator.next();
-            val prunedSegments = RealizationPruner.pruneSegments((NDataflow) candidate.getRealization(),
-                    candidate.getCtx());
-            if (CollectionUtils.isEmpty(prunedSegments)) {
+            List<IRealization> realizations = candidate.getRealization().getRealizations();
+            for (IRealization realization : realizations) {
+                NDataflow df = (NDataflow) realization;
+                val prunedSegments = RealizationPruner.pruneSegments(df, candidate.getCtx());
+                candidate.setPrunedSegments(prunedSegments, df.isStreaming());
+            }
+            if (CollectionUtils.isEmpty(candidate.getPrunedSegments())
+                    && CollectionUtils.isEmpty(candidate.getPrunedStreamingSegments())) {
                 log.info("there is no segment to answer sql");
                 val capability = new CapabilityResult();
                 capability.capable = true;
                 capability.setSelectedCandidate(NLayoutCandidate.EMPTY);
+                capability.setSelectedStreamingCandidate(NLayoutCandidate.EMPTY);
                 candidate.setCapability(capability);
-                continue;
             }
-
-            candidate.setPrunedSegments(prunedSegments);
         }
     }
 }

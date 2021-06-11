@@ -23,21 +23,69 @@
  */
 package org.apache.kylin.rest.response;
 
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.BATCH;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.STREAMING;
+
 import java.io.Serializable;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.val;
 
 
 @Getter
 @AllArgsConstructor
 public class AggIndexResponse implements Serializable {
+
+    private static AggIndexResponse EMPTY = new AggIndexResponse(Lists.newArrayList(),
+            AggIndexCombResult.successResult(0), 0L);
+
     @JsonProperty(value = "agg_index_counts")
     private List<AggIndexCombResult> aggIndexCounts;
     @JsonProperty(value = "total_count")
     private AggIndexCombResult totalCount;
     @JsonProperty(value = "max_combination_num")
     private Long aggrgroupMaxCombination;
+
+    public static AggIndexResponse combine(AggIndexResponse batch, AggIndexResponse stream,
+            List<IndexEntity.Range> aggGroupTypes) {
+        if (batch.isEmpty()) {
+            return stream;
+        }
+        if (stream.isEmpty()) {
+            return batch;
+        }
+        val combineTotalCount = AggIndexCombResult.combine(batch.getTotalCount(), stream.getTotalCount());
+        val aggIndexCounts = Lists.<AggIndexCombResult> newArrayList();
+
+        int batchIndex = 0;
+        int streamIndex = 0;
+        for (int n = 0; n < aggGroupTypes.size(); n++) {
+            if (aggGroupTypes.get(n) == BATCH) {
+                aggIndexCounts.add(batch.getAggIndexCounts().get(batchIndex++));
+            } else if (aggGroupTypes.get(n) == STREAMING) {
+                aggIndexCounts.add(stream.getAggIndexCounts().get(streamIndex++));
+            } else {
+                aggIndexCounts.add(AggIndexCombResult.combine(batch.getAggIndexCounts().get(batchIndex++),
+                        stream.getAggIndexCounts().get(streamIndex++)));
+            }
+
+        }
+        AggIndexResponse combineResponse = new AggIndexResponse(aggIndexCounts, combineTotalCount,
+                stream.getAggrgroupMaxCombination());
+        return combineResponse;
+    }
+
+    private boolean isEmpty() {
+        return EMPTY == this;
+    }
+
+    public static AggIndexResponse empty() {
+        return EMPTY;
+    }
 }

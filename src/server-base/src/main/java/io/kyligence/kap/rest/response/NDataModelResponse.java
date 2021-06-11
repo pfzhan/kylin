@@ -433,21 +433,25 @@ public class NDataModelResponse extends NDataModel {
 
     public void computedInfo(long inconsistentCount, ModelStatusToDisplayEnum status, boolean isScd2,
             NDataModel modelDesc, boolean onlyNormalDim) {
-        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
         if (!onlyNormalDim) {
             this.enrichDerivedDimension();
         }
         this.setForbiddenOnline(isScd2);
         this.setBroken(modelDesc.isBroken());
         this.setStatus(status);
+        this.setInconsistentSegmentCount(inconsistentCount);
+        computedDisplayInfo(modelDesc);
+    }
+
+    protected void computedDisplayInfo(NDataModel modelDesc) {
+        NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
         this.setLastBuildTime(dfManager.getDataflowLastBuildTime(modelDesc.getUuid()));
         this.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
         this.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
         this.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
         this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
         this.setUsage(dfManager.getDataflow(modelDesc.getUuid()).getQueryHitCount());
-        this.setInconsistentSegmentCount(inconsistentCount);
         if (!modelDesc.isBroken()) {
             IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
             this.setAvailableIndexesCount(indexPlanManager.getAvailableIndexesCount(getProject(), modelDesc.getId()));

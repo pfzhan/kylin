@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
@@ -43,7 +44,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class IncrementBuildSegmentParams extends FullBuildSegmentParams {
+public class IncrementBuildSegmentParams extends FullBuildSegmentParams implements IKeep {
     private String start;
     private String end;
     private PartitionDesc partitionDesc;

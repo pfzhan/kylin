@@ -135,6 +135,11 @@ public class CandidateSortTest {
             }
 
             @Override
+            public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments, List<NDataSegment> prunedStreamingSegments) {
+                return null;
+            }
+
+            @Override
             public String getType() {
                 return null;
             }
@@ -169,6 +174,11 @@ public class CandidateSortTest {
 
             @Override
             public List<MeasureDesc> getMeasures() {
+                return null;
+            }
+
+            @Override
+            public List<IRealization> getRealizations() {
                 return null;
             }
 
@@ -215,6 +225,11 @@ public class CandidateSortTest {
             @Override
             public int getStorageType() {
                 return 0;
+            }
+
+            @Override
+            public boolean isStreaming() {
+                return false;
             }
         };
     }

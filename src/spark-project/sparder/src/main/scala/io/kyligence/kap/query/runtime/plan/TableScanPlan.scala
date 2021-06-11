@@ -21,21 +21,24 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import java.util.concurrent.ConcurrentHashMap
+import java.{lang, util}
+
 import com.google.common.base.Joiner
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
-import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowManager}
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils
-import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
+import io.kyligence.kap.metadata.cube.gridtable.NLayoutToGridTableMapping
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
-import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
+import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.tuple.TupleInfo
+import org.apache.kylin.query.relnode.OLAPContext
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
@@ -43,8 +46,6 @@ import org.apache.spark.sql.types.{ArrayType, DoubleType, StructField, StructTyp
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 
-import java.util.concurrent.ConcurrentHashMap
-import java.{lang, util}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -68,106 +69,125 @@ object TableScanPlan extends LogEx {
   def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = logTime("table scan", info = true) {
     val session: SparkSession = SparderEnv.getSparkSession
     val olapContext = rel.getContext
-    val dataflow = olapContext.realization.asInstanceOf[NDataflow]
-    val cuboidDF = {
-      val prunedSegments = olapContext.storageContext.getPrunedSegments
-      val prunedPartitionMap = olapContext.storageContext.getPrunedPartitions
-      olapContext.resetSQLDigest()
-      val context = olapContext.storageContext
-      val cuboidLayout = context.getCandidate.getLayoutEntity
-      if (cuboidLayout.getIndex.isTableIndex) {
-        QueryContext.current().getQueryTagInfo.setTableIndex(true)
-      }
-      val tableName = olapContext.firstTableScan.getBackupAlias
-      val mapping = new NCuboidToGridTableMapping(cuboidLayout)
-      val columnNames = SchemaProcessor.buildGTSchema(cuboidLayout, mapping, tableName)
-      /////////////////////////////////////////////
-      val kapConfig = KapConfig.wrap(dataflow.getConfig)
-      val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)
-      val fileList = prunedSegments.asScala.map(
-        seg => toLayoutPath(dataflow, cuboidLayout.getId, basePath, seg, prunedPartitionMap)
-      )
-      val path = fileList.mkString(",") + olapContext.isFastBitmapEnabled
-      printLogInfo(basePath, dataflow.getId, cuboidLayout.getId, prunedSegments, prunedPartitionMap)
+    val context = olapContext.storageContext
+    val prunedSegments = context.getPrunedSegments
+    val prunedStreamingSegments = context.getPrunedStreamingSegments
+    val realizations = olapContext.realization.getRealizations.asScala.toList
+    realizations.map(_.asInstanceOf[NDataflow])
+            .filter(dataflow => (!dataflow.isStreaming && !context.getCandidate.isEmptyCandidate) ||
+                    (dataflow.isStreaming && !context.getCandidateStreaming.isEmptyCandidate))
+            .map(dataflow => {
+              if (dataflow.isStreaming) {
+                tableScan(rel, dataflow, olapContext, session, prunedStreamingSegments, context.getCandidateStreaming)
+              } else {
+                tableScan(rel, dataflow, olapContext, session, prunedSegments, context.getCandidate)
+              }
+            }).reduce(_.union(_))
+  }
 
-      val cached = cacheDf.get().getOrDefault(path, null)
-      var df = if (cached != null && !cached.sparkSession.sparkContext.isStopped) {
-        logInfo(s"Reuse df: ${cuboidLayout.getId}")
-        cached
-      } else {
-        import io.kyligence.kap.query.implicits._
-        val pruningInfo = prunedSegments.asScala.map { seg =>
-          if (prunedPartitionMap != null) {
-            val partitions = prunedPartitionMap.get(seg.getId)
-            seg.getId + ":" + Joiner.on("|").join(partitions)
-          } else {
-            seg.getId
-          }
-        }.mkString(",")
-        val newDf = session.kylin
-          .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
-          .cuboidTable(dataflow, cuboidLayout, pruningInfo)
-          .toDF(columnNames: _*)
+  def tableScan(rel: KapRel, dataflow: NDataflow, olapContext: OLAPContext,
+                      session: SparkSession, prunedSegments: util.List[NDataSegment], candidate: NLayoutCandidate): DataFrame = {
+    val prunedPartitionMap = olapContext.storageContext.getPrunedPartitions
+    olapContext.resetSQLDigest()
+    //TODO: refactor
+    val cuboidLayout = candidate.getLayoutEntity
+    if (cuboidLayout.getIndex.isTableIndex) {
+      QueryContext.current().getQueryTagInfo.setTableIndex(true)
+    }
+    val tableName = olapContext.firstTableScan.getBackupAlias
+    val mapping = new NLayoutToGridTableMapping (cuboidLayout)
+    val columnNames = SchemaProcessor.buildGTSchema (cuboidLayout, mapping, tableName)
 
-        logInfo(s"Cache df: ${cuboidLayout.getId}")
-        cacheDf.get().put(path, newDf)
-        newDf
-      }
+    /////////////////////////////////////////////
+    val kapConfig = KapConfig.wrap (dataflow.getConfig)
+    val basePath = kapConfig.getReadParquetStoragePath (dataflow.getProject)
+    val fileList = prunedSegments.asScala.map (
+      seg => toLayoutPath (dataflow, cuboidLayout.getId, basePath, seg, prunedPartitionMap)
+    )
+    val path = fileList.mkString (",") + olapContext.isFastBitmapEnabled
+    printLogInfo (basePath, dataflow.getId, cuboidLayout.getId, prunedSegments, prunedPartitionMap)
 
-      /////////////////////////////////////////////
-      val groups: util.Collection[TblColRef] =
-        olapContext.getSQLDigest.groupbyColumns
-      val otherDims = Sets.newHashSet(context.getDimensions)
-      otherDims.removeAll(groups)
-      // expand derived (xxxD means contains host columns only, derived columns were translated)
-      val groupsD = expandDerived(context.getCandidate, groups)
-      val otherDimsD: util.Set[TblColRef] =
-        expandDerived(context.getCandidate, otherDims)
-      otherDimsD.removeAll(groupsD)
-
-      // identify cuboid
-      val dimensionsD = new util.LinkedHashSet[TblColRef]
-      dimensionsD.addAll(groupsD)
-      dimensionsD.addAll(otherDimsD)
-      val gtColIdx = mapping.getDimIndices(dimensionsD) ++ mapping
-        .getMetricsIndices(context.getMetrics)
-
-      val derived = SparderDerivedUtil(tableName,
-        dataflow.getLatestReadySegment,
-        gtColIdx,
-        olapContext.returnTupleInfo,
-        context.getCandidate)
-      if (derived.hasDerived) {
-        df = derived.joinDerived(df)
-      }
-
-      var topNMapping: Map[Int, Column] = Map.empty
-      // query will only has one Top N measure.
-      val topNMetric = context.getMetrics.asScala.collectFirst {
-        case x: FunctionDesc if x.getReturnType.startsWith("topn") => x
-      }
-      if (topNMetric.isDefined) {
-        val topNFieldIndex = mapping.getMetricsIndices(List(topNMetric.get).asJava).head
-        val tp = processTopN(topNMetric.get, df, topNFieldIndex, olapContext.returnTupleInfo, tableName)
-        df = tp._1
-        topNMapping = tp._2
-      }
-      val tupleIdx = getTupleIdx(dimensionsD,
-        context.getMetrics,
-        olapContext.returnTupleInfo)
-      val schema = RuntimeHelper.gtSchemaToCalciteSchema(
-        mapping.getPrimaryKey,
-        derived,
-        tableName,
-        rel.getColumnRowType.getAllColumns.asScala.toList,
-        df.schema,
-        gtColIdx,
-        tupleIdx,
-        topNMapping)
-      df.select(schema: _*)
+    val cached = cacheDf.get ().getOrDefault (path, null)
+    val df = if (cached != null && ! cached.sparkSession.sparkContext.isStopped) {
+      logInfo(s"Reuse df: ${cuboidLayout.getId}")
+      cached
+    } else {
+      import io.kyligence.kap.query.implicits._
+      val pruningInfo = prunedSegments.asScala.map { seg =>
+        if (prunedPartitionMap != null) {
+          val partitions = prunedPartitionMap.get(seg.getId)
+          seg.getId + ":" + Joiner.on("|").join(partitions)
+        } else {
+          seg.getId
+        }
+      }.mkString(",")
+      val newDf = session.kylin
+              .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
+              .cuboidTable(dataflow, cuboidLayout, pruningInfo)
+              .toDF(columnNames: _*)
+      logInfo(s"Cache df: ${cuboidLayout.getId}")
+      newDf
     }
 
-    cuboidDF
+    val (schema, newDF) = buildSchema(df, tableName, cuboidLayout, rel, olapContext, dataflow)
+    newDF.select (schema: _*)
+  }
+
+  def buildSchema(df: DataFrame, tableName: String, cuboidLayout: LayoutEntity, rel: KapRel,
+                  olapContext: OLAPContext, dataflow: NDataflow): (Seq[Column], DataFrame) = {
+    var newDF = df
+    val isBatchOfHybrid = dataflow.getModel.isFusionModel && !dataflow.isStreaming
+    val mapping = new NLayoutToGridTableMapping (cuboidLayout, isBatchOfHybrid)
+    val context = olapContext.storageContext
+    /////////////////////////////////////////////
+    val groups: util.Collection[TblColRef] =
+      olapContext.getSQLDigest.groupbyColumns
+    val otherDims = Sets.newHashSet (context.getDimensions)
+    otherDims.removeAll (groups)
+    // expand derived (xxxD means contains host columns only, derived columns were translated)
+    val groupsD = expandDerived (context.getCandidate, groups)
+    val otherDimsD: util.Set[TblColRef] =
+      expandDerived (context.getCandidate, otherDims)
+    otherDimsD.removeAll (groupsD)
+
+    // identify cuboid
+    val dimensionsD = new util.LinkedHashSet[TblColRef]
+    dimensionsD.addAll (groupsD)
+    dimensionsD.addAll (otherDimsD)
+    val gtColIdx = mapping.getDimIndices (dimensionsD) ++ mapping
+            .getMetricsIndices (context.getMetrics)
+
+    val derived = SparderDerivedUtil (tableName,
+      dataflow.getLatestReadySegment,
+      gtColIdx,
+      olapContext.returnTupleInfo,
+      context.getCandidate)
+    if (derived.hasDerived) {
+      newDF = derived.joinDerived (newDF)
+    }
+    var topNMapping: Map[Int, Column] = Map.empty
+    // query will only has one Top N measure.
+    val topNMetric = context.getMetrics.asScala.collectFirst {
+      case x: FunctionDesc if x.getReturnType.startsWith ("topn") => x
+    }
+    if (topNMetric.isDefined) {
+      val topNFieldIndex = mapping.getMetricsIndices (List (topNMetric.get).asJava).head
+      val tp = processTopN (topNMetric.get, newDF, topNFieldIndex, olapContext.returnTupleInfo, tableName)
+      newDF = tp._1
+      topNMapping = tp._2
+    }
+    val tupleIdx = getTupleIdx (dimensionsD,
+      context.getMetrics,
+      olapContext.returnTupleInfo)
+    (RuntimeHelper.gtSchemaToCalciteSchema (
+      mapping.getPrimaryKey,
+      derived,
+      tableName,
+      rel.getColumnRowType.getAllColumns.asScala.toList,
+      df.schema,
+      gtColIdx,
+      tupleIdx,
+      topNMapping), newDF)
   }
 
   def toLayoutPath(dataflow: NDataflow, cuboidId: Long, basePath: String, seg: NDataSegment): String = {

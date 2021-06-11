@@ -309,7 +309,8 @@ public class OLAPContext {
                     } else if (ctx.storageContext.isUseSnapshot()) {
                         realizationType = QueryMetrics.TABLE_SNAPSHOT;
                         tableSets.add(ctx.getFirstTableIdentity());
-                    } else if (ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
+                    } else if (!ctx.storageContext.getCandidate().isEmptyCandidate()
+                            && ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
                         realizationType = QueryMetrics.TABLE_INDEX;
                         addTableSnapshots(tableSets, ctx);
                     } else {
@@ -319,10 +320,9 @@ public class OLAPContext {
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
                     List<String> snapshots = Lists.newArrayList(tableSets);
-                    val realization = new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
-                            realizationType, ctx.storageContext.isPartialMatchModel(), snapshots);
-                    realization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
-                    realizations.add(realization);
+                    realizations
+                            .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
+                                    ctx.storageContext.getStreamingLayoutId(), realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
                 }
             }
         }
@@ -361,7 +361,7 @@ public class OLAPContext {
 
     public boolean hasPrecalculatedFields() {
         NLayoutCandidate candidate = storageContext.getCandidate();
-        if (candidate == null) {
+        if (candidate.isEmptyCandidate()) {
             return false;
         }
         boolean isTableIndex = candidate.getLayoutEntity().getIndex().isTableIndex();
@@ -470,7 +470,7 @@ public class OLAPContext {
     }
 
     public boolean isAnsweredByTableIndex() {
-        if (this.storageContext.getCandidate() != null
+        if (!this.storageContext.getCandidate().isEmptyCandidate()
                 && this.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
             return true;
         }

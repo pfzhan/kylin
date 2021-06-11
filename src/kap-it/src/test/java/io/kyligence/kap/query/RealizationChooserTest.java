@@ -585,4 +585,22 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
         Assert.assertEquals(context.joins.get(1).getFKSide().getTableIdentity(), "DEFAULT.TEST_ACCOUNT");
     }
+
+
+    @Test
+    public void testHybridStreaming() {
+        String project = "streaming_test";
+        String sql = "select count(*) from SSB_STREAMING";
+        val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertEquals("model_streaming", context.realization.getModel().getAlias());
+    }
 }

@@ -28,8 +28,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -59,6 +62,12 @@ public class NDataflowCapabilityChecker {
 
         // 1. match joins is ensured at model select
         String rootFactTable = dataflow.getModel().getRootFactTableName();
+        NDataModel model = dataflow.getModel();
+        if (model.isFusionModel() && !dataflow.isStreaming()) {
+            NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), dataflow.getProject())
+                    .getDataModelDesc(model.getFusionId());
+            rootFactTable = streamingModel.getRootFactTableName();
+        }
         IRealizationCandidate chosenCandidate = null;
         if (digest.joinDescs.isEmpty() && !rootFactTable.equals(digest.factTable)) {
             logger.trace("Snapshot dataflow matching");
@@ -84,7 +93,11 @@ public class NDataflowCapabilityChecker {
         }
         if (chosenCandidate != null) {
             result.capable = true;
-            result.setSelectedCandidate(chosenCandidate);
+            if (dataflow.isStreaming()) {
+                result.setSelectedStreamingCandidate(chosenCandidate);
+            } else {
+                result.setSelectedCandidate(chosenCandidate);
+            }
         } else {
             result.capable = false;
         }

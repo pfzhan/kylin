@@ -348,7 +348,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     @Test
     public void testAppendSegment() throws Exception {
         val rangeToMerge = new SegmentRange.KafkaOffsetPartitionedSegmentRange(1613957140000L, 1613957150000L,
-                createKafkaPartitionsOffset(3, 400L), createKafkaPartitionsOffset(3, 500L));
+                createKafkaPartitionsOffset(3, 500L), createKafkaPartitionsOffset(3, 600L));
         val newSegId = UUID.randomUUID().toString();
         streamingJobService.addSegment(PROJECT, DATAFLOW_ID, rangeToMerge, null, newSegId);
         KylinConfig testConfig = getTestConfig();

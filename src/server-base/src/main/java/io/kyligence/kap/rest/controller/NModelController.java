@@ -49,8 +49,6 @@ import java.util.Locale;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -91,6 +89,7 @@ import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
@@ -129,6 +128,8 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import io.kyligence.kap.rest.service.FusionIndexService;
+import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
@@ -156,6 +157,9 @@ public class NModelController extends NBasicController {
 
     @Autowired
     private IndexPlanService indexPlanService;
+
+    @Autowired
+    private FusionIndexService fusionIndexService;
 
     @ApiOperation(value = "getModels{Red}", tags = {
             "AI" }, notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
@@ -394,7 +398,7 @@ public class NModelController extends NBasicController {
         checkProjectName(aggShardByColumnsRequest.getProject());
         aggShardByColumnsRequest.setModelId(modelId);
         checkRequiredArg(MODEL_ID, aggShardByColumnsRequest.getModelId());
-        indexPlanService.updateShardByColumns(aggShardByColumnsRequest.getProject(), aggShardByColumnsRequest);
+        fusionIndexService.updateShardByColumns(aggShardByColumnsRequest.getProject(), aggShardByColumnsRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -561,7 +565,7 @@ public class NModelController extends NBasicController {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
         }
 
-        modelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
+        fusionModelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -712,7 +716,7 @@ public class NModelController extends NBasicController {
             @RequestBody OwnerChangeRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg("owner", request.getOwner());
-        modelService.updateModelOwner(request.getProject(), modelId, request);
+        fusionModelService.updateModelOwner(request.getProject(), modelId, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

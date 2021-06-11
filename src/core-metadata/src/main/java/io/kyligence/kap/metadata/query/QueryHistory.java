@@ -192,6 +192,7 @@ public class QueryHistory implements IKeep {
         for (QueryMetrics.RealizationMetrics metrics : realizationMetrics) {
             val realization = new NativeQueryRealization(metrics.modelId,
                     metrics.layoutId == null || metrics.layoutId.equals("null") ? null : Long.parseLong(metrics.layoutId),
+                    metrics.strLayoutId == null || metrics.strLayoutId.equals("null") ? null : Long.parseLong(metrics.strLayoutId),
                     metrics.indexType == null || metrics.indexType.equals("null") ? null : metrics.indexType,
                     metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots);
             realization.setSecondStorage(metrics.isSecondStorage);

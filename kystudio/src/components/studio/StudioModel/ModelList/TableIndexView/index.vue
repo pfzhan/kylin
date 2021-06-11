@@ -185,11 +185,8 @@ export default class TableIndexView extends Vue {
       const params = {
         project: this.projectName,
         model: this.model.uuid,
-        id: index.id
-      }
-      // 如果是融合模型，删除的时候，要多带一个参数
-      if (this.model.model_type === 'HYBRID' || this.model.model_type === 'STREAMING') {
-        params.index_range = index.index_range || 'EMPTY'
+        id: index.id,
+        index_range: index.index_range || 'EMPTY'
       }
       await this.deleteIndex(params)
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })

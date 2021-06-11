@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.BATCH;
+
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -35,7 +37,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.cube.model.SelectRule;
 
@@ -47,6 +48,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.math.LongMath;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import lombok.Getter;
 import lombok.Setter;
@@ -86,7 +88,7 @@ public class NAggregationGroup implements Serializable {
     @Setter
     @Getter
     @JsonProperty("index_range")
-    private IndexEntity.Range indexRange;
+    private IndexEntity.Range indexRange = BATCH;
 
     //computed
     private BigInteger partialCubeFullMask;

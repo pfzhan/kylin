@@ -1399,6 +1399,13 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         }
     }
 
+    @Test
+    public void testGetSimplifiedModelWithStreaming() {
+        List<ModelPreviewResponse> modelPreviewResponseList = metaStoreService.getPreviewModels("streaming_test",
+                Collections.emptyList());
+        Assert.assertEquals(1, modelPreviewResponseList.size());
+    }
+
     private String getProject() {
         return "default";
     }

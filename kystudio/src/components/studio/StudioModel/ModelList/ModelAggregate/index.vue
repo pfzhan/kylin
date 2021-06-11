@@ -372,13 +372,10 @@ export default class ModelAggregate extends Vue {
   filterTags = []
   checkedList = []
   removeLoading = false
-  // moveEvent = {
-  //   w: 35,
-  //   curW: 35,
-  //   limit: {
-  //     width: [10, 80]
-  //   }
-  // }
+  indexRangeMap = {
+    BATCH: ['HYBRID', 'BATCH'],
+    STREAMING: ['HYBRID', 'STREAMING']
+  }
   switchIndexValue = 'index'
   switchModelType = 'BATCH' // 默认离线 - BATCH, 实时 - STREAMING
   isHaveComplementSegs = false
@@ -412,7 +409,7 @@ export default class ModelAggregate extends Vue {
 
   // 标识是融合模型下的离线模式
   get isHybridBatch () {
-    this.model.model_type === 'HYBRID' && this.switchModelType === 'BATCH'
+    return this.model.model_type === 'HYBRID' && this.switchModelType === 'BATCH'
   }
 
   async changeModelTab (name) {
@@ -420,7 +417,9 @@ export default class ModelAggregate extends Vue {
     this.filterArgs.page_offset = 0
     this.filterArgs.page_size = +localStorage.getItem(this.pageRefTags.indexPager) || 10
     this.indexLoading = true
+    await this.freshIndexGraph()
     await this.loadAggIndices()
+    this.getIndexInfo()
     this.indexLoading = false
   }
 
@@ -430,7 +429,8 @@ export default class ModelAggregate extends Vue {
     if (intType.includes(ext)) {
       return `${Math.round(size)} ${ext}`
     } else {
-      return `${size.toFixed(1)} ${ext}`
+      const num = +size
+      return `${num.toFixed(1)} ${ext}`
     }
   }
 
@@ -798,6 +798,10 @@ export default class ModelAggregate extends Vue {
   async loadAggIndices (ids) {
     try {
       // this.indexLoading = true
+      const params = {}
+      if (this.showModelTypeSwitch) {
+        params.range = this.indexRangeMap[this.switchModelType]
+      }
       if (this.indexesByQueryHistory && !this.layoutId && !this.isShowAggregateAction) {
         this.indexDatas = []
         this.totalSize = 0
@@ -806,7 +810,8 @@ export default class ModelAggregate extends Vue {
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
         model: this.modelId,
-        ids: ids || this.indexesByQueryHistory ? this.layoutId : ''
+        ids: ids || this.indexesByQueryHistory ? this.layoutId : '',
+        ...params
       }, this.filterArgs))
       const data = await handleSuccessAsync(res)
       this.indexDatas = data.value

@@ -61,11 +61,11 @@
             <!-- 设置partition -->
             <el-dropdown-item
               command="recommendations"
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              :class="{'disabled-action': currentModel.model_type === 'STREAMING'}"
               v-if="currentModel.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
               <common-tip
                 :content="$t('disableActionTips')"
-                :disabled="currentModel.model_type !== 'HYBRID'">
+                :disabled="currentModel.model_type !== 'STREAMING'">
                 {{$t('recommendations')}}
               </common-tip>
             </el-dropdown-item>
@@ -561,7 +561,7 @@ export default class ModelActions extends Vue {
     let flag = true
     switch (command) {
       case 'recommendations':
-        flag = modelDesc.model_type !== 'HYBRID'
+        flag = modelDesc.model_type !== 'STREAMING'
         break
       case 'dataLoad':
         flag = modelDesc.model_type !== 'HYBRID'
