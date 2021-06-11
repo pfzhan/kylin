@@ -146,7 +146,7 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         if (mergedSegment.getStatus() == SegmentStatusEnum.NEW)
             mergedSegment.setStatus(SegmentStatusEnum.READY);
-
+        mergedSegment.setLastBuildTime(mergedSegment.getSegDetails().getLastModified());
         toUpdateSegments.add(mergedSegment);
 
         // only add layouts which still in segments, others maybe deleted by user

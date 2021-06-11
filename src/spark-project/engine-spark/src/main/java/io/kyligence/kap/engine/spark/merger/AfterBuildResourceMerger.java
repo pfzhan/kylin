@@ -115,6 +115,8 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 partition.setLastBuildTime(lastBuildTime);
             });
             theSeg.setLastBuildTime(lastBuildTime);
+        } else {
+            theSeg.setLastBuildTime(theSeg.getSegDetails().getLastModified());
         }
 
         resetBreakpoints(theSeg);
@@ -158,6 +160,7 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                     && localSeg.getStatus() != SegmentStatusEnum.WARNING)) {
                 continue;
             }
+            remoteSeg.setLastBuildTime(remoteSeg.getSegDetails().getLastModified());
             for (long layoutId : availableLayoutIds) {
                 NDataLayout dataCuboid = remoteSeg.getLayout(layoutId);
                 Preconditions.checkNotNull(dataCuboid);

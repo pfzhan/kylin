@@ -216,13 +216,15 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBuildJob() throws Exception {
+        String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        long startLong = System.currentTimeMillis();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
-        cleanupSegments(dsMgr, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        cleanupSegments(dsMgr, dfName);
+        NDataflow df = dsMgr.getDataflow(dfName);
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
@@ -286,7 +288,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round2.add(df.getIndexPlan().getLayoutEntity(10001L));
 
         //update seg
-        val df2 = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df2 = dsMgr.getDataflow(dfName);
         oneSeg = df2.getSegment(oneSeg.getId());
         nSpanningTree = NSpanningTreeFactory.fromLayouts(round2, df.getUuid());
         for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
@@ -307,6 +309,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         validateCube(df2.getSegments().getFirstSegment().getId());
         validateTableIndex(df2.getSegments().getFirstSegment().getId());
         //        validateTableExt(df.getModel());
+        //validate lastBuildTime
+        oneSeg = dsMgr.getDataflow(dfName).getSegment(oneSeg.getId());
+        Assert.assertTrue(oneSeg.getLastBuildTime() > startLong);
     }
 
     @Test
