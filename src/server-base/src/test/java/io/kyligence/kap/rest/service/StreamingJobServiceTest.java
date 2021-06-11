@@ -143,7 +143,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(6, list.getTotalSize());
+        Assert.assertEquals(8, list.getTotalSize());
 
         // modelName filter
         jobFilter = new StreamingJobFilter("stream_merge", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
@@ -170,7 +170,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Arrays.asList("STREAMING_BUILD"),
                 Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(3, list.getTotalSize());
+        Assert.assertEquals(4, list.getTotalSize());
 
         // status filter
         val config = getTestConfig();
@@ -181,7 +181,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList("RUNNING"),
                 PROJECT, "last_update_time", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(1, list.getTotalSize());
+        Assert.assertEquals(3, list.getTotalSize());
 
         // project filter
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
