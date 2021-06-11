@@ -61,21 +61,20 @@
             <!-- 设置partition -->
             <el-dropdown-item
               command="recommendations"
-              :class="{'disabled-action': currentModel.model_type === 'STREAMING'}"
+              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
               v-if="currentModel.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
               <common-tip
-                :content="$t('disableActionTips')"
+                :content="$t('disableActionTips3')"
                 :disabled="currentModel.model_type !== 'STREAMING'">
                 {{$t('recommendations')}}
               </common-tip>
             </el-dropdown-item>
             <el-dropdown-item
               command="dataLoad"
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
               v-if="currentModel.status !== 'BROKEN' && modelActions.includes('dataLoad')">
               <common-tip
                 :content="$t('disableActionTips')"
-                :disabled="currentModel.model_type !== 'HYBRID'">
+                disabled>
                 {{$t('modelPartitionSet')}}
               </common-tip>
             </el-dropdown-item>
@@ -84,7 +83,7 @@
               @click.native="subParValMana(currentModel)"
               v-if="currentModel.status !== 'BROKEN' && $store.state.project.multi_partition_enabled && currentModel.multi_partition_desc && modelActions.includes('manageSubPartitionValues')">
               <common-tip
-                :content="$t('disableActionTips')"
+                :content="$t('disableActionTips2')"
                 :disabled="currentModel.model_type === 'BATCH'">
                 {{$t('subPartitionValuesManage')}}
               </common-tip>
@@ -107,7 +106,7 @@
               :class="{'disabled-action': currentModel.status === 'BROKEN' || currentModel.model_type !== 'BATCH'}"
               v-if="metadataActions.includes('executeModelMetadata')">
               <common-tip
-                :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips') : $t('bokenModelExportMetadatasTip')"
+                :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips2') : $t('bokenModelExportMetadatasTip')"
                 :disabled="currentModel.status !== 'BROKEN' && currentModel.model_type === 'BATCH'">
                 {{$t('exportMetadatas')}}
               </common-tip>
@@ -117,7 +116,7 @@
               :class="{'disabled-action': currentModel.status === 'BROKEN' || currentModel.model_type !== 'BATCH'}"
               v-if="modelActions.includes('exportTDS')">
               <common-tip
-                :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips') : $t('bokenModelExportTDSTip')"
+                :content="currentModel.model_type !== 'BATCH' ? $t('disableActionTips2') : $t('bokenModelExportTDSTip')"
                 :disabled="currentModel.status !== 'BROKEN' && currentModel.model_type === 'BATCH'">
                 <span>{{$t('exportTds')}}</span>
               </common-tip>
@@ -125,31 +124,29 @@
             <el-dropdown-item
               command="rename"
               divided
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
               v-if="currentModel.status !== 'BROKEN' && modelActions.includes('exportMDX')">
               <common-tip
                 :content="$t('disableActionTips')"
-                :disabled="currentModel.model_type !== 'HYBRID'">
+                disabled>
                 {{$t('rename')}}
               </common-tip>
             </el-dropdown-item>
             <el-dropdown-item
               command="clone"
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
+              :class="{'disabled-action': currentModel.model_type !== 'BATCH'}"
               v-if="currentModel.status !== 'BROKEN' && modelActions.includes('clone')">
               <common-tip
-                :content="$t('disableActionTips')"
-                :disabled="currentModel.model_type !== 'HYBRID'">
+                :content="$t('disableActionTips2')"
+                :disabled="currentModel.model_type === 'BATCH'">
                 {{$t('kylinLang.common.clone')}}
               </common-tip>
             </el-dropdown-item>
             <el-dropdown-item
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
               v-if="currentModel.status !== 'BROKEN' && modelActions.includes('changeModelOwner')"
               @click.native="openChangeModelOwner(currentModel, currentModel.uuid)">
               <common-tip
                 :content="$t('disableActionTips')"
-                :disabled="currentModel.model_type !== 'HYBRID'">
+                disabled>
                 {{$t('changeModelOwner')}}
               </common-tip>
             </el-dropdown-item>
@@ -163,27 +160,26 @@
               :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
               v-if="currentModel.status !== 'BROKEN' && modelActions.includes('purge')">
               <common-tip
-                :content="$t('disableActionTips')"
+                :content="$t('disableActionTips3')"
                 :disabled="currentModel.model_type !== 'HYBRID'">
                 {{$t('purge')}}
               </common-tip>
             </el-dropdown-item>
             <el-dropdown-item
               command="offline"
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID'}"
               v-if="currentModel.status !== 'OFFLINE' && currentModel.status !== 'BROKEN' && modelActions.includes('offline')">
               <common-tip
                 :content="$t('disableActionTips')"
-                :disabled="currentModel.model_type !== 'HYBRID'">
+                disabled>
                 {{$t('offLine')}}
               </common-tip>
             </el-dropdown-item>
             <el-dropdown-item
               command="online"
-              :class="{'disabled-action': currentModel.model_type === 'HYBRID' || currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}"
+              :class="{'disabled-action': currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}"
               v-if="currentModel.status !== 'ONLINE' && currentModel.status !== 'BROKEN' && currentModel.status !== 'WARNING' && modelActions.includes('online')">
               <common-tip
-                :content="currentModel.model_type === 'HYBRID' ? $t('disableActionTips') : getDisabledOnlineTips(currentModel)"
+                :content="getDisabledOnlineTips(currentModel)"
                 v-if="currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)">
                 <span>{{$t('onLine')}}</span>
               </common-tip>
@@ -650,6 +646,9 @@ export default class ModelActions extends Vue {
         })
       })
     } else if (command === 'clone') {
+      if (modelDesc.model_type !== 'BATCH') {
+        return false
+      }
       const isSubmit = await this.callCloneModelDialog(objectClone(modelDesc))
       isSubmit && this.$emit('loadModelsList')
     } else if (command === 'offline') {

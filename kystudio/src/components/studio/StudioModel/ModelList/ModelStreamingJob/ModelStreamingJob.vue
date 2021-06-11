@@ -351,7 +351,7 @@ export default class ModelStreamingJob extends Vue {
   .configurations-dialog {
     .action-btns {
       .el-button {
-        margin-top: 3px;
+        // margin-top: 3px;
       }
     }
     .el-dialog__body {

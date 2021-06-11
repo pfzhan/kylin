@@ -58,6 +58,8 @@ export default {
     changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.',
     jobSuccess: 'Submitted successfully. You may go to  the job page to ',
     disableActionTips: 'Unavailable for streaming model',
+    disableActionTips2: 'Unavailable for hybrid or streaming model',
+    disableActionTips3: 'Unavailable for hybrid model',
     disableSecStorageActionTips: 'The tiered storage can\'t be used for hybrid or streaming models at the moment.'
   },
   'zh-cn': {
@@ -119,6 +121,8 @@ export default {
     changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。',
     jobSuccess: '任务已提交。可到任务页',
     disableActionTips: '实时模型不可用',
+    disableActionTips2: '融合模型或实时模型不可用',
+    disableActionTips3: '融合模型不可用',
     disableSecStorageActionTips: '融合模型或实时模型暂无法使用分层存储'
   }
 }

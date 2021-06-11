@@ -196,7 +196,13 @@
           <el-col :span="14"><el-input v-model.trim="paramsConfigs[index][0]" :disabled="paramsConfigs[index] && !!paramsConfigs[index][2]" :placeholder="$t('pleaseInputKey')" /></el-col>
           <el-col :span="6">
             <el-input v-number2="paramsConfigs[index][1]" v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]}" :placeholder="$t('pleaseInputValue')" v-if="numberParams.indexOf(item[0]) !== -1"></el-input>
-            <el-input v-else v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]}" :placeholder="$t('pleaseInputValue')" />
+            <el-input v-else v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]&&[...buildDefaultParams, ...mergeDefaultParams].indexOf(item[0]) !== -1}" :placeholder="$t('pleaseInputValue')" />
+          </el-col>
+          <el-col :span="4">
+            <span class="action-btns ksd-ml-5">
+              <el-button type="primary" icon="el-ksd-icon-add_22" plain circle size="small" @click="addParamsConfigs()"></el-button>
+              <el-button icon="el-ksd-icon-minus_22" class="ksd-ml-5" plain circle size="small" :disabled="[...buildDefaultParams, ...mergeDefaultParams].indexOf(item[0]) !== -1" @click="removeParamsConfigs(index)"></el-button>
+            </span>
           </el-col>
         </el-row>
       </div>
@@ -300,7 +306,7 @@ export default class StreamingJobsList extends Vue {
 
   // 模型无索引时不让启动任务
   setJobSelectable (row) {
-    return !row.model_indexes
+    return row.model_indexes
   }
 
   closeTips () {
@@ -423,17 +429,27 @@ export default class StreamingJobsList extends Vue {
       this.showStep = false
     }
   }
+  // 增加配置
+  addParamsConfigs () {
+    this.paramsConfigs.unshift([])
+  }
+  // 删减配置
+  removeParamsConfigs (index) {
+    this.paramsConfigs.splice(index, 1)
+  }
   saveSettings () {
-    this.paramsConfigs.forEach(item => {
-      params[item[0]] = item[1]
-      if (!item[1]) {
-        isEmptyValue = true
-      }
-    })
-    if (isEmptyValue) return // 有空值不能提交
-    this.loadingSetting = true
     const params = {}
     let isEmptyValue
+    this.paramsConfigs.forEach((item, index) => {
+      if (!item[1] && [...this.buildDefaultParams, ...this.mergeDefaultParams].indexOf(item[0]) !== -1) {
+        isEmptyValue = true
+      }
+      if (item[0] && item[1]) { // 自定义参数key 或 value 不全就不提交
+        params[item[0]] = item[1]
+      }
+    })
+    if (isEmptyValue) return // 默认参数有空值不能提交
+    this.loadingSetting = true
     this.updateStreamingConfig({project: this.currentSelectedProject, job_id: this.settingJob.uuid, params}).then(() => {
       this.loadingSetting = false
       this.handleConfigurationsClose(true)
