@@ -127,94 +127,96 @@
               <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
               <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
             </div>
-            <el-table
-              nested
-              ref="indexesTable"
-              :data="indexDatas"
-              class="indexes-table"
-              :empty-text="emptyText"
-              @sort-change="onSortChange"
-              @selection-change="handleSelectionChange"
-              :row-class-name="tableRowClassName"
-            >
-              <el-table-column type="selection" width="44" v-if="isShowAggregateAction"></el-table-column>
-              <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
-              <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
-                <template slot-scope="scope">
-                  <span class="data-size-text">{{formatDataSize(scope.row.data_size)}}</span>
-                  <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : scope.row.data_size ? 0.5 : 0" class="data-size-progress"></el-progress>
-                </template>
-              </el-table-column>
-              <el-table-column
-                prop="usage"
-                sortable="custom"
-                width="200px"
-                :label="$t('queryCount')"
+            <div class="index-table-list">
+              <el-table
+                nested
+                ref="indexesTable"
+                :data="indexDatas"
+                class="indexes-table"
+                :empty-text="emptyText"
+                @sort-change="onSortChange"
+                @selection-change="handleSelectionChange"
+                :row-class-name="tableRowClassName"
               >
-                <template slot-scope="scope">
-                  <span class="usage-text">{{scope.row.usage}}</span>
-                  <el-progress v-if="'max_usage' in indexStat" :percentage="indexStat.max_usage && (scope.row.usage / indexStat.max_usage > 0.05) ? scope.row.usage / indexStat.max_usage * 100 : scope.row.usage ? 0.5 : 0" class="usage-progress"></el-progress>
-                </template>
-              </el-table-column>
-              <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
-                <template slot-scope="scope">
-                  <span>{{$t(scope.row.source)}}</span>
-                </template>
-              </el-table-column>
-              <el-table-column align="left" :label="$t('indexContent')">
-                <template slot-scope="scope">
-                  <el-popover
-                    ref="index-content-popover"
-                    placement="top"
-                    trigger="hover"
-                    popper-class="col-index-content-popover">
-                    <div class="index-content" slot="reference">{{scope.row.col_order.map(it => it.key).slice(0, 20).join(', ')}}</div>
-                    <template>
-                      <p class="popover-header"><b>{{$t('indexesContent')}}</b><el-button v-if="scope.row.col_order.length > 20" type="primary" text class="view-more-btn ksd-fs-12" @click="showDetail(scope.row)">{{$t('viewIndexDetails')}}<i class="el-icon-ksd-more_02 ksd-fs-12"></i></el-button></p>
-                      <p style="white-space: pre-wrap;">{{scope.row.col_order.map(it => it.key).slice(0, 20).join('\n')}}</p>
-                      <el-button v-if="scope.row.col_order.length > 20" class="ksd-fs-12" type="primary" text @click="showDetail(scope.row)">{{$t('viewAll')}}</el-button>
-                    </template>
-                  </el-popover>
-                  <span class="detail-icon el-ksd-icon-view_16" @click="showDetail(scope.row)"></span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
-                <template slot-scope="scope">
-                  <!-- <span>{{$t(scope.row.status)}}</span> -->
-                  <el-tag size="small" :type="getStatusTagColor(scope.row.status)">{{$t(scope.row.status)}}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('kylinLang.common.action')" fixed="right" width="83" v-if="isShowAggregateAction">
-                <template slot-scope="scope">
-                  <!-- <common-tip :content="$t('viewDetail')">
-                    <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
-                  </common-tip> -->
-                  <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')&&!isRealTimeMode">
-                    <i class="el-icon-ksd-icon_build-index ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
-                  </common-tip>
-                  <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
-                    <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
-                  </common-tip>
-                  <common-tip :content="$t('update')" v-if="scope.row.need_update">
-                    <i class="action-icons el-ksd-icon-refresh_22 ksd-ml-5" @click="updateBaseIndexEvent(scope.row)"></i>
-                  </common-tip>
-                  <!-- <common-tip :content="$t('kylinLang.common.moreActions')">
-                    <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" trigger="click" >
-                      <span class="el-dropdown-link" >
-                          <i class="el-icon-ksd-table_others ksd-ml-5 ksd-fs-14"></i>
-                      </span>
-                      <el-dropdown-menu slot="dropdown">
-                        <el-dropdown-item command="edit" v-if="datasourceActions.includes('editAggGroup')&&scope.row.source === 'MANUAL_TABLE'">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
-                        <el-dropdown-item command="delete" v-if="datasourceActions.includes('delAggIdx')">{{$t('kylinLang.common.delete')}}</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </el-dropdown>
-                  </common-tip> -->
-                  <!-- <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
-                    <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
-                  </common-tip> -->
-                </template>
-              </el-table-column>
-            </el-table>
+                <el-table-column type="selection" width="44" v-if="isShowAggregateAction"></el-table-column>
+                <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
+                <el-table-column prop="data_size" sortable="custom" width="200px" :label="$t('storage')">
+                  <template slot-scope="scope">
+                    <span class="data-size-text">{{formatDataSize(scope.row.data_size)}}</span>
+                    <el-progress v-if="'max_data_size' in indexStat" :percentage="indexStat.max_data_size && (scope.row.data_size / indexStat.max_data_size > 0.05) ? scope.row.data_size / indexStat.max_data_size * 100 : scope.row.data_size ? 0.5 : 0" class="data-size-progress"></el-progress>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  prop="usage"
+                  sortable="custom"
+                  width="200px"
+                  :label="$t('queryCount')"
+                >
+                  <template slot-scope="scope">
+                    <span class="usage-text">{{scope.row.usage}}</span>
+                    <el-progress v-if="'max_usage' in indexStat" :percentage="indexStat.max_usage && (scope.row.usage / indexStat.max_usage > 0.05) ? scope.row.usage / indexStat.max_usage * 100 : scope.row.usage ? 0.5 : 0" class="usage-progress"></el-progress>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
+                  <template slot-scope="scope">
+                    <span>{{$t(scope.row.source)}}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column align="left" :label="$t('indexContent')">
+                  <template slot-scope="scope">
+                    <el-popover
+                      ref="index-content-popover"
+                      placement="top"
+                      trigger="hover"
+                      popper-class="col-index-content-popover">
+                      <div class="index-content" slot="reference">{{scope.row.col_order.map(it => it.key).slice(0, 20).join(', ')}}</div>
+                      <template>
+                        <p class="popover-header"><b>{{$t('indexesContent')}}</b><el-button v-if="scope.row.col_order.length > 20" type="primary" text class="view-more-btn ksd-fs-12" @click="showDetail(scope.row)">{{$t('viewIndexDetails')}}<i class="el-icon-ksd-more_02 ksd-fs-12"></i></el-button></p>
+                        <p style="white-space: pre-wrap;">{{scope.row.col_order.map(it => it.key).slice(0, 20).join('\n')}}</p>
+                        <el-button v-if="scope.row.col_order.length > 20" class="ksd-fs-12" type="primary" text @click="showDetail(scope.row)">{{$t('viewAll')}}</el-button>
+                      </template>
+                    </el-popover>
+                    <span class="detail-icon el-ksd-icon-view_16" @click="showDetail(scope.row)"></span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
+                  <template slot-scope="scope">
+                    <!-- <span>{{$t(scope.row.status)}}</span> -->
+                    <el-tag size="small" :type="getStatusTagColor(scope.row.status)">{{$t(scope.row.status)}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column :label="$t('kylinLang.common.action')" fixed="right" width="83" v-if="isShowAggregateAction">
+                  <template slot-scope="scope">
+                    <!-- <common-tip :content="$t('viewDetail')">
+                      <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                    </common-tip> -->
+                    <common-tip :content="$t('buildIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('buildIndex')&&!isRealTimeMode">
+                      <i class="el-ksd-icon-build_index_22 ksd-ml-5" @click="complementedIndexes('', scope.row.id)"></i>
+                    </common-tip>
+                    <common-tip :content="$t('editIndex')" v-if="isShowAggregateAction&&datasourceActions.includes('editAggGroup')">
+                      <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="confrimEditTableIndex(scope.row)"></i>
+                    </common-tip>
+                    <common-tip :content="$t('update')" v-if="scope.row.need_update">
+                      <i class="action-icons el-ksd-icon-refresh_22 ksd-ml-5" @click="updateBaseIndexEvent(scope.row)"></i>
+                    </common-tip>
+                    <!-- <common-tip :content="$t('kylinLang.common.moreActions')">
+                      <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" trigger="click" >
+                        <span class="el-dropdown-link" >
+                            <i class="el-icon-ksd-table_others ksd-ml-5 ksd-fs-14"></i>
+                        </span>
+                        <el-dropdown-menu slot="dropdown">
+                          <el-dropdown-item command="edit" v-if="datasourceActions.includes('editAggGroup')&&scope.row.source === 'MANUAL_TABLE'">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
+                          <el-dropdown-item command="delete" v-if="datasourceActions.includes('delAggIdx')">{{$t('kylinLang.common.delete')}}</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </el-dropdown>
+                    </common-tip> -->
+                    <!-- <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
+                      <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
+                    </common-tip> -->
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
             <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :refTag="pageRefTags.indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </el-card>
@@ -1037,6 +1039,10 @@ export default class ModelAggregate extends Vue {
   .el-button-group .el-button--primary:last-child {
     border-left-color: @base-color;
   }
+  .index-table-list {
+    height: 90%;
+    overflow: auto;
+  }
   .indexes-table {
     .empty-index {
       background: @warning-color-2;
@@ -1185,6 +1191,7 @@ export default class ModelAggregate extends Vue {
       .detail-content {
         background-color: transparent;
         padding: 0;
+        height: 100%;
         .date-range {
           color: @text-normal-color;
         }

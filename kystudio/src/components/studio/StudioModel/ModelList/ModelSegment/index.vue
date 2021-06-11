@@ -53,7 +53,7 @@
               </el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
-        <el-button icon="el-ksd-icon-repair_22" type="primary" class="ksd-ml-2" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
+        <el-button icon="el-ksd-icon-repair_22" type="primary" class="ksd-ml-8" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
       </div>
       <!-- <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button icon="el-ksd-icon-refresh_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
@@ -89,7 +89,7 @@
       </div>
     </div>
 
-    <div class="segment-views ksd-mb-15">
+    <div :class="[model.model_type === 'HYBRID' ? 'segment-views' : 'segment-table-list', 'ksd-mb-15']">
       <el-table nested :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
@@ -1379,7 +1379,9 @@ export default class ModelSegment extends Vue {
     }
   }
 }
-.segment-views {
+.segment-views, .segment-table-list {
+  height: 90%;
+  overflow: auto;
   .ky-a-like.is-disabled {
     color: @text-disabled-color;
     cursor: default;
@@ -1387,5 +1389,8 @@ export default class ModelSegment extends Vue {
       color: @text-disabled-color !important;
     }
   }
+}
+.segment-table-list {
+  height: 89%;
 }
 </style>

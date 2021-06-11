@@ -55,8 +55,8 @@
         </div>
       </div>
     </div>
-    <div class="segment-views ksd-mb-15">
-      <el-table nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+    <div :class="[model.model_type === 'STREAMING' ? 'segment-streaming-table' : 'segment-views', 'ksd-mb-15']">
+      <el-table nested size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom">

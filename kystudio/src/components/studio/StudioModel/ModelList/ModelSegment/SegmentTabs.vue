@@ -25,8 +25,8 @@
         :isShowSegmentActions="isShowSegmentActions"
         v-if="activeTab === 'batch'"
         @purge-model="purgeModel(model)"
-        @loadModels="loadModelsList()"
-        @willAddIndex="willAddIndex()"
+        @loadModels="loadModelsList"
+        @willAddIndex="willAddIndex"
         @auto-fix="autoFix(model.alias, model.uuid, model.segment_holes)"
         :model="model" />
     </el-tab-pane>
@@ -72,7 +72,7 @@ export default class SegmentTabs extends Vue {
     this.$emit('purgeModel', model)
   }
   loadModelsList () {
-    this.$emit('loadModelsList')
+    this.$emit('loadModels')
   }
   willAddIndex () {
     this.$emit('willAddIndex')
@@ -88,6 +88,7 @@ export default class SegmentTabs extends Vue {
 @import '../../../../../assets/styles/variables.less';
 .segment-block {
   position: relative;
+  height: 100%;
   .el-icon-question {
     position: absolute;
     color: @base-color;
@@ -98,6 +99,24 @@ export default class SegmentTabs extends Vue {
   }
 }
 .segment_tabs {
+  height: 85%;
+  .el-tabs__content {
+    height: 97%;
+    .el-tab-pane {
+      height: 100%;
+    }
+    .streaming-list {
+      height: 100%;
+      .segment-views {
+        height: 92%;
+        overflow: auto;
+      }
+      .segment-streaming-table {
+        height: 85%;
+        overflow: auto;
+      }
+    }
+  }
   .model-segment {
     margin: 0;
     padding: 0;

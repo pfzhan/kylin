@@ -69,7 +69,7 @@
           @loadModels="reloadModel"
           @purge-model="model => handleCommand('purge', model)"
           @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
-          @auto-fix="autoFix(currentModelRow.alias, currentModelRow.batch_id, currentModelRow.segment_holes)" />
+          @auto-fix="autoFix(currentModelRow.alias, currentModelRow.uuid, currentModelRow.segment_holes)" />
       </el-tab-pane>
       <el-tab-pane class="tab-pane-item" :label="$t('indexes')" name="second">
         <el-tabs class="model-indexes-tabs" v-if="currentModelRow.tabTypes === 'second'" v-model="currentIndexTab">
@@ -158,11 +158,13 @@ import ModelStreamingJob from '../ModelStreamingJob/ModelStreamingJob.vue'
     if (!from.name || from.name !== 'ModelList') {
       next((vm) => {
         vm.initData = true
+        vm.modelPageOffest = to.query.modelPageOffest
         vm.__init()
       })
     } else {
       next((vm) => {
         vm.initData = true
+        vm.modelPageOffest = to.query.modelPageOffest
         vm.initModelData()
       })
     }
@@ -231,6 +233,7 @@ export default class ModelLayout extends Vue {
   buildVisible = {}
   showModelList = false
   showSearchResult = false
+  modelPageOffest = 0
 
   created () {
     // if (!this.initData) {
@@ -251,7 +254,7 @@ export default class ModelLayout extends Vue {
   // 处理优化建议挪到外部 end
 
   initModelData () {
-    const {modelName, searchModelName, jump, tabTypes} = this.$route.params
+    const { modelName, searchModelName, jump, tabTypes } = this.$route.params
     this.modelName = modelName
     this.searchModelName = searchModelName || ''
     if (!this.modelList.filter(it => it.alias === this.modelName).length) {
@@ -288,16 +291,17 @@ export default class ModelLayout extends Vue {
     // })
     this.$router.push({name: 'refresh'})
     this.$nextTick(() => {
-      this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}})
+      this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}, query: {modelPageOffest: this.modelPageOffest}})
     })
   }
 
   loadModelList (name = '') {
+    const { modelPageOffest } = this
     return new Promise((resolve, reject) => {
       const modelName = this.searchModelName || name
       this.showSearchResult = true
       this.loadModels({
-        page_offset: 0,
+        page_offset: modelPageOffest || 0,
         page_size: 10,
         exact: false,
         model_name: modelName || '',

@@ -1003,7 +1003,7 @@ export default class ModelList extends Vue {
   modelRowClickEvent (row, e) {
     if (row.status === 'BROKEN' || ('visible' in row && !row.visible)) return
     // if (e.target.localName === 'td' || [...e.target.classList].includes('cell') || [...e.target.classList].includes('alias')) {
-    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}})
+    this.$router.push({name: 'ModelDetails', params: {modelName: row.alias}, query: {modelPageOffest: this.filterArgs.page_offset}})
     // }
   }
 
@@ -1016,7 +1016,7 @@ export default class ModelList extends Vue {
 
   // 跳转至指定模型优化建议界面
   jumpToRecommendation (model) {
-    this.$router.push({name: 'ModelDetails', params: {modelName: model.alias, jump: 'recommendation'}})
+    this.$router.push({name: 'ModelDetails', params: {modelName: model.alias, jump: 'recommendation'}, query: {modelPageOffest: this.filterArgs.page_offset}})
   }
 }
 </script>

@@ -1,7 +1,7 @@
 <template>
   <el-dialog class="indexes-result-box"
     :title="indexDetailTitle"
-    width="480px"
+    width="880px"
     :limited-area="true"
     :append-to-body="true"
     :close-on-press-escape="false"
@@ -29,7 +29,7 @@
             <span>{{$t('kylinLang.cube.' + scope.row.type)}}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="cardinality" :label="$t('cardinality')" info-icon="el-ksd-icon-more_info_22" :info-tooltip="$t('cardinalityColumnTips')" sortable>
+        <el-table-column prop="cardinality" :label="$t('cardinality')" info-icon="el-ksd-icon-more_info_22" width="130" :info-tooltip="$t('cardinalityColumnTips')" sortable>
           <template slot-scope="scope">
             <span v-if="scope.row.cardinality">{{scope.row.cardinality}}</span>
             <span v-else><i class="no-data_placeholder">NULL</i></span>
