@@ -33,13 +33,6 @@ exportProjectVersions
 
 sh build/script_newten/prepare-libs.sh || { exit 1; }
 
-for PARAM in $@; do
-    if [ "$PARAM" == "cdh5.7" ]; then
-        CDH=1
-        break
-    fi
-done
-
 if [ "$SKIP_OBF" != "1" ]; then
     build/script_newten/obfuscate.sh       || { exit 1; }
 fi

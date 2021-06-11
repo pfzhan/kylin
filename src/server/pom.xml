@@ -299,31 +299,50 @@
                             </outputDirectory>
                             <includeScope>compile</includeScope>
                             <excludeGroupIds>
-                                <!--we use Spark jars-->
+                                log4j,
                                 org.spark-project.hive,
                                 org.slf4j,
                                 xerces,
                                 org.anltr,
                                 org.apache.arrow,
                                 org.apache.avro,
+                                org.apache.derby,
+                                org.apache.directory.server,
                                 org.apache.hadoop,
                                 org.apache.hive,
                                 org.apache.hive.hcatalog,
                                 org.apache.spark,
                                 org.apache.kafka,
                                 org.apache.zookeeper,
+                                org.glassfish.jersey,
                                 org.glassfish.hk2,
                                 org.glassfish.hk2.external,
                                 org.json4s,
                                 org.mortbay.jetty,
                                 org.scala-lang,
-                                com.twitter,
+                                com.google.flatbuffers,
+                                com.google.inject
                                 com.sun.jersey,
+                                com.twitter,
                                 io.dropwizard.metrics,
+                                io.airlift,
+                                commons-beanutils,
+                                commons-cli,
+                                commons-codec,
+                                commons-dbcp,
+                                commons-io,
+                                commons-lang,
+                                commons-logging,
+                                commons-httpclient,
+                                commons-math3,
+                                commons-net,
+                                commons-pool,
+                                javax.activation,
                                 joda-time,
                                 mysql,
                                 net.sf.py4j
                             </excludeGroupIds>
+
                         </configuration>
                     </execution>
                 </executions>

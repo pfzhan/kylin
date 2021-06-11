@@ -127,7 +127,3 @@ rm kap_jar.txt
 # obfuscate job(assembly) jar
 obfuscate src/assembly/ $BUILD_LIB_DIR 1 1 kap-assembly-${release_version}-job-obf newten-job.jar
 mv $BUILD_LIB_DIR/kap-assembly-${release_version}-job-obf.jar tmp/
-
-# obfuscate kylin user session jar
-obfuscate src/spark-project/kylin-user-session-dep/ $BUILD_LIB_DIR 1 1 kylin-user-session-dep-${release_version}-obf  kylin-user-session-dep-${release_version}.jar
-mv $BUILD_LIB_DIR/kylin-user-session-dep-${release_version}-obf.jar tmp/

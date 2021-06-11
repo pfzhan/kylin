@@ -42,7 +42,6 @@ cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
 
-rm -rf lib/kylin-user-session-dep-${release_version}.jar
 cp -rf CHANGELOG.md VERSION commit_SHA1 lib tool LICENSE ${package_name}/
 
 mkdir ${package_name}/lib/ext
@@ -89,21 +88,11 @@ cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
 cp -rf server/jars ${package_name}/server/
 cp -rf deploy/.keystore ${package_name}/server/
+mv ${package_name}/server/jars/log4j* ${package_name}/spark/jars/
 rm -rf server/
 
 #add udf jar to lib
 cp ../src/udf/target/kap-udf-${kap_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
-
-
-# add kylin user jar to lib
-rm -rf ../tmp/merge
-mkdir -p ../tmp/merge
-cd ../tmp/merge
-jar -xf ../kylin-user-session-dep-${release_version}-obf.jar
-jar -xf ../../src/spark-project/kylin-user-session/target/original-kylin-user-session-${kap_version}.jar
-jar -cfM kylin-user-session-${release_version}.jar  .
-cd ../../build
-mv ../tmp/merge/kylin-user-session-${release_version}.jar  ${package_name}/lib/kylin-user-session-${release_version}.jar
 
 # add hadoop3 jar to spark
 cp -rf hadoop3 ${package_name}/spark
@@ -123,23 +112,17 @@ find ${package_name}/postgresql -type f -exec chmod 755 {} \;
 
 rm -rf ../dist
 mkdir -p ../dist
-tar -cvzf ../dist/${package_name}.tar.gz ${package_name}
-rm -rf ${package_name}
-
-cd ../dist
 
 # package obf tar
 if [[ "$SKIP_OBF" != "1" ]]; then
-    tar -xzf ${package_name}.tar.gz
-
     mv ../tmp/kap-assembly-${release_version}-job-obf.jar ${package_name}/lib/newten-job.jar
-    tar -czf ${package_name}.tar.gz ${package_name}
+    tar -czf ../dist/${package_name}.tar.gz ${package_name}
+    mv ../server_mapping.txt ../dist/${package_name}-obf.mapping
 
-    rm -r ../tmp
-    rm -rf ${package_name}
-
-    mv ../server_mapping.txt ${package_name}-obf.mapping
 fi
+tar -czf ../dist/${package_name}.tar.gz ${package_name}
+rm -rf ${package_name}
 
 echo "Package ready."
+cd ../dist
 ls ${package_name}*.tar.gz

@@ -34,14 +34,5 @@ echo "copy lib file"
 rm -rf build/lib build/tool
 mkdir build/lib build/tool
 cp src/assembly/target/kap-assembly-${kap_version}-job.jar build/lib/newten-job.jar
-cp src/spark-project/kylin-user-session-dep/target/kylin-user-session-dep-${kap_version}.jar build/lib/kylin-user-session-dep-${release_version}.jar
 mkdir -p build/lib/ext
-mv src/server/target/jars/kap-second-storage-clickhouse-*.jar build/lib/ext/kap-second-storage-clickhouse-${release_version}.jar
-
-
-# Copied file becomes 000 for some env (e.g. Cygwin)
-#chmod 644 build/lib/kylin-job-kap-${release_version}.jar
-#chmod 644 build/lib/kylin-coprocessor-kap-${release_version}.jar
-#chmod 644 build/lib/kylin-jdbc-kap-${release_version}.jar
-#chmod 644 build/lib/kylin-storage-parquet-kap-${release_version}.jar
-#chmod 644 build/tool/kylin-tool-kap-${release_version}.jar
+cp src/server/target/jars/kap-second-storage-clickhouse-*.jar build/lib/ext/kap-second-storage-clickhouse-${release_version}.jar
