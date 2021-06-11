@@ -70,11 +70,24 @@ public class CliCommandExecutor {
     private int port;
     private String remoteUser;
     private String remotePwd;
+    private String localIdentityPath;
     private static final int REMOTE_TIMEOUT_SECONDS = 3600;
 
     // records down child process ids
 
     public CliCommandExecutor() {
+    }
+
+    public CliCommandExecutor(String remoteHost, String remoteUser, String remotePwd) {
+        this.remoteHost = remoteHost;
+        this.remoteUser = remoteUser;
+        this.remotePwd = remotePwd;
+        this.port = 22;
+    }
+
+    public CliCommandExecutor(String remoteHost, String remoteUser, String remotePwd, String localIdentityPath) {
+        this(remoteHost, remoteUser, remotePwd);
+        this.localIdentityPath = localIdentityPath;
     }
 
     public void setRunAtRemote(String host, int port, String user, String pwd) {
@@ -90,11 +103,15 @@ public class CliCommandExecutor {
         this.remotePwd = null;
     }
 
+    public void setLocalIdentityPath(String localIdentityPath) {
+        this.localIdentityPath = localIdentityPath;
+    }
+
     public void copyFile(String localFile, String destDir) throws IOException {
         if (remoteHost == null)
             copyNative(localFile, destDir);
         else
-            copyRemote(localFile, destDir);
+            copyLocalToRemote(localFile, destDir);
     }
 
     private void copyNative(String localFile, String destDir) throws IOException {
@@ -103,8 +120,8 @@ public class CliCommandExecutor {
         FileUtils.copyFile(src, dest);
     }
 
-    private void copyRemote(String localFile, String destDir) throws IOException {
-        SSHClient ssh = new SSHClient(remoteHost, port, remoteUser, remotePwd);
+    private void copyLocalToRemote(String localFile, String destDir) throws IOException {
+        SSHClient ssh = getSshClient();
         try {
             ssh.scpFileToRemote(localFile, destDir);
         } catch (IOException e) {
@@ -112,6 +129,21 @@ public class CliCommandExecutor {
         } catch (Exception e) {
             throw new IOException(e.getMessage(), e);
         }
+    }
+
+    public void copyRemoteToLocal(String localFile, String destDir) throws IOException {
+        SSHClient ssh = getSshClient();
+        try {
+            ssh.scpRemoteFileToLocal(localFile, destDir);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException(e.getMessage(), e);
+        }
+    }
+
+    private SSHClient getSshClient() {
+        return new SSHClient(remoteHost, port, remoteUser, remotePwd, localIdentityPath);
     }
 
     public CliCmdExecResult execute(String command, Logger logAppender) throws ShellException {
@@ -138,7 +170,7 @@ public class CliCommandExecutor {
 
     private Pair<Integer, String> runRemoteCommand(String command, Logger logAppender) throws ShellException {
         try {
-            SSHClient ssh = new SSHClient(remoteHost, port, remoteUser, remotePwd);
+            SSHClient ssh = getSshClient();
 
             SSHClientOutput sshOutput;
             sshOutput = ssh.execCommand(command, REMOTE_TIMEOUT_SECONDS, logAppender);

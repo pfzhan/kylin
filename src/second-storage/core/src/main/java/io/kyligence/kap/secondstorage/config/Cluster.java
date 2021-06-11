@@ -35,6 +35,10 @@ public class Cluster {
     private String installPath;
     private String logPath;
 
+    //username of machine
+    private String userName;
+    private String password;
+
     public List<Node> getNodes() {
         return nodes;
     }
@@ -80,14 +84,38 @@ public class Cluster {
         return this;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     public Cluster(Cluster cluster) {
         this.nodes = new ArrayList<>();
         this.keepAliveTimeout = cluster.getKeepAliveTimeout();
-        this.socketTimeout =cluster.getKeepAliveTimeout();
+        this.socketTimeout = cluster.getKeepAliveTimeout();
+        this.logPath = cluster.getLogPath();
+        this.userName = cluster.getUserName();
+        this.password = cluster.getPassword();
         cluster.getNodes().forEach(node -> this.getNodes().add(new Node(node)));
     }
 
-    public Cluster() {}
+    public boolean emptyCluster() {
+        return nodes == null || nodes.size() == 0;
+    }
+
+    public Cluster() {
+    }
 
 }
 

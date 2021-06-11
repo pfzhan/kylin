@@ -26,7 +26,7 @@ package io.kyligence.kap.secondstorage
 import io.kyligence.kap.engine.spark.utils.JavaOptionals._
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
-import io.kyligence.kap.secondstorage.metadata.{NManager, NodeGroup, TableData, TableFlow, TablePlan}
+import io.kyligence.kap.secondstorage.metadata._
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -36,7 +36,7 @@ import scala.util.control.NonFatal
 
 object SecondStorage extends LogEx {
 
-  private [secondstorage] def load(pluginClassName: String): SecondStoragePlugin = {
+  private[secondstorage] def load(pluginClassName: String): SecondStoragePlugin = {
     try {
       // scalastyle:off classforname
       val pluginClass =
@@ -54,13 +54,20 @@ object SecondStorage extends LogEx {
         }
         .orNull
     } catch {
-      case _: ClassNotFoundException =>
-        logWarning(s"ClassNotFoundException")
+      case e: ClassNotFoundException =>
+        logWarning(s"ClassNotFoundException", e)
         null
     }
   }
 
   private var secondStoragePlugin: SecondStoragePlugin = _
+
+  lazy val configLoader: SecondStorageConfigLoader = {
+    if (secondStoragePlugin == null) {
+      throw new RuntimeException("second storage plugin is null")
+    }
+    secondStoragePlugin.getConfigLoader
+  }
 
   def init(force: Boolean): Unit = {
     if (force || secondStoragePlugin == null) {
@@ -85,10 +92,10 @@ object SecondStorage extends LogEx {
   private def queryCatalog() = Option.apply(secondStoragePlugin.queryCatalog())
 
   def trySecondStorage(
-    sparkSession: SparkSession,
-    dataflow: NDataflow,
-    layout: LayoutEntity,
-    pruningInfo: String): Option[DataFrame] = {
+                        sparkSession: SparkSession,
+                        dataflow: NDataflow,
+                        layout: LayoutEntity,
+                        pruningInfo: String): Option[DataFrame] = {
     // Only support table index
     val enableSSForThisQuery = enabled  &&  layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
     val result = Option.apply(enableSSForThisQuery)

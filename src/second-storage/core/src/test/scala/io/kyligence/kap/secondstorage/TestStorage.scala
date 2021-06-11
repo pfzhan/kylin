@@ -35,4 +35,6 @@ class TestStorage extends SecondStoragePlugin {
   override def tablePlanManager(config: KylinConfig, project: String): NManager[TablePlan] = null
 
   override def nodeGroupManager(config: KylinConfig, project: String): NManager[NodeGroup] = null
+
+  override def getConfigLoader: SecondStorageConfigLoader = null
 }

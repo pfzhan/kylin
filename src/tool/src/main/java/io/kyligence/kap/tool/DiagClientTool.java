@@ -162,6 +162,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
+        exportTieredStorage(exportDir, startTime, endTime, recordTime);
+
         executeTimeoutTask(taskQueue);
 
         executorService.shutdown();

@@ -23,6 +23,22 @@
  */
 package io.kyligence.kap.clickhouse;
 
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_MODEL_CLEAN_FACTORY;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY;
+import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_SEGMENT_CLEAN_FACTORY;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.ClickHouseConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageStepFactory;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
+import org.apache.spark.sql.jdbc.JdbcDialects;
+
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
@@ -35,6 +51,7 @@ import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
 import io.kyligence.kap.clickhouse.metadata.NClickHouseFlowManager;
 import io.kyligence.kap.clickhouse.metadata.NClickHouseManager;
 import io.kyligence.kap.clickhouse.metadata.NClickHouseNodeGroupManager;
+import io.kyligence.kap.secondstorage.SecondStorageConfigLoader;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStoragePlugin;
 import io.kyligence.kap.secondstorage.config.Cluster;
@@ -42,21 +59,6 @@ import io.kyligence.kap.secondstorage.metadata.NManager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.ClickHouseConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.SecondStorageStepFactory;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.spark.sql.execution.datasources.jdbc.ClickHouseDialect$;
-import org.apache.spark.sql.jdbc.JdbcDialects;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
-import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_MODEL_CLEAN_FACTORY;
-import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY;
-import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_SEGMENT_CLEAN_FACTORY;
 
 public class ClickHouseStorage implements SecondStoragePlugin {
 
@@ -114,6 +116,11 @@ public class ClickHouseStorage implements SecondStoragePlugin {
     @Override
     public NManager<NodeGroup> nodeGroupManager(KylinConfig config, String project) {
         return config.getManager(project, NClickHouseNodeGroupManager.class);
+    }
+
+    @Override
+    public SecondStorageConfigLoader getConfigLoader() {
+        return ClickHouseConfigLoader.getInstance();
     }
 
     static {

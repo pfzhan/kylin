@@ -36,6 +36,7 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.METADATA;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.REC_CANDIDATE;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_METRICS;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.TIERED_STORAGE_LOGS;
 
 import java.io.File;
 import java.io.IOException;
@@ -561,6 +562,16 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(recTask, REC_CANDIDATE);
+    }
+
+    protected void exportTieredStorage(File exportDir, long startTime, long endTime, File recordTime) {
+        Future kgLogTask = executorService.submit(() -> {
+            recordTaskStartTime(TIERED_STORAGE_LOGS);
+            new ClickhouseDiagTool().dumpClickHouseServerLog(exportDir, startTime, endTime);
+            recordTaskExecutorTimeToFile(TIERED_STORAGE_LOGS, recordTime);
+        });
+
+        scheduleTimeoutTask(kgLogTask, TIERED_STORAGE_LOGS);
     }
 
     protected void exportKgLogs(File exportDir, long startTime, long endTime, File recordTime) {

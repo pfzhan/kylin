@@ -97,6 +97,9 @@ public class KylinLogTool {
     private static final Set<String> kylinLogPrefix = Sets.newHashSet("kylin.log", "kylin.schedule.log",
             "kylin.query.log", "kylin.smart.log", "kylin.build.log");
 
+    private static ExtractLogByRangeTool DEFAULT_EXTRACT_LOG_BY_RANGE
+            = new ExtractLogByRangeTool(LOG_PATTERN, LOG_TIME_PATTERN, SECOND_DATE_FORMAT);
+
     // 2019-11-11 03:24:52,342 DEBUG [JobWorker(prj:doc_smart,jobid:8a13964c)-965] job.NSparkExecutable : Copied metadata to the target metaUrl, delete the temp dir: /tmp/kylin_job_meta204633716010108932
     @VisibleForTesting
     public static String getJobLogPattern(String jobId) {
@@ -132,7 +135,7 @@ public class KylinLogTool {
     }
 
     private static void extractAllIncludeLogs(File[] logFiles, File destDir, long timeout) throws IOException {
-        String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
+        String[] allIncludeLogs = {"kylin.gc.", "shell.", "kylin.out", "diag.log"};
         for (File logFile : logFiles) {
             for (String includeLog : allIncludeLogs) {
                 if (checkTimeoutTask(timeout, "LOG")) {
@@ -147,8 +150,8 @@ public class KylinLogTool {
     }
 
     private static void extractPartIncludeLogByDay(File[] logFiles, String startDate, String endDate, File destDir,
-            long timeout) throws IOException {
-        String[] partIncludeLogByDay = { "access_log." };
+                                                   long timeout) throws IOException {
+        String[] partIncludeLogByDay = {"access_log."};
         for (File logFile : logFiles) {
             for (String includeLog : partIncludeLogByDay) {
                 if (checkTimeoutTask(timeout, "LOG")) {
@@ -167,7 +170,7 @@ public class KylinLogTool {
 
     private static void extractPartIncludeLogByMs(File[] logFiles, long start, long end, File destDir, long timeout)
             throws IOException {
-        String[] partIncludeLogByMs = { "jstack.timed.log" };
+        String[] partIncludeLogByMs = {"jstack.timed.log"};
         for (File logFile : logFiles) {
             for (String includeLog : partIncludeLogByMs) {
                 if (checkTimeoutTask(timeout, "LOG")) {
@@ -244,14 +247,14 @@ public class KylinLogTool {
     }
 
     private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File logFile,
-            boolean onlyStartTime) {
+                                                                       boolean onlyStartTime) {
         Preconditions.checkNotNull(jobId);
         Preconditions.checkNotNull(logFile);
 
         String dateStart = null;
         String dateEnd = null;
         try (InputStream in = new FileInputStream(logFile);
-                BufferedReader br = new BufferedReader(new InputStreamReader(in, CHARSET_NAME))) {
+             BufferedReader br = new BufferedReader(new InputStreamReader(in, CHARSET_NAME))) {
             Pattern pattern = Pattern.compile(getJobLogPattern(jobId));
 
             String log;
@@ -309,65 +312,104 @@ public class KylinLogTool {
         return timeRangeResult;
     }
 
-    public static String getFirstTimeByLogFile(File logFile) {
-        try (InputStream in = new FileInputStream(logFile);
-                BufferedReader br = new BufferedReader(new InputStreamReader(in, CHARSET_NAME))) {
-            Pattern pattern = Pattern.compile(LOG_TIME_PATTERN);
-            String log;
-            while ((log = br.readLine()) != null) {
-                Matcher matcher = pattern.matcher(log);
-                if (matcher.find()) {
-                    return matcher.group(1);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Failed to get first time by log file: {}", logFile.getAbsolutePath(), e);
+
+    public static class ExtractLogByRangeTool {
+        private String logPattern;
+        private String logTimePattern;
+        private String secondDateFormat;
+
+        public ExtractLogByRangeTool(String logPattern, String logTimePattern, String secondDateFormat) {
+            this.logPattern = logPattern;
+            this.logTimePattern = logTimePattern;
+            this.secondDateFormat = secondDateFormat;
         }
-        return null;
-    }
 
-    public static void extractLogByTimeRange(File logFile, Pair<String, String> timeRange, File distFile) {
-        Preconditions.checkNotNull(logFile);
-        Preconditions.checkNotNull(timeRange);
-        Preconditions.checkNotNull(distFile);
-        Preconditions.checkArgument(timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0);
+        public ExtractLogByRangeTool(String logPattern, String secondDateFormat) {
+            this.logPattern = logPattern;
+            this.logTimePattern = logPattern;
+            this.secondDateFormat = secondDateFormat;
+        }
 
-        final String charsetName = Charset.defaultCharset().name();
-        try (InputStream in = new FileInputStream(logFile);
-                OutputStream out = new FileOutputStream(distFile);
-                BufferedReader br = new BufferedReader(new InputStreamReader(in, charsetName));
-                BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charsetName))) {
-
-            int extraLines = EXTRA_LINES;
-            boolean extract = false;
-            boolean stdLogNotFound = true;
-            Pattern pattern = Pattern.compile(LOG_PATTERN);
-            String log;
-            while ((log = br.readLine()) != null) {
-                Matcher matcher = pattern.matcher(log);
-
-                if (matcher.find()) {
-                    stdLogNotFound = false;
-                    String logDate = matcher.group(1);
-                    if (logDate.compareTo(timeRange.getSecond()) > 0 && --extraLines < 1) {
-                        break;
+        public String getFirstTimeByLogFile(File logFile) {
+            try (InputStream in = new FileInputStream(logFile);
+                 BufferedReader br = new BufferedReader(new InputStreamReader(in, CHARSET_NAME))) {
+                Pattern pattern = Pattern.compile(logTimePattern);
+                String log;
+                while ((log = br.readLine()) != null) {
+                    Matcher matcher = pattern.matcher(log);
+                    if (matcher.find()) {
+                        return matcher.group(1);
                     }
+                }
+            } catch (Exception e) {
+                logger.error("Failed to get first time by log file: {}", logFile.getAbsolutePath(), e);
+            }
+            return null;
+        }
 
-                    if (extract || logDate.compareTo(timeRange.getFirst()) >= 0) {
-                        extract = true;
+        public void extractLogByRange(File logFile, Pair<String, String> timeRange, File destLogDir)
+                throws IOException {
+            String lastDate = new DateTime(logFile.lastModified()).toString(secondDateFormat);
+            if (lastDate.compareTo(timeRange.getFirst()) < 0) {
+                return;
+            }
+
+            String logFirstTime = getFirstTimeByLogFile(logFile);
+            if (Objects.isNull(logFirstTime) || logFirstTime.compareTo(timeRange.getSecond()) > 0) {
+                return;
+            }
+
+            if (logFirstTime.compareTo(timeRange.getFirst()) >= 0 && lastDate.compareTo(timeRange.getSecond()) <= 0) {
+                Files.copy(logFile.toPath(), new File(destLogDir, logFile.getName()).toPath());
+            } else {
+                extractLogByTimeRange(logFile, timeRange, new File(destLogDir, logFile.getName()));
+            }
+        }
+
+        public void extractLogByTimeRange(File logFile, Pair<String, String> timeRange, File distFile) {
+            Preconditions.checkNotNull(logFile);
+            Preconditions.checkNotNull(timeRange);
+            Preconditions.checkNotNull(distFile);
+            Preconditions.checkArgument(timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0);
+
+            final String charsetName = Charset.defaultCharset().name();
+            try (InputStream in = new FileInputStream(logFile);
+                 OutputStream out = new FileOutputStream(distFile);
+                 BufferedReader br = new BufferedReader(new InputStreamReader(in, charsetName));
+                 BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charsetName))) {
+
+                boolean extract = false;
+                boolean stdLogNotFound = true;
+                Pattern pattern = Pattern.compile(logPattern);
+                int extraLines = EXTRA_LINES;
+                String log;
+                while ((log = br.readLine()) != null) {
+                    Matcher matcher = pattern.matcher(log);
+
+                    if (matcher.find()) {
+                        stdLogNotFound = false;
+                        String logDate = matcher.group(1);
+                        if (logDate.compareTo(timeRange.getSecond()) > 0 && --extraLines < 1) {
+                            break;
+                        }
+
+                        if (extract || logDate.compareTo(timeRange.getFirst()) >= 0) {
+                            extract = true;
+                            bw.write(log);
+                            bw.write('\n');
+                        }
+                    } else if (extract || stdLogNotFound) {
                         bw.write(log);
                         bw.write('\n');
                     }
-                } else if (extract || stdLogNotFound) {
-                    bw.write(log);
-                    bw.write('\n');
                 }
+            } catch (IOException e) {
+                logger.error("Failed to extract log from {} to {}", logFile.getAbsolutePath(), distFile.getAbsolutePath(),
+                        e);
             }
-        } catch (IOException e) {
-            logger.error("Failed to extract log from {} to {}", logFile.getAbsolutePath(), distFile.getAbsolutePath(),
-                    e);
         }
     }
+
 
     private static boolean isKylinLogFile(String fileName) {
         for (String name : kylinLogPrefix) {
@@ -425,7 +467,7 @@ public class KylinLogTool {
                     logger.error("Cancel 'LOG:kylin.log' task.");
                     break;
                 }
-                extractLogByRange(logFile, timeRange, destLogDir);
+                DEFAULT_EXTRACT_LOG_BY_RANGE.extractLogByRange(logFile, timeRange, destLogDir);
             }
         } catch (Exception e) {
             logger.error("Failed to extract kylin.log, ", e);
@@ -473,7 +515,7 @@ public class KylinLogTool {
      * otherwise it always increases.
      */
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
-            Map<String, String> sparderConf, ILogExtractor extractTool) {
+                                              Map<String, String> sparderConf, ILogExtractor extractTool) {
         val sparkLogsDir = new File(exportDir, "sparder_history");
         val fs = HadoopUtil.getFileSystem(extractTool.getSparderEvenLogDir());
         val validApps = extractTool.getValidSparderApps(startTime, endTime);
@@ -503,8 +545,8 @@ public class KylinLogTool {
             FileUtils.moveFile(file, tempFile);
             try (BufferedReader br = new BufferedReader(
                     new InputStreamReader(new FileInputStream(tempFile), Charset.defaultCharset().name()));
-                    BufferedWriter bw = new BufferedWriter(
-                            new OutputStreamWriter(new FileOutputStream(file), Charset.defaultCharset().name()))) {
+                 BufferedWriter bw = new BufferedWriter(
+                         new OutputStreamWriter(new FileOutputStream(file), Charset.defaultCharset().name()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     val map = JsonUtil.readValue(line, HashMap.class);
@@ -523,7 +565,7 @@ public class KylinLogTool {
     }
 
     private static void copyValidLog(String appId, long startTime, long endTime, FileStatus fileStatus, FileSystem fs,
-            File localFile) throws IOException, InterruptedException {
+                                     File localFile) throws IOException, InterruptedException {
         FileStatus[] eventStatuses = fs.listStatus(new Path(fileStatus.getPath().toUri()));
         for (FileStatus status : eventStatuses) {
             if (Thread.currentThread().isInterrupted()) {
@@ -551,7 +593,7 @@ public class KylinLogTool {
     }
 
     private static void copyToLocalFile(boolean valid, File localFile, FileStatus status, FileSystem fs,
-            boolean isFirstLogFile) throws IOException {
+                                        boolean isFirstLogFile) throws IOException {
         if (valid) {
             if (!localFile.exists()) {
                 FileUtils.forceMkdir(localFile);
@@ -674,25 +716,6 @@ public class KylinLogTool {
         }
     }
 
-    private static void extractLogByRange(File logFile, Pair<String, String> timeRange, File destLogDir)
-            throws IOException {
-        String lastDate = new DateTime(logFile.lastModified()).toString(SECOND_DATE_FORMAT);
-        if (lastDate.compareTo(timeRange.getFirst()) < 0) {
-            return;
-        }
-
-        String logFirstTime = getFirstTimeByLogFile(logFile);
-        if (Objects.isNull(logFirstTime) || logFirstTime.compareTo(timeRange.getSecond()) > 0) {
-            return;
-        }
-
-        if (logFirstTime.compareTo(timeRange.getFirst()) >= 0 && lastDate.compareTo(timeRange.getSecond()) <= 0) {
-            Files.copy(logFile.toPath(), new File(destLogDir, logFile.getName()).toPath());
-        } else {
-            extractLogByTimeRange(logFile, timeRange, new File(destLogDir, logFile.getName()));
-        }
-    }
-
     public static void extractKGLogs(File exportDir, long startTime, long endTime) {
         File kgLogsDir = new File(exportDir, "logs");
         try {
@@ -724,7 +747,7 @@ public class KylinLogTool {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("Kg log task is interrupt");
                 }
-                extractLogByRange(logFile, timeRange, kgLogsDir);
+                DEFAULT_EXTRACT_LOG_BY_RANGE.extractLogByRange(logFile, timeRange, kgLogsDir);
             }
         } catch (Exception e) {
             logger.error("Failed to extract kg log!", e);

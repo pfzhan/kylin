@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.clickhouse.management;
 
+import io.kyligence.kap.secondstorage.SecondStorageConfigLoader;
 import io.kyligence.kap.secondstorage.config.Cluster;
 import io.kyligence.kap.secondstorage.config.Node;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,7 @@ import java.io.FileNotFoundException;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public class ClickHouseConfigLoader {
+public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
     private static final AtomicReference<ClickHouseConfigLoader> INSTANCE = new AtomicReference<>();
 
     private final File configFile;
@@ -77,6 +78,8 @@ public class ClickHouseConfigLoader {
         clusterDesc.addPropertyParameters("keepAliveTimeout", String.class);
         clusterDesc.addPropertyParameters("installPath", String.class);
         clusterDesc.addPropertyParameters("logPath", String.class);
+        clusterDesc.addPropertyParameters("userName", String.class);
+        clusterDesc.addPropertyParameters("password", String.class);
         constructor.addTypeDescription(clusterDesc);
         val nodeDesc = new TypeDescription(Node.class);
         nodeDesc.addPropertyParameters("name", String.class);
@@ -88,7 +91,8 @@ public class ClickHouseConfigLoader {
         return new Yaml(constructor);
     }
 
-    private void load() {
+    @Override
+    public void load() {
         Yaml yaml = getConfigYaml();
         try {
             cluster.set(yaml.load(new FileInputStream(configFile)));
@@ -97,6 +101,7 @@ public class ClickHouseConfigLoader {
         }
     }
 
+    @Override
     public void refresh() {
         File config = new File(ClickHouseConfig.getInstanceFromEnv().getClusterConfig());
         ClickHouseConfigLoader clickHouseConfigLoader = new ClickHouseConfigLoader(config);
@@ -104,6 +109,7 @@ public class ClickHouseConfigLoader {
         INSTANCE.set(clickHouseConfigLoader);
     }
 
+    @Override
     public Cluster getCluster() {
         return new Cluster(cluster.get());
     }

@@ -55,7 +55,6 @@ import org.junit.Test;
 
 /**
  * @author ysong1
- * 
  */
 public class SSHClientTest {
 
@@ -104,7 +103,7 @@ public class SSHClientTest {
     }
 
     @Test
-    public void testScp() throws Exception {
+    public void testScpFileToRemote() throws Exception {
         if (!isRemote)
             return;
 

@@ -42,20 +42,20 @@
 
 package org.apache.kylin.common.util;
 
-/** 
+/**
  * @author George Song (ysong1)
- * 
  */
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 
-import io.kyligence.kap.common.util.Unsafe;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 import com.jcraft.jsch.Channel;
@@ -63,6 +63,8 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+
+import io.kyligence.kap.common.util.Unsafe;
 
 public class SSHClient {
     protected static final org.slf4j.Logger logger = LoggerFactory.getLogger(SSHClient.class);
@@ -77,12 +79,22 @@ public class SSHClient {
         this.hostname = hostname;
         this.username = username;
         this.port = port;
-        if (password != null && new File(password).exists()) {
+
+        if (password == null) {
+            identityPath = "~/.ssh/id_rsa";
+        } else if (new File(password).exists()) {
             this.identityPath = new File(password).getAbsolutePath();
             this.password = null;
         } else {
             this.password = password;
-            this.identityPath = null;
+        }
+    }
+
+    public SSHClient(String hostname, int port, String username, String password, String identityPath) {
+        this(hostname, port, username, password);
+
+        if (!StringUtils.isEmpty(identityPath)) {
+            this.identityPath = identityPath;
         }
     }
 
@@ -169,6 +181,155 @@ public class SSHClient {
         } finally {
             IOUtils.closeQuietly(fis);
         }
+    }
+
+    /**
+     * reference
+     * https://medium.com/@ldclakmal/scp-with-java-b7b7dbcdbc85
+     *
+     * @param remoteFile
+     * @param localTargetDirectory
+     * @throws Exception
+     */
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public void scpRemoteFileToLocal(String remoteFile, String localTargetDirectory) throws Exception {
+        FileInputStream fis = null;
+        try {
+            logger.info("SCP file " + remoteFile + " to " + localTargetDirectory);
+
+            Session session = newJSchSession();
+            session.connect();
+
+            String prefix = null;
+
+            if (new File(localTargetDirectory).isDirectory()) {
+                prefix = localTargetDirectory + File.separator;
+            }
+
+            // exec 'scp -f rfile' remotely
+            String command = "scp -p -f " + remoteFile;
+            Channel channel = session.openChannel("exec");
+            ((ChannelExec) channel).setCommand(command);
+
+            // get I/O streams for remote scp
+            OutputStream out = channel.getOutputStream();
+            InputStream in = channel.getInputStream();
+
+            channel.connect();
+
+            byte[] buf = new byte[1024];
+
+            // send '\0'
+            buf[0] = 0;
+            out.write(buf, 0, 1);
+            out.flush();
+
+            while (true) {
+                int c = checkAck(in);
+                if (c != 'T') {
+                    break;
+                }
+                long modTime = getModifyTime(out, in, buf);
+
+
+                while (true) {
+                    c = checkAck(in);
+                    if (c == 'C') {
+                        break;
+                    }
+                }
+
+                long fileSize = 0L;
+                fileSize = getFilesize(out, in, buf, fileSize);
+
+                String file;
+                for (int i = 0; true; i++) {
+                    in.read(buf, i, 1);
+                    if (buf[i] == (byte) 0x0a) {
+                        file = new String(buf, 0, i, Charset.defaultCharset());
+                        break;
+                    }
+                }
+
+                logger.info("file-size=" + fileSize + ", file=" + file);
+
+                // read a content of lfile
+                try (FileOutputStream fos = new FileOutputStream(prefix == null ? remoteFile : prefix + file)) {
+                    int foo;
+                    while (true) {
+                        if (buf.length < fileSize) foo = buf.length;
+                        else foo = (int) fileSize;
+                        foo = in.read(buf, 0, foo);
+                        if (foo < 0) {
+                            // error
+                            break;
+                        }
+                        fos.write(buf, 0, foo);
+                        fileSize -= foo;
+                        if (fileSize == 0L) break;
+                    }
+
+                    if (checkAck(in) != 0) {
+                        Unsafe.systemExit(0);
+                    }
+
+                    File tempFile = new File(prefix + file);
+                    tempFile.setLastModified(modTime * 1000);
+
+                    // send '\0'
+                    buf[0] = 0;
+                    out.write(buf, 0, 1);
+                    out.flush();
+                }
+            }
+
+            channel.disconnect();
+            session.disconnect();
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            IOUtils.closeQuietly(fis);
+        }
+    }
+
+    private long getFilesize(OutputStream out, InputStream in, byte[] buf, long filesize) throws IOException {
+
+        // read '0644 '
+        in.read(buf, 0, 5);
+
+        while (true) {
+            if (in.read(buf, 0, 1) < 0) {
+                // error
+                break;
+            }
+            if (buf[0] == ' ') break;
+            filesize = filesize * 10L + (long) (buf[0] - '0');
+        }
+
+        // send '\0'
+        buf[0] = 0;
+        out.write(buf, 0, 1);
+        out.flush();
+        return filesize;
+    }
+
+    private long getModifyTime(OutputStream out, InputStream in, byte[] buf) throws IOException {
+
+        long modTime = 0L;
+        while (true) {
+            if (in.read(buf, 0, 1) < 0) {
+                // error
+                break;
+            }
+            if (buf[0] == ' ') break;
+            modTime = modTime * 10L + (long) (buf[0] - '0');
+        }
+
+        // send '\0'
+        buf[0] = 0;
+        out.write(buf, 0, 1);
+        out.flush();
+        return modTime;
     }
 
     public SSHClientOutput execCommand(String command) throws Exception {
