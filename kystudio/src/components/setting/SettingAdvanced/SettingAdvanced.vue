@@ -185,7 +185,6 @@
       :header-content="$t('secondaryStorage')"
       :is-keep-editing="true"
       :is-edited="!form.second_storage_enabled&&isFormEdited(form, 'sec-storage') || (form.second_storage_enabled && new_nodes.length > 0)"
-      :is-editable="userType"
       :is-reset="false"
       v-if="isShowSecondStorage"
       @submit="(scb, ecb) => handleSubmit('sec-storage', scb, ecb)">

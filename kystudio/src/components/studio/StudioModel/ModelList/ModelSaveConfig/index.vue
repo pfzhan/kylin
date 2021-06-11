@@ -143,7 +143,7 @@
         <span v-else @click="toggleShowPartition">{{$t('advanceSetting')}}<i class="el-ksd-icon-arrow_down_16 arrow ksd-fs-16"></i></span>
       </div>
       <div v-show="isExpand">
-        <div class="ksd-mb-24">
+        <div class="ksd-mb-24" v-if="$store.state.project.second_storage_enabled">
           <el-alert
             :title="$t('openSecStorageTips')"
             type="tip"
