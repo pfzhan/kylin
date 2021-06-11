@@ -70,7 +70,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
     void analyzeTable(TableDesc tableDesc, String project, int rowCount, KylinConfig config, SparkSession ss) {
 
         long start = System.currentTimeMillis();
-        Row[] row = new TableAnalysisJob(tableDesc, project, rowCount, ss).analyzeTable();
+        Row[] row = new TableAnalysisJob(tableDesc, project, rowCount, ss, jobId).analyzeTable();
         logger.info("sampling rows from table {} takes {}s", tableDesc.getIdentity(),
                 (System.currentTimeMillis() - start) / 1000);
 

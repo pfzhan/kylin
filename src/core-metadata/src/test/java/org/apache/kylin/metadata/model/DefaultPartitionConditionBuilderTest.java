@@ -121,8 +121,8 @@ public class DefaultPartitionConditionBuilderTest {
         SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
                 DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
-        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= '2016/02/22' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016/02/23'",
-                condition);
+        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= to_date('2016/02/22', 'yyyy/MM/dd') AND "
+                + "UNKNOWN_ALIAS.DATE_COLUMN < to_date('2016/02/23', 'yyyy/MM/dd')", condition);
     }
 
     @Test

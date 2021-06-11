@@ -28,10 +28,11 @@ public class ResourceDetectBeforeSampling extends SparkApplication {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         final TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
         LinkedHashMap<String, String> params = NProjectManager.getInstance(config).getProject(project).getOverrideKylinProps();
+        long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
+        params.put("sampleRowCount", String.valueOf(rowCount));
         final Dataset<Row> dataset = SourceFactory
                 .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(tableDesc, ss, params);
-
         final List<Path> paths = JavaConversions
                 .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
 

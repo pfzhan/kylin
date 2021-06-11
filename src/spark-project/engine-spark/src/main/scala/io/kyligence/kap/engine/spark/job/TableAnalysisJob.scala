@@ -45,7 +45,8 @@ import scala.collection.JavaConverters._
 class TableAnalysisJob(tableDesc: TableDesc,
                        project: String,
                        rowCount: Long,
-                       ss: SparkSession) extends Serializable with Logging {
+                       ss: SparkSession,
+                       jobId: String) extends Serializable with Logging {
 
   // it's a experimental value recommended by Spark,
   // which used for controlling the TableSampling tasks' count.
@@ -60,6 +61,7 @@ class TableAnalysisJob(tableDesc: TableDesc,
     val rowsTakenInEachPartition = rowCount / numPartitions
     val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
       .getProject(tableDesc.getProject).getOverrideKylinProps
+    params.put("sampleRowCount", String.valueOf(rowCount))
     val dataFrame = SourceFactory
       .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
       .getSourceData(tableDesc, ss, params)

@@ -44,6 +44,7 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.LinkedList;
+import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ClassUtil;
@@ -117,6 +118,14 @@ public class PartitionDesc implements Serializable {
 
         DataType type = partitionDateColumnRef.getType();
         return type.isBigInt() && !DateFormat.isDatePattern(partitionDateFormat);
+    }
+
+    public boolean partitionColumnIsDate() {
+        if (partitionDateColumnRef == null)
+            return false;
+
+        DataType type = partitionDateColumnRef.getType();
+        return type.isDate() && DateFormat.isDatePattern(partitionDateFormat);
     }
 
     public boolean isPartitioned() {
@@ -210,7 +219,10 @@ public class PartitionDesc implements Serializable {
             TblColRef partitionDateColumn = partDesc.getPartitionDateColumnRef();
             StringBuilder builder = new StringBuilder();
 
-            if (partDesc.partitionColumnIsYmdInt()) {
+            if(partDesc.partitionColumnIsDate()) {
+                buildSingleColumnRangeCondAsDate(builder, partitionDateColumn, startInclusive, endExclusive,
+                        partDesc.getPartitionDateFormat());
+            } else if (partDesc.partitionColumnIsYmdInt()) {
                 buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
             } else if (partDesc.partitionColumnIsTimeMillis()) {
                 buildSingleColumnRangeCondAsTimeMillis(builder, partitionDateColumn, startInclusive, endExclusive);
@@ -225,6 +237,16 @@ public class PartitionDesc implements Serializable {
         public String buildMultiPartitionCondition(final PartitionDesc partDesc, final MultiPartitionDesc multiPartDesc,
                 final LinkedList<Long> partitionIds, final ISegment seg, final SegmentRange segRange) {
             return "";
+        }
+
+        private static void buildSingleColumnRangeCondAsDate(StringBuilder builder, TblColRef partitionColumn,
+                                                             long startInclusive, long endExclusive, String partitionColumnDateFormat) {
+            String partitionColumnName = partitionColumn.getExpressionInSourceDB();
+            builder.append(partitionColumnName + " >= " + String.format(Locale.ROOT, "to_date('%s', '%s')",
+                    DateFormat.formatToDateStr(startInclusive, partitionColumnDateFormat), partitionColumnDateFormat));
+            builder.append(" AND ");
+            builder.append(partitionColumnName + " < " + String.format(Locale.ROOT, "to_date('%s', '%s')",
+                    DateFormat.formatToDateStr(endExclusive, partitionColumnDateFormat), partitionColumnDateFormat));
         }
 
         private static void buildSingleColumnRangeCondAsTimeMillis(StringBuilder builder, TblColRef partitionColumn,
