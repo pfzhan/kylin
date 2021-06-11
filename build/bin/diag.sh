@@ -123,6 +123,11 @@ if ([[ ${DIAG_OPTS} != *"-project"* ]] && [[ ${DIAG_OPTS} != *"-job"* ]]); then
     DIAG_OPTS="${DIAG_OPTS} -project ${project}"
 fi
 
+INCLUDE_AUDIT_LOG=`${KYLIN_HOME}/bin/get-properties.sh kylin.diag.include-auditlog`
+if [[ ${INCLUDE_AUDIT_LOG} == "false" ]]; then
+    DIAG_OPTS="${DIAG_OPTS} -includeAuditLog false"
+fi
+
 if [[ ${DIAG_OPTS} == *"-job"* ]]; then
     runTool io.kyligence.kap.tool.JobDiagInfoCLI ${DIAG_OPTS}
 else

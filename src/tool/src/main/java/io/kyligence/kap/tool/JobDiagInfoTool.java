@@ -80,6 +80,11 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             .isRequired(false).withDescription("Specify whether to include metadata to extract. Default true.")
             .create("includeMeta");
 
+    @SuppressWarnings("static-access")
+    private static final Option OPTION_AUDIT_LOG = OptionBuilder.getInstance().withArgName("includeAuditLog").hasArg()
+            .isRequired(false).withDescription("Specify whether to include auditLog to extract. Default true.")
+            .create("includeAuditLog");
+
     private static final String OPT_JOB = "-job";
 
     public JobDiagInfoTool() {
@@ -95,6 +100,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         options.addOption(OPTION_START_TIME);
         options.addOption(OPTION_END_TIME);
         options.addOption(OPTION_META);
+        options.addOption(OPTION_AUDIT_LOG);
     }
 
     @Override
@@ -105,6 +111,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeConf = getBooleanOption(optionsHelper, OPTION_INCLUDE_CONF, true);
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_META, true);
         final boolean isCloud = getKapConfig().isCloud();
+        final boolean includeAuditLog = getBooleanOption(optionsHelper, OPTION_AUDIT_LOG, true);
 
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
@@ -128,10 +135,12 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             dumpMetadata(metaToolArgs, recordTime);
         }
 
-        File auditLogDir = new File(exportDir, "audit_log");
-        FileUtils.forceMkdir(auditLogDir);
-        String[] auditLogToolArgs = { OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR, auditLogDir.getAbsolutePath() };
-        exportAuditLog(auditLogToolArgs, recordTime);
+        if(includeAuditLog) {
+            File auditLogDir = new File(exportDir, "audit_log");
+            FileUtils.forceMkdir(auditLogDir);
+            String[] auditLogToolArgs = {OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR, auditLogDir.getAbsolutePath()};
+            exportAuditLog(auditLogToolArgs, recordTime);
+        }
 
         String modelId = job.getTargetModelId();
         if (StringUtils.isNotEmpty(modelId)) {

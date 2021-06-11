@@ -72,6 +72,10 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     private static final Option OPTION_CLIENT = OptionBuilder.getInstance().withArgName("includeClient").hasArg()
             .isRequired(false).withDescription("Specify whether to include client info to extract. Default true.")
             .create("includeClient");
+    @SuppressWarnings("static-access")
+    private static final Option OPTION_AUDIT_LOG = OptionBuilder.getInstance().withArgName("includeAuditLog").hasArg()
+            .isRequired(false).withDescription("Specify whether to include auditLog to extract. Default true.")
+            .create("includeAuditLog");
 
     // Problem category
     @SuppressWarnings("static-access")
@@ -99,6 +103,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         options.addOption(OPTION_CATE_QUERY);
         options.addOption(OPTION_CATE_META);
         options.addOption(OPTION_META);
+        options.addOption(OPTION_AUDIT_LOG);
     }
 
     @Override
@@ -110,6 +115,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         final boolean includeClient = getBooleanOption(optionsHelper, OPTION_CLIENT,
                 getBooleanOption(optionsHelper, OPTION_CATE_BASE, true));
         final boolean includeLog = getBooleanOption(optionsHelper, OPTION_LOG,
+                getBooleanOption(optionsHelper, OPTION_CATE_BASE, true));
+        final boolean includeAuditLog = getBooleanOption(optionsHelper, OPTION_AUDIT_LOG,
                 getBooleanOption(optionsHelper, OPTION_CATE_BASE, true));
 
         final long startTime = getLongOption(optionsHelper, OPTION_START_TIME, getDefaultStartTime());
@@ -132,11 +139,13 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             dumpMetadata(metaToolArgs, recordTime);
         }
 
-        File auditLogDir = new File(exportDir, "audit_log");
-        FileUtils.forceMkdir(auditLogDir);
-        String[] auditLogToolArgs = { "-startTime", String.valueOf(startTime), "-endTime", String.valueOf(endTime),
-                OPT_DIR, auditLogDir.getAbsolutePath() };
-        exportAuditLog(auditLogToolArgs, recordTime);
+        if(includeAuditLog) {
+            File auditLogDir = new File(exportDir, "audit_log");
+            FileUtils.forceMkdir(auditLogDir);
+            String[] auditLogToolArgs = {"-startTime", String.valueOf(startTime), "-endTime", String.valueOf(endTime),
+                    OPT_DIR, auditLogDir.getAbsolutePath()};
+            exportAuditLog(auditLogToolArgs, recordTime);
+        }
 
         exportRecCandidate(null, null, exportDir, true, recordTime);
 
