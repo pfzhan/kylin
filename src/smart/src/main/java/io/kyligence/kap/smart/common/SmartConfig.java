@@ -109,6 +109,10 @@ public class SmartConfig implements Serializable, IKeep {
         return getOptional("computed-column.suggestion.enabled-if-no-sampling", false);
     }
 
+    public boolean startMemoryTuning() {
+        return getOptional("memory-tuning", true);
+    }
+
     public String getProposeRunnerImpl() {
         return getOptional("propose-runner-type", "fork");
     }

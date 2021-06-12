@@ -24,18 +24,11 @@
 
 package io.kyligence.kap.query;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.cube.model.LayoutPartition;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.smart.SmartContext;
-import io.kyligence.kap.smart.SmartMaster;
-import io.kyligence.kap.utils.AccelerationContextUtil;
-import lombok.val;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
@@ -46,10 +39,19 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.cube.model.LayoutPartition;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.smart.SmartContext;
+import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.utils.AccelerationContextUtil;
+import lombok.val;
 
 public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest {
 
@@ -527,6 +529,7 @@ public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest 
 
 
     private List<OLAPContext> getMatchedContexts(String project, String sql) {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[]{sql});
         SmartMaster smartMaster = new SmartMaster(proposeContext);
         smartMaster.runUtWithContext(null);

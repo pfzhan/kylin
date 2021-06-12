@@ -39,15 +39,18 @@ import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
 
 public class MockupQueryExecutor extends AbstractQueryExecutor {
 
-    private boolean queryNonEquiJoinEnabled;
+    private final boolean queryNonEquiJoinEnabled;
+    private final SmartConfig smartConfig;
 
     public MockupQueryExecutor() {
         this.queryNonEquiJoinEnabled = BackdoorToggles.getIsQueryNonEquiJoinModelEnabled();
+        this.smartConfig = SmartConfig.wrap(KylinConfig.getInstanceFromEnv());
     }
 
     public QueryRecord execute(String projectName, String sql) {
@@ -58,7 +61,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_FROM_AUTO_MODELING, "true");
         BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
 
-        if(queryNonEquiJoinEnabled){
+        if (queryNonEquiJoinEnabled) {
             BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
         }
 
@@ -107,7 +110,10 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
         } finally {
             Collection<OLAPContext> ctxs = OLAPContext.getThreadLocalContexts();
             if (ctxs != null) {
-                ctxs.stream().forEach(context -> context.clean());
+                ctxs.forEach(OLAPContext::clean);
+                if (smartConfig.startMemoryTuning()) {
+                    ctxs.forEach(OLAPContext::simplify);
+                }
             }
             record.setOLAPContexts(ctxs);
             clearCurrentRecord();

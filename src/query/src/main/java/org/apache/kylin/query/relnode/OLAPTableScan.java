@@ -63,6 +63,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
@@ -70,6 +71,9 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -85,9 +89,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
  */
 public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
 
-    protected final OLAPTable olapTable;
-    private final String tableName;
-    protected final int[] fields;
+    protected OLAPTable olapTable;
+    protected String tableName;
+    protected int[] fields;
     private String alias;
     private String backupAlias;
     protected ColumnRowType columnRowType;
@@ -339,4 +343,25 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         this.columnRowType = columnRowType;
     }
 
+    private static final VolcanoPlanner EMPTY_PLANNER = new VolcanoPlanner();
+
+    private static RelOptCluster emptyCluster() {
+        RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+        return RelOptCluster.create(EMPTY_PLANNER, new RexBuilder(typeFactory));
+    }
+
+    public OLAPTableScan cleanRelOptCluster() {
+        OLAPTableScan tableScan = new OLAPTableScan(emptyCluster(), this.table, this.olapTable, this.fields);
+        tableScan.getCluster().getPlanner().clear();
+        tableScan.columnRowType = this.columnRowType;
+        tableScan.olapTable = this.olapTable;
+        tableScan.fields = fields;
+        tableScan.tableName = this.tableName;
+        tableScan.context = this.context;
+        tableScan.kylinConfig = this.kylinConfig;
+        tableScan.digest = this.digest;
+        tableScan.id = this.id;
+        tableScan.alias = this.alias;
+        return tableScan;
+    }
 }

@@ -320,9 +320,9 @@ public class OLAPContext {
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
                     List<String> snapshots = Lists.newArrayList(tableSets);
-                    realizations
-                            .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
-                                    ctx.storageContext.getStreamingLayoutId(), realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
+                    realizations.add(new NativeQueryRealization(modelId, modelAlias,
+                            ctx.storageContext.getCuboidLayoutId(), ctx.storageContext.getStreamingLayoutId(),
+                            realizationType, ctx.storageContext.isPartialMatchModel(), snapshots));
                 }
             }
         }
@@ -477,6 +477,22 @@ public class OLAPContext {
         return false;
     }
 
+    /**
+     * Only used for recommendation or modeling.
+     */
+    public void simplify() {
+        if (firstTableScan != null) {
+            firstTableScan = firstTableScan.cleanRelOptCluster();
+        }
+        Set<OLAPTableScan> simplifiedTableScans = Sets.newHashSet();
+        allTableScans.forEach(olapTableScan -> olapTableScan.getCluster().getPlanner().clear());
+        allTableScans.forEach(olapTableScan -> simplifiedTableScans.add(olapTableScan.cleanRelOptCluster()));
+        this.allTableScans = simplifiedTableScans;
+    }
+
+    /**
+     * It's very dangerous, only used for recommendation or modeling.
+     */
     public void clean() {
         topNode = null;
         parentOfTopNode = null;

@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.query.validator;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
@@ -36,10 +36,16 @@ import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
 
 public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
 
-    private final MockupQueryExecutor queryExecutor = new MockupQueryExecutor();
+    private MockupQueryExecutor queryExecutor;
+
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        queryExecutor = new MockupQueryExecutor();
+    }
 
     @Test
-    public void testGoodCases() throws IOException {
+    public void testGoodCases() {
 
         String[] goodSqls = new String[] { //
                 "select 1",
@@ -57,7 +63,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
     }
 
     @Test
-    public void testBadCases() throws IOException {
+    public void testBadCases() {
 
         String[] badSqls = new String[] { //
                 "create table a", // not select statement

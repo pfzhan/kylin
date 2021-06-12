@@ -140,6 +140,7 @@ public abstract class AbstractQueryRunner implements Closeable {
             }
             latch.await();
         } finally {
+            queryCache.cleanUp();
             cleanupConfig(config);
         }
     }

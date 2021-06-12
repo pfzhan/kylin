@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import io.kyligence.kap.query.engine.KECalciteConfig;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -40,7 +39,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -54,25 +52,23 @@ import org.apache.kylin.query.schema.OLAPTable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.query.engine.KECalciteConfig;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
  */
 public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel {
 
-    KapConfig kapConfig;
-
     boolean contextVisited = false; // means whether this TableScan has been visited in context implementor
     private Set<OLAPContext> subContexts = Sets.newHashSet();
 
     public KapTableScan(RelOptCluster cluster, RelOptTable table, OLAPTable olapTable, int[] fields) {
         super(cluster, table, olapTable, fields);
-        kapConfig = KapConfig.getInstanceFromEnv();
     }
 
     @Override
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
-        return;
+        // do nothing
     }
 
     @Override
