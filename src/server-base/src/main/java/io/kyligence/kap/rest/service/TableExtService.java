@@ -171,12 +171,8 @@ public class TableExtService extends BasicService {
     }
 
     @Transaction(project = 0, retry = 1)
-    public void checkAndLoadTable(String project, TableDesc tableDesc, TableExtDesc extDesc) throws Exception {
-        try {
-            loadTable(tableDesc, extDesc, project);
-        } catch (Exception ex) {
-            logger.error("Failed to load table '" + tableDesc.getIdentity() + "'\"", ex);
-        }
+    public void checkAndLoadTable(String project, TableDesc tableDesc, TableExtDesc extDesc) {
+        loadTable(tableDesc, extDesc, project);
     }
 
     private void checkBeforeLoadTable(TableDesc tableDesc, String project) {
