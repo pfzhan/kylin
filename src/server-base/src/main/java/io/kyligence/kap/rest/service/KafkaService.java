@@ -24,8 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_TIMEOUT_MESSAGE;
+
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.source.kafka.KafkaTableUtil;
+
+import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -52,7 +58,11 @@ public class KafkaService extends BasicService {
 
     public List<ByteBuffer> getMessages(KafkaConfig kafkaConfig, String project, int clusterIndex) {
         aclEvaluate.checkProjectWritePermission(project);
-        return KafkaTableUtil.getMessages(kafkaConfig, clusterIndex);
+        try {
+            return KafkaTableUtil.getMessages(kafkaConfig, clusterIndex);
+        } catch (TimeoutException e) {
+            throw new KylinException(STREAMING_TIMEOUT_MESSAGE, MsgPicker.getMsg().getSTREAMING_TIMEOUT_MESSAGE());
+        }
     }
 
     public Map<String, Object> getMessageTypeAndDecodedMessages(List<ByteBuffer> messages) {

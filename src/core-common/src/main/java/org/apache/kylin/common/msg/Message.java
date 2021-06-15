@@ -1544,6 +1544,10 @@ public class Message {
         return "Can’t get cluster information. Please check and try again.";
     }
 
+    public String getSTREAMING_TIMEOUT_MESSAGE() {
+        return "Can’t get sample data. Please check and try again.";
+    }
+
     public String getEMPTY_STREAMING_MESSAGE() {
         return "This topic is empty. Please check and try again.";
     }

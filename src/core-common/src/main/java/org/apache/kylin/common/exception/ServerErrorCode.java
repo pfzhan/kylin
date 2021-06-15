@@ -266,6 +266,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     STREAMING_PARSER_ERROR("KE-010036002"), //
     INVALID_BROKER_DEFINITION("KE-010036003"), //
     INVALID_STREAMING_MESSAGE("KE-010036004"), //
+    STREAMING_TIMEOUT_MESSAGE("KE-010036005"), //
     BROKER_TIMEOUT_MESSAGE("KE-010036009"); //
 
     private final ErrorCode errorCode;

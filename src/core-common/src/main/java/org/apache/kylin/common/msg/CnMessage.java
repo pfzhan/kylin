@@ -1734,6 +1734,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSTREAMING_TIMEOUT_MESSAGE() {
+        return "无法获取样例数据，请检查后重试";
+    }
+
+    @Override
     public String getEMPTY_STREAMING_MESSAGE() {
         return "该 Topic 为空。请检查后重试。";
     }
