@@ -25,6 +25,8 @@
 package io.kyligence.kap.engine.spark.job
 
 import com.google.common.collect.Lists
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{SegmentBuildSource, SegmentFlatTable}
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
@@ -45,6 +47,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected final val dataflowId = jobContext.getDataflowId
   protected final val sparkSession = jobContext.getSparkSession
   protected final val spanningTree = jobContext.getSpanningTree
+  protected final val runtime = jobContext.runtime;
 
   // Needed variables from data segment.
   protected final val segmentId = dataSegment.getId
@@ -63,7 +66,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
 
   private var flatTableStatistics: Statistics = _
 
-  protected lazy val layer1Sources = get1stLayerSources()
+  protected lazy val layer1Sources: Seq[SegmentBuildSource] = get1stLayerSources()
 
   private lazy val needFlatTable = layer1Sources.exists(_.isFlatTable)
 
@@ -151,7 +154,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     val dimensions = dataSegment.getDataflow.getIndexPlan.getEffectiveDimCols.keySet()
     // Not support multi partition for now
     if (Objects.isNull(dataSegment.getModel.getMultiPartitionDesc)
-      && config.isDimensionRangeFilterEnabled()
+      && config.isDimensionRangeFilterEnabled
       && !dimensions.isEmpty) {
       val start = System.currentTimeMillis()
       import org.apache.spark.sql.functions._
@@ -204,30 +207,41 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       return
     }
     val stats = flatTableStatistics
-    val copiedDataflow = jobContext.getDataflow(dataflowId).copy()
-    val copiedSegment = copiedDataflow.getSegment(segmentId)
-    val dataflowUpdate = new NDataflowUpdate(dataflowId)
-    copiedSegment.setSourceCount(stats.totalCount)
-    copiedSegment.setDimensionRangeInfoMap(dimRangeInfo)
-    // By design, no fencing.
-    val columnBytes = copiedSegment.getColumnSourceBytes
-    stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
-    dataflowUpdate.setToUpdateSegs(copiedSegment)
-    logInfo(s"Refresh COLUMN-BYTES segment $segmentId")
-    // The afterward step would dump the meta to hdfs-store.
-    // We should only update the latest meta in mem-store.
-    // Make sure the copied dataflow here is the latest.
-    jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
+    UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
+      override def process(): Unit = {
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+        val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
+        val copiedSegment = copiedDataflow.getSegment(segmentId)
+        val dataflowUpdate = new NDataflowUpdate(dataflowId)
+        copiedSegment.setSourceCount(stats.totalCount)
+        copiedSegment.setDimensionRangeInfoMap(dimRangeInfo)
+        // By design, no fencing.
+        val columnBytes = copiedSegment.getColumnSourceBytes
+        stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
+        dataflowUpdate.setToUpdateSegs(copiedSegment)
+        logInfo(s"Refresh COLUMN-BYTES segment $segmentId")
+        // The afterward step would dump the meta to hdfs-store.
+        // We should only update the latest meta in mem-store.
+        // Make sure the copied dataflow here is the latest.
+        dataflowManager.updateDataflow(dataflowUpdate)
+      }
+    }, project)
   }
 
   protected def buildDataLayout(source: SegmentBuildSource, parentDS: Dataset[Row], sanityCheckCount: Long): Unit = {
-    if (needSkipLayout(source.getLayout.getId)) {
-      return
+    val originThreadName = Thread.currentThread.getName
+    try {
+      if (needSkipLayout(source.getLayout.getId)) {
+        return
+      }
+      val readableDesc = source.readableDesc()
+      Thread.currentThread.setName(readableDesc)
+      val layout = source.getLayout
+      val layoutDS = wrapLayoutDS(layout, parentDS)
+      newDataLayout(dataSegment, layout, layoutDS, readableDesc, Some(new SanityChecker(sanityCheckCount)))
+    } finally {
+      Thread.currentThread().setName(originThreadName)
     }
-    val layout = source.getLayout
-    val layoutDS = wrapLayoutDS(layout, parentDS)
-    val readableDesc = source.readableDesc()
-    newDataLayout(dataSegment, layout, layoutDS, readableDesc, Some(new SanityChecker(sanityCheckCount)))
   }
 
   protected val sparkSchedulerPool = "build"

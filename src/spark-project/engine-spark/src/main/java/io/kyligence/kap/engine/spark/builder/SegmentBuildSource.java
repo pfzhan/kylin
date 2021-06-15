@@ -42,31 +42,23 @@ public class SegmentBuildSource {
 
     // Remember the segment reference.
     // Coupled with the parent layout.
-    private NDataSegment dataSegment;
+    private final NDataSegment dataSegment;
 
     // Parent source is flat table.
     protected final boolean isFT;
 
-    public SegmentBuildSource(LayoutEntity layout) {
-        Preconditions.checkNotNull(layout);
-        this.layout = layout;
-        this.isFT = true;
-    }
-
-    public SegmentBuildSource(LayoutEntity layout, // 
+    public SegmentBuildSource(LayoutEntity layout, //
             LayoutEntity parent, NDataSegment dataSegment) {
         Preconditions.checkNotNull(layout);
-        Preconditions.checkNotNull(parent);
         Preconditions.checkNotNull(dataSegment);
-        // TODO Heavy check. Preconditions.checkArgument(parent.getIndex().fullyDerive(layout.getIndex()));
         this.layout = layout;
         this.parent = parent;
         this.dataSegment = dataSegment;
-        this.isFT = false;
+        this.isFT = parent == null;
     }
 
-    public static SegmentBuildSource newFlatTableSource(LayoutEntity layout) {
-        return new SegmentBuildSource(layout);
+    public static SegmentBuildSource newFlatTableSource(LayoutEntity layout, NDataSegment dataSegment) {
+        return new SegmentBuildSource(layout, null, dataSegment);
     }
 
     public static SegmentBuildSource newLayoutSource(LayoutEntity layout, //
@@ -99,7 +91,8 @@ public class SegmentBuildSource {
     }
 
     public String readableDesc() {
-        StringBuilder sb = new StringBuilder("Build layout ").append(layout.getId()).append(" from ");
+        StringBuilder sb = new StringBuilder("Segment ").append(dataSegment.getId()) //
+                .append(", Build layout ").append(layout.getId()).append(" from ");
         if (isFT) {
             sb.append("flat table");
         } else {

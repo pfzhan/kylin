@@ -46,7 +46,7 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
   protected final val dataflowId = jobContext.getDataflowId
   protected final val sparkSession = jobContext.getSparkSession
   protected final val spanningTree = jobContext.getSpanningTree
-  protected final val rdSharedPath = jobContext.getRDSharedPath
+  protected final val rdSharedPath = jobContext.getRdSharedPath
 
   // Needed variables from data segment.
   protected final val segmentId = dataSegment.getId

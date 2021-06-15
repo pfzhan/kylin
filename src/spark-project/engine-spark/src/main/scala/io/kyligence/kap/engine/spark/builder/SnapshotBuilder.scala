@@ -24,11 +24,6 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.io.IOException
-import java.util
-import java.util.UUID
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, Executors}
-
 import com.google.common.collect.Maps
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
@@ -48,6 +43,10 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.{Dataset, Encoders, Row, SparkSession}
 import org.apache.spark.utils.ProxyThreadUtils
 
+import java.io.IOException
+import java.util
+import java.util.UUID
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, Executors}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,27 +62,17 @@ class SnapshotBuilder extends Logging with Serializable {
   protected val needCollectStat = KapConfig.getInstanceFromEnv.isRecordSourceUsage;
 
   @transient
-  private val ParquetPathFilter: PathFilter = new PathFilter {
+  private val parquetPathFilter: PathFilter = new PathFilter {
     override def accept(path: Path): Boolean = {
       path.getName.endsWith(PARQUET_SUFFIX)
     }
   }
 
   @transient
-  private val Md5PathFilter: PathFilter = new PathFilter {
+  private val md5PathFilter: PathFilter = new PathFilter {
     override def accept(path: Path): Boolean = {
       path.getName.endsWith(MD5_SUFFIX)
     }
-  }
-
-  // scalastyle:of
-  def updateMeta(toBuildTableDesc: Set[TableDesc], resultMap: util.Map[String, Result]): Unit = {
-    val project = toBuildTableDesc.iterator.next.getProject
-    toBuildTableDesc.foreach(table => {
-      updateTableSnapshot(project, table, resultMap)
-      updateTableExt(project, table, resultMap)
-    }
-    )
   }
 
   @throws[IOException]
@@ -92,7 +81,13 @@ class SnapshotBuilder extends Logging with Serializable {
   }
 
   @throws[IOException]
-  def buildSnapshot(ss: SparkSession, tables: Set[TableDesc]): Unit = {
+  def buildSnapshot(ss: SparkSession, model: NDataModel, ignoredSnapshotTables: util.Set[String]): Unit = {
+    val toBuildTableDesc = distinctTableDesc(model, ignoredSnapshotTables)
+    buildSnapshot(ss, toBuildTableDesc)
+  }
+
+  @throws[IOException]
+  private def buildSnapshot(ss: SparkSession, tables: Set[TableDesc]): Unit = {
     val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
     val toBuildTables = tables
     val kylinConf = KylinConfig.getInstanceFromEnv
@@ -106,10 +101,14 @@ class SnapshotBuilder extends Logging with Serializable {
     updateMeta(toBuildTables, resultMap)
   }
 
-  @throws[IOException]
-  def buildSnapshot(ss: SparkSession, model: NDataModel, ignoredSnapshotTables: util.Set[String]): Unit = {
-    val toBuildTableDesc = distinctTableDesc(model, ignoredSnapshotTables)
-    buildSnapshot(ss, toBuildTableDesc)
+  // scalastyle:of
+  private def updateMeta(toBuildTableDesc: Set[TableDesc], resultMap: util.Map[String, Result]): Unit = {
+    val project = toBuildTableDesc.iterator.next.getProject
+    toBuildTableDesc.foreach(table => {
+      updateTableSnapshot(project, table, resultMap)
+      updateTableExt(project, table, resultMap)
+    }
+    )
   }
 
   private def updateTableSnapshot(project: String, table: TableDesc, resultMap: util.Map[String, Result]): Unit = {
@@ -305,7 +304,7 @@ class SnapshotBuilder extends Logging with Serializable {
     val resourcePath = baseDir + "/" + snapshotTablePath
     sourceData.coalesce(1).write.parquet(resourcePath)
     val (originSize, totalRows) = computeSnapshotSize(sourceData)
-    val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
+    val currSnapFile = fs.listStatus(new Path(resourcePath), parquetPathFilter).head
     val currSnapMd5 = getFileMd5(currSnapFile)
     val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
 
@@ -315,7 +314,7 @@ class SnapshotBuilder extends Logging with Serializable {
       .filterNot(_.getPath.getName == new Path(snapshotTablePath).getName)
     breakable {
       for (snap <- existSnaps) {
-        Try(fs.listStatus(snap.getPath, Md5PathFilter)) match {
+        Try(fs.listStatus(snap.getPath, md5PathFilter)) match {
           case Success(list) =>
             list.headOption match {
               case Some(file) =>

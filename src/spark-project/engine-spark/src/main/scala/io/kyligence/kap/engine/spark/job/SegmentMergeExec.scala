@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
+
 import java.io.IOException
 import java.lang
 import java.util.Objects
-
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager
@@ -46,6 +48,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
   protected final val config = jobContext.getConfig
   protected final val dataflowId = jobContext.getDataflowId
   protected final val sparkSession = jobContext.getSparkSession
+  protected final val runtime = jobContext.runtime;
 
   protected final val project = dataSegment.getProject
   protected final val segmentId = dataSegment.getId
@@ -53,8 +56,6 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
   protected final val dataModel = dataSegment.getModel
   protected final val storageType = dataModel.getStorageType
 
-
-  protected final val dataflowManager = jobContext.getDataflowManager
 
   protected final val unmerged = {
     val segments = jobContext.getUnmergedSegments(dataSegment).asScala
@@ -175,6 +176,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
 
     logInfo(s"Persist merged FLAT-TABLE $newPath with schema $schema")
 
+    val dataflowManager = NDataflowManager.getInstance(config, project);
     val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
     val copiedSegment = copiedDataflow.getSegment(segmentId)
     copiedSegment.setFlatTableReady(true)
@@ -213,29 +215,34 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
   }
 
   protected def mergeColumnBytes(): Unit = {
-    val usageManager = SourceUsageManager.getInstance(config)
-    val totalCount = unmerged.map(_.getSourceCount).sum
-    val evaluated = unmerged.flatMap { segment => //
-      val existed = if (segment.getColumnSourceBytes.isEmpty) {
-        usageManager.calcAvgColumnSourceBytes(segment)
-      } else {
-        segment.getColumnSourceBytes
+    UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
+      override def process(): Unit = {
+        val usageManager = SourceUsageManager.getInstance(config)
+        val totalCount = unmerged.map(_.getSourceCount).sum
+        val evaluated = unmerged.flatMap { segment => //
+          val existed = if (segment.getColumnSourceBytes.isEmpty) {
+            usageManager.calcAvgColumnSourceBytes(segment)
+          } else {
+            segment.getColumnSourceBytes
+          }
+          existed.asScala
+        }.groupBy(_._1) //
+          .mapValues(_.map(_._2).reduce(_ + _)) //
+          .asJava
+        val dataflowManager = NDataflowManager.getInstance(config, project)
+        val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
+        val copiedSegment = copiedDataflow.getSegment(segmentId)
+        val dataflowUpdate = new NDataflowUpdate(dataflowId)
+        copiedSegment.setSourceCount(totalCount)
+        // By design, no fencing.
+        copiedSegment.getColumnSourceBytes.putAll(evaluated)
+        dataflowUpdate.setToUpdateSegs(copiedSegment)
+        logInfo(s"Merge COLUMN-BYTES segment $segmentId")
+        // The afterward step would dump the meta to hdfs-store.
+        // We should only update the latest meta in mem-store.
+        // Make sure the copied dataflow here is the latest.
+        dataflowManager.updateDataflow(dataflowUpdate)
       }
-      existed.asScala
-    }.groupBy(_._1) //
-      .mapValues(_.map(_._2).reduce(_ + _)) //
-      .asJava
-    val copiedDataflow = jobContext.getDataflow(dataflowId).copy()
-    val copiedSegment = copiedDataflow.getSegment(segmentId)
-    val dataflowUpdate = new NDataflowUpdate(dataflowId)
-    copiedSegment.setSourceCount(totalCount)
-    // By design, no fencing.
-    copiedSegment.getColumnSourceBytes.putAll(evaluated)
-    dataflowUpdate.setToUpdateSegs(copiedSegment)
-    logInfo(s"Merge COLUMN-BYTES segment $segmentId")
-    // The afterward step would dump the meta to hdfs-store.
-    // We should only update the latest meta in mem-store.
-    // Make sure the copied dataflow here is the latest.
-    jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
+    }, project)
   }
 }

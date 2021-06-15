@@ -100,6 +100,7 @@ import scala.runtime.BoxedUnit;
 public abstract class SparkApplication implements Application, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
+
     protected volatile KylinConfig config;
     protected volatile String jobId;
     protected SparkSession ss;
@@ -137,6 +138,10 @@ public abstract class SparkApplication implements Application, IKeep {
 
     public final boolean contains(String key) {
         return params.containsKey(key);
+    }
+
+    public String getJobId() {
+        return jobId;
     }
 
     /**
@@ -337,6 +342,7 @@ public abstract class SparkApplication implements Application, IKeep {
                 JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();
             }
+            extraDestroy();
         }
     }
     
@@ -380,6 +386,10 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     protected void extraInit() {
+        //do nothing
+    }
+
+    protected void extraDestroy() {
         //do nothing
     }
 

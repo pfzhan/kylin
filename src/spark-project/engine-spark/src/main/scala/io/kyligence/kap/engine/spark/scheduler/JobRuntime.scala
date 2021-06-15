@@ -1,11 +1,14 @@
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
  * http://kyligence.io
+ *
  * This software is the confidential and proprietary information of
  * Kyligence Inc. ("Confidential Information"). You shall not disclose
  * such Confidential Information and shall use it only in accordance
  * with the terms of the license agreement you entered into with
  * Kyligence Inc.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -17,10 +20,40 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-package io.kyligence.kap.cluster
+package io.kyligence.kap.engine.spark.scheduler
 
-class StandaloneClusterManager extends org.apache.spark.deploy.master.StandaloneClusterManager {
+import io.kyligence.kap.engine.spark.utils.ThreadUtils
+
+import java.util.concurrent.TimeUnit
+
+class JobRuntime(val maxThreadCount: Int) {
+
+  private lazy val minThreads = 8
+  private lazy val maxThreads = Math.max(minThreads, maxThreadCount)
+  // Maybe we should parameterize nThreads.
+  private lazy val threadPool = //
+    ThreadUtils.newDaemonScalableThreadPool("build-thread", //
+      minThreads, maxThreads, 20, TimeUnit.SECONDS)
+
+  // Drain layout result using single thread.
+  private lazy val scheduler = //
+    ThreadUtils.newDaemonSingleThreadScheduledExecutor("drain-thread")
+
+  def submit(fun: () => Unit): Unit = {
+    threadPool.submit(new Runnable {
+      override def run(): Unit = fun.apply()
+    })
+  }
+
+  def schedule(fun: () => Unit): Unit = {
+    scheduler.scheduleWithFixedDelay(() => fun.apply(), 10L, 10L, TimeUnit.SECONDS)
+  }
+
+  def shutdown(): Unit = {
+    scheduler.shutdownNow()
+    threadPool.shutdownNow()
+  }
+
 }

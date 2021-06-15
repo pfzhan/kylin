@@ -21,10 +21,6 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import java.io.IOException
-import java.util
-import java.util.UUID
-
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil}
 import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, LogEx, Metrics, QueryExecutionCache}
 import io.kyligence.kap.metadata.cube.model.NDataSegment
@@ -41,6 +37,9 @@ import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
+import java.io.IOException
+import java.util
+import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
@@ -89,9 +88,8 @@ class DFDictionaryBuilder(
   }
 
   @throws[IOException]
-  private[builder]
-  def build(ref: TblColRef, bucketPartitionSize: Int,
-            afterDistinct: Dataset[Row]): Unit = logTime(s"building global dictionaries V2 for ${ref.getIdentity}") {
+  private[builder] def build(ref: TblColRef, bucketPartitionSize: Int,
+                             afterDistinct: Dataset[Row]): Unit = logTime(s"building global dictionaries V2 for ${ref.getIdentity}") {
     val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
     globalDict.prepareWrite()
     val broadcastDict = ss.sparkContext.broadcast(globalDict)

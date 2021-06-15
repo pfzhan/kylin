@@ -1241,10 +1241,6 @@ public abstract class KylinConfigBase implements Serializable {
         return threshold;
     }
 
-    public Map<String, String> getMRConfigOverride() {
-        return getPropertiesByPrefix("kylin.engine.mr.config-override.");
-    }
-
     public Map<String, String> getSparkConfigOverride() {
         return getPropertiesByPrefix("kylin.engine.spark-conf.");
     }
@@ -2684,6 +2680,11 @@ public abstract class KylinConfigBase implements Serializable {
     public int getSegmentExecMaxThreads() {
         return Integer.parseInt(getOptional("kylin.engine.segment-exec-max-threads", "200"));
     }
+
+    public boolean isSegmentParallelBuildEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.segment-exec-parallel-enabled", FALSE));
+    }
+
 
     public boolean isEmbeddedEnable() {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.file-system.journal.embedded-enable", FALSE));

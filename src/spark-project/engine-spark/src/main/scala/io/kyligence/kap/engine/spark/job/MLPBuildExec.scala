@@ -24,6 +24,8 @@
 package io.kyligence.kap.engine.spark.job
 
 import com.google.common.collect.Lists
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{MLPBuildSource, MLPFlatTable, SegmentBuildSource}
 import io.kyligence.kap.metadata.cube.model._
@@ -139,52 +141,6 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
     newLayoutPartition(dataSegment, layout, partitionId, layoutDS, readableDesc, Some(new SanityChecker(sanityCheckCount)))
   }
 
-  override protected def tryRefreshColumnBytes(): Unit = {
-    if (flatTablePartIdStatsMap.isEmpty) {
-      logInfo(s"Skip COLUMN-BYTES segment $segmentId")
-      return
-    }
-    val partitionStats = flatTablePartIdStatsMap.asScala
-    val copiedDataflow = jobContext.getDataflow(dataflowId).copy()
-    val copiedSegment = copiedDataflow.getSegment(segmentId)
-    val dataflowUpdate = new NDataflowUpdate(dataflowId)
-    val newAdds = Lists.newArrayList[SegmentPartition]()
-    partitionStats.foreach { case (partitionId, stats) => //
-      val segmentPartition = newSegmentPartition(copiedSegment, partitionId, newAdds)
-      segmentPartition.setSourceCount(stats.totalCount)
-      // By design, no fencing.
-      val columnBytes = segmentPartition.getColumnSourceBytes
-      stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
-    }
-    copiedSegment.getMultiPartitions.addAll(newAdds)
-    mergeSegmentStatistics(copiedSegment)
-    dataflowUpdate.setToUpdateSegs(copiedSegment)
-    logInfo(s"Refresh COLUMN-BYTES segment $segmentId")
-    // The afterward step would dump the meta to hdfs-store.
-    // We should only update the latest meta in mem-store.
-    // Make sure the copied dataflow here is the latest.
-    jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
-  }
-
-  override protected def cleanup(): Unit = {
-
-    super.cleanup()
-
-    // Cleanup extra files.
-    val fs = HadoopUtil.getWorkingFileSystem
-    // Fact table view.
-    val ftvPath = flatTableDesc.getFactTableViewPath
-    if (fs.exists(ftvPath)) {
-      fs.delete(ftvPath, true)
-    }
-
-    // Flat table.
-    val ftPath = flatTableDesc.getFlatTablePath
-    if (fs.exists(ftPath)) {
-      fs.delete(ftPath, true)
-    }
-  }
-
   private def needSkipPartition(layoutId: lang.Long, partitionId: lang.Long): Boolean = {
     // Check layout data.
     val layout = dataSegment.getLayout(layoutId)
@@ -204,5 +160,56 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
       return true
     }
     false
+  }
+
+  override protected def tryRefreshColumnBytes(): Unit = {
+    if (flatTablePartIdStatsMap.isEmpty) {
+      logInfo(s"Skip COLUMN-BYTES segment $segmentId")
+      return
+    }
+    val partitionStats = flatTablePartIdStatsMap.asScala
+    UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
+      override def process(): Unit = {
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+        val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
+        val copiedSegment = copiedDataflow.getSegment(segmentId)
+        val dataflowUpdate = new NDataflowUpdate(dataflowId)
+        val newAdds = Lists.newArrayList[SegmentPartition]()
+        partitionStats.foreach { case (partitionId, stats) => //
+          val segmentPartition = newSegmentPartition(copiedSegment, partitionId, newAdds)
+          segmentPartition.setSourceCount(stats.totalCount)
+          // By design, no fencing.
+          val columnBytes = segmentPartition.getColumnSourceBytes
+          stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
+        }
+        copiedSegment.getMultiPartitions.addAll(newAdds)
+        mergeSegmentStatistics(copiedSegment)
+        dataflowUpdate.setToUpdateSegs(copiedSegment)
+        logInfo(s"Refresh COLUMN-BYTES segment $segmentId")
+        // The afterward step would dump the meta to hdfs-store.
+        // We should only update the latest meta in mem-store.
+        // Make sure the copied dataflow here is the latest.
+        dataflowManager.updateDataflow(dataflowUpdate)
+      }
+    }, project)
+  }
+
+  override protected def cleanup(): Unit = {
+
+    super.cleanup()
+
+    // Cleanup extra files.
+    val fs = HadoopUtil.getWorkingFileSystem
+    // Fact table view.
+    val ftvPath = flatTableDesc.getFactTableViewPath
+    if (fs.exists(ftvPath)) {
+      fs.delete(ftvPath, true)
+    }
+
+    // Flat table.
+    val ftPath = flatTableDesc.getFlatTablePath
+    if (fs.exists(ftPath)) {
+      fs.delete(ftPath, true)
+    }
   }
 }

@@ -22,14 +22,13 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.util.Objects
-import java.{lang, util}
-
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.metadata.cube.model.MLPFlatTableDesc
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
+import java.util.Objects
+import java.{lang, util}
 import scala.collection.JavaConverters._
 
 class MLPFlatTable(private val sparkSession: SparkSession, //
@@ -73,8 +72,8 @@ class MLPFlatTable(private val sparkSession: SparkSession, //
   }
 
   def gatherPartitionStatistics(partitionId: Long, tableDS: Dataset[Row]): Statistics = {
-    logInfo(s"Gather statistics PARTITION-FLAT-TABLE $partitionId segment $segmentId")
-    sparkSession.sparkContext.setJobDescription(s"Gather statistics PARTITION-FLAT-TABLE $partitionId")
+    logInfo(s"Segment $segmentId gather statistics PARTITION-FLAT-TABLE $partitionId")
+    sparkSession.sparkContext.setJobDescription(s"Segment $segmentId gather statistics PARTITION-FLAT-TABLE $partitionId")
     val statistics = gatherStatistics(tableDS)
     sparkSession.sparkContext.setJobDescription(null)
     statistics

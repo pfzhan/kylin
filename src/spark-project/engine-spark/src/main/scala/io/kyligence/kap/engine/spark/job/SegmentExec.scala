@@ -24,13 +24,10 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util
-import java.util.Objects
-import java.util.concurrent._
 import com.google.common.collect.{Lists, Queues}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.SegmentExec.{LayoutResult, ResultType, SourceStats}
-import io.kyligence.kap.engine.spark.utils.ThreadUtils
+import io.kyligence.kap.engine.spark.scheduler.JobRuntime
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.hadoop.fs.Path
@@ -40,6 +37,8 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.{StorageListener, StorageStoreFactory, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
+import java.util
+import java.util.Objects
 import scala.collection.JavaConverters._
 
 trait SegmentExec extends Logging {
@@ -55,17 +54,7 @@ trait SegmentExec extends Logging {
   protected val dataModel: NDataModel
   protected val storageType: Int
 
-
-  private lazy val minThreads = 8
-  private lazy val maxThreads = Math.max(minThreads, config.getSegmentExecMaxThreads)
-  // Maybe we should parameterize nThreads.
-  private lazy val threadPool = //
-    ThreadUtils.newDaemonScalableThreadPool("build-thread", //
-      minThreads, maxThreads, 20, TimeUnit.SECONDS)
-
-  // Drain layout result using single thread.
-  private lazy val scheduler = //
-    ThreadUtils.newDaemonSingleThreadScheduledExecutor("drain-thread")
+  protected def runtime: JobRuntime
 
   // Layout result pipe.
   protected final lazy val pipe = Queues.newLinkedBlockingQueue[ResultType]()
@@ -81,7 +70,7 @@ trait SegmentExec extends Logging {
       if (failure.nonEmpty) {
         val t = failure.get
         logError(s"Fail fast.", t)
-        showdownNow()
+        drain()
         throw t
       }
       i -= 1
@@ -89,22 +78,13 @@ trait SegmentExec extends Logging {
   }
 
   protected final def asyncExecute(f: => Unit): Unit = {
-    threadPool.submit(new Runnable {
-      override def run(): Unit = try {
-        setConfig4CurrentThread()
-        f
-        noneOrFailure.offer(None)
-      } catch {
-        case t: Throwable => noneOrFailure.offer(Some(t))
-      }
+    runtime.submit(() => try {
+      setConfig4CurrentThread()
+      f
+      noneOrFailure.offer(None)
+    } catch {
+      case t: Throwable => noneOrFailure.offer(Some(t))
     })
-  }
-
-  protected def showdownNow(): Unit = {
-    // Drain results immediately.
-    drain()
-    scheduler.shutdownNow()
-    threadPool.shutdownNow()
   }
 
   protected final def setConfig4CurrentThread(): Unit = {
@@ -126,7 +106,7 @@ trait SegmentExec extends Logging {
       results.add(entry.asInstanceOf[LayoutResult])
       entry = pipe.poll()
     }
-    logInfo(s"Drained LAYOUT: ${results.asScala.map(lr => lr.layoutId).mkString(",")}")
+    logInfo(s"Drained LAYOUT: ${results.asScala.map(lr => lr.layoutId).mkString(",")} at segment ${segmentId}")
 
     class DFUpdate extends UnitOfWork.Callback[Int] {
       override def process(): Int = {
@@ -159,6 +139,7 @@ trait SegmentExec extends Logging {
       }
     }
     UnitOfWork.doInTransactionWithRetry(new DFUpdate, project)
+    logDebug(s"update metadata for ${results.asScala.map(lr => lr.layoutId).mkString(",")} at segment ${segmentId}")
   }
 
   protected final def updateDataLayouts(manager: NDataflowManager, dataLayouts: Seq[NDataLayout]): Int = {
@@ -170,15 +151,12 @@ trait SegmentExec extends Logging {
 
   protected def checkpoint(): Unit = {
     // Collect and merge layout built results, then checkpoint.
-    scheduler.scheduleWithFixedDelay(new Runnable {
-      override def run(): Unit = try {
-        setConfig4CurrentThread()
-        drain()
-      } catch {
-        // TODO logFatal here.
-        case t: Throwable => logError("Checkpoint failed", t); throw t
-      }
-    }, 10L, 10L, TimeUnit.SECONDS)
+    runtime.schedule(() => try {
+      setConfig4CurrentThread()
+      drain()
+    } catch {
+      case t: Throwable => logError("Checkpoint failed", t); throw t
+    })
   }
 
   protected final def wrapLayoutDS(layout: LayoutEntity, parentDS: Dataset[Row]): Dataset[Row] = {
@@ -251,7 +229,7 @@ trait SegmentExec extends Logging {
   }
 
   protected def cleanup(): Unit = {
-    showdownNow()
+    drain()
   }
 
 }

@@ -23,14 +23,15 @@
  */
 package io.kyligence.kap.engine.spark.job
 
-import java.util.Objects
-
 import com.google.common.collect.Lists
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
 
+import java.util.Objects
 import scala.collection.JavaConverters._
 
 class MLPMergeExec(private val jobContext: SegmentMergeJob,
@@ -98,31 +99,36 @@ class MLPMergeExec(private val jobContext: SegmentMergeJob,
   }
 
   override protected def mergeColumnBytes(): Unit = {
-    val copiedDataflow = jobContext.getDataflow(dataflowId).copy()
-    val copiedSegment = copiedDataflow.getSegment(segmentId)
-    val dataflowUpdate = new NDataflowUpdate(dataflowId)
-    val newAdds = Lists.newArrayList[SegmentPartition]()
-    unmerged.flatMap(_.getMultiPartitions.asScala) //
-      .groupBy(_.getPartitionId) //
-      .values.foreach { grouped => //
-      val partitionId = grouped.head.getPartitionId
-      val totalCount = grouped.map(_.getSourceCount).sum
-      val evaluated = grouped.flatMap(_.getColumnSourceBytes.asScala) //
-        .groupBy(_._1) //
-        .mapValues(_.map(_._2).reduce(_ + _)).asJava
+    UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
+      override def process(): Unit = {
+        val dataflowManager = NDataflowManager.getInstance(config, project)
+        val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
+        val copiedSegment = copiedDataflow.getSegment(segmentId)
+        val dataflowUpdate = new NDataflowUpdate(dataflowId)
+        val newAdds = Lists.newArrayList[SegmentPartition]()
+        unmerged.flatMap(_.getMultiPartitions.asScala) //
+          .groupBy(_.getPartitionId) //
+          .values.foreach { grouped => //
+          val partitionId = grouped.head.getPartitionId
+          val totalCount = grouped.map(_.getSourceCount).sum
+          val evaluated = grouped.flatMap(_.getColumnSourceBytes.asScala) //
+            .groupBy(_._1) //
+            .mapValues(_.map(_._2).reduce(_ + _)).asJava
 
-      val segmentPartition = newSegmentPartition(copiedSegment, partitionId, newAdds)
-      segmentPartition.setSourceCount(totalCount)
-      segmentPartition.getColumnSourceBytes.putAll(evaluated)
-    }
-    copiedSegment.getMultiPartitions.addAll(newAdds)
-    mergeSegmentStatistics(copiedSegment)
-    dataflowUpdate.setToUpdateSegs(copiedSegment)
-    logInfo(s"Merge COLUMN-BYTES segment $segmentId")
-    // The afterward step would dump the meta to hdfs-store.
-    // We should only update the latest meta in mem-store.
-    // Make sure the copied dataflow here is the latest.
-    jobContext.getDataflowManager.updateDataflow(dataflowUpdate)
+          val segmentPartition = newSegmentPartition(copiedSegment, partitionId, newAdds)
+          segmentPartition.setSourceCount(totalCount)
+          segmentPartition.getColumnSourceBytes.putAll(evaluated)
+        }
+        copiedSegment.getMultiPartitions.addAll(newAdds)
+        mergeSegmentStatistics(copiedSegment)
+        dataflowUpdate.setToUpdateSegs(copiedSegment)
+        logInfo(s"Merge COLUMN-BYTES segment $segmentId")
+        // The afterward step would dump the meta to hdfs-store.
+        // We should only update the latest meta in mem-store.
+        // Make sure the copied dataflow here is the latest.
+        dataflowManager.updateDataflow(dataflowUpdate)
+      }
+    }, project)
   }
 
 }

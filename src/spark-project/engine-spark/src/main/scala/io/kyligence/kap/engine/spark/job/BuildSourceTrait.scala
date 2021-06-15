@@ -42,7 +42,7 @@ trait BuildSourceTrait extends Logging {
       if (Objects.isNull(parent)) {
         layouts.map { layout =>
           logInfo(s"Optimal source FLAT-TABLE of LAYOUT_${layout.getId}")
-          SegmentBuildSource.newFlatTableSource(layout)
+          SegmentBuildSource.newFlatTableSource(layout, dataSegment)
         }
       } else {
         layouts.map { layout =>
@@ -65,7 +65,7 @@ trait BuildSourceTrait extends Logging {
         if (Objects.isNull(parent)) {
           layouts.map { layout =>
             logInfo(s"Optimal source FLAT-TABLE of LAYOUT_${layout.getId}, PARTITION_$partitionId")
-            MLPBuildSource.newFlatTableSource(partitionId, layout)
+            MLPBuildSource.newFlatTableSource(partitionId, layout, dataSegment);
           }
         } else {
           layouts.map { layout =>

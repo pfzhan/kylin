@@ -33,21 +33,15 @@ public class MLPBuildSource extends SegmentBuildSource {
 
     private final Long partitionId;
 
-    public MLPBuildSource(Long partitionId, LayoutEntity layout) {
-        super(layout);
-        Preconditions.checkNotNull(partitionId);
-        this.partitionId = partitionId;
-    }
-
-    public MLPBuildSource(Long partitionId, // 
+    public MLPBuildSource(Long partitionId, //
             LayoutEntity layout, LayoutEntity parent, NDataSegment dataSegment) {
         super(layout, parent, dataSegment);
         Preconditions.checkNotNull(partitionId);
         this.partitionId = partitionId;
     }
 
-    public static MLPBuildSource newFlatTableSource(Long partitionId, LayoutEntity layout) {
-        return new MLPBuildSource(partitionId, layout);
+    public static MLPBuildSource newFlatTableSource(Long partitionId, LayoutEntity layout, NDataSegment dataSegment) {
+        return new MLPBuildSource(partitionId, layout, null, dataSegment);
     }
 
     public static MLPBuildSource newLayoutSource(Long partitionId, //

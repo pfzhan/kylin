@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -40,9 +41,11 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.engine.spark.scheduler.JobRuntime;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -65,8 +68,6 @@ public abstract class SegmentJob extends SparkApplication {
 
     protected String dataflowId;
 
-    protected NDataflowManager dataflowManager;
-
     protected Set<LayoutEntity> readOnlyLayouts;
 
     protected Set<NDataSegment> readOnlySegments;
@@ -74,13 +75,15 @@ public abstract class SegmentJob extends SparkApplication {
     // Resource detection results output path
     protected Path rdSharedPath;
 
+    protected JobRuntime runtime;
+
     @Override
     protected final void extraInit() {
         Set<String> segmentIDs = Arrays.stream(getParam(NBatchConstants.P_SEGMENT_IDS).split(COMMA))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         Set<Long> layoutIDs = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
-        dataflowManager = NDataflowManager.getInstance(config, project);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         rdSharedPath = config.getJobTmpShareDir(project, jobId);
         indexPlan = dataflowManager.getDataflow(dataflowId).getIndexPlan();
 
@@ -101,6 +104,12 @@ public abstract class SegmentJob extends SparkApplication {
                     return dataSegment;
                 }).filter(notSkip) //
                 .collect(Collectors.toCollection(LinkedHashSet::new)));
+        runtime = new JobRuntime(config.getSegmentExecMaxThreads());
+    }
+
+    @Override
+    protected void extraDestroy() {
+        runtime.shutdown();
     }
 
     protected KylinConfig getConfig() {
@@ -115,15 +124,11 @@ public abstract class SegmentJob extends SparkApplication {
         return dataflowId;
     }
 
-    protected NDataflowManager getDataflowManager() {
-        return dataflowManager;
-    }
-
     protected NSpanningTree getSpanningTree() {
         return spanningTree;
     }
 
-    protected Path getRDSharedPath() {
+    protected Path getRdSharedPath() {
         return rdSharedPath;
     }
 
@@ -131,17 +136,21 @@ public abstract class SegmentJob extends SparkApplication {
         return Collections.unmodifiableSet(ExecutableParams.getBuckets(getParam(NBatchConstants.P_BUCKETS)));
     }
 
-    protected String getJobId() {
-        return jobId;
-    }
-
     protected NDataflow getDataflow(String dataflowId) {
-        return dataflowManager.getDataflow(dataflowId);
+        return getDataflowManager().getDataflow(dataflowId);
     }
 
     protected NDataSegment getSegment(String segmentId) {
         // Always get the latest data segment.
-        return dataflowManager.getDataflow(dataflowId).getSegment(segmentId);
+        return getDataflowManager().getDataflow(dataflowId).getSegment(segmentId);
+    }
+
+    protected final List<NDataSegment> getUnmergedSegments(NDataSegment merged) {
+        List<NDataSegment> unmerged = getDataflowManager().getDataflow(dataflowId).getMergingSegments(merged);
+        Preconditions.checkNotNull(unmerged);
+        Preconditions.checkState(!unmerged.isEmpty());
+        Collections.sort(unmerged);
+        return unmerged;
     }
 
     protected boolean needBuildSnapshots() {
@@ -168,5 +177,9 @@ public abstract class SegmentJob extends SparkApplication {
             return true;
         }
         return false;
+    }
+
+    private NDataflowManager getDataflowManager() {
+        return NDataflowManager.getInstance(config, project);
     }
 }

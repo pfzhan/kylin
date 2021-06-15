@@ -28,25 +28,29 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class SegmentBuildJob extends SegmentJob {
-    protected static final Logger logger = LoggerFactory.getLogger(SegmentBuildJob.class);
 
     @Override
     protected String generateInfo() {
@@ -56,11 +60,7 @@ public class SegmentBuildJob extends SegmentJob {
     @Override
     protected final void doExecute() throws Exception {
         tryRefreshSnapshots();
-        if (isMLP()) {
-            buildMLP();
-        } else {
-            build();
-        }
+        build();
         updateSegmentSourceBytesSize();
     }
 
@@ -70,8 +70,8 @@ public class SegmentBuildJob extends SegmentJob {
             String maxLeafTasksNums = maxLeafTasksNums();
             int factor = config.getSparkEngineTaskCoreFactor();
             int requiredCore = (int) Double.parseDouble(maxLeafTasksNums) / factor;
-            logger.info("The maximum number of tasks required to run the job is {}, require cores: {}",
-                    maxLeafTasksNums, requiredCore);
+            log.info("The maximum number of tasks required to run the job is {}, require cores: {}", maxLeafTasksNums,
+                    requiredCore);
             return String.valueOf(requiredCore);
         } else {
             return SparkJobConstants.DEFAULT_REQUIRED_CORES;
@@ -89,22 +89,22 @@ public class SegmentBuildJob extends SegmentJob {
         return ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);
     }
 
-    private void buildMLP() throws IOException {
-        for (NDataSegment dataSegment : readOnlySegments) {
-            MLPBuildExec exec = new MLPBuildExec(this, dataSegment);
-            buildSegment(dataSegment, exec);
-        }
-    }
-
     protected void build() throws IOException {
-        for (NDataSegment dataSegment : readOnlySegments) {
-            SegmentBuildExec exec = new SegmentBuildExec(this, dataSegment);
-            buildSegment(dataSegment, exec);
-        }
+        Stream<NDataSegment> segmentStream = config.isSegmentParallelBuildEnabled() ? //
+                readOnlySegments.parallelStream() : readOnlySegments.stream();
+        segmentStream.forEach(seg -> {
+            try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
+                    .setAndUnsetThreadLocalConfig(config)) {
+                val exec = isMLP() ? new MLPBuildExec(this, seg) : new SegmentBuildExec(this, seg);
+                buildSegment(seg, exec);
+            } catch (IOException e) {
+                Throwables.propagate(e);
+            }
+        });
     }
 
     private void buildSegment(NDataSegment dataSegment, SegmentBuildExec exec) throws IOException {
-        logger.info("Encoding data skew {} segment {}", //
+        log.info("Encoding data skew {} segment {}", //
                 dataSegment.isEncodingDataSkew(), dataSegment.getId());
         KylinBuildEnv.get().setEncodingDataSkew(dataSegment.isEncodingDataSkew());
         exec.buildSegment();
@@ -114,44 +114,49 @@ public class SegmentBuildJob extends SegmentJob {
     protected void tryRefreshSnapshots() throws IOException {
         SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
         if (config.isSnapshotManualManagementEnabled()) {
-            logger.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
+            log.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);
-            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(),
+                    getIgnoredSnapshotTables());
             return;
         } else if (!needBuildSnapshots()) {
-            logger.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
-            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
+            log.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
+            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(),
+                    getIgnoredSnapshotTables());
             return;
         }
-        logger.info("Refresh SNAPSHOT.");
+        log.info("Refresh SNAPSHOT.");
         //snapshot building
         snapshotBuilder.buildSnapshot(ss, getDataflow(dataflowId).getModel(), //
-                //
                 getIgnoredSnapshotTables());
-        logger.info("Finished SNAPSHOT.");
+        log.info("Finished SNAPSHOT.");
     }
 
     // Copied from DFBuildJob
     private void updateSegmentSourceBytesSize() {
         Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(rdSharedPath);
-        NDataflow dataflow = getDataflow(dataflowId);
-        NDataflow newDF = dataflow.copy();
-        val update = new NDataflowUpdate(dataflow.getUuid());
-        List<NDataSegment> nDataSegments = Lists.newArrayList();
-        for (Map.Entry<String, Object> entry : segmentSourceSize.entrySet()) {
-            NDataSegment segment = newDF.getSegment(entry.getKey());
-            segment.setSourceBytesSize((Long) entry.getValue());
-            if (KylinBuildEnv.get().encodingDataSkew()) {
-                segment.setEncodingDataSkew(true);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
+            NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
+            NDataflow newDF = dataflow.copy();
+            val update = new NDataflowUpdate(dataflow.getUuid());
+            List<NDataSegment> nDataSegments = Lists.newArrayList();
+            for (Map.Entry<String, Object> entry : segmentSourceSize.entrySet()) {
+                NDataSegment segment = newDF.getSegment(entry.getKey());
+                segment.setSourceBytesSize((Long) entry.getValue());
+                if (KylinBuildEnv.get().encodingDataSkew()) {
+                    segment.setEncodingDataSkew(true);
+                }
+                nDataSegments.add(segment);
             }
-            nDataSegments.add(segment);
-        }
-        update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
-        getDataflowManager().updateDataflow(update);
+            update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
+            dataflowManager.updateDataflow(update);
 
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
-        indexPlanManager.updateIndexPlan(dataflowId, copyForWrite -> copyForWrite //
-                .setLayoutBucketNumMapping(indexPlanManager.getIndexPlan(dataflowId).getLayoutBucketNumMapping()));
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
+            indexPlanManager.updateIndexPlan(dataflowId, copyForWrite -> copyForWrite //
+                    .setLayoutBucketNumMapping(indexPlanManager.getIndexPlan(dataflowId).getLayoutBucketNumMapping()));
+            return null;
+        }, project);
     }
 
     public static void main(String[] args) {

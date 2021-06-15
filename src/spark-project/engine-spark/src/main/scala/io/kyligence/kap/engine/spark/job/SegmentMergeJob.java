@@ -25,12 +25,13 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
+import java.util.stream.Stream;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.val;
+import org.apache.kylin.common.KylinConfig;
 
 public class SegmentMergeJob extends SegmentJob {
 
@@ -41,33 +42,21 @@ public class SegmentMergeJob extends SegmentJob {
 
     @Override
     protected final void doExecute() throws Exception {
-        if (isMLP()) {
-            mergeMLP();
-        } else {
-            merge();
-        }
+        merge();
     }
 
     private void merge() throws IOException {
-        for (NDataSegment dataSegment : readOnlySegments) {
-            SegmentMergeExec exec = new SegmentMergeExec(this, dataSegment);
-            exec.mergeSegment();
-        }
-    }
-
-    private void mergeMLP() throws IOException {
-        for (NDataSegment dataSegment : readOnlySegments) {
-            SegmentMergeExec exec = new MLPMergeExec(this, dataSegment);
-            exec.mergeSegment();
-        }
-    }
-
-    protected final List<NDataSegment> getUnmergedSegments(NDataSegment merged) {
-        List<NDataSegment> unmerged = dataflowManager.getDataflow(dataflowId).getMergingSegments(merged);
-        Preconditions.checkNotNull(unmerged);
-        Preconditions.checkState(!unmerged.isEmpty());
-        Collections.sort(unmerged);
-        return unmerged;
+        Stream<NDataSegment> segmentStream = config.isSegmentParallelBuildEnabled() ? //
+                readOnlySegments.parallelStream() : readOnlySegments.stream();
+        segmentStream.forEach(seg -> {
+            try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
+                    .setAndUnsetThreadLocalConfig(config)) {
+                val exec = isMLP() ? new MLPMergeExec(this, seg) : new SegmentMergeExec(this, seg);
+                exec.mergeSegment();
+            } catch (IOException e) {
+                Throwables.propagate(e);
+            }
+        });
     }
 
     public static void main(String[] args) {

@@ -22,9 +22,9 @@
 
 package io.kyligence.kap.engine.spark.utils
 
-import java.util.concurrent._
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder
+
+import java.util.concurrent._
 
 object ThreadUtils {
 

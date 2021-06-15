@@ -45,6 +45,7 @@ import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
 
+@Deprecated
 class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
                       var seg: NDataSegment,
                       val toBuildTree: NSpanningTree,
@@ -155,6 +156,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   }
 }
 
+@Deprecated
 object CreateFlatTable extends LogEx {
   type GlobalDictType = (Set[TblColRef], Set[TblColRef])
 

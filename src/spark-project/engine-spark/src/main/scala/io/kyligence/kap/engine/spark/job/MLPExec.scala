@@ -39,8 +39,7 @@ import org.apache.spark.sql.{Dataset, Row}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-private[job]
-trait MLPExec extends SegmentExec {
+private[job] trait MLPExec { this: SegmentExec =>
 
   protected val newBuckets: Seq[JobBucket]
 

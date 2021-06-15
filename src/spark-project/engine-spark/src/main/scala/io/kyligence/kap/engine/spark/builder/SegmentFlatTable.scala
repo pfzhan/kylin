@@ -101,8 +101,8 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   }
 
   def gatherStatistics(): Statistics = {
-    logInfo(s"Gather statistics FLAT-TABLE segment $segmentId")
-    sparkSession.sparkContext.setJobDescription("Gather statistics FLAT-TABLE.")
+    logInfo(s"Segment $segmentId gather statistics FLAT-TABLE")
+    sparkSession.sparkContext.setJobDescription(s"Segment ${segmentId} gather statistics FLAT-TABLE.")
     val statistics = gatherStatistics(fullDS)
     sparkSession.sparkContext.setJobDescription(null)
     statistics
