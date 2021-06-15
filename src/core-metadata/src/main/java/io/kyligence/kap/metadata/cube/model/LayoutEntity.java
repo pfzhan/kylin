@@ -53,6 +53,8 @@ import io.kyligence.kap.common.util.MapUtil;
 import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -187,11 +189,12 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public List<TblColRef> getStreamingColumns() {
         NDataModel model = getModel();
         if (model.isFusionModel()) {
-            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getIndexPlan(model.getFusionId());
+            NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataModelDesc(model.getFusionId());
+            ImmutableBiMap<Integer, TblColRef> streamingEffectiveCols = streamingModel.getEffectiveCols();
             ImmutableBiMap.Builder<Integer, TblColRef> dimsBuilder = ImmutableBiMap.builder();
             for (int colId : colOrder) {
                 if (colId < NDataModel.MEASURE_ID_BASE)
-                    dimsBuilder.put(colId, indexPlan.getEffectiveDimCols().get(colId));
+                    dimsBuilder.put(colId, streamingEffectiveCols.get(colId));
             }
 
             return Lists.newArrayList(dimsBuilder.build().values());
@@ -223,11 +226,12 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public List<Measure> getStreamingMeasures() {
         NDataModel model = getModel();
         if (model.isFusionModel()) {
-            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getIndexPlan(model.getFusionId());
+            NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataModelDesc(model.getFusionId());
+            ImmutableBiMap<Integer, Measure> streamingEffectiveMeasures = streamingModel.getEffectiveMeasures();
             ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
             for (int colId : colOrder) {
                 if (colId >= NDataModel.MEASURE_ID_BASE)
-                    measuresBuilder.put(colId, indexPlan.getEffectiveMeasures().get(colId));
+                    measuresBuilder.put(colId, streamingEffectiveMeasures.get(colId));
             }
 
             return Lists.newArrayList(measuresBuilder.build().values());
