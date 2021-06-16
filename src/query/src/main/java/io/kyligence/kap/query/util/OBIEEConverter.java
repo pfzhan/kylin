@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.source.adhocquery;
+package io.kyligence.kap.query.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -35,6 +35,8 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -45,10 +47,19 @@ import java.util.List;
 import java.util.Set;
 
 @Slf4j
-public class OBIEEPushDownConverter implements IPushDownConverter {
+public class OBIEEConverter implements QueryUtil.IQueryTransformer, IPushDownConverter {
+
+    @Override
+    public String transform(String sql, String project, String defaultSchema) {
+        return doConvert(sql);
+    }
 
     @Override
     public String convert(String originSql, String project, String defaultSchema) {
+        return doConvert(originSql);
+    }
+
+    public String doConvert(String originSql) {
         try {
             SqlNode sqlNode = CalciteParser.parse(originSql);
             List<SqlNumericLiteral> sqlNumericLiterals = new ArrayList<>(numbersToTrim(sqlNode));

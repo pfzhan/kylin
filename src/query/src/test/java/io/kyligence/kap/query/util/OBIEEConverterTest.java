@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.kylin.source.adhocquery;
+package io.kyligence.kap.query.util;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 
-public class OBIEEPushdownConverterTest extends NLocalFileMetadataTestCase {
+public class OBIEEConverterTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
@@ -62,6 +62,6 @@ public class OBIEEPushdownConverterTest extends NLocalFileMetadataTestCase {
     }
 
     public void assertConverted(String original, String expected) {
-        Assert.assertEquals(expected, new OBIEEPushDownConverter().convert(original, "default", "default"));
+        Assert.assertEquals(expected, new OBIEEConverter().convert(original, "default", "default"));
     }
 }
