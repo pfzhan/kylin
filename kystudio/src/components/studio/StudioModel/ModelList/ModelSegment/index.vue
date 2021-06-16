@@ -1015,7 +1015,6 @@ export default class ModelSegment extends Vue {
       } else {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
-        const segmentIdStr = this.selectedSegmentIds.join(',')
         let tableData = []
         this.selectedSegments.forEach((seg) => {
           const obj = {}
@@ -1035,7 +1034,7 @@ export default class ModelSegment extends Vue {
           showDetailBtn: false,
           submitText: this.$t('kylinLang.common.load')
         })
-        await this.syncSegmentsSecStorage({ projectName, modelId, segmentIds: segmentIdStr, type: 'CLICKHOUSE' })
+        await this.syncSegmentsSecStorage({ project: projectName, model: modelId, segment_ids: this.selectedSegmentIds, type: 'CLICKHOUSE' })
         this.$message({
           dangerouslyUseHTMLString: true,
           type: 'success',

@@ -676,6 +676,9 @@ export default class ModelActions extends Vue {
   }
 
   openSecStorageDialog () {
+    if (this.currentModel.model_type !== 'BATCH') {
+      return
+    }
     this.showSecStorageDialog = true
   }
 
