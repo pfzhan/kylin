@@ -75,7 +75,7 @@
               <div class="date-range ksd-mb-16 ksd-fs-12 ksd-fleft">
                 {{$t('dataRange')}}: {{getDataRange}}<span class="data-range-tips"><i v-if="!isRealTimeMode" v-popover:indexPopover class="el-icon-ksd-info ksd-fs-12 ksd-ml-8"></i></span>
               </div>
-              <div v-if="isShowAggregateAction&&isHaveComplementSegs" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-6">
+              <div v-if="isShowAggregateAction && isHaveComplementSegs && !isRealTimeMode" @click="complementedIndexes('allIndexes')" class="text-btn-like ksd-fleft ksd-ml-6">
                 <el-tooltip :content="$t('viewIncomplete')" effect="dark" placement="top">
                   <i class="el-ksd-icon-view_range_22"></i>
                 </el-tooltip>
@@ -175,7 +175,6 @@
             </div>
             <div class="index-table-list">
               <el-table
-                nested
                 ref="indexesTable"
                 :data="indexDatas"
                 class="indexes-table"
@@ -1229,6 +1228,7 @@ export default class ModelAggregate extends Vue {
     // }
     .el-card__body {
       overflow: auto;
+      overflow: visible\0;
       height: calc(~'100% - 100px');
       width: 100%;
       position: relative;
@@ -1244,7 +1244,6 @@ export default class ModelAggregate extends Vue {
         .data-range-tips {
           .el-icon-ksd-info {
             color: @text-disabled-color;
-
           }
         }
         .el-icon-question {

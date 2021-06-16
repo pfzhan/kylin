@@ -12,7 +12,6 @@
         <el-input class="search-input" v-model.trim="recommendationsList.key" size="medium" :placeholder="$t('searchContentOrIndexId')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchRecommendation" @clear="searchRecommendation"></el-input>
       </div>
       <el-table
-        nested
         :data="recommendationsList.list"
         class="recommendations-table clearfix"
         size="medium"

@@ -373,6 +373,9 @@ export default class AggregateView extends Vue {
   height: calc(~'100% - 40px');
   overflow: hidden;
   width: 100%;
+  .el-button {
+    line-height: normal\0;
+  }
   .title-list {
     width: 220px;
     height: 100%;

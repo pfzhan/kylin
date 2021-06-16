@@ -427,8 +427,10 @@
             </span>
           </div>
         </div>
-        <div class="right">
-          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button><el-button v-if="isShow && model.model_type !== 'HYBRID'" type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
+        <div class="right ksd-fs-0">
+          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button v-if="isShow && !onlyRealTimeType" type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
         </div>
       </div>
     </div>
@@ -706,6 +708,10 @@ export default class AggregateModal extends Vue {
       }
     }
     return flag
+  }
+
+  get onlyRealTimeType () {
+    return (this.model.model_type === 'HYBRID' && this.form.aggregateArray.filter(item => item.index_range === 'STREAMING').length === this.form.aggregateArray.length) || this.model.model_type === 'STREAMING'
   }
 
   // 当表为屏蔽表且表关联关系为多对多时，不能作为维度添加到索引中
@@ -2218,6 +2224,9 @@ export default class AggregateModal extends Vue {
   .right {
     float: right;
     margin-right: 20px;
+    .el-button {
+      line-height: normal\0;
+    }
   }
   .loading {
     position: absolute;

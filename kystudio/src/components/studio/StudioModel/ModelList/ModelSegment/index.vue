@@ -90,7 +90,7 @@
     </div>
 
     <div :class="[model.model_type === 'HYBRID' ? 'segment-views' : 'segment-table-list', 'ksd-mb-15']">
-      <el-table nested :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" show-overflow-tooltip prop="start_time" sortable="custom" min-width="180">
@@ -145,7 +145,7 @@
             <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('sourceRecords')" width="140" align="right" prop="source_count" sortable="custom">
+        <el-table-column :label="$t('sourceRecords')" width="150" align="right" prop="source_count" sortable="custom">
         </el-table-column>
         <el-table-column :label="$t('storageSize')" width="140" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>

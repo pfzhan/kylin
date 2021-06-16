@@ -2,7 +2,7 @@
   <div class="model-layout">
     <div class="header-layout">
       <div class="title"><el-button type="primary" text icon-button-mini icon="el-ksd-icon-arrow_left_16" size="small" @click="jumpBack"></el-button>
-        <span class="model-name"><span class="ksd-fs-16">{{modelName}}</span><el-button type="primary" text @click.stop="showModelList = !showModelList" icon-button-mini icon="el-ksd-icon-arrow_down_16" size="small"></el-button></span>
+        <span class="model-name"><span class="ksd-fs-16">{{modelName}}</span><el-button class="ksd-ml-2" type="primary" text @click.stop="showModelList = !showModelList" icon-button-mini icon="el-ksd-icon-arrow_down_16" size="small"></el-button></span>
         <div class="model-filter-list" v-if="showModelList">
           <div class="search-bar"><el-input class="search-model-input" v-model="searchModelName" size="small" :placeholder="$t('kylinLang.common.pleaseInput')" prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="searchModel" @clear="searchModel()"></el-input></div>
           <div class="model-list" v-loading="showSearchResult">
@@ -323,7 +323,7 @@ export default class ModelLayout extends Vue {
   }
 
   handleClick (e) {
-    if (!e.target.closest('.model-filter-list') && !e.target.closest('.icon--right')) {
+    if (e.target.closest && !e.target.closest('.model-filter-list') && !e.target.closest('.icon--right')) {
       this.showModelList = false
     }
   }
@@ -492,7 +492,7 @@ export default class ModelLayout extends Vue {
           vertical-align: middle;
         }
         .model-name {
-          margin-left: -5px;
+          margin-left: -3px;
         }
         i {
           cursor: pointer;
