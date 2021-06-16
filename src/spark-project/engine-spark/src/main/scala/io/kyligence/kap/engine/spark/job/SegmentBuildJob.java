@@ -85,7 +85,7 @@ public class SegmentBuildJob extends SegmentJob {
         }
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         FileStatus[] fileStatuses = fs.listStatus(rdSharedPath,
-                path -> path.toString().endsWith(ResourceDetectUtils.maxLeaveTaskNumsSuffix()));
+                path -> path.toString().endsWith(ResourceDetectUtils.cubingDetectItemFileSuffix()));
         return ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);
     }
 

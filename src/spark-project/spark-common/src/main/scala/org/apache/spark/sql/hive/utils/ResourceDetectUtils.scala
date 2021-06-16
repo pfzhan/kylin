@@ -199,10 +199,6 @@ object ResourceDetectUtils extends Logging {
     "resource_paths.json"
   }
 
-  val maxSourceSizeSuffix: String = "max_source_size.json"
-
-  val maxLeaveTaskNumsSuffix: String = "max_leave_task_nums.json"
-
   val cubingDetectItemFileSuffix: String = "cubing_detect_items.json"
 
   val samplingDetectItemFileSuffix: String = "sampling_detect_items.json"
