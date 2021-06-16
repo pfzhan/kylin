@@ -91,6 +91,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private StreamingJobService streamingJobService = Mockito.spy(new StreamingJobService());
 
+    @InjectMocks
+    private ModelService modelService = Mockito.spy(new ModelService());
+
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
 
@@ -112,6 +115,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(streamingJobService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
 
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject(PROJECT);
@@ -216,6 +220,22 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         // offset filter
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 2);
         Assert.assertEquals(2, list.getTotalSize());
+        streamingJobsStatsManager.deleteAllStreamingJobStats();
+    }
+
+    @Test
+    public void testGetStreamingJobListOfIndex() throws Exception {
+        val modelList = modelService.getModels(org.apache.commons.lang.StringUtils.EMPTY, PROJECT, false, "", null,
+                "last_modify", true, "", null, null);
+        val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val streamingJobsStatsManager = createStatData(jobId);
+
+        var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+        var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20, modelList);
+        Assert.assertEquals(8, list.getTotalSize());
+        Assert.assertEquals("model_streaming", list.getValue().get(0).getModelName());
+        Assert.assertEquals(8L, list.getValue().get(0).getModelIndexes().longValue());
         streamingJobsStatsManager.deleteAllStreamingJobStats();
     }
 
@@ -515,7 +535,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         record.setCreateTime(System.currentTimeMillis() - 90000);
         record.setUpdateTime(System.currentTimeMillis() - 90000);
         record.setProject(PROJECT);
-        val mgr = StreamingJobRecordManager.getInstance(PROJECT);
+        val mgr = StreamingJobRecordManager.getInstance();
         mgr.insert(record);
 
         val record1 = new StreamingJobRecord();

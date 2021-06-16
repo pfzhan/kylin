@@ -56,19 +56,8 @@ public class StreamingJobRunnerTest extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
-//    @Test
-//    public void testMergeJobRun() {
-//        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
-//        runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
-//        runner.init();
-//        SparkSession.builder().master("local").getOrCreate();
-//        AwaitUtils.await(() -> runner.run(), 2000, () -> {
-//            StreamingMergeEntry.shutdown();
-//        });
-//    }
-
     @Test
-    public void testStopWithNoInitial() {
+    public void testStop() {
         val config = getTestConfig();
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
         runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
@@ -76,27 +65,32 @@ public class StreamingJobRunnerTest extends StreamingTestCase {
         runner.stop();
         val buildMarkFile = config.getStreamingBaseJobsLocation()
                 + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
-        Assert.assertTrue(HDFSUtils.isExistsMarkFile(buildMarkFile));
+                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
+        Assert.assertTrue(!HDFSUtils.isExistsMarkFile(buildMarkFile));
         val mergeMarkFile = config.getStreamingBaseJobsLocation()
                 + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
+                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
         Assert.assertTrue(HDFSUtils.isExistsMarkFile(mergeMarkFile));
+
+        runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+        runner.init();
+        runner.stop();
+        Assert.assertTrue(HDFSUtils.isExistsMarkFile(buildMarkFile));
     }
 
     @Test
-    public void testStop() {
+    public void testStopWithNoInitial() {
         val config = getTestConfig();
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
-        runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
+        runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
         runner.stop();
         val buildMarkFile = config.getStreamingBaseJobsLocation()
                 + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
+                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
         Assert.assertFalse(HDFSUtils.isExistsMarkFile(buildMarkFile));
         val mergeMarkFile = config.getStreamingBaseJobsLocation()
                 + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
+                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
         Assert.assertFalse(HDFSUtils.isExistsMarkFile(mergeMarkFile));
     }
 }

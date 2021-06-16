@@ -73,7 +73,7 @@ public class TimeRange implements Serializable {
         while (iter.hasNext()) {
             Map.Entry<Integer, Long> entry = iter.next();
             Integer partition = entry.getKey();
-            Preconditions.checkState(offsetStart.get(partition) < offsetEnd.get(partition));
+            Preconditions.checkState(offsetStart.get(partition) <= offsetEnd.get(partition));
         }
     }
 

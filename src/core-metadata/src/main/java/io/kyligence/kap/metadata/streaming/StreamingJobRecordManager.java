@@ -36,7 +36,6 @@ import java.util.List;
 @Slf4j
 public class StreamingJobRecordManager {
 
-    private final String project;
     private final JdbcStreamingJobRecordStore jdbcRawRecStore;
 
     // CONSTRUCTOR
@@ -44,12 +43,7 @@ public class StreamingJobRecordManager {
         return Singletons.getInstance(StreamingJobRecordManager.class);
     }
 
-    public static StreamingJobRecordManager getInstance(String project) {
-        return Singletons.getInstance(project, StreamingJobRecordManager.class);
-    }
-
-    private StreamingJobRecordManager(String project) throws Exception {
-        this.project = project;
+    private StreamingJobRecordManager() throws Exception {
         this.jdbcRawRecStore = new JdbcStreamingJobRecordStore(KylinConfig.getInstanceFromEnv());
     }
 

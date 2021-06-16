@@ -32,6 +32,7 @@ import io.kyligence.kap.rest.request.StreamingJobFilter;
 import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
 import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
 import io.kyligence.kap.rest.response.StreamingJobResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.StreamingJobService;
 import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
 import io.kyligence.kap.streaming.request.SegmentMergeRequest;
@@ -39,6 +40,7 @@ import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -72,6 +74,10 @@ public class StreamingJobController extends NBasicController {
     @Qualifier("streamingJobService")
     private StreamingJobService streamingJobService;
 
+    @Autowired
+    @Qualifier("modelService")
+    private ModelService modelService;
+
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<StreamingJobResponse>>> getStreamingJobList(
@@ -86,7 +92,9 @@ public class StreamingJobController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse) {
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse);
-        val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize);
+        val modelList = modelService.getModels(StringUtils.EMPTY, project, false, "", null, "last_modify", true,
+                null, null, null);
+        val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize, modelList);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
     }
 
@@ -101,8 +109,7 @@ public class StreamingJobController extends NBasicController {
         List<String> data;
         val dataResult = streamingJobService.getStreamingJobList(jobFilter, 0, pageSize);
         if (dataResult != null) {
-            data = dataResult.getValue().stream()
-                    .map(item -> item.getModelName()).collect(Collectors.toList());
+            data = dataResult.getValue().stream().map(item -> item.getModelName()).collect(Collectors.toList());
         } else {
             data = new ArrayList<>();
         }

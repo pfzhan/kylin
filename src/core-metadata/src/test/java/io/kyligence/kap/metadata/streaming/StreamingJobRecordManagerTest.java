@@ -72,7 +72,7 @@ public class StreamingJobRecordManagerTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
-        streamingJobRecordManager = StreamingJobRecordManager.getInstance(PROJECT_NAME);
+        streamingJobRecordManager = StreamingJobRecordManager.getInstance();
     }
 
     @After

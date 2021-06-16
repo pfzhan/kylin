@@ -112,7 +112,7 @@ public class StreamingJobLauncherTest extends NLocalFileMetadataTestCase {
                 StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
         Assert.assertFalse(HDFSUtils.isExistsMarkFile(mergeMarkFile));
         launcher.stop();
-        Assert.assertTrue(HDFSUtils.isExistsMarkFile(buildMarkFile));
+        Assert.assertFalse(HDFSUtils.isExistsMarkFile(buildMarkFile));
         Assert.assertTrue(HDFSUtils.isExistsMarkFile(mergeMarkFile));
     }
 }

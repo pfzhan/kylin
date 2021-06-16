@@ -62,8 +62,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
             this.mainClazz = StreamingConstants.SPARK_STREAMING_ENTRY;
             var maxRatePerPartition = jobParams.getOrDefault(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION,
                     KylinConfig.getInstanceFromEnv().getKafkaRatePerPartition());
-            this.appArgs = new String[] { project,
-                    modelId,
+            this.appArgs = new String[] { project, modelId,
                     jobParams.getOrDefault(StreamingConstants.STREAMING_DURATION,
                             StreamingConstants.STREAMING_DURATION_DEFAULT),
                     jobParams.getOrDefault(StreamingConstants.STREAMING_WATERMARK,
@@ -141,21 +140,25 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(modelId).getAlias();
-        val buildMarkFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
-        if (!HDFSUtils.touchzMarkFile(buildMarkFile)) {
-            throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
+
+        if (JobTypeEnum.STREAMING_BUILD == jobType) {
+            val buildMarkFile = config.getStreamingBaseJobsLocation()
+                    + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project,
+                            StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
+            if (!HDFSUtils.touchzMarkFile(buildMarkFile)) {
+                throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
+            }
+        } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
+            val mergeMarkFile = config.getStreamingBaseJobsLocation()
+                    + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project,
+                            StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
+            if (!HDFSUtils.touchzMarkFile(mergeMarkFile)) {
+                throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
+            }
         }
 
-        val mergeMarkFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-        if (!HDFSUtils.touchzMarkFile(mergeMarkFile)) {
-            throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
-        }
     }
 
     private String calcMaxCores(String executors, String cores) {

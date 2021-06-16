@@ -67,7 +67,7 @@ public class MetaInfoUpdater {
                             Locale.getDefault(Locale.Category.FORMAT));
                     Date date = new Date(System.currentTimeMillis());
                     copyForWrite.setLastUpdateTime(format.format(date));
-                    val recordMgr = StreamingJobRecordManager.getInstance(project);
+                    val recordMgr = StreamingJobRecordManager.getInstance();
                     val record = new StreamingJobRecord();
                     record.setJobId(jobId);
                     record.setProject(project);

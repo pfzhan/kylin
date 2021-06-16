@@ -38,6 +38,7 @@ import io.kyligence.kap.metadata.streaming.StreamingJobStats;
 import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import io.kyligence.kap.rest.request.StreamingJobFilter;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
 import io.kyligence.kap.rest.response.StreamingJobResponse;
 import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
@@ -74,6 +75,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -182,7 +184,7 @@ public class StreamingJobService extends BasicService {
     }
 
     public List<StreamingJobRecord> getStreamingJobRecordList(String project, String jobId) {
-        val mgr = StreamingJobRecordManager.getInstance(project);
+        val mgr = StreamingJobRecordManager.getInstance();
         return mgr.queryByJobId(jobId);
     }
 
@@ -301,7 +303,11 @@ public class StreamingJobService extends BasicService {
     }
 
     public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
-            int limit) {
+                                                                      int limit) {
+        return getStreamingJobList(jobFilter, offset, limit, null);
+    }
+    public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
+                                                                      int limit, List<NDataModelResponse> modelList) {
         val config = KylinConfig.getInstanceFromEnv();
         List<StreamingJobMeta> list;
         if (StringUtils.isEmpty(jobFilter.getProject())) {
@@ -328,7 +334,7 @@ public class StreamingJobService extends BasicService {
             if (dataLatenciesMap != null && dataLatenciesMap.containsKey(jobId)) {
                 resp.setDataLatency(dataLatenciesMap.get(jobId));
             }
-            val recordMgr = StreamingJobRecordManager.getInstance(jobFilter.getProject());
+            val recordMgr = StreamingJobRecordManager.getInstance();
             val record = recordMgr.getLatestOneByJobId(jobId);
             if (record != null) {
                 resp.setLastStatusDuration(System.currentTimeMillis() - record.getCreateTime());
@@ -362,6 +368,24 @@ public class StreamingJobService extends BasicService {
         }).sorted(comparator).collect(Collectors.toList());
         List<StreamingJobResponse> targetList = PagingUtil.cutPage(filterList, offset, limit).stream()
                 .collect(Collectors.toList());
+        val modelMap = new HashMap<String, NDataModelResponse>();
+        if (modelList != null) {
+            modelList.stream().forEach(item -> {
+                modelMap.put(item.getAlias(), item);
+            });
+            if (targetList != null) {
+                val iter = targetList.iterator();
+                while (iter.hasNext()) {
+                    val entry = (StreamingJobResponse) iter.next();
+                    val dataModel = modelMap.get(entry.getModelName());
+                    if (dataModel.isModelBroken()) {
+                        entry.setModelIndexes(0L);
+                    } else {
+                        entry.setModelIndexes(dataModel.getTotalIndexes());
+                    }
+                }
+            }
+        }
         return new DataResult<>(targetList, targetList.size(), offset, limit);
     }
 
@@ -419,7 +443,7 @@ public class StreamingJobService extends BasicService {
         if (stats != null) {
             resp.setDataLatency(stats.getMinDataLatency());
         }
-        val recordMgr = StreamingJobRecordManager.getInstance(project);
+        val recordMgr = StreamingJobRecordManager.getInstance();
         val record = recordMgr.getLatestOneByJobId(jobId);
         if (record != null) {
             resp.setLastStatusDuration(System.currentTimeMillis() - record.getCreateTime());
