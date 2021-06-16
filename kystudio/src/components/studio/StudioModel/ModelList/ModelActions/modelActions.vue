@@ -8,7 +8,7 @@
     </template>
     <template v-else>
       <common-tip :content="$t('kylinLang.common.edit')" class="ksd-mr-8" v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('modelActions')" :disabled="!!editText">
-        <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'el-ksd-icon-edit_22']"></i></span>
+        <span v-if="!editText" class="item" @click="(e) => handleEditModel(currentModel.alias, e)"><i :class="['icon-item', 'edit-icon', 'el-ksd-icon-edit_22']"></i></span>
         <el-button v-else class="item" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-edit_22" type="primary" text>{{editText}}</el-button>
       </common-tip>
       <common-tip :content="$t('kylinLang.common.repair')" class="ksd-mr-8" v-if="currentModel.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')" :disabled="!!editText">
@@ -826,6 +826,9 @@ export default class ModelActions extends Vue {
     vertical-align: middle;
     margin-top: -2px;
     cursor: pointer;
+  }
+  .edit-icon {
+    margin-top: -3px;
   }
 }
 .disabled-action {

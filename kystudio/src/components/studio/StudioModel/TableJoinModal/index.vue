@@ -687,10 +687,13 @@ export default class TableJoinModal extends Vue {
     line-height: 16px;
     .el-checkbox {
       margin-top: 5px;
+      .el-checkbox__inner {
+        vertical-align: middle;
+      }
     }
     .icon {
       font-size: 22px;
-      vertical-align: text-bottom;
+      vertical-align: bottom;
     }
   }
   .el-button+.el-button {

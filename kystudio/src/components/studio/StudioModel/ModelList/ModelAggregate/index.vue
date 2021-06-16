@@ -1086,7 +1086,7 @@ export default class ModelAggregate extends Vue {
     border-left-color: @base-color;
   }
   .index-table-list {
-    height: 90%;
+    max-height: 90%;
     overflow: auto;
   }
   .indexes-table {

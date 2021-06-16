@@ -106,15 +106,17 @@
               <capacity/>
             </li>
             <li v-if="showMenuByRole('admin')" style="margin-right: 1px;">
-              <el-button
-                type="primary"
-                text
-                class="entry-admin"
-                icon-button
-                icon="el-ksd-icon-system_config_22"
-                :class="isAdminView ? 'active' : null"
-                @click="handleSwitchAdmin">
-              </el-button>
+              <el-tooltip :content="$t('kylinLang.menu.admin')" placement="bottom">
+                <el-button
+                  type="primary"
+                  text
+                  class="entry-admin"
+                  icon-button
+                  icon="el-ksd-icon-system_config_22"
+                  :class="isAdminView ? 'active' : null"
+                  @click="handleSwitchAdmin">
+                </el-button>
+              </el-tooltip>
             </li>
             <li style="margin-right: 1px;"><help></help></li>
             <li class="ksd-mr-10"><change_lang ref="changeLangCom"></change_lang></li>
