@@ -24,21 +24,14 @@
 
 package io.kyligence.kap.rest.scheduler;
 
-import com.clearspring.analytics.util.Lists;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.metrics.MetricsCategory;
-import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.MetricsName;
-import io.kyligence.kap.common.metrics.MetricsTag;
-import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -53,11 +46,25 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.TimeRange;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.clearspring.analytics.util.Lists;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.metrics.MetricsCategory;
+import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JobSyncListener {
@@ -77,22 +84,39 @@ public class JobSyncListener {
         }
     }
 
-
     static JobInfo extractJobInfo(JobFinishedNotifier notifier) {
         Set<String> segmentIds = notifier.getSegmentIds();
         String project = notifier.getProject();
         String dfID = notifier.getSubject();
         NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataflow dataflow = manager.getDataflow(dfID);
-        List<SegRange> list = Lists.newArrayList();
+        List<SegRange> segRangeList = Lists.newArrayList();
+        List<SegmentPartitionsInfo> segmentPartitionsInfoList = new ArrayList();
         if (dataflow != null) {
+            val model = dataflow.getModel();
+            val partitionDesc = model.getMultiPartitionDesc();
             for (String id : segmentIds) {
-                TimeRange segRange = dataflow.getSegment(id).getTSRange();
-                list.add(new SegRange(id, segRange.getStart(), segRange.getEnd()));
+                NDataSegment segment = dataflow.getSegment(id);
+                TimeRange segRange = segment.getTSRange();
+                segRangeList.add(new SegRange(id, segRange.getStart(), segRange.getEnd()));
+                if (partitionDesc != null && notifier.getSegmentPartitionsMap().get(id) != null
+                        && !notifier.getSegmentPartitionsMap().get(id).isEmpty()) {
+                    List<SegmentPartitionResponse> SegmentPartitionResponses = segment.getMultiPartitions().stream()
+                            .filter(segmentPartition -> notifier.getSegmentPartitionsMap().get(id)
+                                    .contains(segmentPartition.getPartitionId()))
+                            .map(partition -> {
+                                val partitionInfo = partitionDesc.getPartitionInfo(partition.getPartitionId());
+                                return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(),
+                                        partition.getStatus(), partition.getLastBuildTime(), partition.getSourceCount(),
+                                        partition.getStorageSize());
+                            }).collect(Collectors.toList());
+                    segmentPartitionsInfoList.add(new SegmentPartitionsInfo(id, SegmentPartitionResponses));
+                }
             }
         }
         return new JobInfo(notifier.getJobId(), notifier.getProject(), notifier.getSubject(), notifier.getSegmentIds(),
-                notifier.getLayoutIds(), notifier.getDuration(), notifier.getJobState(), notifier.getJobType(), list);
+                notifier.getLayoutIds(), notifier.getDuration(), notifier.getJobState(), notifier.getJobType(),
+                segRangeList, segmentPartitionsInfoList);
     }
 
     @Getter
@@ -126,8 +150,12 @@ public class JobSyncListener {
         @JsonProperty("segment_time_range")
         private List<SegRange> segRanges;
 
+        @JsonProperty("segment_partition_info")
+        private List<SegmentPartitionsInfo> segmentPartitionInfoList;
+
         public JobInfo(String jobId, String project, String subject, Set<String> segmentIds, Set<Long> layoutIds,
-                       long duration, String jobState, String jobType, List<SegRange> segRanges) {
+                long duration, String jobState, String jobType, List<SegRange> segRanges,
+                List<SegmentPartitionsInfo> segmentPartitionInfoList) {
             this.jobId = jobId;
             this.project = project;
             this.modelId = subject;
@@ -141,6 +169,7 @@ public class JobSyncListener {
             }
             this.jobType = jobType;
             this.segRanges = segRanges;
+            this.segmentPartitionInfoList = segmentPartitionInfoList;
         }
     }
 
@@ -160,6 +189,20 @@ public class JobSyncListener {
             this.segmentId = id;
             this.start = start;
             this.end = end;
+        }
+    }
+
+    @Setter
+    @Getter
+    static class SegmentPartitionsInfo {
+        @JsonProperty("segment_id")
+        private String segmentId;
+        @JsonProperty("partition_info")
+        private List<SegmentPartitionResponse> partitionInfo;
+
+        public SegmentPartitionsInfo(String segmentId, List<SegmentPartitionResponse> segmentPartitionResponseList) {
+            this.segmentId = segmentId;
+            this.partitionInfo = segmentPartitionResponseList;
         }
     }
 
@@ -190,8 +233,8 @@ public class JobSyncListener {
     private void updateMetrics(JobFinishedNotifier notifier) {
         try {
             log.info("Update metrics for {}, duration is {}, waitTime is {}, jobType is {}, state is {}, subject is {}",
-                    notifier.getJobId(), notifier.getDuration(), notifier.getWaitTime(), notifier.getJobType(), notifier.getJobState(),
-                    notifier.getSubject());
+                    notifier.getJobId(), notifier.getDuration(), notifier.getWaitTime(), notifier.getJobType(),
+                    notifier.getJobState(), notifier.getSubject());
             ExecutableState state = ExecutableState.valueOf(notifier.getJobState());
             String project = notifier.getProject();
             if (state.isFinalState()) {
@@ -200,7 +243,8 @@ public class JobSyncListener {
                 MetricsGroup.hostTagCounterInc(MetricsName.JOB_DURATION, MetricsCategory.PROJECT, project, duration);
                 MetricsGroup.hostTagHistogramUpdate(MetricsName.JOB_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
                         project, duration);
-                MetricsGroup.hostTagCounterInc(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, project, duration);
+                MetricsGroup.hostTagCounterInc(MetricsName.JOB_WAIT_DURATION, MetricsCategory.PROJECT, project,
+                        duration);
 
                 NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 NDataflow dataflow = manager.getDataflow(notifier.getSubject());
@@ -235,7 +279,8 @@ public class JobSyncListener {
                 } else {
                     MetricsGroup.counterInc(MetricsName.JOB_COUNT_GT_60, MetricsCategory.PROJECT, project, tags);
                 }
-                MetricsGroup.counterInc(MetricsName.JOB_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags, duration);
+                MetricsGroup.counterInc(MetricsName.JOB_TOTAL_DURATION, MetricsCategory.PROJECT, project, tags,
+                        duration);
             }
         } catch (Exception e) {
             log.error("Fail to update metrics.", e);

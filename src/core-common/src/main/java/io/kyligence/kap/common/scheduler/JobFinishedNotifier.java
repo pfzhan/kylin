@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.common.scheduler;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import lombok.Getter;
@@ -39,10 +41,10 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
     private Set<String> segmentIds;
     private Set<Long> layoutIds;
     private long waitTime;
+    private Map<String, Set<Long>> segmentPartitionsMap;
 
     public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
-            String jobType, Set<String> segmentIds, Set<Long> layoutIds,
-                               long waitTime) {
+            String jobType, Set<String> segmentIds, Set<Long> layoutIds, long waitTime, Set<Long> partitionIds) {
         setProject(project);
         setSubject(subject);
         this.jobId = jobId;
@@ -52,5 +54,11 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.segmentIds = segmentIds;
         this.layoutIds = layoutIds;
         this.waitTime = waitTime;
+        if (partitionIds != null) {
+            this.segmentPartitionsMap = new HashMap<>();
+            for (String segmentId : segmentIds) {
+                segmentPartitionsMap.put(segmentId, partitionIds);
+            }
+        }
     }
 }

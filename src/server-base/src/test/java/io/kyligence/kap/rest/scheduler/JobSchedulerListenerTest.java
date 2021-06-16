@@ -53,6 +53,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.var;
 
 public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
     @Before
@@ -67,10 +68,10 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
 
     static CountDownLatch latch;
 
-    static JobSyncListener.JobInfo modelInfo = new JobSyncListener.JobInfo(
-            "f26641d7-2094-473b-972a-4e1cebe55091", "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
+    static JobSyncListener.JobInfo modelInfo = new JobSyncListener.JobInfo("f26641d7-2094-473b-972a-4e1cebe55091",
+            "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
             Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"), Sets.newHashSet(1L), 1000L, "SUCCEED",
-            "INDEX_BUILD", new ArrayList<>());
+            "INDEX_BUILD", new ArrayList<>(), new ArrayList<>());
 
     static boolean assertMeet = false;
 
@@ -181,9 +182,11 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         segIds.add("11124840-b3e3-43db-bcab-2b78da666d00");
         Set<Long> layoutIds = new HashSet<>();
         layoutIds.add(1L);
+        Set<Long> partitionIds = null;
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, waitTime);
+                segIds, layoutIds, waitTime, partitionIds);
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
+
         Assert.assertEquals(jobId, jobInfo.getJobId());
         Assert.assertEquals(project, jobInfo.getProject());
         Assert.assertEquals(subject, jobInfo.getModelId());
@@ -198,5 +201,37 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1509891513770L, segRange.getEnd());
         Assert.assertTrue(jobInfo.getIndexIds().containsAll(layoutIds));
         Assert.assertEquals(layoutIds.size(), jobInfo.getIndexIds().size());
+    }
+
+    @Test
+    public void testExtractInfoMultiPartition() {
+        String jobId = "test_job_id";
+        String project = "default";
+        String subject = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+        long duration = 1000L;
+        String jobState = "SUCCEED";
+        String jobType = "INDEX_BUILD";
+        Set<String> segIds = new HashSet<>();
+        segIds.add("0db919f3-1359-496c-aab5-b6f3951adc0e");
+        segIds.add("ff839b0b-2c23-4420-b332-0df70e36c343");
+        Set<Long> layoutIds = new HashSet<>();
+        layoutIds.add(1L);
+        Set<Long> partitionIds = new HashSet<>();
+        partitionIds.add(7L);
+        partitionIds.add(8L);
+        JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
+                segIds, layoutIds, 0L, partitionIds);
+        JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
+        Assert.assertTrue(jobInfo.getSegmentIds().containsAll(segIds));
+        Assert.assertEquals(segIds.size(), jobInfo.getSegmentIds().size());
+        Assert.assertEquals(jobInfo.getSegmentPartitionInfoList().size(), 2);
+        Assert.assertEquals(jobInfo.getSegmentPartitionInfoList().get(0).getSegmentId(),
+                "0db919f3-1359-496c-aab5-b6f3951adc0e");
+        var partitionInfos = jobInfo.getSegmentPartitionInfoList().get(0).getPartitionInfo();
+        Assert.assertEquals(partitionInfos.get(0).getPartitionId(), 7);
+        Assert.assertEquals(partitionInfos.get(1).getPartitionId(), 8);
+
+        Assert.assertEquals(jobInfo.getSegmentPartitionInfoList().get(1).getSegmentId(),
+                "ff839b0b-2c23-4420-b332-0df70e36c343");
     }
 }
