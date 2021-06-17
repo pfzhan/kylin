@@ -117,7 +117,8 @@
                     <span class="text">
                       <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId">
                         <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                          <span @click="openLayoutDetails(item)">{{item.layoutId}}</span>
+                          <span @click="openLayoutDetails(item)" v-if="item.layoutId !== -1">{{item.layoutId}}</span>
+                          <span @click="openLayoutDetails(item)" v-if="item.streamingLayoutId !== -1">{{item.streamingLayoutId}}<el-tag size="mini" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag></span>
                         </el-tooltip>
                         <el-tooltip placement="top" :content="$t('secStorage')">
                           <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
@@ -315,7 +316,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       tabelDetailTitle: 'Table Index Detail',
       unExistLayoutTip: 'This index has been deleted',
       filteredTotalSize: '{totalSize} result(s)',
-      secStorage: 'Tiered Storage'
+      secStorage: 'Tiered Storage',
+      streamingTag: 'streaming'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -352,7 +354,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       tabelDetailTitle: '明细索引详情',
       unExistLayoutTip: '该索引已被删除',
       filteredTotalSize: '{totalSize} 条结果',
-      secStorage: '分层存储'
+      secStorage: '分层存储',
+      streamingTag: '实时'
     }
   },
   filters: {

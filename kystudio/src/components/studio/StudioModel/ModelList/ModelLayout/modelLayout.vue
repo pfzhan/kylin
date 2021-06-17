@@ -81,6 +81,7 @@
               :isShowBulidIndex="datasourceActions.includes('buildIndex')"
               :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
               ref="modelAggregateItem"
+              @loadModels="reloadModel"
               v-if="currentIndexTab === 'indexOverview'" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" :label="$t('recommendationsBtn')" name="recommendations" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions') && currentModelRow.model_type !== 'STREAMING'">

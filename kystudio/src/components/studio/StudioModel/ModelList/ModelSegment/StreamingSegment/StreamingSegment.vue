@@ -18,7 +18,7 @@
       </div>
     </div>
     <div class="segment-actions ksd-mb-10 clearfix">
-      <div class="ksd-fleft ky-no-br-space" v-if="isShowSegmentActions">
+      <div class="ksd-fleft ky-no-br-space btn-groups" v-if="isShowSegmentActions">
         <!-- <el-button-group v-if="$store.state.project.emptySegmentEnable">
           <el-button size="small" icon="el-icon-ksd-add_2" class="ksd-mr-10" type="default" :disabled="!model.partition_desc && segments.length>0" @click="addSegment">Segment</el-button>
         </el-button-group> -->
@@ -539,3 +539,19 @@ export default class StreamingSegment extends Vue {
   }
 }
 </script>
+<style lang="less">
+.streaming-list {
+  height: 100%;
+  .segment-streaming-table {
+    height: 87%;
+    overflow: auto;
+  }
+  .segment-actions {
+    .btn-groups {
+      >.el-button--primary.is-text {
+        margin-left: -14px;
+      }
+    }
+  }
+}
+</style>

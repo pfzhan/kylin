@@ -2,7 +2,7 @@
   <div class="user-no-authority">
     <div class="content">
       <template v-if="tipType === 'isNoAuthority'">
-        <i class="el-icon-ksd-lock"></i>
+        <i class="el-ksd-icon-lock_old"></i>
         <template v-if="$lang === 'en'">
           <p class="text"><span>{{$t('noAuthorityText')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('noAuthorityText1', {time: jumpTimer})}}</span></p>
         </template>
@@ -11,7 +11,7 @@
         </template>
       </template>
       <template v-else-if="tipType === 'isNotSemiAuto'">
-        <i class="el-icon-ksd-sad"></i>
+        <i class="el-ksd-icon-sad_old"></i>
         <template v-if="$lang === 'en'">
           <p class="text"><span>{{$t('noModalAuthorityText1')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('noModalAuthorityText2', {time: jumpTimer})}}</span></p>
         </template>
@@ -20,7 +20,7 @@
         </template>
       </template>
       <template v-else>
-        <i class="el-icon-ksd-sad"></i>
+        <i class="el-ksd-icon-sad_old"></i>
         <p class="text">
           <template v-if="$lang === 'en'">
             <span>{{$t('is404Tip')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('is404Tip1', {time: jumpTimer})}}</span>

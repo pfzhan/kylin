@@ -52,9 +52,11 @@
         </p>
         <p class="resultText" v-if="layoutIds.length">
           <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
-          <span class="text" :title="layoutIds.join(',')">
+          <span class="text" :title="layoutIds.map(it => it.layoutId || it.streamingLayoutId).join(',')">
             <span class="realizations-layout-id" v-for="(item, index) in layoutIds" :key="item.layoutId">
-              <span>{{item.layoutId}}</span><el-tooltip placement="top" :content="$t('secStorage')">
+              <span v-if="item.layoutIdType === 'BATCH'">{{item.layoutId}}</span>
+              <span v-else>{{item.streamingLayoutId}}<el-tag size="mini" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag></span>
+              <el-tooltip placement="top" :content="$t('secStorage')">
                 <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
               </el-tooltip><span>{{`${index !== layoutIds.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
             </span>
@@ -225,7 +227,8 @@ import echarts from 'echarts'
       CONSTANT_QUERY: 'Constant query',
       HIT_CACHE: 'Cache hit',
       pleaseSelect: 'Please select',
-      secStorage: 'Tiered Storage'
+      secStorage: 'Tiered Storage',
+      streamingTag: 'streaming'
     },
     'zh-cn': {
       username: '用户名',
@@ -267,7 +270,8 @@ import echarts from 'echarts'
       CONSTANT_QUERY: '常数查询',
       HIT_CACHE: '击中缓存',
       pleaseSelect: '请选择',
-      secStorage: '分层存储'
+      secStorage: '分层存储',
+      streamingTag: '实时'
     }
   },
   filters: {
@@ -489,7 +493,10 @@ export default class queryResult extends Vue {
       let filterIds = []
       for (let i of this.extraoption.realizations) {
         if (i.layoutId !== -1 && i.layoutId !== null) {
-          filterIds.push(i)
+          filterIds.push({layoutId: i.layoutId, layoutIdType: 'BATCH'})
+        }
+        if (i.streamingLayoutId !== -1 && i.streamingLayoutId !== null) {
+          filterIds.push({streamingLayoutId: i.streamingLayoutId, layoutIdType: 'STREAMING'})
         }
       }
       return filterIds

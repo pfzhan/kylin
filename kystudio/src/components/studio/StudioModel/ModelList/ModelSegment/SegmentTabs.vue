@@ -102,6 +102,7 @@ export default class SegmentTabs extends Vue {
   height: 85%;
   .el-tabs__content {
     height: 97%;
+    overflow: visible;
     .el-tab-pane {
       height: 100%;
     }

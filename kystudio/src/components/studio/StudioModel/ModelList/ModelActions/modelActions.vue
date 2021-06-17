@@ -2,7 +2,7 @@
   <div class="action-items" @click.stop v-if="currentModel && Object.keys(currentModel).length">
     <template v-if="'visible' in currentModel && !currentModel.visible">
       <common-tip :content="$t('authorityDetails')">
-        <i class="icon-item el-icon-ksd-lock" @click="showNoAuthorityContent(currentModel)"></i>
+        <i class="icon-item el-ksd-icon-lock_old" @click="showNoAuthorityContent(currentModel)"></i>
         <!-- <el-button icon="el-ksd-icon-lock_old" @click="showNoAuthorityContent(currentModel)" type="primary" text></el-button> -->
       </common-tip>
     </template>
@@ -16,9 +16,10 @@
         <el-button v-else class="item" @click="(e) => handleEditModel(currentModel.alias, e)" icon="el-ksd-icon-repair_22" type="primary" text>{{editText}}</el-button>
       </common-tip>
       <common-tip
-        :disabled="!!buildText"
+        class="ksd-mr-8"
+        :disabled="!(buildText && disableLineBuildBtn(currentModel))"
         :content="getDisableBuildTips(currentModel)"
-        v-if="currentModel.status !== 'BROKEN'&&datasourceActions.includes('buildIndex')">
+        v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('buildIndex')">
         <el-popover
           ref="popoverBuild"
           placement="bottom-end"
@@ -49,7 +50,7 @@
           type="primary"
           text>{{buildText}}</el-button>
       </common-tip>
-      <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-mr-8" :disabled="!!moreText" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
+      <common-tip :content="$t('kylinLang.common.moreActions')" :disabled="!!moreText" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge') || modelActions.includes('exportTDS')">
         <el-dropdown @command="(command) => {handleCommand(command, currentModel)}" :id="currentModel.name" trigger="click" >
           <span class="el-dropdown-link" >
             <span v-if="!moreText" class="item ksd-fs-14"><i :class="['icon-item', otherIcon]"></i></span>
@@ -507,7 +508,7 @@ export default class ModelActions extends Vue {
         disableFullLoad: type === 'fullLoad' && value.length > 0 && value[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
       })
       // await this.refreshSegment(modelDesc.alias)
-      this.$emit('loadModels')
+      this.$emit('loadModelsList')
     })
   }
 

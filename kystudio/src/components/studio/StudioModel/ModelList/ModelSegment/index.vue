@@ -20,7 +20,7 @@
       </div>
       <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button v-if="$store.state.project.emptySegmentEnable" type="primary" text icon="el-ksd-icon-add_22" :disabled="!model.partition_desc && segments.length>0" style="margin-left:-14px !important;" class="ksd-mr-2 ksd-fleft" @click="addSegment">Segment</el-button>
-        <el-dropdown split-button @click="handleRefreshSegment" type="primary" text class="ksd-mr-2 ksd-fleft" btn-icon="el-ksd-icon-refresh_22" size="medium">
+        <el-dropdown split-button @click="handleRefreshSegment" :disabled="!selectedSegments.length || hasEventAuthority('refresh')" type="primary" text class="ksd-mr-2 ksd-fleft" btn-icon="el-ksd-icon-refresh_22" size="medium">
           {{$t('kylinLang.common.refresh')}}
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="handleMergeSegment" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')">
