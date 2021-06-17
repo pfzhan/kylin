@@ -37,28 +37,16 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexPatternFieldRef;
-import org.apache.calcite.rex.RexRangeRef;
-import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.TimestampString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -72,14 +60,12 @@ import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.util.FilterConditionExpander;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 import io.kyligence.kap.query.util.RexUtils;
-import lombok.val;
-import lombok.var;
 
 public class KapFilterRel extends OLAPFilterRel implements KapRel {
     private static final String DATE = "date";
@@ -205,7 +191,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
         this.condition.accept(visitor);
         if (isHeterogeneousSegmentOrMultiPartEnabled(this.context)) {
-            context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(context, this)));
+            context.getExpandedFilterConditions().addAll(new FilterConditionExpander(context, this).convert(this.condition));
         }
         if (isJoinMatchOptimizationEnabled()) {
             collectNotNullTableWithFilterCondition(context);
@@ -277,7 +263,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
             this.condition.accept(visitor);
             if (isHeterogeneousSegmentOrMultiPartEnabled(context)) {
-                context.getExpandedFilterConditions().add(this.condition.accept(new FilterConditionExpander(context, this)));
+                context.getExpandedFilterConditions().addAll(new FilterConditionExpander(context, this).convert(this.condition));
             }
             if (isJoinMatchOptimizationEnabled()) {
                 collectNotNullTableWithFilterCondition(context);
@@ -302,188 +288,6 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     @Override
     public void setSubContexts(Set<OLAPContext> contexts) {
         this.subContexts = contexts;
-    }
-
-    private class FilterConditionExpander extends RexVisitorImpl<RexNode> {
-        private OLAPContext context;
-        private RelNode currentRel;
-
-        public FilterConditionExpander(OLAPContext context, RelNode currentRel) {
-            super(true);
-            this.context = context;
-            this.currentRel = currentRel;
-        }
-
-        @Override
-        public RexNode visitCall(RexCall call) {
-            val extendedOperands = Lists.<RexNode>newArrayList();
-            for (RexNode operand : call.operands) {
-                var extendedOperand = operand.accept(this);
-                if (extendedOperand == null) {
-                    extendedOperand = operand;
-                }
-                extendedOperands.add(extendedOperand);
-            }
-
-            if (extendedOperands.size() > 1 && extendedOperands.get(0) instanceof RexInputRef) {
-                val rexInputRefOfIn = (RexInputRef) extendedOperands.get(0);
-                val operator = call.getOperator();
-                if (operator.equals(SqlStdOperatorTable.IN)) {
-                    return convertIn(rexInputRefOfIn, extendedOperands.subList(1, extendedOperands.size()), true);
-                } else if (operator.equals(SqlStdOperatorTable.NOT_IN)) {
-                    return convertIn(rexInputRefOfIn, extendedOperands.subList(1, extendedOperands.size()), false);
-                }
-            }
-
-            return call.clone(call.getType(), transformDateTimestampLiteral(extendedOperands));
-        }
-
-        private RexNode convertIn(RexInputRef rexInputRef, List<RexNode> extendedOperands, boolean isIn) {
-            val rexBuilder = getCluster().getRexBuilder();
-            val transformedOperands = Lists.<RexNode>newArrayList();
-            for (RexNode operand : extendedOperands) {
-                RexNode transformedOperand;
-                if (operand instanceof RexLiteral && ((RexLiteral) operand).getValue() instanceof NlsString) {
-                    val transformedList = transformRexLiteral(rexInputRef, (RexLiteral) operand);
-                    transformedOperand = transformedList == null ? operand : transformedList.get(1);
-                } else {
-                    transformedOperand = operand;
-                }
-
-                val operator = isIn ? SqlStdOperatorTable.EQUALS : SqlStdOperatorTable.NOT_EQUALS;
-                transformedOperands.add(rexBuilder.makeCall(operator, rexInputRef, transformedOperand));
-            }
-
-            if (transformedOperands.size() == 1) {
-                return transformedOperands.get(0);
-            }
-
-            val operator = isIn ? SqlStdOperatorTable.OR : SqlStdOperatorTable.AND;
-            return rexBuilder.makeCall(operator, transformedOperands);
-        }
-
-        private List<RexNode> transformDateTimestampLiteral(List<RexNode> rexNodes) {
-            if (rexNodes.size() != 2 || !(rexNodes.get(1) instanceof RexLiteral)) {
-                return rexNodes;
-            }
-
-            val operand1 = rexNodes.get(0);
-            val operand2 = (RexLiteral) rexNodes.get(1);
-
-            if (!(operand2.getValue() instanceof NlsString)) {
-                return rexNodes;
-            }
-
-            List<RexNode> result = Lists.newArrayList();
-            if (operand1 instanceof RexCall) {
-                result = transformDateLiteral((RexCall) operand1, operand2);
-            } else if (operand1 instanceof RexInputRef) {
-                result = transformRexLiteral((RexInputRef) operand1, operand2);
-            }
-
-            if (CollectionUtils.isEmpty(result)) {
-                result = rexNodes;
-            }
-            return result;
-        }
-
-        private List<RexNode> transformDateLiteral(RexCall operand1, RexLiteral operand2) {
-            if (operand1.getKind() != SqlKind.CAST) {
-                return Lists.newArrayList(operand1, operand2);
-            }
-
-            val inputRef = operand1.operands.get(0);
-            if (!(inputRef instanceof RexInputRef)) {
-                return Lists.newArrayList(operand1, operand2);
-            }
-
-            return transformRexLiteral((RexInputRef) inputRef, operand2);
-        }
-
-        private List<RexNode> transformRexLiteral(RexInputRef inputRef, RexLiteral operand2) {
-            val literalValue = operand2.getValue();
-            val literalValueInString = ((NlsString) literalValue).getValue();
-            val typeName = inputRef.getType().getSqlTypeName().getName();
-            val rexBuilder = getCluster().getRexBuilder();
-            try {
-                if (typeName.equalsIgnoreCase(DATE)) {
-                    val dateLiteral = rexBuilder.makeDateLiteral(new DateString(literalValueInString));
-                    return Lists.newArrayList(inputRef, dateLiteral);
-                } else if (typeName.equalsIgnoreCase(TIMESTAMP)) {
-                    val timestampLiteral = rexBuilder.makeTimestampLiteral(new TimestampString(literalValueInString), inputRef.getType().getPrecision());
-                    return Lists.newArrayList(inputRef, timestampLiteral);
-                }
-            } catch (Exception ex) {
-                logger.warn("transform Date/Timestamp RexLiteral for filterRel failed", ex);
-            }
-
-            return null;
-        }
-
-        @Override
-        public RexNode visitInputRef(RexInputRef inputRef) {
-            return visitChild(inputRef, currentRel);
-        }
-
-        private RexNode visitChild(RexInputRef rexInputRef, RelNode relNode) {
-            if (relNode instanceof TableScan) {
-                return context.createUniqueInputRefContextTables((OLAPTableScan) relNode, rexInputRef.getIndex());
-            }
-
-            if (relNode instanceof Project) {
-                val projectRel = (Project) relNode;
-                val expression = projectRel.getChildExps().get(rexInputRef.getIndex());
-                return expression.accept(new FilterConditionExpander(context, projectRel.getInput()));
-            }
-
-            val index = rexInputRef.getIndex();
-            int currentSize = 0;
-            for (RelNode child : relNode.getInputs()) {
-                val olapRel = (OLAPRel) child;
-                val childRowTypeSize = olapRel.getColumnRowType().size();
-                if (index < currentSize + childRowTypeSize) {
-                    return visitChild(RexInputRef.of(index - currentSize, child.getRowType()), child);
-                }
-                currentSize += childRowTypeSize;
-            }
-
-            return null;
-        }
-
-        @Override
-        public RexNode visitLocalRef(RexLocalRef localRef) {
-            return localRef;
-        }
-
-        @Override
-        public RexNode visitLiteral(RexLiteral literal) {
-            return literal;
-        }
-
-        @Override
-        public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
-            return correlVariable;
-        }
-
-        @Override
-        public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
-            return dynamicParam;
-        }
-
-        @Override
-        public RexNode visitRangeRef(RexRangeRef rangeRef) {
-            return rangeRef;
-        }
-
-        @Override
-        public RexNode visitTableInputRef(RexTableInputRef ref) {
-            return ref;
-        }
-
-        @Override
-        public RexNode visitPatternFieldRef(RexPatternFieldRef fieldRef) {
-            return fieldRef;
-        }
     }
 
     private class MatchWithFilterVisitor extends RexVisitorImpl<RexNode> {
