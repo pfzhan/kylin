@@ -1364,6 +1364,10 @@ public abstract class KylinConfigBase implements Serializable {
     // QUERY
     // ============================================================================
 
+    public boolean readSourceWithDefaultParallelism() {
+        return Boolean.parseBoolean(getOptional("kylin.query.read-source-with-default-parallelism", FALSE));
+    }
+
     public boolean isHeterogeneousSegmentEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.heterogeneous-segment-enabled", TRUE));
     }

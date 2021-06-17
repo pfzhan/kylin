@@ -139,7 +139,16 @@ class KylinFileSourceScanExec(
       fsRelation.sparkSession.sessionState.conf.filesMaxPartitionBytes
     val openCostInBytes = fsRelation.sparkSession.sessionState.conf.filesOpenCostInBytes
 
-    logInfo(s"Planning scan with bin packing, max size is: $defaultMaxSplitBytes bytes, " +
+    val maxSplitBytes = if (KylinConfig.getInstanceFromEnv.readSourceWithDefaultParallelism()) {
+      val defaultParallelism = fsRelation.sparkSession.sparkContext.defaultParallelism
+      val totalBytes = selectedPartitions.flatMap(_.files.map(_.getLen + openCostInBytes)).sum
+      val bytesPerCore = totalBytes / defaultParallelism
+
+      Math.min(defaultMaxSplitBytes, Math.max(openCostInBytes, bytesPerCore))
+    } else {
+      defaultMaxSplitBytes
+    }
+    logInfo(s"Planning scan with bin packing, max size is: $maxSplitBytes bytes, " +
       s"open cost is considered as scanning $openCostInBytes bytes.")
 
     val splitFiles = selectedPartitions.flatMap { partition =>
@@ -147,9 +156,9 @@ class KylinFileSourceScanExec(
         val blockLocations = getBlockLocations(file)
         if (fsRelation.fileFormat.isSplitable(
           fsRelation.sparkSession, fsRelation.options, file.getPath)) {
-          (0L until file.getLen by defaultMaxSplitBytes).map { offset =>
+          (0L until file.getLen by maxSplitBytes).map { offset =>
             val remaining = file.getLen - offset
-            val size = if (remaining > defaultMaxSplitBytes) defaultMaxSplitBytes else remaining
+            val size = if (remaining > maxSplitBytes) maxSplitBytes else remaining
             val hosts = getBlockHosts(blockLocations, offset, size)
             PartitionedFile(
               partition.values, file.getPath.toUri.toString, offset, size, hosts)
@@ -181,7 +190,7 @@ class KylinFileSourceScanExec(
 
     // Assign files to partitions using "Next Fit Decreasing"
     splitFiles.foreach { file =>
-      if (currentSize + file.length > defaultMaxSplitBytes) {
+      if (currentSize + file.length > maxSplitBytes) {
         closePartition()
       }
       // Add the given file to the current partition.
