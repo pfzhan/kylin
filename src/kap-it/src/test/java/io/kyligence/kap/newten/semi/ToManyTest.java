@@ -302,6 +302,9 @@ public class ToManyTest extends SemiAutoTestBase {
                 + "  LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
                 + "  LEFT JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY\n"
                 + "  GROUP BY LO_CUSTKEY ORDER BY LO_CUSTKEY";
+        String sql3 = "SELECT SUM(LO_EXTENDEDPRICE) FROM SSB.P_LINEORDER AS LINEORDER\n"
+                + "  LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
+                + "  LEFT JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY\n";
 
         // prepare an origin model
         AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
@@ -338,6 +341,7 @@ public class ToManyTest extends SemiAutoTestBase {
         List<Pair<String, String>> queryList = Lists.newArrayList();
         queryList.add(Pair.newPair("sql1", sql1));
         queryList.add(Pair.newPair("sql2", sql2));
+        queryList.add(Pair.newPair("sql3", sql3));
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
     }

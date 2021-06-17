@@ -54,7 +54,7 @@ object TableScanPlan extends LogEx {
   def listSegmentsForQuery(cube: NDataflow): util.List[NDataSegment] = {
     val r = new util.ArrayList[NDataSegment]
     import scala.collection.JavaConversions._
-    for (seg <- cube.getQueryableSegments()) {
+    for (seg <- cube.getQueryableSegments) {
       r.add(seg)
     }
     r
@@ -156,6 +156,12 @@ object TableScanPlan extends LogEx {
     val dimensionsD = new util.LinkedHashSet[TblColRef]
     dimensionsD.addAll (groupsD)
     dimensionsD.addAll (otherDimsD)
+    context.getCandidate.getDerivedToHostMap.asScala.toList.foreach(m => {
+      if (m._2.`type` == DeriveInfo.DeriveType.LOOKUP
+        && !m._2.isOneToOne && mapping.getIndexOf(m._1) != -1) {
+        dimensionsD.add(m._1)
+      }
+    })
     val gtColIdx = mapping.getDimIndices (dimensionsD) ++ mapping
             .getMetricsIndices (context.getMetrics)
 
