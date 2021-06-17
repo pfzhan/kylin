@@ -488,25 +488,20 @@ public class RexToTblColRefTranslator {
         }
 
         /**
-         * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
-         * `/(Reinterpret(-($23, $22)), 1000)`.
          * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
          * <br>
          * <br>Following steps use for translating TIMESTAMPDIFF RexCall to SqlCall:
-         * <br>1. get the first operand from call.getType().getIntervalQualifier().getUnit();
+         * <br>1. get the first operand from call.operands.get(0), transfer to TimeUnit;
          * <br>2. get the second operand from call.operands.get(1);
-         * <br>3. get the third operand from call.operands.get(0).
-         * <br>
-         * <br>In this example, the translation result of RexNode
-         * `-($23, $22)` is `timestampdiff(second, time0, time1)`.
+         * <br>3. get the third operand from call.operands.get(2).
          */
         private void registerTimestampDiff() {
-            registerOp(SqlStdOperatorTable.MINUS_DATE, (RexToSqlNodeConverter converter, RexCall call) -> {
+            registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF, (RexToSqlNodeConverter converter, RexCall call) -> {
                 SqlNode[] operands = doConvertExpressionList(converter, call.operands);
-                TimeUnit unit = call.getType().getIntervalQualifier().getUnit();
+                TimeUnit unit = (TimeUnit) (((RexLiteral) call.operands.get(0)).getValue());
                 SqlNode first = SqlLiteral.createSymbol(unit, SqlParserPos.ZERO);
-                return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(SqlParserPos.ZERO, first, operands[1],
-                        operands[0]);
+                return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(SqlParserPos.ZERO, first,
+                        operands[1], operands[2]);
             });
         }
 

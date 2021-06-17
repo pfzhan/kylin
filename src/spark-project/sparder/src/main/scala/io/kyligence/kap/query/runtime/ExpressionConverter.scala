@@ -34,7 +34,7 @@ import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions
-import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
+import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue, TimestampDiff}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -443,6 +443,8 @@ object ExpressionConverter {
         not(k_lit(children.head))
       case (IS_TRUE | IS_NOT_FALSE) =>
         k_lit(children.head)
+      case TIMESTAMP_DIFF =>
+        new Column(TimestampDiff(k_lit(children.head).expr, k_lit(children.apply(1)).expr, k_lit(children.apply(2)).expr))
       case unsupportedFunc =>
         throw new UnsupportedOperationException(unsupportedFunc.toString)
     }
