@@ -24,7 +24,6 @@
 package io.kyligence.kap.rest.monitor;
 
 import java.util.ArrayList;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,6 +56,7 @@ public class SparkContextCanary {
     private static final int THRESHOLD_TO_RESTART_SPARK = KapConfig.getInstanceFromEnv().getThresholdToRestartSpark();
     private static final int PERIOD_MINUTES = KapConfig.getInstanceFromEnv().getSparkCanaryPeriodMinutes();
     private static final String WORKING_DIR = KapConfig.getInstanceFromEnv().getWriteHdfsWorkingDirectory();
+    private static final String CHECK_TYPE = KapConfig.getInstanceFromEnv().getSparkCanaryType();
 
     @Getter
     private static volatile int errorAccumulated = 0;
@@ -93,11 +93,8 @@ public class SparkContextCanary {
                 logger.info("Spark is unavailable, need to restart immediately.");
                 errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
             } else {
-                val jsc = JavaSparkContext.fromSparkContext(SparderEnv.getSparkSession().sparkContext());
-                Future<Boolean> handler = checkWriteFile(jsc);
+                Future<Boolean> handler = check();
                 try {
-                    jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
-
                     long t = System.currentTimeMillis();
                     handler.get(KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(), TimeUnit.MILLISECONDS);
                     logger.info("SparkContextCanary checkWriteFile returned successfully, takes {} ms.",
@@ -144,28 +141,39 @@ public class SparkContextCanary {
     }
 
     // for canary
-    private static Future<Boolean> checkWriteFile(JavaSparkContext jsc) {
-
+    private static Future<Boolean> check() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
+        return executor.submit(() -> {
+            val ss = SparderEnv.getSparkSession();
+            val jsc = JavaSparkContext.fromSparkContext(SparderEnv.getSparkSession().sparkContext());
+            jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
+            jsc.setJobDescription("Canary check by " + CHECK_TYPE);
 
-        final Future<Boolean> handler = executor.submit(new Callable() {
-            @Override
-            public Boolean call() throws Exception {
-                val ss = SparderEnv.getSparkSession();
-                val list = new ArrayList<Row>();
+            switch (CHECK_TYPE) {
+            case "file":
+                val rowList = new ArrayList<Row>();
                 for (int i = 0; i < 100; i++) {
-                    list.add(RowFactory.create(i));
+                    rowList.add(RowFactory.create(i));
                 }
 
                 val schema = new StructType(
                         new StructField[] { DataTypes.createStructField("col", DataTypes.IntegerType, true) });
-                val df = ss.createDataFrame(jsc.parallelize(list), schema);
+                val df = ss.createDataFrame(jsc.parallelize(rowList), schema);
                 val appId = ss.sparkContext().applicationId();
-                df.write().mode(SaveMode.Overwrite).parquet(WORKING_DIR + "/" + appId);
-                return true;
+                df.write().mode(SaveMode.Overwrite).parquet(WORKING_DIR + "/_health/" + appId);
+                break;
+            case "count":
+                val countList = new ArrayList<Integer>();
+                for (int i = 0; i < 100; i++) {
+                    countList.add(i);
+                }
+                jsc.parallelize(countList).count();
+                break;
+            default:
+                break;
             }
+            jsc.setJobDescription(null);
+            return true;
         });
-
-        return handler;
     }
 }
