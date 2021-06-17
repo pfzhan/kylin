@@ -74,7 +74,7 @@ object ResultPlan extends LogEx {
       pool = "vip_tasks"
     } else if (QueryContext.current().getQueryTagInfo.isTableIndex) {
       pool = "extreme_heavy_tasks"
-    } else if (partitionsNum <= SparderEnv.getTotalCore) {
+    } else if (partitionsNum < SparderEnv.getTotalCore) {
       pool = "lightweight_tasks"
     }
 
