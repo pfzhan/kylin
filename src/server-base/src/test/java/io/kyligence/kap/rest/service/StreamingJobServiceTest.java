@@ -28,6 +28,7 @@ import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -94,6 +95,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private ModelService modelService = Mockito.spy(new ModelService());
 
+    @InjectMocks
+    private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
+
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
 
@@ -116,6 +120,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(streamingJobService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(streamingJobService, "modelService", modelService);
+        ReflectionTestUtils.setField(streamingJobService, "indexPlanService", indexPlanService);
 
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject(PROJECT);
@@ -225,17 +232,19 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetStreamingJobListOfIndex() throws Exception {
-        val modelList = modelService.getModels(org.apache.commons.lang.StringUtils.EMPTY, PROJECT, false, "", null,
-                "last_modify", true, "", null, null);
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = createStatData(jobId);
 
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
-        var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20, modelList);
+        var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(8, list.getTotalSize());
         Assert.assertEquals("model_streaming", list.getValue().get(0).getModelName());
-        Assert.assertEquals(8L, list.getValue().get(0).getModelIndexes().longValue());
+        Assert.assertEquals(4, list.getValue().get(0).getModelIndexes().intValue());
+        val mgr = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        Assert.assertEquals(4, mgr.getIndexPlan("4965c827-fbb4-4ea1-a744-3f341a3b030d").getAllLayouts().size());
+        Assert.assertEquals(4, mgr.getIndexPlan("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getAllLayouts().size());
+
         streamingJobsStatsManager.deleteAllStreamingJobStats();
     }
 

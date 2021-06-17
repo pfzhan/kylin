@@ -56,5 +56,5 @@ public class StreamingJobResponse extends StreamingJobMeta{
     private Long lastStatusDuration;
 
     @JsonProperty("model_indexes")
-    private Long modelIndexes;
+    private Integer modelIndexes;
 }

@@ -30,7 +30,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
 import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
-import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.StreamingJobService;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
@@ -85,9 +84,6 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private StreamingJobService streamingJobService = Mockito.spy(StreamingJobService.class);
 
-    @Mock
-    private ModelService modelService = Mockito.spy(ModelService.class);
-
     @InjectMocks
     private StreamingJobController streamingJobController = Mockito.spy(new StreamingJobController());
 
@@ -106,8 +102,6 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ReflectionTestUtils.setField(streamingJobController, "streamingJobService", streamingJobService);
-        ReflectionTestUtils.setField(streamingJobController, "modelService", modelService);
-
     }
 
     @Before

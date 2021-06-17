@@ -67,6 +67,7 @@ import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
@@ -91,6 +92,14 @@ public class StreamingJobService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    @Qualifier("modelService")
+    private ModelService modelService;
+
+    @Autowired
+    @Qualifier("indexPlanService")
+    IndexPlanService indexPlanService;
 
     public void launchStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
@@ -303,24 +312,28 @@ public class StreamingJobService extends BasicService {
     }
 
     public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
-                                                                      int limit) {
-        return getStreamingJobList(jobFilter, offset, limit, null);
-    }
-    public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
-                                                                      int limit, List<NDataModelResponse> modelList) {
+            int limit) {
         val config = KylinConfig.getInstanceFromEnv();
         List<StreamingJobMeta> list;
+        List<NDataModelResponse> modelList = null;
         if (StringUtils.isEmpty(jobFilter.getProject())) {
             val prjMgr = NProjectManager.getInstance(config);
             val prjList = prjMgr.listAllProjects();
             list = new ArrayList<>();
+            modelList = new ArrayList<>();
             for (ProjectInstance instance : prjList) {
                 val mgr = StreamingJobManager.getInstance(config, instance.getName());
                 list.addAll(mgr.listAllStreamingJobMeta());
+                modelList.addAll(modelService.getModels(StringUtils.EMPTY, instance.getName(), false, "", null,
+                        "last_modify", true, null, null, null));
+
             }
         } else {
             StreamingJobManager mgr = StreamingJobManager.getInstance(config, jobFilter.getProject());
             list = mgr.listAllStreamingJobMeta();
+            modelList = modelService.getModels(StringUtils.EMPTY, jobFilter.getProject(), false, "", null,
+                    "last_modify", true, null, null, null);
+
         }
         List<String> jobIdList = list.stream().filter(item -> JobTypeEnum.STREAMING_BUILD == item.getJobType())
                 .map(item -> StreamingUtils.getJobId(item.getModelId(), item.getJobType().name()))
@@ -371,17 +384,22 @@ public class StreamingJobService extends BasicService {
         val modelMap = new HashMap<String, NDataModelResponse>();
         if (modelList != null) {
             modelList.stream().forEach(item -> {
-                modelMap.put(item.getAlias(), item);
+                modelMap.put(item.getUuid(), item);
             });
             if (targetList != null) {
                 val iter = targetList.iterator();
                 while (iter.hasNext()) {
                     val entry = (StreamingJobResponse) iter.next();
-                    val dataModel = modelMap.get(entry.getModelName());
-                    if (dataModel.isModelBroken()) {
-                        entry.setModelIndexes(0L);
-                    } else {
-                        entry.setModelIndexes(dataModel.getTotalIndexes());
+                    val id = entry.getId();
+                    val uuid = id.substring(0, id.lastIndexOf("_"));
+                    val dataModel = modelMap.get(uuid);
+                    if (dataModel != null) {
+                        if (dataModel.isModelBroken()) {
+                            entry.setModelIndexes(0);
+                        } else {
+                            val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
+                            entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
+                        }
                     }
                 }
             }
