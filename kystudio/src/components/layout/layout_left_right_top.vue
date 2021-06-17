@@ -50,17 +50,16 @@
         <div class="topbar">
           <div class="nav-icon">
             <common-tip :content="$t('holdNaviBar')" placement="bottom-start" v-if="!briefMenuGet">
-              <i class="ksd-fs-22 el-ksd-icon-nav_fold_22" @click="toggleLeftMenu"></i>
+              <el-button type="primary" text icon-button-mini icon="el-ksd-icon-nav_fold_22" @click="toggleLeftMenu"></el-button>
             </common-tip>
             <common-tip :content="$t('unholdNaviBar')" placement="bottom-start" v-else>
-              <i class="ksd-fs-22 el-ksd-icon-nav_unfold_22" @click="toggleLeftMenu"></i>
+              <el-button type="primary" text icon-button-mini icon="el-ksd-icon-nav_unfold_22" @click="toggleLeftMenu"></el-button>
             </common-tip>
           </div>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
             <common-tip :content="canAddProject ? $t('kylinLang.project.addProject') : $t('disableAddProject')" placement="bottom-start">
-              <el-button class="add-project-btn" v-guide.addProjectBtn type="primary" text @click="addProject" v-show="isAdmin" :disabled="!canAddProject">
-                <i class="el-ksd-icon-add_22 ksd-fs-22"></i>
+              <el-button class="add-project-btn" v-guide.addProjectBtn type="primary" text icon-button-mini icon="el-ksd-icon-add_22" @click="addProject" v-show="isAdmin" :disabled="!canAddProject">
               </el-button>
             </common-tip>
           </template>
@@ -1365,16 +1364,15 @@ export default class LayoutLeftRightTop extends Vue {
           // box-shadow: 0 1px 2px 0 @line-split-color;
           z-index: 100;
           .nav-icon {
-            margin-left: 200px;
-            margin-top: 13px;
+            margin-left: 202px;
+            margin-top: 10px;
             height: 14px;
             line-height: 14px;
             cursor: pointer;
             float: left;
           }
           .add-project-btn {
-            margin: 7px 0 0 2px;
-            padding:5px;
+            margin: 10px 0 0 4px;
           }
           .top-ul {
             font-size:0;

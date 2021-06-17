@@ -85,7 +85,7 @@ export default {
 @import "../../assets/styles/variables.less";
 
 .project_select{
-  margin: 10px 0 0 16px;
+  margin: 10px 0 0 4px;
   float: left;
   width: 192px;
   .el-input__inner {

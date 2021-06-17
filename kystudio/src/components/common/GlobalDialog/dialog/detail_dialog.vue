@@ -89,10 +89,10 @@
         <el-button @click="handleClose">{{closeT}}</el-button>
       </template>
       <template v-else>
-        <el-button v-if="needResolveCancel" @click="handleCloseAndResove">{{cancelT}}</el-button>
-        <el-button v-else @click="handleClose">{{cancelT}}</el-button>
-        <el-button type="primary" v-if="isSubSubmit" :loading="loading" @click="handleSubmit(false)">{{submitSubText}}</el-button>
-        <el-button type="primary" v-if="!isHideSubmit" :loading="loading" @click="handleSubmit(true)">{{submitT}}</el-button>
+        <el-button v-if="needResolveCancel" :type="isSubSubmit? 'primary': ''" :text="isSubSubmit" @click="handleCloseAndResove">{{cancelT}}</el-button>
+        <el-button :type="isSubSubmit? 'primary': ''" :text="isSubSubmit" v-else class="ksd-ml-12" @click="handleClose">{{cancelT}}</el-button>
+        <el-button v-if="isSubSubmit" :loading="loading" class="ksd-ml-12" @click="handleSubmit(false)">{{submitSubText}}</el-button>
+        <el-button type="primary" v-if="!isHideSubmit" class="ksd-ml-12" :loading="loading" @click="handleSubmit(true)">{{submitT}}</el-button>
       </template>
     </div>
   </el-dialog>
@@ -303,7 +303,8 @@ export default class DetailDialogModal extends Vue {
     }
   }
   .confirm-msg {
-    line-height: 20px;
+    line-height: 22px;
+    color: @text-normal-color;
   }
   .show-detail{
     display: inline-block;

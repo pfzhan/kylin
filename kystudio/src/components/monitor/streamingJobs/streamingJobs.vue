@@ -238,6 +238,9 @@ import echarts from 'echarts'
     }),
     ...mapMutations({
       setProject: 'SET_PROJECT'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   computed: {
@@ -371,26 +374,24 @@ export default class StreamingJobsList extends Vue {
       this.stopLoading = false
     }
   }
-  batchStop () {
+  async batchStop () {
     if (!this.batchBtnsEnabled.stop) return
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       const data = {project: this.currentSelectedProject, action: 'STOP', job_ids: this.idsArr}
-      this.$confirm(this.$t('stopStreamingJobTips'), this.$t('stopJob'), {
-        confirmButtonText: this.$t('stopJob'),
-        cancelButtonText: this.$t('stopJobImme'),
-        showClose: false,
-        closeOnClickModal: false,
-        closeOnPressEscape: false,
-        centerButton: true
-      }).then(() => {
-        data.action = 'STOP'
-        this.stopJob(data)
-      }).catch(() => {
-        data.action = 'FORCE_STOP'
-        this.stopJob(data)
+      const isSubmit = await this.callGlobalDetailDialog({
+        msg: this.$t('stopStreamingJobTips'),
+        title: this.$t('stopJob'),
+        dialogType: '',
+        wid: '600px',
+        showDetailBtn: false,
+        isSubSubmit: true,
+        submitSubText: this.$t('stopJob'),
+        submitText: this.$t('stopJobImme')
       })
+      data.action = isSubmit.isOnlySave ? 'STOP' : 'FORCE_STOP'
+      this.stopJob(data)
     }
   }
   filterChange (val) {

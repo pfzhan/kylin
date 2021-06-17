@@ -758,9 +758,6 @@ export default class ModelPartitionModal extends Vue {
 <style lang="less" scoped>
 @import '../../../../../assets/styles/variables.less';
 .model-partition-dialog {
-  .sec-switch .el-switch__button {
-    top: 2px;
-  }
   .secStorage-desc {
     font-size: 12px;
     line-height: 16px;
