@@ -393,6 +393,7 @@ export default class ModelLayout extends Vue {
       refrashWarningSegment: refrashWarningSegment,
       indexes: [],
       submitText: submitText,
+      isHybridBatch: this.currentModelRow.model_type === 'HYBRID',
       model: model
     })
   }

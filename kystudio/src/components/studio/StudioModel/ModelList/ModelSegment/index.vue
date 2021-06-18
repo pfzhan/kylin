@@ -900,7 +900,7 @@ export default class ModelSegment extends Vue {
       const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds, refresh_all_indexes })
       if (isSubmit) {
         await this.loadSegments()
-        this.$emit('loadModels')
+        // this.$emit('loadModels')
         this.$message({
           dangerouslyUseHTMLString: true,
           type: 'success',
