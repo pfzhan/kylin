@@ -28,6 +28,7 @@ import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -85,6 +86,11 @@ public class AddressUtil implements IKeep {
     }
 
     public static String getLocalHostExactAddress() {
+        val localIpAddress = KylinConfig.getInstanceFromEnv().getServerIpAddress();
+        if (StringUtils.isNotBlank(localIpAddress)) {
+            return localIpAddress;
+        }
+
         try {
             InetAddress candidateAddress = null;
 

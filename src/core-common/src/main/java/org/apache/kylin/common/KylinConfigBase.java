@@ -578,8 +578,15 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metadata.check-copy-on-write", FALSE));
     }
 
+    public String getServerIpAddress() {
+        // format: ip
+        return getOptional("kylin.env.ip-address");
+    }
+
     public String getServerAddress() {
         // Caution: config 'kylin.server.address' is essential in yarn cluster mode.
+        // The value may be the address of loadbalancer
+        // format: ip:port
         return getOptional("kylin.server.address", getDefaultServerAddress());
     }
 
