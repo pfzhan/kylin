@@ -26,9 +26,15 @@ package io.kyligence.kap.rest.service;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
+import java.util.UUID;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -124,7 +130,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
 
         NAggregationGroup aggregationGroup = mkAggGroup(0);
-        aggregationGroup.setIndexRange(IndexEntity.Range.HYBRID);
+        aggregationGroup.setIndexRange(Range.HYBRID);
         IndexPlan saved = fusionIndexService.updateRuleBasedCuboid("streaming_test",
                 createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, false)).getFirst();
 
@@ -135,10 +141,10 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
 
         val rule = fusionIndexService.getRule("streaming_test", modelId);
         Assert.assertEquals(1, rule.getAggregationGroups().size());
-        Assert.assertEquals(IndexEntity.Range.HYBRID, rule.getAggregationGroups().get(0).getIndexRange());
+        Assert.assertEquals(Range.HYBRID, rule.getAggregationGroups().get(0).getIndexRange());
 
         aggregationGroup = mkAggGroup(0, 11);
-        aggregationGroup.setIndexRange(IndexEntity.Range.HYBRID);
+        aggregationGroup.setIndexRange(Range.HYBRID);
         val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, true);
 
         saved = fusionIndexService.updateRuleBasedCuboid("streaming_test", updateRuleRequest).getFirst();
@@ -155,7 +161,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
 
         NAggregationGroup aggregationGroup = mkAggGroup(0);
-        aggregationGroup.setIndexRange(IndexEntity.Range.BATCH);
+        aggregationGroup.setIndexRange(Range.BATCH);
         IndexPlan saved = fusionIndexService.updateRuleBasedCuboid("streaming_test",
                 createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, false)).getFirst();
 
@@ -166,10 +172,10 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
 
         val rule = fusionIndexService.getRule("streaming_test", modelId);
         Assert.assertEquals(1, rule.getAggregationGroups().size());
-        Assert.assertEquals(IndexEntity.Range.BATCH, rule.getAggregationGroups().get(0).getIndexRange());
+        Assert.assertEquals(Range.BATCH, rule.getAggregationGroups().get(0).getIndexRange());
 
         aggregationGroup = mkAggGroup(0, 11);
-        aggregationGroup.setIndexRange(IndexEntity.Range.BATCH);
+        aggregationGroup.setIndexRange(Range.BATCH);
         val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, true);
 
         saved = fusionIndexService.updateRuleBasedCuboid("streaming_test", updateRuleRequest).getFirst();
@@ -186,7 +192,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
 
         NAggregationGroup aggregationGroup = mkAggGroup(0);
-        aggregationGroup.setIndexRange(IndexEntity.Range.STREAMING);
+        aggregationGroup.setIndexRange(Range.STREAMING);
         IndexPlan saved = fusionIndexService.updateRuleBasedCuboid("streaming_test",
                 createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, false)).getFirst();
 
@@ -197,10 +203,10 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
 
         val rule = fusionIndexService.getRule("streaming_test", modelId);
         Assert.assertEquals(1, rule.getAggregationGroups().size());
-        Assert.assertEquals(IndexEntity.Range.STREAMING, rule.getAggregationGroups().get(0).getIndexRange());
+        Assert.assertEquals(Range.STREAMING, rule.getAggregationGroups().get(0).getIndexRange());
 
         aggregationGroup = mkAggGroup(0, 11);
-        aggregationGroup.setIndexRange(IndexEntity.Range.STREAMING);
+        aggregationGroup.setIndexRange(Range.STREAMING);
         val updateRuleRequest = createUpdateRuleRequest("streaming_test", modelId, aggregationGroup, true);
 
         saved = fusionIndexService.updateRuleBasedCuboid("streaming_test", updateRuleRequest).getFirst();
@@ -226,12 +232,12 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(4, streamingIndexes.size());
+        Assert.assertEquals(6, streamingIndexes.size());
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null,
                 Lists.newArrayList(Range.STREAMING, Range.HYBRID));
-        Assert.assertEquals(3, streamingIndexes.size());
+        Assert.assertEquals(5, streamingIndexes.size());
 
         var batchIndexes = fusionIndexService.getIndexes("streaming_test", batchId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null,
@@ -252,8 +258,8 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
         val origin = indexPlanManager.getIndexPlan(modelId);
         val originLayoutSize = origin.getAllLayouts().size();
-        var response = fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
-                .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.HYBRID)
+        fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.HYBRID)
                 .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_LINENUMBER"))
                 .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_LINENUMBER")).isLoadData(true)
                 .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
@@ -273,22 +279,24 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(0, 11)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(11)));
         Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
-        Assert.assertEquals(IndexEntity.Range.HYBRID, newLayout.getIndexRange());
+        Assert.assertEquals(Range.HYBRID, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(4, streamingIndexes.size());
+        Assert.assertEquals(6, streamingIndexes.size());
 
-        response = fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
-                .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.HYBRID).id(20000000001L)
+        fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.HYBRID).id(20000060001L)
                 .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
                 .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_CUSTKEY")).isLoadData(true)
                 .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
 
         saved = indexPlanManager.getIndexPlan(batchId);
-        Assert.assertEquals(originLayoutSize + 1, saved.getAllLayouts().size());
+        Assert.assertEquals(4, saved.getAllLayouts().size());
+
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
         Assert.assertEquals(originLayoutSize + 1, indexPlan.getAllLayouts().size());
+
         LayoutEntity newLayout1 = null;
         for (LayoutEntity layout : saved.getAllLayouts()) {
             if (newLayout1 == null) {
@@ -303,11 +311,11 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout1.getShardByColumns(), CoreMatchers.is(Arrays.asList(12)));
         Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
 
-        fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, IndexEntity.Range.HYBRID);
+        fusionIndexService.removeIndex("streaming_test", modelId, 20000070001L, Range.HYBRID);
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(3, streamingIndexes.size());
+        Assert.assertEquals(5, streamingIndexes.size());
     }
 
     @Test
@@ -316,10 +324,10 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
-        val origin = indexPlanManager.getIndexPlan(modelId);
+        val origin = indexPlanManager.getIndexPlan(batchId);
         val originLayoutSize = origin.getAllLayouts().size();
-        var response = fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
-                .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.BATCH)
+        fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.BATCH)
                 .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_LINENUMBER"))
                 .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_LINENUMBER")).isLoadData(true)
                 .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
@@ -327,7 +335,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         var saved = indexPlanManager.getIndexPlan(batchId);
         Assert.assertEquals(originLayoutSize + 1, saved.getAllLayouts().size());
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
-        Assert.assertEquals(originLayoutSize, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(originLayoutSize + 2, indexPlan.getAllLayouts().size());
         LayoutEntity newLayout = null;
         for (LayoutEntity layout : saved.getAllLayouts()) {
             if (newLayout == null) {
@@ -341,11 +349,11 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(0, 11)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(11)));
         Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
-        Assert.assertEquals(IndexEntity.Range.BATCH, newLayout.getIndexRange());
+        Assert.assertEquals(Range.BATCH, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(4, streamingIndexes.size());
+        Assert.assertEquals(6, streamingIndexes.size());
 
         var index = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null,
@@ -354,8 +362,8 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(Range.BATCH, index.get(0).getIndexRange());
         Assert.assertEquals(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY"), index.get(0).getSortByColumns());
 
-        response = fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
-                .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.BATCH).id(20000000001L)
+        fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.BATCH).id(20000000001L)
                 .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
                 .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_CUSTKEY")).isLoadData(true)
                 .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
@@ -376,31 +384,29 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout1.getShardByColumns(), CoreMatchers.is(Arrays.asList(12)));
         Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
 
-        fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, IndexEntity.Range.BATCH);
+        fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, Range.BATCH);
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(3, streamingIndexes.size());
+        Assert.assertEquals(5, streamingIndexes.size());
     }
 
     @Test
     public void testStreamingTableIndex() throws Exception {
         val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
-        val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
         val origin = indexPlanManager.getIndexPlan(modelId);
         val originLayoutSize = origin.getAllLayouts().size();
-        var response = fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
-                .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.STREAMING)
+        fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.STREAMING)
                 .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_LINENUMBER"))
                 .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_LINENUMBER")).isLoadData(true)
                 .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
 
         var saved = indexPlanManager.getIndexPlan(modelId);
         Assert.assertEquals(originLayoutSize + 1, saved.getAllLayouts().size());
-        var indexPlan = indexPlanManager.getIndexPlan(batchId);
-        Assert.assertEquals(originLayoutSize, indexPlan.getAllLayouts().size());
+
         LayoutEntity newLayout = null;
         for (LayoutEntity layout : saved.getAllLayouts()) {
             if (newLayout == null) {
@@ -414,14 +420,14 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(0, 11)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(11)));
         Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
-        Assert.assertEquals(IndexEntity.Range.STREAMING, newLayout.getIndexRange());
+        Assert.assertEquals(Range.STREAMING, newLayout.getIndexRange());
 
         var streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(4, streamingIndexes.size());
+        Assert.assertEquals(6, streamingIndexes.size());
 
-        response = fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
-                .project("streaming_test").modelId(modelId).indexRange(IndexEntity.Range.STREAMING).id(20000000001L)
+        fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                .project("streaming_test").modelId(modelId).indexRange(Range.STREAMING).id(20000050001L)
                 .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
                 .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_CUSTKEY")).isLoadData(true)
                 .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
@@ -442,11 +448,11 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(newLayout1.getShardByColumns(), CoreMatchers.is(Arrays.asList(12)));
         Assert.assertThat(newLayout1.getSortByColumns(), CoreMatchers.is(Arrays.asList(0)));
 
-        fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, IndexEntity.Range.STREAMING);
+        fusionIndexService.removeIndex("streaming_test", modelId, 20000070001L, Range.STREAMING);
 
         streamingIndexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        Assert.assertEquals(3, streamingIndexes.size());
+        Assert.assertEquals(5, streamingIndexes.size());
     }
 
     @Test
@@ -496,4 +502,222 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertThat(response.getRollbackLayouts(), is(0));
     }
 
+    @Test
+    public void testStreamingIndexChange() throws Exception {
+        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b73";
+
+        try {
+            fusionIndexService.createTableIndex("streaming_test",
+                    CreateTableIndexRequest.builder().project("streaming_test").modelId(modelId)
+                            .indexRange(Range.STREAMING)
+                            .colOrder(Arrays.asList("SSB_STREAMING.LO_ORDERKEY", "SSB_STREAMING.LO_LINENUMBER"))
+                            .shardByColumns(Arrays.asList("SSB_STREAMING.LO_LINENUMBER")).isLoadData(true)
+                            .sortByColumns(Arrays.asList("SSB_STREAMING.LO_ORDERKEY")).build());
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            fusionIndexService.updateTableIndex("streaming_test",
+                    CreateTableIndexRequest.builder().project("streaming_test").modelId(modelId)
+                            .indexRange(Range.STREAMING).id(20000000001L)
+                            .colOrder(Arrays.asList("SSB_STREAMING.LO_ORDERKEY", "SSB_STREAMING.LO_CUSTKEY"))
+                            .shardByColumns(Arrays.asList("SSB_STREAMING.LO_CUSTKEY")).isLoadData(true)
+                            .sortByColumns(Arrays.asList("SSB_STREAMING.LO_ORDERKEY")).build());
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, Range.STREAMING);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                    .aggregationGroups(Lists.newArrayList(mkAggGroup(3))).build();
+            fusionIndexService.calculateDiffRuleBasedIndex(request);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testFusionModelWithBatchIndexChange() throws Exception {
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        val batchId = "cd2b9a23-699c-4699-b0dd-38c9412b3dfd";
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        NDataflow df = dfMgr.getDataflow(modelId);
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        var saved = indexPlanManager.getIndexPlan(batchId);
+        Assert.assertEquals(4, saved.getAllLayouts().size());
+
+        fusionIndexService.createTableIndex("streaming_test",
+                CreateTableIndexRequest.builder().project("streaming_test").modelId(modelId).indexRange(Range.BATCH)
+                        .colOrder(Arrays.asList("SSB_STREAMING.LO_ORDERKEY", "SSB_STREAMING.LO_CUSTKEY"))
+                        .shardByColumns(Arrays.asList("SSB_STREAMING.LO_ORDERKEY")).isLoadData(true)
+                        .sortByColumns(Arrays.asList("SSB_STREAMING.LO_ORDERKEY")).build());
+
+        saved = indexPlanManager.getIndexPlan(batchId);
+        Assert.assertEquals(5, saved.getAllLayouts().size());
+
+        fusionIndexService.updateTableIndex("streaming_test",
+                CreateTableIndexRequest.builder().project("streaming_test").modelId(modelId).indexRange(Range.BATCH)
+                        .id(20000000001L)
+                        .colOrder(Arrays.asList("SSB_STREAMING.LO_ORDERKEY", "SSB_STREAMING.LO_CUSTKEY"))
+                        .shardByColumns(Arrays.asList("SSB_STREAMING.LO_CUSTKEY")).isLoadData(true)
+                        .sortByColumns(Arrays.asList("SSB_STREAMING.LO_ORDERKEY")).build());
+
+        fusionIndexService.removeIndex("streaming_test", modelId, 20000010001L, Range.BATCH);
+
+        saved = indexPlanManager.getIndexPlan(batchId);
+        Assert.assertEquals(4, saved.getAllLayouts().size());
+
+        NAggregationGroup aggregationGroup = mkAggGroup(3);
+        aggregationGroup.setIndexRange(Range.BATCH);
+        val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Lists.newArrayList(aggregationGroup)).build();
+        val response = fusionIndexService.calculateDiffRuleBasedIndex(request);
+        Assert.assertThat(response.getIncreaseLayouts(), is(1));
+    }
+
+    @Test
+    public void testFusionModelWithStreamingIndexChange() throws Exception {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        NDataflow df = dfMgr.getDataflow(modelId);
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+
+        try {
+            fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                    .project("streaming_test").modelId(modelId).indexRange(Range.STREAMING)
+                    .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
+                    .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).isLoadData(true)
+                    .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
+
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                    .project("streaming_test").modelId(modelId).indexRange(Range.STREAMING).id(20000050001L)
+                    .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
+                    .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_CUSTKEY")).isLoadData(true)
+                    .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
+
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            fusionIndexService.removeIndex("streaming_test", modelId, 20000050001L, Range.STREAMING);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        NAggregationGroup aggregationGroup = mkAggGroup(3);
+        aggregationGroup.setIndexRange(Range.STREAMING);
+        val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Lists.newArrayList(aggregationGroup)).build();
+        try {
+            fusionIndexService.calculateDiffRuleBasedIndex(request);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testFusionModelWithHybridIndexChange() throws Exception {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        NDataflow df = dfMgr.getDataflow(modelId);
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+
+        try {
+            fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                    .project("streaming_test").modelId(modelId).indexRange(Range.HYBRID)
+                    .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
+                    .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).isLoadData(true)
+                    .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
+
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            fusionIndexService.updateTableIndex("streaming_test", CreateTableIndexRequest.builder()
+                    .project("streaming_test").modelId(modelId).indexRange(Range.HYBRID).id(20000040001L)
+                    .colOrder(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY", "P_LINEORDER_STREAMING.LO_CUSTKEY"))
+                    .shardByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_CUSTKEY")).isLoadData(true)
+                    .sortByColumns(Arrays.asList("P_LINEORDER_STREAMING.LO_ORDERKEY")).build());
+
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        try {
+            fusionIndexService.removeIndex("streaming_test", modelId, 20000040001L, Range.HYBRID);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        NAggregationGroup aggregationGroup = mkAggGroup(3);
+        aggregationGroup.setIndexRange(Range.HYBRID);
+        val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Lists.newArrayList(aggregationGroup)).build();
+        try {
+            fusionIndexService.calculateDiffRuleBasedIndex(request);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+    }
 }

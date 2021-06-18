@@ -1564,6 +1564,18 @@ public class Message {
         return "Table %s’s columns are different from the Kafka table’s. Please check and try again.";
     }
 
+    public String getSTREAMING_INDEXES_DELETE() {
+        return "Can’t delete streaming indexes. Please stop the streaming job and then delete all the streaming segments. ";
+    }
+
+    public String getSTREAMING_INDEXES_EDIT() {
+        return "Can’t edit streaming indexes. Please stop the streaming job and then delete all the streaming segments. ";
+    }
+
+    public String getSTREAMING_INDEXES_ADD() {
+        return "Can’t add streaming indexes. Please stop the streaming job and then delete all the streaming segments. ";
+    }
+
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
         return "Cannot force the query to pushdown and index at the same time. Please check the forcedToPushDown and forced_to_index parameters";
     }

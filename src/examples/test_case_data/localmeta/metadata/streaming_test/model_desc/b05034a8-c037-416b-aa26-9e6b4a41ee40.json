@@ -75,7 +75,8 @@
   }, {
     "id" : 10,
     "name" : "LO_PARTITIONCOLUMN",
-    "column" : "P_LINEORDER_STREAMING.LO_PARTITIONCOLUMN"
+    "column" : "P_LINEORDER_STREAMING.LO_PARTITIONCOLUMN",
+    "status" : "DIMENSION"
   }, {
     "id" : 11,
     "name" : "LO_LINENUMBER",
@@ -102,7 +103,8 @@
   }, {
     "id" : 16,
     "name" : "LO_ORDERPRIOTITY",
-    "column" : "P_LINEORDER_STREAMING.LO_ORDERPRIOTITY"
+    "column" : "P_LINEORDER_STREAMING.LO_ORDERPRIOTITY",
+    "status" : "DIMENSION"
   }, {
     "id" : 17,
     "name" : "LO_SHIPPRIOTITY",

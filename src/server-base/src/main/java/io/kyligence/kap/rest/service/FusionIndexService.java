@@ -24,12 +24,26 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
+
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
@@ -104,7 +118,14 @@ public class FusionIndexService extends BasicService {
     @Transaction(project = 0)
     public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
         NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        checkStreamingIndexEnabled(project, model);
+
         if (model.showFusionModel()) {
+            if (!indexChangeEnable(project, request.getModelId(), request.getIndexRange(),
+                    Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING))) {
+                throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_ADD()));
+            }
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
             CreateTableIndexRequest copy = convertTableIndexRequest(request, model, batchId);
@@ -154,7 +175,14 @@ public class FusionIndexService extends BasicService {
     @Transaction(project = 0)
     public BuildIndexResponse updateTableIndex(String project, CreateTableIndexRequest request) {
         NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
+        checkStreamingIndexEnabled(project, model);
+
         if (model.showFusionModel()) {
+            if (!indexChangeEnable(project, request.getModelId(), request.getIndexRange(),
+                    Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING))) {
+                throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT()));
+            }
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
             CreateTableIndexRequest copy = convertTableIndexRequest(request, model, batchId);
@@ -216,7 +244,14 @@ public class FusionIndexService extends BasicService {
     @Transaction(project = 0)
     public void removeIndex(String project, String model, final long id, IndexEntity.Range indexRange) {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
+        checkStreamingIndexEnabled(project, modelDesc);
+
         if (modelDesc.showFusionModel()) {
+            if (!indexChangeEnable(project, model, indexRange,
+                    Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING, Range.EMPTY))) {
+                throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
+            }
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(model);
             String batchId = fusionModel.getBatchModel().getUuid();
             if (IndexEntity.Range.BATCH == indexRange) {
@@ -256,11 +291,18 @@ public class FusionIndexService extends BasicService {
                     : indexPlanService.calculateDiffRuleBasedIndex(batchRequest);
             val streamResponse = streamRequest == null ? DiffRuleBasedIndexResponse.empty()
                     : indexPlanService.calculateDiffRuleBasedIndex(streamRequest);
-
+            checkStreamingAggEnabled(streamResponse, request.getProject(), request.getModelId());
             return DiffRuleBasedIndexResponse.combine(batchResponse, streamResponse);
         }
 
-        return indexPlanService.calculateDiffRuleBasedIndex(request);
+        DiffRuleBasedIndexResponse response = indexPlanService.calculateDiffRuleBasedIndex(request);
+
+        val model = getDataModelManager(request.getProject()).getDataModelDesc(request.getModelId());
+        if (NDataModel.ModelType.STREAMING == model.getModelType()) {
+            checkStreamingAggEnabled(response, request.getProject(), request.getModelId());
+        }
+
+        return response;
     }
 
     private UpdateRuleBasedCuboidRequest convertStreamUpdateRuleReq(UpdateRuleBasedCuboidRequest request) {
@@ -313,5 +355,44 @@ public class FusionIndexService extends BasicService {
     private String getBatchModel(String project, String modelId) {
         FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
         return fusionModel.getBatchModel().getId();
+    }
+
+    private void checkStreamingAggEnabled(DiffRuleBasedIndexResponse streamResponse, String project, String modelId) {
+        if ((streamResponse.getDecreaseLayouts() > 0 || streamResponse.getIncreaseLayouts() > 0)
+                && checkStreamingJobAndSegments(project, modelId)) {
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT()));
+        }
+    }
+
+    private void checkStreamingIndexEnabled(String project, NDataModel model) throws KylinException {
+        if (NDataModel.ModelType.STREAMING == model.getModelType()
+                && checkStreamingJobAndSegments(project, model.getUuid())) {
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
+        }
+    }
+
+    private boolean indexChangeEnable(String project, String modelId, IndexEntity.Range range,
+            List<IndexEntity.Range> ranges) {
+        if (!ranges.contains(range)) {
+            return true;
+        }
+        return !checkStreamingJobAndSegments(project, modelId);
+    }
+
+    private boolean checkStreamingJobAndSegments(String project, String modelId) {
+        String jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
+        val config = KylinConfig.getInstanceFromEnv();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+        StreamingJobMeta meta = mgr.getStreamingJobByUuid(jobId);
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
+        NDataflow df = dataflowManager.getDataflow(modelId);
+
+        if (JobStatusEnum.RUNNING == meta.getCurrentStatus() || !df.getSegments().isEmpty()) {
+            return true;
+        }
+        return false;
     }
 }

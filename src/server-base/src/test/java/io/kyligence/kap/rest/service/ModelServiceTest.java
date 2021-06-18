@@ -5705,7 +5705,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
                 .get(0);
         Assert.assertEquals(0, model.getAvailableIndexesCount());
-        Assert.assertEquals(6, model.getTotalIndexes());
+        Assert.assertEquals(8, model.getTotalIndexes());
         Assert.assertEquals(0, model.getStorage());
         Assert.assertEquals(0, model.getSource());
 

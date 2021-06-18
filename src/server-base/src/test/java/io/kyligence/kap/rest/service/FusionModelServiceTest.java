@@ -168,7 +168,7 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         model = modelMgr.getDataModelDesc(modelId);
         var batchModel = modelMgr.getDataModelDesc(batchId);
         Assert.assertEquals("P_LINEORDER_STREAMING.LO_SHIPMODE", model.getPartitionDesc().getPartitionDateColumn());
-        Assert.assertEquals(3, batchModel.getEffectiveDimensions().size());
+        Assert.assertEquals(5, batchModel.getEffectiveDimensions().size());
     }
 
     @Test

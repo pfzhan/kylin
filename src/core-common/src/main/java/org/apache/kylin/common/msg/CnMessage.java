@@ -426,6 +426,7 @@ public class CnMessage extends Message {
     public String getJOB_STOP_FAILURE() {
         return "无法停止模型\"%s\"的实时任务。请检查后重试。";
     }
+
     // Access
     @Override
     public String getACL_PERMISSION_REQUIRED() {
@@ -1756,6 +1757,18 @@ public class CnMessage extends Message {
     @Override
     public String getBATCH_STREAM_TABLE_NOT_MATCH() {
         return "表 %s 与 Kafka 表的列不一致，请确认两者的列完全一致后重试。";
+    }
+
+    public String getSTREAMING_INDEXES_DELETE() {
+        return "无法删除实时索引。请先停止实时任务，再清空实时 Segment。";
+    }
+
+    public String getSTREAMING_INDEXES_EDIT() {
+        return "无法编辑实时索引。请先停止实时任务，再清空实时 Segment。";
+    }
+
+    public String getSTREAMING_INDEXES_ADD() {
+        return "无法添加实时索引。请先停止实时任务，再清空实时 Segment。";
     }
 
     @Override
