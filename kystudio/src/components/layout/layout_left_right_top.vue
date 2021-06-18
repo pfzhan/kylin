@@ -1372,7 +1372,7 @@ export default class LayoutLeftRightTop extends Vue {
             float: left;
           }
           .add-project-btn {
-            margin: 10px 0 0 4px;
+            margin: 10px 0 0 0;
           }
           .top-ul {
             font-size:0;

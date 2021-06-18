@@ -241,11 +241,11 @@
         </el-table-column>
         <el-table-column
           width="120"
-          prop="source"
+          prop="input_records_count"
           sortable="custom"
           :label="$t('rowCount')">
           <template slot-scope="scope">
-            <div>{{sliceNumber(scope.row.source)}}</div>
+            <div>{{sliceNumber(scope.row.input_records_count)}}</div>
             <div class="update-time ksd-fs-12">
               <span v-if="!!scope.row.last_build_time" v-custom-tooltip="{text: `${$t('lastBuildTime')}${transToServerGmtTime(scope.row.last_build_time)}`, content: transToServerGmtTime(scope.row.last_build_time), w: 0, tableClassName: 'model_list_table'}">{{transToServerGmtTime(scope.row.last_build_time)}}</span>
               <span v-else>-</span>

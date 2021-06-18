@@ -9,14 +9,14 @@
     popper-class="project-select_dropdown"
     @change="changeProject">
     <el-option v-if="systemActions.includes('viewAllProjectJobs') && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
-    <span slot="prefix" v-if="projectList.length" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
+    <span slot="prefix" v-if="projectList.length" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-ksd-icon-project_16'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
       class="project_option"
       :label="item.name"
       :value="item.name">
       <i class="el-icon-ksd-smart_mode_small" v-if="item.maintain_model_type === 'AUTO_MAINTAIN'"></i>
-      <i class="el-icon-ksd-expert_mode_small" v-if="item.maintain_model_type === 'MANUAL_MAINTAIN'"></i>
+      <i class="el-ksd-icon-project_16" v-if="item.maintain_model_type === 'MANUAL_MAINTAIN'"></i>
       <span>{{item.name}}</span>
     </el-option>
     </el-select>
@@ -85,7 +85,7 @@ export default {
 @import "../../assets/styles/variables.less";
 
 .project_select{
-  margin: 10px 0 0 4px;
+  margin: 10px 4px 0 4px;
   float: left;
   width: 192px;
   .el-input__inner {
