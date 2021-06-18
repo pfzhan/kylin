@@ -17,6 +17,7 @@
             @duplicateTags="checkDuplicateValue"
             @validateFailedTags="checkValidateValue"
             @refreshData="refreshData"
+            :disabled="loading"
             splitChar=","
             :allowcreate="true"
             :placeholder="$t('brockerTips')"

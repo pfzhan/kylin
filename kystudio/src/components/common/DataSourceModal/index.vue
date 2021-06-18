@@ -173,7 +173,6 @@ export default class DataSourceModal extends Vue {
   get sourceKafka () { return this.editType === this.editTypes.KAFKA }
   get sourceKafkaStep2 () { return this.editType === this.editTypes.KAFKA2 }
   handleInput (key, value) {
-    console.log(key, value, this.form)
     this.setModalForm(set(this.form, key, value))
   }
   handleInputTableOrDatabase (payload) {
@@ -220,21 +219,23 @@ export default class DataSourceModal extends Vue {
     this._showLoading()
     try {
       if (await this._validate()) {
-        const results = await this._submit()
-        if (results) {
-          if (this.editTypes.HIVE === this.editType) {
-            results.sourceType = 9
-          } else if (this.editTypes.GBASE === this.editType) {
-            results.sourceType = 8
-          } else { // 目前只有Hive和Kafka数据源
-            results.sourceType = 1
+        try {
+          const results = await this._submit()
+          if (results) {
+            if (this.editTypes.HIVE === this.editType) {
+              results.sourceType = 9
+            } else { // 目前只有Hive和Kafka数据源
+              results.sourceType = 1
+            }
+            this.handleClose(results)
           }
-          this.handleClose(results)
+        } catch (e) {
+          handleError(e)
+          this.prevSteps.pop()
         }
       }
     } catch (e) {
       handleError(e)
-      this.prevSteps.pop()
     }
     this._hideLoading()
   }
