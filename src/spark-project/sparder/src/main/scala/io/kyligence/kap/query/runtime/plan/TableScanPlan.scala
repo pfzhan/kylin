@@ -30,6 +30,7 @@ import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NLayoutToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.cube.realization.HybridRealization
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -138,7 +139,7 @@ object TableScanPlan extends LogEx {
   def buildSchema(df: DataFrame, tableName: String, cuboidLayout: LayoutEntity, rel: KapRel,
                   olapContext: OLAPContext, dataflow: NDataflow): (Seq[Column], DataFrame) = {
     var newDF = df
-    val isBatchOfHybrid = dataflow.getModel.isFusionModel && !dataflow.isStreaming
+    val isBatchOfHybrid = olapContext.realization.isInstanceOf[HybridRealization] && dataflow.getModel.isFusionModel && !dataflow.isStreaming
     val mapping = new NLayoutToGridTableMapping (cuboidLayout, isBatchOfHybrid)
     val context = olapContext.storageContext
     /////////////////////////////////////////////

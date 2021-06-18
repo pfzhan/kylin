@@ -153,7 +153,7 @@ public class NProjectLoader {
                 return;
             }
             NDataflow dataflow = (NDataflow) realization;
-            if (dataflow.getModel().isFusionModel()) {
+            if (dataflow.getModel().isFusionModel() && dataflow.isStreaming()) {
                 FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                         .getFusionModel(dataflow.getModel().getFusionId());
                 if (fusionModel != null) {
