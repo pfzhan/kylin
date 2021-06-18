@@ -393,7 +393,7 @@ public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest 
         expectedRanges.add(segmentRange1);
         assertPrunedSegmentsRange(
                 project, sql1_date, dfId, expectedRanges, layout_20000000001, null,
-                "=(DEFAULT.TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL, 1),=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01)");
+                "=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01),=(DEFAULT.TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL, 1)");
     }
 
     // https://olapio.atlassian.net/browse/AL-2878

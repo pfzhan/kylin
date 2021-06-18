@@ -85,7 +85,7 @@ import io.kyligence.kap.query.optrule.KapAggJoinTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggProjectMergeRule;
 import io.kyligence.kap.query.optrule.KapAggProjectTransposeRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
-import io.kyligence.kap.query.optrule.KapFilterCrossJoinRule;
+import io.kyligence.kap.query.optrule.KapFilterJoinRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
@@ -242,8 +242,8 @@ public class PlannerFactory {
         // since join is the entry point, we can't push filter past join
         planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
         planner.removeRule(FilterJoinRule.JOIN);
-        planner.addRule(KapFilterCrossJoinRule.KAP_FILTER_ON_CROSSJOIN_JOIN);
-        planner.addRule(KapFilterCrossJoinRule.KAP_FILTER_ON_CROSSJOIN_SCAN);
+        planner.addRule(KapFilterJoinRule.KAP_FILTER_ON_JOIN_JOIN);
+        planner.addRule(KapFilterJoinRule.KAP_FILTER_ON_JOIN_SCAN);
         // since we don't have statistic of table, the optimization of join is too cost
         planner.removeRule(JoinCommuteRule.INSTANCE);
         planner.removeRule(JoinPushThroughJoinRule.LEFT);

@@ -30,8 +30,13 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.query.engine.mask.QueryResultMasks;
+import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
+import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -59,17 +64,11 @@ import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
-import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
-import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
-import io.kyligence.kap.query.util.HepUtils;
 
 /**
  * Entrance for query execution
@@ -193,17 +192,13 @@ public class QueryExec {
         if (kylinConfig.isConvertCountDistinctExpressionEnabled()) {
             postOptRules.addAll(HepUtils.CountDistinctExprRules);
         }
-        Collection<RelOptRule> filterPushDownOptRules = Lists.newArrayList(HepUtils.FilterPushDownRules);
 
-        if (!postOptRules.isEmpty() || !filterPushDownOptRules.isEmpty()) {
+        if (!postOptRules.isEmpty()) {
             RelNode transformed = HepUtils.runRuleCollection(node, postOptRules, false);
-            RelNode fpNode = HepUtils.runRuleCollection(node, filterPushDownOptRules, false);
-            RelNode fpTransformed = HepUtils.runRuleCollection(transformed, filterPushDownOptRules, false);
-            if (allowAlternativeQueryPlan) {
-                return Lists.newArrayList(fpTransformed, fpNode, transformed, node).stream().distinct()
-                        .collect(Collectors.toList());
+            if (transformed != node && allowAlternativeQueryPlan) {
+                return Lists.newArrayList(transformed, node);
             } else {
-                return Lists.newArrayList(fpTransformed);
+                return Lists.newArrayList(transformed);
             }
         }
         return Lists.newArrayList(node);

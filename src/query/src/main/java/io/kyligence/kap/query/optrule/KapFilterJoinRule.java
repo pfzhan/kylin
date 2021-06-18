@@ -66,15 +66,6 @@ import com.google.common.collect.Sets;
  *
  */
 public class KapFilterJoinRule extends RelOptRule {
-    //
-    //                  filter
-    //                    |
-    //                  join
-    //                /     \
-    //             join   rel-node(not join)
-    //            /   \      |
-    //         any   any    any
-    //
     public static final KapFilterJoinRule KAP_FILTER_ON_JOIN_JOIN = new KapFilterJoinRule(operand(Filter.class,
             operand(Join.class,
                     operand(Join.class, operand(RelNode.class, RelOptRule.any()),
@@ -86,15 +77,7 @@ public class KapFilterJoinRule extends RelOptRule {
                         }
                     }, RelOptRule.any()))),
             RelFactories.LOGICAL_BUILDER, true, "KapFilterJoinRule:filter-join-join");
-    //
-    //                  filter
-    //                    |
-    //                  join
-    //                /     \
-    //  rel-node(not join)   rel-node(not join)
-    //              |        |
-    //             any      any
-    //
+
     public static final KapFilterJoinRule KAP_FILTER_ON_JOIN_SCAN = new KapFilterJoinRule(
             operand(Filter.class, operand(Join.class, operand(RelNode.class, null, new Predicate<RelNode>() {
                 @Override
@@ -159,8 +142,8 @@ public class KapFilterJoinRule extends RelOptRule {
 
         protected void perform() {
             List<RexNode> joinFilters = RelOptUtil.conjunctions(topJoinRel.getCondition());
-            // only match not-null filter
-            if (filterRel == null) {
+            // only match cross join and not-null filter
+            if (!joinFilters.isEmpty() || filterRel == null) {
                 return;
             }
     
@@ -269,6 +252,9 @@ public class KapFilterJoinRule extends RelOptRule {
                     rightFilters)) {
                 filterPushed = true;
             }
+            pullUpNonEquiFilters(joinFilters, false, topJoinRel.getRowType().getFieldList(), aboveFilters);
+            pullUpNonEquiFilters(leftFilters, false, topJoinRel.getInput(0).getRowType().getFieldList(), aboveFilters);
+            pullUpNonEquiFilters(rightFilters, true, topJoinRel.getInput(1).getRowType().getFieldList(), aboveFilters);
     
             // If no filter got pushed after validate, reset filterPushed flag
             if (leftFilters.isEmpty() && rightFilters.isEmpty() && joinFilters.size() == origJoinFilters.size()) {
@@ -318,7 +304,7 @@ public class KapFilterJoinRule extends RelOptRule {
                     .visitList(RelOptUtil.conjunctions(filterRel.getCondition()), newFilterList);
             return relBuilder.push(topJoinRel).filter(newFilterList).build();
         }
-
+    
         private void pullUpNonEquiFilters(List<RexNode> filters, boolean isFromRight, List<RelDataTypeField> srcFields,
                 List<RexNode> aboveFilters) {
             // Move filters up if filters are not eq-cols, e.g (colA > 23) should be move up
@@ -327,7 +313,7 @@ public class KapFilterJoinRule extends RelOptRule {
             for (int i = 0; i < srcFields.size(); i++) {
                 offsets[i] = isFromRight ? (topJoinRel.getRowType().getFieldCount() - srcFields.size()) : 0;
             }
-
+    
             Iterator<RexNode> itr = filters.iterator();
             while (itr.hasNext()) {
                 RexNode filter = itr.next();
