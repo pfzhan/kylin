@@ -65,7 +65,7 @@
               v-if="currentModel.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
               <common-tip
                 :content="$t('disableActionTips3')"
-                :disabled="currentModel.model_type !== 'STREAMING'">
+                :disabled="currentModel.model_type !== 'HYBRID'">
                 {{$t('recommendations')}}
               </common-tip>
             </el-dropdown-item>
@@ -557,9 +557,6 @@ export default class ModelActions extends Vue {
     let flag = true
     switch (command) {
       case 'recommendations':
-        flag = modelDesc.model_type !== 'STREAMING'
-        break
-      case 'dataLoad':
         flag = modelDesc.model_type !== 'HYBRID'
         break
       case 'exportMetadata':
@@ -568,22 +565,10 @@ export default class ModelActions extends Vue {
       case 'exportTDS':
         flag = modelDesc.model_type === 'BATCH'
         break
-      case 'rename':
-        flag = modelDesc.model_type !== 'HYBRID'
-        break
       case 'clone':
-        flag = modelDesc.model_type !== 'HYBRID'
-        break
-      case 'delete':
-        flag = true
+        flag = modelDesc.model_type === 'BATCH'
         break
       case 'purge':
-        flag = modelDesc.model_type !== 'HYBRID'
-        break
-      case 'offline':
-        flag = modelDesc.model_type !== 'HYBRID'
-        break
-      case 'online':
         flag = modelDesc.model_type !== 'HYBRID'
         break
       default:

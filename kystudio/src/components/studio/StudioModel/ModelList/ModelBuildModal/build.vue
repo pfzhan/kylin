@@ -89,7 +89,7 @@
             </el-row>
             <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
           </el-form-item>
-          <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table">
+          <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table && !isNotBatchModel">
             <span slot="label">
               <span>{{$t('multilevelPartition')}}</span>
               <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
@@ -393,6 +393,10 @@
     get isStreamModel () {
       const factTable = this.modelInstance.getFactTable()
       return factTable.source_type === 1 || this.modelDesc.model_type === 'STREAMING'
+    }
+    get isNotBatchModel () {
+      const factTable = this.modelInstance.getFactTable()
+      return factTable.source_type === 1 || this.modelInstance.model_type !== 'BATCH'
     }
 
     refreshPartitionValues (val) {

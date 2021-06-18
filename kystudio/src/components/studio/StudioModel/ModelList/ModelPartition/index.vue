@@ -64,7 +64,7 @@
           </el-col>
         </el-row>
       </el-form-item>
-      <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table">
+      <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table && !isStreamModel">
         <span slot="label">
           <span>{{$t('multilevelPartition')}}</span>
           <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
@@ -181,6 +181,10 @@ export default class ModelPartition extends Vue {
       return ~brokenKeys.indexOf(key)
     }
     return false
+  }
+  get isStreamModel () {
+    const factTable = this.modelInstance.getFactTable()
+    return factTable.source_type === 1 || this.modelInstance.model_type !== 'BATCH'
   }
   get brokenPartitionColumns () {
     if (this.partitionMeta.table) {
