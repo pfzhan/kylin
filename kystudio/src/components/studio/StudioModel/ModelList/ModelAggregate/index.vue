@@ -895,15 +895,15 @@ export default class ModelAggregate extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+        const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName })
         isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
-        isSubmit && await this.$emit('loadModels')
+        isSubmit && await this.$emit('refreshModel')
       })
     } else {
       const { projectName, model } = this
-      const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+      const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName })
       isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
-      isSubmit && await this.$emit('loadModels')
+      isSubmit && await this.$emit('refreshModel')
     }
   }
   // 查询状态过滤回调函数

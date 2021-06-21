@@ -644,6 +644,16 @@ export default class AddMeasure extends Vue {
           delete measureClone.parameterValue
           delete measureClone.convertedColumns
           delete measureClone.fromSearch
+          if (!this.isEditMeasure && measureClone.expression === 'SUM') {
+            const name = measureClone.parameter_value.length ? measureClone.parameter_value[0].value : ''
+            if (name) {
+              const currentMeasure = this.allTableColumns.filter(it => it.full_colname === name)
+              if (currentMeasure.length && currentMeasure[0].datatype.toLocaleLowerCase().indexOf('varchar') >= 0) {
+                this.$message({ type: 'error', showClose: true, closeOtherMessages: true, duration: 0, message: this.$t('createCCMeasureTips', {expression: measureClone.expression}) })
+                return
+              }
+            }
+          }
           let action = this.isEditMeasure ? 'editMeasure' : 'addMeasure'
           this.modelInstance[action](measureClone).then(() => {
             // this.resetMeasure()

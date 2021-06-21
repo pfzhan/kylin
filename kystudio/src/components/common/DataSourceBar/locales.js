@@ -14,7 +14,7 @@ export default {
     loadFailed2: 'failed!',
     sourceManagement: 'Source Management',
     loadTables: 'Load Table Metadata',
-    loadTablesSuccess: 'Synced successfully"loadTablesFail"',
+    loadTablesSuccess: 'Synced successfully',
     loadTablesFail: 'Can\'t load {db_counts} database(s) or {table_counts} source table(s) metadata. Please contact your admin to check whether they exist in the datasource.',
     databases: 'Database',
     tables: 'Table',
