@@ -107,7 +107,9 @@ export default {
     storageTip: 'Calculates the amount of data built in this model',
     subPartitionValuesManage: 'Manage Sub-Partition Values',
     multilParTip: 'This model used multilevel partitioning, which are not supported at the moment. Please set subpartition as \'None\' in model partition dialog, or turn on \'Multilevel Partitioning\' in project settings.',
-    streaming: 'Streaming'
+    streaming: 'Streaming',
+    segmentHoletips: 'There exists a gap in the segment range, and the data of this range cannot be queried. Please confirm whether to add the following segments to fix.',
+    fixSegmentTitle: 'Fix Segment'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -214,6 +216,8 @@ export default {
     storageTip: '模型下已构建数据的存储大小',
     subPartitionValuesManage: '子分区值设置',
     multilParTip: '该模型使用了多级分区，当前不可用。请在分区设置中将子分区列设为”无分区”，或在项目设置中开启支持多级分区。',
-    streaming: '实时任务'
+    streaming: '实时任务',
+    segmentHoletips: '当前 Segment 区间存在空洞，此时将无法查询到该段时间的数据，是否需要补充以下 Segment 进行修复？',
+    fixSegmentTitle: '修复 Segment'
   }
 }

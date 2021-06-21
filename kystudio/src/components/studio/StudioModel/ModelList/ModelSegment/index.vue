@@ -150,7 +150,7 @@
         <el-table-column :label="$t('storageSize')" width="140" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column :label="$t('secStorage')" width="140" align="right" prop="second_storage_size" sortable="custom" v-if="model.second_storage_enabled">
+        <el-table-column :label="$t('secStorage')" width="160" align="right" prop="second_storage_size" sortable="custom" v-if="model.second_storage_enabled">
           <template slot-scope="scope">{{scope.row.second_storage_size | dataSize}}</template>
         </el-table-column>
         <el-table-column align="left" class-name="ky-hover-icon" fixed="right" :label="$t('kylinLang.common.action')" width="83">

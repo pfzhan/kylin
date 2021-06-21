@@ -428,6 +428,15 @@ function getPlainRouteObj (route) {
   }
 }
 
+// 跳转至job页面
+export function jumpToJobs () {
+  if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+    postCloudUrlMessage(window.kapVm.$route, { name: 'kapJob' })
+  } else {
+    window.kapVm.$router.push('/monitor/job')
+  }
+}
+
 export function postCloudUrlMessage (fromRoute, toRoute) {
   if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
     const from = getPlainRouteObj(fromRoute)

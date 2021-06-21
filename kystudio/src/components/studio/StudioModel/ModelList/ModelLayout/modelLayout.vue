@@ -131,7 +131,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapState, mapGetters, mapActions } from 'vuex'
-import { handleError } from 'util/business'
+import { handleError, jumpToJobs } from 'util/business'
 import { transToServerGmtTime, handleSuccessAsync } from 'util'
 import locales from './locales'
 import ModelOverview from '../ModelOverview/ModelOverview.vue'
@@ -359,7 +359,17 @@ export default class ModelLayout extends Vue {
           })
           try {
             await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
-            this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
+            this.$message({
+              dangerouslyUseHTMLString: true,
+              type: 'success',
+              customClass: 'build-full-load-success',
+              message: (
+                <div>
+                  <span>{this.$t('kylinLang.common.submitSuccess')}</span>
+                  <a href="javascript:void(0)" onClick={() => jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
+                </div>
+              )
+            })
             this.reloadModel()
             this.refreshSegment(modelName)
           } catch (e) {

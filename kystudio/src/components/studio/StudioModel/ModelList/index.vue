@@ -341,7 +341,7 @@ import dayjs from 'dayjs'
 import { NamedRegex, pageRefTags } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
-import { handleError, kapMessage } from 'util/business'
+import { handleError, kapMessage, jumpToJobs } from 'util/business'
 import { handleSuccessAsync, dataGenerator, sliceNumber, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
@@ -440,7 +440,11 @@ function getDefaultFilters (that) {
       downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA',
       downloadModelsMetadataBlob: 'DOWNLOAD_MODELS_METADATA_BLOB',
       refreshAccelerationTag: 'ACCELERATE_TAG',
-      getFavoriteRules: 'GET_FAVORITE_RULES'
+      getFavoriteRules: 'GET_FAVORITE_RULES',
+      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     }),
     ...mapActions('ModelAddModal', {
       callAddModelDialog: 'CALL_MODAL'
@@ -555,6 +559,58 @@ export default class ModelList extends Vue {
   reloadModelAndSegment (alias) {
     this.loadModelsList()
     this.refreshSegment(alias)
+  }
+  async autoFix (...args) {
+    try {
+      const [modelName, modleId, segmentHoles] = args
+      const tableData = []
+      let selectSegmentHoles = []
+      segmentHoles.forEach((seg) => {
+        const obj = {}
+        obj['start'] = transToServerGmtTime(seg.date_range_start)
+        obj['end'] = transToServerGmtTime(seg.date_range_end)
+        obj['date_range_start'] = seg.date_range_start
+        obj['date_range_end'] = seg.date_range_end
+        tableData.push(obj)
+      })
+      await this.callGlobalDetailDialog({
+        msg: this.$t('segmentHoletips', {modelName: modelName}),
+        title: this.$t('fixSegmentTitle'),
+        detailTableData: tableData,
+        detailColumns: [
+          {column: 'start', label: this.$t('kylinLang.common.startTime')},
+          {column: 'end', label: this.$t('kylinLang.common.endTime')}
+        ],
+        isShowSelection: true,
+        dialogType: 'warning',
+        showDetailBtn: false,
+        customCallback: async (segments) => {
+          selectSegmentHoles = segments.map((seg) => {
+            return {start: seg.date_range_start, end: seg.date_range_end}
+          })
+          try {
+            await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
+            this.$message({
+              dangerouslyUseHTMLString: true,
+              type: 'success',
+              customClass: 'build-full-load-success',
+              message: (
+                <div>
+                  <span>{this.$t('kylinLang.common.submitSuccess')}</span>
+                  <a href="javascript:void(0)" onClick={() => jumpToJobs()}>{this.$t('kylinLang.common.toJoblist')}</a>
+                </div>
+              )
+            })
+            this.loadModelsList()
+            // this.refreshSegment(modelName)
+          } catch (e) {
+            handleError(e)
+          }
+        }
+      })
+    } catch (e) {
+      e !== 'cancel' && handleError(e)
+    }
   }
   openComplementSegment (model, isModelMetadataChanged) {
     let title
