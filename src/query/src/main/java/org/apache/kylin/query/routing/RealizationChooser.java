@@ -66,19 +66,23 @@ import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPContextProp;
+import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,6 +183,8 @@ public class RealizationChooser {
         } catch (ExecutionException e) {
             if (e.getCause() instanceof NoRealizationFoundException) {
                 throw (NoRealizationFoundException) e.getCause();
+            } else if (e.getCause() instanceof NoStreamingRealizationFoundException) {
+                throw (NoStreamingRealizationFoundException) e.getCause();
             }
         } catch (InterruptedException e) {
             for (Future future : futureList) {
@@ -198,6 +204,7 @@ public class RealizationChooser {
         // Step 1. get model through matching fact table with query
         Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
         if (modelMap.size() == 0) {
+            checkNoRealizationWithStreaming(context);
             throw new NoRealizationFoundException("No model found for " + toErrorMsg(context));
         }
         logger.trace("Models matched fact table {}: {}", context.firstTableScan.getTableName(), modelMap.values());
@@ -263,7 +270,22 @@ public class RealizationChooser {
             return;
         }
 
+        checkNoRealizationWithStreaming(context);
         throw new NoRealizationFoundException("No realization found for " + toErrorMsg(context));
+    }
+
+    private static void checkNoRealizationWithStreaming(OLAPContext context) {
+        String projectName = context.olapSchema.getProjectName();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(kylinConfig, projectName);
+        for (OLAPTableScan tableScan : context.allTableScans) {
+            TableDesc tableDesc = tableManager.getTableDesc(tableScan.getTableName());
+            if (tableDesc.getSourceType() == ISourceAware.ID_STREAMING) {
+                throw new NoStreamingRealizationFoundException(
+                        "No fusion model found for " + toErrorMsg(context));
+            }
+        }
     }
 
     private static List<Candidate> selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
