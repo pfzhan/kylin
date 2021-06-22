@@ -76,7 +76,7 @@ export default {
     refreshNewPartitionInfo: '对于设置了源表分区的快照，将仅刷新新增的分区数据（已构建的历史数据不刷新）。建议在历史数据无更新时勾选此选项。',
     refreshTitle: '刷新快照',
     deleteTitle: '删除快照',
-    deleteTips: '您确定删除 {snapshotNum} 个快照吗？删除后将不支持单独对维度表表的查询，同时维度表上的维度需要被加入索引才可服务于查询。',
+    deleteTips: '您确定删除 {snapshotNum} 个快照吗？删除后将不支持单独对维度表的查询，同时维度表上的维度需要被加入索引才可服务于查询。',
     deleteTablesTitle: '以下表正在运行的任务将被终止。',
     authorityTitle: '权限详情',
     authorityTips: '您无法操作快照 {snapshot}，因为缺少访问以下列的数据权限。',

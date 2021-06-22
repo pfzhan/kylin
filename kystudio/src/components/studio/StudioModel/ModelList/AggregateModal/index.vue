@@ -1316,7 +1316,7 @@ export default class AggregateModal extends Vue {
         ctx('div', null,
           diffResult.rollback_layouts > 0
             ? [
-              ctx('el-checkbox', { class: 'ksd-mt-10', style: 'margin-left: -20px;', props: { checked: this.generateDeletedIndexes }, nativeOn: { change: (v) => this.chengeGenerateDeletedIndexesStatus('change', v, diffResult) } }, this.$t('generateDeletedIndexes', {rollbackNum: diffResult.rollback_layouts}))
+              ctx('el-checkbox', { class: 'ksd-mt-10', props: { checked: this.generateDeletedIndexes }, nativeOn: { change: (v) => this.chengeGenerateDeletedIndexesStatus('change', v, diffResult) } }, this.$t('generateDeletedIndexes', {rollbackNum: diffResult.rollback_layouts}))
             ] : null
         )]
       ),

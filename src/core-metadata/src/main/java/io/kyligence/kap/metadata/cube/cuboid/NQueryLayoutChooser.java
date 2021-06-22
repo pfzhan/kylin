@@ -117,30 +117,13 @@ public class NQueryLayoutChooser {
             LayoutEntity layout = dataflow.getIndexPlan().getLayoutEntity(dataLayout.getLayoutId());
             logger.trace("Matching indexEntity {}", indexEntity);
 
-            Set<TblColRef> unmatchedCols = Sets.newHashSet();
-            Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
             boolean matched = false;
             final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
 
-            if (indexEntity.isTableIndex()
-                    && (sqlDigest.isRawQuery || dataflow.getConfig().isUseTableIndexAnswerNonRawQuery())) {
-                logger.trace("Matching table index");
-                unmatchedCols.addAll(sqlDigest.allColumns);
-                matched = matchTableIndex(layout, sqlDigest, model, unmatchedCols, needDerive, tempResult, isBatchFusionModel);
-                if (!matched && logger.isDebugEnabled()) {
-                    logger.debug("Table index {} with unmatched columns {}", dataLayout, unmatchedCols);
-                }
-            }
-            if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
-                logger.trace("Matching agg index");
-                unmatchedCols.addAll(sqlDigest.filterColumns);
-                unmatchedCols.addAll(sqlDigest.groupbyColumns);
-                matched = matchAggIndex(sqlDigest, layout, model, unmatchedCols, unmatchedMetrics, needDerive,
-                        tempResult, isBatchFusionModel);
-                if (!matched && logger.isDebugEnabled()) {
-                    logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", dataLayout,
-                            unmatchedCols, unmatchedMetrics);
-                }
+            if (needTableIndexMatch(dataflow, sqlDigest, indexEntity)) {
+                matched = matchTableIndex(sqlDigest, layout, model, needDerive, tempResult, isBatchFusionModel);
+            } else if (needAggIndexMatch(sqlDigest, indexEntity)) {
+                matched = matchAggIndex(sqlDigest, layout, model, needDerive, tempResult, isBatchFusionModel);
             }
             if (!matched) {
                 logger.trace("Matching failed");
@@ -168,6 +151,15 @@ public class NQueryLayoutChooser {
         }
         sortCandidates(candidates, dataflow, sqlDigest);
         return candidates.get(0);
+    }
+
+    private static boolean needAggIndexMatch(SQLDigest sqlDigest, IndexEntity indexEntity) {
+        return !indexEntity.isTableIndex() && !sqlDigest.isRawQuery;
+    }
+
+    private static boolean needTableIndexMatch(NDataflow dataflow, SQLDigest sqlDigest, IndexEntity indexEntity) {
+        return indexEntity.isTableIndex()
+                && (sqlDigest.isRawQuery || dataflow.getConfig().isUseTableIndexAnswerNonRawQuery());
     }
 
     private static Collection<NDataLayout> getLayoutsFromSegments(List<NDataSegment> segments, NDataflow dataflow) {
@@ -218,7 +210,8 @@ public class NQueryLayoutChooser {
         candidates.sort(ordering);
     }
 
-    private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity layoutEntity, boolean isBatchFusionModel) {
+    private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity layoutEntity,
+            boolean isBatchFusionModel) {
         List<MeasureDesc> functionDescs = new ArrayList<>();
         if (isBatchFusionModel) {
             functionDescs.addAll(layoutEntity.getStreamingMeasures());
@@ -237,10 +230,15 @@ public class NQueryLayoutChooser {
     }
 
     private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity layoutEntity, final NDataModel model,
-            Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
             Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result, boolean isBatchFusionModel) {
+        logger.trace("Matching agg index");
+        Set<TblColRef> unmatchedCols = Sets.newHashSet();
+        unmatchedCols.addAll(sqlDigest.filterColumns);
+        unmatchedCols.addAll(sqlDigest.groupbyColumns);
+        Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
+
         if (isBatchFusionModel) {
-            unmatchedCols.removeAll(layoutEntity.getStreamingColumns());
+            layoutEntity.getStreamingColumns().forEach(unmatchedCols::remove);
         }
         unmatchedCols.removeAll(layoutEntity.getOrderedDimensions().values());
         goThruDerivedDims(layoutEntity.getIndex(), model, needDerive, unmatchedCols, sqlDigest);
@@ -253,19 +251,32 @@ public class NQueryLayoutChooser {
             applyDimAsMeasureStrategy(layoutEntity.getIndex(), sqlDigest, model, unmatchedMetrics, needDerive, result);
         }
 
-        return unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
+        boolean matched = unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
+        if (!matched && logger.isDebugEnabled()) {
+            logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", //
+                    layoutEntity, unmatchedCols, unmatchedMetrics);
+        }
+
+        return matched;
     }
 
-    private static boolean matchTableIndex(final LayoutEntity layout, SQLDigest sqlDigest, final NDataModel model,
-            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result, boolean isBatchFusionModel) {
+    private static boolean matchTableIndex(SQLDigest sqlDigest, final LayoutEntity layout, final NDataModel model,
+            Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result, boolean isBatchFusionModel) {
+        logger.trace("Matching table index");
+        Set<TblColRef> unmatchedCols = Sets.newHashSet();
+        unmatchedCols.addAll(sqlDigest.allColumns);
+
         if (isBatchFusionModel) {
-            unmatchedCols.removeAll(layout.getStreamingColumns());
+            layout.getStreamingColumns().forEach(unmatchedCols::remove);
         }
         unmatchedCols.removeAll(layout.getOrderedDimensions().values());
         goThruDerivedDims(layout.getIndex(), model, needDerive, unmatchedCols, sqlDigest);
         if (!unmatchedCols.isEmpty()) {
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.TABLE_INDEX_MISSING_COLS);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Table index {} with unmatched columns {}", layout, unmatchedCols);
+            }
             return false;
         }
         return true;

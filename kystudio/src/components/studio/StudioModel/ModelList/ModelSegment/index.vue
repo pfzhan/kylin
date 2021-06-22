@@ -795,7 +795,7 @@ export default class ModelSegment extends Vue {
       this.isSegmentOpen = true
       this.$nextTick(async () => {
         try {
-          await this.callModelBuildDialog({
+          const isSubmit = await this.callModelBuildDialog({
             modelDesc: this.model,
             title: this.$t('addSegment'),
             source: 'addSegment',
@@ -805,7 +805,7 @@ export default class ModelSegment extends Vue {
             disableFullLoad: type === 'fullLoad' && this.segments.length > 0 && this.segments[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
           })
           // await this.loadSegments()
-          this.$emit('loadModels')
+          isSubmit && this.$emit('loadModels')
           this.isSegmentOpen = false
         } catch (e) {
           console.log(e)

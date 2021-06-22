@@ -81,12 +81,12 @@ public class KylinLogTool {
 
     public static final long DAY = 24 * 3600 * 1000L;
 
-    public static final String SECOND_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String SECOND_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
-    private static final String LOG_TIME_PATTERN = "^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})";
+    private static final String LOG_TIME_PATTERN = "^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})";
 
     // 2019-11-11 09:30:04,628 INFO  [FetchJobWorker(project:test_fact)-p-94-t-94] threadpool.NDefaultScheduler : start check project test_fact
-    private static final String LOG_PATTERN = "([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3}) ([^ ]*)[ ]+\\[(.*)\\] ([^: ]*) :([\\n\\r. ]*)";
+    private static final String LOG_PATTERN = "([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3}) ([^ ]*)[ ]+\\[(.*)\\] ([^: ]*) :([\\n\\r. ]*)";
 
     private static final int EXTRA_LINES = 100;
 

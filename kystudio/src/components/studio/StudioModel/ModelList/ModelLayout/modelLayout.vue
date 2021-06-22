@@ -81,7 +81,7 @@
               :isShowBulidIndex="datasourceActions.includes('buildIndex')"
               :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
               ref="modelAggregateItem"
-              @loadModels="reloadModel"
+              @refreshModel="refreshModelData"
               v-if="currentIndexTab === 'indexOverview'" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" :label="$t('recommendationsBtn')" name="recommendations" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions') && currentModelRow.model_type !== 'STREAMING'">
@@ -187,7 +187,8 @@ import ModelStreamingJob from '../ModelStreamingJob/ModelStreamingJob.vue'
     ...mapActions({
       autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
       loadModels: 'LOAD_MODEL_LIST',
-      fetchSegments: 'FETCH_SEGMENTS'
+      fetchSegments: 'FETCH_SEGMENTS',
+      getModelByModelName: 'LOAD_MODEL_INFO'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
@@ -321,6 +322,15 @@ export default class ModelLayout extends Vue {
         reject()
       })
     })
+  }
+
+  // 仅刷新当前 model 数据
+  async refreshModelData () {
+    const response = await this.getModelByModelName({model_name: this.modelName, project: this.currentSelectedProject})
+    const { value } = await handleSuccessAsync(response)
+    if (value.length) {
+      this.currentModelRow = {...this.currentModelRow, ...value[0]}
+    }
   }
 
   handleClick (e) {
