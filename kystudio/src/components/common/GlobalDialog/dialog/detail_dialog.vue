@@ -84,7 +84,7 @@
         show-overflow-tooltip>
       </el-table-column>
     </el-table>
-    <div slot="footer" class="dialog-footer ky-no-br-space">
+    <div slot="footer" class="dialog-footer ky-no-br-space" :class="{'is-center-btn': isCenterBtn}">
       <template v-if="dialogType === 'error'">
         <el-button @click="handleClose">{{closeT}}</el-button>
       </template>
@@ -139,6 +139,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       closeText: state => state.closeText,
       cancelText: state => state.cancelText,
       submitText: state => state.submitText,
+      isCenterBtn: state => state.isCenterBtn,
       isSubSubmit: state => state.isSubSubmit,
       isHideSubmit: state => state.isHideSubmit,
       submitSubText: state => state.submitSubText,
@@ -367,6 +368,9 @@ export default class DetailDialogModal extends Vue {
   }
   &.hide-bottom-border-top .el-dialog__footer {
     border-top: none;
+  }
+  .dialog-footer.is-center-btn button {
+    width: calc(~'50% - 6px');
   }
 }
 </style>

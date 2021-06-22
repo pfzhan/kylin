@@ -610,6 +610,7 @@ export default class ModelPartitionModal extends Vue {
           dialogType: 'warning',
           showDetailBtn: false,
           isSubSubmit: true,
+          wid: '600px',
           dangerouslyUseHTMLString: true,
           submitSubText: this.$t('kylinLang.common.save'),
           submitText: this.$t('saveAndLoad')
@@ -623,6 +624,7 @@ export default class ModelPartitionModal extends Vue {
           dialogType: 'warning',
           showDetailBtn: false,
           isSubSubmit: true,
+          wid: '600px',
           submitSubText: this.$t('kylinLang.common.save'),
           submitText: this.$t('saveAndLoad')
         })
@@ -679,6 +681,7 @@ export default class ModelPartitionModal extends Vue {
                 dialogType: 'warning',
                 showDetailBtn: false,
                 isSubSubmit: true,
+                wid: '600px',
                 submitSubText: this.$t('kylinLang.common.save'),
                 submitText: this.$t('saveAndLoad'),
                 needConcelReject: true

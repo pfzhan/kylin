@@ -15,7 +15,7 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown> -->
-        <div class="action_groups ksd-fleft" v-if="monitorActions.includes('jobActions')">
+        <div class="action_groups ksd-btn-group-minwidth ksd-fleft" v-if="monitorActions.includes('jobActions')">
           <el-button type="primary" text size="medium" icon="el-ksd-icon-play_outline_22" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button type="primary" text size="medium" icon="el-ksd-icon-pause_outline_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.pause||getBatchJobNameEnabled" @click="batchPause">{{$t('jobPause')}}</el-button>

@@ -405,6 +405,7 @@ export default class Homepage extends Vue {
         title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
         dialogType: 'warning',
         isBeta: true,
+        wid: '600px',
         showDetailBtn: false,
         dangerouslyUseHTMLString: true,
         needConcelReject: true,
@@ -452,6 +453,7 @@ export default class Homepage extends Vue {
         showDetailBtn: false,
         dangerouslyUseHTMLString: true,
         needResolveCancel: true,
+        wid: '600px',
         submitText: this.$t('addModel'),
         cancelText: this.$t('viewAllModels')
       }).then(e => {

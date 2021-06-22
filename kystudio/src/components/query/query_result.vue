@@ -616,7 +616,7 @@ export default class queryResult extends Vue {
     }
   }
   get querySteps () {
-    return this.getStepData(this.extraoption['traces'])
+    return this.getStepData(this.extraoption['traces']) || []
   }
   @Watch('extraoption')
   onExtraoptionChange (val) {
