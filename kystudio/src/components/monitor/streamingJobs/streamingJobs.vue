@@ -5,7 +5,7 @@
       <div class="ksd-title-page ksd-mt-32">{{$t('streamingJobsList')}}</div>
       <el-row :gutter="20" class="jobs_tools_row ksd-mtb-8">
         <el-col :span="16">
-          <div class="action_groups ksd-fleft" v-if="monitorActions.includes('jobActions')">
+          <div class="action_groups ksd-btn-group-minwidth ksd-fleft" v-if="monitorActions.includes('jobActions')">
             <el-button type="primary" text size="medium" icon="el-ksd-icon-play_with_border_22" :disabled="!batchBtnsEnabled.start" :loading="startLoading" @click="batchStart">{{$t('jobStart')}}</el-button>
             <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" :loading="restartLoading" @click="batchRestart">{{$t('jobRestart')}}</el-button>
             <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stop" :loading="stopLoading" @click="batchStop">{{$t('jobStop')}}</el-button>

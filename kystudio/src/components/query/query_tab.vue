@@ -14,7 +14,7 @@
         <p class="operator" v-if="isWorkspace">
           <el-form :model="queryForm" :inline="true" ref="queryForm" @submit.native.prevent class="demo-form-inline">
             <el-form-item v-show="showHtrace">
-              <el-checkbox v-model="queryForm.isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
+              <el-checkbox class="ksd-mt-4" v-model="queryForm.isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
             </el-form-item><el-form-item>
               <el-checkbox class="ksd-mt-4" v-model="queryForm.hasLimit" @change="changeLimit">Limit</el-checkbox>
             </el-form-item><el-form-item :rules="limitRule" prop="listRows" :show-message="false">
@@ -101,7 +101,8 @@ import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../
       runQuery: 'Run Query',
       stopQuery: 'Stop Query',
       overIntegerLength: 'Please enter a value no larger than 2,147,483,647.',
-      viewLogs: 'View Logs'
+      viewLogs: 'View Logs',
+      htraceTips: 'Please make sure Zipkin server is properly deployed according to the manual of performance diagnose package.'
     },
     'zh-cn': {
       trace: '追踪',
@@ -113,7 +114,8 @@ import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../
       runQuery: '查询',
       stopQuery: '停止',
       overIntegerLength: '请输入小于等于 2,147,483,647 的数值。',
-      viewLogs: '查看日志'
+      viewLogs: '查看日志',
+      htraceTips: '请确保已经按照性能诊断工具包使用说明部署完毕Zipkin服务器。'
     }
   }
 })
@@ -188,7 +190,7 @@ export default class QueryTab extends Vue {
   }
   changeTrace () {
     if (this.queryForm.isHtrace) {
-      kapConfirm(this.$t('htraceTips'))
+      kapConfirm(this.$t('htraceTips'), {centerButton: true})
     }
   }
   openSaveQueryDialog () {
@@ -206,7 +208,7 @@ export default class QueryTab extends Vue {
     })
   }
   async resetQuery () {
-    await kapConfirm(this.$t('resetTips'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('clear'), type: 'warning'})
+    await kapConfirm(this.$t('resetTips'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('clear'), type: 'warning', centerButton: true})
     this.$emit('resetQuery')
     this.$nextTick(() => {
       this.sourceSchema = ''

@@ -312,6 +312,7 @@ export default class UploadSqlModel extends Vue {
       this.$confirm(this.$t('closeSqlDialogTip'), this.$t('kylinLang.common.tip'), {
         confirmButtonText: this.$t('confirmCancel'),
         cancelButtonText: this.$t('backToEdit'),
+        centerButton: true,
         type: 'warning'
       }).then(() => {
         this.handleClose()
@@ -428,7 +429,7 @@ export default class UploadSqlModel extends Vue {
       kapWarn(this.$t('editSqlTips'))
       return
     }
-    kapConfirm(this.$t('delSql'), null, this.$t('delSqlTitle')).then(() => {
+    kapConfirm(this.$t('delSql'), {centerButton: true}, this.$t('delSqlTitle')).then(() => {
       this.delWhite(id)
     })
   }
@@ -610,7 +611,7 @@ export default class UploadSqlModel extends Vue {
       })
     }
     if (unCheckedSQL) {
-      kapConfirm(this.$t('submitConfirm', {unCheckedSQL: unCheckedSQL}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
+      kapConfirm(this.$t('submitConfirm', {unCheckedSQL: unCheckedSQL}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning', centerButton: true}).then(() => {
         this.submit()
       })
     } else {
@@ -859,7 +860,7 @@ export default class UploadSqlModel extends Vue {
     }
   }
   selectable (row) {
-    return row.capable ? 1 : 0
+    return row.capable
   }
   cancelEdit (isErrorMes) {
     this.isEditSql = false

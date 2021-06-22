@@ -810,7 +810,7 @@ export default class UserAccess extends Vue {
     }
   }
   async deleteFG (fgIndex) {
-    await kapConfirm(this.$t('deleteFilterGroupTips'), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('deleteFilterGroupTitle'))
+    await kapConfirm(this.$t('deleteFilterGroupTips'), {confirmButtonText: this.$t('kylinLang.common.delete'), centerButton: true}, this.$t('deleteFilterGroupTitle'))
     this.row_filter.filter_groups.splice(fgIndex, 1)
     this.allTables[this.databaseIndex].tables[this.tableIndex].row_filter.filter_groups.splice(fgIndex, 1)
     this.tables[this.databaseIndex].originTables[this.tableIndex].row_filter.filter_groups.splice(fgIndex, 1)
@@ -1085,7 +1085,7 @@ export default class UserAccess extends Vue {
         .el-tag__close {
           position: absolute;
           right: 1px;
-          top: 5px;
+          // top: 5px;
         }
       }
     }
