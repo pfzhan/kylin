@@ -121,10 +121,6 @@ public class BackdoorToggles {
         return getBoolean(DISABLE_RAW_QUERY_HACKER);
     }
 
-    public static boolean getHtraceEnabled() {
-        return getBoolean(DEBUG_TOGGLE_HTRACE_ENABLED);
-    }
-
     public static int getQueryTimeout() {
         String v = getString(DEBUG_TOGGLE_QUERY_TIMEOUT);
         if (v == null)
@@ -275,16 +271,6 @@ public class BackdoorToggles {
      }
      */
     public final static String DISABLE_RAW_QUERY_HACKER = "DISABLE_RAW_QUERY_HACKER";
-
-    /**
-     * set DEBUG_TOGGLE_HTRACE_ENABLED="true" to enable htrace
-     *
-     example:(put it into request body)
-     "backdoorToggles": {
-     "DEBUG_TOGGLE_HTRACE_ENABLED": "true"
-     }
-     */
-    public final static String DEBUG_TOGGLE_HTRACE_ENABLED = "DEBUG_TOGGLE_HTRACE_ENABLED";
 
     public final static String QUERY_FROM_AUTO_MODELING = "QUERY_FROM_AUTO_MODELING";
 

@@ -78,7 +78,21 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/ssl-client.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hadoop-env.sh
+    elif [ -n "$TDH_CLIENT_HOME" ]
+    then
+        mkdir -p ${KYLIN_HOME}/hadoop_conf
 
+        echo "Start copy tdh client home: $TDH_CLIENT_HOME"
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/hadoop/core-site.xml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/hadoop/hdfs-site.xml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/hadoop/yarn-site.xml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/hadoop/mapred-site.xml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/hadoop/oauth2-configuration.yml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/inceptor/hive-site.xml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/inceptor/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/inceptor/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
+
+        checkAndCopyFile $TDH_CLIENT_HOME/conf/hadoop/hadoop-env.sh
     elif [ -d "/etc/hadoop/conf" ]
     then
         mkdir -p ${KYLIN_HOME}/hadoop_conf

@@ -49,7 +49,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +71,8 @@ public class QueryRoutingEngine {
     // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
     public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
 
-    public Pair<List<List<String>>, List<SelectedColumnMeta>> queryWithSqlMassage(QueryParams queryParams) throws Exception {
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> queryWithSqlMassage(QueryParams queryParams)
+            throws Exception {
         QueryContext.current().setAclInfo(queryParams.getAclInfo());
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(queryParams.getProject()).getConfig();
@@ -98,8 +98,6 @@ public class QueryRoutingEngine {
                 QueryContext.current().setPartialMatchIndex(queryParams.isPartialMatchIndex());
 
                 logger.info("The corrected query: {}", correctedSql);
-
-                Trace.addTimelineAnnotation("query massaged");
 
                 // add extra parameters into olap context, like acceptPartial
                 Map<String, String> parameters = new HashMap<String, String>();
@@ -155,7 +153,7 @@ public class QueryRoutingEngine {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.isTransactionEnabledInQuery()) {
             return UnitOfWork.doInTransactionWithRetry(
-                    UnitOfWorkParams.<T>builder().unitName(project).readonly(true).processor(f).build());
+                    UnitOfWorkParams.<T> builder().unitName(project).readonly(true).processor(f).build());
         } else {
             return f.process();
         }
@@ -177,8 +175,8 @@ public class QueryRoutingEngine {
                 Lists.newArrayList(queryResult.getColumnMetas()));
     }
 
-    private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownQuery(SQLException sqlException, QueryParams queryParams)
-            throws SQLException {
+    private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownQuery(SQLException sqlException,
+            QueryParams queryParams) throws SQLException {
         QueryContext.current().getMetrics().setOlapCause(sqlException);
         QueryContext.current().getQueryTagInfo().setPushdown(true);
         Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
@@ -200,7 +198,8 @@ public class QueryRoutingEngine {
         return r;
     }
 
-    public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams, SQLException sqlException, boolean isPrepare) throws Exception {
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams,
+            SQLException sqlException, boolean isPrepare) throws Exception {
         QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String sqlString = queryParams.getSql();
         if (isPrepareStatementWithParams(queryParams)) {
@@ -228,7 +227,8 @@ public class QueryRoutingEngine {
                 && queryParams.isPrepareStatementWithParams();
     }
 
-    private Pair<List<List<String>>, List<SelectedColumnMeta>> prepareOnly(String correctedSql, QueryExec queryExec, List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
+    private Pair<List<List<String>>, List<SelectedColumnMeta>> prepareOnly(String correctedSql, QueryExec queryExec,
+            List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
 
         CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
 
@@ -277,51 +277,51 @@ public class QueryRoutingEngine {
         ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
 
         switch (rep) {
-            case PRIMITIVE_CHAR:
-            case CHARACTER:
-            case STRING:
-                queryExec.setPrepareParam(index, isNull ? null : String.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_INT:
-            case INTEGER:
-                queryExec.setPrepareParam(index, isNull ? 0 : Integer.parseInt(param.getValue()));
-                break;
-            case PRIMITIVE_SHORT:
-            case SHORT:
-                queryExec.setPrepareParam(index, isNull ? 0 : Short.parseShort(param.getValue()));
-                break;
-            case PRIMITIVE_LONG:
-            case LONG:
-                queryExec.setPrepareParam(index, isNull ? 0 : Long.parseLong(param.getValue()));
-                break;
-            case PRIMITIVE_FLOAT:
-            case FLOAT:
-                queryExec.setPrepareParam(index, isNull ? 0 : Float.parseFloat(param.getValue()));
-                break;
-            case PRIMITIVE_DOUBLE:
-            case DOUBLE:
-                queryExec.setPrepareParam(index, isNull ? 0 : Double.parseDouble(param.getValue()));
-                break;
-            case PRIMITIVE_BOOLEAN:
-            case BOOLEAN:
-                queryExec.setPrepareParam(index, !isNull && Boolean.parseBoolean(param.getValue()));
-                break;
-            case PRIMITIVE_BYTE:
-            case BYTE:
-                queryExec.setPrepareParam(index, isNull ? 0 : Byte.parseByte(param.getValue()));
-                break;
-            case JAVA_UTIL_DATE:
-            case JAVA_SQL_DATE:
-                queryExec.setPrepareParam(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
-                break;
-            case JAVA_SQL_TIME:
-                queryExec.setPrepareParam(index, isNull ? null : Time.valueOf(param.getValue()));
-                break;
-            case JAVA_SQL_TIMESTAMP:
-                queryExec.setPrepareParam(index, isNull ? null : Timestamp.valueOf(param.getValue()));
-                break;
-            default:
-                queryExec.setPrepareParam(index, isNull ? null : param.getValue());
+        case PRIMITIVE_CHAR:
+        case CHARACTER:
+        case STRING:
+            queryExec.setPrepareParam(index, isNull ? null : String.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_INT:
+        case INTEGER:
+            queryExec.setPrepareParam(index, isNull ? 0 : Integer.parseInt(param.getValue()));
+            break;
+        case PRIMITIVE_SHORT:
+        case SHORT:
+            queryExec.setPrepareParam(index, isNull ? 0 : Short.parseShort(param.getValue()));
+            break;
+        case PRIMITIVE_LONG:
+        case LONG:
+            queryExec.setPrepareParam(index, isNull ? 0 : Long.parseLong(param.getValue()));
+            break;
+        case PRIMITIVE_FLOAT:
+        case FLOAT:
+            queryExec.setPrepareParam(index, isNull ? 0 : Float.parseFloat(param.getValue()));
+            break;
+        case PRIMITIVE_DOUBLE:
+        case DOUBLE:
+            queryExec.setPrepareParam(index, isNull ? 0 : Double.parseDouble(param.getValue()));
+            break;
+        case PRIMITIVE_BOOLEAN:
+        case BOOLEAN:
+            queryExec.setPrepareParam(index, !isNull && Boolean.parseBoolean(param.getValue()));
+            break;
+        case PRIMITIVE_BYTE:
+        case BYTE:
+            queryExec.setPrepareParam(index, isNull ? 0 : Byte.parseByte(param.getValue()));
+            break;
+        case JAVA_UTIL_DATE:
+        case JAVA_SQL_DATE:
+            queryExec.setPrepareParam(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
+            break;
+        case JAVA_SQL_TIME:
+            queryExec.setPrepareParam(index, isNull ? null : Time.valueOf(param.getValue()));
+            break;
+        case JAVA_SQL_TIMESTAMP:
+            queryExec.setPrepareParam(index, isNull ? null : Timestamp.valueOf(param.getValue()));
+            break;
+        default:
+            queryExec.setPrepareParam(index, isNull ? null : param.getValue());
         }
     }
 

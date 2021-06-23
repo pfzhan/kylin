@@ -107,7 +107,7 @@ function prepareZKPrincipal() {
 function prepareFIKerberosInfoIfNeeded() {
     prepareJaasConf
     KERBEROS_PALTFORM=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.platform`
-    if [[ "${KERBEROS_PALTFORM}" == "FI" ]]
+    if [[ "${KERBEROS_PALTFORM}" == "FI" || "${KERBEROS_PALTFORM}" == "TDH" ]]
     then
         prepareZKPrincipal
     fi

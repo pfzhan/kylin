@@ -59,13 +59,12 @@ import static org.springframework.security.acls.domain.BasePermission.ADMINISTRA
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -77,6 +76,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -88,7 +89,6 @@ import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
-import org.apache.kylin.common.htrace.HtraceInit;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -101,6 +101,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
@@ -108,6 +109,7 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.SlowQueryDetector;
+import org.apache.kylin.query.calcite.KEDialect;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -127,9 +129,6 @@ import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.kylin.rest.util.QueryRequestLimits;
 import org.apache.kylin.rest.util.SparderUIUtil;
 import org.apache.kylin.rest.util.TableauInterceptor;
-import org.apache.kylin.shaded.htrace.org.apache.htrace.Sampler;
-import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
-import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -150,6 +149,7 @@ import com.google.gson.Gson;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.logging.SetLogCategory;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.job.AsyncQueryJob;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -167,9 +167,10 @@ import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.TableSchema;
 import io.kyligence.kap.query.util.QueryModelPriorities;
 import io.kyligence.kap.query.util.QueryPatternUtil;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
+import io.kyligence.kap.rest.service.QueryCacheManager;
+import io.kyligence.kap.rest.service.QueryHistoryScheduler;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -409,7 +410,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
                 .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
                 .put(LogReport.PUSH_DOWN, response.isQueryPushDown()).put(LogReport.IS_PREPARE, response.isPrepare())
-                .put(LogReport.TIMEOUT, response.isTimeout()).put(LogReport.TRACE_URL, response.getTraceUrl())
+                .put(LogReport.TIMEOUT, response.isTimeout())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
                 .put(LogReport.ERROR_MSG, response.getExceptionMessage())
@@ -429,7 +430,7 @@ public class QueryService extends BasicService {
         return log;
     }
 
-    public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+    public SQLResponse doQueryWithCache(SQLRequest sqlRequest) {
         sqlRequest.setQueryStartTime(System.currentTimeMillis());
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         checkIfExecuteUserValid(sqlRequest);
@@ -449,7 +450,7 @@ public class QueryService extends BasicService {
             else
                 sqlRequest.setUsername(getUsername());
             QueryLimiter.tryAcquire();
-            SQLResponse response = queryWithCache(sqlRequest, isQueryInspect);
+            SQLResponse response = queryWithCache(sqlRequest);
             response.setTraces(QueryContext.currentTrace().spans().stream()
                     .map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration()))
                     .collect(Collectors.toList()));
@@ -508,7 +509,7 @@ public class QueryService extends BasicService {
         }
     }
 
-    public SQLResponse queryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+    public SQLResponse queryWithCache(SQLRequest sqlRequest) {
         checkSqlRequest(sqlRequest);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -517,14 +518,6 @@ public class QueryService extends BasicService {
 
         QueryContext queryContext = QueryContext.current();
         QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
-
-        TraceScope scope = null;
-        if (kylinConfig.isHtraceTracingEveryQuery() || BackdoorToggles.getHtraceEnabled()) {
-            logger.info("Current query is under tracing");
-            HtraceInit.init();
-            scope = Trace.startSpan("query life cycle for " + queryContext.getQueryId(), Sampler.ALWAYS);
-        }
-        String traceUrl = getTraceUrl(scope);
 
         SQLResponse sqlResponse = null;
         try {
@@ -548,12 +541,7 @@ public class QueryService extends BasicService {
             sql = result.getSecond();
             sqlRequest.setSql(sql);
 
-            // try some cheap executions
-            if (sqlResponse == null && isQueryInspect) {
-                sqlResponse = new SQLResponse(null, null, 0, false, sqlRequest.getSql());
-            }
-
-            if (sqlResponse == null && isCreateTempStatement) {
+            if (isCreateTempStatement) {
                 sqlResponse = new SQLResponse(null, null, 0, false, null);
             }
 
@@ -564,7 +552,6 @@ public class QueryService extends BasicService {
                 if (sqlResponse != null) {
                     collectToQueryContext(queryContext, sqlResponse);
                 }
-                Trace.addTimelineAnnotation("query cache searched");
             }
 
             // real execution if required
@@ -576,7 +563,6 @@ public class QueryService extends BasicService {
                 QueryContext.currentTrace().clear();
                 QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
                 QueryContext.currentTrace().endLastSpan();
-                Trace.addTimelineAnnotation("response without real execution");
             }
             sqlResponse.setServer(clusterManager.getLocalServer());
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
@@ -595,7 +581,6 @@ public class QueryService extends BasicService {
                 queryContext.getMetrics().setCorrectedSql(filledSql);
             }
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
-            sqlResponse.setTraceUrl(traceUrl);
             logQuery(sqlRequest, sqlResponse);
 
             if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())
@@ -625,7 +610,12 @@ public class QueryService extends BasicService {
             if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
                     && projectKylinConfig.isUniqueAsyncQueryYarnQueue())) {
                 try {
-                    recordMetric(sqlRequest, sqlResponse);
+                    if (!sqlResponse.isPrepare() && QueryMetricsContext.isStarted()) {
+                        val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
+                        QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
+                        queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
+                        EventBusFactory.getInstance().postAsync(queryMetricsContext);
+                    }
                 } catch (Throwable th) {
                     logger.warn("Write metric error.", th);
                 }
@@ -650,9 +640,6 @@ public class QueryService extends BasicService {
             BackdoorToggles.cleanToggles();
             if (QueryMetricsContext.isStarted()) {
                 QueryMetricsContext.reset();
-            }
-            if (scope != null) {
-                scope.close();
             }
         }
     }
@@ -690,10 +677,8 @@ public class QueryService extends BasicService {
             final boolean isSelect = QueryUtil.isSelectStatement(sqlRequest.getSql());
             if (isSelect) {
                 sqlResponse = query(sqlRequest);
-                Trace.addTimelineAnnotation("query almost done");
             } else if (kylinConfig.isPushDownEnabled() && kylinConfig.isPushDownUpdateEnabled()) {
                 sqlResponse = update(sqlRequest);
-                Trace.addTimelineAnnotation("update query almost done");
             } else {
                 logger.debug("Directly return exception as the sql is unsupported, and query pushdown is disabled");
                 throw new KylinException(PERMISSION_DENIED, msg.getNOT_SUPPORTED_SQL());
@@ -702,7 +687,6 @@ public class QueryService extends BasicService {
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
                 queryCacheManager.cacheSuccessQuery(sqlRequest, sqlResponse);
             }
-            Trace.addTimelineAnnotation("response from execution");
         } catch (Throwable e) { // calcite may throw AssertError
             logger.error("Exception while executing query", e);
             QueryContext.current().getMetrics().setException(true);
@@ -733,7 +717,6 @@ public class QueryService extends BasicService {
                     && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
                 queryCacheManager.cacheFailedQuery(sqlRequest, sqlResponse);
             }
-            Trace.addTimelineAnnotation("error response");
         }
         return sqlResponse;
     }
@@ -741,33 +724,6 @@ public class QueryService extends BasicService {
     private boolean isQueryCacheEnabled(KylinConfig kylinConfig) {
         return checkCondition(kylinConfig.isQueryCacheEnabled(), "query cache disabled in KylinConfig") && //
                 checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles");
-    }
-
-    protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws Throwable {
-        //TODO: enable QueryMetricsFacade
-    }
-
-    private String getTraceUrl(TraceScope scope) {
-        if (scope == null) {
-            return null;
-        }
-
-        String hostname = System.getProperty("zipkin.collector-hostname");
-        if (StringUtils.isEmpty(hostname)) {
-            try {
-                hostname = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                logger.debug("failed to get trace url due to " + e.getMessage());
-                return null;
-            }
-        }
-
-        String port = System.getProperty("zipkin.web-ui-port");
-        if (StringUtils.isEmpty(port)) {
-            port = "9411";
-        }
-
-        return "http://" + hostname + ":" + port + "/zipkin/traces/" + Long.toHexString(scope.getSpan().getTraceId());
     }
 
     boolean isACLDisabledOrAdmin(String project, QueryContext.AclInfo aclInfo) {
@@ -905,6 +861,27 @@ public class QueryService extends BasicService {
         List<TableMetaWithType> tableMetas = doGetMetadataV2(project);
         queryCacheManager.putSchemaV2Cache(project, userName, tableMetas);
         return tableMetas;
+    }
+
+    public List<String> format(List<String> sqls) {
+        List<Pair<Integer, String>> pairs = Lists.newArrayList();
+        int index = 0;
+        for (String sql : sqls) {
+            pairs.add(Pair.newPair(index, sql));
+        }
+        return pairs.parallelStream().map(pair -> {
+            try {
+                val node = CalciteParser.parse(pair.getSecond());
+                val writer = new SqlPrettyWriter(KEDialect.DEFAULT);
+                writer.setIndentation(2);
+                writer.setSelectListExtraIndentFlag(true);
+                writer.setSelectListItemsOnSeparateLines(true);
+                return Pair.newPair(pair.getFirst(), writer.format(node));
+            } catch (SqlParseException e) {
+                logger.info("Sql {} cannot be formatted", pair.getSecond());
+                return pair;
+            }
+        }).sorted(Comparator.comparingInt(Pair::getFirst)).map(Pair::getSecond).collect(Collectors.toList());
     }
 
     @SuppressWarnings("checkstyle:methodlength")

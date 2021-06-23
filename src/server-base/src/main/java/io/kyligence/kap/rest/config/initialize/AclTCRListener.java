@@ -30,7 +30,7 @@ import java.util.Optional;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
+import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

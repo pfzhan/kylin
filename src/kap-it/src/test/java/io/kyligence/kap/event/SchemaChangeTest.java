@@ -55,6 +55,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -92,7 +93,6 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.TableService;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import io.kyligence.kap.util.JobFinishHelper;
@@ -127,7 +127,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     TableService tableService;
 
     @Autowired
-    KapQueryService queryService;
+    QueryService queryService;
 
     @Autowired
     protected UserService userService;

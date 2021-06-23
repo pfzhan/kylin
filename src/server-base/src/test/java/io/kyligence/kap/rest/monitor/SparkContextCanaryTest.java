@@ -55,12 +55,12 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         SparderEnv.getSparkSession().stop();
         Assert.assertFalse(SparderEnv.isSparkAvailable());
 
-        SparkContextCanary.monitor();
+        SparkContextCanary.getInstance().monitor();
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 
-        SparkContextCanary.monitor();
-        Assert.assertEquals(0, SparkContextCanary.getErrorAccumulated());
+        SparkContextCanary.getInstance().monitor();
+        Assert.assertEquals(0, SparkContextCanary.getInstance().getErrorAccumulated());
     }
 
     @Test
@@ -70,18 +70,18 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
 
         // set kylin.canary.sqlcontext-error-response-ms to 1
         // And SparkContextCanary numberCount will timeout
-        Assert.assertEquals(0, SparkContextCanary.getErrorAccumulated());
+        Assert.assertEquals(0, SparkContextCanary.getInstance().getErrorAccumulated());
         overwriteSystemProp("kylin.canary.sqlcontext-error-response-ms", "1");
-        SparkContextCanary.monitor();
+        SparkContextCanary.getInstance().monitor();
 
         // errorAccumulated increase
-        Assert.assertEquals(1, SparkContextCanary.getErrorAccumulated());
+        Assert.assertEquals(1, SparkContextCanary.getInstance().getErrorAccumulated());
 
         // reach threshold to restart spark. Reset errorAccumulated.
-        SparkContextCanary.monitor();
-        Assert.assertEquals(2, SparkContextCanary.getErrorAccumulated());
-        SparkContextCanary.monitor();
-        Assert.assertEquals(3, SparkContextCanary.getErrorAccumulated());
+        SparkContextCanary.getInstance().monitor();
+        Assert.assertEquals(2, SparkContextCanary.getInstance().getErrorAccumulated());
+        SparkContextCanary.getInstance().monitor();
+        Assert.assertEquals(3, SparkContextCanary.getInstance().getErrorAccumulated());
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
         SparderEnv.getSparkSession().stop();

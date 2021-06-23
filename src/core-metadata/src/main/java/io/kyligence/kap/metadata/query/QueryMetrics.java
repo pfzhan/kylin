@@ -66,10 +66,12 @@ public class QueryMetrics implements IKeep {
     protected long totalScanCount;
     protected long resultRowCount;
 
+    protected boolean isPushdown;
     protected String engineType;
 
     protected boolean isCacheHit;
     protected boolean isIndexHit;
+    protected boolean isTimeout;
 
     protected String errorType;
     protected String queryStatus;

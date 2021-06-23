@@ -49,7 +49,7 @@ public class JobFinishedNotifierTest {
         Set<Long> partitionIds = new HashSet<>();
 
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, waitTime, partitionIds);
+                segIds, layoutIds, waitTime, "", "", true, partitionIds);
         Assert.assertEquals(jobId, notifier.getJobId());
         Assert.assertEquals(project, notifier.getProject());
         Assert.assertEquals(subject, notifier.getSubject());

@@ -21,14 +21,10 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import java.util
-import java.util.UUID
-
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.calcite.rel.`type`.RelDataType
-import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
@@ -42,6 +38,8 @@ import org.apache.spark.sql.util.{CollectExecutionMemoryUsage, SparderTypeUtil}
 import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparderEnv}
 import org.apache.spark.util.SizeEstimator
 
+import java.util
+import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
@@ -109,8 +107,8 @@ object ResultPlan extends LogEx {
         if (Thread.interrupted()) {
           throw new InterruptedException
         }
-        row.toSeq.zip(resultTypes).map{
-          case(value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
+        row.toSeq.zip(resultTypes).map {
+          case (value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
         }.asJava
       }.toSeq.asJava
       jobTrace.resultConverted()
@@ -159,7 +157,7 @@ object ResultPlan extends LogEx {
   /**
    * use to check acl  or other
    *
-   * @param df   finally df
+   * @param df         finally df
    * @param methodBody resultFunc
    * @tparam U
    * @return
@@ -239,13 +237,13 @@ object QueryToExecutionIDCache extends LogEx {
 
   def getQueryExecutionID(queryID: String): String = {
     val executionID = queryID2ExecutionID.getIfPresent(queryID)
-    logWarningIf(executionID==null)(s"Can not get execution ID by query ID $queryID")
+//    logWarningIf(executionID == null)(s"Can not get execution ID by query ID $queryID")
     executionID
   }
 
   def setQueryExecutionID(queryID: String, executionID: String): Unit = {
-    val hasQueryID = queryID != null && !queryID.isEmpty
-    logWarningIf( !hasQueryID )(s"Can not get query ID.")
+    val hasQueryID = queryID != null && queryID.nonEmpty
+//    logWarningIf(!hasQueryID)(s"Can not get query ID.")
     if (hasQueryID) {
       queryID2ExecutionID.put(queryID, executionID)
     }
@@ -253,13 +251,13 @@ object QueryToExecutionIDCache extends LogEx {
 
   def getQueryExecution(executionID: String): QueryExecution = {
     val execution = executionIDToQueryExecution.getIfPresent(executionID)
-    logWarningIf(execution == null)(s"Can not get execution by execution ID $executionID")
+//    logWarningIf(execution == null)(s"Can not get execution by execution ID $executionID")
     execution
   }
 
   def setQueryExecution(executionID: String, execution: QueryExecution): Unit = {
-    val hasQueryID = executionID != null && !executionID.isEmpty
-    logWarningIf(!hasQueryID)(s"Can not get execution ID.")
+    val hasQueryID = executionID != null && executionID.nonEmpty
+//    logWarningIf(!hasQueryID)(s"Can not get execution ID.")
     if (hasQueryID) {
       executionIDToQueryExecution.put(executionID, execution)
     }

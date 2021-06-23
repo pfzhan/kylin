@@ -66,6 +66,7 @@ import org.apache.kylin.rest.request.SaveSqlRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,7 +99,6 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SQLFormatRequest;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -116,8 +116,8 @@ public class NQueryController extends NBasicController {
     public static final String CN = "zh-cn";
 
     @Autowired
-    @Qualifier("kapQueryService")
-    private KapQueryService queryService;
+    @Qualifier("queryService")
+    private QueryService queryService;
 
     @Autowired
     @Qualifier("queryHistoryService")
@@ -142,7 +142,7 @@ public class NQueryController extends NBasicController {
         }
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
-        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
+        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
@@ -168,7 +168,7 @@ public class NQueryController extends NBasicController {
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
     }
 
     @ApiOperation(value = "savedQueries", tags = { "QE" })
@@ -384,7 +384,7 @@ public class NQueryController extends NBasicController {
             throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
         }
 
-        SQLResponse result = queryService.doQueryWithCache(sqlRequest, false);
+        SQLResponse result = queryService.doQueryWithCache(sqlRequest);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault(Locale.Category.FORMAT));
         String nowStr = sdf.format(new Date());

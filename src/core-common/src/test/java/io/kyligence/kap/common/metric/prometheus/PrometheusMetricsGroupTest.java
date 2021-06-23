@@ -49,7 +49,7 @@ import com.codahale.metrics.Gauge;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsNameEnum;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -80,59 +80,59 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
     public void testNewJvmGcPauseMetric() {
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertFalse(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.JVM_GC_PAUSE_TIME.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.JVM_GC_PAUSE_TIME.getValue().equals(meter.getId().getName())));
 
-        PrometheusMetricsGroup.newJvmGcPauseMetric();
+        PrometheusMetricsGroup.newMetrics();
 
         meters = meterRegistry.getMeters();
         Assert.assertTrue(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.JVM_GC_PAUSE_TIME.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.JVM_GC_PAUSE_TIME.getValue().equals(meter.getId().getName())));
     }
 
     @Test
     public void testNewMetricFromDropwizardCounterWithHostTag() {
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.JOB_PENDING_NUM, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.JOB_PENDING_NUM, project);
         List<Meter> meters = meterRegistry.getMeters();
 
         Assert.assertEquals(0, meters.size());
 
         Counter counter = Mockito.mock(Counter.class);
-        PowerMockito.when(MetricsGroup.getCounter(PrometheusMetricsNameEnum.QUERY_TIMES.toMetricsName(),
+        PowerMockito.when(MetricsGroup.getCounter(PrometheusMetrics.QUERY_TIMES.toMetricsName(),
                 MetricsCategory.PROJECT, project, Collections.emptyMap())).thenReturn(counter);
 
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.QUERY_TIMES, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.QUERY_TIMES, project);
         meters = meterRegistry.getMeters();
         Assert.assertEquals(1, meters.size());
         Assert.assertTrue(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.QUERY_TIMES.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.QUERY_TIMES.getValue().equals(meter.getId().getName())));
 
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Invalid metrics name: JVM_GC_PAUSE_TIME");
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.JVM_GC_PAUSE_TIME, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.JVM_GC_PAUSE_TIME, project);
     }
 
     @Test
     public void testNewMetricFromDropwizardGaugeWithoutHostTag() {
-        PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetricsNameEnum.JOB_PENDING_NUM, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetrics.JOB_PENDING_NUM, project);
         List<Meter> meters = meterRegistry.getMeters();
 
         Assert.assertEquals(0, meters.size());
 
         Gauge gauge = Mockito.mock(Gauge.class);
-        PowerMockito.when(MetricsGroup.getGauge(PrometheusMetricsNameEnum.JOB_PENDING_NUM.toMetricsName(),
+        PowerMockito.when(MetricsGroup.getGauge(PrometheusMetrics.JOB_PENDING_NUM.toMetricsName(),
                 MetricsCategory.PROJECT, project, Collections.emptyMap())).thenReturn(gauge);
 
-        PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetricsNameEnum.JOB_PENDING_NUM, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetrics.JOB_PENDING_NUM, project);
         meters = meterRegistry.getMeters();
         Assert.assertEquals(1, meters.size());
         Assert.assertTrue(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.JOB_PENDING_NUM.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.JOB_PENDING_NUM.getValue().equals(meter.getId().getName())));
     }
 
     @Test
     public void testNewProjectGauge() {
         AtomicLong ref = new AtomicLong(0);
-        PrometheusMetricsGroup.newProjectGauge(PrometheusMetricsNameEnum.JOB_WAIT_DURATION_MAX, project, ref, AtomicLong::get);
+        PrometheusMetricsGroup.newProjectGauge(PrometheusMetrics.JOB_WAIT_DURATION_MAX, project, ref, AtomicLong::get);
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertEquals(1, meters.size());
     }
@@ -140,7 +140,7 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
     @Test
     public void testNewModelGauge() {
         AtomicLong ref = new AtomicLong(0);
-        PrometheusMetricsGroup.newModelGauge(PrometheusMetricsNameEnum.JOB_WAIT_DURATION_MAX, project, "test", ref, AtomicLong::get);
+        PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.JOB_WAIT_DURATION_MAX, project, "test", ref, AtomicLong::get);
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertEquals(1, meters.size());
     }
@@ -148,17 +148,17 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRemoveProjectMetrics() {
         Counter counter = Mockito.mock(Counter.class);
-        PowerMockito.when(MetricsGroup.getCounter(PrometheusMetricsNameEnum.QUERY_TIMES.toMetricsName(),
+        PowerMockito.when(MetricsGroup.getCounter(PrometheusMetrics.QUERY_TIMES.toMetricsName(),
                 MetricsCategory.PROJECT, project, Collections.emptyMap())).thenReturn(counter);
 
         PrometheusMetricsGroup.removeProjectMetrics(project);
 
-        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetricsNameEnum.QUERY_TIMES, project);
+        PrometheusMetricsGroup.newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics.QUERY_TIMES, project);
         List<Meter> meters = meterRegistry.getMeters();
 
         Assert.assertEquals(1, meters.size());
         Assert.assertTrue(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.QUERY_TIMES.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.QUERY_TIMES.getValue().equals(meter.getId().getName())));
 
         PrometheusMetricsGroup.removeProjectMetrics(project);
         meters = meterRegistry.getMeters();
@@ -175,7 +175,7 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
         PrometheusMetricsGroup.removeModelMetrics(project, model);
 
         AtomicLong ref = new AtomicLong(0);
-        PrometheusMetricsGroup.newModelGauge(PrometheusMetricsNameEnum.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD, project, model, ref, AtomicLong::get);
+        PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD, project, model, ref, AtomicLong::get);
         List<Meter> meters = meterRegistry.getMeters();
 
         Assert.assertEquals(1, meters.size());
@@ -193,24 +193,24 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
     public void testNewJobStatisticsGauge() {
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertFalse(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.JOB_COUNT.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.JOB_COUNT.getValue().equals(meter.getId().getName())));
 
         Counter counter = Mockito.mock(Counter.class);
         Mockito.when(counter.getCount()).thenReturn(1L);
 
-        PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetricsNameEnum.JOB_COUNT, project, "localhost", "INDEX_BUILD",
+        PrometheusMetricsGroup.newJobStatisticsGauge(PrometheusMetrics.JOB_COUNT, project, "localhost", "INDEX_BUILD",
                 counter, Counter::getCount);
 
         meters = meterRegistry.getMeters();
         Assert.assertTrue(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.JOB_COUNT.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.JOB_COUNT.getValue().equals(meter.getId().getName())));
     }
 
     @Test
     public void testNewIndexUsageGaugeIfAbsent() {
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertFalse(meters.stream().anyMatch(
-                meter -> PrometheusMetricsNameEnum.INDEX_USAGE.getValue().equals(meter.getId().getName())));
+                meter -> PrometheusMetrics.INDEX_USAGE.getValue().equals(meter.getId().getName())));
 
         PrometheusMetricsGroup.newIndexUsageGaugeIfAbsent(
                 project,
@@ -221,7 +221,7 @@ public class PrometheusMetricsGroupTest extends NLocalFileMetadataTestCase {
 
         meters = meterRegistry.getMeters();
         Meter meter = meters.stream()
-                .filter(mt -> PrometheusMetricsNameEnum.INDEX_USAGE.getValue().equals(mt.getId().getName()))
+                .filter(mt -> PrometheusMetrics.INDEX_USAGE.getValue().equals(mt.getId().getName()))
                 .findAny()
                 .orElse(null);
         Assert.assertNotNull(meter);

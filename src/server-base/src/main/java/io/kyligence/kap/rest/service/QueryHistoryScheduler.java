@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
@@ -45,7 +43,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 
-public class NQueryHistoryScheduler {
+public class QueryHistoryScheduler {
 
     protected BlockingQueue<QueryMetrics> queryMetricsQueue;
 
@@ -61,13 +59,13 @@ public class NQueryHistoryScheduler {
                 kyinConfig.getQueryHistorySchedulerInterval(), TimeUnit.SECONDS);
     }
 
-    public static NQueryHistoryScheduler getInstance() {
-        return Singletons.getInstance(NQueryHistoryScheduler.class);
+    public static QueryHistoryScheduler getInstance() {
+        return Singletons.getInstance(QueryHistoryScheduler.class);
     }
 
-    public NQueryHistoryScheduler() {
-        KylinConfig kyinConfig = KylinConfig.getInstanceFromEnv();
-        queryMetricsQueue = new LinkedBlockingQueue<>(kyinConfig.getQueryHistoryBufferSize());
+    public QueryHistoryScheduler() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        queryMetricsQueue = new LinkedBlockingQueue<>(kylinConfig.getQueryHistoryBufferSize());
         logger.debug("New NQueryHistoryScheduler created");
     }
 
@@ -96,9 +94,9 @@ public class NQueryHistoryScheduler {
         @Override
         public void run() {
             try {
-                List<QueryMetrics> QueryMetricsList = Lists.newArrayList();
-                queryMetricsQueue.drainTo(QueryMetricsList);
-                queryHistoryDAO.insert(QueryMetricsList);
+                List<QueryMetrics> metrics = Lists.newArrayList();
+                queryMetricsQueue.drainTo(metrics);
+                queryHistoryDAO.insert(metrics);
             } catch (Throwable th) {
                 logger.error("Error when write query history", th);
             }

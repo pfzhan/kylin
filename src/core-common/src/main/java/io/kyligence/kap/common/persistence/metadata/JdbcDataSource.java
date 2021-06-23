@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -30,23 +32,25 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.obf.IKeep;
 
 public class JdbcDataSource implements IKeep {
     private JdbcDataSource() {
     }
 
-    private static DataSource instance = null;
+    private static Map<Properties, DataSource> instances = Maps.newHashMap();
 
     public static synchronized DataSource getDataSource(Properties props) throws Exception {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return BasicDataSourceFactory.createDataSource(props);
         }
-        if (null == instance) {
-            instance = BasicDataSourceFactory.createDataSource(props);
-        }
-
-        return instance;
+        instances.putIfAbsent(props, BasicDataSourceFactory.createDataSource(props));
+        return instances.get(props);
     }
 
+    public static synchronized Collection<DataSource> getDataSources() {
+        return instances.values();
+    }
 }

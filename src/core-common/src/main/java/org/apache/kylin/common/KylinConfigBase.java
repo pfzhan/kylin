@@ -1887,10 +1887,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.metrics.file-frequency", "5000"));
     }
 
-    public boolean isHtraceTracingEveryQuery() {
-        return Boolean.parseBoolean(getOptional("kylin.htrace.trace-every-query", FALSE));
-    }
-
     public String getHdfsWorkingDirectory(String project) {
         if (project != null) {
             return new Path(getHdfsWorkingDirectory(), project).toString() + "/";

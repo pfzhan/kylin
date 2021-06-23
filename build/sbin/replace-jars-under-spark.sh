@@ -151,6 +151,36 @@ function hdp3_replace_jars() {
     -o -name "re2j-*.jar")
 }
 
+function tdh_replace_jars() {
+    tdh_hadoop_path=${tdh_client_path}/hadoop
+    common_jars=$(find ${tdh_hadoop_path}/hadoop/ -maxdepth 2 \
+    -name "hadoop-annotations-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-auth-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-common-2*.jar" -not -name "*test*" \
+    -o -name "federation-utils-guardian-3*.jar" -not -name "*test*")
+
+    hdfs_jars=$(find ${tdh_hadoop_path}/hadoop-hdfs/ -maxdepth 1 \
+    -name "hadoop-hdfs-2*.jar" -not -name "*test*")
+
+    mr_jars=$(find ${tdh_hadoop_path}/hadoop-mapreduce -maxdepth 1 \
+    -name "hadoop-mapreduce-client-app-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-mapreduce-client-common-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-mapreduce-client-jobclient-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-mapreduce-client-shuffle-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-mapreduce-client-core-2*.jar" -not -name "*test*")
+
+    yarn_jars=$(find ${tdh_hadoop_path}/hadoop-yarn/ -maxdepth 1 \
+    -name "hadoop-yarn-api-2*.jar" -not -name "*test*"  \
+    -o -name "hadoop-yarn-client-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-yarn-common-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-yarn-server-common-2*.jar" -not -name "*test*" \
+    -o -name "hadoop-yarn-server-web-proxy-2*.jar" -not -name "*test*")
+
+    other_jars=$(find ${tdh_hadoop_path}/hadoop-hdfs/ -maxdepth 2 \
+    -name "htrace-core-3*.jar")
+}
+find ${tdh_hadoop_path}/hadoop-hdfs/ -maxdepth 2 -name "htrace-core-3*.jar"
+
 function cdh7x_replace_jars() {
   other_cdh7x_jars=$(find ${cdh_hadoop_lib_path}/client/ -maxdepth 1 \
   -name "woodstox-core.jar" \
@@ -170,9 +200,12 @@ then
     if [[ $(is_cdh_7_x) == 1 ]]; then
       cdh7x_replace_jars
     fi
-
-elif [[ $(is_hdp_3_x) == 1 ]]; then
+elif [[ $(is_hdp_3_x) == 1 ]]
+then
     hdp3_replace_jars
+elif [[ $(is_tdh) == 1 ]]
+then
+    tdh_replace_jars
 fi
 
 # not consider HDP

@@ -22,9 +22,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.cache;
+package io.kyligence.kap.rest.service;
 
-import net.sf.ehcache.CacheManager;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.Assert;
@@ -34,6 +33,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import net.sf.ehcache.CacheManager;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryCacheTest {

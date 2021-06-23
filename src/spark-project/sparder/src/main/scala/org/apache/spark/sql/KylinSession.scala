@@ -291,7 +291,8 @@ object KylinSession extends Logging {
         val executorExtraJavaOptions =
           sparkConf.get("spark.executor.extraJavaOptions", "")
         var executorKerberosConf = ""
-        if (kapConfig.isKerberosEnabled && kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)) {
+        if (kapConfig.isKerberosEnabled && (kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)
+            || kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.TDH_PLATFORM))) {
           executorKerberosConf = krb5conf
         }
         sparkConf.set("spark.executor.extraJavaOptions",
@@ -300,7 +301,8 @@ object KylinSession extends Logging {
         val yarnAMJavaOptions =
           sparkConf.get("spark.yarn.am.extraJavaOptions", "")
         var amKerberosConf = ""
-        if (kapConfig.isKerberosEnabled && kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)) {
+        if (kapConfig.isKerberosEnabled && (kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)
+          || kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.TDH_PLATFORM))) {
           amKerberosConf = krb5conf
         }
         sparkConf.set("spark.yarn.am.extraJavaOptions",

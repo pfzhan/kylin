@@ -39,9 +39,9 @@ import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
+public class QueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
 
-    NQueryHistoryScheduler queryHistoryScheduler;
+    QueryHistoryScheduler queryHistoryScheduler;
 
     @Before
     public void setup() throws Exception {
@@ -49,7 +49,7 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
-        queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+        queryHistoryScheduler = QueryHistoryScheduler.getInstance();
         queryHistoryScheduler.queryMetricsQueue.clear();
     }
 
@@ -91,7 +91,7 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
         queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
-        NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+        QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
         queryHistoryScheduler.offerQueryHistoryQueue(queryMetrics);
         queryHistoryScheduler.offerQueryHistoryQueue(queryMetrics);
         Assert.assertEquals(2, queryHistoryScheduler.queryMetricsQueue.size());
@@ -133,7 +133,7 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         queryHistoryInfo.setRealizationMetrics(realizationMetricsList);
         queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
 
-        NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+        QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
         queryHistoryScheduler.offerQueryHistoryQueue(queryMetrics);
 
         // insert 1500 to queryHistoryQueue

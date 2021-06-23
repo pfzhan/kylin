@@ -118,18 +118,6 @@ public enum MetricsName {
     METADATA_OPS_CRON("metadata_ops_total_times"), //
     METADATA_OPS_CRON_SUCCESS("metadata_success_ops_total_times"), //
 
-    // favorite queue, maybe you know:
-    // Equivalent definitions: ["fe": "front-end"], ["be": "back-end"]
-    // "Accel." is an abbreviation for the noun "acceleration"
-    FQ_FE_INVOKED("fq_accepted_total_times"), //
-    FQ_ADJUST_INVOKED("fq_adjusted_total_times"), //
-    FQ_ADJUST_INVOKED_DURATION("fq_adjusted_total_duration"), //
-
-    // FQ gauges
-    FQ_BLACKLIST("fq_blacklist_num_gauge", true), //
-
-    //index
-
     // JVM
     HEAP_MAX("jvm_memory_heap_max"), //
     HEAP_USED("jvm_memory_heap_used"), //
@@ -152,20 +140,6 @@ public enum MetricsName {
 
     //database management
     DB_GAUGE("db_num_gauge", true), //
-
-    // streaming statistics
-    BATCH_TIMES("batch_times"), //
-    NEW_DATA_AVAILABLE_BATCH_TIMRS("new_data_available_batch_times"), //
-    NUM_INPUT_ROWS("num_input_rows"), //
-
-    INPUT_ROWS_PER_SECOND("input_rows_per_second"), //
-    BATCH_DURATION("batch_duration"), //
-
-    RETAIN_SEGMENTS("retain_segments"), //
-    SEGMENTS_MERGE_THRESHOLDS("segments_merge_thresholds"), //
-    SEGMENTS_MERGE_COST_TIME("segments_merge_cost_time"), //
-
-    MODEL_QUERYABLE_SEGMENT_NUM("model_queryable_segment_num"), //
 
     //spark query load
     QUERY_LOAD("query_load", ClusterConstant.ALL, ClusterConstant.QUERY), //

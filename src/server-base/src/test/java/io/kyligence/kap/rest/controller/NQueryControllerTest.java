@@ -69,7 +69,6 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
-import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 
 /**
@@ -81,7 +80,7 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     private MockMvc mockMvc;
 
     @Mock
-    private KapQueryService kapQueryService;
+    private QueryService kapQueryService;
 
     @Mock
     private QueryHistoryService queryHistoryService;

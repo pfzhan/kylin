@@ -60,7 +60,7 @@ class DFDictionaryBuilder(
     val config = KylinConfig.getInstanceFromEnv
     if (YARN_CLUSTER.equals(config.getDeployMode)) {
       val kapConfig = KapConfig.wrap(config)
-      if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform)) {
+      if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform) || KapConfig.TDH_PLATFORM.equals(kapConfig.getKerberosPlatform)) {
         val sparkConf = ss.sparkContext.getConf
         val principal = sparkConf.get("spark.yarn.principal")
         val keytab = sparkConf.get("spark.yarn.keytab")

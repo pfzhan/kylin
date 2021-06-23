@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,8 +50,6 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.ITuple;
 import org.apache.kylin.metadata.tuple.ITupleIterator;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
-import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.apache.kylin.storage.IStorageQuery;
 import org.apache.kylin.storage.StorageFactory;
 import org.slf4j.Logger;
@@ -128,22 +125,19 @@ public class OLAPEnumerator implements Enumerator<Object[]> {
     }
 
     private ITupleIterator queryStorage() {
-        try (TraceScope scope = Trace.startSpan("query realization " + olapContext.realization.getCanonicalName())) {
+        logger.debug("query storage...");
+        // bind dynamic variables and update filter info in OLAPContext
+        SQLDigest sqlDigest = olapContext.getSQLDigest();
 
-            logger.debug("query storage...");
-            // bind dynamic variables and update filter info in OLAPContext
-            SQLDigest sqlDigest = olapContext.getSQLDigest();
-
-            // query storage engine
-            IStorageQuery storageEngine = StorageFactory.createQuery(olapContext.realization);
-            ITupleIterator iterator = storageEngine.search(olapContext.storageContext, sqlDigest,
-                    olapContext.returnTupleInfo);
-            if (logger.isDebugEnabled()) {
-                logger.debug("return TupleIterator...");
-            }
-
-            return iterator;
+        // query storage engine
+        IStorageQuery storageEngine = StorageFactory.createQuery(olapContext.realization);
+        ITupleIterator iterator = storageEngine.search(olapContext.storageContext, sqlDigest,
+                olapContext.returnTupleInfo);
+        if (logger.isDebugEnabled()) {
+            logger.debug("return TupleIterator...");
         }
+
+        return iterator;
     }
 
 }

@@ -201,9 +201,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }, getEpochId(), project);
 
         // dispatch job-finished message out
-        EventBusFactory.getInstance().postSync(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(),
-                getDuration(), state.toString(), getJobType().toString(), this.getSegmentIds(), this.getLayoutIds(),
-                getWaitTime(), this.getTargetPartitions()));
+        EventBusFactory.getInstance()
+                .postSync(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(), getDuration(),
+                        state.toString(), getJobType().toString(), this.getSegmentIds(), this.getLayoutIds(),
+                        getWaitTime(), this.getClass().getName(), this.getSubmitter(), result.succeed(), getTargetPartitions()));
     }
 
     @Override
