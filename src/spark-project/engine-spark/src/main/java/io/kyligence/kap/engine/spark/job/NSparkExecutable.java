@@ -556,6 +556,7 @@ public class NSparkExecutable extends AbstractExecutable {
         appendSparkConf(sb, "spark.kerberos.principal", kapConfig.getKerberosPrincipal());
         appendSparkConf(sb, "spark.kerberos.keytab", kapConfig.getKerberosKeytabPath());
         if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform()) //
+                || KapConfig.TDH_PLATFORM.equals(kapConfig.getKerberosPlatform())
                 || Boolean.TRUE.equals(kapConfig.getPlatformZKEnable())) {
             appendSparkConf(sb, "spark.yarn.zookeeper.principal", kapConfig.getKerberosZKPrincipal());
             appendSparkConf(sb, "spark.yarn.jaas.conf", kapConfig.getKerberosJaasConfPath());

@@ -107,8 +107,10 @@ else
     quit "Unrecognized memory unit: ${unit} in ${spark_executor_memory} in kylin.properties";
 fi
 
-[[ ${yarn_available_cores} -gt ${spark_executor_cores} ]] || quit "In kylin.properties, ${key_executor_cores} is set to ${spark_executor_cores}, which is greater than Yarn's available cores: ${yarn_available_cores}, please correct it."
-[[ ${yarn_available_memory} -gt ${spark_executor_memory} ]] || quit "In kylin.properties, ${key_executor_memory} is set to ${spark_executor_memory}M, which is more than Yarn's available memory: ${yarn_available_memory}M, please correct it."
+if [[ -z "$TDH_CLIENT_HOME" ]]; then
+  [[ ${yarn_available_cores} -gt ${spark_executor_cores} ]] || quit "In kylin.properties, ${key_executor_cores} is set to ${spark_executor_cores}, which is greater than Yarn's available cores: ${yarn_available_cores}, please correct it."
+  [[ ${yarn_available_memory} -gt ${spark_executor_memory} ]] || quit "In kylin.properties, ${key_executor_memory} is set to ${spark_executor_memory}M, which is more than Yarn's available memory: ${yarn_available_memory}M, please correct it."
+fi
 
 ins1=`expr ${yarn_available_memory} / ${spark_executor_memory}`
 ins2=`expr ${yarn_available_cores} / ${spark_executor_cores}`
@@ -123,7 +125,7 @@ recommend_min=`expr ${recommend_max} / 5`
 
 if [ -z ${spark_executor_instance} ]; then
     echo "${CHECKENV_REPORT_PFX}`setColor 31 WARN:` ${key_executor_instance} is not set."
-elif [ ${spark_executor_instance} -gt ${recommend_max} ]; then
+elif [ -z "$TDH_CLIENT_HOME" ] && [ ${spark_executor_instance} -gt ${recommend_max} ]; then
     quit "Spark executor instances: ${spark_executor_instance} is configured in kylin.properties shouldn't beyond maximum: ${recommend_max} in theory."
 elif [ ${recommend_min} -gt ${spark_executor_instance} ]; then
     echo "${CHECKENV_REPORT_PFX}`setColor 31 WARN:` Only ${spark_executor_instance} Spark executor instances available, your query performance might be affected. It's recommended to set it to be ${recommend_min} - ${recommend_max} via configuring parameter ${key_executor_instance} in kylin.properties."

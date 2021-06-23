@@ -77,6 +77,8 @@ public class KapConfig {
 
     public static final String FI_PLATFORM = "FI";
 
+    public static final String TDH_PLATFORM = "TDH";
+
     private KapConfig(KylinConfig config) {
         this.config = config;
     }

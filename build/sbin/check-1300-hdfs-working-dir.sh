@@ -48,4 +48,9 @@ touch ./${RANDNAME}
 hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit "ERROR: Have no permission to create/modify file in working directory '${WORKING_DIR}'. Please grant permission to current user."
 
 rm -f ./${RANDNAME}
-hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
+if [ -n "$TDH_CLIENT_HOME" ]
+then
+  hadoop ${hadoop_conf_param} fs -rm ${TEST_FILE}
+else
+  hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
+fi

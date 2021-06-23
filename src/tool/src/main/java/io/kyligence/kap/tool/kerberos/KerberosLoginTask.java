@@ -122,15 +122,15 @@ public class KerberosLoginTask implements IKeep {
                     + kapConfig.getKerberosKeytabPath() + ".");
             if (kapConfig.getKerberosPlatform().equals("Standard")) {
                 loginStandardKerberos();
-            } else if (kapConfig.getKerberosPlatform().equals("FI")) {
-                loginFIKerberos();
+            } else if (kapConfig.getKerberosPlatform().equals(KapConfig.FI_PLATFORM) || kapConfig.getKerberosPlatform().equals(KapConfig.TDH_PLATFORM)) {
+                loginNonStandardKerberos();
             }
         } catch (Exception e) {
             logger.error("Error renew kerberos ticket", e);
         }
     }
 
-    private void loginFIKerberos() throws IOException {
+    private void loginNonStandardKerberos() throws IOException {
         String zkServerPrincipal = kapConfig.getKerberosZKPrincipal();
 
         Unsafe.setProperty("zookeeper.sasl.client", "true");

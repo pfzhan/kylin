@@ -150,6 +150,22 @@ function is_fi_c90() {
     return 0
 }
 
+tdh_client_path=$TDH_CLIENT_HOME
+function is_tdh() {
+  if [[ -n "$tdh_client_path" ]]; then
+    if [[ -f "${tdh_client_path}/init.sh" ]]; then
+      echo 1
+      return 1
+    fi
+    quit "Please check TDH_CLIENT_HOME is correct, it contains init.sh file."
+    echo 0
+    return 0
+  fi
+
+  echo 0
+  return 0
+}
+
 function prepare_hadoop_conf_jars(){
   if [[ $(is_cdh_7_x) == 1 ]]; then
     find ${SPARK_HOME}/jars -name "guava-*.jar" -exec rm -rf {} \;
