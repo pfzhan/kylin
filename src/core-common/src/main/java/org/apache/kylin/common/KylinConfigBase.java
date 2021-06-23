@@ -1253,6 +1253,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.engine.spark-conf.");
     }
 
+    public Map<String, String> getSnapshotBuildingConfigOverride() {
+        return getPropertiesByPrefix("kylin.engine.snapshot.spark-conf.");
+    }
+
     public Map<String, String> getAsyncQuerySparkConfigOverride() {
         return getPropertiesByPrefix("kylin.query.async-query.spark-conf.");
     }
