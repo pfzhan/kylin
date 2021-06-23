@@ -829,7 +829,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.engine.streaming-segment-clean-interval", "2h", 2L));
         map.put("getStreamingSegmentMergeRatio",
                 new PropertiesEntity("kylin.engine.streaming-segment-merge-ratio", "1.5", 1.5));
-        map.put("getStreamingJobStartupTimeout", new PropertiesEntity("kylin.streaming.startup-timeout", "5m", 5L));
         map.put("getStreamingJobShutdownTimeout", new PropertiesEntity("kylin.streaming.shutdown-timeout", "10m", 10L));
         map.put("getStreamingJobStatsSurvivalThreshold",
                 new PropertiesEntity("kylin.streaming.jobstats.survival-time-threshold", "7d", 7L));
@@ -840,6 +839,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getStreamingJobRetryInterval", new PropertiesEntity("kylin.streaming.job-retry-interval", "5m", 5));
         map.put("getStreamingJobMaxRetryInterval",
                 new PropertiesEntity("kylin.streaming.job-retry-max-interval", "30m", 30));
+        map.put("getStreamingJobWatermark",
+                new PropertiesEntity("kylin.streaming.watermark", "1 minutes", "1 minutes"));
         map.put("getKafkaRatePerPartition",
                 new PropertiesEntity("kylin.streaming.kafka.max-rate-per-partition", "-1", "-1"));
         map.put("getServerIpAddress", new PropertiesEntity("kylin.env.ip-address", "127.0.0.1", "127.0.0.1"));

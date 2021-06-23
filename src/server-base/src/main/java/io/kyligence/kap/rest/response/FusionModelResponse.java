@@ -27,9 +27,11 @@ package io.kyligence.kap.rest.response;
 import java.util.List;
 
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
@@ -51,6 +53,10 @@ public class FusionModelResponse extends NDataModelResponse {
     @JsonProperty("batch_id")
     private String batchId;
 
+    @EqualsAndHashCode.Include
+    @JsonProperty("batch_partition_desc")
+    private PartitionDesc batchPartitionDesc;
+
     public FusionModelResponse(NDataModel dataModel) {
         super(dataModel);
     }
@@ -61,7 +67,9 @@ public class FusionModelResponse extends NDataModelResponse {
         NDataflow streamingDataflow = dfManager.getDataflow(modelDesc.getUuid());
         FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .getFusionModel(modelDesc.getFusionId());
+        this.setFusionId(modelDesc.getFusionId());
         this.setBatchId(fusionModel.getBatchModel().getUuid());
+        this.setBatchPartitionDesc(fusionModel.getBatchModel().getPartitionDesc());
         NDataflow batchDataflow = dfManager.getDataflow(batchId);
         this.setLastBuildTime(getMaxLastBuildTime(batchDataflow, streamingDataflow));
         this.setStorage(getTotalStorage(batchDataflow, streamingDataflow));

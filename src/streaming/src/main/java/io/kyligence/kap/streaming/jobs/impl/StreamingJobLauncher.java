@@ -34,6 +34,7 @@ import io.kyligence.kap.streaming.jobs.AbstractSparkJobLauncher;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.val;
 import lombok.var;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -102,6 +103,14 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                 String executorExtraConf = "-Dfile.encoding=UTF-8 -Dhdp.version=current -Dlog4j.configuration=spark-executor-log4j.properties -Dlog4j.debug -Dkylin.hdfs.working.dir=${kylin.env.hdfs-working-dir} -Dkap.metadata.identifier=${kylin.metadata.url.identifier} -Dkap.spark.category=job -Dkap.spark.project=${job.project} -Dkap.spark.identifier=${job.id} -Dkap.spark.jobName=${job.stepId} -Duser.timezone=${user.timezone} -Dkap.spark.mountDir=${job.mountDir}";
                 Map<String, String> sparkConf = config.getStreamingSparkConfigOverride();
                 sparkConf.entrySet().forEach(entry -> launcher.setConf(entry.getKey(), entry.getValue()));
+                val iter = jobParams.entrySet().iterator();
+                val prefix = "kylin.streaming.spark-conf.";
+                while (iter.hasNext()) {
+                    val entry = iter.next();
+                    if (entry.getKey().startsWith(prefix) && !StringUtils.isEmpty(entry.getValue())) {
+                        launcher.setConf(entry.getKey().substring(prefix.length()), entry.getValue());
+                    }
+                }
                 val numberOfExecutor = jobParams.getOrDefault(StreamingConstants.SPARK_EXECUTOR_INSTANCES,
                         StreamingConstants.SPARK_EXECUTOR_INSTANCES_DEFAULT);
                 val numberOfCore = jobParams.getOrDefault(StreamingConstants.SPARK_EXECUTOR_CORES,

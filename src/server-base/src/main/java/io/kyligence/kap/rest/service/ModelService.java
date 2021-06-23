@@ -639,9 +639,9 @@ public class ModelService extends BasicService {
     }
 
     public DataResult<List<NDataModel>> getModels(String modelAlias, boolean exactMatch, String project, String owner,
-                                                  List<String> status, String table, Integer offset, Integer limit, String sortBy, boolean reverse,
-                                                  String modelAliasOrOwner, List<ModelAttributeEnum> modelAttributes, Long lastModifyFrom, Long lastModifyTo,
-                                                  boolean onlyNormalDim) {
+            List<String> status, String table, Integer offset, Integer limit, String sortBy, boolean reverse,
+            String modelAliasOrOwner, List<ModelAttributeEnum> modelAttributes, Long lastModifyFrom, Long lastModifyTo,
+            boolean onlyNormalDim) {
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
             models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
@@ -663,7 +663,7 @@ public class ModelService extends BasicService {
     }
 
     private Set<NDataModel> getFilteredModels(String project, List<ModelAttributeEnum> modelAttributes,
-                                              List<NDataModel> models) {
+            List<NDataModel> models) {
         Set<ModelAttributeEnum> modelAttributeSet = Sets
                 .newHashSet(modelAttributes == null ? Collections.emptyList() : modelAttributes);
         Set<NDataModel> filteredModels = new HashSet<>();
@@ -728,6 +728,7 @@ public class ModelService extends BasicService {
                 filterModels.add(nDataModelResponse);
             }
         });
+
         if ("expansionrate".equalsIgnoreCase(sortBy)) {
             return sortExpansionRate(reverse, filterModels);
         } else if (getProjectManager().getProject(projectName).isSemiAutoMode()) {
@@ -899,8 +900,7 @@ public class ModelService extends BasicService {
         }
         List<NDataSegment> indexFiltered = new LinkedList<>();
         segs.forEach(segment -> filterSeg(withAllIndexes, withoutAnyIndexes, allToComplement,
-                indexPlan.getAllLayoutIds(false), indexFiltered,
-                segment));
+                indexPlan.getAllLayoutIds(false), indexFiltered, segment));
         segmentResponseList = indexFiltered.stream()
                 .filter(segment -> !StringUtils.isNotEmpty(status) || status
                         .equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment, executables).toString()))
@@ -914,23 +914,24 @@ public class ModelService extends BasicService {
     }
 
     private void addSecondStorageResponse(String modelId, String project,
-                                          List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
+            List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
 
         if (!SecondStorageUtil.isModelEnable(project, modelId))
             return;
 
         val tableFlowManager = SecondStorage.tableFlowManager(getConfig(), project);
         val tableFlow = tableFlowManager.get(dataflow.getId()).orElse(null);
-        if (tableFlow!=null) {
-            Map<String, TablePartition> tablePartitions = tableFlow.getTableDataList()
-                    .stream().flatMap(tableData -> tableData.getPartitions().stream())
-                    .collect(Collectors.toMap(TablePartition::getSegmentId, partition->partition));
+        if (tableFlow != null) {
+            Map<String, TablePartition> tablePartitions = tableFlow.getTableDataList().stream()
+                    .flatMap(tableData -> tableData.getPartitions().stream())
+                    .collect(Collectors.toMap(TablePartition::getSegmentId, partition -> partition));
             segmentResponseList.forEach(segment -> {
                 if (tablePartitions.containsKey(segment.getId())) {
                     val nodes = tablePartitions.get(segment.getId()).getShardNodes().stream()
                             .map(SecondStorageUtil::transformNode).collect(Collectors.toList());
                     segment.setSecondStorageNodes(nodes);
-                    segment.setSecondStorageDiskSize(tablePartitions.get(segment.getId()).getSizeInNode().values().stream().reduce(Long::sum).orElse(0L));
+                    segment.setSecondStorageDiskSize(tablePartitions.get(segment.getId()).getSizeInNode().values()
+                            .stream().reduce(Long::sum).orElse(0L));
                 } else {
                     segment.setSecondStorageNodes(Collections.emptyList());
                     segment.setSecondStorageDiskSize(0L);
@@ -1120,10 +1121,6 @@ public class ModelService extends BasicService {
         checkModelPermission(project, modelId);
         val model = getModelById(modelId, project);
         val modelName = model.getAlias();
-        if (model.isStreaming()) {
-            EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
-            EventBusFactory.getInstance().postSync(new StreamingJobDropEvent(project, modelId));
-        }
         dropModel(modelId, project, false);
         EventBusFactory.getInstance().postSync(new ModelDropEvent(project, modelId, modelName));
     }
@@ -1135,7 +1132,18 @@ public class ModelService extends BasicService {
         }
 
         NDataModel dataModelDesc = getModelById(modelId, project);
-
+        boolean isStreamingModel = false;
+        if (dataModelDesc.isStreaming()) {
+            isStreamingModel = true;
+        } else if (dataModelDesc.getModelType() == NDataModel.ModelType.UNKNOWN) {
+            val streamingJobMgr = StreamingJobManager.getInstance(getConfig(), project);
+            isStreamingModel = streamingJobMgr.getStreamingJobByUuid(modelId + "_build") != null
+                    || streamingJobMgr.getStreamingJobByUuid(modelId + "_merge") != null;
+        }
+        if (isStreamingModel) {
+            EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
+            EventBusFactory.getInstance().postSync(new StreamingJobDropEvent(project, modelId));
+        }
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -2953,7 +2961,8 @@ public class ModelService extends BasicService {
         if (SecondStorageUtil.isModelEnable(project, model)) {
             SecondStorageUtil.cleanSegments(project, model, idsToDelete);
             val jobHandler = new SecondStorageSegmentCleanJobHandler();
-            final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(), idsToDelete);
+            final JobParam param = SecondStorageJobParamUtil.segmentCleanParam(project, model, getUsername(),
+                    idsToDelete);
             getJobManager(project).addJob(param, jobHandler);
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
@@ -3107,15 +3116,13 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public List<JobInfoResponse.JobInfo>
-    exportSegmentToSecondStorage(String project, String model, String[] segmentIds) {
+    public List<JobInfoResponse.JobInfo> exportSegmentToSecondStorage(String project, String model,
+            String[] segmentIds) {
         aclEvaluate.checkProjectOperationPermission(project);
 
         checkSegmentsExistById(model, project, segmentIds);
-        checkSegmentsStatus(model, project, segmentIds,
-                SegmentStatusEnumToDisplay.LOADING,
-                SegmentStatusEnumToDisplay.REFRESHING,
-                SegmentStatusEnumToDisplay.MERGING,
+        checkSegmentsStatus(model, project, segmentIds, SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.REFRESHING, SegmentStatusEnumToDisplay.MERGING,
                 SegmentStatusEnumToDisplay.LOCKED);
 
         if (!SecondStorage.enabled()) {
@@ -3124,10 +3131,8 @@ public class ModelService extends BasicService {
         val jobHandler = new SecondStorageSegmentLoadJobHandler();
 
         final JobParam param = SecondStorageJobParamUtil.of(project, model, getUsername(), Stream.of(segmentIds));
-        return Collections.singletonList(
-                new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
-                        getJobManager(project).addJob(param, jobHandler))
-        );
+        return Collections.singletonList(new JobInfoResponse.JobInfo(JobTypeEnum.EXPORT_TO_SECOND_STORAGE.toString(),
+                getJobManager(project).addJob(param, jobHandler)));
     }
 
     @Transaction(project = 0)
@@ -3220,7 +3225,8 @@ public class ModelService extends BasicService {
             val indexPlanManager = getIndexPlanManager(project);
             if (!indexPlanManager.getIndexPlan(request.getId()).containBaseTableLayout()) {
                 indexPlanManager.updateIndexPlan(request.getId(), copied -> {
-                    copied.createAndAddBaseIndex(Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
+                    copied.createAndAddBaseIndex(
+                            Collections.singletonList(copied.createBaseTableIndex(copied.getModel())));
                 });
             }
             SecondStorageUtil.initModelMetaData(project, request.getId());
@@ -3825,7 +3831,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updateDataModelParatitionDesc(String project, String modelAlias,
-                                              ModelParatitionDescRequest modelParatitionDescRequest) {
+            ModelParatitionDescRequest modelParatitionDescRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         if (getProjectManager().getProject(project) == null) {
             throw new KylinException(PROJECT_NOT_EXIST,
@@ -3846,9 +3852,8 @@ public class ModelService extends BasicService {
             }
         }
 
-        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite ->
-                copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc())
-        );
+        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(),
+                copyForWrite -> copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc()));
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                 modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
     }
@@ -3915,9 +3920,8 @@ public class ModelService extends BasicService {
             }
         }
 
-        getDataModelManager(project).updateDataModel(modelId, copyForWrite ->
-                copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping())
-        );
+        getDataModelManager(project).updateDataModel(modelId,
+                copyForWrite -> copyForWrite.setMultiPartitionKeyMapping(request.convertToMultiPartitionMapping()));
     }
 
     private void changeModelOwner(NDataModel model) {

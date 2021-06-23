@@ -181,7 +181,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Arrays.asList("STREAMING_BUILD"),
                 Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(4, list.getTotalSize());
+        Assert.assertEquals(4, list.getValue().size());
 
         // status filter
         val config = getTestConfig();
@@ -198,7 +198,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 PROJECT, "last_update_time", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
-        Assert.assertEquals(4, list.getTotalSize());
+        Assert.assertEquals(4, list.getValue().size());
 
         // sort & reverse
         Assert.assertTrue(
@@ -222,11 +222,12 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 "", "last_update_time", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
-        Assert.assertEquals(4, list.getTotalSize());
+        Assert.assertEquals(8, list.getTotalSize());
+        Assert.assertEquals(4, list.getValue().size());
 
         // offset filter
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 2);
-        Assert.assertEquals(2, list.getTotalSize());
+        Assert.assertEquals(2, list.getValue().size());
         streamingJobsStatsManager.deleteAllStreamingJobStats();
     }
 
@@ -575,7 +576,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
             copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
         });
-        streamingJobService.forceStopStreamingJob(PROJECT, MODEL_ID);
+        streamingJobService.forceStopStreamingJob(PROJECT, MODEL_ID, JobTypeEnum.STREAMING_BUILD);
+        streamingJobService.forceStopStreamingJob(PROJECT, MODEL_ID, JobTypeEnum.STREAMING_MERGE);
         val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
         val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());

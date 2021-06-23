@@ -46,6 +46,7 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.val;
 import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
@@ -111,15 +112,13 @@ public class StreamingJobService extends BasicService {
         scheduler.stopJob(modelId, jobType);
     }
 
-    public void forceStopStreamingJob(String project, String modelId) {
-        forceStopStreamingJob(project, modelId, JobTypeEnum.STREAMING_BUILD);
-        forceStopStreamingJob(project, modelId, JobTypeEnum.STREAMING_MERGE);
-    }
-
     public void forceStopStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
         scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, jobType.name()), true);
+
         try {
+            MetaInfoUpdater.updateJobState(project, StreamingUtils.getJobId(modelId, jobType.name()),
+                    JobStatusEnum.STOPPING);
             scheduler.killJob(modelId, jobType, JobStatusEnum.STOPPED);
         } finally {
             scheduler.skipJobListener(project, StreamingUtils.getJobId(modelId, jobType.name()), false);
@@ -404,7 +403,7 @@ public class StreamingJobService extends BasicService {
                 }
             }
         }
-        return new DataResult<>(targetList, targetList.size(), offset, limit);
+        return new DataResult<>(targetList, filterList.size(), offset, limit);
     }
 
     public StreamingJobDataStatsResponse getStreamingJobDataStats(String jobId, String project, Integer timeFilter) {

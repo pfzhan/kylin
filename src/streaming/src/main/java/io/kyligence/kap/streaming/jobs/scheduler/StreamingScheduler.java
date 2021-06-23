@@ -156,23 +156,6 @@ public class StreamingScheduler {
         hasStarted.set(true);
     }
 
-    public synchronized void submitJob(String project, String modelId) {
-        submitJob(project, modelId, JobTypeEnum.STREAMING_BUILD);
-        submitJob(project, modelId, JobTypeEnum.STREAMING_MERGE);
-
-        val conf = KylinConfig.getInstanceFromEnv();
-        boolean timeout = waitJob(modelId, status -> isRunning(status) || isFailed(status),
-                conf.getStreamingJobStartupTimeout());
-        if (conf.getStreamingJobStartupTimeout() > 0 && timeout) {
-            killJob(modelId, JobTypeEnum.STREAMING_BUILD);
-            killJob(modelId, JobTypeEnum.STREAMING_MERGE);
-            String modelName = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .getDataModelDesc(modelId).getAlias();
-            throw new KylinException(ServerErrorCode.JOB_START_FAILURE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_START_FAILURE(), modelName));
-        }
-    }
-
     public synchronized void submitJob(String project, String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         boolean applicationExisted = applicationExisted(jobId);
@@ -201,23 +184,6 @@ public class StreamingScheduler {
         if (!StreamingUtils.isJobOnCluster()) {
             MetaInfoUpdater.updateJobState(project, jobId, Sets.newHashSet(JobStatusEnum.RUNNING, JobStatusEnum.ERROR),
                     JobStatusEnum.RUNNING);
-        }
-    }
-
-    public void stopJob(String modelId) {
-        stopJob(modelId, JobTypeEnum.STREAMING_BUILD);
-        stopJob(modelId, JobTypeEnum.STREAMING_MERGE);
-
-        val conf = KylinConfig.getInstanceFromEnv();
-        boolean timeouted = waitJob(modelId, status -> isFinished(status) || isFailed(status),
-                conf.getStreamingJobShutdownTimeout());
-        if (conf.getStreamingJobShutdownTimeout() > 0 && timeouted) {
-            killJob(modelId, JobTypeEnum.STREAMING_BUILD);
-            killJob(modelId, JobTypeEnum.STREAMING_MERGE);
-            String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .getDataModelDesc(modelId).getAlias();
-            throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
         }
     }
 
@@ -349,13 +315,6 @@ public class StreamingScheduler {
             }
         }
         return jobMap;
-    }
-
-    private boolean isRunning(JobStatusEnum state) {
-        if (JobStatusEnum.RUNNING == state) {
-            return true;
-        }
-        return false;
     }
 
     private boolean isFailed(JobStatusEnum state) {

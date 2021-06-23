@@ -93,7 +93,7 @@ class EmbededServer extends Logging {
   }
 
   // Set up the Embedded Zookeeper server and get the proper Zookeeper port
-  private def setupEmbeddedZookeeper(): Unit = {
+  def setupEmbeddedZookeeper(): Unit = {
     // Zookeeper server startup
     zookeeper = new EmbeddedZookeeper(s"$zkHost:$zkPort")
     // Get the actual zookeeper binding port
@@ -154,12 +154,14 @@ class EmbededServer extends Logging {
     // On Windows, `logDirs` is left open even after Kafka server above is completely shut down
     // in some cases. It leads to test failures on Windows if the directory deletion failure
     // throws an exception.
-    brokerConf.logDirs.foreach { f =>
-      try {
-        Utils.deleteRecursively(new File(f))
-      } catch {
-        case e: IOException if Utils.isWindows =>
-          logWarning(e.getMessage)
+    if (brokerConf != null) {
+      brokerConf.logDirs.foreach { f =>
+        try {
+          Utils.deleteRecursively(new File(f))
+        } catch {
+          case e: IOException if Utils.isWindows =>
+            logWarning(e.getMessage)
+        }
       }
     }
 

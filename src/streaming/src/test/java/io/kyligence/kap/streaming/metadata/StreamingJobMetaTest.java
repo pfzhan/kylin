@@ -75,8 +75,6 @@ public class StreamingJobMetaTest extends NLocalFileMetadataTestCase {
                 params.get(StreamingConstants.STREAMING_DURATION));
         Assert.assertEquals(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION_DEFAULT,
                 params.get(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION));
-        Assert.assertEquals(StreamingConstants.STREAMING_WATERMARK_DEFAULT,
-                params.get(StreamingConstants.STREAMING_WATERMARK));
     }
 
     @Test

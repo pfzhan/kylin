@@ -29,6 +29,7 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.utils.EmbededServer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -54,18 +55,21 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     private static String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
     private static String dataflowId = modelId;
     private SparkSession ss;
+    private EmbededServer zkServer = new EmbededServer();
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        ss = SparkSession.builder().master("local").getOrCreate();
+        ss = createSparkSession();
         val map = (Map<String, StreamingScheduler>)ReflectionUtils.getField(StreamingScheduler.class, "INSTANCE_MAP");
         map.clear();
+        zkServer.setupEmbeddedZookeeper();
     }
 
     @After
     public void tearDown() {
         this.cleanupTestMetadata();
+        zkServer.teardown();
         ss.close();
     }
 
@@ -100,7 +104,8 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     @Test
     public void testSubmitJob() {
         val streamingScheduler = new StreamingScheduler(PROJECT);
-        streamingScheduler.submitJob(PROJECT, modelId);
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
         val testConfig = getTestConfig();
         val mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
@@ -167,7 +172,8 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     @Test
     public void testStopJob() {
         val streamingScheduler = new StreamingScheduler(PROJECT);
-        streamingScheduler.submitJob(PROJECT, modelId);
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
         val testConfig = getTestConfig();
         val mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
         val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
@@ -177,7 +183,9 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         var mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.RUNNING, mergeJobMeta.getCurrentStatus());
 
-        streamingScheduler.stopJob(modelId);
+        streamingScheduler.stopJob(modelId, JobTypeEnum.STREAMING_BUILD);
+        streamingScheduler.stopJob(modelId, JobTypeEnum.STREAMING_MERGE);
+
         buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
         mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
