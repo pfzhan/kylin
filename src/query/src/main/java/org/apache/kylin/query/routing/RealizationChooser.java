@@ -224,8 +224,7 @@ public class RealizationChooser {
         }
 
         // Step 2.2 if no exactly model and user config to try partial model match, then try partial match model
-        if (CollectionUtils.isEmpty(candidates)
-                && KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
+        if (CollectionUtils.isEmpty(candidates) && isQueryMatchPartialInnerJoinModel()) {
             for (NDataModel model : modelMap.keySet()) {
                 OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
                 List<Candidate> candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
@@ -639,7 +638,7 @@ public class RealizationChooser {
     }
 
     public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx) {
-        return matchJoins(model, ctx, KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
+        return matchJoins(model, ctx, isQueryMatchPartialInnerJoinModel());
     }
 
     private static Multimap<NDataModel, IRealization> makeOrderedModelMap(OLAPContext context) {
@@ -667,6 +666,19 @@ public class RealizationChooser {
         }
 
         return mapModelToRealizations;
+    }
+
+    private static boolean isQueryMatchPartialInnerJoinModel() {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        try {
+            if (QueryContext.current().getProject() != null) {
+                return NProjectManager.getInstance(kylinConfig).getProject(QueryContext.current().getProject())
+                        .getConfig().isQueryMatchPartialInnerJoinModel();
+            }
+        } catch (Exception e) {
+            logger.error("Fail to get project config is query match partial inner join model.", e);
+        }
+        return kylinConfig.isQueryMatchPartialInnerJoinModel();
     }
 
     private static class RealizationCost implements Comparable<RealizationCost> {

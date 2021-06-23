@@ -35,12 +35,14 @@ import com.google.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     public ModelSelectContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
-        this.partialMatch = kylinConfig.isQueryMatchPartialInnerJoinModel();
+        this.partialMatch = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig()
+                .isQueryMatchPartialInnerJoinModel();
     }
 
     @Override
