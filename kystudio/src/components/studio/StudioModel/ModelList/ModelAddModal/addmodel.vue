@@ -1,17 +1,19 @@
 <template>
    <el-dialog class="js_add-model" :title="$t('kylinLang.model.addModel')" limited-area width="480px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="closeModal()">
-      <el-form :model="createModelMeta" @submit.native.prevent @keyup.enter.native="submit" :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
+      <el-form :model="createModelMeta" @submit.native.prevent :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
         <el-form-item prop="newName">
           <span slot="label">{{$t('kylinLang.model.modelName')}}<common-tip :content="$t('kylinLang.model.modelNameTips')"><i class="el-ksd-icon-more_info_16 ksd-ml-5"></i></common-tip></span>
-          <el-input v-guide.inputModelName name="modelName" :placeholder="$t('kylinLang.common.nameFormatValidTip')" v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
+          <el-input v-guide.inputModelName name="modelName" :placeholder="$t('kylinLang.common.nameFormatValidTip')" @keyup.enter.native="submit" v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc">
          <el-input
             v-guide.inputModelDesc
             type="textarea"
             :rows="2"
-            :placeholder="$t('kylinLang.common.pleaseInput')"
-            v-model="createModelMeta.modelDesc">
+            :placeholder="$t('pleaseInputDesc')"
+            v-model="createModelMeta.modelDesc"
+            @keydown.native="handleKeyDown"
+          >
           </el-input>
         </el-form-item>
       </el-form>
@@ -99,6 +101,15 @@ export default class ModelAddModal extends Vue {
       }
       this.btnLoading = false
     })
+  }
+  handleKeyDown (e) {
+    const { ctrlKey, metaKey, keyCode } = e
+    if (ctrlKey && keyCode === 13 || metaKey && keyCode === 13) {
+      this.createModelMeta.modelDesc += '\n'
+    } else if (keyCode === 13) {
+      e.preventDefault()
+      this.submit()
+    }
   }
 }
 </script>

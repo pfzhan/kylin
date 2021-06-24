@@ -586,7 +586,7 @@ export default class ModelAggregate extends Vue {
       this.removeLoading = false
       this.refreshIndexGraphAfterSubmitSetting()
       this.getIndexInfo()
-      this.$emit('loadModels')
+      this.$emit('refreshModel')
     } catch (e) {
       handleError(e)
       this.removeLoading = false
@@ -647,7 +647,7 @@ export default class ModelAggregate extends Vue {
     }).then((res) => {
       if (res.isSubmit) {
         this.refreshIndexGraphAfterSubmitSetting()
-        this.$emit('loadModels')
+        this.$emit('refreshModel')
       }
     })
   }
@@ -1016,6 +1016,7 @@ export default class ModelAggregate extends Vue {
       })
       this.loadAggIndices()
       this.getIndexInfo()
+      this.$emit('refreshModel')
     }).catch((e) => {
       handleError(e)
     })
