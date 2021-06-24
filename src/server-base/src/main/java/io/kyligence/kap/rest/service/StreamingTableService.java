@@ -29,7 +29,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;

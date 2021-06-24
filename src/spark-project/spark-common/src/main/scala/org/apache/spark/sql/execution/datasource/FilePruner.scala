@@ -22,10 +22,8 @@
 
 package org.apache.spark.sql.execution.datasource
 
-import java.sql.{Date, Timestamp}
-
 import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager, DimensionRangeInfo}
+import io.kyligence.kap.metadata.cube.model.{DimensionRangeInfo, LayoutEntity, NDataflow, NDataflowManager}
 import io.kyligence.kap.metadata.project.NProjectManager
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
@@ -41,19 +39,20 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
 
+import java.sql.{Date, Timestamp}
 import scala.collection.JavaConverters._
 
 case class SegmentDirectory(segmentID: String, partitions: List[Long], files: Seq[FileStatus])
 
 /**
-* A container for shard information.
-* Sharding is a technology for decomposing data sets into more manageable parts, and the number
-* of shards is fixed so it does not fluctuate with data.
-*
-* @param numShards        number of shards.
-* @param shardColumnNames the names of the columns that used to generate the shard id.
-* @param sortColumnNames  the names of the columns that used to sort data in each shard.
-*/
+ * A container for shard information.
+ * Sharding is a technology for decomposing data sets into more manageable parts, and the number
+ * of shards is fixed so it does not fluctuate with data.
+ *
+ * @param numShards        number of shards.
+ * @param shardColumnNames the names of the columns that used to generate the shard id.
+ * @param sortColumnNames  the names of the columns that used to sort data in each shard.
+ */
 case class ShardSpec(numShards: Int,
                      shardColumnNames: Seq[String],
                      sortColumnNames: Seq[String]) {
@@ -95,9 +94,9 @@ class FilePruner(val session: SparkSession,
   val isFastBitmapEnabled: Boolean = options.apply("isFastBitmapEnabled").toBoolean
 
   override def rootPaths: Seq[Path] = {
-      dataflow.getQueryableSegments.asScala.map(
-        seg => new Path(toPath(seg.getId))
-      )
+    dataflow.getQueryableSegments.asScala.map(
+      seg => new Path(toPath(seg.getId))
+    )
   }
 
   def toPath(segmentId: String): String = {
@@ -110,7 +109,7 @@ class FilePruner(val session: SparkSession,
 
   private lazy val prunedSegmentDirs: Seq[SegmentDirectory] = {
     val prunedSegmentInfo = options.getOrElse("pruningInfo", sys.error("pruningInfo option is required")).split(",")
-    prunedSegmentInfo.map( segInfo => {
+    prunedSegmentInfo.map(segInfo => {
       if (segInfo.contains(":")) {
         val segmentPartitions = segInfo.split(":")
         SegmentDirectory(segmentPartitions(0), segmentPartitions(1).split("\\|").map(id => id.toLong).toList, null)
@@ -262,9 +261,8 @@ class FilePruner(val session: SparkSession,
     }
     QueryContext.current().record("shard_pruning")
     val totalFileSize = selected.flatMap(partition => partition.files).map(_.getLen).sum
-    setShufflePartitions(totalFileSize, session)
     val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
-    QueryContext.current().getMetrics.addAndGetSourceScanRows(sourceRows)
+    setShufflePartitions(s"${dataflow.getId}#${layout.getId}", totalFileSize, sourceRows, session)
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]
       cached.put((partitionFilters, dataFilters), value)
@@ -277,7 +275,7 @@ class FilePruner(val session: SparkSession,
 
   }
 
-  private def getFileStatues(path : Path): Seq[FileStatus] = {
+  private def getFileStatues(path: Path): Seq[FileStatus] = {
     val fsc = ShardFileStatusCache.getFileStatusCache(session)
 
     val maybeStatuses = fsc.getLeafFiles(path)
@@ -326,7 +324,7 @@ class FilePruner(val session: SparkSession,
       segDirs
     } else {
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
-                      .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
+        .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
       segDirs.filter {
         e => {
           if (dataflow.getSegment(e.segmentID).isOffsetCube) {
@@ -356,7 +354,7 @@ class FilePruner(val session: SparkSession,
       segDirs
     } else {
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
-              .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
+        .flatMap(f => DataSourceStrategy.translateFilter(f, true)).reduceLeft(And)
 
       reducedFilter.references.distinct.toList
       segDirs.filter {
@@ -456,7 +454,7 @@ class FilePruner(val session: SparkSession,
 
   //  translate for filter type match
   private def convertCastFilter(filter: Expression): Expression = {
-     filter match {
+    filter match {
       case expressions.EqualTo(expressions.Cast(a: Attribute, _, _), Literal(v, t)) =>
         expressions.EqualTo(a, Literal(v, t))
       case expressions.EqualTo(Literal(v, t), expressions.Cast(a: Attribute, _, _)) =>
@@ -497,7 +495,7 @@ object FilePruner {
   }
 
   def prunedSegmentInfo(segDirs: Seq[SegmentDirectory], prunedDirs: Seq[SegmentDirectory]): String = {
-    val files : Seq[SegmentDirectory] => Seq[Long] =
+    val files: Seq[SegmentDirectory] => Seq[Long] =
       _.flatMap(s => if (s.files == null) Nil else s.files).map(_.getLen)
 
     val all = files(segDirs)
@@ -507,7 +505,7 @@ object FilePruner {
       s""""nums":"${prunedDirs.size}/${segDirs.size}","files":"${pruned.size}/${all.size}",
          |"bytes":"${pruned.sum}/${all.sum}"""".stripMargin.replaceAll("\\n", " ")
 
-    if (prunedDirs.nonEmpty && prunedDirs.size < segDirs.size ) {
+    if (prunedDirs.nonEmpty && prunedDirs.size < segDirs.size) {
       val prunedDetails = LogUtils.jsonArray(prunedDirs)(_.segmentID)
       val detail = s""""pruned":$prunedDetails"""
       s"{$summary,$detail}"
@@ -538,9 +536,9 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
   }
 
   /**
-    * Recursively fold provided filters to trivial,
-    * blocks are always non-empty.
-    */
+   * Recursively fold provided filters to trivial,
+   * blocks are always non-empty.
+   */
   def foldFilter(filter: Filter): Filter = {
     filter match {
       case EqualTo(_, value: Any) =>
@@ -625,7 +623,7 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
           ts => {
             val dataType = dimCols.get(id.toInt).getType
             Trivial(dataType.compare(ts, dimRange.get(id).getMin) >= 0
-                    && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
+              && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
           }
         }
       case In(id, values: Array[Any]) =>
@@ -633,7 +631,7 @@ case class SegDimFilters(dimRange: java.util.Map[String, DimensionRangeInfo], di
           ts => {
             val dataType = dimCols.get(id.toInt).getType
             Trivial(dataType.compare(ts, dimRange.get(id).getMin) >= 0
-                    && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
+              && dataType.compare(ts, dimRange.get(id).getMax) <= 0)
           }
         }).exists(_.equals(Trivial(true)))
         Trivial(satisfied)

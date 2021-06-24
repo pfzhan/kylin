@@ -25,7 +25,7 @@ package io.kyligence.kap.rest.service.params;
 
 import java.util.Set;
 
-import io.kyligence.kap.rest.transaction.TransactionProjectUnit;
+import io.kyligence.kap.rest.aspect.TransactionProjectUnit;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

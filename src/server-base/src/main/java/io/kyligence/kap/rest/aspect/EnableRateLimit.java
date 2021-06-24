@@ -21,28 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.init;
 
-import org.apache.kylin.common.KylinConfig;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
 
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
-@Slf4j
-@Aspect
-@Component
-public class SchedulerEnhancer {
+package io.kyligence.kap.rest.aspect;
 
-    @Around("@annotation(org.springframework.scheduling.annotation.Scheduled)")
-    public void aroundScheduled(ProceedingJoinPoint pjp) throws Throwable {
-        val config = KylinConfig.getInstanceFromEnv();
-        if (!"query".equals(config.getServerMode())) {
-            log.info("schedule at job leader");
-            pjp.proceed();
-        }
-    }
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+@Documented
+public @interface EnableRateLimit {
 }

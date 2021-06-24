@@ -34,7 +34,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -47,6 +46,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -66,6 +67,8 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.RawRecService;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
 import lombok.Data;
 import lombok.Getter;
 import lombok.val;
@@ -479,20 +482,19 @@ public class QueryHistoryTaskScheduler {
             String modelName = dataFlow.getModelAlias();
             val layoutHitCount = entry.getValue().getLayoutHits();
             for (Long indexId : layoutHitCount.keySet()) {
-                PrometheusMetricsGroup.newIndexUsageGaugeIfAbsent(
-                        project,
-                        modelName,
-                        indexId,
-                        new Object(),
+                PrometheusMetricsGroup.newGaugeIfAbsent(PrometheusMetrics.INDEX_USAGE, new Object(), //
                         obj -> {
-                            NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                            NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                                    project);
                             NDataflow df = dfm.getDataflow(modelId);
                             if (df == null) {
                                 return 0;
                             }
-                            return df.getLayoutHitCount().get(indexId).getDateFrequency().values()
-                                    .stream().mapToInt(Integer::intValue).sum();
-                        });
+                            return df.getLayoutHitCount().get(indexId).getDateFrequency().values().stream()
+                                    .mapToInt(Integer::intValue).sum();
+                        }, //
+                        Tags.of(Tag.of("project", project), Tag.of("model_name", modelName),
+                                Tag.of("index_id", "" + indexId)));
             }
         }
     }

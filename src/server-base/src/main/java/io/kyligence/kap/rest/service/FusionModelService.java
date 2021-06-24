@@ -44,7 +44,7 @@ import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

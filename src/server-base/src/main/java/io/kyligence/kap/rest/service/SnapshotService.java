@@ -88,7 +88,7 @@ import io.kyligence.kap.rest.response.SnapshotCheckResponse;
 import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Component("snapshotService")

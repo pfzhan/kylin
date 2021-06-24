@@ -35,16 +35,18 @@ import lombok.Getter;
 public enum PrometheusMetrics {
     // ========== jvm ============
     JVM_GC_PAUSE_TIME("kylin_jvm_gc_milliseconds", Type.INSTANCE_METRIC), //
-    JVM_DB_CONNECTIONS("kylin_ke_db_connections", Type.INSTANCE_METRIC), //
+    JVM_DB_CONNECTIONS("ke_db_connections", Type.INSTANCE_METRIC), //
+
+    // ========== sparder ========
+    SPARK_TASKS("spark_tasks", Type.INSTANCE_METRIC), //
+    SPARK_TASK_UTILIZATION("spark_tasks_utilization", Type.INSTANCE_METRIC), //
 
     // ========== query ============
     QUERY_TIMES("kylin_query_times", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_COUNTER), //
     QUERY_SLOW_TIMES("kylin_slow_query_times", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_COUNTER), //
     QUERY_FAILED_TIMES("kylin_failed_query_times", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_COUNTER), //
-    QUERY_SPARK_TASKS("kylin_spark_tasks", Type.INSTANCE_METRIC), //
-    QUERY_SPARK_TASK_UTILIZATION("kylin_spark_task_utilization", Type.INSTANCE_METRIC), //
-    QUERY_SECONDS("kylin_ke_queries_seconds", Type.PROJECT_METRIC), //
-    QUERY_SCAN_BYTES("kylin_ke_queries_scan_bytes", Type.PROJECT_METRIC), //
+    QUERY_SECONDS("ke_queries_seconds", Type.PROJECT_METRIC), //
+    QUERY_SCAN_BYTES("ke_queries_scan_bytes", Type.PROJECT_METRIC), //
 
     // ========== job ============
     JOB_WAIT_DURATION_MAX("kylin_job_wait_duration_max", Type.PROJECT_METRIC), //
@@ -52,7 +54,7 @@ public enum PrometheusMetrics {
     JOB_ERROR_NUM("kylin_error_job_num", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_GAUGE_WITHOUT_HOST_TAG), //
     JOB_PENDING_NUM("kylin_pending_job_num", Type.PROJECT_METRIC | Type.PROJECT_METRIC_FROM_GAUGE_WITHOUT_HOST_TAG), //
     MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD("kylin_model_job_exceed_last_job_time_threshold", Type.MODEL_METRIC), //
-    MODEL_BUILD_DURATION("kylin_ke_model_build_seconds", Type.PROJECT_METRIC | Type.MODEL_METRIC), //
+    MODEL_BUILD_DURATION("ke_model_build_seconds", Type.PROJECT_METRIC | Type.MODEL_METRIC), //
 
     // Used in statistics
     // ========== job ============

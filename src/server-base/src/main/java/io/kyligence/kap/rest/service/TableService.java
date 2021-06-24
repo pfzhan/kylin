@@ -182,7 +182,7 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 import lombok.var;
 

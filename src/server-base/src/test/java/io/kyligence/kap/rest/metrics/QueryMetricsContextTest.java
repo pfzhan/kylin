@@ -31,6 +31,7 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -66,8 +67,9 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     private String massageSql(QueryContext queryContext) {
 
         String defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()), queryContext.getUserSQL(),
-                queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(), defaultSchema, false);
+        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()),
+                queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(), queryContext.getOffset(),
+                defaultSchema, false);
         return QueryUtil.massageSql(queryParams);
     }
 
@@ -215,8 +217,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         queryContext.getMetrics().setQueryStartTime(System.currentTimeMillis());
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
         queryContext.setPushdownEngine("MOCKUP");
-        queryContext.getMetrics().setScannedBytes(QueryContext.calScannedValueWithDefault(Lists.newArrayList(999L)));
-        queryContext.getMetrics().setScannedRows(QueryContext.calScannedValueWithDefault(Lists.newArrayList(111L)));
+        queryContext.getMetrics().setSourceScanBytes(Lists.newArrayList(Pair.newPair("m1", 999L)));
+        queryContext.getMetrics().setSourceScanRows(Lists.newArrayList(Pair.newPair("m1", 111L)));
         queryContext.getQueryTagInfo().setPushdown(true);
 
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
@@ -454,7 +456,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     public Map<String, String> getInfluxdbTags(QueryMetrics queryMetrics) {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, queryMetrics.getSubmitter()) //
-                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(queryMetrics.isIndexHit())).put(QueryHistory.MONTH, queryMetrics.getMonth())
+                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(queryMetrics.isIndexHit()))
+                .put(QueryHistory.MONTH, queryMetrics.getMonth())
                 .put(QueryHistory.IS_TABLE_INDEX_USED, String.valueOf(queryMetrics.isTableIndexUsed()))
                 .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(queryMetrics.isAggIndexUsed()))
                 .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(queryMetrics.isTableSnapshotUsed()));
@@ -483,10 +486,14 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         final ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object> builder() //
                 .put(QueryHistory.SQL_TEXT, queryMetrics.getSql()) //
                 .put(QueryHistory.QUERY_ID, queryMetrics.getQueryId()) //
-                .put(QueryHistory.QUERY_DURATION, queryMetrics.getQueryDuration()).put(QueryHistory.TOTAL_SCAN_BYTES, queryMetrics.getTotalScanBytes())
-                .put(QueryHistory.TOTAL_SCAN_COUNT, queryMetrics.getTotalScanCount()).put(QueryHistory.RESULT_ROW_COUNT, queryMetrics.getResultRowCount())
-                .put(QueryHistory.IS_CACHE_HIT, queryMetrics.isCacheHit()).put(QueryHistory.QUERY_STATUS, queryMetrics.getQueryStatus())
-                .put(QueryHistory.QUERY_TIME, queryMetrics.getQueryTime()).put(QueryHistory.SQL_PATTERN, queryMetrics.getSqlPattern());
+                .put(QueryHistory.QUERY_DURATION, queryMetrics.getQueryDuration())
+                .put(QueryHistory.TOTAL_SCAN_BYTES, queryMetrics.getTotalScanBytes())
+                .put(QueryHistory.TOTAL_SCAN_COUNT, queryMetrics.getTotalScanCount())
+                .put(QueryHistory.RESULT_ROW_COUNT, queryMetrics.getResultRowCount())
+                .put(QueryHistory.IS_CACHE_HIT, queryMetrics.isCacheHit())
+                .put(QueryHistory.QUERY_STATUS, queryMetrics.getQueryStatus())
+                .put(QueryHistory.QUERY_TIME, queryMetrics.getQueryTime())
+                .put(QueryHistory.SQL_PATTERN, queryMetrics.getSqlPattern());
         return builder.build();
     }
 }

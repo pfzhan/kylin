@@ -124,7 +124,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
 import io.kyligence.kap.rest.service.AclTCRService;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Component("accessService")

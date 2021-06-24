@@ -40,7 +40,6 @@ import org.apache.spark.status.api.v1.StageStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import lombok.val;
 import scala.collection.JavaConverters;
 
@@ -63,23 +62,30 @@ public class LoadCounter {
 
     void fetchTaskCount() {
         try {
-            val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
-            val pendingTaskCount = JavaConverters.seqAsJavaList(activeStage).stream()
-                    .filter(stage -> StageStatus.ACTIVE == stage.status())
-                    .map(stageData -> stageData.numTasks() - stageData.numActiveTasks() - stageData.numCompleteTasks())
-                    .mapToInt(i -> i).sum();
-            val activeTaskCount = JavaConverters.seqAsJavaList(activeStage).stream()
-                    .filter(stage -> StageStatus.ACTIVE == stage.status()).map(StageData::numActiveTasks)
-                    .mapToInt(i -> i).sum();
-            val finishedTaskCount = JavaConverters.seqAsJavaList(activeStage).stream()
-                    .filter(stage -> StageStatus.ACTIVE == stage.status()).map(StageData::numCompleteTasks)
-                    .mapToInt(i -> i).sum();
-            pendingQueue.add(pendingTaskCount);
-            EventBusFactory.getInstance()
-                    .postAsync(new TaskStatusEvent(pendingTaskCount, activeTaskCount, finishedTaskCount));
+            pendingQueue.add(getPendingTaskCount());
         } catch (Exception ex) {
             logger.error("Error when fetch spark pending task", ex);
         }
+    }
+
+    public int getPendingTaskCount() {
+        val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
+        return JavaConverters.seqAsJavaList(activeStage).stream().filter(stage -> StageStatus.ACTIVE == stage.status())
+                .map(stageData -> stageData.numTasks() - stageData.numActiveTasks() - stageData.numCompleteTasks())
+                .mapToInt(i -> i).sum();
+    }
+
+    public int getRunningTaskCount() {
+        val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
+        return JavaConverters.seqAsJavaList(activeStage).stream().filter(stage -> StageStatus.ACTIVE == stage.status())
+                .map(StageData::numActiveTasks).mapToInt(i -> i).sum();
+
+    }
+
+    public int getFinishedTaskCount() {
+        val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
+        return JavaConverters.seqAsJavaList(activeStage).stream().filter(stage -> StageStatus.ACTIVE == stage.status())
+                .map(StageData::numCompleteTasks).mapToInt(i -> i).sum();
     }
 
     public LoadDesc getLoadDesc() {

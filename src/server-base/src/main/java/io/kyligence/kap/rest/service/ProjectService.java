@@ -129,7 +129,7 @@ import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.Setter;
 import lombok.val;

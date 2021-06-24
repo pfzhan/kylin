@@ -21,49 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-
-
-package io.kyligence.kap.rest.rate;
-
-import java.util.Map;
+package io.kyligence.kap.rest.aspect;
 
 import org.apache.kylin.common.KylinConfig;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.stereotype.Component;
 
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.RateLimiter;
-
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 @Slf4j
 @Aspect
 @Component
-public class RateLimitAspect {
+public class SchedulerEnhancer {
 
-    private Map<String, RateLimiter> limitMap = Maps.newConcurrentMap();
-
-    @Pointcut("@annotation(enableRateLimit)")
-    public void callAt(EnableRateLimit enableRateLimit) {
-        /// just implement it
-    }
-
-    @Around("callAt(enableRateLimit)")
-    public void around(ProceedingJoinPoint joinPoint, EnableRateLimit enableRateLimit) throws Throwable {
-        log.info("ratelimit aspect start");
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        String methodName = signature.getDeclaringTypeName() + "." + signature.getName();
-        double permitsPerSecond = KylinConfig.getInstanceFromEnv().getRateLimitPermitsPerMinute();
-        limitMap.putIfAbsent(methodName, RateLimiter.create(permitsPerSecond / 60.0));
-        RateLimiter limiter = limitMap.get(methodName);
-
-        if (limiter.tryAcquire()) {
-            joinPoint.proceed();
+    @Around("@annotation(org.springframework.scheduling.annotation.Scheduled)")
+    public void aroundScheduled(ProceedingJoinPoint pjp) throws Throwable {
+        val config = KylinConfig.getInstanceFromEnv();
+        if (!"query".equals(config.getServerMode())) {
+            log.info("schedule at job leader");
+            pjp.proceed();
         }
     }
 }

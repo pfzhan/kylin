@@ -31,6 +31,7 @@ import io.kyligence.kap.query.engine.mask.QueryResultMasks
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import io.kyligence.kap.query.runtime.plan.ResultPlan.{convertResultWithMemLimit, saveAsyncQueryResult}
 import io.kyligence.kap.query.util.SparkJobTrace
+import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
@@ -76,7 +77,7 @@ object SparkSqlClient {
       val msg = "SparkSQL returned result DataFrame"
       logger.info(msg)
 
-      dfToList(ss, sql, uuid, df)
+      dfToList(ss, sql, df)
     } finally {
       ss.sessionState.conf.setLocalProperty(DEFAULT_DB, null)
     }
@@ -100,7 +101,7 @@ object SparkSqlClient {
     }
   }
 
-  private def dfToList(ss: SparkSession, sql: String, uuid: UUID, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
+  private def dfToList(ss: SparkSession, sql: String, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
     val config = KapConfig.getInstanceFromEnv
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
@@ -120,8 +121,8 @@ object SparkSqlClient {
       jobTrace.resultConverted()
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-      QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
-      QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
+      QueryContext.current().getMetrics.addSourceScanBytes("spark-sql", scanRows.sum)
+      QueryContext.current().getMetrics.addSourceScanRows("spark-sql", scanBytes.sum)
       Pair.newPair(rowList, fieldList)
     } catch {
       case e: Throwable =>

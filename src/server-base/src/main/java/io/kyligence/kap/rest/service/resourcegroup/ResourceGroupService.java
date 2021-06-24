@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
 
 import io.kyligence.kap.metadata.resourcegroup.ResourceGroup;
 import io.kyligence.kap.rest.request.resourecegroup.ResourceGroupRequest;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Service("resourceGroupService")

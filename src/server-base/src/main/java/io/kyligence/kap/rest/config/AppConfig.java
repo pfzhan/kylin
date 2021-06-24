@@ -29,10 +29,6 @@ import java.net.MalformedURLException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.common.util.DefaultHostInfoFetcher;
-import io.kyligence.kap.common.util.HostInfoFetcher;
-import io.kyligence.kap.rest.interceptor.ReloadAuthoritiesInterceptor;
-import io.micrometer.core.instrument.config.MeterFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.TimeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,9 +58,12 @@ import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 
+import io.kyligence.kap.common.util.DefaultHostInfoFetcher;
+import io.kyligence.kap.common.util.HostInfoFetcher;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.handler.KapNoOpResponseErrorHandler;
+import io.kyligence.kap.rest.interceptor.ReloadAuthoritiesInterceptor;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -189,8 +188,4 @@ public class AppConfig extends WebMvcConfigurerAdapter {
         registry.addInterceptor(getReloadAuthoritiesInterceptor());
     }
 
-    @Bean
-    MeterFilter excludeNonKylinMetrics() {
-        return MeterFilter.deny(id -> !id.getName().startsWith("kylin"));
-    }
 }

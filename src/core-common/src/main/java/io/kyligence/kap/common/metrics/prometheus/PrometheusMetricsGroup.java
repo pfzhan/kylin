@@ -26,7 +26,7 @@ package io.kyligence.kap.common.metrics.prometheus;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.util.Collections;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,12 +50,13 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.lang.Nullable;
@@ -64,11 +65,9 @@ import io.micrometer.core.lang.Nullable;
 public class PrometheusMetricsGroup {
     private static final Logger logger = LoggerFactory.getLogger(PrometheusMetricsGroup.class);
 
-    private static final String TAG_NAME_KYLIN_SERVER = "kylin_server";
-    private static final String TAG_NAME_PROJECT = "project";
-    private static final String TAG_NAME_MODEL = "model_name";
-    private static final String TAG_NAME_JOB_TYPE = "job_type";
-    private static final String TAG_NAME_INDEX = "index_id";
+    public static final String TAG_NAME_KYLIN_SERVER = "kylin_server";
+    public static final String TAG_NAME_PROJECT = "project";
+    public static final String TAG_NAME_MODEL = "model_name";
 
     private static MeterRegistry meterRegistry;
 
@@ -138,42 +137,31 @@ public class PrometheusMetricsGroup {
 
     }
 
-    public static <T> void newMetricsWithoutTags(PrometheusMetrics metric, @Nullable T obj,
-            ToDoubleFunction<T> function) {
-        Tags tags = Tags.empty();
-        newGaugeIfAbsent(metric, obj, function, tags);
-
+    public static void newCounterFromDropwizard(PrometheusMetrics metric, String project,
+            Map<String, String> dropwizardTags, Tags tags) {
+        newCounterFromDropwizard(metric, metric.toMetricsName(), project, dropwizardTags, tags);
     }
 
-    public static void newMetricFromDropwizardCounterWithHostTag(PrometheusMetrics metric, String project) {
-        Map<String, String> dropwizardTags = MetricsGroup.getHostTagMap(AddressUtil.getZkLocalInstance(), project);
-        newMetricFromDropwizard(metric, project, dropwizardTags, MetricSourceType.COUNTER);
+    public static void newCounterFromDropwizard(PrometheusMetrics metric, MetricsName dropwizardMetric, String project,
+            Map<String, String> dropwizardTags, Tags tags) {
+        com.codahale.metrics.Counter counter = MetricsGroup.getCounter(dropwizardMetric, MetricsCategory.PROJECT,
+                project, dropwizardTags);
+        if (Objects.nonNull(counter)) {
+            newGaugeIfAbsent(metric, counter, Counter::getCount, tags);
+        }
     }
 
-    public static void newMetricFromDropwizardGaugeWithoutHostTag(PrometheusMetrics metric, String project) {
-        newMetricFromDropwizard(metric, project, Collections.emptyMap(), MetricSourceType.GAUGE_WITHOUT_HOST);
+    public static void newGaugeFromDropwizard(PrometheusMetrics metric, String project,
+            Map<String, String> dropwizardTags, Tags tags) {
+        newGaugeFromDropwizard(metric, metric.toMetricsName(), project, dropwizardTags, tags);
     }
 
-    private static void newMetricFromDropwizard(PrometheusMetrics metric, String project,
-            Map<String, String> dropwizardTags, MetricSourceType type) {
-        Tags prometheusTags = generateProjectTags(project);
-        switch (type) {
-        case COUNTER:
-            com.codahale.metrics.Counter counter = MetricsGroup.getCounter(metric.toMetricsName(),
-                    MetricsCategory.PROJECT, project, dropwizardTags);
-            if (Objects.nonNull(counter)) {
-                newGaugeIfAbsent(metric, counter, Counter::getCount, prometheusTags);
-            }
-            break;
-        case GAUGE_WITHOUT_HOST:
-            com.codahale.metrics.Gauge<Long> gauge = MetricsGroup.getGauge(metric.toMetricsName(),
-                    MetricsCategory.PROJECT, project, Collections.emptyMap());
-            if (Objects.nonNull(gauge)) {
-                newGaugeIfAbsent(metric, gauge, com.codahale.metrics.Gauge::getValue, prometheusTags);
-            }
-            break;
-        default:
-            throw new IllegalArgumentException("Invalid type: " + type);
+    public static void newGaugeFromDropwizard(PrometheusMetrics metric, MetricsName dropwizardMetric, String project,
+            Map<String, String> dropwizardTags, Tags tags) {
+        com.codahale.metrics.Gauge<Long> gauge = MetricsGroup.getGauge(dropwizardMetric, MetricsCategory.PROJECT,
+                project, dropwizardTags);
+        if (Objects.nonNull(gauge)) {
+            newGaugeIfAbsent(metric, gauge, com.codahale.metrics.Gauge::getValue, tags);
         }
     }
 
@@ -196,66 +184,34 @@ public class PrometheusMetricsGroup {
         newGaugeIfAbsent(metric, obj, function, prometheusTags);
     }
 
-    public static <T> void newJobStatisticsGauge(PrometheusMetrics metric, String project, String host, String jobType,
-            @Nullable T obj, ToDoubleFunction<T> function) {
-        Tags tags = generateJobStatisticsTags(host, project, jobType);
-        newGaugeIfAbsent(metric, obj, function, tags);
-    }
-
-    public static <T> void newIndexUsageGaugeIfAbsent(String project, String model, long indexId, @Nullable T obj,
-            ToDoubleFunction<T> function) {
-        PrometheusMetrics metric = PrometheusMetrics.INDEX_USAGE;
-        Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
-        Tag modelTag = Tag.of(TAG_NAME_MODEL, model);
-        Tag indexTag = Tag.of(TAG_NAME_INDEX, "" + indexId);
-        Tags tags = Tags.of(projectTag, modelTag, indexTag);
-        Meter.Id tagId = generateMeterId(metric, tags, Meter.Type.GAUGE);
-        boolean exists = meterRegistry.getMeters().stream().map(Meter::getId).anyMatch(id -> id.equals(tagId));
-        if (exists) {
-            return;
-        }
-
-        Gauge.builder(metric.getValue(), obj, function).strongReference(true).tags(tags).register(meterRegistry);
-    }
-
-    private static <T> void newGaugeIfAbsent(PrometheusMetrics metric, @Nullable T obj, ToDoubleFunction<T> function,
+    public static <T> void newGaugeIfAbsent(PrometheusMetrics metric, @Nullable T obj, ToDoubleFunction<T> function,
             Tags tags) {
         Meter.Id meterId = generateMeterId(metric, tags, Meter.Type.GAUGE);
         boolean exists = meterRegistry.getMeters().stream().map(Meter::getId).anyMatch(id -> id.equals(meterId));
         if (!exists) {
             Gauge.builder(metric.getValue(), obj, function).strongReference(true).tags(tags).register(meterRegistry);
-            logger.info("Create a new gauge, metric name: {}, tags: {}", metric.getValue(), tags);
+            logger.trace("Create a new gauge, metric name: {}, tags: {}", metric.getValue(), tags);
         }
     }
 
-    public static void summary(double amount, PrometheusMetrics metric, String... tags) {
-        Metrics.summary(metric.getValue(), tags).record(amount);
+    public static void summaryRecord(double amount, PrometheusMetrics metric, String... tags) {
+        DistributionSummary.builder(metric.getValue()).tags(tags).distributionStatisticExpiry(Duration.ofMinutes(5))
+                .register(meterRegistry).record(amount);
     }
 
-    public static void gauge(double amount, PrometheusMetrics metric, String... tags) {
-        Metrics.gauge(metric.getValue(), Tags.of(tags), amount);
-    }
-
-    private static Tags generateInstanceTags() {
+    public static Tags generateInstanceTags() {
         Tag kylinServer = Tag.of(TAG_NAME_KYLIN_SERVER, AddressUtil.getZkLocalInstance());
         return Tags.of(kylinServer);
     }
 
-    private static Tags generateProjectTags(String project) {
+    public static Tags generateProjectTags(String project) {
         Tag kylinServer = Tag.of(TAG_NAME_KYLIN_SERVER, AddressUtil.getZkLocalInstance());
         Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
 
         return Tags.of(Sets.newHashSet(kylinServer, projectTag));
     }
 
-    private static Tags generateJobStatisticsTags(String host, String project, String jobType) {
-        Tag hostTag = Tag.of(TAG_NAME_KYLIN_SERVER, host);
-        Tag projectTag = Tag.of(TAG_NAME_PROJECT, project);
-        Tag jobTypeTag = Tag.of(TAG_NAME_JOB_TYPE, jobType);
-        return Tags.of(hostTag, projectTag, jobTypeTag);
-    }
-
-    private static Tags generateModelTags(String project, String modelName) {
+    public static Tags generateModelTags(String project, String modelName) {
         Tag modelTag = Tag.of(TAG_NAME_MODEL, modelName);
         return generateProjectTags(project).and(modelTag);
     }
@@ -264,7 +220,4 @@ public class PrometheusMetricsGroup {
         return new Meter.Id(metric.getValue(), tags, null, null, type);
     }
 
-    private enum MetricSourceType {
-        COUNTER, GAUGE_WITHOUT_HOST
-    }
 }

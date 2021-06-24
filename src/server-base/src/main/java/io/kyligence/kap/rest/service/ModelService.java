@@ -263,7 +263,7 @@ import io.kyligence.kap.rest.service.params.FullBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
