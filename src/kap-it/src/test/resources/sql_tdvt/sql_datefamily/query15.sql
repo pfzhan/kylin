@@ -21,4 +21,14 @@
 -- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --
-select TIMESTAMPDIFF(day, date'2018-01-01', date'2018-10-10') from tdvt.calcs;
+select TIMESTAMPDIFF(day, date'2018-01-01', date'2018-10-10'),
+        TIMESTAMPDIFF(day, timestamp'2018-01-01 00:00:00', date'2018-10-10'),
+        TIMESTAMPDIFF(day, timestamp'2018-01-01 00:00:00', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(day, date'2018-01-01', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(year, date'2017-01-01', timestamp'2018-01-01 00:00:00'),
+        TIMESTAMPDIFF(quarter, date'2018-01-01', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(month, date'2018-01-01', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(week, date'2018-01-01', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(hour, date'2018-01-01', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(minute, date'2018-01-01', timestamp'2018-10-10 00:00:00'),
+        TIMESTAMPDIFF(second, date'2018-01-01', timestamp'2018-10-10 00:00:00')

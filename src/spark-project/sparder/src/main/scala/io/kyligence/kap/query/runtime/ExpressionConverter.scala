@@ -259,9 +259,7 @@ object ExpressionConverter {
             callUDF("split_part", args: _*)
           // time_funcs
           case "current_date" =>
-            k_lit(
-              DateFormat.getDateFormat(DateFormat.DEFAULT_DATE_PATTERN)
-                .format(DateTimeUtils.currentTimestamp() / 1000))
+            current_date()
           case "current_timestamp" =>
             current_timestamp()
           case "to_timestamp" =>
