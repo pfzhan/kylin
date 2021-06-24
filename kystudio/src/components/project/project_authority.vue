@@ -242,7 +242,7 @@ import tableAccess from './table_access'
       toggleUserView: '切换至用户操作界面',
       userOrGroup: '名称',
       type: '类型',
-      accessType: '权限',
+      accessType: '角色',
       accessTables: '有权限的表',
       author: '添加用户/用户组',
       editAuthor: '编辑用户/用户组',

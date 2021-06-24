@@ -17,7 +17,7 @@
       </common-tip>
       <common-tip
         class="ksd-mr-8"
-        :disabled="!(buildText && disableLineBuildBtn(currentModel))"
+        :disabled="buildText ? !disableLineBuildBtn(currentModel) : false"
         :content="getDisableBuildTips(currentModel)"
         v-if="currentModel.status !== 'BROKEN' && datasourceActions.includes('buildIndex')">
         <el-popover
@@ -33,7 +33,7 @@
         </el-popover>
         <span
           v-if="!buildText"
-          :class="['item', 'ksd-mr-10', {'build-disabled':disableLineBuildBtn(currentModel)}]"
+          :class="['item', {'build-disabled':disableLineBuildBtn(currentModel)}]"
           v-popover:popoverBuild
           v-guide.setDataRangeBtn
           @click="setModelBuldRange(currentModel)">

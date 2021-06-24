@@ -122,7 +122,7 @@ export default class GroupEditModal extends Vue {
   }
 
   get totalUserData () {
-    return this.totalUsers.length ? this.totalUsers.map(item => ({...item, label: item.value})) : []
+    return this.totalUsers.length ? this.totalUsers : []
   }
 
   // Computed Method: 计算每个Form的field是否显示
@@ -155,23 +155,28 @@ export default class GroupEditModal extends Vue {
     }, 200)
   }
 
-  async queryHandler (title, query) {
+  queryHandler (title, query) {
     const that = this
-    if (title === this.$t('willCheckGroup')) {
-      this.page_offset = 0
-      this.setModal({totalUsers: []})
-      clearTimeout(this.timer)
-      this.timer = setTimeout(function () {
-        that.fetchUsers(query)
-      }, 500)
-    } else if (title === this.$t('checkedGroup')) {
-      try {
-        this.searchValueRight = query
-        this.$set(this.totalSizes, 1, this.searchResults(query).length)
-      } catch (e) {
-        console.error(e)
+    return new Promise(async (resolve, reject) => {
+      if (title === that.$t('willCheckGroup')) {
+        clearTimeout(this.timer)
+        this.timer = setTimeout(async function () {
+          this.page_offset = 0
+          await that.setModal({totalUsers: []})
+          await that.fetchUsers(query)
+          resolve()
+        }, 500)
+      } else if (title === that.$t('checkedGroup')) {
+        try {
+          that.searchValueRight = query
+          that.$set(that.totalSizes, 1, that.searchResults(query).length)
+          resolve()
+        } catch (e) {
+          console.error(e)
+          reject(e)
+        }
       }
-    }
+    })
   }
 
   // 匹配搜索结果的用户
@@ -235,13 +240,13 @@ export default class GroupEditModal extends Vue {
     })
 
     const remoteUsers = data.value
-      .map(user => ({ key: user.username, value: user.username }))
+      .map(user => ({ key: user.username, label: user.username }))
 
-    const filterNotSelected = this.totalUsers.filter(item => !this.form.selected_users.includes(item.key))
+    // const filterNotSelected = [...this.totalUsers, ...remoteUsers].filter(item => !this.form.selected_users.includes(item.key))
 
     const selectedUsersNotInRemote = this.form.selected_users
-      .map(sItem => ({key: sItem, value: sItem}))
-      .filter(sItem => !remoteUsers.some(user => user.key === sItem.key))
+      .map(sItem => ({key: sItem, label: sItem}))
+      .filter(sItem => ![...(this.page_offset === 0 ? [] : this.totalUsers), ...remoteUsers].some(user => user.key === sItem.key))
 
     const searchUserIsSelected = (typeof value !== 'undefined' && value) ? this.form.selected_users.filter(user => user.toLowerCase().indexOf(value.toString().toLowerCase()) >= 0) : [...this.totalUsers, ...remoteUsers].filter(user => this.form.selected_users.includes(user.key))
 
@@ -249,7 +254,7 @@ export default class GroupEditModal extends Vue {
 
     typeof value !== 'undefined' && value ? (this.totalSizes = [this.totalUsersSize - searchUserIsSelected.length]) : (this.totalSizes = [data.total_size - this.form.selected_users.length])
 
-    const users = [ ...filterNotSelected, ...remoteUsers, ...selectedUsersNotInRemote ]
+    const users = [ ...(this.page_offset === 0 ? [] : this.totalUsers), ...remoteUsers, ...selectedUsersNotInRemote ]
 
     this.autoLoadMoreData(users, value)
 
