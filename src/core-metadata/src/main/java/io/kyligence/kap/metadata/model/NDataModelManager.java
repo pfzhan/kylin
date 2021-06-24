@@ -120,6 +120,7 @@ public class NDataModelManager {
                     model.setRootFactTableName(entity.getRootFactTableName());
                     model.setJoinTables(entity.getJoinTables());
                     model.setDependencies(model.calcDependencies());
+                    model.setModelType(entity.getModelType());
 
                     postModelBrokenEvent(entity);
                 }

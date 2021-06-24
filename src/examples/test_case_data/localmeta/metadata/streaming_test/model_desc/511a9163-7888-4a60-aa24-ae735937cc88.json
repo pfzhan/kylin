@@ -5,6 +5,7 @@
   "version" : "4.0.0.0",
   "alias" : "AUTO_MODEL_P_LINEORDER_1",
   "owner" : null,
+  "model_type": "STREAMING",
   "config_last_modifier" : null,
   "config_last_modified" : 0,
   "is_draft" : false,

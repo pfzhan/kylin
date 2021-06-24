@@ -29,8 +29,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -222,4 +227,63 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
                 NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(batchId).getOwner());
     }
 
+    @Test
+    public void testDropStreamingTableWithModel() throws Exception {
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "streaming_test");
+
+        tableMgr.removeSourceTable("DEFAULT.SSB_TOPIC");
+        List<NDataModelResponse> models = modelService.getModels("stream_merge1", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, models.get(0).getStatus());
+        fusionModelService.dropModel("e78a89dd-847f-4574-8afa-8768b4228b73", "streaming_test");
+        models = modelService.getModels("stream_merge1", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(0, models.size());
+        Set<IRealization> realizations = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getRealizationsByTable("streaming_test",
+                "DEFAULT.SSB_TOPIC");
+        Assert.assertEquals(0, realizations.size());
+    }
+
+    @Test
+    public void testDropHybridTableWithModel() throws Exception {
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "streaming_test");
+
+        tableMgr.removeSourceTable("SSB.P_LINEORDER_STREAMING");
+        List<NDataModelResponse> models = modelService.getModels("streaming_test", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, models.get(0).getStatus());
+        fusionModelService.dropModel("b05034a8-c037-416b-aa26-9e6b4a41ee40", "streaming_test");
+        models = modelService.getModels(" streaming_test", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(0, models.size());
+        Set<IRealization> realizations = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getRealizationsByTable("streaming_test",
+                "SSB.P_LINEORDER_STREAMING");
+        Assert.assertEquals(0, realizations.size());
+    }
+
+    @Test
+    public void testDropHiveTableWithModel() throws Exception {
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "streaming_test");
+        NDataflowManager dataflowMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "streaming_test");
+
+        val dataflow = dataflowMgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        Assert.assertTrue(dataflow.isStreaming());
+
+        tableMgr.removeSourceTable("SSB.LINEORDER_HIVE");
+        List<NDataModelResponse> models = modelService.getModels("model_streaming", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(ModelStatusToDisplayEnum.BROKEN, models.get(0).getStatus());
+        fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", "streaming_test");
+        models = modelService.getModels("model_streaming", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(0, models.size());
+    }
+
+    @Test
+    public void testGetModelTypeWithTable() throws Exception {
+        List<NDataModelResponse> models = modelService.getModels("batch", "streaming_test", true, "", null, "", false);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(NDataModel.ModelType.BATCH, models.get(0).getModelType());
+    }
 }

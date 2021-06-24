@@ -26,10 +26,12 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -67,9 +69,12 @@ public class FusionModelResponse extends NDataModelResponse {
         NDataflow streamingDataflow = dfManager.getDataflow(modelDesc.getUuid());
         FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject())
                 .getFusionModel(modelDesc.getFusionId());
+        val batchModel = fusionModel.getBatchModel();
+        if (batchModel.isBroken() || modelDesc.isBroken()) {
+            this.setStatus(ModelStatusToDisplayEnum.BROKEN);
+        }
+        this.setBatchId(batchModel.getUuid());
         this.setFusionId(modelDesc.getFusionId());
-        this.setBatchId(fusionModel.getBatchModel().getUuid());
-        this.setBatchPartitionDesc(fusionModel.getBatchModel().getPartitionDesc());
         NDataflow batchDataflow = dfManager.getDataflow(batchId);
         this.setLastBuildTime(getMaxLastBuildTime(batchDataflow, streamingDataflow));
         this.setStorage(getTotalStorage(batchDataflow, streamingDataflow));
@@ -78,7 +83,8 @@ public class FusionModelResponse extends NDataModelResponse {
         this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
         this.setUsage(getTotalUsage(batchDataflow, streamingDataflow));
         this.setInconsistentSegmentCount(getTotalInconsistentSegmentCount(batchDataflow, streamingDataflow));
-        if (!modelDesc.isBroken()) {
+        if (!modelDesc.isBroken() && !batchModel.isBroken()) {
+            this.setBatchPartitionDesc(fusionModel.getBatchModel().getPartitionDesc());
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                     this.getProject());
             IndexPlan batchIndex = indexPlanManager.getIndexPlan(batchId);

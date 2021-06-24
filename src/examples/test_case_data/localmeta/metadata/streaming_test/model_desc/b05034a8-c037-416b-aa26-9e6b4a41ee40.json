@@ -5,6 +5,7 @@
   "version" : "4.0.0.0",
   "alias" : "streaming_test",
   "owner" : "ADMIN",
+  "model_type": "HYBRID",
   "config_last_modifier" : null,
   "config_last_modified" : 0,
   "description" : "",
