@@ -31,7 +31,7 @@ import lombok.Data;
 public class RecoverRequest {
     @JsonProperty("project")
     public String project;
-    @JsonProperty("modelId")
-    public String modelId;
+    @JsonProperty("model_name")
+    public String modelName;
 }
 

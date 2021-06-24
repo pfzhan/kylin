@@ -539,7 +539,10 @@ export default class TableJoinModal extends Vue {
       if (currentJoinIndex > -1) {
         res.join_tables[currentJoinIndex] = {
           ...res.join_tables[currentJoinIndex],
-          join: joinData,
+          join: {
+            ...joinData,
+            type: this.joinType
+          },
           join_relation_type: selectTableRelation,
           flattenable: this.isPrecompute ? 'flatten' : 'normalized',
           table: this.form.modelInstance.tables[selectP].name
@@ -548,7 +551,10 @@ export default class TableJoinModal extends Vue {
       } else {
         res.join_tables.push({
           alias: this.pTableName,
-          join: joinData,
+          join: {
+            ...joinData,
+            type: this.joinType
+          },
           join_relation_type: selectTableRelation,
           flattenable: this.isPrecompute ? 'flatten' : 'normalized',
           table: this.form.modelInstance.tables[selectP].name

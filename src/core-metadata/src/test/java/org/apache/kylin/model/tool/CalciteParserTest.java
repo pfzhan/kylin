@@ -193,6 +193,16 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testPosWithBracketsInAlias() throws SqlParseException {
+        String sql = "select a as \"(   a + b) * (c+ d）     \" from (select a,b,c from t)";
+
+        SqlNode parse = ((SqlSelect) CalciteParser.parse(sql)).getSelectList().get(0);
+        Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(parse, sql);
+        String substring = sql.substring(replacePos.getFirst(), replacePos.getSecond());
+        Assert.assertEquals("a as \"(   a + b) * (c+ d）     \"", substring);
+    }
+
+    @Test
     public void testTransformDoubleQuote() throws SqlParseException {
         String expr = "`ABC`.`CBA` + 1";
         Assert.assertEquals(expr.replace("`", "\""), CalciteParser.transformDoubleQuote(expr));

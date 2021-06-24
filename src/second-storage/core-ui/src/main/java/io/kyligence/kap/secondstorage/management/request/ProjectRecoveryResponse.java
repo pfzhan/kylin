@@ -33,6 +33,6 @@ import java.util.List;
 public class ProjectRecoveryResponse {
     @JsonProperty("submitted_models")
     private List<String> submittedModels;
-    @JsonProperty("failed_models")
+    @JsonProperty("skipped_models")
     private List<String> failedModels;
 }

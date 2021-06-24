@@ -27,7 +27,7 @@ import java.util.Locale
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.{CreateFlatTable, NBuildSourceInfo}
-import io.kyligence.kap.engine.spark.job.FlatTableHelper
+import io.kyligence.kap.engine.spark.job.{FlatTableHelper, NSparkCubingUtil}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
@@ -85,7 +85,11 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
 
     val factTable =
       if (!StringUtils.isEmpty(watermark)) {
-        rootFactTable.withWatermark(partitionColumn, watermark)
+        import org.apache.spark.sql.functions._
+        val cols = model.getRootFactTable.getColumns.asScala.map(item => {
+          col(NSparkCubingUtil.convertFromDot(item.getAliasDotName))
+        }).toList
+        rootFactTable.withWatermark(partitionColumn, watermark).groupBy(cols: _*).count()
       } else {
         rootFactTable
       }

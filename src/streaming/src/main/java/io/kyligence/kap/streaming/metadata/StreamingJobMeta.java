@@ -82,7 +82,6 @@ public class StreamingJobMeta extends RootPersistentEntity {
             jobMeta.params.put(StreamingConstants.STREAMING_DURATION, StreamingConstants.STREAMING_DURATION_DEFAULT);
             jobMeta.params.put(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION,
                     StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION_DEFAULT);
-            jobMeta.params.put(StreamingConstants.STREAMING_WATERMARK, StreamingConstants.STREAMING_WATERMARK_DEFAULT);
         } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
             jobMeta.params.put(StreamingConstants.STREAMING_SEGMENT_MAX_SIZE,
                     StreamingConstants.STREAMING_SEGMENT_MAX_SIZE_DEFAULT);

@@ -210,6 +210,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- clickhouse jdbc -->
+        <dependency>
+            <groupId>${clickhouse.group}</groupId>
+            <artifactId>${clickhouse.artifact}</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce-client-core</artifactId>
@@ -419,15 +425,6 @@
                 <dependency>
                     <groupId>org.apache.hive</groupId>
                     <artifactId>hive-exec</artifactId>
-                </dependency>
-
-
-
-                <!-- jdbc -->
-                <dependency>
-                    <groupId>${clickhouse.group}</groupId>
-                    <artifactId>${clickhouse.artifact}</artifactId>
-                    <scope>provided</scope>
                 </dependency>
                 <!--end for sandbox -->
             </dependencies>

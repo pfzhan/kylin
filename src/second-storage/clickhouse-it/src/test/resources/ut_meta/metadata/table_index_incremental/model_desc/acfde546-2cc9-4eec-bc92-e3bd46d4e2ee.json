@@ -1,6 +1,6 @@
 {
   "uuid": "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee",
-  "alias": "test_table_index",
+  "alias": "test_table_index_incremental",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "owner": "ADMIN",
   "join_tables": [],

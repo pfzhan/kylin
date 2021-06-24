@@ -49,6 +49,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -74,8 +75,13 @@ import java.util.stream.Collectors;
 
 public class SecondStorageService extends BasicService implements SecondStorageUpdater {
 
+    private AclEvaluate aclEvaluate;
+
     @Autowired
-    public AclEvaluate aclEvaluate;
+    public SecondStorageService setAclEvaluate(final AclEvaluate aclEvaluate) {
+        this.aclEvaluate = aclEvaluate;
+        return this;
+    }
 
     public boolean isEnabled(String project, String modelId) {
         return SecondStorageUtil.isModelEnable(project, modelId);
@@ -110,8 +116,10 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             aclEvaluate.checkProjectAdminPermission(project);
         JobInfoResponse.JobInfo jobInfo = null;
         if (enable) {
-            Preconditions.checkArgument(listAvailableNodes().stream()
-                    .map(NodeData::getName).collect(Collectors.toSet()).containsAll(nodes));
+            if (!listAvailableNodes().stream()
+                    .map(NodeData::getName).collect(Collectors.toSet()).containsAll(nodes)) {
+                throw new KylinException(SECOND_STORAGE_NODE_NOT_AVAILABLE, MsgPicker.getMsg().getSECOND_STORAGE_NODE_NOT_AVAILABLE());
+            }
             if (!SecondStorageUtil.isProjectEnable(project)) {
                 enableProjectSecondStorage(project, nodes);
             }
@@ -291,5 +299,10 @@ public class SecondStorageService extends BasicService implements SecondStorageU
                 return tp;
             });
         }
+    }
+
+    public void refreshConf() {
+        aclEvaluate.checkIsGlobalAdmin();
+        SecondStorage.init(true);
     }
 }

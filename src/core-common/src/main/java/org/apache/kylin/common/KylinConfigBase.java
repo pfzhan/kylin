@@ -1097,6 +1097,7 @@ public abstract class KylinConfigBase implements Serializable {
     public String getKafkaRatePerPartition() {
         return getOptional("kylin.streaming.kafka.max-rate-per-partition", "-1");
     }
+
     // ============================================================================
     // SOURCE.JDBC
     // ============================================================================
@@ -1334,10 +1335,6 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.streaming.spark-conf.");
     }
 
-    public long getStreamingJobStartupTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.streaming.startup-timeout", "5m"), TimeUnit.MINUTES);
-    }
-
     public long getStreamingJobShutdownTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.streaming.shutdown-timeout", "0m"), TimeUnit.MINUTES);
     }
@@ -1357,6 +1354,10 @@ public abstract class KylinConfigBase implements Serializable {
     public int getStreamingJobMaxRetryInterval() {
         return (int) TimeUtil.timeStringAs(getOptional("kylin.streaming.job-retry-max-interval", "30m"),
                 TimeUnit.MINUTES);
+    }
+
+    public String getStreamingJobWatermark() {
+        return getOptional("kylin.streaming.watermark", "");
     }
 
     // ============================================================================

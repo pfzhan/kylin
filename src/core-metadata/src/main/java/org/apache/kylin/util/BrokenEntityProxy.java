@@ -63,7 +63,7 @@ public class BrokenEntityProxy implements MethodInterceptor {
             "toString", "getMvcc", "setMvcc", "setConfig", "getConfig", "getModelAlias", "getModel",
             "getRootFactTableName", "setRootFactTableName", "getJoinTables", "setJoinTables", "calcDependencies",
             "getDependencies", "setDependencies", "setHandledAfterBroken", "isHandledAfterBroken", "getOwner",
-            "setOwner", "isMultiPartitionModel", "getModelId", "getModelType", "isStreaming");
+            "setOwner", "isMultiPartitionModel", "getModelId", "getModelType", "isStreaming", "isFusionModel");
 
     private final String resourcePath;
 

@@ -988,7 +988,8 @@ export default class ModelSegment extends Vue {
       if (isSubmit) {
         await this.loadSegments()
         this.mergeLoading = false
-        this.$emit('loadModels')
+        // this.$emit('loadModels')
+        this.isShowMergeConfirm = false
         this.$message({
           dangerouslyUseHTMLString: true,
           type: 'success',

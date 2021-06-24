@@ -68,9 +68,4 @@ public class ClickHouseDatabaseClean extends AbstractClickHouseClean {
             }
         };
     }
-
-    @Override
-    protected void updateMetaData() {
-        SecondStorageUtil.disableProject(getProject());
-    }
 }

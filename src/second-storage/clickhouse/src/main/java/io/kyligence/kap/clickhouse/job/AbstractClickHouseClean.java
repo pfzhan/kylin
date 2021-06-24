@@ -112,14 +112,11 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
         }
     }
 
-    protected abstract void updateMetaData();
-
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         return wrapWithExecuteException(() -> {
             loadState();
             workImpl();
-            updateMetaData();
             return ExecuteResult.createSucceed();
         });
     }

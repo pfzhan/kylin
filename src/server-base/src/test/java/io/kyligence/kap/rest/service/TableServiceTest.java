@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import java.io.DataInputStream;
@@ -48,8 +46,11 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import io.kyligence.kap.streaming.jobs.StreamingJobListener;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -149,6 +150,8 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Mock
     private KafkaService kafkaServiceMock = Mockito.mock(KafkaService.class);
 
+    private StreamingJobListener eventListener = new StreamingJobListener();
+
     @Before
     public void setup() {
         super.setup();
@@ -176,10 +179,12 @@ public class TableServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             //
         }
+        EventBusFactory.getInstance().register(eventListener, true);
     }
 
     @After
     public void tearDown() {
+        EventBusFactory.getInstance().unregister(eventListener);
         cleanupTestMetadata();
         FileUtils.deleteQuietly(new File("../server-base/metastore_db"));
     }
@@ -542,6 +547,33 @@ public class TableServiceTest extends CSVSourceTestCase {
         dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
         Assert.assertNull(dataLoadingRange);
         cleanPushdownEnv();
+    }
+
+    @Test
+    public void testUnloadKafkaTable() {
+        String project = "streaming_test";
+        NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        StreamingJobManager mgr = StreamingJobManager.getInstance(getTestConfig(), project);
+        var buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        var mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        var mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertNotNull(buildJobMeta);
+        Assert.assertNotNull(mergeJobMeta);
+        for (TableDesc table : tableManager.listAllTables()) {
+            if (table.getKafkaConfig() != null
+                    && "P_LINEORDER_STR".equalsIgnoreCase(table.getKafkaConfig().getName())) {
+                tableService.unloadTable(project, table.getIdentity(), true);
+            }
+        }
+        buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertNull(buildJobMeta);
+        Assert.assertNull(mergeJobMeta);
     }
 
     @Test
@@ -1293,10 +1325,10 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetTableDescByType() {
         String project = "streaming_test";
-        try{
+        try {
             List<TableDesc> tableDescs = tableService.getTableDescByType(project, true, "", "default", true, 1);
             Assert.assertNotNull(tableDescs);
-        }catch (Exception e) {
+        } catch (Exception e) {
             Assert.fail();
         }
 
@@ -1306,13 +1338,12 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testUnloadKafkaConfig() {
         String project = "streaming_test";
         val mgr = KafkaConfigManager.getInstance(getTestConfig(), project);
-        try{
+        try {
             tableService.unloadKafkaConfig(project, "DEFAULT.SSB_TOPIC");
             Assert.assertNull(mgr.getKafkaConfig("DEFAULT.SSB_TOPIC"));
-        }catch (Exception e) {
+        } catch (Exception e) {
             Assert.fail();
         }
     }
-
 
 }

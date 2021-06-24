@@ -46,6 +46,8 @@ import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN_NOT_AVAILABLE;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -98,12 +100,16 @@ public class SecondStorageUtil {
     private static void checkEnableModel(String project, String model) {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         final IndexPlan indexPlan = indexPlanManager.getIndexPlan(model);
-        Preconditions.checkState(indexPlan.containBaseTableLayout(), "model must have base table index when enable Tiered Storage.");
+        if (!indexPlan.containBaseTableLayout()) {
+            throw new KylinException(BASE_TABLE_INDEX_NOT_AVAILABLE, MsgPicker.getMsg().getBASE_TABLE_INDEX_NOT_AVAILABLE());
+        }
         if (indexPlan.getModel().isIncrementBuildOnExpertMode()) {
             boolean containPartitionCol = indexPlan.getBaseTableLayout().getColumns().stream().anyMatch(col -> {
                 return col.getTableDotName().equals(indexPlan.getModel().getPartitionDesc().getPartitionDateColumn());
             });
-            Preconditions.checkState(containPartitionCol, "model base table index must have date partition column when enable Tiered Storage.");
+           if (!containPartitionCol) {
+               throw new KylinException(PARTITION_COLUMN_NOT_AVAILABLE, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_AVAILABLE());
+           }
         }
     }
 

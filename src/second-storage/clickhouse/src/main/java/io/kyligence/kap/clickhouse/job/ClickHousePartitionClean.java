@@ -37,7 +37,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 
@@ -97,10 +96,5 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
                 ExceptionUtils.rethrow(e);
             }
         };
-    }
-
-    @Override
-    protected void updateMetaData() {
-        SecondStorageUtil.cleanSegments(project, getTargetModelId(), new HashSet<>(getTargetSegments()));
     }
 }

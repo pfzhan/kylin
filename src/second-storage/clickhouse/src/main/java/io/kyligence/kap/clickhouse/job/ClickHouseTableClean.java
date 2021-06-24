@@ -25,10 +25,8 @@
 package io.kyligence.kap.clickhouse.job;
 
 import com.clearspring.analytics.util.Preconditions;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -80,20 +78,5 @@ public class ClickHouseTableClean extends AbstractClickHouseClean {
                 ExceptionUtils.rethrow(e);
             }
         };
-    }
-
-    @Override
-    protected void updateMetaData() {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            KylinConfig config = getConfig();
-            val tableFlowManager = SecondStorageUtil.tableFlowManager(config, getProject());
-            val tablePlanManager = SecondStorageUtil.tablePlanManager(config, getProject());
-            Preconditions.checkState(tablePlanManager.isPresent() && tableFlowManager.isPresent());
-            tablePlanManager.get().listAll().stream().filter(tablePlan -> tablePlan.getId().equals(getTargetModelId()))
-                    .forEach(tablePlanManager.get()::delete);
-            tableFlowManager.get().listAll().stream().filter(tableFlow -> tableFlow.getId().equals(getTargetModelId()))
-                    .forEach(tableFlowManager.get()::delete);
-            return null;
-        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 }

@@ -141,7 +141,7 @@
                 <div v-if="scope.row.status === 'WARNING' && scope.row.segment_holes && scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
-                    @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('seeDetail')}}</span>
+                    @click="autoFix(scope.row.alias, scope.row.model_type === 'HYBRID' ? scope.row.batch_id : scope.row.uuid, scope.row.segment_holes)">{{$t('seeDetail')}}</span>
                 </div>
                 <div v-if="scope.row.status === 'WARNING' && scope.row.inconsistent_segment_count">
                   <span>{{$t('modelMetadataChangedTips')}}</span><span
@@ -193,7 +193,7 @@
           :label="$t('recommendationsTiTle')"
           v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
-            <template v-if="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">-</template>
+            <template v-if="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible)) || scope.row.model_type === 'HYBRID'">-</template>
             <el-tooltip effect="dark" :content="$t('recommendationsTiTle')" placement="bottom" v-else>
               <el-button type="primary" class="rec-btn" text icon="el-ksd-icon-wizard_22" @click.stop="jumpToRecommendation(scope.row)">{{scope.row.recommendations_count}}</el-button>
               <!-- <span class="recommendation-layout" @click.stop="jumpToRecommendation(scope.row)"><i class="el-icon-ksd-auto_wizard ksd-mr-5"></i><span class="content">{{scope.row.recommendations_count}}</span></span> -->

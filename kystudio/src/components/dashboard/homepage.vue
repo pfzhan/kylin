@@ -77,7 +77,7 @@
                 </div>
                 <div v-else>
                   <!-- <div class="circle-desc" :class="{'en': $lang === 'en'}" v-if="+infoData.unhandled_query_count>0" v-html="$t('optimizeDesc', {unhandled_query_count: infoData.unhandled_query_count})"></div> -->
-                  <div class="circle-desc none-opt" :class="{'en': $lang === 'en'}" v-html="$t('recommendCount', {count: infoData.rec_pattern_count + infoData.acceptable_rec_size})"/>
+                  <div class="circle-desc none-opt" :class="{'en': $lang === 'en'}" v-html="$t('recommendCount', {count: infoData.approved_rec_count + infoData.acceptable_rec_size})"/>
                   <common-tip :content="disabledAcceTips" v-if="(isAcce || isAcceing) && +infoData.unhandled_query_count !== 0 || !datasourceActions.includes('accelerationActions')" placement="top">
                     <div class="circle-btn disabled">
                       <!-- <i class="ksd-fs-20" :class="{'el-icon-ksd-project_status': !isAcceing, 'el-icon-loading': isAcceing}"></i> -->
@@ -107,7 +107,7 @@
                       <div class="recommend-content no-border" slot="reference">
                         <!-- <div class="ksd-fleft ksd-ml-10"><i class="el-icon-ksd-pattern ksd-fleft"></i></div> -->
                         <div class="ksd-fleft ksd-ml-5 re-content">
-                          <div class="re-count">{{isOpenSemiAutomatic ? infoData.rec_pattern_count : '-'}}</div>
+                          <div class="re-count">{{isOpenSemiAutomatic ? infoData.approved_rec_count : '-'}}</div>
                           <div class="popover-btn">{{$t('acceptedRecs')}}</div>
                         </div>
                       </div>

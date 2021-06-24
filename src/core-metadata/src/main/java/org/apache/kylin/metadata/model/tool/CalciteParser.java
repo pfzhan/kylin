@@ -222,13 +222,17 @@ public class CalciteParser {
         int leftBracketNum = 0;
         int rightBracketNum = 0;
         boolean constantFlag = false;
+        boolean inQuotes = false;
         String substring = inputSql.substring(left, right);
         for (int i = 0; i < substring.length(); i++) {
             char temp = substring.charAt(i);
+            if (temp == '\"' && !constantFlag) {
+                inQuotes = !inQuotes;
+            }
             if (temp == '\'') {
                 constantFlag = !constantFlag;
             }
-            if (constantFlag) {
+            if (inQuotes || constantFlag) {
                 continue;
             }
             if (temp == '(') {
@@ -237,22 +241,32 @@ public class CalciteParser {
             if (temp == ')') {
                 rightBracketNum++;
                 if (leftBracketNum < rightBracketNum) {
-                    while ('(' != inputSql.charAt(left - 1)) {
-                        left--;
-                    }
-                    left--;
+                    left = moveLeft(inputSql, left);
                     leftBracketNum++;
                 }
             }
         }
         while (rightBracketNum < leftBracketNum) {
-            while (')' != inputSql.charAt(right)) {
-                right++;
-            }
-            right++;
+            right = moveRight(inputSql, right);
             rightBracketNum++;
         }
         return Pair.newPair(left, right);
+    }
+
+    private static int moveRight(String inputSql, int right) {
+        while (')' != inputSql.charAt(right)) {
+            right++;
+        }
+        right++;
+        return right;
+    }
+
+    private static int moveLeft(String inputSql, int left) {
+        while ('(' != inputSql.charAt(left - 1)) {
+            left--;
+        }
+        left--;
+        return left;
     }
 
     public static String replaceAliasInExpr(String expr, Map<String, String> renaming) {
