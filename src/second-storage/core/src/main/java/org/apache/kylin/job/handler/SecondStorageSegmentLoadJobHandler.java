@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_ADD_JOB_FAILED;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.exception.JobSubmissionException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -49,7 +50,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
 
@@ -106,7 +106,7 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
                 MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         for (String failedSeg : failedSegs) {
             jobSubmissionException.addJobFailInfo(failedSeg,
-                    new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_EXPORT_JOB_FAIL()));
+                    new KylinException(SECOND_STORAGE_ADD_JOB_FAILED, MsgPicker.getMsg().getADD_EXPORT_JOB_FAIL()));
         }
         noBaseIndexSegs.forEach(seg -> jobSubmissionException.addJobFailInfo(seg,
                 new KylinException(FAILED_CREATE_JOB_EXPORT_TO_TIERED_STORAGE_WITHOUT_BASE_INDEX, String.format(Locale.ROOT,

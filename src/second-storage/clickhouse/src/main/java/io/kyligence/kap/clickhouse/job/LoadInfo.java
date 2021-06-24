@@ -68,7 +68,7 @@ public class LoadInfo {
         this(model, segment, null, layout, nodeNames);
     }
 
-    private LoadInfo(NDataModel model, NDataSegment segment, String OldSegmentId, LayoutEntity layout, String[] nodeNames) {
+    private LoadInfo(NDataModel model, NDataSegment segment, String oldSegmentId, LayoutEntity layout, String[] nodeNames) {
         this.model = model;
         this.segment = segment;
         final int shardNumber = nodeNames.length;
@@ -76,7 +76,7 @@ public class LoadInfo {
         this.segmentId = segment.getId();
         this.layout = layout;
         this.shardFiles = newFixedSizeList(shardNumber);
-        this.OldSegmentId = OldSegmentId;
+        this.OldSegmentId = oldSegmentId;
         for (int i = 0; i < shardNumber; ++i) {
             this.shardFiles.set(i, new ArrayList<>(100));
         }

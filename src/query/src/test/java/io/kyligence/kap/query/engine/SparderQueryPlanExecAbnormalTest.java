@@ -96,6 +96,7 @@ public class SparderQueryPlanExecAbnormalTest {
         Assert.assertNull(exec.execute(null, null));
         Assert.assertEquals(2, throwExceptionAtFirstTime.callNumber);
         Assert.assertTrue(QueryContext.current().isForceTableIndex());
+        Assert.assertTrue(QueryContext.current().getSecondStorageUsageMap().isEmpty());
 
         //Now QueryContext.current().isForceTableIndex() == true
         ThrowExceptionAtFirstTime throwExceptionAtFirstTime2 = new ThrowExceptionAtFirstTime(true);

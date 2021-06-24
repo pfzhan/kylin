@@ -126,7 +126,9 @@ public class SecondStorageEndpoint extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> enableStorage(@RequestBody ModelEnableRequest modelEnableRequest) {
         checkProjectName(modelEnableRequest.getProject());
         checkRequiredArg(MODEL_ARG_NAME, modelEnableRequest.getModel());
-        checkModel(modelEnableRequest.getProject(), modelEnableRequest.getModel());
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelEnableRequest.getProject());
+        val model = modelManager.getDataModelDesc(modelEnableRequest.getModel());
+        checkModel(modelEnableRequest.getProject(), model.getAlias());
         val jobInfo = secondStorageService.changeModelSecondStorageState(modelEnableRequest.getProject(),
                 modelEnableRequest.getModel(), modelEnableRequest.isEnabled());
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
@@ -182,16 +184,19 @@ public class SecondStorageEndpoint extends NBasicController {
     @PostMapping(value = "/recovery/model")
     public EnvelopeResponse<Void> recoverModel(@RequestBody RecoverRequest request) {
         checkProjectName(request.getProject());
-        checkRequiredArg("modelId", request.getModelId());
-        checkModel(request.getProject(), request.getModelId());
-        importSingleModel(request.getProject(), request.getModelId());
+        checkRequiredArg("modelName", request.getModelName());
+        checkModel(request.getProject(), request.getModelName());
+        importSingleModel(request.getProject(), request.getModelName());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    private void importSingleModel(String project, String model) {
+    private void importSingleModel(String project, String modelName) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val modelManager = NDataModelManager.getInstance(config, project);
+        val model = modelManager.getDataModelDescByAlias(modelName).getUuid();
         Preconditions.checkState(SecondStorageUtil.isModelEnable(project, model),
                 "model %s doesn't enable tiered storage.", model);
-        val config = KylinConfig.getInstanceFromEnv();
+
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val segIds = dataflowManager.getDataflow(model).getQueryableSegments().stream()
                 .map(NDataSegment::getId).collect(Collectors.toList());
@@ -204,25 +209,31 @@ public class SecondStorageEndpoint extends NBasicController {
         secondStorageService.isProjectAdmin(request.getProject());
         val config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, request.getProject());
-        val modelIds = modelManager.listAllModelIds();
+        val dataflowManager = NDataflowManager.getInstance(config, request.getProject());
+        val allModelAlias = modelManager.listAllModelAlias();
         val execManager = NExecutableManager.getInstance(config, request.getProject());
         List<String> failedModels = new ArrayList<>();
         List<String> submittedModels = new ArrayList<>();
-        val validModels = modelIds.stream().filter(model -> SecondStorageUtil.isModelEnable(request.getProject(), model))
-                .filter(model -> {
-                    val jobs = execManager.listExecByModelAndStatus(model, ExecutableState::isRunning);
+        val validModels = allModelAlias.stream()
+                .map(modelName -> modelManager.getDataModelDescByAlias(modelName).getUuid())
+                .filter(modelId -> SecondStorageUtil.isModelEnable(request.getProject(), modelId))
+                .filter(modelId -> {
+                    val jobs = execManager.listExecByModelAndStatus(modelId, ExecutableState::isRunning);
                     if (!jobs.isEmpty()) {
-                        failedModels.add(model);
+                        failedModels.add(modelManager.getDataModelDesc(modelId).getAlias());
                     }
-                    return jobs.isEmpty();
-                }).collect(Collectors.toList());
-        for (val modelId : validModels) {
+                    val dataflow = dataflowManager.getDataflow(modelId);
+                    return jobs.isEmpty() && !dataflow.getSegments().isEmpty();
+                })
+                .map(modelId -> modelManager.getDataModelDesc(modelId).getAlias())
+                .collect(Collectors.toList());
+        for (val modelName : validModels) {
             try {
-                importSingleModel(request.getProject(), modelId);
-                submittedModels.add(modelId);
-            } catch (KylinException e) {
-                failedModels.add(modelId);
-                log.error("model {} recover failed", modelId, e);
+                importSingleModel(request.getProject(), modelName);
+                submittedModels.add(modelName);
+            } catch (Exception e) {
+                failedModels.add(modelName);
+                log.error("model {} recover failed", modelName, e);
             }
         }
         ProjectRecoveryResponse response = new ProjectRecoveryResponse();
@@ -231,12 +242,18 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    private void checkModel(String project, String modelId) {
+    @PostMapping(value = "/config/refresh")
+    public EnvelopeResponse<ProjectRecoveryResponse> refreshConf() {
+        secondStorageService.refreshConf();
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    private void checkModel(String project, String modelName) {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val model = modelManager.getDataModelDesc(modelId);
+        val model = modelManager.getDataModelDescByAlias(modelName);
         if (Objects.isNull(model)) {
             throw new KylinException(MODEL_NOT_EXIST,
-                    "Model " + modelId + "does not exist in project " + project);
+                    "Model " + modelName + " does not exist in project " + project);
         }
     }
 }

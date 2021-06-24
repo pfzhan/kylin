@@ -283,12 +283,13 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     public void testIncrementalCleanSegment() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testIncrementalCleanSegment", true, clickhouse);
-            triggerSegmentClean();
+            val jobParam = triggerSegmentClean();
+            waitJobFinish(jobParam.getJobId());
             val manager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), getProject());
             Preconditions.checkState(manager.isPresent());
             val tablePartitions = Objects.requireNonNull(manager.get().get(cubeName).orElse(null))
                     .getTableDataList().get(0).getPartitions();
-            Assert.assertEquals(0, tablePartitions.size());
+            Assert.assertEquals(1, tablePartitions.size());
         }
     }
 

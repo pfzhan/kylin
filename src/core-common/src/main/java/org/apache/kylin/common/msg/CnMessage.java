@@ -1430,7 +1430,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADD_EXPORT_JOB_FAIL() {
-        return "当前无法提交任务，因为已有相同对象的加载任务正在进行。请稍后再试。";
+        return "无法提交任务。模型当前已有相同 Segment 的加载数据任务正在进行。请稍后重试。";
     }
 
     @Override
@@ -1716,12 +1716,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_JOB_EXISTS() {
-        return "模型 %s 有导入缓存任务正在进行，请稍后重试。";
+        return "无法关闭。模型 %s 有加载数据到分层存储的任务正在进行，请稍后重试。\n";
     }
 
     @Override
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
-        return "项目 %s 有导入缓存任务正在进行，请稍后重试。";
+        return "无法关闭。项目 %s 有加载数据到分层存储的任务正在进行，请稍后重试。\n";
     }
 
     @Override
@@ -1774,5 +1774,20 @@ public class CnMessage extends Message {
     @Override
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
         return "不能同时强制下推和击中模型。请检查传入的 forcedToPushDown 和 forced_to_index 参数";
+    }
+
+    @Override
+    public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
+        return "无法开启。节点已被使用，请刷新后重试。";
+    }
+
+    @Override
+    public String getBASE_TABLE_INDEX_NOT_AVAILABLE() {
+        return "无法开启。请先创建基础明细索引。";
+    }
+
+    @Override
+    public String getPARTITION_COLUMN_NOT_AVAILABLE() {
+        return "无法开启。请先将时间分区列添加到基础明细索引。";
     }
 }

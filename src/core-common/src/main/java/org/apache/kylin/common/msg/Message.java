@@ -1280,7 +1280,7 @@ public class Message {
     }
 
     public String getADD_EXPORT_JOB_FAIL() {
-        return "Can’t submit the job at the moment, as a tiered storage load job for the same object already exists. Please try again later.";
+        return "Can’t submit the job. The model has ongoing load data job for tiered storage for the same segment(s). Please try again later. ";
     }
 
     public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
@@ -1529,11 +1529,11 @@ public class Message {
     }
 
     public String getSECOND_STORAGE_JOB_EXISTS() {
-        return "The model %s has import tasks in progress. Please try again later.\n";
+        return "Can’t turn off tiered storage. Model %s has ongoing loading data job for tiered storage at the moment. Please try again later.\n";
     }
 
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
-        return "The project %s has import tasks in progress. Please try again later.\n";
+        return "Can’t turn off tiered storage. The project %s has ongoing load data job for tiered storage at the moment. Please try again later.\n";
     }
 
     public String getINVALID_BROKER_DEFINITION() {
@@ -1578,5 +1578,17 @@ public class Message {
 
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
         return "Cannot force the query to pushdown and index at the same time. Please check the forcedToPushDown and forced_to_index parameters";
+    }
+
+    public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
+        return "Can’t turn on tiered storage. The nodes are unavailable. Please refresh and try again.";
+    }
+
+    public String getBASE_TABLE_INDEX_NOT_AVAILABLE() {
+        return "Can’t turn on tiered storage. Please create base table index first. ";
+    }
+
+    public String getPARTITION_COLUMN_NOT_AVAILABLE() {
+        return "Can’t turn on tiered storage. Please add time partition column to the base table index first.";
     }
 }
