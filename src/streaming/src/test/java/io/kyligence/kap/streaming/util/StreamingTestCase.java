@@ -42,6 +42,8 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.Assert;
 
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -102,13 +104,13 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
     }
 
     protected void shutdownStreamingMergeJob() {
-        shutdownStreamingMergeJob(2000);
+        shutdownStreamingMergeJob(new CountDownLatch(1));
     }
 
-    protected void shutdownStreamingMergeJob(long sleepTime) {
+    protected void shutdownStreamingMergeJob(CountDownLatch latch) {
         new Thread(() -> {
             try {
-                Thread.sleep(sleepTime);
+                latch.await(10, TimeUnit.SECONDS);
             } catch (Exception e) {
 
             }

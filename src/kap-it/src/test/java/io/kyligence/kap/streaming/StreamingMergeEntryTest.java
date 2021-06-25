@@ -45,6 +45,7 @@ import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class StreamingMergeEntryTest extends StreamingTestCase {
@@ -116,13 +117,16 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         mgr.updateDataflow(update);
         df = mgr.getDataflow(DATAFLOW_ID);
         df = createSegments(mgr, df, 10);
-        df = setSegmentStorageSize(mgr, df, 1024);
+        setSegmentStorageSize(mgr, df, 1024);
 
-        shutdownStreamingMergeJob(10000);
+        val latch = new CountDownLatch(1);
+        shutdownStreamingMergeJob(latch);
         try {
             streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
+        } finally {
+            latch.countDown();
         }
         df = mgr.getDataflow(DATAFLOW_ID);
         Assert.assertEquals(2, df.getSegments().size());
@@ -176,18 +180,19 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         mgr.updateDataflow(update);
         df = mgr.getDataflow(DATAFLOW_ID);
         df = createSegments(mgr, df, 16);
-        df = setSegmentStorageSize(mgr, df, 1024);
+        setSegmentStorageSize(mgr, df, 1024);
 
-        shutdownStreamingMergeJob(5000);
+        val latch = new CountDownLatch(1);
+        shutdownStreamingMergeJob(latch);
         try {
             streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
     }
 
     @Test
@@ -208,19 +213,20 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         df = mgr.getDataflow(DATAFLOW_ID);
         df = createSegments(mgr, df, 16);
         Assert.assertEquals(16, df.getSegments().size());
-        df = setSegmentStorageSize(mgr, df, 1024);
+        setSegmentStorageSize(mgr, df, 1024);
 
-        shutdownStreamingMergeJob(2000);
+        val latch = new CountDownLatch(1);
+        shutdownStreamingMergeJob(latch);
         try {
             streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(3, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(3, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
-        Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
     }
 
     @Test
@@ -249,17 +255,18 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
                 seg.getAdditionalInfo().put("file_layer", "1");
             }
         });
-        df = setSegmentStorageSize(mgr, df, 1024);
-        shutdownStreamingMergeJob(2000);
+        setSegmentStorageSize(mgr, df, 1024);
+        val latch = new CountDownLatch(1);
+        shutdownStreamingMergeJob(latch);
         try {
             streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
     }
 
     @Test
@@ -288,19 +295,20 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
                 seg.getAdditionalInfo().put("file_layer", "1");
             }
         });
-        df = setSegmentStorageSize(mgr, df, 1024);
-        shutdownStreamingMergeJob(2000);
+        setSegmentStorageSize(mgr, df, 1024);
+        val latch = new CountDownLatch(1);
+        shutdownStreamingMergeJob(latch);
         try {
             streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(4, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
+            Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
+            Assert.assertTrue(df.getSegments().get(3).getAdditionalInfo().isEmpty());
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(4, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
-        Assert.assertTrue(df.getSegments().get(2).getAdditionalInfo().isEmpty());
-        Assert.assertTrue(df.getSegments().get(3).getAdditionalInfo().isEmpty());
     }
 
     @Test
@@ -340,18 +348,19 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             val seg = df.getSegments().get(i);
             setSegmentStorageSize(seg, 5 * 1024L);
         }
-        df = mgr.getDataflow(df.getId());
-        shutdownStreamingMergeJob(5000);
+        mgr.getDataflow(df.getId());
+        val latch = new CountDownLatch(1);
+        shutdownStreamingMergeJob(latch);
         try {
             streamingMergeEntry.schedule(PROJECT, DATAFLOW_ID);
+            streamingMergeEntry.getSparkSession().stop();
+            df = mgr.getDataflow(DATAFLOW_ID);
+            Assert.assertEquals(2, df.getSegments().size());
+            Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
+            Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        streamingMergeEntry.getSparkSession().stop();
-        df = mgr.getDataflow(DATAFLOW_ID);
-        Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals("1", df.getSegments().get(0).getAdditionalInfo().get("file_layer"));
-        Assert.assertTrue(df.getSegments().get(1).getAdditionalInfo().isEmpty());
     }
 
     @Test
