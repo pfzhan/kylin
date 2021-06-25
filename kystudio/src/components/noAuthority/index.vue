@@ -2,7 +2,7 @@
   <div class="user-no-authority">
     <div class="content">
       <template v-if="tipType === 'isNoAuthority'">
-        <i class="el-ksd-icon-lock_old"></i>
+        <img src="../../assets/img/empty/empty_state_permission_denied.svg" alt="">
         <template v-if="$lang === 'en'">
           <p class="text"><span>{{$t('noAuthorityText')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('noAuthorityText1', {time: jumpTimer})}}</span></p>
         </template>
@@ -20,7 +20,7 @@
         </template>
       </template>
       <template v-else>
-        <i class="el-ksd-icon-sad_old"></i>
+        <img src="../../assets/img/empty/empty_state_404.svg" alt="404">
         <p class="text">
           <template v-if="$lang === 'en'">
             <span>{{$t('is404Tip')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('is404Tip1', {time: jumpTimer})}}</span>

@@ -115,7 +115,7 @@
         </template>
         <template v-else>
           <div class="empty">
-            <img class="empty-img" src="../../../../assets/img/no_data.png" />
+            <img class="empty-img" src="../../../../assets/img/empty/empty_state_empty.svg" />
             <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
           </div>
         </template>

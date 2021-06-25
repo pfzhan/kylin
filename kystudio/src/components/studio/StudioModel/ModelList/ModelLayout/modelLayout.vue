@@ -54,19 +54,23 @@
           :isShowSegmentActions="datasourceActions.includes('segmentActions')"
           @purge-model="model => handleCommand('purge', model)"
           @loadModels="reloadModel"
+          @refreshModel="refreshModelData"
           @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
           @auto-fix="autoFix"/>
         <StreamingSegment
           :isShowPageTitle="true"
           v-if="currentModelRow.tabTypes === 'first' && currentModelRow.model_type === 'STREAMING'"
           :isShowSegmentActions="datasourceActions.includes('segmentActions')"
-          :model="currentModelRow" />
+          :model="currentModelRow"
+          @refreshModel="refreshModelData"
+        />
         <ModelSegment
           :ref="'segmentComp' + currentModelRow.alias"
           :model="currentModelRow"
           :isShowSegmentActions="datasourceActions.includes('segmentActions')"
           v-if="currentModelRow.tabTypes === 'first' && (currentModelRow.model_type !== 'HYBRID' && currentModelRow.model_type !== 'STREAMING')"
           @loadModels="reloadModel"
+          @refreshModel="refreshModelData"
           @purge-model="model => handleCommand('purge', model)"
           @willAddIndex="() => {currentModelRow.tabTypes = 'third'}"
           @auto-fix="autoFix(currentModelRow.alias, currentModelRow.uuid, currentModelRow.segment_holes)" />

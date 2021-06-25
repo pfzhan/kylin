@@ -26,6 +26,7 @@
         v-if="activeTab === 'batch'"
         @purge-model="purgeModel(model)"
         @loadModels="loadModelsList"
+        @refreshModel="refreshModel"
         @willAddIndex="willAddIndex"
         @auto-fix="autoFix(model.alias, model.uuid, model.segment_holes)"
         :model="model" />
@@ -73,6 +74,9 @@ export default class SegmentTabs extends Vue {
   }
   loadModelsList () {
     this.$emit('loadModels')
+  }
+  refreshModel () {
+    this.$emit('refreshModel')
   }
   willAddIndex () {
     this.$emit('willAddIndex')
