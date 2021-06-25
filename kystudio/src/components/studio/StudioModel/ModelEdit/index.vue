@@ -1913,12 +1913,6 @@ export default class ModelEdit extends Vue {
   }
 
   handleSaveModel ({data, modelSaveConfigData, createBaseIndex}) {
-    const factTable = this.modelInstance.getFactTable()
-    if (factTable.source_type === 1) {
-      data.model_type = 'STREAMING'
-    } else if (factTable.source_type === 9) {
-      data.model_type = 'BATCH'
-    }
     this.saveModelType = 'saveModel'
     let para = {...data, with_base_index: createBaseIndex}
     if (data.uuid) {

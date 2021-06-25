@@ -193,10 +193,13 @@
           <el-col :span="4"></el-col>
         </el-row>
         <el-row :gutter="10" class="ksd-mt-10" v-for="(item, index) in paramsConfigs" :key="index">
-          <el-col :span="14"><el-input v-model.trim="paramsConfigs[index][0]" :disabled="paramsConfigs[index] && !!paramsConfigs[index][2]" :placeholder="$t('pleaseInputKey')" /></el-col>
+          <el-col :span="14">
+            <el-input v-model.trim="paramsConfigs[index][0]" :disabled="paramsConfigs[index] && !!paramsConfigs[index][2]" :class="{'is-mul-key': paramsConfigs[index][3]&&paramsConfigs[index][3].isMulParamsKey}" @change="(val) => handleValidateParamsKey()" :placeholder="$t('pleaseInputKey')" />
+            <div class="error-msg" v-if="paramsConfigs[index][3]&&paramsConfigs[index][3].isMulParamsKey&&!paramsConfigs[index][2]">{{$t('mulParamsKeyTips')}}</div>
+          </el-col>
           <el-col :span="6">
             <el-input v-number2="paramsConfigs[index][1]" v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]}" :placeholder="$t('pleaseInputValue')" v-if="numberParams.indexOf(item[0]) !== -1"></el-input>
-            <el-input v-else v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]&&[...buildDefaultParams, ...mergeDefaultParams].indexOf(item[0]) !== -1}" :placeholder="$t('pleaseInputValue')" />
+            <el-input v-else v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]&&[...buildDefaultParams, ...mergeDefaultParams].indexOf(item[0]) !== -1&&!!paramsConfigs[index][2]}" :placeholder="$t('pleaseInputValue')" />
           </el-col>
           <el-col :span="4">
             <span class="action-btns ksd-ml-5">
@@ -218,7 +221,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
-import { cacheLocalStorage, getQueryString, objectClone, indexOfObjWithSomeKey } from 'util/index'
+import { cacheLocalStorage, getQueryString, objectClone, indexOfObjWithSomeKey, countObjWithSomeKey } from 'util/index'
 import { handleError, handleSuccess, postCloudUrlMessage, transToGmtTime } from 'util/business'
 import { pageRefTags } from 'config'
 import $ from 'jquery'
@@ -300,6 +303,7 @@ export default class StreamingJobsList extends Vue {
   processingChart = null
   time_filter = 7
   isShowBtn = true
+  isMulParamsKey = false
   get isShowAdminTips () {
     return this.$store.state.user.isShowAdminTips && this.isAdminRole && this.$store.state.config.platform !== 'iframe' && !this.$store.state.system.isShowGlobalAlter
   }
@@ -309,7 +313,7 @@ export default class StreamingJobsList extends Vue {
 
   // 模型无索引时不让启动任务
   setJobSelectable (row) {
-    return row.model_indexes
+    return row.model_indexes > 0
   }
 
   closeTips () {
@@ -432,11 +436,27 @@ export default class StreamingJobsList extends Vue {
   }
   // 增加配置
   addParamsConfigs () {
-    this.paramsConfigs.unshift([])
+    this.paramsConfigs.unshift(['', '', false])
   }
   // 删减配置
   removeParamsConfigs (index) {
     this.paramsConfigs.splice(index, 1)
+  }
+  // 检测key是否重复
+  handleValidateParamsKey () {
+    this.isMulParamsKey = false
+    this.paramsConfigs.forEach(p => {
+      if (countObjWithSomeKey(this.paramsConfigs, 0, p[0]) > 1) {
+        if (p[3]) {
+          p[3].isMulParamsKey = true
+        } else {
+          p.push({isMulParamsKey: true})
+        }
+        this.isMulParamsKey = true
+      } else {
+        p[3] && (p[3].isMulParamsKey = false)
+      }
+    })
   }
   saveSettings () {
     const params = {}
@@ -449,7 +469,7 @@ export default class StreamingJobsList extends Vue {
         params[item[0]] = item[1]
       }
     })
-    if (isEmptyValue) return // 默认参数有空值不能提交
+    if (isEmptyValue || this.isMulParamsKey) return // 默认参数有空值不能提交，key值重复不能提交
     this.loadingSetting = true
     this.updateStreamingConfig({project: this.currentSelectedProject, job_id: this.settingJob.uuid, params}).then(() => {
       this.loadingSetting = false
@@ -559,13 +579,13 @@ export default class StreamingJobsList extends Vue {
     }
   }
   initLineChart (data) {
-    const consumptionId = document.getElementById('consumption-chart')
-    const latencyId = document.getElementById('latency-chart')
-    const processingId = document.getElementById('processing-chart')
     if (!this.showStep) return
     if (data.create_time.length > 0) {
       this.isNoStatisticsData = false
-      this.$nextTick(() => {
+      setTimeout(() => {
+        const consumptionId = document.getElementById('consumption-chart')
+        const latencyId = document.getElementById('latency-chart')
+        const processingId = document.getElementById('processing-chart')
         const xDates = data.create_time && data.create_time.reverse().map(it => {
           const dateSplit = transToGmtTime(+it).split(' ')
           return dateSplit[0] + '\n' + dateSplit[1] + ' ' + dateSplit[2]
@@ -585,10 +605,12 @@ export default class StreamingJobsList extends Vue {
         const consumpOption = charts.line(this, xDates, yConsumpVol, consumpDatas)
         consumpOption.grid.left = 38
         consumpOption.yAxis.axisLabel.formatter = (val) => {
-          if (val < 1000) {
-            return val
+          if (val > 0 && val < 1) {
+            return ''
+          } else if (val < 1000) {
+            return `${val}`
           } else {
-            return val / 1000 + 'K'
+            return `${val / 1000}K`
           }
         }
         consumpOption.yAxis.name = this.$t('consumptionUnit')
@@ -600,7 +622,11 @@ export default class StreamingJobsList extends Vue {
         this.latencyChart = echarts.init(latencyId)
         const latencyOption = charts.line(this, xDates, yLatencyVol, latencyDatas)
         latencyOption.yAxis.axisLabel.formatter = (val) => {
-          return val / 1000
+          if (val / 1000 < 1000) {
+            return `${val / 1000}`
+          } else {
+            return `${val / 1000 / 1000}K`
+          }
         }
         latencyOption.grid.left = 38
         latencyOption.yAxis.name = this.$t('latencyUnit')
@@ -612,7 +638,11 @@ export default class StreamingJobsList extends Vue {
         this.processingChart = echarts.init(processingId)
         const processingOption = charts.line(this, xDates, yProcessingVol, processingDatas)
         processingOption.yAxis.axisLabel.formatter = (val) => {
-          return val / 1000
+          if (val / 1000 < 1000) {
+            return `${val / 1000}`
+          } else {
+            return `${val / 1000 / 1000}K`
+          }
         }
         processingOption.grid.left = 38
         processingOption.yAxis.name = this.$t('processingUnit')
@@ -908,6 +938,10 @@ export default class StreamingJobsList extends Vue {
     }
   }
   .configurations-dialog {
+    .error-msg {
+      color: @ke-color-danger;
+    }
+    .is-mul-key .el-input__inner,
     .is-empty .el-input__inner{
       border-color: #E03B3B;
       box-shadow: 0px 0px 0px 2px rgba(218, 8, 8, 0.1);

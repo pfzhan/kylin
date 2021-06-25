@@ -151,7 +151,7 @@
                 <div v-if="scope.row.status === 'OFFLINE' && scope.row.forbidden_online">
                   <span>{{$t('SCD2ModalOfflineTip')}}</span>
                 </div>
-                <div v-if="scope.row.status === 'OFFLINE' && !scope.row.segments.length">
+                <div v-if="scope.row.status === 'OFFLINE' && !scope.row.has_segments">
                   <span>{{$t('noSegmentOnlineTip')}}</span>
                 </div>
                 <div v-if="scope.row.status === 'OFFLINE' && !$store.state.project.multi_partition_enabled && scope.row.multi_partition_desc">

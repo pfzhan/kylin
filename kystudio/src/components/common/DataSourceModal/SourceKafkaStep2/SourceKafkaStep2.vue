@@ -5,7 +5,7 @@
         <el-row :gutter="10">
           <el-col :span="12">
             <el-form-item prop="database">
-              <el-select filterable v-model="kafkaMeta.database" @change="storeKafkaMeta" :placeholder="$t('inputDatabase')" size="medium" style="width:100%">
+              <el-select filterable allow-create v-model="kafkaMeta.database" @change="storeKafkaMeta" :placeholder="$t('inputDatabase')" size="medium" style="width:100%">
                 <el-option v-for="(item, index) in databaseList" :key="index"
                 :label="item"
                 :value="item">
