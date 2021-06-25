@@ -86,7 +86,7 @@
               :placeholder="$t('pleaseInputColumnFormat')"
               @change="changeColumn('format')"
             >
-              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
+              <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
           </el-col>
@@ -222,7 +222,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { timeDataType, dateFormats } from '../../../../../config'
+import { timeDataType, dateFormats, timestampFormats } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { objectClone, isSubPartitionType, indexOfObjWithSomeKey } from '../../../../../util'
@@ -313,6 +313,10 @@ export default class ModelPartitionModal extends Vue {
   addBaseIndex = true
   isShowSecStorageTips = false
   isShowSecondStoragePartitionTips = false
+  filterCondition = ''
+  originFilterCondition = ''
+  dateFormats = dateFormats
+  timestampFormats = timestampFormats
 
   handleSecStorageEnabled (val) {
     if (!val && this.modelDesc.second_storage_size > 0) {
@@ -401,9 +405,6 @@ export default class ModelPartitionModal extends Vue {
       handleError(e)
     }
   }
-  filterCondition = ''
-  originFilterCondition = ''
-  dateFormats = dateFormats
   get partitionTitle () {
     if (this.mode === 'saveModel') {
       return this.$t('modelSaveSet')
@@ -457,6 +458,13 @@ export default class ModelPartitionModal extends Vue {
   get isNotBatchModel () {
     const factTable = this.modelInstance.getFactTable()
     return factTable.source_type === 1 || this.modelInstance.model_type !== 'BATCH'
+  }
+  get isHybridModel () {
+    const factTable = this.modelInstance.getFactTable()
+    return factTable.batch_table_identity
+  }
+  get dateFormatsOptions () {
+    return this.isNotBatchModel ? timestampFormats : dateFormats
   }
   get columns () {
     if (!this.isShow || this.partitionMeta.table === '') {
@@ -518,16 +526,17 @@ export default class ModelPartitionModal extends Vue {
       // this.$nextTick(() => {
       //   this.$refs.partitionForm && this.$refs.partitionForm.validate()
       // })
+      const partition_desc = this.modelDesc.partition_desc
       this.isExpand = !this.modelDesc.uuid && !this.isStreamModel
-      if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) && !this.isStreamModel) {
+      if (this.modelDesc.uuid && !(partition_desc && partition_desc.partition_date_column) && !this.isStreamModel) {
         this.buildType = 'fullLoad'
         this.defaultBuildType = 'fullLoad'
       }
-      if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
-        let named = this.modelDesc.partition_desc.partition_date_column.split('.')
+      if (this.modelDesc && partition_desc && partition_desc.partition_date_column) {
+        let named = partition_desc.partition_date_column.split('.')
         this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
         this.partitionMeta.column = this.prevPartitionMeta.column = named[1]
-        this.partitionMeta.format = this.prevPartitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+        this.partitionMeta.format = this.prevPartitionMeta.format = partition_desc.partition_date_format
         this.partitionMeta.multiPartition = this.prevPartitionMeta.multiPartition = this.modelDesc.multi_partition_desc && this.modelDesc.multi_partition_desc.columns[0] && this.modelDesc.multi_partition_desc.columns[0].split('.')[1] || ''
       } else {
         this.partitionMeta.table = this.partitionTables[0].alias // 默认增量构建选择事实表
@@ -669,6 +678,9 @@ export default class ModelPartitionModal extends Vue {
       if (!(checkData && checkData.partition_desc && checkData.partition_desc.partition_date_column) || this.buildType === 'fullLoad') {
         checkData.partition_desc = null
       }
+      // if (this.isHybridModel) {
+      //   checkData.batch_partition_desc = checkData.partition_desc
+      // }
       this.checkFilterConditon(checkData).then((res) => {
         handleSuccess(res, async (data) => {
           // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
@@ -713,6 +725,9 @@ export default class ModelPartitionModal extends Vue {
     this.filterErrorMsg = ''
     // 不把这个信息记录下来的话，300 延迟后，modelDesc 就 undefined 了
     let temp = objectClone(this.modelDesc)
+    // if (this.isHybridModel) {
+    //   temp.batch_partition_desc = temp.partition_desc
+    // }
     setTimeout(() => {
       this.callback && this.callback({
         isSubmit: isSubmit,

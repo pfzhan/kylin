@@ -222,7 +222,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     @Override
-    public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments, List<NDataSegment> prunedStreamingSegments){
+    public CapabilityResult isCapable(SQLDigest digest, List<NDataSegment> prunedSegments,
+            List<NDataSegment> prunedStreamingSegments) {
         if (isStreaming()) {
             return isCapable(digest, prunedStreamingSegments);
         } else {
@@ -232,7 +233,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public boolean isStreaming() {
-        return getModel().getModelType() != NDataModel.ModelType.BATCH;
+        return getModel().getModelType() == NDataModel.ModelType.STREAMING
+                || getModel().getModelType() == NDataModel.ModelType.HYBRID;
     }
 
     @Override

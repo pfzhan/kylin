@@ -25,6 +25,7 @@ package io.kyligence.kap.query.runtime.plan
 
 import java.sql.Date
 import java.util.{Calendar, Locale}
+
 import io.kyligence.kap.query.relnode.{KapProjectRel, KapWindowRel}
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
@@ -32,9 +33,11 @@ import org.apache.calcite.rel.RelCollationImpl
 import org.apache.calcite.rel.RelFieldCollation.Direction
 import org.apache.calcite.rex.RexInputRef
 import org.apache.calcite.util.NlsString
+import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions.Literal
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.LongType
@@ -259,7 +262,14 @@ object WindowPlan extends Logging {
       rel.getInput match {
         case input: KapProjectRel => // the constant value might be functions like CURRENT_DATE
           input.getProjects.get(idx).accept(rexVisitor) match {
-            case col: Column => col.expr
+            case col: Column => {
+              col.expr.prettyName.toUpperCase(Locale.ROOT) match {
+                case "CURRENT_DATE" =>
+                  DateFormat.getDateFormat(DateFormat.DEFAULT_DATE_PATTERN)
+                      .format(DateTimeUtils.currentTimestamp() / 1000)
+                case _ => col.expr
+              }
+            }
             case lit: Literal => lit
             case _ =>
           }

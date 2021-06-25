@@ -177,11 +177,11 @@
             </el-dropdown-item>
             <el-dropdown-item
               command="online"
-              :class="{'disabled-action': currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}"
+              :class="{'disabled-action': currentModel.forbidden_online || !currentModel.has_segments || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)}"
               v-if="currentModel.status !== 'ONLINE' && currentModel.status !== 'BROKEN' && currentModel.status !== 'WARNING' && modelActions.includes('online')">
               <common-tip
                 :content="getDisabledOnlineTips(currentModel)"
-                v-if="currentModel.forbidden_online || !currentModel.segments.length || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)">
+                v-if="currentModel.forbidden_online || !currentModel.has_segments || (!$store.state.project.multi_partition_enabled && currentModel.multi_partition_desc)">
                 <span>{{$t('onLine')}}</span>
               </common-tip>
               <span v-else>{{$t('onLine')}}</span>
@@ -429,7 +429,7 @@ export default class ModelActions extends Vue {
       tips += '<br/>'
       tips += this.$t('closeSCD2ModalOnlineTip')
     }
-    if (!row.segments.length) {
+    if (!row.has_segments) {
       tips += '<br/>'
       tips += this.$t('noSegmentOnlineTip')
     }
@@ -642,7 +642,7 @@ export default class ModelActions extends Vue {
         this.handleDisableModel(objectClone(modelDesc))
       })
     } else if (command === 'online') {
-      if (modelDesc.forbidden_online || !modelDesc.segments.length || !this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc) return
+      if (modelDesc.forbidden_online || !modelDesc.has_segments || !this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc) return
       this.handleEnableModel(objectClone(modelDesc))
     } else if (command === 'exportMetadata') {
       if (modelDesc.status === 'BROKEN') return

@@ -1203,7 +1203,7 @@ export default class LayoutLeftRightTop extends Vue {
     .grid-content.bg-purple-light {
       overflow: auto;
       height: 100%;
-      min-width: 1280px;
+      min-width: 960px;
       .main-content {
         box-sizing: border-box;
         background: white;

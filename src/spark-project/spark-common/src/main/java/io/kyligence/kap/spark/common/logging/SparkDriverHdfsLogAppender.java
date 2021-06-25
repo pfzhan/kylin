@@ -41,7 +41,6 @@ import org.apache.logging.log4j.status.StatusLogger;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 
 @Plugin(name = "DriverHdfsAppender", category = "Core", elementType = "appender", printObject = true)
 public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
@@ -60,6 +59,8 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     @Getter
     @Setter
     private String kerberosKeytab;
+
+    private static SparkDriverHdfsLogAppender appender;
 
     protected SparkDriverHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
             boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
@@ -104,7 +105,7 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @PluginFactory
-    public static SparkDriverHdfsLogAppender createAppender(@PluginAttribute("name") String name,
+    public synchronized static SparkDriverHdfsLogAppender createAppender(@PluginAttribute("name") String name,
             @PluginAttribute("kerberosEnabled") boolean kerberosEnabled,
             @PluginAttribute("kerberosPrincipal") String kerberosPrincipal,
             @PluginAttribute("kerberosKeytab") String kerberosKeytab,
@@ -113,8 +114,11 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
             @PluginAttribute("flushInterval") int flushInterval,
             @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
             @PluginElement("Properties") Property[] properties) {
+        if (appender != null) {
+            return appender;
+        }
         HdfsManager manager = new HdfsManager(name, layout);
-        val appender = new SparkDriverHdfsLogAppender(name, layout, filter, false, false, properties, manager);
+        appender = new SparkDriverHdfsLogAppender(name, layout, filter, false, false, properties, manager);
         appender.setKerberosEnabled(kerberosEnabled);
         if (kerberosEnabled) {
             appender.setKerberosPrincipal(kerberosPrincipal);

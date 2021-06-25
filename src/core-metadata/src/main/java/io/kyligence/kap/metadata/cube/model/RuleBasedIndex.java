@@ -113,6 +113,11 @@ public class RuleBasedIndex implements Serializable, IKeep {
     @JsonProperty("scheduler_version")
     private int schedulerVersion = 1;
 
+    @Setter
+    @Getter
+    @JsonProperty("index_update_enabled")
+    private boolean indexUpdateEnabled = true;
+
     // computed fields below
 
     @Getter
@@ -189,6 +194,10 @@ public class RuleBasedIndex implements Serializable, IKeep {
 
     public Set<LayoutEntity> genCuboidLayouts() {
         return genCuboidLayouts(Sets.newHashSet(), Sets.newHashSet(), true);
+    }
+
+    public boolean getIndexUpdateEnabled() {
+        return indexUpdateEnabled;
     }
 
     // ============================================================================

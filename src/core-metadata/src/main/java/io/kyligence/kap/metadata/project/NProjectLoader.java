@@ -157,7 +157,12 @@ public class NProjectLoader {
                 FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                         .getFusionModel(dataflow.getModel().getFusionId());
                 if (fusionModel != null) {
-                    String batchDataflowId = fusionModel.getBatchModel().getUuid();
+                    val batchModel = fusionModel.getBatchModel();
+                    if (batchModel.isBroken()) {
+                        logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
+                        return;
+                    }
+                    String batchDataflowId = batchModel.getUuid();
                     NDataflow batchRealization = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                             .getDataflow(batchDataflowId);
                     HybridRealization hybridRealization = new HybridRealization(batchRealization, realization, project);

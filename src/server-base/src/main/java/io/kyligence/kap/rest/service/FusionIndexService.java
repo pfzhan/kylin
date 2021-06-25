@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
@@ -96,23 +97,26 @@ public class FusionIndexService extends BasicService {
 
     public RuleBasedIndex getRule(String project, String modelId) {
         val model = getDataModelManager(project).getDataModelDesc(modelId);
+        val modelRule = indexPlanService.getRule(project, modelId);
+        val newRuleBasedIndex = new RuleBasedIndex();
+        if (!checkUpdateIndexEnabled(project, modelId)) {
+            newRuleBasedIndex.setIndexUpdateEnabled(false);
+        }
+
+        if (modelRule != null) {
+            newRuleBasedIndex.getAggregationGroups().addAll(modelRule.getAggregationGroups());
+        }
+
         if (model.showFusionModel()) {
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
             String batchId = fusionModel.getBatchModel().getUuid();
-            RuleBasedIndex newRuleBasedIndex = new RuleBasedIndex();
-            RuleBasedIndex streamingRule = indexPlanService.getRule(project, modelId);
-            RuleBasedIndex batchRule = indexPlanService.getRule(project, batchId);
-            if (streamingRule != null) {
-                newRuleBasedIndex.getAggregationGroups().addAll(streamingRule.getAggregationGroups());
-            }
+            val batchRule = indexPlanService.getRule(project, batchId);
             if (batchRule != null) {
                 newRuleBasedIndex.getAggregationGroups().addAll(batchRule.getAggregationGroups().stream()
                         .filter(agg -> agg.getIndexRange() == IndexEntity.Range.BATCH).collect(Collectors.toList()));
             }
-
-            return newRuleBasedIndex;
         }
-        return indexPlanService.getRule(project, modelId);
+        return newRuleBasedIndex;
     }
 
     @Transaction(project = 0)
@@ -264,6 +268,17 @@ public class FusionIndexService extends BasicService {
         indexPlanService.removeIndex(project, model, id);
     }
 
+    @Transaction(project = 0)
+    public void removeIndexes(String project, String modelId, Set<Long> ids) {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        if (modelDesc.isStreaming() && checkStreamingJobAndSegments(project, modelId)) {
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
+
+        }
+        indexPlanService.removeIndexes(project, modelId, ids);
+    }
+
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
         if (isFusionModel(request.getProject(), request.getModelId())) {
 
@@ -363,6 +378,15 @@ public class FusionIndexService extends BasicService {
             throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT()));
         }
+    }
+
+    public boolean checkUpdateIndexEnabled(String project, String modelId) {
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        if ((NDataModel.ModelType.STREAMING == model.getModelType() || NDataModel.ModelType.HYBRID == model.getModelType())
+                && checkStreamingJobAndSegments(project, model.getUuid())) {
+            return false;
+        }
+        return true;
     }
 
     private void checkStreamingIndexEnabled(String project, NDataModel model) throws KylinException {

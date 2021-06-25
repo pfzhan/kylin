@@ -33,6 +33,7 @@ import java.util.Set;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -183,7 +184,7 @@ public class NIndexPlanController extends NBasicController {
 
     @ApiOperation(value = "getIndex", tags = { "AI" }, notes = "Update response: total_size")
     @GetMapping(value = "/index")
-    public EnvelopeResponse<DataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
+    public EnvelopeResponse<FusionRuleDataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
             @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "sort_by", required = false, defaultValue = "") String order,
             @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
@@ -197,7 +198,8 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids, range);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
+        val indexUpdateEnabled = fusionIndexService.checkUpdateIndexEnabled(project, modelId);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, FusionRuleDataResult.get(indexes, offset, limit, indexUpdateEnabled), "");
     }
 
     @ApiOperation(value = "indexGraph", tags = { "AI" })
@@ -231,7 +233,7 @@ public class NIndexPlanController extends NBasicController {
         if (CollectionUtils.isEmpty(layoutIds)) {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
-        indexPlanService.removeIndexes(project, modelId, layoutIds);
+        fusionIndexService.removeIndexes(project, modelId, layoutIds);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

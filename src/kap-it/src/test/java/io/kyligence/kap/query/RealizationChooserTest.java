@@ -40,6 +40,7 @@ import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.junit.Assert;
@@ -195,5 +196,26 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
         RealizationChooser.attemptSelectCandidate(context);
         Assert.assertEquals("model_streaming", context.realization.getModel().getAlias());
+    }
+
+    @Test
+    public void testHybridNoRealization() {
+        String project = "streaming_test";
+        String sql = "select LO_SHIPMODE from SSB_STREAMING group by LO_SHIPMODE";
+        val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        try {
+            RealizationChooser.attemptSelectCandidate(context);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+        }
+        Assert.assertNull(context.realization);
     }
 }

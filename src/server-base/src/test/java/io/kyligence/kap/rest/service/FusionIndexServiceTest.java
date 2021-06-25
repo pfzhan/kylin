@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -153,6 +154,25 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
 
         val rule1 = fusionIndexService.getRule("streaming_test", modelId);
         Assert.assertEquals(1, rule1.getAggregationGroups().size());
+    }
+
+    @Test
+    public void testGetRuleWithHybrid() {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+
+        val rule = fusionIndexService.getRule("streaming_test", modelId);
+        Assert.assertEquals(1, rule.getAggregationGroups().size());
+        Assert.assertEquals(Range.HYBRID, rule.getAggregationGroups().get(0).getIndexRange());
+        Assert.assertEquals(true, rule.getIndexUpdateEnabled());
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val df = dfMgr.getDataflow(modelId);
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        val rule1 = fusionIndexService.getRule("streaming_test", modelId);
+        Assert.assertEquals(1, rule1.getAggregationGroups().size());
+        Assert.assertEquals(false, rule1.getIndexUpdateEnabled());
     }
 
     @Test
@@ -719,5 +739,55 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testRemoveIndexes() throws Exception {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val df = dfMgr.getDataflow(modelId);
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertEquals(5, indexPlan.getAllIndexes().size());
+
+        try {
+            fusionIndexService.removeIndexes("streaming_test", modelId, indexPlan.getAllLayoutIds(false));
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        val batchId = "cd2b9a23-699c-4699-b0dd-38c9412b3dfd";
+        val batchIndexPlan = indexPlanManager.getIndexPlan(batchId);
+        Assert.assertEquals(4, batchIndexPlan.getAllLayouts().size());
+        fusionIndexService.removeIndexes("streaming_test", batchId, batchIndexPlan.getAllLayoutIds(false));
+
+        Assert.assertEquals(0, indexPlanManager.getIndexPlan(batchId).getAllLayouts().size());
+    }
+
+    @Test
+    public void testCheckStreamingJobAndSegments() throws Exception {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val df = dfMgr.getDataflow(modelId);
+        val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
+        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+
+        val indexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
+        val indexUpdateEnabled = fusionIndexService.checkUpdateIndexEnabled("streaming_test", modelId);
+        val result = FusionRuleDataResult.get(indexes, 20, 10, indexUpdateEnabled);
+        Assert.assertEquals(indexUpdateEnabled, result.isIndexUpdateEnabled());
+
+        val nullResult = FusionRuleDataResult.get(null, 20, 10, indexUpdateEnabled);
+        Assert.assertEquals(indexUpdateEnabled, nullResult.isIndexUpdateEnabled());
+        Assert.assertEquals(0, nullResult.getTotalSize());
     }
 }

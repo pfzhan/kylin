@@ -254,6 +254,7 @@ class NModel extends Schama {
         metaData.last_modified = this.last_modified
         metaData.filter_condition = this.filter_condition
         metaData.partition_desc = this.partition_desc
+        metaData.batch_partition_desc = this.batch_partition_desc
         metaData.multi_partition_desc = this.multi_partition_desc
         metaData.maintain_model_type = this._mount.maintain_model_type
         metaData.management_type = this.management_type
@@ -997,6 +998,7 @@ class NModel extends Schama {
       options.plumbTool = this.plumbTool
       options.source_type = tableInfo.source_type
       options.fact = tableInfo.fact
+      options.batch_table_identity = tableInfo.batch_table_identity
       if (tableInfo.source_type === 1 && !options.isSecStorageEnabled) {
         if (!this.getFactTable()) {
           options.kind = modelRenderConfig.tableKind.fact

@@ -45,6 +45,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
@@ -143,6 +144,10 @@ public class QueryRoutingEngine {
 
     private boolean shouldPushdown(Throwable e, QueryParams queryParams) {
         if (queryParams.isForcedToIndex()) {
+            return false;
+        }
+
+        if (e.getCause() instanceof NoStreamingRealizationFoundException) {
             return false;
         }
 

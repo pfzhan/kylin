@@ -32,16 +32,17 @@ import java.util.Objects;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
@@ -89,6 +90,11 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     @Setter
     private String workingDir;
 
+    private Future future;
+
+    private AtomicBoolean finished = new AtomicBoolean(false);
+    private long start = System.currentTimeMillis();
+
     protected AbstractHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
             boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
         super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
@@ -101,8 +107,11 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
         final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true) //
                 .setNameFormat("logger-thread-%d").build();
         appendHdfsService = Executors.newSingleThreadExecutor(factory);
-        appendHdfsService.execute(this::checkAndFlushLog);
-        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
+        future = appendHdfsService.submit(this::checkAndFlushLog);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            stop();
+            closeWriter();
+        }));
 
         StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s started ...", getAppenderName()));
     }
@@ -165,18 +174,13 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     public void stop() {
         synchronized (closeLock) {
             if (!this.isStopped()) {
-                setStopped();
+                finished.set(true);
 
-                List<LogEvent> transaction = Lists.newArrayList();
                 try {
-                    flushLog(getLogBufferQue().size(), transaction);
-
-                    closeWriter();
                     if (appendHdfsService != null && !appendHdfsService.isShutdown()) {
-                        ExecutorServiceUtil.forceShutdown(appendHdfsService);
+                        forceShutdown(future, appendHdfsService);
                     }
                 } catch (Exception e) {
-                    transaction.forEach(this::printLoggingEvent);
                     try {
                         while (!getLogBufferQue().isEmpty()) {
                             printLoggingEvent(getLogBufferQue().take());
@@ -188,6 +192,21 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
                             e);
                 }
                 StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s closed ...", getAppenderName()));
+            }
+        }
+    }
+
+    public static void forceShutdown(Future future, ExecutorService threadPool) throws Exception {
+        if (threadPool != null) {
+            if (future != null) {
+                future.get(60, TimeUnit.SECONDS);
+            }
+            List<Runnable> jobs = threadPool.shutdownNow();
+            for (Runnable job : jobs) {
+                if (job instanceof Future) {
+                    val task = (Future) job;
+                    task.cancel(true);
+                }
             }
         }
     }
@@ -242,7 +261,6 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
      * flush the log to hdfs when conditions are satisfied.
      */
     protected void checkAndFlushLog() {
-        long start = System.currentTimeMillis();
         do {
             List<LogEvent> transaction = Lists.newArrayList();
             try {
@@ -264,7 +282,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
                 clearLogBufferQueueWhenBlocked();
                 StatusLogger.getLogger().error("Error occurred when consume event", e);
             }
-        } while (!isStopped());
+        } while (!isStopped() && !finished.get());
     }
 
     /**
@@ -282,7 +300,11 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
             while (retry-- > 0) {
                 try {
                     fileSystem = getFileSystem(conf);
-                    outStream = fileSystem.create(outPath, true);
+                    if (!fileSystem.exists(outPath)) {
+                        outStream = fileSystem.create(outPath, false);
+                    } else {
+                        outStream = fileSystem.append(outPath, 8192);
+                    }
                     break;
                 } catch (Exception e) {
                     StatusLogger.getLogger().error("fail to create stream for path: " + outPath, e);

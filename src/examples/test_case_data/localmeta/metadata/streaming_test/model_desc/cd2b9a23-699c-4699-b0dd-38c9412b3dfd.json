@@ -5,6 +5,7 @@
   "version" : "4.0.0.0",
   "alias" : "model_streaming_batch",
   "owner" : "ADMIN",
+  "model_type": "BATCH",
   "config_last_modifier" : null,
   "config_last_modified" : 0,
   "description" : "",

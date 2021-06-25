@@ -21,6 +21,7 @@ class NTable {
     this.guid = options.guid || sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
     this.source_type = options.source_type
+    this.batch_table_identity = options.batch_table_identity // kafka关联的hive表名
     this._cache_search_columns = this.columns // 搜索结果缓存
     // this._parent = options._parent
     this.ST = null

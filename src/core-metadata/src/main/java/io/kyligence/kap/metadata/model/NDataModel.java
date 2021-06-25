@@ -202,6 +202,9 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("storage_type")
     private int storageType;
 
+    @JsonProperty("model_type")
+    private ModelType modelType;
+
     // computed attributes
     @EqualsAndHashCode.Include
     @JsonProperty("all_named_columns")
@@ -415,6 +418,7 @@ public class NDataModel extends RootPersistentEntity {
         this.multiPartitionDesc = other.multiPartitionDesc;
         this.multiPartitionKeyMapping = other.multiPartitionKeyMapping;
         this.recommendationsCount = other.recommendationsCount;
+        this.modelType = other.modelType;
     }
 
     public KylinConfig getConfig() {
@@ -439,6 +443,13 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public ModelType getModelType() {
+        if (modelType != null) {
+            return modelType;
+        }
+        return getModelTypeFromTable();
+    }
+
+    public ModelType getModelTypeFromTable() {
         if (rootFactTableRef == null) {
             return ModelType.UNKNOWN;
         }

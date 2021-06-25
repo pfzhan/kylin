@@ -230,6 +230,11 @@ public class QueryUtil {
                 msg = "ArithmeticException: " + cause.getMessage();
                 break;
             }
+
+            if (cause.getClass().getName().contains("NoStreamingRealizationFoundException")) {
+                msg = "NoStreamingRealizationFoundException: " + cause.getMessage();
+                break;
+            }
             cause = cause.getCause();
         }
 

@@ -398,6 +398,9 @@
       const factTable = this.modelInstance.getFactTable()
       return factTable.source_type === 1 || this.modelInstance.model_type !== 'BATCH'
     }
+    get isHybridModel () {
+      return this.modelDesc.model_type === 'HYBRID'
+    }
 
     refreshPartitionValues (val) {
       this.multiPartitionValues = val

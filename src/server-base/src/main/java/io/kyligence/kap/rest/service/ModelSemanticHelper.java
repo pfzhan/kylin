@@ -152,7 +152,7 @@ public class ModelSemanticHelper extends BasicService {
         dataModel.initJoinDesc(KylinConfig.getInstanceFromEnv(),
                 getTableManager(modelRequest.getProject()).getAllTablesMap());
         convertNonEquiJoinCond(dataModel, modelRequest);
-
+        dataModel.setModelType(dataModel.getModelTypeFromTable());
         return dataModel;
     }
 

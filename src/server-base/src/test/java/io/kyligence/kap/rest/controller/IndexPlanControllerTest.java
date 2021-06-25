@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import org.apache.kylin.common.util.JsonUtil;
@@ -103,6 +104,16 @@ public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(indexPlanController).updateRule(Mockito.any(UpdateRuleBasedCuboidRequest.class));
+    }
+
+    @Test
+    public void testGetRule() throws Exception {
+        Mockito.doReturn(null).when(fusionIndexService).getIndexes("default", "abc", "",
+                Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/index_plans/index")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("model", "abc")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
