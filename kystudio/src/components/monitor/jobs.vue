@@ -66,7 +66,14 @@
                 'el-ksd-icon-arrow_table_down_22': scope.row.id == selectedJob.id && showStep}"></i>
             </template>
           </el-table-column>
-          <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-ksd-icon-filter_22" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">
+          <el-table-column
+            :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))"
+            :filtered-value="filter.job_names"
+            :label="$t('JobType')"
+            filter-icon="el-ksd-icon-filter_22"
+            :show-multiple-footer="false"
+            :filter-change="(v) => filterContent(v, 'job_names')"
+            show-overflow-tooltip prop="job_name" width="184">
             <template slot-scope="scope">
               {{$t(scope.row.job_name)}}
             </template>
@@ -479,10 +486,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SUB_PARTITION_BUILD: 'Build Subpartition',
       SNAPSHOT_BUILD: 'Build Snapshot',
       SNAPSHOT_REFRESH: 'Refresh Snapshot',
-      EXPORT_TO_SECOND_STORAGE: 'Export To Second Storage',
-      SECOND_STORAGE_MODEL_CLEAN: 'Delete Tiered Storage',
-      SECOND_STORAGE_NODE_CLEAN: 'Delete Tiered Storage',
-      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Tiered Storage',
+      EXPORT_TO_SECOND_STORAGE: 'Export To Tiered Storage',
+      SECOND_STORAGE_MODEL_CLEAN: 'Delete Tiered Storage - Model',
+      SECOND_STORAGE_NODE_CLEAN: 'Delete Tiered Storage - Project',
+      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Tiered Storage - Segment',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
@@ -584,9 +591,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SNAPSHOT_BUILD: '构建快照',
       SNAPSHOT_REFRESH: '刷新快照',
       EXPORT_TO_SECOND_STORAGE: '导入分层存储数据',
-      SECOND_STORAGE_MODEL_CLEAN: '删除分层存储',
-      SECOND_STORAGE_NODE_CLEAN: '删除分层存储',
-      SECOND_STORAGE_SEGMENT_CLEAN: '删除分层存储',
+      SECOND_STORAGE_MODEL_CLEAN: '删除分层存储 - 模型',
+      SECOND_STORAGE_NODE_CLEAN: '删除分层存储 - 项目',
+      SECOND_STORAGE_SEGMENT_CLEAN: '删除分层存储 - Segment',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
@@ -656,7 +663,7 @@ export default class JobsList extends Vue {
   jobsList = []
   jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
-  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SUB_PARTITION_BUILD', 'SUB_PARTITION_REFRESH']
+  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SUB_PARTITION_BUILD', 'SUB_PARTITION_REFRESH', 'EXPORT_TO_SECOND_STORAGE', 'SECOND_STORAGE_NODE_CLEAN', 'SECOND_STORAGE_MODEL_CLEAN', 'SECOND_STORAGE_SEGMENT_CLEAN']
   tableJobTypes = ['TABLE_SAMPLING', 'SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH', 'SECOND_STORAGE_NODE_CLEAN']
   delSecJobTypes = ['SECOND_STORAGE_NODE_CLEAN', 'SECOND_STORAGE_MODEL_CLEAN', 'SECOND_STORAGE_SEGMENT_CLEAN']
   targetId = ''
