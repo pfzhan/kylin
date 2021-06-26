@@ -24,6 +24,7 @@
 package org.apache.kylin.rest.response;
 
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.BATCH;
+import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.HYBRID;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.Range.STREAMING;
 
 import java.io.Serializable;
@@ -70,7 +71,7 @@ public class AggIndexResponse implements Serializable {
                 aggIndexCounts.add(batch.getAggIndexCounts().get(batchIndex++));
             } else if (aggGroupTypes.get(n) == STREAMING) {
                 aggIndexCounts.add(stream.getAggIndexCounts().get(streamIndex++));
-            } else {
+            } else if (aggGroupTypes.get(n) == HYBRID){
                 aggIndexCounts.add(AggIndexCombResult.combine(batch.getAggIndexCounts().get(batchIndex++),
                         stream.getAggIndexCounts().get(streamIndex++)));
             }
