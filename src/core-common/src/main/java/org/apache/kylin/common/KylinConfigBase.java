@@ -670,10 +670,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.snapshot.parallel-build-timeout-seconds", "3600"));
     }
 
-    public int snapshotPartitionBuildTimeoutSecounds() {
-        return Integer.parseInt(getOptional("kylin.snapshot.partition-build-timeout-seconds", "3600"));
-    }
-
     public int snapshotPartitionBuildMaxThread() {
         return Integer.parseInt(getOptional("kylin.snapshot.partition-build-max-thread", "10"));
     }
