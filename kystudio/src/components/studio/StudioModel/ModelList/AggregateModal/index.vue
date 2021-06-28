@@ -77,11 +77,11 @@
                         <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
                       </h2>
                       <el-radio-group v-model="form.aggregateArray[aggregateIdx].index_range" :disabled="form.aggregateArray[aggregateIdx].curAggIsEdit">
-                        <el-tooltip placement="top" :disabled="indexUpdateEnabled" :content="$t('refuseAddIndexTip')">
+                        <el-tooltip placement="top" :disabled="indexUpdateEnabled || form.aggregateArray[aggregateIdx].curAggIsEdit" :content="$t('refuseAddIndexTip')">
                           <el-radio :label="'HYBRID'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.HYBRID')}}</el-radio>
                         </el-tooltip>
                         <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
-                        <el-tooltip placement="top" :disabled="indexUpdateEnabled" :content="$t('refuseAddIndexTip')">
+                        <el-tooltip placement="top" :disabled="indexUpdateEnabled || form.aggregateArray[aggregateIdx].curAggIsEdit" :content="$t('refuseAddIndexTip')">
                           <el-radio :label="'STREAMING'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.STREAMING')}}</el-radio>
                         </el-tooltip>
                       </el-radio-group>

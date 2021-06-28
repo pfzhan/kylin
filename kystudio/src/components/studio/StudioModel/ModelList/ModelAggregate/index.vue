@@ -110,10 +110,10 @@
               </el-dropdown>
               <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex') && !isRealTimeMode" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
               <template v-if="isRealTimeMode">
-                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
-                  <el-button v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex" :disabled="isDisableDelBaseIndex" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                <common-tip :content="!indexUpdateEnabled ? $t('refuseRemoveIndexTip') : $t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)">
+                  <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
                 </common-tip>
-                <el-button v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                <el-button v-if="datasourceActions.includes('delAggIdx') && !isDisableDelBaseIndex && indexUpdateEnabled" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
               </template>
               <template v-else>
                 <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
