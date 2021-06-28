@@ -75,8 +75,8 @@ object TableScanPlan extends LogEx {
     val prunedStreamingSegments = context.getPrunedStreamingSegments
     val realizations = olapContext.realization.getRealizations.asScala.toList
     realizations.map(_.asInstanceOf[NDataflow])
-            .filter(dataflow => (!dataflow.isStreaming && !context.getCandidate.isEmptyCandidate) ||
-                    (dataflow.isStreaming && !context.getCandidateStreaming.isEmptyCandidate))
+            .filter(dataflow => (!dataflow.isStreaming && !context.isBatchCandidateEmpty) ||
+                    (dataflow.isStreaming && !context.isStreamCandidateEmpty))
             .map(dataflow => {
               if (dataflow.isStreaming) {
                 tableScan(rel, dataflow, olapContext, session, prunedStreamingSegments, context.getCandidateStreaming)

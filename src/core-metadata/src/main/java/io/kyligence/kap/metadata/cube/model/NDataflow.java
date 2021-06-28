@@ -280,7 +280,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return Arrays.asList(this);
     }
 
-    public FunctionDesc findAggrFuncFromDataflowDesc(FunctionDesc aggrFunc) {
+    @Override
+    public FunctionDesc findAggrFunc(FunctionDesc aggrFunc) {
         for (MeasureDesc measure : this.getMeasures()) {
             if (measure.getFunction().equals(aggrFunc))
                 return measure.getFunction();

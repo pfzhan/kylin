@@ -65,6 +65,7 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -104,8 +105,8 @@ public class RealizationPruner {
         if (!projectInstance.getConfig().isHeterogeneousSegmentEnabled()) {
             return allReadySegments;
         }
-
-        val isBatchFusionModel = dataflow.getModel().isFusionModel() && !dataflow.isStreaming();
+        val isStreamingFactTable = olapContext.firstTableScan.getOlapTable().getSourceTable().getSourceType() == ISourceAware.ID_STREAMING;
+        val isBatchFusionModel = isStreamingFactTable && dataflow.getModel().isFusionModel() && !dataflow.isStreaming();
         val partitionDesc = isBatchFusionModel ? getStreamingPartitionDesc(dataflow.getModel(), kylinConfig, projectName)
                 :dataflow.getModel().getPartitionDesc();
         // no partition column
