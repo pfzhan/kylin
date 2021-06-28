@@ -203,6 +203,15 @@ function upgrade() {
     fi
     info "...................................................[DONE]"
 
+    # copy spark-env for spark3
+    logging "Copy spark-env for spark3"
+    if [[ -f ${OLD_KYLIN_HOME}/spark/conf/spark-env.sh ]]; then
+        if prompt "'${OLD_KYLIN_HOME}/spark/conf/spark-env.sh' -> '${NEW_KYLIN_HOME}/spark/conf/'"; then
+            \cp -vf ${OLD_KYLIN_HOME}/spark/conf/spark-env.sh ${NEW_KYLIN_HOME}/spark/conf/ >> $upgrade_log || fail
+        fi
+    fi
+    info "...................................................[DONE]"
+
     # sed -nE 's/^([#\t ]*)(kylin\..*|kap\..*)/\2/p' kylin.properties | awk '{kv[substr($0,0,index($0,"=")-1)]=substr($0,index($0,"=")+1)} END{print kv["kylin.metadata.url"]}'
     logging "Checking Kylin Conf"
 python <<PY
