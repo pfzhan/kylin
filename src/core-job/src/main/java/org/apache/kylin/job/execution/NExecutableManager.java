@@ -54,7 +54,6 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -86,6 +85,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -189,11 +189,10 @@ public class NExecutableManager {
             EventBusFactory.getInstance().postAsync(new JobReadyNotifier(project));
             EventBusFactory.getInstance().postAsync(new JobAddedNotifier(project, jobType));
         } else
-            UnitOfWork.get()
-                    .doAfterUnit(() -> {
-                        EventBusFactory.getInstance().postAsync(new JobReadyNotifier(project));
-                        EventBusFactory.getInstance().postAsync(new JobAddedNotifier(project, jobType));
-                    });
+            UnitOfWork.get().doAfterUnit(() -> {
+                EventBusFactory.getInstance().postAsync(new JobReadyNotifier(project));
+                EventBusFactory.getInstance().postAsync(new JobAddedNotifier(project, jobType));
+            });
     }
 
     private void addJobOutput(ExecutablePO executable) {
@@ -352,7 +351,8 @@ public class NExecutableManager {
     }
 
     public AbstractExecutable getLastSuccessExecByModel(String modelId, JobTypeEnum... jobTypes) {
-        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId, state -> ExecutableState.SUCCEED == state, jobTypes);
+        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId,
+                state -> ExecutableState.SUCCEED == state, jobTypes);
         if (CollectionUtils.isEmpty(executables)) {
             return null;
         }
@@ -360,7 +360,8 @@ public class NExecutableManager {
     }
 
     public AbstractExecutable getMaxDurationRunningExecByModel(String modelId, JobTypeEnum... jobTypes) {
-        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId, state -> ExecutableState.RUNNING == state, jobTypes);
+        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId,
+                state -> ExecutableState.RUNNING == state, jobTypes);
         if (CollectionUtils.isEmpty(executables)) {
             return null;
         }
@@ -462,6 +463,10 @@ public class NExecutableManager {
             Output output = getOutput(po.getId());
             return ExecutablePO.isHigherPriority(po.getPriority(), priority) && output.getState().isProgressing();
         }).collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> getAllJobs(long timeStartInMillis, long timeEndInMillis) {
+        return executableDao.getJobs(timeStartInMillis, timeEndInMillis);
     }
 
     public void resumeAllRunningJobs() {
@@ -803,7 +808,7 @@ public class NExecutableManager {
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(jobId));
     }
 
-    private AbstractExecutable fromPO(ExecutablePO executablePO) {
+    public AbstractExecutable fromPO(ExecutablePO executablePO) {
         if (executablePO == null) {
             logger.warn("executablePO is null");
             return null;
