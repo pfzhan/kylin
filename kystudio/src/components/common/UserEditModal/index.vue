@@ -214,7 +214,7 @@ export default class UserEditModal extends Vue {
   // Computed: Modal宽度
   get modalWidth () {
     return this.editType === 'group'
-      ? '660px'
+      ? '600px'
       : '440px'
   }
 

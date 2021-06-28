@@ -108,7 +108,7 @@ export default class GroupEditModal extends Vue {
   // Computed: Modal宽度
   get modalWidth () {
     return this.editType === 'assign'
-      ? '660px'
+      ? '600px'
       : '440px'
   }
 

@@ -1,7 +1,7 @@
 <template>
   <div class="source-hive clearfix" :class="{'zh-lang': $store.state.system.lang !== 'en'}">
     <div class="list clearfix">
-      <div class="ksd-ml-20 ksd-mt-20">
+      <div class="ksd-ml-24 ksd-mt-24">
         <el-input :placeholder="$t('filterTableName')" 
                   v-model="filterText" 
                   prefix-icon="el-icon-search" 
@@ -732,8 +732,8 @@ export default class SourceHive extends Vue {
     width: 400px;
     float: left;
     position: relative;
-    border: 1px solid #ccc;
-    margin: 10px 0 20px 20px;
+    border: 1px solid @ke-border-secondary;
+    margin: 8px 0 24px 24px;
     .filter-tree{
       border: none;
     }
@@ -749,7 +749,7 @@ export default class SourceHive extends Vue {
       z-index: 2;
       width: 100%;
       text-align: center!important;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid @ke-border-secondary;
       height: 24px;
       line-height: 24px;
       font-size: 12px;
@@ -799,11 +799,11 @@ export default class SourceHive extends Vue {
   .filter-tree {
     height: 430px;
     overflow: auto;
-    border: 1px solid @line-border-color;
+    border: 1px solid @ke-border-secondary;
   }
   .content {
     margin-left: calc(400px + 25px + 10px);
-    padding: 60px 20px 15px 0;
+    padding: 66px 24px 16px 0;
     position: relative;
     // height: 453px;
   }
@@ -828,7 +828,7 @@ export default class SourceHive extends Vue {
   .content-body {
     position: relative;
     height: 357px;
-    border: 1px solid @line-border-color;
+    border: 1px solid @ke-border-secondary;
     transition: height .2s .2s;
     overflow: auto;
     &.has-error-msg {
@@ -889,7 +889,7 @@ export default class SourceHive extends Vue {
     }
   }
   .category {
-    border-bottom: 1px solid @line-border-color;
+    border-bottom: 1px solid @ke-border-secondary;
   }
   .category:last-child {
     border-bottom: none;

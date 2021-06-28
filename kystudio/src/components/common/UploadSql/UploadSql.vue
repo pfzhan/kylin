@@ -9,7 +9,7 @@
       :close-on-click-modal="false"
       @close="handleClose"
       :class="['importSqlDialog', {'is-step3': uploadFlag==='step3'}]">
-      <span slot="title" class="ky-list-title">{{uploadTitle}}</span>
+      <span slot="title" class="ksd-title-label">{{uploadTitle}}</span>
       <div class="upload-block" v-if="uploadFlag==='step1'">
         <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
         <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
@@ -50,7 +50,6 @@
           </div>
           <el-table
             :data="pagerTableData"
-            border
             ref="multipleTable"
             :empty-text="emptyText"
             @row-click="activeSql"
@@ -270,7 +269,7 @@ export default class UploadSqlModel extends Vue {
   activeSqlObj = null
   whiteSqlData = null
   sqlLoading = false
-  inputHeight = 424
+  inputHeight = 479
   selectSqls = []
   filteredDataSize = 0
   whiteCurrentPage = 0
@@ -503,7 +502,7 @@ export default class UploadSqlModel extends Vue {
       this.isEditSql = false
       this.whiteMessages = []
       this.isWhiteErrorMessage = false
-      this.inputHeight = 424
+      this.inputHeight = 479
     }
     this.$nextTick(() => {
       this.$refs.multipleTable && this.$refs.multipleTable.doLayout()
@@ -811,10 +810,10 @@ export default class UploadSqlModel extends Vue {
     this.isReadOnly = true
     if (sqlObj.capable) {
       this.isWhiteErrorMessage = false
-      this.inputHeight = 424
+      this.inputHeight = 479
     } else {
       this.isWhiteErrorMessage = true
-      this.inputHeight = 424 - 140
+      this.inputHeight = 479 - 140
       this.whiteMessages = sqlObj.sql_advices
     }
     let formatterSql
@@ -864,7 +863,7 @@ export default class UploadSqlModel extends Vue {
   }
   cancelEdit (isErrorMes) {
     this.isEditSql = false
-    this.inputHeight = isErrorMes ? 424 - 140 : 424
+    this.inputHeight = isErrorMes ? 479 - 140 : 479
     this.whiteSql = this.sqlFormatterObj[this.activeSqlObj.id]
     this.activeSqlObj = null
     this.isReadOnly = true
@@ -881,7 +880,7 @@ export default class UploadSqlModel extends Vue {
           if (data.capable) {
             this.$message.success(this.$t('kylinLang.common.actionSuccess'))
             this.whiteMessages = []
-            this.inputHeight = 424
+            this.inputHeight = 479
             this.isWhiteErrorMessage = false
             this.isEditSql = false
             this.isReadOnly = true
@@ -900,7 +899,7 @@ export default class UploadSqlModel extends Vue {
             resolve()
           } else {
             this.whiteMessages = data.sql_advices
-            this.inputHeight = 424 - 140
+            this.inputHeight = 479 - 140
             this.isWhiteErrorMessage = true
             reject()
           }
@@ -1011,6 +1010,9 @@ export default class UploadSqlModel extends Vue {
         padding: 20px 20px 0;
       }
     }
+    .query_panel_box {
+      border: none;
+    }
     .ksd-null-pic-text {
       margin: 122.5px 0;
     }
@@ -1107,7 +1109,7 @@ export default class UploadSqlModel extends Vue {
       }
       .error_messages {
         height: 130px;
-        border: 1px solid @line-border-color;
+        border: 1px solid @ke-border-secondary;
         border-radius: 2px;
         font-size: 12px;
         margin-top: 10px;
