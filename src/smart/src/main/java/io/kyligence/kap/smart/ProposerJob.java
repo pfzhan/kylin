@@ -169,8 +169,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             try {
                 SimpleTimeLimiter.create(ForkJoinPool.commonPool())
                         .callWithTimeout(() -> uploadJobLog(project, jobId, jobContentZip), Duration.ofSeconds(10));
-            } catch (Exception e) {
-                log.warn("Upload Job Evidence failed {}", jobId, e);
+            } catch (Exception exception) {
+                log.warn("Upload Job Evidence failed {}", jobId, exception);
             } finally {
                 FileUtils.deleteQuietly(new File(jobContentZip));
             }
