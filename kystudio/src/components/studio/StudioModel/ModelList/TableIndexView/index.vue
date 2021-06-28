@@ -11,8 +11,8 @@
           </el-option>
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowTableIndexActions&&!isHideEdit">
-          <common-tip :content="$t('addTableIndex')">
-            <i class="el-ksd-icon-project_add_old ksd-fs-16" @click="(e) => confrimEditTableIndex(undefined, e)"></i>
+          <common-tip :content="!indexUpdateEnabled && model.model_type === 'STREAMING' ? $t('refuseAddIndexTip') : $t('addTableIndex')">
+            <i :class="['el-ksd-icon-project_add_old', 'ksd-fs-16', {'is-disabled': !indexUpdateEnabled && model.model_type === 'STREAMING'}]" @click="(e) => confrimEditTableIndex(undefined, e)"></i>
           </common-tip>
         </div>
       </div>
@@ -35,10 +35,10 @@
             {{index.last_modified | toServerGMTDate}}
           </span>
           <span class="ksd-fright icon-group">
-            <common-tip :content="$t('kylinLang.common.edit')">
-              <i class="el-ksd-icon-edit_16 ksd-fs-16" @click="(e) => confrimEditTableIndex(index, e)"></i>
-            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
-              <i class="el-ksd-icon-table_delete_16 ksd-fs-16 ksd-ml-10" @click="removeIndex(index)"></i>
+            <common-tip :content="!handleEditOrDelIndex(index) ? $t('refuseEditIndexTip') : $t('kylinLang.common.edit')">
+              <i :class="['el-ksd-icon-edit_16', 'ksd-fs-16', {'is-disabled': !handleEditOrDelIndex(index)}]" @click="(e) => confrimEditTableIndex(index, e)"></i>
+            </common-tip><common-tip :content="!handleEditOrDelIndex(index) ? $t('refuseRemoveIndexTip') : $t('kylinLang.common.delete')">
+              <i :class="['el-ksd-icon-table_delete_16', 'ksd-fs-16', 'ksd-ml-10', {'is-disabled': !handleEditOrDelIndex(index)}]" @click="removeIndex(index)"></i>
             </common-tip>
           </span>
         </div>
@@ -46,7 +46,7 @@
           <span>{{$t('indexTimeRange')}}</span>
           <span v-if="index.index_range">{{$t('kylinLang.common.' + index.index_range)}}</span>
         </p>
-        <p class="ksd-mb-10" v-if="model.model_type === 'HYBRID'">包含的列</p>
+        <p class="ksd-mb-10" v-if="model.model_type === 'HYBRID'">{{$t('includeColumns')}}</p>
         <div class="table-index-content">
           <el-table
           size="medium"
@@ -88,7 +88,9 @@
     <div class="table-index-detail-block" v-else>
       <div class="empty-block">
         <div>{{$t('aggTableIndexTips')}}</div>
-        <el-button type="primary" text icon="el-ksd-icon-table_add_old" @click="confrimEditTableIndex()" v-if="isShowTableIndexActions&&!isHideEdit">{{$t('tableIndex')}}</el-button>
+        <common-tip :content="$t('refuseAddIndexTip')" :disabled="indexUpdateEnabled || model.model_type !== 'STREAMING'">
+          <el-button type="primary" text :disabled="!indexUpdateEnabled && model.model_type === 'STREAMING'" icon="el-ksd-icon-table_add_old" @click="confrimEditTableIndex()" v-if="isShowTableIndexActions && !isHideEdit">{{$t('tableIndex')}}</el-button>
+        </common-tip>
       </div>
     </div>
   </div>
@@ -154,7 +156,15 @@ export default class TableIndexView extends Vue {
   }
   indexDatas = []
   isLoading = false
+  indexUpdateEnabled = true
+
+  handleEditOrDelIndex (index) {
+    return !(!this.indexUpdateEnabled && (this.model.model_type === 'STREAMING' || ['HYBRID', 'STREAMING'].includes(index.index_range)))
+  }
+
   confrimEditTableIndex (indexDesc, event) {
+    if (indexDesc && !this.indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(indexDesc.index_range)) return
+    if (!this.indexUpdateEnabled && this.model.model_type === 'STREAMING') return
     event && event.target.parentElement.className.split(' ').includes('icon') && event.target.parentElement.blur()
 
     if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
@@ -174,12 +184,14 @@ export default class TableIndexView extends Vue {
   async editTableIndex (indexDesc) {
     const isSubmit = await this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
-      tableIndexDesc: indexDesc || {name: 'TableIndex_1'}
+      tableIndexDesc: indexDesc || {name: 'TableIndex_1'},
+      indexUpdateEnabled: this.indexUpdateEnabled
     })
     isSubmit && this.loadTableIndices()
     isSubmit && this.$emit('loadModels')
   }
   async removeIndex (index) {
+    if (!this.handleEditOrDelIndex(index)) return
     try {
       await kapConfirm(this.$t('delIndexTip'), {confirmButtonText: this.$t('kylinLang.common.delete')}, this.$t('delIndex'))
       const params = {
@@ -204,6 +216,7 @@ export default class TableIndexView extends Vue {
         model: this.model.uuid
       }, this.filterArgs))
       const data = await handleSuccessAsync(res)
+      this.indexUpdateEnabled = data.index_update_enabled
       this.indexDatas = data.value.map((d) => {
         d.detailCurrentPage = 0
         d.detailCurrentCount = 10
@@ -290,6 +303,13 @@ export default class TableIndexView extends Vue {
     }
     .icon-group i:hover {
       color: @base-color;
+    }
+    .icon-group .is-disabled {
+      cursor: not-allowed;
+      color: @text-disabled-color;
+      &:hover {
+        color: @text-disabled-color;
+      }
     }
     .table-index-detail {
       padding: 15px;

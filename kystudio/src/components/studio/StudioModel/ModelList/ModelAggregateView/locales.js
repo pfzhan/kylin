@@ -26,7 +26,10 @@ export default {
     maxDimComTips: 'MDC (Max Dimension Combination) is the maximum amount of dimensions in the aggregate index. Please set this number carefully according to your query requirements. The MDC set here applies to all aggregate groups without separate MDC.',
     cardinalityMultiple: 'The Product of Cardinality: ',
     showAll: 'Show More',
-    indexTimeRange: 'Index’s Time Range'
+    indexTimeRange: 'Index’s Time Range',
+    refuseAddIndexTip: 'Can\'t add streaming indexes. Please stop the streaming job and then delete all the streaming segments.',
+    refuseRemoveIndexTip: 'Can\'t delete streaming indexes. Please stop the streaming job and then delete all the streaming segments.',
+    refuseEditIndexTip: 'Can\'t edit streaming indexes. Please stop the streaming job and then delete all the streaming segments.'
   },
   'zh-cn': {
     viewAll: '查看所有',
@@ -55,6 +58,9 @@ export default {
     maxDimComTips: '最大维度组合数是聚合索引中所包含的最大维度个数，设置该数据可以有效控制多维度索引的构建和存储开销，请根据您的查询特征谨慎设置。此处设置的最大维度组合数将应用于所有未单独设置最大维度组合数的聚合组。',
     cardinalityMultiple: '当前基数乘积：',
     showAll: '显示全部',
-    indexTimeRange: '索引时间范围'
+    indexTimeRange: '索引时间范围',
+    refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。',
+    refuseRemoveIndexTip: '无法删除实时索引。请先停止实时任务，再清空实时 Segment。',
+    refuseEditIndexTip: '无法编辑实时索引。请先停止实时任务，再清空实时 Segment。'
   }
 }

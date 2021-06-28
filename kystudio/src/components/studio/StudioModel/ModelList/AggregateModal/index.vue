@@ -77,9 +77,13 @@
                         <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
                       </h2>
                       <el-radio-group v-model="form.aggregateArray[aggregateIdx].index_range" :disabled="form.aggregateArray[aggregateIdx].curAggIsEdit">
-                        <el-radio :label="'HYBRID'">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+                        <el-tooltip placement="top" :disabled="indexUpdateEnabled" :content="$t('refuseAddIndexTip')">
+                          <el-radio :label="'HYBRID'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+                        </el-tooltip>
                         <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
-                        <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+                        <el-tooltip placement="top" :disabled="indexUpdateEnabled" :content="$t('refuseAddIndexTip')">
+                          <el-radio :label="'STREAMING'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+                        </el-tooltip>
                       </el-radio-group>
                     </div>
                     <el-tabs v-model="aggregate.activeTab" @tab-click="handleClickTab">
@@ -570,7 +574,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
     ...mapState('AggregateModal', {
       form: state => state.form,
       isShow: state => state.isShow,
-      // isLoading: state => state.isLoading,
+      indexUpdateEnabled: state => state.indexUpdateEnabled,
       editType: state => state.editType,
       callback: state => state.callback,
       model: state => state.model,

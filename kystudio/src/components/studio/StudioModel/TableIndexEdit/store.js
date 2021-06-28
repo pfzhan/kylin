@@ -12,7 +12,8 @@ const initialState = JSON.stringify({
     data: {
       isHybridBatch: false,
       modelInstance: null,
-      tableIndexDesc: null
+      tableIndexDesc: null,
+      indexUpdateEnabled: true
     }
   },
   callback: null
