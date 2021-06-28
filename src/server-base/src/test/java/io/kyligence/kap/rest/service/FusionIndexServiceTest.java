@@ -499,6 +499,22 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCalculateEmptyAggIndexCount() {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        val aggGroup1 = mkAggGroup(0, 11);
+        aggGroup1.setIndexRange(Range.HYBRID);
+
+        val aggGroup2 = mkAggGroup();
+        aggGroup2.setIndexRange(Range.EMPTY);
+
+        val request = UpdateRuleBasedCuboidRequest.builder().project("streaming_test").modelId(modelId)
+                .aggregationGroups(Arrays.asList(aggGroup1, aggGroup2)).build();
+        AggIndexResponse response = fusionIndexService.calculateAggIndexCount(request);
+
+        Assert.assertEquals(response.getAggIndexCounts().size(), 1);
+    }
+
+    @Test
     public void testFusionDiffRuleBaseIndex() {
         val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
         // hybrid +8 index

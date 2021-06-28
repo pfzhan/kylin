@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -220,5 +221,16 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
         response = favoriteRuleService.importSqls(new MultipartFile[] { file1, file2, file4 }, PROJECT);
         Assert.assertEquals(1210, response.getSize());
+    }
+
+    @Test
+    public void testLoadStreamingSqls() throws IOException {
+        // import multiple files
+        MockMultipartFile file1 = new MockMultipartFile("sqls9.sql", "sqls9.sql", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls9.sql")));
+
+        Mockito.when(favoriteRuleService.transformFileToSqls(file1, "streaming_test"))
+                .thenThrow(NoStreamingRealizationFoundException.class);
+
     }
 }

@@ -59,7 +59,7 @@ import { mapActions } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import emptyImg from '../../../assets/img/empty.svg'
+import emptyImg from '../../../assets/img/empty/empty_state_empty.svg'
 
 @Component({
   props: {

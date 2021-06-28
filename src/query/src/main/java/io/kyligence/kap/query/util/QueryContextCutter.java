@@ -29,9 +29,12 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +67,7 @@ public class QueryContextCutter {
                 return collectContextInfoAndSelectRealization(root);
             } catch (NoRealizationFoundException e) {
                 if (isForAutoModeling) {
+                    checkStreamingSqlWithAutoModeling();
                     throw e;
                 }
 
@@ -133,6 +137,16 @@ public class QueryContextCutter {
             ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS SET IN FIRST ROUND", queryRoot, log);
         } else {
             ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS RE-CUT OFF ", queryRoot, log);
+        }
+    }
+
+    private static void checkStreamingSqlWithAutoModeling() {
+        for (OLAPContext context : ContextUtil.listContextsHavingScan()) {
+            for (OLAPTableScan tableScan : context.allTableScans) {
+                if (ISourceAware.ID_STREAMING == tableScan.getTableRef().getTableDesc().getSourceType()) {
+                    throw new NoStreamingRealizationFoundException("No support streaming table for auto modeling.");
+                }
+            }
         }
     }
 

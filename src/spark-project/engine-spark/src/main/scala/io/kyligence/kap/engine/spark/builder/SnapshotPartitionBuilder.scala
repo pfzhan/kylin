@@ -77,7 +77,7 @@ class SnapshotPartitionBuilder extends SnapshotBuilder {
 
     val kylinConf = KylinConfig.getInstanceFromEnv
     val snapshotParallelBuildTimeoutSeconds = kylinConf.snapshotParallelBuildTimeoutSeconds()
-    val maxThread = if (kylinConf.snapshotPartitionBuildMaxThread() >= 2) kylinConf.snapshotParallelBuildTimeoutSeconds() else 2
+    val maxThread = if (kylinConf.snapshotPartitionBuildMaxThread() >= 2) kylinConf.snapshotPartitionBuildMaxThread() else 2
     val service = Executors.newFixedThreadPool(maxThread)
     implicit val executorContext = ExecutionContext.fromExecutorService(service)
 

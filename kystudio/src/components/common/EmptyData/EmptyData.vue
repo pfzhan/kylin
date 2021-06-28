@@ -14,7 +14,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import defaultImage from '../../../assets/img/no_data.png'
+import defaultImage from '../../../assets/img/empty/empty_state_empty.svg'
 
 @Component({
   props: {

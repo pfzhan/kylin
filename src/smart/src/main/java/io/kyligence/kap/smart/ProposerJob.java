@@ -24,25 +24,38 @@
 package io.kyligence.kap.smart;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.util.ZipFileUtils;
 import org.apache.kylin.job.JobRunnerFactory;
 import org.apache.kylin.job.JobRunnerFactory.AbstractJobRunner;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -54,6 +67,7 @@ import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.collect.Sets;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.SimpleTimeLimiter;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
@@ -151,9 +165,34 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         } catch (Exception e) {
             throw new KylinException(ServerErrorCode.EXEC_JOB_FAILED, "Failed to exec job " + jobId, e);
         } finally {
+            String jobContentZip = getJobTmpDir(jobId) + ".zip";
+            try {
+                SimpleTimeLimiter.create(ForkJoinPool.commonPool())
+                        .callWithTimeout(() -> uploadJobLog(project, jobId, jobContentZip), Duration.ofSeconds(10));
+            } catch (Exception exception) {
+                log.warn("Upload Job Evidence failed {}", jobId, exception);
+            } finally {
+                FileUtils.deleteQuietly(new File(jobContentZip));
+            }
             runner.cleanupEnv();
         }
         return context;
+    }
+
+    private static boolean uploadJobLog(String project, String jobId, String jobContentZip) throws IOException {
+        ZipFileUtils.compressZipFile(getJobTmpDir(jobId), jobContentZip);
+        String jobDir = KylinConfig.getInstanceFromEnv().getJobTmpDir(project, true);
+        FileSystem fs = HadoopUtil.getFileSystem(jobDir);
+
+        try (InputStream in = new FileInputStream(jobContentZip);
+                FSDataOutputStream out = fs.create(new Path(jobDir + jobId + ".zip"), true)) {
+            IOUtils.copy(in, out);
+        }
+        return true;
+    }
+
+    private static String getJobTmpDir(String jobId) {
+        return KylinConfigBase.getKylinHome() + "/tmp/" + jobId;
     }
 
     private static String generateJobId(String project) {

@@ -39,6 +39,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
@@ -56,7 +58,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
-@Plugin(name = "ExecutorHdfsAppender", category = "Core", elementType = "appender", printObject = true)
+@Plugin(name = "ExecutorHdfsAppender", category = Core.CATEGORY_NAME, elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
     private static final long A_DAY_MILLIS = 24 * 60 * 60 * 1000L;
@@ -96,7 +98,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     private String project;
 
     protected SparkExecutorHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
-            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+                                           boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
         super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
     }
 
@@ -254,14 +256,14 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
     @PluginFactory
     public static SparkExecutorHdfsLogAppender createAppender(@PluginAttribute("name") String name,
-            @PluginAttribute("workingDir") String workingDir, @PluginAttribute("metadataId") String metadataId,
-            @PluginAttribute("category") String category, @PluginAttribute("identifier") String identifier,
-            @PluginAttribute("jobName") String jobName, @PluginAttribute("project") String project,
-            @PluginAttribute("rollingPeriod") int rollingPeriod,
-            @PluginAttribute("logQueueCapacity") int logQueueCapacity,
-            @PluginAttribute("flushInterval") int flushInterval,
-            @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
-            @PluginElement("Properties") Property[] properties) {
+                                                              @PluginAttribute("workingDir") String workingDir, @PluginAttribute("metadataId") String metadataId,
+                                                              @PluginAttribute("category") String category, @PluginAttribute("identifier") String identifier,
+                                                              @PluginAttribute("jobName") String jobName, @PluginAttribute("project") String project,
+                                                              @PluginAttribute("rollingPeriod") int rollingPeriod,
+                                                              @PluginAttribute("logQueueCapacity") int logQueueCapacity,
+                                                              @PluginAttribute("flushInterval") int flushInterval,
+                                                              @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
+                                                              @PluginElement("Properties") Property[] properties) {
         HdfsManager manager = new HdfsManager(name, layout);
         val appender = new SparkExecutorHdfsLogAppender(name, layout, filter, false, false, properties, manager);
         appender.setWorkingDir(workingDir);

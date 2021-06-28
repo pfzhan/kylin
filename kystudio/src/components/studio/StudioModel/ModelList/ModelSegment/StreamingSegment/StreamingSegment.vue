@@ -107,7 +107,7 @@
             <span>{{scope.row.last_modified_time | toServerGMTDate}}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('sourceRecords')" width="140" align="right" prop="row_count" sortable="custom">
+        <el-table-column :label="$t('sourceRecords')" width="140" align="right" prop="source_count" sortable="custom">
         </el-table-column>
         <el-table-column :label="$t('storageSize')" width="140" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>

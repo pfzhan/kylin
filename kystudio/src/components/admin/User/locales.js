@@ -13,10 +13,10 @@ export default {
     disable: 'Disable',
     enable: 'Enable',
     groupMembership: 'Assign to Group',
-    cofirmDelUser: 'Are you sure you want to delete the user "{userName}"?',
+    cofirmDelUser: 'Are you sure you want to delete the user {userName} ?',
     delUserTitle: 'Delete User',
     userList: 'User List',
-    changeUserTips: 'Are you sure you want to {status} the user "{userName}"?'
+    changeUserTips: 'Are you sure you want to {status} the user {userName} ?'
   },
   'zh-cn': {
     back: '返回',
@@ -32,9 +32,9 @@ export default {
     disable: '禁用',
     enable: '启用',
     groupMembership: '分配到用户组',
-    cofirmDelUser: '确认删除用户 "{userName}" 吗？',
+    cofirmDelUser: '请确认是否删除用户 {userName} ？',
     delUserTitle: '删除用户',
     userList: '用户列表',
-    changeUserTips: '你确认要{status}用户 "{userName}" 吗？'
+    changeUserTips: '请确认是否{status}用户 {userName} ？'
   }
 }

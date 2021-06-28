@@ -44,8 +44,6 @@ import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -57,6 +55,7 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -78,6 +77,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -89,15 +89,19 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableSortBean;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 @Component("jobService")
@@ -135,94 +139,78 @@ public class JobService extends BasicService {
         return executableResponse;
     }
 
-    private DataResult<List<ExecutableResponse>> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs,
-            int offset, int limit) {
+    private List<ExecutablePOSortBean> filterAndSortExecutablePO(final JobFilter jobFilter, List<ExecutablePO> jobs) {
         Preconditions.checkNotNull(jobFilter);
         Preconditions.checkNotNull(jobs);
 
-        Comparator<ExecutableSortBean> comparator = propertyComparator(
+        Comparator<ExecutablePOSortBean> comparator = propertyComparator(
                 StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
         Set<JobStatusEnum> matchedJobStatusEnums = jobFilter.getStatuses().stream().map(JobStatusEnum::valueOf)
                 .collect(Collectors.toSet());
         Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)
                 .collect(Collectors.toSet());
-        List<ExecutableSortBean> sortBeanList = jobs.stream()
-                .filter(((Predicate<AbstractExecutable>) (abstractExecutable -> {
-                    if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
-                        return true;
-                    }
-                    ExecutableState state = abstractExecutable.getStatus();
-                    return matchedExecutableStates.contains(state)
-                            || matchedJobStatusEnums.contains(state.toJobStatus());
-                })).and(abstractExecutable -> {
-                    String subject = StringUtils.trim(jobFilter.getKey());
-                    if (StringUtils.isEmpty(subject)) {
-                        return true;
-                    }
-                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject)
-                            || StringUtils.containsIgnoreCase(abstractExecutable.getId(), subject);
-                }).and(abstractExecutable -> {
-                    List<String> jobNames = jobFilter.getJobNames();
-                    if (CollectionUtils.isEmpty(jobNames)) {
-                        return true;
-                    }
-                    return jobNames.contains(abstractExecutable.getName());
-                }).and(abstractExecutable -> {
-                    String subject = jobFilter.getSubject();
-                    if (StringUtils.isEmpty(subject)) {
-                        return true;
-                    }
-                    //if filter on uuid, then it must be accurate
-                    return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
-                })).map(ExecutableSortBean::create).sorted(comparator).collect(Collectors.toList());
-
-        List<ExecutableResponse> result = PagingUtil.cutPage(sortBeanList, offset, limit).stream()
-                .map(ExecutableSortBean::getExecutable).map(this::convert).collect(Collectors.toList());
-        return new DataResult<>(result, sortBeanList.size(), offset, limit);
-    }
-
-    private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs) {
-        Preconditions.checkNotNull(jobFilter);
-        Preconditions.checkNotNull(jobs);
-
-        Comparator<ExecutableResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
-                !jobFilter.isReverse());
-        Set<JobStatusEnum> matchedJobStatusEnums = jobFilter.getStatuses().stream().map(JobStatusEnum::valueOf)
-                .collect(Collectors.toSet());
-        Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)
-                .collect(Collectors.toSet());
-        return jobs.stream().filter(((Predicate<AbstractExecutable>) (abstractExecutable -> {
+        return jobs.stream().filter(((Predicate<ExecutablePO>) (executablePO -> {
             if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
                 return true;
             }
-            ExecutableState state = abstractExecutable.getStatus();
+            ExecutableState state = ExecutableState.valueOf(executablePO.getOutput().getStatus());
             return matchedExecutableStates.contains(state) || matchedJobStatusEnums.contains(state.toJobStatus());
-        })).and(abstractExecutable -> {
-            String subject = jobFilter.getKey();
+        })).and(executablePO -> {
+            String subject = StringUtils.trim(jobFilter.getKey());
             if (StringUtils.isEmpty(subject)) {
                 return true;
             }
-            return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject)
-                || StringUtils.containsIgnoreCase(abstractExecutable.getId(), subject);
-        }).and(abstractExecutable -> {
+            return StringUtils.containsIgnoreCase(getTargetSubjectAlias(executablePO), subject)
+                    || StringUtils.containsIgnoreCase(executablePO.getId(), subject);
+        }).and(executablePO -> {
             List<String> jobNames = jobFilter.getJobNames();
             if (CollectionUtils.isEmpty(jobNames)) {
                 return true;
             }
-            return jobNames.contains(abstractExecutable.getName());
-        }).and(abstractExecutable -> {
+            return jobNames.contains(executablePO.getName());
+        }).and(executablePO -> {
             String subject = jobFilter.getSubject();
             if (StringUtils.isEmpty(subject)) {
                 return true;
             }
             //if filter on uuid, then it must be accurate
-            return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
-        })).map(this::convert).sorted(comparator).collect(Collectors.toList());
+            return executablePO.getTargetModel().equals(jobFilter.getSubject().trim());
+        })).map(this::createExecutablePOSortBean).sorted(comparator).collect(Collectors.toList());
     }
 
-    private List<AbstractExecutable> listJobs0(final JobFilter jobFilter) {
+    private DataResult<List<ExecutableResponse>> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs,
+            int offset, int limit) {
+        val beanList = filterAndSortExecutablePO(jobFilter, jobs);
+        List<ExecutableResponse> result = PagingUtil.cutPage(beanList, offset, limit).stream()
+                .map(in -> in.getExecutablePO())
+                .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
+                .map(this::convert).collect(Collectors.toList());
+
+        return new DataResult<>(result, beanList.size(), offset, limit);
+    }
+
+    private String getTargetSubjectAlias(ExecutablePO executablePO) {
+        val modelManager = NDataModelManager.getInstance(getConfig(), executablePO.getProject());
+        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), executablePO.getProject())
+                .getDataModelDesc(executablePO.getTargetModel());
+        String targetModel = executablePO.getTargetModel();
+        String subjectAlia = null;
+        if (dataModelDesc != null) {
+            subjectAlia = modelManager.isModelBroken(targetModel)
+                    ? modelManager.getDataModelDescWithoutInit(targetModel).getAlias()
+                    : dataModelDesc.getAlias();
+        }
+        return subjectAlia;
+    }
+
+    private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
+        return filterAndSortExecutablePO(jobFilter, jobs).stream().map(in -> in.getExecutablePO())
+                .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
+                .map(this::convert).collect(Collectors.toList());
+    }
+
+    private List<ExecutablePO> listExecutablePO(final JobFilter jobFilter) {
         JobTimeFilterEnum filterEnum = JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter());
         Preconditions.checkNotNull(filterEnum, "Can not find the JobTimeFilterEnum by code: %s",
                 jobFilter.getTimeFilter());
@@ -233,17 +221,17 @@ public class JobService extends BasicService {
         calendar.setTime(new Date());
         long timeStartInMillis = getTimeStartInMillis(calendar, filterEnum);
         long timeEndInMillis = Long.MAX_VALUE;
-        return executableManager.getAllExecutables(timeStartInMillis, timeEndInMillis);
+        return executableManager.getAllJobs(timeStartInMillis, timeEndInMillis);
     }
 
     public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
         aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
-        return filterAndSort(jobFilter, listJobs0(jobFilter));
+        return filterAndSort(jobFilter, listExecutablePO(jobFilter));
     }
 
     public DataResult<List<ExecutableResponse>> listJobs(final JobFilter jobFilter, int offset, int limit) {
         aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
-        return filterAndSort(jobFilter, listJobs0(jobFilter), offset, limit);
+        return filterAndSort(jobFilter, listExecutablePO(jobFilter), offset, limit);
     }
 
     public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
@@ -283,10 +271,10 @@ public class JobService extends BasicService {
     }
 
     public DataResult<List<ExecutableResponse>> listGlobalJobs(final JobFilter jobFilter, int offset, int limit) {
-        List<AbstractExecutable> jobs = new ArrayList<>();
+        List<ExecutablePO> jobs = new ArrayList<>();
         for (ProjectInstance project : getReadableProjects()) {
             jobFilter.setProject(project.getName());
-            jobs.addAll(listJobs0(jobFilter));
+            jobs.addAll(listExecutablePO(jobFilter));
         }
         jobFilter.setProject(null);
 
@@ -364,8 +352,8 @@ public class JobService extends BasicService {
             discardJob(project, jobId);
             JobTypeEnum jobTypeEnum = executableManager.getJob(jobId).getJobType();
             String jobType = jobTypeEnum == null ? "" : jobTypeEnum.name();
-            UnitOfWork.get().doAfterUnit(() ->
-                    EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
+            UnitOfWork.get().doAfterUnit(
+                    () -> EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
             break;
         case PAUSE:
             executableManager.pauseJob(jobId);
@@ -376,7 +364,7 @@ public class JobService extends BasicService {
 
     }
 
-    private void discardJob(String project, String jobId) throws IOException {
+    private void discardJob(String project, String jobId) {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         if (ExecutableState.SUCCEED == job.getStatus()) {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
@@ -546,7 +534,7 @@ public class JobService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) throws IOException {
+    public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) {
         aclEvaluate.checkProjectOperationPermission(project);
         batchDropJob0(project, jobIds, filterStatuses);
     }
@@ -690,6 +678,63 @@ public class JobService extends BasicService {
         }
         for (String jobStatus : jobStatuses) {
             checkJobStatusAndAction(jobStatus, action);
+        }
+    }
+
+    private ExecutablePOSortBean createExecutablePOSortBean(ExecutablePO executablePO) {
+        ExecutablePOSortBean sortBean = new ExecutablePOSortBean();
+        sortBean.setProject(executablePO.getProject());
+        sortBean.setJobName(executablePO.getName());
+        sortBean.setId(executablePO.getId());
+        sortBean.setTargetSubject(executablePO.getTargetModel());
+        sortBean.setLastModified(executablePO.getLastModified());
+        sortBean.setCreateTime(executablePO.getCreateTime());
+        sortBean.setTotalDuration(sortBean.computeTotalDuration(executablePO));
+
+        sortBean.setExecutablePO(executablePO);
+        return sortBean;
+    }
+
+    @Setter
+    @Getter
+    class ExecutablePOSortBean {
+
+        private String project;
+
+        private String id;
+
+        @JsonProperty("job_name")
+        private String jobName;
+
+        @JsonProperty("last_modified")
+        private long lastModified;
+
+        @JsonProperty("target_subject")
+        private String targetSubject;
+
+        @JsonProperty("create_time")
+        private long createTime;
+
+        private long totalDuration;
+
+        private ExecutablePO executablePO;
+
+        private long computeTotalDuration(ExecutablePO executablePO) {
+            List<ExecutablePO> tasks = executablePO.getTasks();
+            if (tasks == null || !tasks.isEmpty()) {
+                return 0;
+            }
+            long duration = 0L;
+            for (ExecutablePO subTask : tasks) {
+                long startTime = subTask.getOutput().getStartTime();
+                if (startTime == 0)
+                    break;
+                long endTime = subTask.getOutput().getEndTime();
+                if (startTime > 0 && endTime == 0)
+                    endTime = System.currentTimeMillis();//task running
+                duration = endTime - executablePO.getOutput().getCreateTime();
+            }
+            return duration;
         }
     }
 

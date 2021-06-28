@@ -32,21 +32,22 @@ import java.util.Objects;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.ShutdownHookManager;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractOutputStreamAppender;
+import org.apache.logging.log4j.core.appender.AppenderLoggingException;
 import org.apache.logging.log4j.core.appender.OutputStreamManager;
 import org.apache.logging.log4j.core.config.Property;
 import org.apache.logging.log4j.status.StatusLogger;
@@ -68,9 +69,9 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     private final Object closeLock = new Object();
     private final Object fileSystemLock = new Object();
 
-    private FSDataOutputStream outStream = null;
+    private volatile FSDataOutputStream outStream = null;
 
-    private FileSystem fileSystem = null;
+    private volatile FileSystem fileSystem = null;
 
     private ExecutorService appendHdfsService = null;
 
@@ -90,13 +91,11 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     @Setter
     private String workingDir;
 
-    private Future future;
-
     private AtomicBoolean finished = new AtomicBoolean(false);
     private long start = System.currentTimeMillis();
 
     protected AbstractHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
-            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+                                      boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
         super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
         StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s starting ...", getAppenderName()));
         StatusLogger.getLogger().warn("hdfsWorkingDir -> " + getWorkingDir());
@@ -107,11 +106,12 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
         final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true) //
                 .setNameFormat("logger-thread-%d").build();
         appendHdfsService = Executors.newSingleThreadExecutor(factory);
-        future = appendHdfsService.submit(this::checkAndFlushLog);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        appendHdfsService.submit(this::checkAndFlushLog);
+
+        ShutdownHookManager.get().addShutdownHook(new Thread(() -> {
             stop();
             closeWriter();
-        }));
+        }), FileSystem.SHUTDOWN_HOOK_PRIORITY * 2);
 
         StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s started ...", getAppenderName()));
     }
@@ -178,7 +178,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
 
                 try {
                     if (appendHdfsService != null && !appendHdfsService.isShutdown()) {
-                        forceShutdown(future, appendHdfsService);
+                        ExecutorServiceUtil.shutdownGracefully(appendHdfsService, 60);
                     }
                 } catch (Exception e) {
                     try {
@@ -196,23 +196,9 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
         }
     }
 
-    public static void forceShutdown(Future future, ExecutorService threadPool) throws Exception {
-        if (threadPool != null) {
-            if (future != null) {
-                future.get(60, TimeUnit.SECONDS);
-            }
-            List<Runnable> jobs = threadPool.shutdownNow();
-            for (Runnable job : jobs) {
-                if (job instanceof Future) {
-                    val task = (Future) job;
-                    task.cancel(true);
-                }
-            }
-        }
-    }
-
     private void closeWriter() {
-        IOUtils.closeQuietly(outStream);
+        getManager().close();
+        outStream = null;
     }
 
     /**
@@ -242,6 +228,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
 
     /**
      * print the logging event to stderr
+     *
      * @param loggingEvent
      */
     private void printLoggingEvent(LogEvent loggingEvent) {
@@ -269,6 +256,15 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
                 }
 
                 int eventSize = getLogBufferQue().size();
+
+                //finished to flush
+                if (finished.get()) {
+                    if (eventSize > 0) {
+                        flushLog(eventSize, transaction);
+                    }
+                    break;
+                }
+
                 if (eventSize > getLogQueueCapacity() * QUEUE_FLUSH_THRESHOLD
                         || System.currentTimeMillis() - start > getFlushInterval()) {
                     // update start time before doing flushLog to avoid exception when flushLog
@@ -282,7 +278,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
                 clearLogBufferQueueWhenBlocked();
                 StatusLogger.getLogger().error("Error occurred when consume event", e);
             }
-        } while (!isStopped() && !finished.get());
+        } while (!isStopped());
     }
 
     /**
@@ -293,18 +289,15 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
      */
     protected boolean initHdfsWriter(Path outPath, Configuration conf) {
         synchronized (initWriterLock) {
+            StatusLogger.getLogger().warn("init hdfs writer...");
             closeWriter();
-            outStream = null;
 
             int retry = 10;
             while (retry-- > 0) {
                 try {
                     fileSystem = getFileSystem(conf);
-                    if (!fileSystem.exists(outPath)) {
-                        outStream = fileSystem.create(outPath, false);
-                    } else {
-                        outStream = fileSystem.append(outPath, 8192);
-                    }
+                    outStream = fileSystem.exists(outPath)
+                            ? fileSystem.append(outPath, 8192) : fileSystem.create(outPath, false);
                     break;
                 } catch (Exception e) {
                     StatusLogger.getLogger().error("fail to create stream for path: " + outPath, e);
@@ -333,16 +326,9 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
      * @param loggingEvent
      * @throws IOException
      */
-    protected void writeLogEvent(LogEvent loggingEvent) throws IOException {
+    protected void writeLogEvent(LogEvent loggingEvent) {
         if (null != loggingEvent) {
             getLayout().encode(loggingEvent, getManager());
-
-            //            if (null != loggingEvent.getThrown()) {
-            //                for (val message : loggingEvent.getThrown().getStackTrace()) {
-            //                    write(message.toString());
-            //                    write("\n");
-            //                }
-            //            }
         }
     }
 
@@ -360,8 +346,8 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
      *
      * @throws IOException
      */
-    private void flush() throws IOException {
-        outStream.hsync();
+    private void flush() {
+        getManager().flush();
     }
 
     /**
@@ -391,6 +377,44 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
 
         protected HdfsManager(String streamName, Layout<?> layout) {
             super(null, streamName, layout, false);
+        }
+
+        private OutputStream getOutputStreamQuietly() {
+            try {
+                return getOutputStream();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+
+        @Override
+        protected synchronized void flushDestination() {
+            final OutputStream stream = getOutputStreamQuietly(); // access volatile field only once per method
+            if (stream != null) {
+                try {
+                    ((FSDataOutputStream) stream).hflush();
+                } catch (final IOException ex) {
+                    throw new AppenderLoggingException("Error flushing stream " + getName(), ex);
+                }
+            }
+        }
+
+        @Override
+        protected synchronized boolean closeOutputStream() {
+            flush();
+            final OutputStream stream = getOutputStreamQuietly();
+            if (stream == null || stream == System.out || stream == System.err) {
+                return true;
+            }
+            try {
+                ((FSDataOutputStream) stream).hsync();
+                stream.close();
+                LOGGER.debug("OutputStream closed");
+            } catch (final IOException ex) {
+                logError("Unable to close stream", ex);
+                return false;
+            }
+            return true;
         }
 
         @Override

@@ -804,8 +804,8 @@ export default class ModelSegment extends Vue {
             isHaveSegment: !!this.totalSegmentCount,
             disableFullLoad: type === 'fullLoad' && this.segments.length > 0 && this.segments[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
           })
-          // await this.loadSegments()
-          isSubmit && this.$emit('loadModels')
+          this.loadSegments()
+          isSubmit && this.$emit('refreshModel')
           this.isSegmentOpen = false
         } catch (e) {
           console.log(e)
@@ -1139,7 +1139,7 @@ export default class ModelSegment extends Vue {
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
-        this.$emit('loadModels')
+        this.$emit('refreshModel')
       }
     } catch (e) {
       e !== 'cancel' && handleError(e)

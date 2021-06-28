@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -161,6 +162,13 @@ public class SnapshotBuildJob extends SparkApplication {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String workingDir = KapConfig.wrap(config).getMetadataWorkingDirectory();
         return workingDir + "/" + snapshotPath;
+    }
+
+    protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
+        Map<String, String> snapshotConfig = config.getSnapshotBuildingConfigOverride();
+        Map<String, String> generalBuildConfig = config.getSparkConfigOverride();
+        generalBuildConfig.putAll(snapshotConfig);
+        return generalBuildConfig;
     }
 
     @Override

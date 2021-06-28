@@ -16,7 +16,7 @@
     </div>
       <div class="table_content" >
         <div class="ksd-null-pic-text" v-if="!tableData">
-          <img  src="../../assets/img/no_data.png" />
+          <img  src="../../assets/img/empty/empty_state_empty.svg" />
           <p>{{$t('kylinLang.common.noData')}}</p>
         </div>
        <div class="extendInfo" v-if="tableData">

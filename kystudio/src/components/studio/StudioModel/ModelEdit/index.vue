@@ -1943,7 +1943,7 @@ export default class ModelEdit extends Vue {
               if (modelSaveConfigData.save_only) {
                 this.$message({
                   type: 'success',
-                  message: <p>{this.$t('saveSuccessTip')}<br/>{createBaseIndexNum > 0 ? this.$t('createBaseIndexTips', {createBaseNum: createBaseIndexNum}) : updateBaseIndexNum > 0 ? this.$t('updateBaseIndexTips', {updateBaseNum: updateBaseIndexNum}) : ''}{createBaseIndexNum > 0 || updateBaseIndexNum > 0 ? <a href="javascript:void();" onClick={() => this.buildBaseIndexEvent(result)}>{this.$t('buildIndex')}</a> : ''}</p>
+                  message: <p>{this.$t('saveSuccessTip')}<br/>{createBaseIndexNum > 0 ? this.$t('createBaseIndexTips', {createBaseNum: createBaseIndexNum}) : updateBaseIndexNum > 0 ? this.$t('updateBaseIndexTips', {updateBaseNum: updateBaseIndexNum}) : ''}{(createBaseIndexNum > 0 || updateBaseIndexNum > 0) && this.modelData.model_type !== 'STREAMING' ? <a href="javascript:void();" onClick={() => this.buildBaseIndexEvent(result)}>{this.$t('buildIndex')}</a> : ''}</p>
                 })
               } else {
                 this.$message({

@@ -29,6 +29,8 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
@@ -42,7 +44,7 @@ import org.apache.logging.log4j.status.StatusLogger;
 import lombok.Getter;
 import lombok.Setter;
 
-@Plugin(name = "DriverHdfsAppender", category = "Core", elementType = "appender", printObject = true)
+@Plugin(name = "DriverHdfsAppender", category = Core.CATEGORY_NAME, elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
 
     @Getter
@@ -63,7 +65,7 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     private static SparkDriverHdfsLogAppender appender;
 
     protected SparkDriverHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
-            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+                                         boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
         super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
     }
 
@@ -106,14 +108,14 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
 
     @PluginFactory
     public synchronized static SparkDriverHdfsLogAppender createAppender(@PluginAttribute("name") String name,
-            @PluginAttribute("kerberosEnabled") boolean kerberosEnabled,
-            @PluginAttribute("kerberosPrincipal") String kerberosPrincipal,
-            @PluginAttribute("kerberosKeytab") String kerberosKeytab,
-            @PluginAttribute("workingDir") String hdfsWorkingDir, @PluginAttribute("logPath") String logPath,
-            @PluginAttribute("logQueueCapacity") int logQueueCapacity,
-            @PluginAttribute("flushInterval") int flushInterval,
-            @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
-            @PluginElement("Properties") Property[] properties) {
+                                                                         @PluginAttribute("kerberosEnabled") boolean kerberosEnabled,
+                                                                         @PluginAttribute("kerberosPrincipal") String kerberosPrincipal,
+                                                                         @PluginAttribute("kerberosKeytab") String kerberosKeytab,
+                                                                         @PluginAttribute("workingDir") String hdfsWorkingDir, @PluginAttribute("logPath") String logPath,
+                                                                         @PluginAttribute("logQueueCapacity") int logQueueCapacity,
+                                                                         @PluginAttribute("flushInterval") int flushInterval,
+                                                                         @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
+                                                                         @PluginElement("Properties") Property[] properties) {
         if (appender != null) {
             return appender;
         }
