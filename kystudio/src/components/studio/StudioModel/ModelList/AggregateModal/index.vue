@@ -908,11 +908,10 @@ export default class AggregateModal extends Vue {
             if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1 && e.target.classList.value.indexOf('el-icon-ksd-right') === -1) {
               this.isEditGlobalDim = false
               const aggregateArray = get(this.form, 'aggregateArray')
-              aggregateArray.forEach((agg) => {
-                agg.isEditDim = false
+              this.form.aggregateArray.forEach((agg) => {
+                this.$set(agg, 'isEditDim', false)
               })
               this.groupsDim = aggregateArray.map((agg) => { return agg.dimCap })
-              this.setModalForm({ aggregateArray })
               this.popoverVisible = false
             }
           }
