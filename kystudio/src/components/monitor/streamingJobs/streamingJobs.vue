@@ -194,12 +194,21 @@
         </el-row>
         <el-row :gutter="10" class="ksd-mt-10" v-for="(item, index) in paramsConfigs" :key="index">
           <el-col :span="14">
-            <el-input v-model.trim="paramsConfigs[index][0]" :disabled="paramsConfigs[index] && !!paramsConfigs[index][2]" :class="{'is-mul-key': paramsConfigs[index][3]&&paramsConfigs[index][3].isMulParamsKey}" @change="(val) => handleValidateParamsKey()" :placeholder="$t('pleaseInputKey')" />
-            <div class="error-msg" v-if="paramsConfigs[index][3]&&paramsConfigs[index][3].isMulParamsKey&&!paramsConfigs[index][2]">{{$t('mulParamsKeyTips')}}</div>
+            <el-input v-model.trim="paramsConfigs[index][0]"
+              :disabled="paramsConfigs[index] && paramsConfigs[index][2].isDefault"
+              :class="{'is-mul-key': paramsConfigs[index][2].isMulParamsKey, 'is-empty': paramsConfigs[index][2].isEmpty&&!paramsConfigs[index][0]}"
+              @change="handleValidateParamsKey()"
+              :placeholder="$t('pleaseInputKey')"></el-input>
+            <div class="error-msg" v-if="paramsConfigs[index][2].isMulParamsKey&&!paramsConfigs[index][2].isDefault">{{$t('mulParamsKeyTips')}}</div>
           </el-col>
           <el-col :span="6">
-            <el-input v-number2="paramsConfigs[index][1]" v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]}" :placeholder="$t('pleaseInputValue')" v-if="numberParams.indexOf(item[0]) !== -1"></el-input>
-            <el-input v-else v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': !paramsConfigs[index][1]&&[...buildDefaultParams, ...mergeDefaultParams].indexOf(item[0]) !== -1&&!!paramsConfigs[index][2]}" :placeholder="$t('pleaseInputValue')" />
+            <el-input v-number2="paramsConfigs[index][1]"
+              v-model.trim="paramsConfigs[index][1]"
+              :class="{'is-empty': paramsConfigs[index][2].isEmpty&&!paramsConfigs[index][1]}"
+              :placeholder="$t('pleaseInputValue')"
+              @change="handleValidateParamsKey()"
+              v-if="numberParams.indexOf(item[0]) !== -1"></el-input>
+            <el-input v-else v-model.trim="paramsConfigs[index][1]" :class="{'is-empty': paramsConfigs[index][2].isEmpty&&!paramsConfigs[index][1]}" :placeholder="$t('pleaseInputValue')" />
           </el-col>
           <el-col :span="4">
             <span class="action-btns ksd-ml-5">
@@ -413,7 +422,7 @@ export default class StreamingJobsList extends Vue {
   configJob (rows) {
     this.settingJob = rows
     const defaultParams = rows.job_type === 'STREAMING_BUILD' ? this.buildDefaultParams : this.mergeDefaultParams
-    this.paramsConfigs = Object.entries(rows.params).map(it => ([...it, defaultParams.indexOf(it[0]) !== -1]))
+    this.paramsConfigs = Object.entries(rows.params).map(it => ([...it, {isDefault: defaultParams.indexOf(it[0]) !== -1}]))
     this.showConfigurations = true
   }
   handleConfigurationsClose (isSubmit) {
@@ -436,38 +445,37 @@ export default class StreamingJobsList extends Vue {
   }
   // 增加配置
   addParamsConfigs () {
-    this.paramsConfigs.unshift(['', '', false])
+    this.paramsConfigs.unshift(['', '', {isDefault: false}])
   }
   // 删减配置
   removeParamsConfigs (index) {
     this.paramsConfigs.splice(index, 1)
+    this.handleValidateParamsKey()
   }
   // 检测key是否重复
   handleValidateParamsKey () {
     this.isMulParamsKey = false
-    this.paramsConfigs.forEach(p => {
+    this.paramsConfigs.forEach((p, index) => {
       if (countObjWithSomeKey(this.paramsConfigs, 0, p[0]) > 1) {
-        if (p[3]) {
-          p[3].isMulParamsKey = true
-        } else {
-          p.push({isMulParamsKey: true})
-        }
+        this.$set(this.paramsConfigs[index][2], 'isMulParamsKey', true)
         this.isMulParamsKey = true
       } else {
-        p[3] && (p[3].isMulParamsKey = false)
+        this.$set(this.paramsConfigs[index][2], 'isMulParamsKey', false)
+      }
+      if (!p[0] || !p[1]) {
+        this.$set(this.paramsConfigs[index][2], 'isEmpty', true)
       }
     })
   }
   saveSettings () {
+    this.handleValidateParamsKey()
     const params = {}
     let isEmptyValue
     this.paramsConfigs.forEach((item, index) => {
-      if (!item[1] && [...this.buildDefaultParams, ...this.mergeDefaultParams].indexOf(item[0]) !== -1) {
+      if (!item[0] || !item[1]) {
         isEmptyValue = true
       }
-      if (item[0] && item[1]) { // 自定义参数key 或 value 不全就不提交
-        params[item[0]] = item[1]
-      }
+      params[item[0]] = item[1]
     })
     if (isEmptyValue || this.isMulParamsKey) return // 默认参数有空值不能提交，key值重复不能提交
     this.loadingSetting = true
