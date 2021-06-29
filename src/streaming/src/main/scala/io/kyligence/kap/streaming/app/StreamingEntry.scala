@@ -42,6 +42,8 @@ import io.kyligence.kap.streaming.CreateStreamingFlatTable
 import io.kyligence.kap.streaming.common.{BuildJobEntry, MicroBatchEntry}
 import io.kyligence.kap.streaming.constants.StreamingConstants
 import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingSegmentManager}
+import io.kyligence.kap.streaming.manager.StreamingJobManager
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest
 import io.kyligence.kap.streaming.rest.RestSupport
 import io.kyligence.kap.streaming.util.JobKiller
@@ -216,7 +218,12 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, dataflowId)
     val partitionColumn = NSparkCubingUtil.convertFromDot(df.getModel.getPartitionDesc.getPartitionDateColumn)
     val flatTable = CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, partitionColumn, watermark)
-    val flatDataset = flatTable.generateStreamingDataset(true, duration, maxRatePerPartition)
+
+    val streamingJobMgr = StreamingJobManager.getInstance(config, project)
+    val jobId = StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name)
+    val jobMeta: StreamingJobMeta = streamingJobMgr.getStreamingJobByUuid(jobId)
+
+    val flatDataset = flatTable.generateStreamingDataset(true, duration, maxRatePerPartition, getJobParams(jobMeta))
     (flatDataset, partitionColumn, flatTable)
   }
 

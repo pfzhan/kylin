@@ -139,7 +139,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
 
             builder.streamBuild(batchBuildJob);
             newDataflow = dfMgr.getDataflow(batchBuildJob.dataflowId());
-            Assert.assertEquals(RealizationStatusEnum.ONLINE, newDataflow.getStatus());
+            Assert.assertEquals(RealizationStatusEnum.OFFLINE, newDataflow.getStatus());
             Assert.assertEquals(1, newDataflow.getSegment(seg1.getId()).getLayoutsMap().size());
             Assert.assertTrue(newDataflow.getSegment(seg1.getId()).getStorageFileCount() > oldFileCount);
             Assert.assertTrue(newDataflow.getSegment(seg1.getId()).getStorageBytesSize() > oldByteSize);

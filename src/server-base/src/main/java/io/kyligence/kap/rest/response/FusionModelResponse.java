@@ -32,6 +32,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -75,6 +76,7 @@ public class FusionModelResponse extends NDataModelResponse {
         }
         this.setBatchId(batchModel.getUuid());
         this.setFusionId(modelDesc.getFusionId());
+        this.setBatchId(fusionModel.getBatchModel().getUuid());
         NDataflow batchDataflow = dfManager.getDataflow(batchId);
         this.setLastBuildTime(getMaxLastBuildTime(batchDataflow, streamingDataflow));
         this.setStorage(getTotalStorage(batchDataflow, streamingDataflow));
@@ -84,6 +86,7 @@ public class FusionModelResponse extends NDataModelResponse {
         this.setUsage(getTotalUsage(batchDataflow, streamingDataflow));
         this.setInconsistentSegmentCount(getTotalInconsistentSegmentCount(batchDataflow, streamingDataflow));
         if (!modelDesc.isBroken() && !batchModel.isBroken()) {
+            this.setHasSegments(this.isHasSegments() || CollectionUtils.isNotEmpty(batchDataflow.getSegments()));
             this.setBatchPartitionDesc(fusionModel.getBatchModel().getPartitionDesc());
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                     this.getProject());

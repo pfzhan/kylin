@@ -32,6 +32,7 @@ import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
 import lombok.val;
@@ -205,9 +206,9 @@ abstract public class StreamingApplication {
 
     public void closeZkClient(CuratorFramework zkClient) {
         if (zkClient != null) {
-            try{
+            try {
                 zkClient.close();
-            }catch (Exception e) {
+            } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
         }
@@ -237,5 +238,9 @@ abstract public class StreamingApplication {
 
     public void setSparkSession(SparkSession ss) {
         this.ss = ss;
+    }
+
+    public Map<String, String> getJobParams(StreamingJobMeta jobMeta) {
+        return jobMeta.getParams();
     }
 }

@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import scala.collection.mutable.ArrayBuffer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -125,7 +126,7 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         val ss = SparkSession.builder().master("local").appName("test").getOrCreate();
         val flatTable = new CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
-        val dataset = flatTable.generateStreamingDataset(true, 5000, 100);
+        val dataset = flatTable.generateStreamingDataset(true, 5000, 100, Collections.EMPTY_MAP);
         val builder = new StreamingDFBuildJob(PROJECT);
 
         val streamingEntry = new StreamingEntry(new String[]{PROJECT, DATAFLOW_ID, "1000", "", "-1"});

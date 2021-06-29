@@ -66,9 +66,13 @@ public class StreamingConstants {
     public static final String STREAMING_DURATION_DEFAULT = "30";
     public static final String FILE_LAYER = "file_layer";
     public static final String STREAMING_MAX_RATE_PER_PARTITION = "kylin.streaming.kafka.max-rate-per-partition";
-    public static final String STREAMING_MAX_RATE_PER_PARTITION_DEFAULT = KylinConfig.getInstanceFromEnv().getKafkaRatePerPartition();
+    public static final String STREAMING_MAX_RATE_PER_PARTITION_DEFAULT = KylinConfig.getInstanceFromEnv()
+            .getKafkaRatePerPartition();
     public static final String STREAMING_WATERMARK = "kylin.streaming.watermark";
-    public static final String STREAMING_WATERMARK_DEFAULT = KylinConfig.getInstanceFromEnv().getStreamingJobWatermark();
+    public static final String STREAMING_WATERMARK_DEFAULT = KylinConfig.getInstanceFromEnv()
+            .getStreamingJobWatermark();
+
+    public static final String STREAMING_KAFKA_STARTING_OFFSETS = "kylin.streaming.kafka.starting-offsets";
 
     // merge job
     public static final String STREAMING_SEGMENT_MAX_SIZE = "kylin.streaming.segment-max-size";

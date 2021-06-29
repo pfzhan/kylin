@@ -131,6 +131,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("has_base_agg_index")
     private boolean hasBaseAggIndex;
 
+    @JsonProperty("has_segments")
+    private boolean hasSegments;
+
     @JsonProperty("second_storage_size")
     private long secondStorageSize;
 

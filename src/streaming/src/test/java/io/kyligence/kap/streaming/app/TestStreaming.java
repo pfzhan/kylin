@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.source.kafka.NSparkKafkaSource;
 import io.kyligence.kap.source.kafka.util.KafkaClient;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.jobs.StreamingDFMergeJobTest;
 import io.kyligence.kap.streaming.jobs.impl.StreamingJobLauncher;
 import io.kyligence.kap.streaming.jobs.thread.StreamingJobRunner;
@@ -55,6 +56,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.HashMap;
 
 public class TestStreaming extends StreamingTestCase {
     private static final Logger logger = LoggerFactory.getLogger(StreamingDFMergeJobTest.class);
@@ -139,13 +143,22 @@ public class TestStreaming extends StreamingTestCase {
         val ss = createSparkSession();
         val flatTable = CreateStreamingFlatTable.apply(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
-        val dataset = flatTable.generateStreamingDataset(true, 5000, 100);
-        val model = flatTableDesc.getDataModel();
-        val tableDesc = model.getRootFactTable().getTableDesc();
-        val kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();
+        flatTable.generateStreamingDataset(true, 5000, 100, Collections.EMPTY_MAP);
+        var model = flatTableDesc.getDataModel();
+        var tableDesc = model.getRootFactTable().getTableDesc();
+        var kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();
         Assert.assertEquals(3, KafkaClient.getPartitions(kafkaParam));
         Assert.assertEquals(3, source.getPartitions(kafkaParam));
         Assert.assertEquals("1500", kafkaParam.get("maxOffsetsPerTrigger"));
+        Assert.assertEquals("earliest", kafkaParam.get("startingOffsets"));
+
+        val jobParams = new HashMap<String, String>();
+        jobParams.put(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS, "latest");
+        flatTable.generateStreamingDataset(true, 5000, 100, jobParams);
+        model = flatTableDesc.getDataModel();
+        tableDesc = model.getRootFactTable().getTableDesc();
+        kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();
+        Assert.assertEquals("latest", kafkaParam.get("startingOffsets"));
     }
 
     /**
