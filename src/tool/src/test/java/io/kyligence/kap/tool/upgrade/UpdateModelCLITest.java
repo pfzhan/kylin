@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.tool.upgrade;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class UpdateModelCLITest extends NLocalFileMetadataTestCase {
 
@@ -48,6 +49,7 @@ public class UpdateModelCLITest extends NLocalFileMetadataTestCase {
     @Test
     public void test() {
         KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
+        systemKylinConfig.setProperty("kylin.env", "PROD");
 
         NDataModelManager dataModelManager = NDataModelManager.getInstance(systemKylinConfig, "default");
         NDataModel dataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");

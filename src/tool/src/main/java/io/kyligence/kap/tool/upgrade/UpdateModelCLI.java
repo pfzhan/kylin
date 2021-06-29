@@ -30,10 +30,10 @@ import static io.kyligence.kap.tool.util.ScreenPrintUtil.systemExitWhenMainThrea
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -44,6 +44,7 @@ import org.apache.kylin.common.util.OptionsHelper;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -131,16 +132,15 @@ public class UpdateModelCLI extends ExecutableApplication implements IKeep {
 
         printlnGreen(String.format(Locale.ROOT, "found %d models need to be modified.", globalUpdateModelList.size()));
         if (optionsHelper.hasOption(OPTION_EXEC)) {
-            UnitOfWork.doInTransactionWithRetry(()->{
-                globalUpdateModelList.forEach(model -> {
-                    NDataModelManager.getInstance(kylinConfig, model.getProject()).updateDataModelDesc(model);
-                });
+
+            Map<String, List<NDataModel>> modelsGroupByProject = globalUpdateModelList.stream()
+                    .collect(Collectors.groupingBy(NDataModel::getProject));
+
+            modelsGroupByProject.forEach((project, models) -> UnitOfWork.doInTransactionWithRetry(() -> {
+                models.forEach(model -> NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .updateDataModelDesc(model));
                 return null;
-            }, UnitOfWork.GLOBAL_UNIT);
-
-        }
-
-        if (optionsHelper.hasOption(OPTION_EXEC)) {
+            }, project));
             printlnGreen("model dimensions upgrade succeeded.");
         }
 
