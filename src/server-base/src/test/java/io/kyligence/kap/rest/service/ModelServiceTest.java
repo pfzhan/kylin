@@ -497,26 +497,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
         mockedModels.add(modelSpy4);
         mockedModels.add(modelSpy4);
 
-        when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify",
-                true, null, null, null, true)).thenReturn(mockedModels);
+        when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify", true, null,
+                null, null, true)).thenReturn(mockedModels);
         doReturn(new ArrayList<>()).when(modelService).addOldParams(anyString(), any());
 
         DataResult<List<NDataModel>> modelResult1 = modelService.getModels("", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
-        null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING,
-                        ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH,
+                        ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
+                null, null, true);
 
         DataResult<List<NDataModel>> modelResult2 = modelService.getModels("", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
-                null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING), null, null, true);
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING), null, null, true);
 
         DataResult<List<NDataModel>> modelResult3 = modelService.getModels("", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
-                null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
 
         DataResult<List<NDataModel>> modelResult4 = modelService.getModels("", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true,
-                null, Arrays.asList(ModelAttributeEnum.SECOND_STORAGE), null, null, true);
+                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
+                Arrays.asList(ModelAttributeEnum.SECOND_STORAGE), null, null, true);
 
         Assert.assertEquals(7, modelResult1.getTotalSize());
         Assert.assertEquals(2, modelResult2.getTotalSize());
@@ -1271,6 +1271,74 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "last_modify", true);
         Assert.assertTrue(models.get(0).getUuid().equals("cb596712-3a09-46f8-aea1-988b43fe9b6c")
                 && models.get(0).getStatus() == ModelStatusToDisplayEnum.OFFLINE);
+    }
+
+    @Test
+    public void testUpdateFusionDataModelStatus() {
+        val project = "streaming_test";
+        val mgr = NDataflowManager.getInstance(getTestConfig(), project);
+        var batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+        var streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+        modelService.updateDataModelStatus("b05034a8-c037-416b-aa26-9e6b4a41ee40", project, "ONLINE");
+
+        batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+        streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+    }
+
+    @Test
+    public void testUpdateFusionDataModelStatus1() {
+        val project = "streaming_test";
+        val mgr = NDataflowManager.getInstance(getTestConfig(), project);
+        var batchDataflow = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+        NDataSegment batchSeg = mgr.appendSegment(batchDataflow, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
+        batchSeg.setStatus(SegmentStatusEnum.READY);
+        val update = new NDataflowUpdate(batchDataflow.getUuid());
+        update.setToUpdateSegs(batchSeg);
+        mgr.updateDataflow(update);
+        var batchStatus = batchDataflow.getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+
+        var streamingDataflow = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+        var streamingStatus = streamingDataflow.getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+
+        modelService.updateDataModelStatus("b05034a8-c037-416b-aa26-9e6b4a41ee40", project, "ONLINE");
+
+        batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, batchStatus);
+        streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+    }
+
+    @Test
+    public void testUpdateFusionDataModelStatus2() {
+        val project = "streaming_test";
+        val mgr = NDataflowManager.getInstance(getTestConfig(), project);
+        var batchDataflow = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+        var batchStatus = batchDataflow.getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+
+        var streamingDataflow = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+        var streamingStatus = streamingDataflow.getStatus();
+        val streamingSeg = mgr.appendSegmentForStreaming(streamingDataflow,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L, createKafkaPartitionOffset(0, 100L),
+                        createKafkaPartitionOffset(0, 200L)));
+        streamingSeg.setStatus(SegmentStatusEnum.READY);
+        val update = new NDataflowUpdate(batchDataflow.getUuid());
+        update.setToUpdateSegs(streamingSeg);
+        mgr.updateDataflow(update);
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+
+        modelService.updateDataModelStatus("b05034a8-c037-416b-aa26-9e6b4a41ee40", project, "ONLINE");
+
+        batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+        streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, streamingStatus);
     }
 
     @Test
@@ -5723,7 +5791,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetBrokenFusionModel() {
         String project = "streaming_test";
         String modelName = "model_streaming_broken";
-        val list = modelService.getModels(null, project, false, null, Lists.newArrayList(), null, false, null, null, null, true);
+        val list = modelService.getModels(null, project, false, null, Lists.newArrayList(), null, false, null, null,
+                null, true);
         Assert.assertEquals(10, list.size());
 
         NDataModelResponse model = modelService

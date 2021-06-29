@@ -41,6 +41,7 @@ const initialState = JSON.stringify({
   projectName: null,
   aggregateIdx: -1,
   formDataLoaded: false,
+  indexUpdateEnabled: true,
   form: {
     isCatchUp: false,
     globalDimCap: null,
@@ -88,7 +89,7 @@ export default {
     },
     [types.SET_MODAL]: (state, payload) => {
       for (const key of Object.keys(state)) {
-        payload[key] && (state[key] = payload[key])
+        key in payload && (state[key] = payload[key])
       }
     },
     [types.SET_MODEL_DATA_LOADED]: (state, result) => {
@@ -100,6 +101,7 @@ export default {
         const measuresList = getMeasures(state.model)
         const nameMapping = getMapping(dimensions)
         const measuresMapping = getMapping(measuresList)
+        state.form.indexUpdateEnabled = payload.indexUpdateEnabled
         state.form.globalDimCap = payload.aggregateGroupRule.global_dim_cap
         state.form.isDimClearable = !!payload.aggregateGroupRule.global_dim_cap
         state.form.aggregateArray = payload.aggregateGroupRule.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
@@ -147,13 +149,13 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model, aggregateIdx }) {
+    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model, aggregateIdx, indexUpdateEnabled = true }) {
       const { dispatch } = this
 
       return new Promise(async (resolve, reject) => {
         const modelId = model && model.uuid
         commit(types.SET_MODEL_DATA_LOADED, false)
-        commit(types.SET_MODAL, { editType, model, projectName, aggregateIdx, callback: resolve })
+        commit(types.SET_MODAL, { editType, model, projectName, aggregateIdx, indexUpdateEnabled, callback: resolve })
         commit(types.SHOW_LOADING)
         commit(types.SHOW_MODAL)
         const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })

@@ -979,9 +979,9 @@ export default class ModelsImportModal extends Vue {
         color: @color-text-placeholder;
         text-align: center;
         position: absolute;
-        top: 50%;
+        top: 30%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -30%);
         font-size: 12px;
         i {
           font-size: 40px;

@@ -130,6 +130,9 @@ public class StorageContext {
     @Setter
     private NLayoutCandidate candidate;
     public NLayoutCandidate getCandidate() {
+        if (isBatchCandidateEmpty() && !isStreamCandidateEmpty()) {
+            return candidateStreaming;
+        }
         return candidate == null ? NLayoutCandidate.EMPTY : candidate;
     }
 
@@ -137,6 +140,14 @@ public class StorageContext {
     private NLayoutCandidate candidateStreaming;
     public NLayoutCandidate getCandidateStreaming() {
         return candidateStreaming == null ? NLayoutCandidate.EMPTY : candidateStreaming;
+    }
+
+    public boolean isBatchCandidateEmpty() {
+        return candidate == null || candidate == NLayoutCandidate.EMPTY;
+    }
+
+    public boolean isStreamCandidateEmpty() {
+        return candidateStreaming == null || candidateStreaming == NLayoutCandidate.EMPTY;
     }
 
     @Getter

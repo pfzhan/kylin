@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import io.kyligence.kap.source.kafka.NSparkKafkaSource
+import io.kyligence.kap.streaming.constants.StreamingConstants
 import org.apache.commons.lang.time.DateUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.util.{DateFormat, JsonUtil}
@@ -56,8 +57,8 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
 
-  def generateStreamingDataset(needJoin: Boolean = true, duration: Int, maxRatePerPartition: Int): Dataset[Row] = {
-
+  def generateStreamingDataset(needJoin: Boolean = true, duration: Int, maxRatePerPartition: Int,
+                               jobParams: java.util.Map[String, String]): Dataset[Row] = {
     val model = flatTable.getDataModel
     val tableDesc = model.getRootFactTable.getTableDesc
     val kafkaParam = tableDesc.getKafkaConfig.getKafkaParam
@@ -67,6 +68,13 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
       val maxOffsetsPerTrigger = duration / 1000 * maxRatePerPartition * source.getPartitions(kafkaParam)
 
       kafkaParam.put("maxOffsetsPerTrigger", String.valueOf(maxOffsetsPerTrigger))
+    }
+
+    if (jobParams.containsKey(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS)) {
+      val startingOffsets = jobParams.get(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS)
+      if (!StringUtils.isEmpty(startingOffsets)) {
+        kafkaParam.put("startingOffsets", startingOffsets)
+      }
     }
 
     val originFactTable = SourceFactory

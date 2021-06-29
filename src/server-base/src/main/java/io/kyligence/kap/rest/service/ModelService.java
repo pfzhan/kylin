@@ -387,6 +387,7 @@ public class ModelService extends BasicService {
                 }
                 if (model instanceof NDataModelResponse) {
                     ((NDataModelResponse) model).setSegments(segments);
+                    ((NDataModelResponse) model).setHasSegments(CollectionUtils.isNotEmpty(segments));
                 }
             }
 
@@ -580,6 +581,8 @@ public class ModelService extends BasicService {
                 }
 
                 modelResponse.setSegments(segments);
+                modelResponse.setHasSegments(CollectionUtils.isNotEmpty(segments));
+
             }
 
             oldParams.setName(modelResponse.getAlias());
@@ -1325,8 +1328,30 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void updateDataModelStatus(String modelId, String project, String status) {
-        aclEvaluate.checkProjectWritePermission(project);
         NDataModel nDataModel = getModelById(modelId, project);
+        if (nDataModel.isFusionModel()) {
+            NDataflowManager dataflowManager = getDataflowManager(project);
+            NDataflow dataflow = dataflowManager.getDataflow(nDataModel.getUuid());
+            if (CollectionUtils.isNotEmpty(dataflow.getSegments())) {
+                doUpdateDataModelStatus(nDataModel, project, status);
+            }
+            val fusionId = nDataModel.getFusionId();
+            val fusionModelMgr = FusionModelManager.getInstance(getConfig(), project);
+            val batchModel = fusionModelMgr.getFusionModel(fusionId).getBatchModel();
+            if (batchModel != null) {
+                dataflow = dataflowManager.getDataflow(batchModel.getUuid());
+                if (CollectionUtils.isNotEmpty(dataflow.getSegments())) {
+                    doUpdateDataModelStatus(batchModel, project, status);
+                }
+            }
+        } else {
+            doUpdateDataModelStatus(nDataModel, project, status);
+        }
+    }
+
+    private void doUpdateDataModelStatus(NDataModel nDataModel, String project, String status) {
+        String modelId = nDataModel.getUuid();
+        aclEvaluate.checkProjectWritePermission(project);
         IndexPlan indexPlan = getIndexPlan(nDataModel.getUuid(), project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());

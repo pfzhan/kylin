@@ -471,12 +471,15 @@ public class OLAPContext {
         }
     }
 
+    // For streaming dataflow and fusion model, use streaming layout candidate of storage context
     public boolean isAnsweredByTableIndex() {
-        if (!this.storageContext.getCandidate().isEmptyCandidate()
-                && this.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
-            return true;
+        NLayoutCandidate candidate;
+        if (this.realization.isStreaming()) {
+            candidate = this.storageContext.getCandidateStreaming();
+        } else {
+            candidate = this.storageContext.getCandidate();
         }
-        return false;
+        return candidate != null && !candidate.isEmptyCandidate() && candidate.getLayoutEntity().getIndex().isTableIndex();
     }
 
     /**

@@ -2053,7 +2053,7 @@ export default class ModelEdit extends Vue {
       opacity: 0.8;
     }
     .center:first-child{
-      margin-bottom:10px;
+      margin-bottom:16px;
     }
   }
 }

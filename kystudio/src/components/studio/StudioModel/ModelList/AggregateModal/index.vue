@@ -77,9 +77,13 @@
                         <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
                       </h2>
                       <el-radio-group v-model="form.aggregateArray[aggregateIdx].index_range" :disabled="form.aggregateArray[aggregateIdx].curAggIsEdit">
-                        <el-radio :label="'HYBRID'">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+                        <el-tooltip placement="top" :disabled="indexUpdateEnabled || form.aggregateArray[aggregateIdx].curAggIsEdit" :content="$t('refuseAddIndexTip')">
+                          <el-radio :label="'HYBRID'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+                        </el-tooltip>
                         <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
-                        <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+                        <el-tooltip placement="top" :disabled="indexUpdateEnabled || form.aggregateArray[aggregateIdx].curAggIsEdit" :content="$t('refuseAddIndexTip')">
+                          <el-radio :label="'STREAMING'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+                        </el-tooltip>
                       </el-radio-group>
                     </div>
                     <el-tabs v-model="aggregate.activeTab" @tab-click="handleClickTab">
@@ -570,7 +574,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
     ...mapState('AggregateModal', {
       form: state => state.form,
       isShow: state => state.isShow,
-      // isLoading: state => state.isLoading,
+      indexUpdateEnabled: state => state.indexUpdateEnabled,
       editType: state => state.editType,
       callback: state => state.callback,
       model: state => state.model,
@@ -908,11 +912,10 @@ export default class AggregateModal extends Vue {
             if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1 && e.target.classList.value.indexOf('el-icon-ksd-right') === -1) {
               this.isEditGlobalDim = false
               const aggregateArray = get(this.form, 'aggregateArray')
-              aggregateArray.forEach((agg) => {
-                agg.isEditDim = false
+              this.form.aggregateArray.forEach((agg) => {
+                this.$set(agg, 'isEditDim', false)
               })
               this.groupsDim = aggregateArray.map((agg) => { return agg.dimCap })
-              this.setModalForm({ aggregateArray })
               this.popoverVisible = false
             }
           }
@@ -2028,9 +2031,9 @@ export default class AggregateModal extends Vue {
       color: @text-placeholder-color;
       display: inline-block;
       position: absolute;
-      top: 50%;
+      top: 30%;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -30%);
       .add-includes-btn {
         color: #0988DE;
         cursor: pointer;

@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.SmartContext;
@@ -40,6 +41,9 @@ import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.IStorageAware;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
@@ -180,7 +184,6 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(context.joins.get(1).getFKSide().getTableIdentity(), "DEFAULT.TEST_ACCOUNT");
     }
 
-
     @Test
     public void testHybridStreaming() {
         String project = "streaming_test";
@@ -195,7 +198,42 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
         RealizationChooser.attemptSelectCandidate(context);
+        IRealization realization = context.realization;
+        Assert.assertTrue(realization instanceof HybridRealization);
+        HybridRealization hybridRealization = (HybridRealization)realization;
+        Assert.assertTrue(hybridRealization.getBatchRealization() instanceof NDataflow);
+        Assert.assertTrue(hybridRealization.getStreamingRealization() instanceof NDataflow);
+        Assert.assertTrue(hybridRealization.getStreamingRealization().isStreaming());
+        Assert.assertFalse(realization.getAllColumnDescs().isEmpty());
+        Assert.assertFalse(realization.getAllDimensions().isEmpty());
+        Assert.assertTrue(realization.getDateRangeStart() < realization.getDateRangeEnd());
+        Assert.assertFalse(realization.supportsLimitPushDown());
+        Assert.assertEquals(realization.getStorageType(), IStorageAware.ID_NDATA_STORAGE);
+        Assert.assertNotNull(realization.getUuid());
+        Assert.assertFalse(realization.isStreaming());
+        FunctionDesc functionDesc = hybridRealization.getBatchRealization().getMeasures().get(1).getFunction();
+        Assert.assertNotNull(hybridRealization.findAggrFunc(functionDesc));
+        Assert.assertTrue(hybridRealization.hasPrecalculatedFields());
         Assert.assertEquals("model_streaming", context.realization.getModel().getAlias());
+        Assert.assertFalse(context.storageContext.isBatchCandidateEmpty());
+        Assert.assertFalse(context.storageContext.isStreamCandidateEmpty());
+
+        hybridRealization.setUuid("123");
+        hybridRealization.setProject(project);
+        Assert.assertEquals(hybridRealization.getUuid(), "123");
+
+        HybridRealization hybridTest = new HybridRealization(hybridRealization.getBatchRealization(), null, "");
+        Assert.assertNull(hybridTest.getBatchRealization());
+
+        hybridTest = new HybridRealization(null, null, "");
+        Assert.assertNull(hybridTest.getBatchRealization());
+        Assert.assertNull(hybridTest.getStreamingRealization());
+
+        hybridTest = new HybridRealization(null, hybridRealization.getStreamingRealization(), "");
+        Assert.assertNull(hybridTest.getStreamingRealization());
+
+        Assert.assertFalse(hybridRealization.isCapable(context.getSQLDigest(), Lists.newArrayList()).capable);
+
     }
 
     @Test
@@ -215,7 +253,84 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+            Assert.assertTrue(context.storageContext.isBatchCandidateEmpty());
+            Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
         }
         Assert.assertNull(context.realization);
+    }
+
+    @Test
+    public void testHybridSegmentOverRange() {
+        String project = "streaming_test";
+        String sql = "select count(*) from SSB_STREAMING where LO_PARTITIONCOLUMN > '2021-07-01 00:00:00'";
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
+        val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertEquals("model_streaming", context.realization.getModel().getAlias());
+        Assert.assertTrue(context.storageContext.isEmptyLayout());
+
+        String sql2 = "select count(*) from SSB_STREAMING where LO_PARTITIONCOLUMN > '2021-05-01 00:00:00'";
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
+        val proposeContext2 = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql2 });
+        SmartMaster smartMaster2 = new SmartMaster(proposeContext2);
+        smartMaster2.runUtWithContext(null);
+        proposeContext2.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext2);
+        OLAPContext context2 = Lists
+                .newArrayList(smartMaster2.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context2.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context2);
+        Assert.assertEquals("model_streaming", context2.realization.getModel().getAlias());
+        Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
+        Assert.assertFalse(context2.storageContext.isStreamCandidateEmpty());
+        Assert.assertEquals(context2.storageContext.getCandidateStreaming(), context2.storageContext.getCandidate());
+    }
+
+    @Test
+    public void testHybridNoStreamingRealization() {
+        String project = "streaming_test";
+        String sql1 = "select min(LO_SHIPMODE) from SSB_STREAMING where LO_PARTITIONCOLUMN < '2021-05-01 00:00:00'";
+        String sql2 = "select min(LO_SHIPMODE) from SSB_STREAMING where LO_PARTITIONCOLUMN > '2021-05-01 00:00:00'";
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
+        val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql1 });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        try {
+            RealizationChooser.attemptSelectCandidate(context);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+        }
+        Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
+
+        val proposeContext2 = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql2 });
+        SmartMaster smartMaster2 = new SmartMaster(proposeContext2);
+        smartMaster2.runUtWithContext(null);
+        proposeContext2.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext2);
+        OLAPContext context2 = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context2.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        try {
+            RealizationChooser.attemptSelectCandidate(context2);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+        }
+        Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
     }
 }

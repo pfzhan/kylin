@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -43,6 +42,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
@@ -103,17 +103,16 @@ public class DeleteFavoriteQueryCLI extends ExecutableApplication implements IKe
             globalFavoriteRuleList.put(projectInstance.getName(), favoriteRuleList);
         });
 
-        long fr = globalFavoriteRuleList.values().stream().mapToLong(List::size).sum();
-        printlnGreen(String.format(Locale.ROOT, "found %d recommendation metadata need to be updated.", fr));
+        long frCount = globalFavoriteRuleList.values().stream().mapToLong(List::size).sum();
+        printlnGreen(String.format(Locale.ROOT, "found %d recommendation metadata need to be updated.", frCount));
 
         if (optionsHelper.hasOption(OPTION_EXEC)) {
-            UnitOfWork.doInTransactionWithRetry(()->{
-                globalFavoriteRuleList.forEach((project, frList) -> {
-                    frList.forEach(tfr -> FavoriteRuleManager.getInstance(kylinConfig, project).delete(tfr));
-                    printlnGreen("recommendation metadata upgrade succeeded.");
-                });
+            globalFavoriteRuleList.forEach((project, frList) -> UnitOfWork.doInTransactionWithRetry(() -> {
+                frList.forEach(
+                        fr -> FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).delete(fr));
                 return null;
-            }, UnitOfWork.GLOBAL_UNIT);
+            }, project));
+            printlnGreen("recommendation metadata upgrade succeeded.");
 
         }
         log.info("Succeed to truncate favorite query.");

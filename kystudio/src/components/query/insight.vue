@@ -500,13 +500,14 @@ export default class NewQuery extends Vue {
           flex-grow: 1;
         }
         .narrowForm {
-          border: 1px solid @line-border-color;
+          border-radius: 4px;
           padding: 10px;
           margin-bottom: 10px;
           position: relative;
+          box-shadow: 0 0 2px 0 @ke-border-secondary-hover, 0 0px 2px 0 @ke-border-secondary-hover;
           /* background-color: @aceditor-bg-color; */
           &:hover {
-            box-shadow: 0 0 2px 0 #ccc, 0 0px 2px 0 #ccc;
+            box-shadow: 0 0 2px 0 @ke-border-secondary-active, 0 0px 2px 0 @ke-border-secondary-active;
           }
           .narrowFormItem {
             .el-form-item__content, .el-form-item__label {
@@ -530,7 +531,7 @@ export default class NewQuery extends Vue {
         }
         &.is-checked {
           .narrowForm {
-            border-color: @base-color;
+            border: 1px solid @base-color;
           }
         }
       }
@@ -588,7 +589,7 @@ export default class NewQuery extends Vue {
       .el-tabs__new-tab{
         display: none;
       }
-      .el-tabs__header {
+      > .el-tabs__header {
         margin-bottom: 0;
         width: 80%;
         &::after {

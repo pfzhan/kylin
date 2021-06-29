@@ -52,21 +52,22 @@ export default class EmptyData extends Vue {
 .empty-data {
   pointer-events:none;
   position: absolute;
-  top: 50%;
+  top: 30%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  color: @text-disabled-color;
+  transform: translate(-50%, -30%);
+  color: @text-placeholder-color;
   .center {
     text-align: center;
+    max-width: 392px;
   }
   .center:first-child {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   &.empty-data-normal {
     img {
       height: 120px;
     }
-    font-size: 16px;
+    font-size: 14px;
   }
   &.empty-data-small {
     img {
@@ -74,7 +75,7 @@ export default class EmptyData extends Vue {
     }
     font-size: 14px;
     .center:first-child {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
   }
 }

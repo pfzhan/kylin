@@ -88,12 +88,21 @@
               </div>
             </div>
             <div class="clearfix" v-if="isShowAggregateAction">
-              <el-dropdown style="margin-left:-14px !important;" class="ksd-ml-5 ksd-fleft" v-if="isShowAggregateAction && isShowIndexActions">
+              <el-alert class="ksd-mb-8" :title="$t('realTimeModelActionTips')" type="tip" show-icon v-if="isRealTimeMode" />
+              <el-dropdown style="margin-left:-14px !important;" class="ksd-ml-5 ksd-fleft" v-if="isShowAggregateAction && isShowIndexActions && !indexLoading">
                 <el-button icon="el-ksd-icon-add_22" type="primary" text>{{$t('index')}}</el-button>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
-                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
-                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index}">
+                  <el-dropdown-item :class="{'action-disabled': !indexUpdateEnabled && model.model_type === 'STREAMING'}" @click.native="handleAggregateGroup" v-if="isShowEditAgg">
+                    <el-tooltip :content="$t('refuseAddIndexTip')" effect="dark" placement="top" :disabled="indexUpdateEnabled || model.model_type !== 'STREAMING'">
+                      <span>{{$t('aggregateGroup')}}</span>
+                    </el-tooltip>
+                  </el-dropdown-item>
+                  <el-dropdown-item :class="{'action-disabled': !indexUpdateEnabled && model.model_type === 'STREAMING'}" v-if="isShowTableIndexActions&&!isHideEdit" @click.native="confrimEditTableIndex()">
+                     <el-tooltip :content="$t('refuseAddIndexTip')" effect="dark" placement="top" :disabled="indexUpdateEnabled || model.model_type !== 'STREAMING'">
+                      <span>{{$t('tableIndex')}}</span>
+                    </el-tooltip>
+                  </el-dropdown-item>
+                  <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index}" v-if="model.model_type === 'HYBRID' ? switchModelType !== 'STREAMING' : model.model_type !== 'STREAMING'">
                     <span :title="Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
                   </el-dropdown-item>
 
@@ -101,10 +110,10 @@
               </el-dropdown>
               <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex') && !isRealTimeMode" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
               <template v-if="isRealTimeMode">
-                <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
-                  <el-button v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex" :disabled="isDisableDelBaseIndex" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                <common-tip :content="!indexUpdateEnabled ? $t('refuseRemoveIndexTip') : $t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)">
+                  <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
                 </common-tip>
-                <el-button v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                <el-button v-if="datasourceActions.includes('delAggIdx') && !isDisableDelBaseIndex && indexUpdateEnabled" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
               </template>
               <template v-else>
                 <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
@@ -397,6 +406,7 @@ export default class ModelAggregate extends Vue {
   indexDatas = []
   dataRange = null
   totalSize = 0
+  indexUpdateEnabled = true
   filterArgs = {
     page_offset: 0,
     page_size: +localStorage.getItem(this.pageRefTags.indexPager) || 10,
@@ -625,6 +635,8 @@ export default class ModelAggregate extends Vue {
     this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
   }
   confrimEditTableIndex (indexDesc) {
+    if (indexDesc && !this.indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(indexDesc.index_range)) return
+    if (!this.indexUpdateEnabled && this.model.model_type === 'STREAMING') return
     if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
       let msg = ''
       if (this.$store.state.capacity.maintenance_mode) {
@@ -643,7 +655,8 @@ export default class ModelAggregate extends Vue {
     this.showTableIndexEditModal({
       isHybridBatch: this.isHybridBatch,
       modelInstance: this.modelInstance,
-      tableIndexDesc: indexDesc || {name: 'TableIndex_1'}
+      tableIndexDesc: indexDesc || {name: 'TableIndex_1'},
+      indexUpdateEnabled: this.indexUpdateEnabled
     }).then((res) => {
       if (res.isSubmit) {
         this.refreshIndexGraphAfterSubmitSetting()
@@ -863,6 +876,7 @@ export default class ModelAggregate extends Vue {
       const data = await handleSuccessAsync(res)
       this.indexDatas = data.value
       this.totalSize = data.total_size
+      this.indexUpdateEnabled = data.index_update_enabled
       // this.indexLoading = false
     } catch (e) {
       handleError(e)
@@ -886,6 +900,7 @@ export default class ModelAggregate extends Vue {
     this.isLoading = false
   }
   async handleAggregateGroup () {
+    if (!this.indexUpdateEnabled && this.model.model_type === 'STREAMING') return
     if (this.$store.state.capacity.maintenance_mode || this.isOnlyQueryNode) {
       let msg = ''
       if (this.$store.state.capacity.maintenance_mode) {
@@ -895,13 +910,13 @@ export default class ModelAggregate extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName })
+        const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
         isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
         isSubmit && await this.$emit('refreshModel')
       })
     } else {
       const { projectName, model } = this
-      const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName })
+      const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
       isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
       isSubmit && await this.$emit('refreshModel')
     }
@@ -1012,7 +1027,12 @@ export default class ModelAggregate extends Vue {
       result.base_table_index && layoutIds.push(result.base_table_index.layout_id)
       this.$message({
         type: 'success',
-        message: <span>{this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})}<a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a></span>
+        message: <span>{
+          this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})
+          }{ this.model.model_type !== 'STREAMING'
+            ? <a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a>
+            : ''
+          }</span>
       })
       this.loadAggIndices()
       this.getIndexInfo()
@@ -1397,6 +1417,7 @@ export default class ModelAggregate extends Vue {
 .el-dropdown-menu__item {
   &.action-disabled {
     color: @text-disabled-color;
+    cursor: not-allowed;
   }
 }
 

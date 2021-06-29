@@ -49,6 +49,7 @@ import java.util.Set;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -82,6 +83,8 @@ public interface IRealization extends IStorageAware {
     List<MeasureDesc> getMeasures();
 
     List<IRealization> getRealizations();
+
+    FunctionDesc findAggrFunc(FunctionDesc aggrFunc);
 
     boolean isReady();
 

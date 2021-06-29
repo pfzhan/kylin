@@ -63,7 +63,7 @@ public class NDataflowCapabilityChecker {
         // 1. match joins is ensured at model select
         String rootFactTable = dataflow.getModel().getRootFactTableName();
         NDataModel model = dataflow.getModel();
-        if (model.isFusionModel() && !dataflow.isStreaming()) {
+        if (!rootFactTable.equals(digest.factTable) && model.isFusionModel() && !dataflow.isStreaming()) {
             NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), dataflow.getProject())
                     .getDataModelDesc(model.getFusionId());
             rootFactTable = streamingModel.getRootFactTableName();

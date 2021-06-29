@@ -31,6 +31,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -72,7 +73,7 @@ public class HybridRealization implements IRealization {
     private KylinConfigExt config;
 
     public HybridRealization(IRealization batchRealization, IRealization streamingRealization, String project) {
-        if (batchRealization == null && streamingRealization == null) {
+        if (batchRealization == null || streamingRealization == null) {
             return;
         }
         this.batchRealization = batchRealization;
@@ -83,12 +84,13 @@ public class HybridRealization implements IRealization {
 
         LinkedHashSet<TblColRef> columns = new LinkedHashSet<>();
         LinkedHashSet<TblColRef> dimensions = new LinkedHashSet<>();
+        allMeasures = Lists.newArrayList();
         dateRangeStart = 0;
         dateRangeEnd = Long.MAX_VALUE;
         for (IRealization realization : realizations) {
             columns.addAll(realization.getAllColumns());
             dimensions.addAll(realization.getAllDimensions());
-
+            allMeasures.addAll(realization.getMeasures());
             if (realization.isReady())
                 isReady = true;
 
@@ -99,10 +101,13 @@ public class HybridRealization implements IRealization {
                 dateRangeEnd = realization.getDateRangeEnd();
         }
 
+        if (streamingRealization.getMeasures().isEmpty()) {
+            allMeasures.addAll(streamingRealization.getModel().getAllMeasures());
+        }
+
         allDimensions = Lists.newArrayList(dimensions);
         allColumns = columns;
         allColumnDescs = asColumnDescs(allColumns);
-        allMeasures = Lists.newArrayList(streamingRealization.getMeasures());
         uuid = streamingRealization.getUuid();
 
         Collections.sort(realizations, (realization1, realization2) -> {
@@ -142,11 +147,6 @@ public class HybridRealization implements IRealization {
         CapabilityResult result = new CapabilityResult();
         result.cost = Integer.MAX_VALUE;
 
-        if (streamingRealization != null) {
-            CapabilityResult streamingChild = streamingRealization.isCapable(digest, prunedStreamingSegments);
-            result.setSelectedStreamingCandidate(streamingChild.getSelectedStreamingCandidate());
-        }
-
         for (IRealization realization : getRealizations()) {
             CapabilityResult child;
             if (realization.isStreaming()) {
@@ -170,8 +170,7 @@ public class HybridRealization implements IRealization {
             }
         }
 
-        if (result.cost > 0)
-            result.cost--; // let hybrid win its children
+        result.cost--; // let hybrid win its children
 
         return result;
     }
@@ -189,6 +188,19 @@ public class HybridRealization implements IRealization {
 
     public List<IRealization> getRealizations() {
         return realizations;
+    }
+
+    @Override
+    public FunctionDesc findAggrFunc(FunctionDesc aggrFunc) {
+        for (MeasureDesc measure : this.getMeasures()) {
+            if (measure.getFunction().equals(aggrFunc))
+                return measure.getFunction();
+        }
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (aggrFunc.isCountOnColumn() && kylinConfig.isReplaceColCountWithCountStar()) {
+            return FunctionDesc.newCountOne();
+        }
+        return aggrFunc;
     }
 
     public IRealization getBatchRealization() {

@@ -11,8 +11,8 @@
           </el-option>
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowEditAgg">
-          <common-tip :content="$t('addAggGroup')">
-            <el-button text type="primary" icon-button icon="el-ksd-icon-add_with_border_22" size="small" @click="(e) => handleAggregateGroup(e)"></el-button>
+          <common-tip :content="!editOrAddIndex ? $t('refuseAddIndexTip') : $t('addAggGroup')">
+            <el-button text type="primary" :disabled="!editOrAddIndex" icon-button icon="el-ksd-icon-add_with_border_22" size="small" @click="(e) => handleAggregateGroup(e)"></el-button>
           </common-tip><common-tip :content="$t('aggAdvanced')">
             <el-button text type="primary" icon-button icon="el-ksd-icon-setting_old" size="small" @click="openAggAdvancedModal()"></el-button>
           </common-tip>
@@ -50,10 +50,10 @@
             <span v-if="!aggregate.select_rule.dim_cap&&aggregationObj&&aggregationObj.global_dim_cap" class="global-dim">{{aggregationObj.global_dim_cap}}</span>
           </span>
           <span class="ksd-fright icon-group">
-            <common-tip :content="$t('kylinLang.common.edit')">
-              <el-button text type="primary" icon-button icon="el-ksd-icon-edit_16" size="small" @click="editAggGroup(aggregateIdx)"></el-button>
-            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
-              <el-button text type="primary" icon-button icon="el-ksd-icon-table_delete_16" size="small" @click="deleteAggGroup(aggregateIdx)"></el-button>
+            <common-tip :content="!handleEditOrDelIndex(aggregate) ? $t('refuseEditIndexTip') : $t('kylinLang.common.edit')">
+              <el-button text type="primary" icon-button icon="el-ksd-icon-edit_16" size="small" :disabled="!handleEditOrDelIndex(aggregate)" @click="editAggGroup(aggregateIdx)"></el-button>
+            </common-tip><common-tip :content="!handleEditOrDelIndex(aggregate) ? $t('refuseRemoveIndexTip') : $t('kylinLang.common.delete')">
+              <el-button text type="primary" icon-button icon="el-ksd-icon-table_delete_16" size="small" :disabled="!handleEditOrDelIndex(aggregate)" @click="deleteAggGroup(aggregateIdx)"></el-button>
             </common-tip>
           </span>
         </div>
@@ -122,7 +122,9 @@
     <div class="agg-detail-block" v-else>
       <div class="empty-block">
         <div>{{$t('aggGroupTips')}}</div>
-        <el-button type="primary" text icon="el-ksd-icon-table_add_old" @click="(e) => handleAggregateGroup(e)" v-if="isShowEditAgg">{{$t('aggGroup')}}</el-button>
+        <common-tip :content="$t('refuseAddIndexTip')" :disabled="editOrAddIndex">
+          <el-button type="primary" text :disabled="!editOrAddIndex" icon="el-ksd-icon-table_add_old" @click="(e) => handleAggregateGroup(e)" v-if="isShowEditAgg">{{$t('aggGroup')}}</el-button>
+        </common-tip>
       </div>
     </div>
     <AggAdvancedModal/>
@@ -191,6 +193,7 @@ export default class AggregateView extends Vue {
     includes: 20,
     measure: 20
   }
+  indexUpdateEnabled = true
   get dimensions () {
     if (this.model) {
       return this.model.simplified_dimensions
@@ -207,6 +210,15 @@ export default class AggregateView extends Vue {
   get measures () {
     return this.model ? this.model.simplified_measures.map(measure => ({label: measure.name, value: measure.name, id: measure.id})) : []
   }
+
+  get editOrAddIndex () {
+    return !(!this.indexUpdateEnabled && this.model.model_type === 'STREAMING')
+  }
+
+  handleEditOrDelIndex (aggregate) {
+    return !(!this.indexUpdateEnabled && (this.model.model_type === 'STREAMING' || ['HYBRID', 'STREAMING'].includes(aggregate.index_range)))
+  }
+
   getIncludesDimension (aggregate) {
     if (aggregate.showIncludeMore) {
       return aggregate.includes.slice(0, this.tagMaxLength.includes)
@@ -245,13 +257,13 @@ export default class AggregateView extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+        const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
         isSubmit && this.loadAggregateGroups()
         isSubmit && this.$emit('loadModels')
       })
     } else {
       const { projectName, model } = this
-      const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
+      const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
       isSubmit && this.loadAggregateGroups()
       isSubmit && this.$emit('loadModels')
     }
@@ -266,13 +278,13 @@ export default class AggregateView extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '' })
+        const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '', indexUpdateEnabled: this.indexUpdateEnabled })
         isSubmit && this.loadAggregateGroups()
         isSubmit && this.$emit('loadModels')
       })
     } else {
       const { projectName, model } = this
-      const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '' })
+      const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '', indexUpdateEnabled: this.indexUpdateEnabled })
       isSubmit && this.loadAggregateGroups()
       isSubmit && this.$emit('loadModels')
     }
@@ -316,6 +328,7 @@ export default class AggregateView extends Vue {
       const measuresMapping = this.getMapping(this.measures)
       const res = await this.fetchAggregateGroups({ projectName, modelId })
       const data = await handleSuccessAsync(res)
+      this.indexUpdateEnabled = data.index_update_enabled
       if (data) {
         const calcRes = await this.getCalcCuboids({ projectName, modelId, aggregationGroups: data.aggregation_groups, globalDimCap: data.global_dim_cap })
         this.cuboidsInfo = await handleSuccessAsync(calcRes)

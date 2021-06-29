@@ -30,6 +30,7 @@ import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -179,6 +180,11 @@ public class CandidateSortTest {
 
             @Override
             public List<IRealization> getRealizations() {
+                return null;
+            }
+
+            @Override
+            public FunctionDesc findAggrFunc(FunctionDesc aggrFunc) {
                 return null;
             }
 

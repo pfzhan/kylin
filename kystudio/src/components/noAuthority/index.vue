@@ -3,12 +3,11 @@
     <div class="content">
       <template v-if="tipType === 'isNoAuthority'">
         <img src="../../assets/img/empty/empty_state_permission_denied.svg" alt="">
-        <template v-if="$lang === 'en'">
-          <p class="text"><span>{{$t('noAuthorityText')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('noAuthorityText1', {time: jumpTimer})}}</span></p>
-        </template>
-        <template v-else>
-          <p class="text"><span>{{$t('noAuthorityText', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a></p>
-        </template>
+        <div class="text">
+          <div class="desc no-auth">{{$t('noAuthorityText')}}</div>
+          <div class="ksd-mb-16 desc">{{$t('noAuthorityText1', {time: jumpTimer})}}</div>
+          <el-button @click="jumpToDashboard" plain>{{$t('dashboard')}}</el-button>
+        </div>
       </template>
       <template v-else-if="tipType === 'isNotSemiAuto'">
         <i class="el-ksd-icon-sad_old"></i>
@@ -21,14 +20,11 @@
       </template>
       <template v-else>
         <img src="../../assets/img/empty/empty_state_404.svg" alt="404">
-        <p class="text">
-          <template v-if="$lang === 'en'">
-            <span>{{$t('is404Tip')}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a><span>{{$t('is404Tip1', {time: jumpTimer})}}</span>
-          </template>
-          <template v-else>
-            <span>{{$t('is404Tip', {time: jumpTimer})}}</span><a href="javascript:void(0);" @click.self="jumpToDashboard" class="jump-address">{{$t('dashboard')}}</a>
-          </template>
-        </p>
+        <div class="text">
+          <div class="desc no-auth">{{$t('is404Tip')}}</div>
+          <div class="ksd-mb-16 desc">{{$t('is404Tip1', {time: jumpTimer})}}</div>
+          <el-button @click="jumpToDashboard" plain>{{$t('dashboard')}}</el-button>
+        </div>
       </template>
     </div>
   </div>
@@ -51,19 +47,21 @@ import { Component } from 'vue-property-decorator'
   },
   locales: {
     'en': {
-      noAuthorityText: 'Sorry, you don`t have permission to access this page. Will automatically redirect to ',
-      noAuthorityText1: ' in {time} seconds.',
+      noAuthorityText: 'Sorry, you don\'t have permission to access this page.',
+      noAuthorityText1: 'Will automatically redirect to Homepage in {time} seconds.',
       noModalAuthorityText1: 'Recommendation mode is not supported in the current project. Please turn on the mode in Setting and try again. Will automatically redirect to ',
       noModalAuthorityText2: ' in {time} seconds.',
-      is404Tip: 'Sorry, the page doesn‘t exist. Will automatically redirect to ',
-      is404Tip1: ' in {time} seconds.',
-      dashboard: 'Homepage'
+      is404Tip: 'Sorry, the page doesn\'t exist. ',
+      is404Tip1: 'Will automatically redirect to Homepage in {time} seconds.',
+      dashboard: 'Go to Homepage'
     },
     'zh-cn': {
-      noAuthorityText: '抱歉，您无权访问该页面。{time} 秒后系统将跳转到',
+      noAuthorityText: '抱歉，您无权访问该页面。',
+      noAuthorityText1: '{time} 秒后系统将跳转到首页',
       noModalAuthorityText1: '当前项目未开启模型推荐及优化。请在设置中开启智能推荐后再试。{time} 秒后系统将跳转到',
-      is404Tip: '抱歉，您访问的页面不存在。{time} 秒后将自动跳转至',
-      dashboard: '首页'
+      is404Tip: '抱歉，您访问的页面不存在。',
+      is404Tip1: '{time} 秒后将自动跳转至首页',
+      dashboard: '返回首页'
     }
   }
 })
@@ -100,9 +98,19 @@ export default class NoAuthority extends Vue {
     position: relative;
     .content {
       position: absolute;
-      top: 50%;
+      top: 30%;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -30%);
+      .desc {
+        font-size: 14px;
+        line-height: 22px;
+        text-align: center;
+        color: @text-placeholder-color;
+        max-width: 392px;
+      }
+      .no-auth {
+        color: @text-normal-color;
+      }
       .el-icon-ksd-lock {
         font-size: 50px;
         color: @text-placeholder-color;

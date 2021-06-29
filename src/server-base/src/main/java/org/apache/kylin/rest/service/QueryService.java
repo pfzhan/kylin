@@ -251,6 +251,8 @@ public class QueryService extends BasicService {
             SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(queryParams.getSql());
             if (null != fakeResponse) {
                 logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
+                fakeResponse.setEngineType(QueryHistory.EngineType.CONSTANTS.name());
+                QueryContext.current().getQueryTagInfo().setConstantQuery(true);
                 QueryContext.currentTrace().startSpan(EXECUTION);
                 QueryContext.currentTrace().startSpan(FETCH_RESULT);
                 return fakeResponse;

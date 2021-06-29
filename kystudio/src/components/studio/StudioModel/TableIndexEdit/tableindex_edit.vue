@@ -15,9 +15,13 @@
             <common-tip :content="$t('indexTimeRangeTips')"><i class="el-ksd-icon-more_info_16 ksd-fs-16"></i></common-tip>
           </h4>
           <el-radio-group v-model="tableIndexMeta.index_range" :disabled="tableIndexMeta.id !== ''" @change="changeTableIndexType">
-            <el-radio :label="'HYBRID'">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+            <el-tooltip placement="top" :disabled="indexUpdateEnabled" :content="$t('refuseAddIndexTip')">
+              <el-radio :label="'HYBRID'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.HYBRID')}}</el-radio>
+            </el-tooltip>
             <el-radio :label="'BATCH'">{{$t('kylinLang.common.BATCH')}}</el-radio>
-            <el-radio :label="'STREAMING'">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+            <el-tooltip placement="top" :disabled="indexUpdateEnabled" :content="$t('refuseAddIndexTip')">
+              <el-radio :label="'STREAMING'" :disabled="!indexUpdateEnabled">{{$t('kylinLang.common.STREAMING')}}</el-radio>
+            </el-tooltip>
           </el-radio-group>
         </div>
         <!-- <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button> -->
@@ -116,6 +120,7 @@
         isHybridBatch: state => state.isHybridBatch,
         modelInstance: state => state.form.data.modelInstance,
         tableIndexDesc: state => objectClone(state.form.data.tableIndexDesc),
+        indexUpdateEnabled: state => state.form.data.indexUpdateEnabled,
         callback: state => state.callback
       })
     },

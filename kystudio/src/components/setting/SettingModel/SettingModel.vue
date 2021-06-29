@@ -148,17 +148,17 @@
           <div class="custom-settings" v-for="(item, index) in modelSettingForm[modelSettingForm.settingItem]" :key="index">
             <el-input :class="['custom-param-key', {'is-editting': isEdit}]" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
             <el-input :class="['custom-param-value', {'is-editting': isEdit}]" v-model.trim="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
-            <span class="ky-no-br-space ksd-ml-5" v-if="!isEdit">
-              <el-button type="primary" icon="el-icon-ksd-add_2" plain circle size="mini" @click="addCustomSetting"></el-button>
-              <el-button icon="el-icon-minus" class="ksd-ml-5" plain circle size="mini" :disabled="modelSettingForm[modelSettingForm.settingItem].length === 1 && index === 0" @click="removeCustomSetting(index)"></el-button>
+            <span class="ky-no-br-space ksd-ml-2" v-if="!isEdit">
+              <el-button type="primary" icon="el-ksd-icon-add_16" plain circle size="mini" @click="addCustomSetting"></el-button>
+              <el-button icon="el-ksd-icon-minus_16" class="ksd-ml-2" plain circle size="mini" :disabled="modelSettingForm[modelSettingForm.settingItem].length === 1 && index === 0" @click="removeCustomSetting(index)"></el-button>
             </span>
           </div>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button plain @click="editModelSetting = false" v-if="step=='stepOne' || (step=='stepTwo' && isEdit)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button plain @click="preStep" icon="el-icon-ksd-more_01-copy" size="medium" v-if="step=='stepTwo' && !isEdit">{{$t('kylinLang.common.prev')}}</el-button>
-        <el-button type="primary" @click="nextStep" size="medium" v-if="step=='stepOne'" :disabled="modelSettingForm.settingItem==''">{{$t('kylinLang.common.next')}}<i class="el-icon-ksd-more_02 el-icon--right"></i></el-button>
+        <el-button plain @click="preStep" icon="el-ksd-icon-arrow_left_22" size="medium" v-if="step=='stepTwo' && !isEdit">{{$t('kylinLang.common.prev')}}</el-button>
+        <el-button type="primary" @click="nextStep" size="medium" iconr="el-ksd-icon-arrow_right_22" v-if="step=='stepOne'" :disabled="modelSettingForm.settingItem==''">{{$t('kylinLang.common.next')}}</el-button>
         <el-button
           type="primary"
           @click="submit"
@@ -585,6 +585,8 @@ export default class SettingStorage extends Vue {
       margin-top: -15px;
     }
     .el-checkbox {
+      line-height: 1;
+      width: 60px;
       &+.el-checkbox {
         margin-left: 30px;
       }

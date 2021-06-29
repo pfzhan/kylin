@@ -31,7 +31,7 @@ div{
  text-align: center;
  color:@text-disabled-color;
  position: absolute;
- top: 50%;
+ top: 30%;
  text-align: center;
  width: 100%;
 }

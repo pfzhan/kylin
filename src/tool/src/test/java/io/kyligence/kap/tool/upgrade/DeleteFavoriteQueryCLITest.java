@@ -47,6 +47,7 @@ public class DeleteFavoriteQueryCLITest extends NLocalFileMetadataTestCase {
     @Test
     public void test() {
         KylinConfig systemKylinConfig = KylinConfig.getInstanceFromEnv();
+        systemKylinConfig.setProperty("kylin.env", "PROD");
 
         FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(systemKylinConfig, "broken_test");
         Assert.assertTrue(favoriteRuleManager.getAll().size() > 0);
