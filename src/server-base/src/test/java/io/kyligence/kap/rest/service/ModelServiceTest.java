@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -67,12 +68,14 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.common.primitives.Longs;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -121,6 +124,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -589,6 +593,48 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "default", "0", "" + Long.MAX_VALUE, "ONLINE", null, null, true, "start_time", false);
         Assert.assertThat(segments.size(), is(0));
+    }
+
+    @Test
+    public void testGetSegmentsResponseSort() {
+        Date now = new Date();
+        List<NDataSegmentResponse> mockSegments = Lists.newArrayList();
+        NDataSegmentResponse segmentResponse1 = new NDataSegmentResponse();
+        segmentResponse1.setId("1");
+        segmentResponse1.setRowCount(1);
+        segmentResponse1.setCreateTime(DateUtils.addHours(now, -1).getTime());
+
+        NDataSegmentResponse segmentResponse2 = new NDataSegmentResponse();
+        segmentResponse2.setId("2");
+        segmentResponse2.setRowCount(2);
+        segmentResponse2.setCreateTime(now.getTime());
+
+        NDataSegmentResponse segmentResponse3 = new NDataSegmentResponse();
+        segmentResponse3.setId("3");
+        segmentResponse3.setRowCount(3);
+        segmentResponse3.setCreateTime(DateUtils.addHours(now, 1).getTime());
+
+        mockSegments.add(segmentResponse1);
+        mockSegments.add(segmentResponse3);
+        mockSegments.add(segmentResponse2);
+
+        Mockito.doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
+
+        Mockito.doAnswer(invocation -> {
+            List<NDataSegmentResponse> segmentResponseList = invocation.getArgument(2);
+            for (NDataSegmentResponse segmentResponse : segmentResponseList) {
+                segmentResponse.setSecondStorageSize(Longs.tryParse(segmentResponse.getId()));
+            }
+            return null;
+        }).when(modelService).addSecondStorageResponse(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.any());
+
+        List<NDataSegmentResponse> segmentResponseList = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
+                "" + Long.MAX_VALUE, "", "second_storage_size", false);
+
+        Assert.assertEquals(segmentResponseList.get(0).getId(), "3");
     }
 
     @Test

@@ -881,8 +881,22 @@ public class ModelService extends BasicService {
             List<AbstractExecutable> executables, boolean allToComplement, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        List<NDataSegmentResponse> segmentResponseList;
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        List<NDataSegmentResponse> segmentResponseList = getSegmentsResponseCore(modelId, project, start, end, status, withAllIndexes, withoutAnyIndexes, executables, allToComplement, dataflow);
+        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
+        segmentsResponseListSort(sortBy, reverse, segmentResponseList);
+        return segmentResponseList;
+    }
+
+    public void segmentsResponseListSort(String sortBy, boolean reverse, List<NDataSegmentResponse> segmentResponseList) {
+        Comparator<NDataSegmentResponse> comparator = propertyComparator(StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
+        segmentResponseList.sort(comparator);
+    }
+
+    public List<NDataSegmentResponse> getSegmentsResponseCore(String modelId, String project, String start, String end,
+                                                          String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes,
+                                                          List<AbstractExecutable> executables, boolean allToComplement, NDataflow dataflow) {
+        List<NDataSegmentResponse> segmentResponseList;
         val segs = getSegmentsByRange(modelId, project, start, end);
 
         // filtering on index
@@ -910,15 +924,10 @@ public class ModelService extends BasicService {
                 .filter(segment -> !StringUtils.isNotEmpty(status) || status
                         .equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment, executables).toString()))
                 .map(segment -> new NDataSegmentResponse(dataflow, segment, executables)).collect(Collectors.toList());
-        Comparator<NDataSegmentResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
-        segmentResponseList.sort(comparator);
-
-        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
         return segmentResponseList;
     }
 
-    private void addSecondStorageResponse(String modelId, String project,
+    public void addSecondStorageResponse(String modelId, String project,
             List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
 
         if (!SecondStorageUtil.isModelEnable(project, modelId))
@@ -935,11 +944,11 @@ public class ModelService extends BasicService {
                     val nodes = tablePartitions.get(segment.getId()).getShardNodes().stream()
                             .map(SecondStorageUtil::transformNode).collect(Collectors.toList());
                     segment.setSecondStorageNodes(nodes);
-                    segment.setSecondStorageDiskSize(tablePartitions.get(segment.getId()).getSizeInNode().values()
+                    segment.setSecondStorageSize(tablePartitions.get(segment.getId()).getSizeInNode().values()
                             .stream().reduce(Long::sum).orElse(0L));
                 } else {
                     segment.setSecondStorageNodes(Collections.emptyList());
-                    segment.setSecondStorageDiskSize(0L);
+                    segment.setSecondStorageSize(0L);
                 }
             });
         }

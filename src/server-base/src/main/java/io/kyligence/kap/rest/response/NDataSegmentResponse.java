@@ -87,7 +87,7 @@ public class NDataSegmentResponse extends NDataSegment {
 
     // byte
     @JsonProperty("second_storage_size")
-    private long secondStorageDiskSize;
+    private long secondStorageSize;
 
     private long createTime;
 
