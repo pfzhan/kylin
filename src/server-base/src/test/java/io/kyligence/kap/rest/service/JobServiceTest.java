@@ -39,9 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
@@ -50,7 +48,6 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
@@ -65,7 +62,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -85,9 +81,10 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
-import io.kyligence.kap.rest.execution.SucceedSubTaskTestExecutable;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
@@ -100,6 +97,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private final JobService jobService = Mockito.spy(new JobService());
+
+    @Mock
+    private final ModelService modelService = Mockito.spy(ModelService.class);
 
     @Mock
     private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
@@ -129,6 +129,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
         ReflectionTestUtils.setField(jobService, "projectService", projectService);
+        ReflectionTestUtils.setField(jobService, "modelService", modelService);
     }
 
     @After
@@ -142,16 +143,28 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testListJobs() throws Exception {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+
+        val modelManager = Mockito.mock(NDataModelManager.class);
+
+        Mockito.when(modelService.getDataModelManager(Mockito.anyString())).thenReturn(modelManager);
+        NDataModel nDataModel = Mockito.mock(NDataModel.class);
+        Mockito.when(modelManager.getDataModelDesc(Mockito.anyString())).thenReturn(nDataModel);
+
+        NExecutableManager executableManager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default"));
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
-        val mockJobs = mockJobs(executableManager);
-        Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
+        val mockJobs = mockDetailJobs();
+        Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
+        for (ExecutablePO po : mockJobs) {
+            AbstractExecutable exe = executableManager.fromPO(po);
+            Mockito.when(executableManager.getJob(po.getId())).thenReturn(exe);
+        }
 
         // test size
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, "", "", "default", "", true);
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
         Assert.assertEquals(3, jobs.size());
+        jobService.addOldParams(jobs);
 
         jobFilter.setTimeFilter(0);
         jobNames.add("sparkjob1");
@@ -229,14 +242,16 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setStatuses(Lists.newArrayList("NEW"));
         DataResult<List<ExecutableResponse>> jobs16 = jobService.listJobs(jobFilter, 0, 10);
         Assert.assertTrue(jobs16.getValue().size() == 0);
+
     }
 
     @Test
     public void testFilterJob() throws Exception {
-        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+        //NExecutableManager executableManager = Mockito.spy(NExecutableManager.class);
+        NExecutableManager executableManager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default"));
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
         val mockJobs = mockDetailJobs();
-        Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
+        Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
 
         // test filter by total_duration
         {
@@ -553,54 +568,68 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(jobs);
     }
 
-    private List<AbstractExecutable> mockDetailJobs() throws Exception {
+    private List<ExecutablePO> mockDetailJobs() throws Exception {
         NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
                 .getInstanceByProject();
         managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
-        List<AbstractExecutable> jobs = new ArrayList<>();
+        List<ExecutablePO> jobs = new ArrayList<>();
 
-        for (int i = 0; i < 3; i++) {
-            jobs.add(mockChainedExecutable(manager, i + ""));
+        for (int i = 1; i < 4; i++) {
+            jobs.add(mockExecutablePO(manager, i + ""));
         }
         return jobs;
     }
 
-    private DefaultChainedExecutable mockChainedExecutable(NExecutableManager manager, String name) {
-        SucceedChainedTestExecutable mockJob = new SucceedChainedTestExecutable();
+    private ExecutablePO mockExecutablePO(NExecutableManager manager, String name) {
+        //SucceedChainedTestExecutable mockJob = new SucceedChainedTestExecutable();
+        ExecutablePO mockJob = new ExecutablePO();
+        mockJob.setType("io.kyligence.kap.rest.execution.SucceedChainedTestExecutable");
         mockJob.setProject(getProject());
         mockJob.setName("sparkjob" + name);
-        mockJob.setTargetSubject("model" + name);
-        val jobOutput = new DefaultOutput();
-        jobOutput.setState(ExecutableState.SUCCEED);
-        Mockito.when(manager.getOutput(mockJob.getId())).thenReturn(jobOutput);
+        mockJob.setTargetModel("model" + name);
+        val jobOutput = mockJob.getOutput();
+        if ("1".equals(name))
+            jobOutput.setStatus(ExecutableState.SUCCEED.name());
 
-        val startTime = 1000L;
-
-        var lastEndTime = 0L;
-
+        val startTime = getCreateTime(name);
+        mockJob.setCreateTime(startTime);
+        jobOutput.setCreateTime(startTime);
+        jobOutput.setStartTime(startTime);
+        var lastEndTime = startTime;
+        List<ExecutablePO> tasks = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            val childExecutable = new SucceedSubTaskTestExecutable();
+            val childExecutable = new ExecutablePO();
+            childExecutable.setType("io.kyligence.kap.rest.execution.SucceedSubTaskTestExecutable");
             childExecutable.setProject(getProject());
-            val jobChildOutput = new DefaultOutput();
-            mockOutputTime(startTime, jobChildOutput);
+            val jobChildOutput = childExecutable.getOutput();
+            mockOutputTime(lastEndTime, jobChildOutput, i);
             lastEndTime = jobChildOutput.getEndTime();
-            mockJob.addTask(childExecutable);
-            Mockito.when(manager.getOutput(childExecutable.getId())).thenReturn(jobChildOutput);
+            tasks.add(childExecutable);
         }
+        mockJob.setTasks(tasks);
 
-        jobOutput.setCreateTime(startTime);
-        jobOutput.setCreateTime(startTime);
-        jobOutput.setCreateTime(lastEndTime);
+        jobOutput.setEndTime(lastEndTime);
         return mockJob;
     }
 
-    private void mockOutputTime(long baseTime, DefaultOutput output) {
-        val random = new Random();
-        Supplier<Long> randomSupplier = () -> (long) random.nextInt(100);
-        val createTime = baseTime + randomSupplier.get();
-        val startTime = createTime + randomSupplier.get();
-        val endTime = startTime + randomSupplier.get();
+    private long getCreateTime(String name) {
+        switch (name) {
+        case "1":
+            return 1560324101000L;
+        case "2":
+            return 1560324102000L;
+        case "3":
+            return 1560324103000L;
+        default:
+            return 0L;
+        }
+    }
+
+    private void mockOutputTime(long baseTime, ExecutableOutputPO output, int index) {
+        val createTime = baseTime + (index + 1) * 2000L;
+        val startTime = createTime + (index + 1) * 2000L;
+        val endTime = startTime + (index + 1) * 2000L;
 
         output.setStartTime(startTime);
         output.setCreateTime(createTime);
@@ -644,7 +673,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
-    @Ignore
     @Test
     public void testGetJobStats() throws ParseException {
         JobStatisticsResponse jobStats = jobService.getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);

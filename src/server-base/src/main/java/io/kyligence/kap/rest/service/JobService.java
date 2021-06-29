@@ -721,7 +721,7 @@ public class JobService extends BasicService {
 
         private long computeTotalDuration(ExecutablePO executablePO) {
             List<ExecutablePO> tasks = executablePO.getTasks();
-            if (tasks == null || !tasks.isEmpty()) {
+            if (tasks == null || tasks.isEmpty()) {
                 return 0;
             }
             long duration = 0L;
