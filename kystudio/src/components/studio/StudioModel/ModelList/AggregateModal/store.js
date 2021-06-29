@@ -149,7 +149,7 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model, aggregateIdx, indexUpdateEnabled }) {
+    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model, aggregateIdx, indexUpdateEnabled = true }) {
       const { dispatch } = this
 
       return new Promise(async (resolve, reject) => {
