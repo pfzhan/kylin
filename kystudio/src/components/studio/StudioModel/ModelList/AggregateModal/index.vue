@@ -2031,9 +2031,9 @@ export default class AggregateModal extends Vue {
       color: @text-placeholder-color;
       display: inline-block;
       position: absolute;
-      top: 50%;
+      top: 30%;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, -30%);
       .add-includes-btn {
         color: #0988DE;
         cursor: pointer;

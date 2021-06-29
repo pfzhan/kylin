@@ -462,15 +462,9 @@ export default class StudioSource extends Vue {
   }
   .empty-page {
     position: absolute;
-    top: 50%;
+    top: 30%;
     left: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .center {
-    text-align: center;
-    &:first-child {
-      margin-bottom: 20px;
-    }
+    transform: translate(-50%, -30%);
   }
   .slide-enter-active, .slide-leave-active {
     transition: transform .5s;

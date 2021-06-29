@@ -581,9 +581,9 @@ export default {
   }
   .accessForbidden-con {
     position: absolute;
-    top: 50%;
+    top: 30%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -30%);
     text-align: center;
     .el-icon-ksd-sad {
       font-size: 40px;

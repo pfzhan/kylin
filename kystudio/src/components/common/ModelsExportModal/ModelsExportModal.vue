@@ -422,9 +422,9 @@ export default class ModelsExportModal extends Vue {
   }
   .no-data {
     position: absolute;
-    top: 50%;
+    top: 30%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -30%);
     color: @text-disabled-color;
   }
   .tree-icon {

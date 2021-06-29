@@ -896,9 +896,9 @@ export default class SourceHive extends Vue {
   }
   .empty {
     position: absolute;
-    top: 50%;
+    top: 30%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -30%);
     // text-align: center;
   }
   .empty-img {
