@@ -471,7 +471,7 @@ public class ModelService extends BasicService {
         String rootFactTable = cube.getRootFactTableName();
         List<NCubeDescResponse.Dimension3X> dims = new ArrayList<>();
         HashMap<String, String> fk2Pk = Maps.newHashMap();
-        cube.getJoinTables().stream().forEach(join -> {
+        cube.getJoinTables().forEach(join -> {
             String[] pks = join.getJoin().getPrimaryKey();
             String[] fks = join.getJoin().getForeignKey();
             for (int i = 0; i < pks.length; ++i)
@@ -819,9 +819,11 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setRootFactTableName(nDataModelResponse.getRootFactTableName() + " deleted");
                 nDataModelResponse.setRootFactTableDeleted(true);
             }
+            nDataModelResponse.setBroken(modelDesc.isBroken());
             return nDataModelResponse;
         }
         nDataModelResponse.setAllTableRefs(modelDesc.getAllTables());
+        nDataModelResponse.setBroken(modelDesc.isBroken());
         if (ManagementType.MODEL_BASED == modelDesc.getManagementType()) {
             Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getUuid(), projectName, "0",
                     "" + Long.MAX_VALUE);
@@ -947,7 +949,7 @@ public class ModelService extends BasicService {
             Set<Long> allIndexWithoutTobeDel, List<NDataSegment> indexFiltered, NDataSegment segment) {
         if (allToComplement) {
             // find seg that does not have all indexes(don't include tobeDeleted)
-            val segLayoutIds = segment.getSegDetails().getLayouts().stream().map(layout -> layout.getLayoutId())
+            val segLayoutIds = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
                     .collect(Collectors.toSet());
             if (!Sets.difference(allIndexWithoutTobeDel, segLayoutIds).isEmpty()) {
                 indexFiltered.add(segment);
@@ -2084,10 +2086,10 @@ public class ModelService extends BasicService {
     }
 
     private void convertModel(ModelRequest copy, String tableName, String oldAliasName) {
-        copy.getSimplifiedJoinTableDescs().stream()
+        copy.getSimplifiedJoinTableDescs()
                 .forEach(x -> x.getSimplifiedJoinDesc().changeFKTableAlias(oldAliasName, tableName));
-        copy.getSimplifiedDimensions().stream().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
-        copy.getSimplifiedMeasures().stream().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
+        copy.getSimplifiedDimensions().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
+        copy.getSimplifiedMeasures().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
         copy.getPartitionDesc().changeTableAlias(oldAliasName, tableName);
     }
 
@@ -2993,7 +2995,6 @@ public class ModelService extends BasicService {
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
         cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
         offlineModelIfNecessary(dataflowManager, model);
-
     }
 
     private void offlineModelIfNecessary(NDataflowManager dfManager, String modelId) {
