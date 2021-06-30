@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
@@ -327,6 +325,11 @@ public class NBasicController {
             output.flush();
         } catch (IOException e) {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException ignore) {
+            }
         }
     }
 

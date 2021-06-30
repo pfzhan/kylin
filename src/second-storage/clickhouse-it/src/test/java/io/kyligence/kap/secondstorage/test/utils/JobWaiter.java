@@ -37,6 +37,11 @@ import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.junit.Assert;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -50,18 +55,34 @@ public interface JobWaiter {
         await().atMost(300, TimeUnit.SECONDS).until(() -> !job.getStatus().isProgressing());
         Assert.assertFalse(job.getStatus().isProgressing());
         val firstErrorMsg = job.getTasks().stream()
-                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
-                .findFirst()
-                .map(task -> executableManager.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
-                .orElse("Unknown Error");
-        Assert.assertEquals(firstErrorMsg,
-                ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
+                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
+                .map(task -> {
+                    try (InputStream verboseMsgStream = executableManager
+                            .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
+                            .getVerboseMsgStream();
+                            BufferedReader reader = new BufferedReader(
+                                    new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
+
+                        String line;
+                        StringBuilder sampleData = new StringBuilder();
+                        while ((line = reader.readLine()) != null) {
+                            if (sampleData.length() > 0) {
+                                sampleData.append('\n');
+                            }
+                            sampleData.append(line);
+                        }
+
+                        return sampleData.toString();
+                    } catch (IOException e) {
+                        return null;
+                    }
+                }).orElse("Unknown Error");
+        Assert.assertEquals(firstErrorMsg, ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
     }
 
     default String triggerClickHouseLoadJob(String project, String modelId, String userName, List<String> segIds) {
         AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
-        JobParam jobParam =
-                SecondStorageJobParamUtil.of(project, modelId, userName, segIds.stream());
+        JobParam jobParam = SecondStorageJobParamUtil.of(project, modelId, userName, segIds.stream());
         ExecutableUtil.computeParams(jobParam);
         localHandler.handle(jobParam);
         return jobParam.getJobId();

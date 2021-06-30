@@ -26,8 +26,11 @@ package io.kyligence.kap.rest.service;
 
 import static org.mockito.ArgumentMatchers.eq;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -42,6 +45,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -732,9 +736,24 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutputToHDFS(KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath("default",
                 "e1ad7bb0-522e-456a-859d-2eab1df448de"), executableOutputPO);
 
-        String[] actualLines = jobService.getAllJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de",
-                "e1ad7bb0-522e-456a-859d-2eab1df448de").split("\n");
+        String sampleLog = "";
+        try (InputStream allJobOutput = jobService.getAllJobOutput("default", "e1ad7bb0-522e-456a-859d-2eab1df448de",
+                "e1ad7bb0-522e-456a-859d-2eab1df448de");
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(allJobOutput, Charset.defaultCharset()))) {
 
+            String line;
+            StringBuilder sampleData = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                if (sampleData.length() > 0) {
+                    sampleData.append('\n');
+                }
+                sampleData.append(line);
+            }
+
+            sampleLog = sampleData.toString();
+        }
+        String[] actualLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(sampleLog, "\n");
         Assert.assertTrue(Arrays.deepEquals(exceptLines, actualLines));
     }
 

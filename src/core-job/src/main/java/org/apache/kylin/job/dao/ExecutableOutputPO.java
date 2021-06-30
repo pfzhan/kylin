@@ -42,10 +42,12 @@
 
 package org.apache.kylin.job.dao;
 
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -61,6 +63,9 @@ import lombok.Setter;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ExecutableOutputPO implements Serializable {
+
+    @JsonIgnore
+    private InputStream contentStream;
 
     @JsonProperty("content")
     private String content;

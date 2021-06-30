@@ -95,8 +95,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -417,7 +421,27 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         val firstErrorMsg = job.getTasks().stream()
                 .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
                 .findFirst()
-                .map(task -> executableManager.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
+                .map(task -> {
+                    try (InputStream verboseMsgStream = executableManager
+                            .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
+                            .getVerboseMsgStream();
+                         BufferedReader reader = new BufferedReader(
+                                 new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
+
+                        String line;
+                        StringBuilder sampleData = new StringBuilder();
+                        while ((line = reader.readLine()) != null) {
+                            if (sampleData.length() > 0) {
+                                sampleData.append('\n');
+                            }
+                            sampleData.append(line);
+                        }
+
+                        return sampleData.toString();
+                    } catch (IOException e) {
+                        return null;
+                    }
+                })
                 .orElse("Unknown Error");
         Assert.assertEquals(firstErrorMsg,
                 ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());

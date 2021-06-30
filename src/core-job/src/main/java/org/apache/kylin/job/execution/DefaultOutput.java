@@ -43,6 +43,7 @@
 
 package org.apache.kylin.job.execution;
 
+import java.io.InputStream;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -59,6 +60,7 @@ public class DefaultOutput implements Output {
     private ExecutableState state;
     private Map<String, String> extra;
     private String verboseMsg;
+    private InputStream verboseMsgStream;
     private long lastModified;
     private long startTime;
     private long endTime;

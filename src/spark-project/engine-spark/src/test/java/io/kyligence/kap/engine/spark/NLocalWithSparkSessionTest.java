@@ -23,8 +23,13 @@
  */
 package io.kyligence.kap.engine.spark;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -278,13 +283,13 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
-    public static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-            boolean isAppend) throws Exception {
+    public static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
+            String prj, boolean isAppend) throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, prj, isAppend, null);
     }
 
-    protected static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, String prj,
-            boolean isAppend, List<String[]> partitionValues) throws Exception {
+    protected static void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
+            String prj, boolean isAppend, List<String[]> partitionValues) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NDataflow df = dsMgr.getDataflow(cubeName);
@@ -293,8 +298,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         buildSegment(cubeName, oneSeg, toBuildLayouts, prj, isAppend, partitionValues);
     }
 
-    protected static void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts, String prj,
-            boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
+    protected static void buildSegment(String cubeName, NDataSegment segment, Set<LayoutEntity> toBuildLayouts,
+            String prj, boolean isAppend, List<String[]> partitionValues) throws InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
@@ -325,10 +330,28 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
         if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
             val firstErrorMsg = job.getTasks().stream()
-                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
-                    .findFirst()
-                    .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
-                    .orElse("Unknown Error");
+                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
+                    .map(task -> {
+                        try (InputStream verboseMsgStream = execMgr
+                                .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
+                                .getVerboseMsgStream();
+                                BufferedReader reader = new BufferedReader(
+                                        new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
+
+                            String line;
+                            StringBuilder sampleData = new StringBuilder();
+                            while ((line = reader.readLine()) != null) {
+                                if (sampleData.length() > 0) {
+                                    sampleData.append('\n');
+                                }
+                                sampleData.append(line);
+                            }
+
+                            return sampleData.toString();
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    }).orElse("Unknown Error");
             throw new IllegalStateException(firstErrorMsg);
         }
 

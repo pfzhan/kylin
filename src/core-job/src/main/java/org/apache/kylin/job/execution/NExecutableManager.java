@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.execution;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATE_TRANSFER;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
@@ -34,6 +35,7 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.nio.charset.Charset;
@@ -101,6 +103,7 @@ public class NExecutableManager {
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
 
     private static final int CMD_EXEC_TIMEOUT_SEC = 60;
+    private static final int LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE = 100;
 
     private static final String KILL_PROCESS_TREE = "kill-process-tree.sh";
 
@@ -295,7 +298,11 @@ public class NExecutableManager {
 
         if (Objects.nonNull(jobOutput.getLogPath())) {
             if (isHdfsPathExists(jobOutput.getLogPath())) {
-                jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), nLines));
+                if (nLines == LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE) {
+                    jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), nLines));
+                } else {
+                    jobOutput.setContentStream(getLogStream(jobOutput.getLogPath()));
+                }
             } else if (StringUtils.isEmpty(jobOutput.getContent()) && Objects.nonNull(getJob(jobId))
                     && getJob(jobId).getStatus() == ExecutableState.RUNNING) {
                 jobOutput.setContent("Wait a moment ... ");
@@ -305,8 +312,25 @@ public class NExecutableManager {
         return parseOutput(jobOutput);
     }
 
+    //for ut
+    @VisibleForTesting
+    public InputStream getLogStream(String resPath) {
+        try {
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+
+            Path path = new Path(resPath);
+            if (!fs.exists(path)) {
+                return null;
+            }
+            return fs.open(path);
+        } catch (IOException e) {
+            logger.error("get FileSystem from hdfs log file [{}] failed!", resPath, e);
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e);
+        }
+    }
+
     public Output getOutputFromHDFSByJobId(String jobId, String stepId) {
-        return getOutputFromHDFSByJobId(jobId, stepId, 100);
+        return getOutputFromHDFSByJobId(jobId, stepId, LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE);
     }
 
     private DefaultOutput parseOutput(ExecutableOutputPO jobOutput) {
@@ -314,6 +338,7 @@ public class NExecutableManager {
         result.setExtra(jobOutput.getInfo());
         result.setState(ExecutableState.valueOf(jobOutput.getStatus()));
         result.setVerboseMsg(jobOutput.getContent());
+        result.setVerboseMsgStream(jobOutput.getContentStream());
         result.setLastModified(jobOutput.getLastModified());
         result.setStartTime(jobOutput.getStartTime());
         result.setEndTime(jobOutput.getEndTime());
