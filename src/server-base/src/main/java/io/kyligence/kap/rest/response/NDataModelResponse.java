@@ -35,8 +35,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.commons.lang3.builder.HashCodeExclude;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -56,6 +54,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
@@ -67,6 +66,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -437,7 +437,6 @@ public class NDataModelResponse extends NDataModel {
             this.enrichDerivedDimension();
         }
         this.setForbiddenOnline(isScd2);
-        this.setBroken(modelDesc.isBroken());
         this.setStatus(status);
         this.setInconsistentSegmentCount(inconsistentCount);
         computedDisplayInfo(modelDesc);
@@ -445,7 +444,8 @@ public class NDataModelResponse extends NDataModel {
 
     protected void computedDisplayInfo(NDataModel modelDesc) {
         NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), this.getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                this.getProject());
         this.setLastBuildTime(dfManager.getDataflowLastBuildTime(modelDesc.getUuid()));
         this.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
         this.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));

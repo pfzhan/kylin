@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.model.schema;
 
+import static io.kyligence.kap.metadata.model.schema.SchemaUtilTest.getModelMetadataProjectName;
 import static io.kyligence.kap.metadata.model.schema.SchemaUtilTest.getRawResourceFromUploadFile;
 
 import java.io.File;
@@ -110,6 +111,20 @@ public class ImportModelContextTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(21, idChangedMap.size());
         Assert.assertEquals(21, new HashSet<>(idChangedMap.values()).size());
+    }
+
+    @Test
+    public void testTableNameContainsProjectName() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/table_name_contains_project_name/LINEORDER_model_metadata_2020_11_14_17_11_19_25E6007633A4793DB1790C2E5D3B940A.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        Assert.assertEquals("LINEORDER", srcProject);
+        val importModelContext = new ImportModelContext("original_project", srcProject, rawResourceMap);
+
+        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(importModelContext.getTargetKylinConfig());
+        RawResource resource = resourceStore.getResource("/original_project/table/SSB.P_LINEORDER.json");
+        Assert.assertNotNull(resource);
     }
 
     private KylinConfig getImportConfig(Map<String, RawResource> rawResourceMap) {

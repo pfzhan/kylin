@@ -26,9 +26,20 @@ package org.apache.kylin.job.impl.threadpool;
 
 import static org.awaitility.Awaitility.await;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,6 +47,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -65,6 +77,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -90,6 +103,8 @@ import lombok.var;
 
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
     private static final Logger logger = LoggerFactory.getLogger(NDefaultSchedulerTest.class);
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     public NDefaultSchedulerTest() {
         super("default");
@@ -127,6 +142,69 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(job.getId()).getState());
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task1.getId()).getState());
+    }
+
+    @Test
+    public void testGetLogStream() throws IOException {
+        File file = temporaryFolder.newFile("execute_output.json." + System.currentTimeMillis() + ".log");
+        for (int i = 0; i < 200; i++) {
+            Files.write(file.toPath(), String.format(Locale.ROOT, "lines: %s\n", i).getBytes(Charset.defaultCharset()),
+                    StandardOpenOption.APPEND);
+        }
+        InputStream logStream = executableManager.getLogStream(file.getAbsolutePath());
+        Assert.assertNotNull(logStream);
+        Assert.assertTrue(logStream instanceof FSDataInputStream);
+
+        InputStream logStreamNull = executableManager.getLogStream(file.getAbsolutePath() + "/123");
+        Assert.assertNull(logStreamNull);
+    }
+
+    @Test
+    public void testGetOutputFromHDFSByJobId() throws IOException {
+        File file = temporaryFolder.newFile("execute_output.json." + System.currentTimeMillis() + ".log");
+        for (int i = 0; i < 200; i++) {
+            Files.write(file.toPath(), String.format(Locale.ROOT, "lines: %s\n", i).getBytes(Charset.defaultCharset()),
+                    StandardOpenOption.APPEND);
+        }
+
+        String[] exceptLines = Files.readAllLines(file.toPath()).toArray(new String[0]);
+
+        NExecutableManager manager = executableManager;
+        ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
+        executableOutputPO.setStatus("SUCCEED");
+        executableOutputPO.setContent("succeed");
+        executableOutputPO.setLogPath(file.getAbsolutePath());
+        manager.updateJobOutputToHDFS(KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath("default",
+                "e1ad7bb0-522e-456a-859d-2eab1df448de"), executableOutputPO);
+
+        String sampleLog = "";
+        try (InputStream verboseMsgStream = executableManager
+                .getOutputFromHDFSByJobId("e1ad7bb0-522e-456a-859d-2eab1df448de",
+                        "e1ad7bb0-522e-456a-859d-2eab1df448de", Integer.MAX_VALUE)
+                .getVerboseMsgStream();
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
+
+            String line;
+            StringBuilder sampleData = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                if (sampleData.length() > 0) {
+                    sampleData.append('\n');
+                }
+                sampleData.append(line);
+            }
+
+            sampleLog = sampleData.toString();
+        }
+        String[] actualLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(sampleLog, "\n");
+        Assert.assertTrue(Arrays.deepEquals(exceptLines, actualLines));
+
+        String verboseMsg = executableManager.getOutputFromHDFSByJobId("e1ad7bb0-522e-456a-859d-2eab1df448de",
+                "e1ad7bb0-522e-456a-859d-2eab1df448de", 100).getVerboseMsg();
+        String[] actualVerboseMsgLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(verboseMsg, "\n");
+        ArrayList<String> exceptLinesL = Lists.newArrayList(exceptLines);
+        exceptLinesL.add("================================================================");
+        Assert.assertTrue(Sets.newHashSet(exceptLinesL).containsAll(Sets.newHashSet(actualVerboseMsgLines)));
     }
 
     @Test

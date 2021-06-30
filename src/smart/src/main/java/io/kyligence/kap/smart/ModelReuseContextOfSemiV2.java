@@ -28,13 +28,15 @@ import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class ModelReuseContextOfSemiV2 extends AbstractSemiContextV2 {
 
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
-        this.partialMatch = kylinConfig.isQueryMatchPartialInnerJoinModel();
+        this.partialMatch = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig()
+                .isQueryMatchPartialInnerJoinModel();
     }
 
     public ModelReuseContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray,

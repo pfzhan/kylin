@@ -117,7 +117,7 @@ public class ImportModelContext implements IKeep {
         targetResourceStore = ResourceStore.getKylinMetaStore(targetKylinConfig);
 
         rawResourceMap.forEach((resPath, raw) -> {
-            resPath = resPath.replace(srcProject, targetProject);
+            resPath = resPath.replaceFirst(srcProject, targetProject);
             importResourceStore.putResourceWithoutCheck(resPath, raw.getByteSource(), raw.getTimestamp(), 0);
         });
 

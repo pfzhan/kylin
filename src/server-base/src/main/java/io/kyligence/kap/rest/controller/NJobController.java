@@ -28,9 +28,8 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_JOB_ID;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -38,8 +37,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
@@ -61,6 +58,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
@@ -216,10 +215,8 @@ public class NJobController extends NBasicController {
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
         String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", project, stepId);
-
-        String jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
-        setDownloadResponse(new ByteArrayInputStream(jobOutput.getBytes(Charset.defaultCharset())), downloadFilename,
-                MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+        InputStream jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
+        setDownloadResponse(jobOutput, downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

@@ -31,6 +31,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -595,10 +596,10 @@ public class JobService extends BasicService {
         return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
-    public String getAllJobOutput(String project, String jobId, String stepId) {
+    public InputStream getAllJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
-        return executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE).getVerboseMsg();
+        return executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE).getVerboseMsgStream();
     }
 
     /**
@@ -721,7 +722,7 @@ public class JobService extends BasicService {
 
         private long computeTotalDuration(ExecutablePO executablePO) {
             List<ExecutablePO> tasks = executablePO.getTasks();
-            if (tasks == null || !tasks.isEmpty()) {
+            if (tasks == null || tasks.isEmpty()) {
                 return 0;
             }
             long duration = 0L;

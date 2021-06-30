@@ -25,6 +25,7 @@
 package org.apache.kylin.metadata.model;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.kylin.common.KylinConfig;
@@ -35,6 +36,7 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class JoinsGraphTest extends NLocalFileMetadataTestCase {
 
@@ -77,6 +79,45 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         overwriteSystemProp("kylin.query.match-partial-inner-join-model", "true");
         Assert.assertTrue(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
                 KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()));
+    }
+
+    @Test
+    public void testInnerJoinPartialMatchProjectConfig() {
+        NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        JoinsGraph innerJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
+        JoinsGraph innerAndInnerJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
+                .innerJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
+                .build();
+        Assert.assertFalse(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("default").getConfig()
+                        .isQueryMatchPartialInnerJoinModel()));
+
+        overrideProjectConfig(new HashMap<String, String>() {
+            {
+                put("kylin.query.match-partial-inner-join-model", "true");
+            }
+        });
+
+        Assert.assertTrue(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("default").getConfig()
+                        .isQueryMatchPartialInnerJoinModel()));
+
+        // clean
+        overrideProjectConfig(new HashMap<String, String>() {
+            {
+                put("kylin.query.match-partial-inner-join-model", "false");
+            }
+        });
+    }
+
+    private void overrideProjectConfig(Map<String, String> overrideKylinProps) {
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject("default", copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
+        });
     }
 
     @Test

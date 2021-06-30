@@ -43,6 +43,7 @@
 
 package org.apache.kylin.job.execution;
 
+import java.io.InputStream;
 import java.util.Map;
 
 /**
@@ -60,6 +61,8 @@ public interface Output {
     Map<String, String> getExtra();
 
     String getVerboseMsg();
+
+    InputStream getVerboseMsgStream();
 
     ExecutableState getState();
 

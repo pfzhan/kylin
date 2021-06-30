@@ -50,6 +50,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -76,6 +77,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.schema.KapOLAPSchema;
 
 // match alias in query to alias in model
@@ -479,13 +481,13 @@ public class QueryAliasMatcher {
             return null;
         }
         JoinsGraph joinsGraph = new JoinsGraph(firstTable, joinDescs);
+        KylinConfigExt projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).getConfig();
 
         if (sqlJoinCapturer.foundJoinOnCC) {
             // 1st round: dry run without cc expr comparison to collect model alias matching
             joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(null, false));
 
-            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(),
-                    KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
+            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig.isQueryMatchPartialInnerJoinModel());
             if (matches == null || matches.isEmpty()) {
                 return null;
             }
@@ -499,8 +501,7 @@ public class QueryAliasMatcher {
             joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(ccAliasMatch, true));
         }
 
-        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(),
-                KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
+        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig.isQueryMatchPartialInnerJoinModel());
         if (matches == null || matches.isEmpty()) {
             return null;
         }

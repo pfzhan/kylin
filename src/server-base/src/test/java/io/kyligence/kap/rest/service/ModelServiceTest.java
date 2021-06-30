@@ -436,10 +436,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(8, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
 
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        NDataModel originModel = modelManager.getDataModelDescByAlias(modelName);
-        originModel.getJoinTables().forEach(join -> {
-            join.setFlattenable("NORMALIZED");
+        modelManager.updateDataModel(model.getId(), copyForWrite -> {
+            List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.forEach(join -> join.setFlattenable(JoinTableDesc.NORMALIZED));
         });
+        NDataModel originModel = modelManager.getDataModelDescByAlias(modelName);
+        originModel.getJoinTables().forEach(join -> Assert.assertFalse(join.isFlattenable()));
 
         //if onlyNormalDim set false, getModel can return nonflatten table dimension
         model = modelService
@@ -447,6 +449,34 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 .get(0);
         Assert.assertEquals(14, model.getNamedColumns().size());
         Assert.assertEquals(14, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
+    }
+
+    @Test
+    public void testGetNonFlattenModelOfBrokenModel() {
+        String project = "cc_test";
+        String modelName = "test_model";
+        NDataModelResponse model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
+                .get(0);
+        Assert.assertEquals(8, model.getNamedColumns().size());
+        Assert.assertEquals(8, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
+
+        // update model to broken
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        modelManager.updateDataModel(model.getUuid(), copyForWrite -> {
+            copyForWrite.setBroken(true);
+            copyForWrite.setBrokenReason(NDataModel.BrokenReason.EVENT);
+        });
+        NDataModel modelAfterUpdate = modelManager.getDataModelDescByAlias(modelName);
+        Assert.assertTrue(modelAfterUpdate.isBroken());
+
+        //if onlyNormalDim set false, getModel can return nonflatten table dimension
+        model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, false)
+                .get(0);
+        Assert.assertEquals(8, model.getNamedColumns().size());
+        Assert.assertEquals(8, model.getAllNamedColumns().stream().filter(NamedColumn::isDimension).count());
+        Assert.assertTrue(model.isBroken());
     }
 
     @Test
