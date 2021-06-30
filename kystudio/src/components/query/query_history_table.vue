@@ -117,8 +117,8 @@
                     <span class="text">
                       <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId">
                         <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                          <span @click="openLayoutDetails(item)" v-if="item.layoutId !== -1">{{item.layoutId}}</span>
-                          <span @click="openLayoutDetails(item)" v-if="item.streamingLayoutId !== -1">{{item.streamingLayoutId}}<el-tag size="mini" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag></span>
+                          <span @click="openLayoutDetails(item)" v-if="item.layoutId !== -1 && item.layoutId !== 0">{{item.layoutId}}</span>
+                          <span @click="openLayoutDetails(item)" v-if="item.streamingLayoutId !== -1 && item.streamingLayoutId !== null">{{item.streamingLayoutId}}<el-tag size="mini" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag></span>
                         </el-tooltip>
                         <el-tooltip placement="top" :content="$t('secStorage')">
                           <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
@@ -688,8 +688,11 @@ export default class QueryHistoryTable extends Vue {
     if (realizations && realizations.length) {
       let filterIds = []
       for (let i of realizations) {
-        if (i.layoutId !== -1 && i.layoutId !== null) {
-          filterIds.push(i.layoutId)
+        if (i.layoutId !== -1 && i.layoutId !== null && i.layoutId !== 0) {
+          filterIds.push({layoutId: i.layoutId, layoutIdType: 'BATCH', secondStorage: i.secondStorage})
+        }
+        if (i.streamingLayoutId !== -1 && i.streamingLayoutId !== null) {
+          filterIds.push({streamingLayoutId: i.streamingLayoutId, layoutIdType: 'STREAMING', secondStorage: i.secondStorage})
         }
       }
       return filterIds.join(', ')
