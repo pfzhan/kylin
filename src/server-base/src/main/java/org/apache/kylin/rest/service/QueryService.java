@@ -1108,6 +1108,7 @@ public class QueryService extends BasicService {
 
         // case of query like select * from table where 1 <> 1
         if (CollectionUtils.isEmpty(response.getNativeRealizations())) {
+            QueryContext.current().getQueryTagInfo().setConstantQuery(true);
             response.setEngineType(QueryHistory.EngineType.CONSTANTS.name());
             return response;
         }
