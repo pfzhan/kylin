@@ -457,7 +457,7 @@ exports.default = {
   },
   menu: {
     dashboard: '首页',
-    studio: '建模中心',
+    studio: '数据资产',
     insight: '分析',
     monitor: '监控',
     system: '系统',
