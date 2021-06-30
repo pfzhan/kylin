@@ -1283,7 +1283,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getSparkEngineDriverMemorySnapshotBuilding() {
         return (int) SizeConvertUtil
-                .byteStringAsMb(getOptional("kylin.engine.driver-memory-snapshot-building", "1024"));
+                .byteStringAsMb(getOptional("kylin.engine.snapshot.spark-conf.spark.driver.memory", "1024"));
     }
 
     public int getSparkEngineDriverMemoryBase() {
