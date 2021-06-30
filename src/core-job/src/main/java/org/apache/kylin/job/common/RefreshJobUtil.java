@@ -99,7 +99,11 @@ public class RefreshJobUtil extends ExecutableUtil {
         } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
         } else {
-            segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
+            segments.get(0).getLayoutsMap().values().forEach(layout -> {
+                if (!layout.getLayout().isToBeDeleted()) {
+                    layouts.add(layout.getLayout());
+                }
+            });
         }
         jobParam.setProcessLayouts(layouts);
     }

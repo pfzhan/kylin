@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import java.io.Serializable;
 import java.util.List;
 
@@ -37,7 +38,6 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -63,6 +63,9 @@ public class NDataSegmentResponse extends NDataSegment {
 
     @JsonProperty("index_count")
     private long indexCount;
+
+    @JsonProperty("locked_index_count")
+    private long lockedIndexCount;
 
     @JsonProperty("index_count_total")
     private long indexCountTotal;
@@ -119,6 +122,8 @@ public class NDataSegmentResponse extends NDataSegment {
         multiPartitionCount = segment.getMultiPartitions().size();
         hasBaseAggIndex = segment.getIndexPlan().containBaseAggLayout();
         hasBaseTableIndex = segment.getIndexPlan().containBaseTableLayout();
+        lockedIndexCount = segment.getLayoutsMap().values().stream()
+                .filter(nDataLayout -> nDataLayout.getLayout().isToBeDeleted()).count();
         if (dataflow.getModel().getMultiPartitionDesc() != null) {
             multiPartitionCountTotal = dataflow.getModel().getMultiPartitionDesc().getPartitions().size();
         }
