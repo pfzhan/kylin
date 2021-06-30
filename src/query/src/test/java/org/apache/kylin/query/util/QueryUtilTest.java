@@ -409,4 +409,27 @@ public class QueryUtilTest extends NLocalFileMetadataTestCase {
                         + "limit 10 offset 3",
                 newSql3);
     }
+
+    @Test
+    public void testMassagePushDownSqlWithDialectConverter() {
+        KylinConfig config = KylinConfig.createKylinConfig(new Properties());
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
+            config.setProperty("kylin.query.pushdown.converter-class-names",
+                    "org.apache.kylin.query.util.DialectConverter,org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter,"
+                            + SparkSQLFunctionConverter.class.getCanonicalName());
+            String sql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
+                    + "SUM({fn CONVERT(0, SQL_BIGINT)}) AS \"sum_Calculation_336925569152049156_ok\"\n"
+                    + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\""
+                    + " fetch first 1 rows only";
+
+            QueryParams queryParams = new QueryParams("", sql, "default", false);
+            queryParams.setKylinConfig(config);
+            String massagedSql = QueryUtil.massagePushDownSql(queryParams);
+            String expectedSql = "SELECT `Z_PROVDASH_UM_ED`.`GENDER` AS `GENDER`, "
+                    + "SUM(CAST(0 AS BIGINT)) AS `sum_Calculation_336925569152049156_ok`\n"
+                    + "FROM `POPHEALTH_ANALYTICS`.`Z_PROVDASH_UM_ED` AS `Z_PROVDASH_UM_ED`\n"
+                    + "LIMIT 1";
+            Assert.assertEquals(expectedSql, massagedSql);
+        }
+    }
 }
