@@ -56,6 +56,9 @@ public class FusionModelResponse extends NDataModelResponse {
     @JsonProperty("batch_id")
     private String batchId;
 
+    @JsonProperty("streaming_indexes")
+    private long streamingIndexes;
+
     @EqualsAndHashCode.Include
     @JsonProperty("batch_partition_desc")
     private PartitionDesc batchPartitionDesc;
@@ -93,7 +96,8 @@ public class FusionModelResponse extends NDataModelResponse {
             IndexPlan batchIndex = indexPlanManager.getIndexPlan(batchId);
             IndexPlan streamingIndex = indexPlanManager.getIndexPlan(modelDesc.getUuid());
             this.setAvailableIndexesCount(getTotalAvailableIndexesCount(batchIndex, streamingIndex));
-            this.setTotalIndexes(getTotalIndexesCount(batchIndex, streamingIndex));
+            this.setTotalIndexes(getIndexesCount(batchIndex));
+            this.setStreamingIndexes(getIndexesCount(streamingIndex));
             this.setEmptyIndexesCount(this.getTotalIndexes() - this.getAvailableIndexesCount());
             this.setHasBaseAggIndex(streamingIndex.containBaseAggLayout());
             this.setHasBaseTableIndex(streamingIndex.containBaseTableLayout());
@@ -133,7 +137,7 @@ public class FusionModelResponse extends NDataModelResponse {
                 + indexPlanManager.getAvailableIndexesCount(getProject(), streamingIndex.getId());
     }
 
-    private long getTotalIndexesCount(IndexPlan batchIndex, IndexPlan streamingIndex) {
-        return (long) batchIndex.getAllLayouts().size() + (long) streamingIndex.getAllLayouts().size();
+    private long getIndexesCount(IndexPlan indexPlan) {
+        return indexPlan.getAllLayouts().size();
     }
 }

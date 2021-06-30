@@ -67,6 +67,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.FusionModelResponse;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -5799,11 +5800,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetFusionModel() {
         String project = "streaming_test";
         String modelName = "streaming_test";
-        NDataModelResponse model = modelService
-                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
-                .get(0);
+        List<NDataModelResponse> models = modelService.getModels(modelName, project, false, null, Lists.newArrayList(),
+                null, false, null, null, null, true);
+
+        FusionModelResponse model = (FusionModelResponse) models.get(0);
         Assert.assertEquals(0, model.getAvailableIndexesCount());
-        Assert.assertEquals(8, model.getTotalIndexes());
+        Assert.assertEquals(3, model.getTotalIndexes());
+        Assert.assertEquals(5, model.getStreamingIndexes());
         Assert.assertEquals(0, model.getStorage());
         Assert.assertEquals(0, model.getSource());
 
