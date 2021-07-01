@@ -24,6 +24,11 @@
 
 package io.kyligence.kap.engine.spark.builder
 
+import java.io.IOException
+import java.util
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, Executors}
+import java.util.{Objects, UUID}
+
 import com.google.common.collect.Maps
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
@@ -43,17 +48,15 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.{Dataset, Encoders, Row, SparkSession}
 import org.apache.spark.utils.ProxyThreadUtils
 
-import java.io.IOException
-import java.util
-import java.util.UUID
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, Executors}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.Breaks._
 import scala.util.{Failure, Success, Try}
 
-class SnapshotBuilder extends Logging with Serializable {
+class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
+
+  def this() = this(null)
 
   private val MD5_SUFFIX = ".md5"
   private val PARQUET_SUFFIX = ".parquet"
@@ -97,8 +100,15 @@ class SnapshotBuilder extends Logging with Serializable {
 
     // scalastyle:off
     val resultMap = executeBuildSnapshot(ss, toBuildTables, baseDir, kylinConf.isSnapshotParallelBuildEnabled, kylinConf.snapshotParallelBuildTimeoutSeconds)
+
+    // when all snapshots skipped, no need to update meta.
+    if (resultMap.isEmpty) {
+      return
+    }
+    
     // update metadata
-    updateMeta(toBuildTables, resultMap)
+    // maybe partial snapshots skipped
+    updateMeta(toBuildTables.filter(tbl => resultMap.containsKey(tbl.getIdentity)), resultMap)
   }
 
   // scalastyle:of
@@ -194,6 +204,8 @@ class SnapshotBuilder extends Logging with Serializable {
     val snapSizeMap = Maps.newConcurrentMap[String, Result]
     val fs = HadoopUtil.getWorkingFileSystem
     val kylinConf = KylinConfig.getInstanceFromEnv
+    val project = toBuildTableDesc.iterator.next.getProject
+    val stepCheckpoint = getStepCheckpoint(kylinConf.getJobTmpDir(project), fs)
 
     if (isParallelBuild) {
       val service = Executors.newCachedThreadPool()
@@ -202,8 +214,14 @@ class SnapshotBuilder extends Logging with Serializable {
         Future {
           var config: SetAndUnsetThreadLocalConfig = null
           try {
-            config = KylinConfig.setAndUnsetThreadLocalConfig(kylinConf)
-            buildSingleSnapshotWithoutMd5(ss, tableDesc, baseDir, snapSizeMap)
+            if (stepCheckpoint.exists(_.canSkip(tableDesc))) {
+              logInfo(s"Skip snapshot ${tableDesc.getIdentity}")
+            } else {
+              config = KylinConfig.setAndUnsetThreadLocalConfig(kylinConf)
+              buildSingleSnapshotWithoutMd5(ss, tableDesc, baseDir, snapSizeMap)
+              // do step checkpoint
+              stepCheckpoint.map(_.checkpoint(tableDesc))
+            }
           } catch {
             case exception: Exception =>
               logError(s"Error for build snapshot table with $tableDesc", exception)
@@ -225,7 +243,15 @@ class SnapshotBuilder extends Logging with Serializable {
           throw e
       }
     } else {
-      toBuildTableDesc.foreach(buildSingleSnapshot(ss, _, baseDir, fs, snapSizeMap))
+      toBuildTableDesc.foreach(tableDesc => {
+        if (stepCheckpoint.exists(_.canSkip(tableDesc))) {
+          logInfo(s"Skip snapshot ${tableDesc.getIdentity}")
+        } else {
+          buildSingleSnapshot(ss, tableDesc, baseDir, fs, snapSizeMap)
+          // do step checkpoint
+          stepCheckpoint.map(_.checkpoint(tableDesc))
+        }
+      })
     }
     snapSizeMap
   }
@@ -436,6 +462,15 @@ class SnapshotBuilder extends Logging with Serializable {
     }
   }
 
+  private def getStepCheckpoint(jobTmp: String, fs: FileSystem): Option[StepCheckpointSnapshot] = {
+    if (Objects.isNull(jobId)) {
+      logInfo("jobId is null, wouldn't checkpoint snapshot step.")
+      None
+    } else {
+      logInfo(s"jobId $jobId, would checkpoint snapshot step.")
+      Some(new StepCheckpointSnapshot(s"$jobTmp$jobId", fs))
+    }
+  }
 
   case class Result(path: String, originalSize: Long, totalRows: Long)
 
