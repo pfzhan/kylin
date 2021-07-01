@@ -1024,4 +1024,14 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals("io.kyligence.kap.source.jdbc.DefaultSourceConnector",
                 project.getOverrideKylinProps().get("kylin.source.jdbc.connector-class-name"));
     }
+
+    @Test
+    public void testGetStreamingProjectStatistics() {
+        ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics("streaming_test");
+        Assert.assertEquals(2, projectStatistics.getDatabaseSize());
+        Assert.assertEquals(11, projectStatistics.getTableSize());
+        Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
+        Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
+        Assert.assertEquals(10, projectStatistics.getModelSize());
+    }
 }
