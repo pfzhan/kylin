@@ -368,34 +368,13 @@ public class ModelService extends BasicService {
             oldParams.setName(model.getAlias());
             oldParams.setJoinTables(model.getJoinTables());
 
-            long inputRecordCnt = 0L;
-            long inputRecordSizeBytes = 0L;
-
             if (!model.isBroken()) {
-                List<NDataSegmentResponse> segments = getSegmentsResponse(model.getId(), model.getProject(), "1",
-                        String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
-                for (NDataSegmentResponse segment : segments) {
-                    long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
-                            .max(Long::compareTo).orElse(0L);
-                    inputRecordCnt += sourceRows;
-                    inputRecordSizeBytes += segment.getSourceBytesSize();
-
-                    NDataSegmentResponse.OldParams segmentOldParams = new NDataSegmentResponse.OldParams();
-                    segmentOldParams.setSizeKB(segment.getBytesSize() / 1024);
-                    segmentOldParams.setInputRecords(sourceRows);
-                    segment.setOldParams(segmentOldParams);
-                }
-                if (model instanceof NDataModelResponse) {
-                    ((NDataModelResponse) model).setSegments(segments);
-                    ((NDataModelResponse) model).setHasSegments(CollectionUtils.isNotEmpty(segments));
-                }
+                addOldSegmentParams(model, oldParams, executables);
             }
 
-            if (model instanceof NDataModelResponse) {
+            if (model instanceof NDataModelResponse || model instanceof FusionModelResponse) {
                 oldParams.setProjectName(model.getProject());
                 oldParams.setSizeKB(((NDataModelResponse) model).getStorage() / 1024);
-                oldParams.setInputRecordSizeBytes(inputRecordSizeBytes);
-                oldParams.setInputRecordCnt(inputRecordCnt);
                 ((NDataModelResponse) model).setOldParams(oldParams);
             } else if (model instanceof RelatedModelResponse) {
                 ((RelatedModelResponse) model).setOldParams(oldParams);
@@ -403,6 +382,46 @@ public class ModelService extends BasicService {
         });
 
         return modelList;
+    }
+
+    private void addOldSegmentParams(NDataModel model, NDataModelOldParams oldParams,
+            List<AbstractExecutable> executables) {
+        List<NDataSegmentResponse> segments = getSegmentsResponse(model.getId(), model.getProject(), "1",
+                String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
+        calculateRecordSizeAndCount(segments, oldParams);
+
+        if (model instanceof NDataModelResponse) {
+            ((NDataModelResponse) model).setSegments(segments);
+            ((NDataModelResponse) model).setHasSegments(CollectionUtils.isNotEmpty(segments));
+        }
+
+        if (model instanceof FusionModelResponse) {
+            ((NDataModelResponse) model).setSegments(segments);
+            ((NDataModelResponse) model).setHasSegments(CollectionUtils.isNotEmpty(segments));
+
+            FusionModel fusionModel = getFusionModelManager(model.getProject()).getFusionModel(model.getId());
+            List<NDataSegmentResponse> batchSegments = getSegmentsResponse(fusionModel.getBatchModel().getUuid(),
+                    model.getProject(), "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
+            calculateRecordSizeAndCount(batchSegments, oldParams);
+        }
+    }
+
+    private void calculateRecordSizeAndCount(List<NDataSegmentResponse> segments, NDataModelOldParams oldParams) {
+        long inputRecordCnt = oldParams.getInputRecordCnt();
+        long inputRecordSizeBytes = oldParams.getInputRecordSizeBytes();
+        for (NDataSegmentResponse segment : segments) {
+            long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
+                    .max(Long::compareTo).orElse(0L);
+            inputRecordCnt += sourceRows;
+            inputRecordSizeBytes += segment.getSourceBytesSize();
+
+            NDataSegmentResponse.OldParams segmentOldParams = new NDataSegmentResponse.OldParams();
+            segmentOldParams.setSizeKB(segment.getBytesSize() / 1024);
+            segmentOldParams.setInputRecords(sourceRows);
+            segment.setOldParams(segmentOldParams);
+        }
+        oldParams.setInputRecordCnt(inputRecordCnt);
+        oldParams.setInputRecordSizeBytes(inputRecordSizeBytes);
     }
 
     @VisibleForTesting
@@ -598,10 +617,6 @@ public class ModelService extends BasicService {
         return modelResponseList;
     }
 
-    private boolean isTypesContains(List<String> types, NDataModel.ModelType modelType) {
-        return types == null || types.isEmpty() || (modelType != null && types.contains(modelType.toString()));
-    }
-
     private boolean isListContains(List<String> status, ModelStatusToDisplayEnum modelStatus) {
         return status == null || status.isEmpty() || (modelStatus != null && status.contains(modelStatus.name()));
     }
@@ -689,15 +704,6 @@ public class ModelService extends BasicService {
             filteredModels.addAll(attr.filter(models));
         }
         return filteredModels;
-    }
-
-    public List<NDataModelResponse> getModelsByTypes(final String modelAlias, final String projectName,
-            boolean exactMatch, String owner, List<String> modelTypes, List<String> status, String sortBy,
-            boolean reverse, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo, boolean onlyNormalDim) {
-        return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
-                lastModifyFrom, lastModifyTo, onlyNormalDim).stream()
-                        .filter(dataModel -> isTypesContains(modelTypes, dataModel.getModelType()))
-                        .collect(Collectors.toList());
     }
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,

@@ -43,7 +43,7 @@
     "snapshots" : null,
     "last_build_time" : 0,
     "source_count" : 0,
-    "source_bytes_size" : 0,
+    "source_bytes_size" : 135859,
     "column_source_bytes" : { },
     "ori_snapshot_size" : { },
     "additionalInfo" : { },

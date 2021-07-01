@@ -47,10 +47,10 @@ public class NDataModelOldParams implements Serializable {
     private long sizeKB;
 
     @JsonProperty("input_records_count")
-    private long inputRecordCnt;
+    private long inputRecordCnt = 0L;
 
     @JsonProperty("input_records_size")
-    private long inputRecordSizeBytes;
+    private long inputRecordSizeBytes = 0L;
 
     @JsonProperty("project")
     private String projectName;

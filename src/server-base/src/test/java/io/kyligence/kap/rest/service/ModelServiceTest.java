@@ -5818,6 +5818,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, model1.getTotalIndexes());
         Assert.assertEquals(0, model1.getStorage());
         Assert.assertEquals(0, model1.getSource());
+
+        String modelName2 = "model_streaming";
+        DataResult<List<NDataModel>> modelResult2 = modelService.getModels(modelName2, true, project, "ADMIN",
+                Lists.newArrayList(), "", 0, 10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH,
+                        ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
+                null, null, true);
+        List<NDataModel> models2 = modelResult2.getValue();
+        FusionModelResponse model2 = (FusionModelResponse) models2.get(0);
+
+        Assert.assertEquals(14383, model2.getOldParams().getInputRecordCnt());
+        Assert.assertEquals(1505415, model2.getOldParams().getInputRecordSizeBytes());
+        Assert.assertEquals(396, model2.getOldParams().getSizeKB());
     }
 
     @Test
