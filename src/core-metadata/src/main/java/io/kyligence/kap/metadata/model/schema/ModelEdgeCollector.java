@@ -189,7 +189,7 @@ class ModelEdgeCollector {
     }
 
     private void collectIndex(List<LayoutEntity> allLayouts, SchemaNodeType type, List<Integer> aggShardByColumns) {
-        val colNodes = Maps.<Integer, SchemaNode> newHashMap();
+        val colNodes = Maps.<Integer, SchemaNode>newHashMap();
         for (LayoutEntity layout : allLayouts) {
             val indexNode = SchemaNode.ofIndex(type, layout, model, modelColumnMeasureIdNameMap,
                     type == SchemaNodeType.RULE_BASED_INDEX ? aggShardByColumns : null);
@@ -213,7 +213,13 @@ class ModelEdgeCollector {
                         return SchemaNode.ofMeasure(measure, model.getAlias());
                     }
                 });
-                graph.putEdge(colNodes.get(col), indexNode);
+
+                val colSchemaNode = colNodes.get(col);
+                if (colSchemaNode == null) {
+                    continue;
+                }
+
+                graph.putEdge(colSchemaNode, indexNode);
             }
         }
     }
