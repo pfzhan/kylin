@@ -87,6 +87,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -698,7 +699,7 @@ public class JobService extends BasicService {
 
     @Setter
     @Getter
-    class ExecutablePOSortBean {
+    class ExecutablePOSortBean implements IKeep {
 
         private String project;
 
