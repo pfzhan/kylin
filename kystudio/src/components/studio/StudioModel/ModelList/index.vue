@@ -294,7 +294,7 @@
           show-overflow-tooltip
           :label="$t('aggIndexCount')">
           <template slot-scope="scope">
-            <span>{{sliceNumber(scope.row.total_indexes) || 0}}</span>
+            <span>{{sliceNumber('streaming_indexes' in scope.row ? scope.row.total_indexes + scope.row.streaming_indexes : scope.row.total_indexes) || 0}}</span>
           </template>
         </el-table-column>
         <!-- <el-table-column

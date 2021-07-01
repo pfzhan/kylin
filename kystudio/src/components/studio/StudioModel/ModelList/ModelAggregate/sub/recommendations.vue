@@ -163,7 +163,7 @@
       </el-table>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button size="medium" @click="showIndexDetail = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="medium" icon="el-icon-ksd-accept" @click="acceptLayout" :loading="accessLoading">{{$t('accept')}}</el-button>
+        <el-button type="primary" size="medium" icon="el-ksd-icon-confirm_22" @click="acceptLayout" :loading="accessLoading">{{$t('accept')}}</el-button>
       </div>
     </el-dialog>
     <!-- cc/度量/维度更名 -->
@@ -766,14 +766,18 @@ export default class IndexList extends Vue {
           } catch (e) {
             reject()
           }
-        }).catch(e => {
-          const { body: { exception } } = e
-          const data = JSON.parse(exception.split('\n')[1])
-          const errorIds = ArrayFlat(Object.values(data))
-          if (errorIds.length > 0) {
-            this.sameNameErrorIds = errorIds
-          } else {
-            handleError(e)
+        }).catch(error => {
+          const { body: { exception } } = error
+          try {
+            const data = JSON.parse(exception.split('\n')[1])
+            const errorIds = ArrayFlat(Object.values(data))
+            if (errorIds.length > 0) {
+              this.sameNameErrorIds = errorIds
+            } else {
+              handleError(error)
+            }
+          } catch (e) {
+            handleError(error)
           }
           // handleError(e)
           reject()

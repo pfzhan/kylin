@@ -182,13 +182,13 @@ export default class TableIndexView extends Vue {
     }
   }
   async editTableIndex (indexDesc) {
-    const isSubmit = await this.showTableIndexEditModal({
+    const { isSubmit } = await this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
       tableIndexDesc: indexDesc || {name: 'TableIndex_1'},
       indexUpdateEnabled: this.indexUpdateEnabled
     })
     isSubmit && this.loadTableIndices()
-    isSubmit && this.$emit('loadModels')
+    isSubmit && this.$emit('refreshModel')
   }
   async removeIndex (index) {
     if (!this.handleEditOrDelIndex(index)) return
@@ -203,7 +203,7 @@ export default class TableIndexView extends Vue {
       await this.deleteIndex(params)
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.loadTableIndices()
-      this.$emit('loadModels')
+      this.$emit('refreshModel')
     } catch (e) {
       handleError(e)
     }

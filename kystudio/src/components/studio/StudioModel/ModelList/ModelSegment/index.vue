@@ -263,12 +263,14 @@
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :visible.sync="isShowRefreshConfirm"
+      @close="handleClose"
       width="480px">
+      <el-alert class="ksd-mb-8" :title="$t('refreshErrorTips')" type="error" show-icon :closable="false" v-if="showRefreshErrorTip"></el-alert>
       <el-alert type="tip" show-icon class="ksd-ptb-0" :show-background="false" :closable="false">
         <span v-if="detailTableData.length">{{$t('confirmRefreshSegments2')}}</span>
         <span v-else>{{$t('confirmRefreshSegments')}}</span>
       </el-alert>
-      <div class="ksd-mt-10" v-if="detailTableData.length">
+      <div class="ksd-mt-10" v-if="detailTableData.length" @change="showRefreshErrorTip = false">
         <el-radio v-model="refreshType" label="refreshOrigin">{{$t('buildCurrentIndexes')}}</el-radio>
         <el-radio v-model="refreshType" label="refreshAll">{{$t('buildAllIndexes')}}</el-radio>
       </div>
@@ -493,7 +495,7 @@ export default class ModelSegment extends Vue {
     mpValues: '',
     startDate: '',
     endDate: '',
-    reverse: true,
+    reverse: false,
     sortBy: 'last_modified_time'
   }
   pagination = {
@@ -546,6 +548,7 @@ export default class ModelSegment extends Vue {
   duplicateValueError = false
   mergeError = false
   timestamp = Date.now().toString(32)
+  showRefreshErrorTip = false
 
   get getDetails () {
     let notices = [
@@ -888,16 +891,31 @@ export default class ModelSegment extends Vue {
   }
   handleClose () {
     this.isShowRefreshConfirm = false
+    this.showRefreshErrorTip = false
     this.refreshType = 'refreshOrigin'
   }
   async handleSubmit () {
     try {
       const projectName = this.currentSelectedProject
       const modelId = this.modelId
-      const segmentIds = this.selectedSegmentIds
+      let segmentIds = this.selectedSegmentIds
       const refresh_all_indexes = this.refreshType === 'refreshAll'
+      const lockedIndexSegmentList = this.selectedSegments.filter(it => it.index_count === it.locked_index_count)
+      const lockedIndexSegmentIds = lockedIndexSegmentList.map(it => it.id)
+      if (lockedIndexSegmentList.length === segmentIds.length) {
+        this.showRefreshErrorTip = true
+        return
+      }
       this.refreshLoading = true
-      const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds, refresh_all_indexes })
+      if (!refresh_all_indexes) {
+        segmentIds = segmentIds.filter(id => !lockedIndexSegmentIds.includes(id))
+      }
+      const isSubmit = await this.refreshSegments({
+        projectName,
+        modelId,
+        segmentIds,
+        refresh_all_indexes
+      })
       if (isSubmit) {
         await this.loadSegments()
         // this.$emit('loadModels')

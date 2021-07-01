@@ -96,6 +96,7 @@
               :model="currentModelRow"
               :project-name="currentSelectedProject"
               :isShowEditAgg="datasourceActions.includes('editAggGroup')"
+              @refreshModel="refreshModelData"
               v-if="currentIndexTab === 'aggGroup'" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" v-if="datasourceActions.includes('editAggGroup')" :label="$t('tableIndex')" name="tableIndex">
@@ -103,6 +104,7 @@
               :model="currentModelRow"
               :project-name="currentSelectedProject"
               :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
+              @refreshModel="refreshModelData"
               v-if="currentIndexTab === 'tableIndex'" />
           </el-tab-pane>
         </el-tabs>
