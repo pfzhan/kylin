@@ -647,6 +647,42 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "inner");
     }
 
+    @Test
+    public void testAggpushdownWithMultipleAgg() throws Exception {
+        val sql1 = new String[] {
+                "select * from TEST_KYLIN_FACT",
+                "select * from TEST_ACCOUNT",
+                "select * from TEST_COUNTRY"};
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
+        val smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
+        buildAllCubes(getTestConfig(), "newten");
+
+        val sql2 = "select d.ACCOUNT_CONTACT from\n"
+                + "TEST_KYLIN_FACT c\n"
+                + "inner join (\n"
+                + "select a.ACCOUNT_ID, a.ACCOUNT_COUNTRY, e.COUNTRY, a.ACCOUNT_CONTACT\n"
+                + "from TEST_ACCOUNT a\n"
+
+                + "inner join TEST_COUNTRY e\n"
+                + "on a.ACCOUNT_COUNTRY = e.COUNTRY\n"
+
+                + "inner join TEST_KYLIN_FACT b\n"
+                + "on a.ACCOUNT_ID = b.SELLER_ID\n"
+                + "and b.LSTG_FORMAT_NAME = e.NAME\n"
+
+                + "group by a.ACCOUNT_ID, a.ACCOUNT_COUNTRY, e.COUNTRY, a.ACCOUNT_CONTACT\n"
+                + ") d on c.SELLER_ID = d.ACCOUNT_ID\n"
+                + "group by d.ACCOUNT_CONTACT";
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(new Pair<>("aggPushdownWithMultipleAgg", sql2));
+        populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "default");
+    }
+
     public boolean containMeasure(List<NDataModel.Measure> allMeasures, String expression, String parameter) {
         for (NDataModel.Measure measure : allMeasures) {
             if (measure.getFunction().getExpression().equals(expression)

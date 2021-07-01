@@ -112,7 +112,7 @@ public class SegmentBuildJob extends SegmentJob {
 
     // Copied from DFBuildJob
     protected void tryRefreshSnapshots() throws IOException {
-        SnapshotBuilder snapshotBuilder = new SnapshotBuilder();
+        SnapshotBuilder snapshotBuilder = new SnapshotBuilder(getJobId());
         if (config.isSnapshotManualManagementEnabled()) {
             log.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);

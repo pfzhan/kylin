@@ -492,7 +492,7 @@ export default class queryResult extends Vue {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
       let filterIds = []
       for (let i of this.extraoption.realizations) {
-        if (i.layoutId !== -1 && i.layoutId !== null) {
+        if (i.layoutId !== -1 && i.layoutId !== null && i.layoutId !== 0) {
           filterIds.push({layoutId: i.layoutId, layoutIdType: 'BATCH', secondStorage: i.secondStorage})
         }
         if (i.streamingLayoutId !== -1 && i.streamingLayoutId !== null) {

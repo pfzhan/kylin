@@ -461,7 +461,7 @@ exports.default = {
   },
   menu: {
     dashboard: 'Home',
-    studio: 'Studio',
+    studio: 'Data Asset',
     insight: 'Insight',
     monitor: 'Monitor',
     system: 'System',
@@ -482,7 +482,7 @@ exports.default = {
     user: 'User',
     group: 'Group',
     datasource: 'Data Source',
-    source: 'Source',
+    source: 'Data Source',
     modelList: 'Model',
     index: 'Index',
     modeledit: 'Model Edit',
