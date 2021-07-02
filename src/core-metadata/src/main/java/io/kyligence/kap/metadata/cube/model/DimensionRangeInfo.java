@@ -63,4 +63,10 @@ public class DimensionRangeInfo implements Serializable {
     public void setMax(String max) {
         this.max = max;
     }
+
+    public DimensionRangeInfo merge(DimensionRangeInfo dimensionRangeInfo) {
+        String minValue = this.min.compareTo(dimensionRangeInfo.getMin()) < 0 ? this.min:dimensionRangeInfo.getMin();
+        String maxValue = this.max.compareTo(dimensionRangeInfo.getMax()) > 0 ? this.max: dimensionRangeInfo.getMax();
+        return new DimensionRangeInfo(minValue, maxValue);
+    }
 }

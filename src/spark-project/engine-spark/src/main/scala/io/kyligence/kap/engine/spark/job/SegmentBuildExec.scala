@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job
 
+import java.io.IOException
+import java.util.Objects
+
 import com.google.common.collect.Lists
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
@@ -33,11 +36,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
-import org.apache.spark.sql.{Column, Dataset, Row}
-
-import java.io.IOException
-import java.util.Objects
-import scala.collection.JavaConverters.asScalaSetConverter
+import org.apache.spark.sql.{Dataset, Row}
 
 class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
                        private val dataSegment: NDataSegment) extends SegmentExec {
@@ -55,7 +54,6 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
 
   protected final val dataModel = dataSegment.getModel
   protected final val storageType = dataModel.getStorageType
-  protected final val dimRangeInfo = new java.util.HashMap[String, DimensionRangeInfo]
 
   private final val sanityCheckHandler = new SanityCheckIndexHandler(spanningTree)
 
@@ -81,8 +79,6 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     buildByLayer()
     // Drain results immediately after building.
     drain()
-    // Cal segment dimension range
-    calDimRange()
     // Refresh column bytes.
     tryRefreshColumnBytes()
     // Drain results, shutdown pool, cleanup extra immediate outputs.
@@ -150,34 +146,6 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     }
   }
 
-  private def calDimRange(): Unit = {
-    val dimensions = dataSegment.getDataflow.getIndexPlan.getEffectiveDimCols.keySet()
-    // Not support multi partition for now
-    if (Objects.isNull(dataSegment.getModel.getMultiPartitionDesc)
-      && config.isDimensionRangeFilterEnabled
-      && !dimensions.isEmpty) {
-      val start = System.currentTimeMillis()
-      import org.apache.spark.sql.functions._
-
-      val ds = flatTable.getDS()
-      val columns = NSparkCubingUtil.getColumns(dimensions)
-      val dimDS = ds.select(columns: _*)
-
-      // Calculate max and min of all dimensions
-      val minCols: Array[Column] = dimDS.columns.map(min)
-      val maxCols: Array[Column] = dimDS.columns.map(max)
-      val cols = Array.concat(minCols, maxCols)
-      val row = dimDS.agg(cols.head, cols.tail: _*).head.toSeq.splitAt(columns.length)
-      (dimensions.asScala.toSeq, row._1, row._2)
-        .zipped.map {
-        case (_, null, null) =>
-        case (column, min, max) => dimRangeInfo.put(column.toString, new DimensionRangeInfo(min.toString, max.toString))
-      }
-      val timeCost = System.currentTimeMillis() - start
-      logInfo(s"Segment: $segmentId, calculate dimension range cost $timeCost ms")
-    }
-  }
-
   protected def get1stLayerSources(): Seq[SegmentBuildSource] = {
     SegmentSourceUtils.get1stLayerSources(spanningTree, dataSegment)
   }
@@ -214,7 +182,8 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
         val copiedSegment = copiedDataflow.getSegment(segmentId)
         val dataflowUpdate = new NDataflowUpdate(dataflowId)
         copiedSegment.setSourceCount(stats.totalCount)
-        copiedSegment.setDimensionRangeInfoMap(dimRangeInfo)
+        // Cal segment dimension range
+        copiedSegment.setDimensionRangeInfoMap(calDimRange(dataSegment, flatTable.getDS()))
         // By design, no fencing.
         val columnBytes = copiedSegment.getColumnSourceBytes
         stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
