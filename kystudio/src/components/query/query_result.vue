@@ -89,7 +89,7 @@
       <!-- <el-button-group class="result-layout-btns">
         <el-button :class="{active: item.value === activeResultType}" size="mini" plain v-for="(item, index) in insightBtnGroups" :key="index" @click="changeDataType(item)">{{item.text}}</el-button>
       </el-button-group> -->
-      <el-tabs v-model="activeResultType" class="ksd-mt-16" type="button" :class="{'en-model': $lang==='en'}">
+      <el-tabs v-model="activeResultType" class="ksd-mt-16" type="button" :class="{'en-model': $lang==='en'}" @tab-click="changeDataType">
           <el-tab-pane :label="$t('dataBtn')" name="data">
             <div class="grid-box narrowTable" v-if="!isStop">
               <el-table
@@ -372,9 +372,7 @@ export default class queryResult extends Vue {
 
   // 切换数据展示效果
   changeDataType (item) {
-    if (item.value === this.activeResultType) return
-    this.activeResultType = item.value
-    if (item.value === 'visualization') {
+    if (item.name === 'visualization') {
       this.disabledChartType()
       this.chartDimensionList()
       this.$nextTick(() => {

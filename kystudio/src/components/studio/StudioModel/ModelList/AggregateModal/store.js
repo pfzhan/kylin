@@ -10,7 +10,8 @@ const types = {
   INIT_FORM: 'INIT_FORM',
   SHOW_LOADING: 'SHOW_LOADING',
   HIDE_LOADING: 'HIDE_LOADING',
-  SET_MODEL_DATA_LOADED: 'SET_MODEL_DATA_LOADED'
+  SET_MODEL_DATA_LOADED: 'SET_MODEL_DATA_LOADED',
+  GET_STREAMING_INFO: 'GET_STREAMING_INFO'
 }
 export const initialAggregateData = JSON.stringify({
   id: 0,
@@ -42,6 +43,7 @@ const initialState = JSON.stringify({
   aggregateIdx: -1,
   formDataLoaded: false,
   indexUpdateEnabled: true,
+  indexType: '',
   form: {
     isCatchUp: false,
     globalDimCap: null,
@@ -104,7 +106,7 @@ export default {
         state.form.indexUpdateEnabled = payload.indexUpdateEnabled
         state.form.globalDimCap = payload.aggregateGroupRule.global_dim_cap
         state.form.isDimClearable = !!payload.aggregateGroupRule.global_dim_cap
-        state.form.aggregateArray = payload.aggregateGroupRule.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
+        const aggGroups = payload.aggregateGroupRule.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
           const index_range = aggregationGroup.index_range
           const id = payload.aggregateGroupRule.aggregation_groups.length - aggregateIdx
           const includes = aggregationGroup.includes.map(include => nameMapping[include])
@@ -136,6 +138,8 @@ export default {
           measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
           return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap, isEditDim, index_range, curAggIsEdit }
         })
+        state.form.aggregateArray = aggGroups
+
         if (payload.editType === 'new') {
           const initAggregate = JSON.parse(initialAggregateData)
           let measuresList = []
@@ -149,16 +153,17 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model, aggregateIdx, indexUpdateEnabled = true }) {
-      const { dispatch } = this
+    [types.CALL_MODAL] ({ commit, state, dispatch }, { editType, projectName, model, aggregateIdx, indexUpdateEnabled = true, indexType = '' }) {
+      const { dispatch: rootDispatch } = this
 
       return new Promise(async (resolve, reject) => {
         const modelId = model && model.uuid
         commit(types.SET_MODEL_DATA_LOADED, false)
-        commit(types.SET_MODAL, { editType, model, projectName, aggregateIdx, indexUpdateEnabled, callback: resolve })
+        commit(types.SET_MODAL, { editType, model, projectName, aggregateIdx, indexUpdateEnabled, indexType, callback: resolve })
         commit(types.SHOW_LOADING)
         commit(types.SHOW_MODAL)
-        const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
+        indexType && indexType === 'BATCH' && dispatch(types.GET_STREAMING_INFO, { projectName, modelId })
+        const response = await rootDispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
         const aggregateGroupRule = await handleSuccessAsync(response)
         commit(types.HIDE_LOADING)
         if (!aggregateGroupRule || !aggregateGroupRule.aggregation_groups.length) {
@@ -175,6 +180,22 @@ export default {
           commit(types.INIT_FORM, {aggregateGroupRule, editType})
         }, 0)
       })
+    },
+    async [types.GET_STREAMING_INFO] ({commit, state, dispatch}, { projectName, modelId }) {
+      const { dispatch: rootDispatch } = this
+      const res = await rootDispatch('LOAD_ALL_INDEX', {
+        sources: '',
+        status: '',
+        range: 'HYBRID,STREAMING',
+        project: projectName,
+        model: modelId,
+        ids: '',
+        page_offset: 0,
+        page_size: 1,
+        key: ''
+      })
+      const result = await handleSuccessAsync(res)
+      commit(types.SET_MODAL, { indexUpdateEnabled: result.index_update_enabled })
     }
   },
   namespaced: true
