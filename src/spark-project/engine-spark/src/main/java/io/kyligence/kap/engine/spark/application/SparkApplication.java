@@ -36,6 +36,8 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -57,11 +59,13 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Application;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
+import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.KylinSession;
@@ -69,6 +73,7 @@ import org.apache.spark.sql.KylinSession$;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.SparkSessionExtensions;
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.apache.spark.sql.catalyst.rules.Rule;
 import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
@@ -93,6 +98,9 @@ import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.pushdown.SparkSubmitter;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
@@ -345,7 +353,7 @@ public abstract class SparkApplication implements Application, IKeep {
             extraDestroy();
         }
     }
-    
+
     protected void handleException(Exception e) throws Exception {
         throw e;
     }
@@ -499,5 +507,37 @@ public abstract class SparkApplication implements Application, IKeep {
 
     private Map<String, String> getApplicationSparkConfig(KylinConfig config) {
         return getSparkConfigOverride(config);
+    }
+
+    protected void checkDateFormatIfExist(String project, String modelId) throws Exception {
+        if (config.isUTEnv()) {
+            return;
+        }
+        val modelManager = NDataModelManager.getInstance(config, project);
+        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
+        val partitionDesc = modelDesc.getPartitionDesc();
+        if (partitionDesc == null || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+                || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
+            return;
+
+        if (CatalogTableType.VIEW().name().equals(modelDesc.getRootFactTable().getTableDesc().getTableType()))
+            return;
+
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
+
+        try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance().overrideSparkSession(ss)) {
+            String dateString = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn,
+                    project);
+            val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat(),
+                    Locale.getDefault(Locale.Category.FORMAT));
+            val date = sdf.parse(dateString);
+            if (date == null || !dateString.equals(sdf.format(date))) {
+                throw new NoRetryException("date format not match");
+            }
+        } catch (KylinException ignore) {
+            // ignore it when pushdown return empty row
+        } catch (ParseException | NoRetryException e) {
+            throw new NoRetryException("date format not match");
+        }
     }
 }

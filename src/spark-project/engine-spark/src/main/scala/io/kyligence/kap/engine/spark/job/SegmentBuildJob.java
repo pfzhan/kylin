@@ -59,6 +59,9 @@ public class SegmentBuildJob extends SegmentJob {
 
     @Override
     protected final void doExecute() throws Exception {
+        if (config.isBuildCheckPartitionColEnabled()) {
+            checkDateFormatIfExist(project, dataflowId);
+        }
         tryRefreshSnapshots();
         build();
         updateSegmentSourceBytesSize();

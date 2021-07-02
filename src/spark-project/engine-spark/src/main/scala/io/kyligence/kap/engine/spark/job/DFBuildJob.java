@@ -25,15 +25,12 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,14 +44,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.query.util.PushDownUtil;
-import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
 import org.apache.spark.sql.datasource.storage.StorageStore;
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
@@ -83,9 +76,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.query.pushdown.SparkSubmitter;
 import lombok.val;
 import scala.collection.JavaConversions;
 
@@ -197,7 +187,7 @@ public class DFBuildJob extends SparkApplication {
     private void computeColumnBytes(DFChooser datasetChooser, NDataSegment seg, String dataflowId, String path) {
         ss.sparkContext().setJobDescription("Compute column bytes");
         val df = ss.read().parquet(path);
-        val columnBytes = (Map<String, Object>)JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
+        val columnBytes = (Map<String, Object>) JavaConversions.mapAsJavaMap(datasetChooser.computeColumnBytes(df));
         updateColumnBytesInseg(dataflowId, columnBytes, seg.getId(), df.count());
         ss.sparkContext().setJobDescription(null);
     }
@@ -481,38 +471,6 @@ public class DFBuildJob extends SparkApplication {
     public static void main(String[] args) {
         DFBuildJob nDataflowBuildJob = new DFBuildJob();
         nDataflowBuildJob.execute(args);
-    }
-
-    private void checkDateFormatIfExist(String project, String modelId) throws Exception {
-        if (config.isUTEnv()) {
-            return;
-        }
-        val modelManager = NDataModelManager.getInstance(config, project);
-        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
-        val partitionDesc = modelDesc.getPartitionDesc();
-        if (partitionDesc == null || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
-                || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
-            return;
-
-        if (CatalogTableType.VIEW().name().equals(modelDesc.getRootFactTable().getTableDesc().getTableType()))
-            return;
-
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
-
-        try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance().overrideSparkSession(ss)) {
-            String dateString = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn,
-                    project);
-            val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat(),
-                    Locale.getDefault(Locale.Category.FORMAT));
-            val date = sdf.parse(dateString);
-            if (date == null || !dateString.equals(sdf.format(date))) {
-                throw new NoRetryException("date format not match");
-            }
-        } catch (KylinException ignore) {
-            // ignore it when pushdown return empty row
-        } catch (ParseException | NoRetryException e) {
-            throw new NoRetryException("date format not match");
-        }
     }
 
     private void resetSegmentMemOnly(Set<String> segmentIds, final boolean resetFlatTable) {
