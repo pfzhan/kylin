@@ -1906,7 +1906,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
 
         Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
-        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getAllToBeDeleteLayoutId()));
         Assert.assertEquals(dataflow.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
@@ -1932,7 +1932,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
 
         Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
-        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getAllToBeDeleteLayoutId()));
     }
 
     @Test
@@ -1961,6 +1961,100 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "Can’t delete the segment(s) in model \"nmodel_basic_inner\" under the current project settings.");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
+    }
+
+    @Test
+    public void testPurgeModelClearLockedIndex() {
+        String project = "default";
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        // remove
+        long tobeDeleteLayoutId = 20000000001L;
+
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        val df = dfManager.getDataflow(modelId);
+
+        //clear segment from df
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        //add two segment(include full layout)
+        val update2 = new NDataflowUpdate(df.getUuid());
+        val seg1 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
+        val seg2 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(seg1, seg2);
+
+        List<NDataLayout> layouts = Lists.newArrayList();
+        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
+            layouts.add(NDataLayout.newDataLayout(df, seg1.getId(), layout.getId()));
+            layouts.add(NDataLayout.newDataLayout(df, seg2.getId(), layout.getId()));
+        });
+        update2.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+        dfManager.updateDataflow(update2);
+        // mark a layout tobedelete
+        indexManager.updateIndexPlan(modelId,
+                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId)));
+        Assert.assertFalse(
+                NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().isEmpty());
+        modelService.purgeModel(modelId, project);
+        Assert.assertTrue(
+                NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().isEmpty());
+    }
+
+    @Test
+    public void testRefreshSegmentClearLockedIndex() {
+        String project = "default";
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        val df = dfManager.getDataflow(modelId);
+
+        //clear segment from df
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        //add two segment(include full layout)
+        val update2 = new NDataflowUpdate(df.getUuid());
+        val seg1 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
+        val seg2 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(seg1, seg2);
+        List<NDataLayout> layouts = Lists.newArrayList();
+        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
+            layouts.add(NDataLayout.newDataLayout(df, seg1.getId(), layout.getId()));
+            layouts.add(NDataLayout.newDataLayout(df, seg2.getId(), layout.getId()));
+        });
+        update2.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+        dfManager.updateDataflow(update2);
+
+        // remove
+        long tobeDeleteLayoutId = 20000000001L;
+
+        // mark a layout tobedelete
+        indexManager.updateIndexPlan(modelId,
+                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId)));
+        Assert.assertFalse(indexManager.getIndexPlan(modelId).getToBeDeletedIndexes().isEmpty());
+
+        //remove tobedelete layout from seg1
+        val newDf = dfManager.getDataflow(modelId);
+        dfManager.updateDataflowDetailsLayouts(newDf.getSegments().get(0), layouts.stream()
+                .filter(layout -> layout.getLayoutId() != tobeDeleteLayoutId).collect(Collectors.toList()));
+
+        // remove seg2 and tobedelete layout should be cleared from indexplan
+        val update3 = new NDataflowUpdate(newDf.getUuid());
+        update3.setToRemoveSegs(newDf.getSegments().get(1));
+        dfManager.updateDataflow(update3);
+
+        Assert.assertTrue(indexManager.getIndexPlan(modelId).getToBeDeletedIndexes().isEmpty());
     }
 
     @Test

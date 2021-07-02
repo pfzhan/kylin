@@ -677,7 +677,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 nDataSegDetailsManager.removeForSegment(copy, segment.getId());
             }
         }
-
         return crud.save(copy);
     }
 
@@ -709,7 +708,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {
-        return updateDataflow(update.getDataflowId(), copyForWrite -> {
+        updateDataflow(update.getDataflowId(), copyForWrite -> {
             NDataflow df = copyForWrite;
             Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 
@@ -765,6 +764,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 }
             }
         });
+        if (ArrayUtils.isNotEmpty(update.getToRemoveSegs())) {
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(update.getDataflowId());
+            if (!indexPlan.isBroken() && !indexPlan.getAllToBeDeleteLayoutId().isEmpty()) {
+                indexPlanManager.updateIndexPlan(update.getDataflowId(), IndexPlan::removeTobeDeleteIndexIfNecessary);
+            }
+        }
+        return getDataflow(update.getDataflowId());
     }
 
     private void updateSegmentStatus(NDataSegment seg) {

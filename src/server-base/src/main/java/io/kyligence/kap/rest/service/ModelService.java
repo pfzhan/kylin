@@ -1207,8 +1207,6 @@ public class ModelService extends BasicService {
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
             nDataflowUpdate.setToRemoveSegs(nDataSegments);
             dataflowManager.updateDataflow(nDataflowUpdate);
-
-            cleanIndexPlanWhenNoSegments(project, modelId);
         }
         offlineModelIfNecessary(dataflowManager, modelId);
     }
@@ -2563,6 +2561,8 @@ public class ModelService extends BasicService {
                 layouts.removeIf(layout -> indexIds.contains(layout.getLayoutId()));
                 dfManger.updateDataflowDetailsLayouts(seg, layouts);
             }
+            getIndexPlanManager(project).updateIndexPlan(dataflow.getUuid(),
+                    IndexPlan::removeTobeDeleteIndexIfNecessary);
             return null;
         }, project);
     }
@@ -3029,7 +3029,6 @@ public class ModelService extends BasicService {
             getJobManager(project).addJob(param, jobHandler);
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
-        cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
         offlineModelIfNecessary(dataflowManager, model);
     }
 
