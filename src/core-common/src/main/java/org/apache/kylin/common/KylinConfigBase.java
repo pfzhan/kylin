@@ -1611,6 +1611,7 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
                 new String[]{"org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                         "org.apache.kylin.query.util.PowerBIConverter",
+                        "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
                         "io.kyligence.kap.query.util.RestoreFromComputedColumn",
                         "io.kyligence.kap.query.security.RowFilter",
                         "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
