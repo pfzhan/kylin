@@ -32,7 +32,6 @@ import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
@@ -137,6 +136,7 @@ public class NDataSegmentResponse extends NDataSegment {
         setLastBuildTime(segment.getLastBuildTime());
         setSegDetails(segment.getSegDetails());
         setMaxBucketId(segment.getMaxBucketId());
+        lastModifiedTime = getLastBuildTime() != 0 ? getLastBuildTime() : getCreateTime();
     }
 
     /**
@@ -157,9 +157,7 @@ public class NDataSegmentResponse extends NDataSegment {
         private long inputRecords;
     }
 
-    @JsonGetter("last_modified_time")
-    public long lastModifiedTime() {
-        return getLastBuildTime() != 0 ? getLastBuildTime() : getCreateTime();
-    }
+    @JsonProperty("last_modified_time")
+    private long lastModifiedTime;
 
 }

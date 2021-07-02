@@ -736,8 +736,8 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "with_indexes", required = false) List<Long> withAllIndexes,
             @RequestParam(value = "without_indexes", required = false) List<Long> withoutAnyIndexes,
             @RequestParam(value = "all_to_complement", required = false, defaultValue = "false") Boolean allToComplement,
-            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean reverse) {
         checkProjectName(project);
         validateRange(start, end);
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(dataflowId, project, start, end, status,

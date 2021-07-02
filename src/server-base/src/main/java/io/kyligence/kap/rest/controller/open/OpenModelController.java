@@ -284,8 +284,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "start", required = false, defaultValue = "1") String start,
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
-            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified_time") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean reverse) {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getUuid();
         return modelController.getSegments(modelId, projectName, status, offset, limit, start, end, null, null, false,
