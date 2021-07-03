@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.query.util.RexUtils;
+import lombok.val;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
@@ -39,8 +40,11 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -319,10 +323,37 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     }
 
     private void collectJoinColsToContext(Collection<TblColRef> joinColumns, OLAPContext context) {
-        joinColumns.stream()
+        val sourceJoinKeyCols = joinColumns.stream()
                 .flatMap(col -> col.getSourceColumns().stream())
-                .filter(context::belongToContextTables)
-                .forEach(coLRef -> context.allColumns.add(coLRef));
+                .filter(context::belongToContextTables).collect(Collectors.toSet());
+        context.allColumns.addAll(sourceJoinKeyCols);
+
+        if (context.getOuterJoinParticipants().isEmpty() && isDirectOuterJoin(this, context)) {
+            context.getOuterJoinParticipants().addAll(sourceJoinKeyCols);
+        }
+    }
+
+    /**
+     * only jon, filter, project is allowed
+     * @param currentNode
+     * @param context
+     * @return
+     */
+    private boolean isDirectOuterJoin(RelNode currentNode, OLAPContext context) {
+        if (currentNode == this && currentNode instanceof Join) {
+            for (RelNode input : currentNode.getInputs()) {
+                if (isDirectOuterJoin(input, context)) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (((KapRel) currentNode).getContext() == context) {
+            return true;
+        } else if (currentNode instanceof Project || currentNode instanceof Filter) {
+            return isDirectOuterJoin(currentNode.getInput(0), context);
+        } else {
+            return false;
+        }
     }
 
     @Override

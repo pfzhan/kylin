@@ -181,6 +181,10 @@ class FilePruner(val session: SparkSession,
   }
 
   def getShardSpec: Option[ShardSpec] = {
+    if (!options.getOrElse("bucketingEnabled", "false").toBoolean) {
+      return None
+    }
+
     val segIds = options.getOrElse("pruningInfo", throw new RuntimeException("empty pruningInfo")).split(',').map(segInfo =>
       segInfo.split(":")(0)
     )

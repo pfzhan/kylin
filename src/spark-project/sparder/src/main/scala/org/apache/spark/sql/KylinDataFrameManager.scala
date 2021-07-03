@@ -66,6 +66,10 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     this
   }
 
+  def bucketingEnabled(bucketingEnabled: Boolean): KylinDataFrameManager = {
+    option("bucketingEnabled", bucketingEnabled)
+  }
+
   def cuboidTable(dataflow: NDataflow, layout: LayoutEntity, pruningInfo: String): DataFrame = {
     SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
       format("parquet")
