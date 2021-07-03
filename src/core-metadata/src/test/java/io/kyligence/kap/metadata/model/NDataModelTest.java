@@ -152,4 +152,16 @@ public class NDataModelTest {
         Assert.assertNull(model.getNameByColumnId(300));
     }
 
+    @Test
+    public void testBrokenModel() {
+        try {
+            mgr.init(config, "broken_test");
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+        NDataModel model = mgr.getDataModelDesc("a9e4c7d2-60c8-4a16-9949-2c8ed0199efd");
+        Assert.assertEquals(NDataModel.ModelType.BATCH, model.getModelType());
+        Assert.assertEquals(true, model.isBroken());
+    }
 }

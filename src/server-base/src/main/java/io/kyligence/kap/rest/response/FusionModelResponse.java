@@ -60,6 +60,9 @@ public class FusionModelResponse extends NDataModelResponse {
     @JsonProperty("batch_partition_desc")
     private PartitionDesc batchPartitionDesc;
 
+    @JsonProperty("batch_segment_holes")
+    private List<SegmentRange> batchSegmentHoles;
+
     public FusionModelResponse(NDataModel dataModel) {
         super(dataModel);
     }
@@ -81,12 +84,14 @@ public class FusionModelResponse extends NDataModelResponse {
         this.setLastBuildTime(getMaxLastBuildTime(batchDataflow, streamingDataflow));
         this.setStorage(getTotalStorage(batchDataflow, streamingDataflow));
         this.setSource(getTotalSource(batchDataflow, streamingDataflow));
-        this.setSegmentHoles(calculateTotalSegHoles(batchDataflow));
+        this.setBatchSegmentHoles(calculateTotalSegHoles(batchDataflow));
+        this.setSegmentHoles(calculateTotalSegHoles(streamingDataflow));
         this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
         this.setUsage(getTotalUsage(batchDataflow, streamingDataflow));
         this.setInconsistentSegmentCount(getTotalInconsistentSegmentCount(batchDataflow, streamingDataflow));
         if (!modelDesc.isBroken() && !batchModel.isBroken()) {
-            this.setHasSegments(this.isHasSegments() || CollectionUtils.isNotEmpty(batchDataflow.getSegments()));
+            this.setHasSegments(CollectionUtils.isNotEmpty(streamingDataflow.getSegments())
+                    || CollectionUtils.isNotEmpty(batchDataflow.getSegments()));
             this.setBatchPartitionDesc(fusionModel.getBatchModel().getPartitionDesc());
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                     this.getProject());

@@ -1363,31 +1363,39 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
         streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+
+        List<NDataModelResponse> models = modelService.getModels("streaming_test", project, true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertFalse(models.get(0).isHasSegments());
+        Assert.assertEquals(ModelStatusToDisplayEnum.OFFLINE, models.get(0).getStatus());
     }
 
     @Test
     public void testUpdateFusionDataModelStatus1() {
         val project = "streaming_test";
         val mgr = NDataflowManager.getInstance(getTestConfig(), project);
-        var batchDataflow = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
-        NDataSegment batchSeg = mgr.appendSegment(batchDataflow, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
-        batchSeg.setStatus(SegmentStatusEnum.READY);
-        val update = new NDataflowUpdate(batchDataflow.getUuid());
-        update.setToUpdateSegs(batchSeg);
-        mgr.updateDataflow(update);
+        var batchDataflow = mgr.getDataflow("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
         var batchStatus = batchDataflow.getStatus();
-        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
-
-        var streamingDataflow = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
-        var streamingStatus = streamingDataflow.getStatus();
-        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
-
-        modelService.updateDataModelStatus("b05034a8-c037-416b-aa26-9e6b4a41ee40", project, "ONLINE");
-
-        batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
         Assert.assertEquals(RealizationStatusEnum.ONLINE, batchStatus);
-        streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+
+        modelService.updateDataModelStatus("cd2b9a23-699c-4699-b0dd-38c9412b3dfd", project, "OFFLINE");
+        var streamingDataflow = mgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        var streamingStatus = streamingDataflow.getStatus();
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, streamingStatus);
+
+        List<NDataModelResponse> models = modelService.getModels("model_streaming", project, true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertTrue(models.get(0).isHasSegments());
+        Assert.assertEquals(ModelStatusToDisplayEnum.ONLINE, models.get(0).getStatus());
+
+        modelService.updateDataModelStatus("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, "OFFLINE");
+        batchStatus = mgr.getDataflow("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+        streamingStatus = mgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d").getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+
     }
 
     @Test
@@ -1415,6 +1423,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
         streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
         Assert.assertEquals(RealizationStatusEnum.ONLINE, streamingStatus);
+
+        List<NDataModelResponse> models = modelService.getModels("streaming_test", project, true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertTrue(models.get(0).isHasSegments());
+        // batch: online & no index, streaming:offline  ==> WARNING
+        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, models.get(0).getStatus());
     }
 
     @Test
@@ -4897,6 +4912,27 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 new String[] { "20171104141833_20171105141833" });
         String[] originSegIds = { "11124840-b3e3-43db-bcab-2b78da666d00" };
         Assert.assertTrue(ArrayUtils.isEquals(segIds, originSegIds));
+    }
+
+    @Test
+    public void testCheckSegmentsExistById() {
+        boolean existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00" }, false);
+        Assert.assertTrue(existed);
+
+        existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
+        Assert.assertFalse(existed);
+    }
+
+    @Test
+    public void testCheckSegmentsExistByName() {
+        boolean existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "20171104141833_20171105141833" }, false);
+        Assert.assertTrue(existed);
+        existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "20171104141833_20171105141833_not" }, false);
+        Assert.assertFalse(existed);
     }
 
     @Test

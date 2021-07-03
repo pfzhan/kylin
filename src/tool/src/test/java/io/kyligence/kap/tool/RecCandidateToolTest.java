@@ -102,7 +102,7 @@ public class RecCandidateToolTest extends NLocalFileMetadataTestCase {
     @Test
     public void testExtractFull() {
         HashMap<String, Integer> map = new HashMap<>();
-        map.put("broken_test", 3);
+        map.put("broken_test", 4);
         map.put("gc_test", 2);
         map.put("cc_test", 2);
 

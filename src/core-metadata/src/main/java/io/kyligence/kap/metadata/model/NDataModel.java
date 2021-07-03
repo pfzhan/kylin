@@ -691,6 +691,7 @@ public class NDataModel extends RootPersistentEntity {
         if (StringUtils.isEmpty(this.alias)) {
             this.alias = this.uuid;
         }
+        checkModelType();
     }
 
     private void initJoinTablesForUpgrade() {
@@ -950,6 +951,13 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         joinTables = orderedJoinTables;
+    }
+
+    private void checkModelType() {
+        ModelType modelTypeFromTable = getModelTypeFromTable();
+        if (modelType != null && modelType != modelTypeFromTable) {
+            throw new IllegalStateException("Model Type is inconsistent.");
+        }
     }
 
     /**

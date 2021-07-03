@@ -56,6 +56,7 @@ import io.kyligence.kap.streaming.rest.RestSupport;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -110,6 +111,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
         segUpdate.setStatus(SegmentStatusEnum.READY);
         val dfUpdate = new NDataflowUpdate(buildJobEntry.dataflowId());
         dfUpdate.setToUpdateSegs(segUpdate);
+        dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
         dfMgr.updateDataflow(dfUpdate);
         return 0;
       }, project);
@@ -118,6 +120,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
       String url = "/streaming_jobs/dataflow/segment";
       SegmentMergeRequest req = new SegmentMergeRequest(project, buildJobEntry.dataflowId());
       req.setNewSegId(buildJobEntry.batchSegment().getId());
+      req.setStatus("ONLINE");
       try{
         rest.execute(rest.createHttpPut(url), req);
       }finally {

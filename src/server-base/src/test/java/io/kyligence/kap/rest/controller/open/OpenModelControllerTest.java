@@ -34,11 +34,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -107,6 +109,9 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private ModelService modelService;
+
+    @Mock
+    private FusionModelService fusionModelService;
 
     @Mock
     private AclEvaluate aclEvaluate;
@@ -265,7 +270,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
-        Mockito.doReturn(ids).when(modelService).convertSegmentIdWithName(modelId, project, ids, null);
+        Mockito.doReturn(new Pair("model_id", ids)).when(fusionModelService).convertSegmentIdWithName(modelId, project,
+                ids, null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
                 .param("project", "default") //
                 .param("parallel", "false") //

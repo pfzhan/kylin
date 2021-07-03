@@ -24,8 +24,15 @@
 
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
+import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,6 +47,10 @@ import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Locale;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR;
 
 @Slf4j
 @Service("fusionModelService")
@@ -126,4 +137,51 @@ public class FusionModelService extends BasicService {
         modelService.updateModelOwner(project, modelId, ownerChangeRequest);
     }
 
+    public Pair<String, String[]> convertSegmentIdWithName(String modelId, String project, String[] segIds,
+            String[] segNames) {
+        if (ArrayUtils.isEmpty(segNames)) {
+            return new Pair<>(modelId, segIds);
+        }
+        val dataModel = modelService.getModelById(modelId, project);
+        String targetModelId = modelId;
+        if (dataModel.isFusionModel()) {
+            boolean existedInStreaming = modelService.checkSegmentsExistByName(targetModelId, project, segNames, false);
+            if (!existedInStreaming) {
+                targetModelId = getBatchModel(modelId, project).getUuid();
+            }
+        }
+        String[] segmentIds = modelService.convertSegmentIdWithName(targetModelId, project, segIds, segNames);
+        return new Pair<>(targetModelId, segmentIds);
+    }
+
+    public JobInfoResponseWithFailure addIndexesToSegments(String modelId,
+            IndexesToSegmentsRequest buildSegmentsRequest) {
+        String targetModelId = modelId;
+        NDataModel dataModel = modelService.getModelById(modelId, buildSegmentsRequest.getProject());
+        if (dataModel.getModelType() == NDataModel.ModelType.HYBRID) {
+            boolean existedInStreaming = modelService.checkSegmentsExistById(targetModelId,
+                    buildSegmentsRequest.getProject(), buildSegmentsRequest.getSegmentIds().toArray(new String[0]),
+                    false);
+            if (existedInStreaming) {
+                throw new KylinException(SEGMENT_UNSUPPORTED_OPERATOR,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
+            } else {
+                targetModelId = getBatchModel(modelId, buildSegmentsRequest.getProject()).getUuid();
+            }
+        } else if (dataModel.getModelType() == NDataModel.ModelType.STREAMING) {
+            throw new KylinException(SEGMENT_UNSUPPORTED_OPERATOR,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getFIX_STREAMING_SEGMENT()));
+        }
+
+        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
+                targetModelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
+                buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority());
+        return response;
+    }
+
+    private NDataModel getBatchModel(String fusionModelId, String project) {
+        val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val fusionModel = fusionModelManager.getFusionModel(fusionModelId);
+        return fusionModel.getBatchModel();
+    }
 }

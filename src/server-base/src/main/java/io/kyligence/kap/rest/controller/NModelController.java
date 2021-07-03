@@ -905,9 +905,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
-        JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
-                modelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
-                buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority());
+        val response = fusionModelService.addIndexesToSegments(modelId, buildSegmentsRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

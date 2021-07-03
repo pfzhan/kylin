@@ -1591,4 +1591,8 @@ public class Message {
     public String getPARTITION_COLUMN_NOT_AVAILABLE() {
         return "Can’t turn on tiered storage. Please add time partition column to the base table index first.";
     }
+
+    public String getFIX_STREAMING_SEGMENT() {
+        return "Can’t fix segment in streaming model.";
+    }
 }
