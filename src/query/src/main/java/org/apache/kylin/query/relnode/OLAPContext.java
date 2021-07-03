@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -320,11 +321,30 @@ public class OLAPContext {
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
                     List<String> snapshots = Lists.newArrayList(tableSets);
-                    val realization =new NativeQueryRealization(modelId, modelAlias,
-                            ctx.storageContext.getCuboidLayoutId(), ctx.storageContext.getStreamingLayoutId(),
-                            realizationType, ctx.storageContext.isPartialMatchModel(), snapshots);
-                    realization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
-                    realizations.add(realization);
+
+                    if (ctx.storageContext.getStreamingLayoutId() != -1L) {
+                        val streamingRealization = new NativeQueryRealization(modelId, modelAlias,
+                                ctx.storageContext.getStreamingLayoutId(), realizationType,
+                                ctx.storageContext.isPartialMatchModel(), snapshots);
+                        streamingRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
+                                .getOrDefault(streamingRealization.getLayoutId(), false));
+                        realizations.add(streamingRealization);
+
+                        String batchId = ((HybridRealization) ctx.realization).getBatchRealization().getUuid();
+                        val batchRealization = new NativeQueryRealization(batchId, modelAlias,
+                                ctx.storageContext.getCuboidLayoutId(), realizationType,
+                                ctx.storageContext.isPartialMatchModel(), snapshots);
+                        batchRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
+                                .getOrDefault(batchRealization.getLayoutId(), false));
+                        realizations.add(batchRealization);
+                    } else {
+                        val realization = new NativeQueryRealization(modelId, modelAlias,
+                                ctx.storageContext.getCuboidLayoutId(), realizationType,
+                                ctx.storageContext.isPartialMatchModel(), snapshots);
+                        realization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
+                                .getOrDefault(realization.getLayoutId(), false));
+                        realizations.add(realization);
+                    }
                 }
             }
         }

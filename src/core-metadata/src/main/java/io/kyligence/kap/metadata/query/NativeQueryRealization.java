@@ -56,12 +56,11 @@ public class NativeQueryRealization implements Serializable {
     @Setter
     private NDataModelAclParams aclParams;
 
-    public NativeQueryRealization(String modelId, String modelAlias, Long layoutId, Long streamingLayoutId, String indexType,
+    public NativeQueryRealization(String modelId, String modelAlias, Long layoutId, String indexType,
                                   boolean isPartialMatchModel, List<String> snapshots) {
         this.modelId = modelId;
         this.modelAlias = modelAlias;
         this.layoutId = layoutId;
-        this.streamingLayoutId = streamingLayoutId;
         this.indexType = indexType;
         this.isPartialMatchModel = isPartialMatchModel;
         this.snapshots = snapshots;
@@ -71,15 +70,6 @@ public class NativeQueryRealization implements Serializable {
         this.modelId = modelId;
         this.layoutId = layoutId;
         this.indexType = indexType;
-        this.isPartialMatchModel = false;
-    }
-
-    public NativeQueryRealization(String modelId, Long layoutId, Long streamingLayoutId, String indexType, List<String> snapshots) {
-        this.modelId = modelId;
-        this.layoutId = layoutId;
-        this.streamingLayoutId = streamingLayoutId;
-        this.indexType = indexType;
-        this.snapshots = snapshots;
         this.isPartialMatchModel = false;
     }
 

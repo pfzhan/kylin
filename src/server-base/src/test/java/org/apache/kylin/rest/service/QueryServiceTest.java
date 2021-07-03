@@ -65,6 +65,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -454,6 +455,40 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         tableMock.storageContext.setCuboidLayoutId(1L);
         tableMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(tableMock);
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+        mockQueryWithSqlMassage();
+    }
+
+    private void mockOLAPContextWithHybrid() throws Exception {
+        val modelManager = Mockito
+                .spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test"));
+
+        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("streaming_test");
+        // mock agg index realization
+        OLAPContext aggMock = new OLAPContext(1);
+        NDataModel mockModel1 = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel1.getUuid()).thenReturn("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        Mockito.when(mockModel1.getAlias()).thenReturn("model_streaming");
+        Mockito.doReturn(mockModel1).when(modelManager).getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+
+        IRealization batchRealization = Mockito.mock(IRealization.class);
+        Mockito.when(batchRealization.getUuid()).thenReturn("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
+
+        HybridRealization hybridRealization = Mockito.mock(HybridRealization.class);
+        Mockito.when(hybridRealization.getModel()).thenReturn(mockModel1);
+        Mockito.when(hybridRealization.getBatchRealization()).thenReturn(batchRealization);
+
+        aggMock.realization = hybridRealization;
+        IndexEntity mockIndexEntity1 = new IndexEntity();
+        mockIndexEntity1.setId(1);
+        LayoutEntity mockLayout1 = new LayoutEntity();
+        mockLayout1.setIndex(mockIndexEntity1);
+        aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
+        aggMock.storageContext.setCuboidLayoutId(20001L);
+        aggMock.storageContext.setStreamingLayoutId(10001L);
+        aggMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
+        OLAPContext.registerContext(aggMock);
 
         Mockito.doNothing().when(queryService).clearThreadLocalContexts();
         mockQueryWithSqlMassage();
@@ -1443,5 +1478,30 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final SQLResponse response = queryService.doQueryWithCache(request);
             Assert.assertEquals(0, response.getResults().size());
         }
+    }
+
+    @Test
+    public void testQueryContextWithFsuionModel() throws Exception {
+        final String project = "streaming_test";
+        final String sql = "select count(*) from SSB_STREAMING";
+
+        stubQueryConnection(sql, project);
+        mockOLAPContextWithHybrid();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        SQLResponse sqlResponse = queryService.queryWithCache(request);
+
+        Assert.assertEquals(2, sqlResponse.getNativeRealizations().size());
+
+        Assert.assertEquals("4965c827-fbb4-4ea1-a744-3f341a3b030d",
+                sqlResponse.getNativeRealizations().get(0).getModelId());
+        Assert.assertEquals((Long) 10001L,
+                sqlResponse.getNativeRealizations().get(0).getLayoutId());
+        Assert.assertEquals("cd2b9a23-699c-4699-b0dd-38c9412b3dfd",
+                sqlResponse.getNativeRealizations().get(1).getModelId());
+        Assert.assertEquals((Long) 20001L,
+                sqlResponse.getNativeRealizations().get(1).getLayoutId());
     }
 }
