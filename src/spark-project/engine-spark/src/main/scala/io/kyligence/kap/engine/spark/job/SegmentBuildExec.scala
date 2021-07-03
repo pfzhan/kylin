@@ -38,6 +38,8 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
 
+import scala.collection.JavaConverters._
+
 class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
                        private val dataSegment: NDataSegment) extends SegmentExec {
   // Needed variables from job context.
@@ -116,6 +118,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     buildFromLayout(layoutSources)
     // By design, only the 1st layer layouts may should build from flat table.
     buildFromFlatTable(flatTableSources)
+    KylinBuildEnv.get().buildJobInfos.recordCuboidsNumPerLayer(segmentId, sources.size)
     awaitOrFailFast(sources.size)
     logInfo(s"Finished LAYER ${sources.map(_.getLayoutId).distinct.sorted.mkString(",")}")
   }
@@ -128,6 +131,8 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       // Parent layout should be coupled with the dataSegment reference.
       val parentDS = StorageStoreUtils.toDF(head.getDataSegment, head.getParent, sparkSession)
       grouped.foreach(source => {
+        KylinBuildEnv.get().buildJobInfos.recordParent2Children(source.getDataSegment.getLayout(source.getParentId),
+          grouped.filter(!_.isFlatTable).map(_.getLayoutId).toList.asJava)
         val sanityCheckCount = sanityCheckHandler.getOrComputeFromLayout(source, parentDS, source.getParent)
         asyncExecute(buildDataLayout(source, parentDS, sanityCheckCount))
       })
@@ -139,6 +144,8 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     if (sources.nonEmpty) {
       val parentDS = flatTable.getDS()
       sources.foreach(source => {
+        KylinBuildEnv.get().buildJobInfos.recordParent2Children(source.getDataSegment.getLayout(source.getParentId),
+          sources.filter(_.isFlatTable).map(_.getLayoutId).toList.asJava)
         val sanityCheckCount = sanityCheckHandler.getOrComputeFromFlatTable(source, () => flatTableStatistics.totalCount)
 
         asyncExecute(buildDataLayout(source, parentDS, sanityCheckCount))
