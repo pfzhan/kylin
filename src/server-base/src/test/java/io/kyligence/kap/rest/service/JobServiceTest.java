@@ -42,7 +42,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -51,6 +53,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -106,6 +109,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
     @Mock
+    private final NExecutableDao executableDao = Mockito.mock(NExecutableDao.class);
+
+    @Mock
     private final TableExtService tableExtService = Mockito.spy(TableExtService.class);
 
     @Mock
@@ -156,7 +162,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         NExecutableManager executableManager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default"));
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
-        val mockJobs = mockDetailJobs();
+        val mockJobs = mockDetailJobs(false);
         Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
         for (ExecutablePO po : mockJobs) {
             AbstractExecutable exe = executableManager.fromPO(po);
@@ -251,13 +257,12 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testFilterJob() throws Exception {
-        //NExecutableManager executableManager = Mockito.spy(NExecutableManager.class);
-        NExecutableManager executableManager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), "default"));
+        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), "default");
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
-        val mockJobs = mockDetailJobs();
-        Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
+        ReflectionTestUtils.setField(executableManager, "executableDao", executableDao);
+        val mockJobs = mockDetailJobs(true);
+        Mockito.when(executableDao.getJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs);
 
-        // test filter by total_duration
         {
             List<String> jobNames = Lists.newArrayList();
             JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 0, "", "", "default", "total_duration",
@@ -266,10 +271,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
             val totalDurationArrays = jobs.stream().map(ExecutableResponse::getTotalDuration)
                     .collect(Collectors.toList());
-
             List<Long> copyDurationList = new ArrayList<>(totalDurationArrays);
             copyDurationList.sort(Collections.reverseOrder());
-
+            Assert.assertEquals(3, copyDurationList.size());
             Assert.assertEquals(totalDurationArrays, copyDurationList);
         }
     }
@@ -572,21 +576,15 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(executableManager.getAllJobs(Mockito.anyLong(), Mockito.anyLong())).thenReturn(jobs);
     }
 
-    private List<ExecutablePO> mockDetailJobs() throws Exception {
-        NExecutableManager manager = Mockito.spy(NExecutableManager.getInstance(getTestConfig(), getProject()));
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = NLocalFileMetadataTestCase
-                .getInstanceByProject();
-        managersByPrjCache.get(NExecutableManager.class).put(getProject(), manager);
+    private List<ExecutablePO> mockDetailJobs(boolean random) throws Exception {
         List<ExecutablePO> jobs = new ArrayList<>();
-
         for (int i = 1; i < 4; i++) {
-            jobs.add(mockExecutablePO(manager, i + ""));
+            jobs.add(mockExecutablePO(random, i + ""));
         }
         return jobs;
     }
 
-    private ExecutablePO mockExecutablePO(NExecutableManager manager, String name) {
-        //SucceedChainedTestExecutable mockJob = new SucceedChainedTestExecutable();
+    private ExecutablePO mockExecutablePO(boolean random, String name) {
         ExecutablePO mockJob = new ExecutablePO();
         mockJob.setType("io.kyligence.kap.rest.execution.SucceedChainedTestExecutable");
         mockJob.setProject(getProject());
@@ -604,16 +602,18 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutablePO> tasks = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             val childExecutable = new ExecutablePO();
+            childExecutable.setUuid(mockJob.getId() + "_0" + i);
             childExecutable.setType("io.kyligence.kap.rest.execution.SucceedSubTaskTestExecutable");
             childExecutable.setProject(getProject());
             val jobChildOutput = childExecutable.getOutput();
-            mockOutputTime(lastEndTime, jobChildOutput, i);
+            mockOutputTime(random, lastEndTime, jobChildOutput, i);
             lastEndTime = jobChildOutput.getEndTime();
             tasks.add(childExecutable);
         }
         mockJob.setTasks(tasks);
 
         jobOutput.setEndTime(lastEndTime);
+        Mockito.when(executableDao.getJobByUuid(Mockito.eq(mockJob.getId()))).thenReturn(mockJob);
         return mockJob;
     }
 
@@ -630,10 +630,15 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    private void mockOutputTime(long baseTime, ExecutableOutputPO output, int index) {
-        val createTime = baseTime + (index + 1) * 2000L;
-        val startTime = createTime + (index + 1) * 2000L;
-        val endTime = startTime + (index + 1) * 2000L;
+    private void mockOutputTime(boolean random, long baseTime, ExecutableOutputPO output, int index) {
+        long createTime = baseTime + (index + 1) * 2000L;
+        long startTime = createTime + (index + 1) * 2000L;
+        long endTime = startTime + (index + 1) * 2000L;
+        if (random) {
+            val randomObj = new Random();
+            Supplier<Long> randomSupplier = () -> (long) randomObj.nextInt(100);
+            endTime += randomSupplier.get();
+        }
 
         output.setStartTime(startTime);
         output.setCreateTime(createTime);
