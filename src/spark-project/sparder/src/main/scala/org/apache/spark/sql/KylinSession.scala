@@ -263,6 +263,13 @@ object KylinSession extends Logging {
       }
       sparkConf.set("spark.debug.maxToStringFields", "1000")
       sparkConf.set("spark.scheduler.mode", "FAIR")
+      val cartesianFactor = KylinConfig.getInstanceFromEnv.getCartesianPartitionNumThresholdFactor
+      var cartesianPartitionThreshold = sparkCores * cartesianFactor
+      val confThreshold = sparkConf.get("spark.sql.cartesianPartitionNumThreshold")
+      if (!confThreshold.isEmpty) {
+        cartesianPartitionThreshold = Integer.parseInt(confThreshold)
+      }
+      sparkConf.set("spark.sql.cartesianPartitionNumThreshold", cartesianPartitionThreshold.toString)
       if (new File(
         KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml")
         .exists()) {
