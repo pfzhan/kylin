@@ -74,7 +74,11 @@ public class FilterConditionExpander {
             return results;
         }
         RexCall call = (RexCall) node;
-        for (RexNode conjunction : RelOptUtil.conjunctions(RexUtil.toCnf(rexBuilder, call))) {
+        RexNode cnf = RexUtil.toCnf(rexBuilder, 100, call);
+        if (cnf == node) {
+            return results;
+        }
+        for (RexNode conjunction : RelOptUtil.conjunctions(cnf)) {
             RexNode converted = convertDisjunctionCall(conjunction);
             if (converted != null) {
                 results.add(converted);
