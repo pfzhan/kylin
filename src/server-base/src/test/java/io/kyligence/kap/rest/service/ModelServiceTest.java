@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -67,13 +68,13 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.FusionModelResponse;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -122,6 +123,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -134,6 +136,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Longs;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -204,6 +207,7 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.FusionModelResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.ModelSuggestionResponse;
@@ -221,7 +225,10 @@ import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
@@ -590,6 +597,48 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "default", "0", "" + Long.MAX_VALUE, "ONLINE", null, null, true, "start_time", false);
         Assert.assertThat(segments.size(), is(0));
+    }
+
+    @Test
+    public void testGetSegmentsResponseSort() {
+        Date now = new Date();
+        List<NDataSegmentResponse> mockSegments = Lists.newArrayList();
+        NDataSegmentResponse segmentResponse1 = new NDataSegmentResponse();
+        segmentResponse1.setId("1");
+        segmentResponse1.setRowCount(1);
+        segmentResponse1.setCreateTime(DateUtils.addHours(now, -1).getTime());
+
+        NDataSegmentResponse segmentResponse2 = new NDataSegmentResponse();
+        segmentResponse2.setId("2");
+        segmentResponse2.setRowCount(2);
+        segmentResponse2.setCreateTime(now.getTime());
+
+        NDataSegmentResponse segmentResponse3 = new NDataSegmentResponse();
+        segmentResponse3.setId("3");
+        segmentResponse3.setRowCount(3);
+        segmentResponse3.setCreateTime(DateUtils.addHours(now, 1).getTime());
+
+        mockSegments.add(segmentResponse1);
+        mockSegments.add(segmentResponse3);
+        mockSegments.add(segmentResponse2);
+
+        Mockito.doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
+
+        Mockito.doAnswer(invocation -> {
+            List<NDataSegmentResponse> segmentResponseList = invocation.getArgument(2);
+            for (NDataSegmentResponse segmentResponse : segmentResponseList) {
+                segmentResponse.setSecondStorageSize(Longs.tryParse(segmentResponse.getId()));
+            }
+            return null;
+        }).when(modelService).addSecondStorageResponse(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.any());
+
+        List<NDataSegmentResponse> segmentResponseList = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
+                "" + Long.MAX_VALUE, "", "second_storage_size", false);
+
+        Assert.assertEquals(segmentResponseList.get(0).getId(), "3");
     }
 
     @Test
@@ -1318,31 +1367,39 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
         streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+
+        List<NDataModelResponse> models = modelService.getModels("streaming_test", project, true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertFalse(models.get(0).isHasSegments());
+        Assert.assertEquals(ModelStatusToDisplayEnum.OFFLINE, models.get(0).getStatus());
     }
 
     @Test
     public void testUpdateFusionDataModelStatus1() {
         val project = "streaming_test";
         val mgr = NDataflowManager.getInstance(getTestConfig(), project);
-        var batchDataflow = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
-        NDataSegment batchSeg = mgr.appendSegment(batchDataflow, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
-        batchSeg.setStatus(SegmentStatusEnum.READY);
-        val update = new NDataflowUpdate(batchDataflow.getUuid());
-        update.setToUpdateSegs(batchSeg);
-        mgr.updateDataflow(update);
+        var batchDataflow = mgr.getDataflow("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
         var batchStatus = batchDataflow.getStatus();
-        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
-
-        var streamingDataflow = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
-        var streamingStatus = streamingDataflow.getStatus();
-        Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
-
-        modelService.updateDataModelStatus("b05034a8-c037-416b-aa26-9e6b4a41ee40", project, "ONLINE");
-
-        batchStatus = mgr.getDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a").getStatus();
         Assert.assertEquals(RealizationStatusEnum.ONLINE, batchStatus);
-        streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
+
+        modelService.updateDataModelStatus("cd2b9a23-699c-4699-b0dd-38c9412b3dfd", project, "OFFLINE");
+        var streamingDataflow = mgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        var streamingStatus = streamingDataflow.getStatus();
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, streamingStatus);
+
+        List<NDataModelResponse> models = modelService.getModels("model_streaming", project, true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertTrue(models.get(0).isHasSegments());
+        Assert.assertEquals(ModelStatusToDisplayEnum.ONLINE, models.get(0).getStatus());
+
+        modelService.updateDataModelStatus("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, "OFFLINE");
+        batchStatus = mgr.getDataflow("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getStatus();
+        Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
+        streamingStatus = mgr.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d").getStatus();
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, streamingStatus);
+
     }
 
     @Test
@@ -1370,6 +1427,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(RealizationStatusEnum.OFFLINE, batchStatus);
         streamingStatus = mgr.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40").getStatus();
         Assert.assertEquals(RealizationStatusEnum.ONLINE, streamingStatus);
+
+        List<NDataModelResponse> models = modelService.getModels("streaming_test", project, true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertTrue(models.get(0).isHasSegments());
+        // batch: online & no index, streaming:offline  ==> WARNING
+        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, models.get(0).getStatus());
     }
 
     @Test
@@ -1846,7 +1910,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
 
         Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
-        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getAllToBeDeleteLayoutId()));
         Assert.assertEquals(dataflow.getStatus(), RealizationStatusEnum.OFFLINE);
     }
 
@@ -1872,7 +1936,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
 
         Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
-        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getAllToBeDeleteLayoutId()));
     }
 
     @Test
@@ -1901,6 +1965,100 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "Can’t delete the segment(s) in model \"nmodel_basic_inner\" under the current project settings.");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
+    }
+
+    @Test
+    public void testPurgeModelClearLockedIndex() {
+        String project = "default";
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        // remove
+        long tobeDeleteLayoutId = 20000000001L;
+
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        val df = dfManager.getDataflow(modelId);
+
+        //clear segment from df
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        //add two segment(include full layout)
+        val update2 = new NDataflowUpdate(df.getUuid());
+        val seg1 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
+        val seg2 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(seg1, seg2);
+
+        List<NDataLayout> layouts = Lists.newArrayList();
+        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
+            layouts.add(NDataLayout.newDataLayout(df, seg1.getId(), layout.getId()));
+            layouts.add(NDataLayout.newDataLayout(df, seg2.getId(), layout.getId()));
+        });
+        update2.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+        dfManager.updateDataflow(update2);
+        // mark a layout tobedelete
+        indexManager.updateIndexPlan(modelId,
+                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId)));
+        Assert.assertFalse(
+                NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().isEmpty());
+        modelService.purgeModel(modelId, project);
+        Assert.assertTrue(
+                NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().isEmpty());
+    }
+
+    @Test
+    public void testRefreshSegmentClearLockedIndex() {
+        String project = "default";
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        val df = dfManager.getDataflow(modelId);
+
+        //clear segment from df
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        //add two segment(include full layout)
+        val update2 = new NDataflowUpdate(df.getUuid());
+        val seg1 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
+        val seg2 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(seg1, seg2);
+        List<NDataLayout> layouts = Lists.newArrayList();
+        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
+            layouts.add(NDataLayout.newDataLayout(df, seg1.getId(), layout.getId()));
+            layouts.add(NDataLayout.newDataLayout(df, seg2.getId(), layout.getId()));
+        });
+        update2.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+        dfManager.updateDataflow(update2);
+
+        // remove
+        long tobeDeleteLayoutId = 20000000001L;
+
+        // mark a layout tobedelete
+        indexManager.updateIndexPlan(modelId,
+                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId)));
+        Assert.assertFalse(indexManager.getIndexPlan(modelId).getToBeDeletedIndexes().isEmpty());
+
+        //remove tobedelete layout from seg1
+        val newDf = dfManager.getDataflow(modelId);
+        dfManager.updateDataflowDetailsLayouts(newDf.getSegments().get(0), layouts.stream()
+                .filter(layout -> layout.getLayoutId() != tobeDeleteLayoutId).collect(Collectors.toList()));
+
+        // remove seg2 and tobedelete layout should be cleared from indexplan
+        val update3 = new NDataflowUpdate(newDf.getUuid());
+        update3.setToRemoveSegs(newDf.getSegments().get(1));
+        dfManager.updateDataflow(update3);
+
+        Assert.assertTrue(indexManager.getIndexPlan(modelId).getToBeDeletedIndexes().isEmpty());
     }
 
     @Test
@@ -4855,6 +5013,27 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCheckSegmentsExistById() {
+        boolean existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00" }, false);
+        Assert.assertTrue(existed);
+
+        existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
+        Assert.assertFalse(existed);
+    }
+
+    @Test
+    public void testCheckSegmentsExistByName() {
+        boolean existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "20171104141833_20171105141833" }, false);
+        Assert.assertTrue(existed);
+        existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
+                new String[] { "20171104141833_20171105141833_not" }, false);
+        Assert.assertFalse(existed);
+    }
+
+    @Test
     public void testGetPartitionColumnFormat() {
         String partitionColumnFormat = modelService.getPartitionColumnFormatById("default",
                 "82fa7671-a935-45f5-8779-85703601f49a");
@@ -5863,5 +6042,45 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel result = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertNotEquals(0L, result.getLastModified());
         Assert.assertEquals(result.getUuid(), result.getFusionId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListNodesByProject() throws IOException {
+        val project = "default";
+        MockSecondStorage.mock(project, new ArrayList<>(), this);
+        val nodeGroupManagerOption = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
+
+        Assert.assertTrue(nodeGroupManagerOption.isPresent());
+        val nodeGroupManager = nodeGroupManagerOption.get();
+
+        NodeGroup nodeGroup1 = new NodeGroup();
+        nodeGroup1.setNodeNames(Lists.newArrayList("node01", "node02"));
+        NodeGroup nodeGroup2 = new NodeGroup();
+        nodeGroup2.setNodeNames(Lists.newArrayList("node01"));
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            nodeGroupManager.createAS(nodeGroup1);
+            return null;
+        }, project);
+
+        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
+        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
+        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
+        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
+
+        Assert.assertEquals(2, SecondStorageNodeHelper.getALlNodesInProject(project).size());
+        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testAllListNodes() throws IOException {
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+
+        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
+        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
+        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
+        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
+        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
     }
 }

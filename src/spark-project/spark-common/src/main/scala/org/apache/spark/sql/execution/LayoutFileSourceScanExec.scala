@@ -22,7 +22,7 @@
 package org.apache.spark.sql.execution
 
 import java.util.concurrent.TimeUnit.NANOSECONDS
-
+import org.apache.spark.TaskContext
 import org.apache.hadoop.fs.Path
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
@@ -36,7 +36,7 @@ import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.vectorized.ColumnarBatch
-import org.apache.spark.util.Utils
+import org.apache.spark.util.{TaskCompletionListener, Utils}
 import org.apache.spark.util.collection.BitSet
 
 import scala.collection.mutable.HashMap
@@ -373,6 +373,7 @@ case class LayoutFileSourceScanExec(
     val numOutputRows = longMetric("numOutputRows")
     if (needsUnsafeRowConversion) {
       inputRDD.mapPartitionsWithIndexInternal { (index, iter) =>
+        addReadBytesListener()
         val toUnsafe = UnsafeProjection.create(schema)
         toUnsafe.initialize(index)
         iter.map { row =>
@@ -382,6 +383,7 @@ case class LayoutFileSourceScanExec(
       }
     } else {
       inputRDD.mapPartitionsInternal { iter =>
+        addReadBytesListener()
         iter.map { row =>
           numOutputRows += 1
           row
@@ -394,6 +396,7 @@ case class LayoutFileSourceScanExec(
     val numOutputRows = longMetric("numOutputRows")
     val scanTime = longMetric("scanTime")
     inputRDD.asInstanceOf[RDD[ColumnarBatch]].mapPartitionsInternal { batches =>
+      addReadBytesListener()
       new Iterator[ColumnarBatch] {
 
         override def hasNext: Boolean = {
@@ -411,6 +414,14 @@ case class LayoutFileSourceScanExec(
         }
       }
     }
+  }
+
+  private def addReadBytesListener(): Unit = {
+    TaskContext.get().addTaskCompletionListenerToHead(new TaskCompletionListener {
+      override def onTaskCompletion(context: TaskContext): Unit = {
+        longMetric("readBytes").add(context.taskMetrics().inputMetrics.bytesRead)
+      }
+    })
   }
 
   override val nodeNamePrefix: String = "File"

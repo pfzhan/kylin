@@ -36,7 +36,7 @@ import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
-import org.apache.kylin.common.{KapConfig, QueryContext}
+import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.kylin.query.relnode.OLAPContext
@@ -96,7 +96,7 @@ object TableScanPlan extends LogEx {
       QueryContext.current().getQueryTagInfo.setTableIndex(true)
     }
     val sourceBytes = prunedSegments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
-    QueryContext.current().getMetrics.addAndGetSourceScanBytes(sourceBytes)
+//    QueryContext.current().getMetrics.addSourceScanBytes(sourceBytes)
     val tableName = olapContext.firstTableScan.getBackupAlias
     val mapping = new NLayoutToGridTableMapping (cuboidLayout)
     val columnNames = SchemaProcessor.buildGTSchema (cuboidLayout, mapping, tableName)
@@ -126,6 +126,7 @@ object TableScanPlan extends LogEx {
       }.mkString(",")
       val newDf = session.kylin
               .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
+              .bucketingEnabled(bucketEnabled(olapContext, cuboidLayout))
               .cuboidTable(dataflow, cuboidLayout, pruningInfo)
               .toDF(columnNames: _*)
       logInfo(s"Cache df: ${cuboidLayout.getId}")
@@ -134,6 +135,21 @@ object TableScanPlan extends LogEx {
 
     val (schema, newDF) = buildSchema(df, tableName, cuboidLayout, rel, olapContext, dataflow)
     newDF.select (schema: _*)
+  }
+
+  def bucketEnabled(context: OLAPContext, layout: LayoutEntity): Boolean = {
+    if (!KylinConfig.getInstanceFromEnv.isShardingJoinOptEnabled) {
+      return false
+    }
+    // no extra agg is allowed
+    if (context.isHasAgg && !context.isExactlyAggregate) {
+      return false
+    }
+
+    // check if outer join key matches shard by key
+    (context.getOuterJoinParticipants.size() == 1
+      && layout.getShardByColumnRefs.size() == 1
+      && context.getOuterJoinParticipants.iterator().next() == layout.getShardByColumnRefs.get(0))
   }
 
   def buildSchema(df: DataFrame, tableName: String, cuboidLayout: LayoutEntity, rel: KapRel,

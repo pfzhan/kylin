@@ -87,8 +87,6 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         meterRegistry = (MeterRegistry) ReflectionTestUtils.getField(prometheusMetricsGroup,
                 "meterRegistry");
 
-        PowerMockito.mockStatic(MetricsGroup.class);
-        PowerMockito.mockStatic(MetricsGroup.class);
         PowerMockito.mockStatic(SpringContext.class);
     }
 
@@ -123,9 +121,17 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRegisterMicrometerProjectMetrics() {
+        StorageVolumeInfoResponse response = Mockito.mock(StorageVolumeInfoResponse.class);
+        Mockito.when(response.getTotalStorageSize()).thenReturn(2L);
+        ProjectService projectService = PowerMockito.mock(ProjectService.class);
+        Mockito.when(projectService.getStorageVolumeInfoResponse(project)).thenReturn(response);
+        PowerMockito.when(SpringContext.getBean(ProjectService.class))
+                .thenReturn(projectService);
+
+        MetricsRegistry.registerProjectMetrics(getTestConfig(), project, "localhost");
         MetricsRegistry.registerMicrometerProjectMetrics(getTestConfig(), project, "localhost");
         List<Meter> meters = meterRegistry.getMeters();
-        Assert.assertEquals(265, meters.size());
+        Assert.assertEquals(269, meters.size());
     }
 
     @Test

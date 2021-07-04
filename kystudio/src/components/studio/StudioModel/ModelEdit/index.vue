@@ -276,10 +276,12 @@
                 transform: `translateX(${ translateCC }px)`,
                 width: panelAppear.cc.width-2+'px'
               }">
-                <span class="action_btn" @click="addCC">
-                  <i class="el-icon-ksd-project_add"></i>
-                  <span>{{$t('add')}}</span>
-                </span>
+                <el-tooltip :content="$t('forbidenCreateCCTip')" :disabled="!isHybridModel">
+                  <span :class="['action_btn', {'disabled': isHybridModel}]" @click="!isHybridModel && addCC()">
+                    <i class="el-icon-ksd-project_add"></i>
+                    <span>{{$t('add')}}</span>
+                  </span>
+                </el-tooltip>
                 <span class="action_btn" @click="toggleCCCheckbox" :class="{'active': isShowCCCheckbox}">
                   <i class="el-icon-ksd-batch_delete"></i>
                   <span>{{$t('batchDel')}}</span>
@@ -671,6 +673,10 @@ export default class ModelEdit extends Vue {
     currentEditAlias: ''
   }
   delTipVisible = false
+
+  get isHybridModel () {
+    return this.modelInstance.getFactTable() && this.modelInstance.getFactTable().batch_table_identity || this.modelData.model_type === 'HYBRID'
+  }
 
   validateName (rule, value, callback) {
     if (!value) {

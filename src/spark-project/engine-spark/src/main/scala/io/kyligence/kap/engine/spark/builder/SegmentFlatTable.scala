@@ -37,6 +37,8 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model._
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.{col, expr}
+import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.util.SparderTypeUtil
 
 import java.util.{Locale, Objects}
 import scala.collection.JavaConverters._
@@ -295,10 +297,19 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     // ([2_KE_ENCODE,4_KE_ENCODE], [0,1,2,3,4])
     val (coarseEncodes, noneEncodes) = tableDS.schema.map(sf => sf.name).partition(_.endsWith(ENCODE_SUFFIX))
     val encodes = coarseEncodes.map(_.stripSuffix(ENCODE_SUFFIX))
+
+    val noneEncodesFieldMap: Map[String, StructField] = tableDS.schema.map(_.name)
+      .zip(tableDS.schema.fields)
+      .filter(p => noneEncodes.contains(p._1))
+      .toMap
+
     val nones = tableDesc.getColumnIds.asScala //
-      .sorted
-      .map(String.valueOf) //
-      .filterNot(noneEncodes.contains) ++
+      .zip(tableDesc.getColumns.asScala)
+      .map(p => (String.valueOf(p._1), p._2)) //
+      .filterNot(p => {
+        val dataType = SparderTypeUtil.toSparkType(p._2.getType)
+        noneEncodesFieldMap.contains(p._1) && (dataType == noneEncodesFieldMap(p._1).dataType)
+      }) ++
       // [xx_KE_ENCODE]
       tableDesc.getMeasures.asScala //
         .map(DictionaryBuilderHelper.needGlobalDict) //

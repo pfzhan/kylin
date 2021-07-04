@@ -652,11 +652,15 @@ export default class ModelAggregate extends Vue {
     }
   }
   editTableIndex (indexDesc) {
+    const { projectName, model } = this
     this.showTableIndexEditModal({
       isHybridBatch: this.isHybridBatch,
       modelInstance: this.modelInstance,
       tableIndexDesc: indexDesc || {name: 'TableIndex_1'},
-      indexUpdateEnabled: this.indexUpdateEnabled
+      indexUpdateEnabled: this.indexUpdateEnabled,
+      indexType: this.showModelTypeSwitch ? this.switchModelType : '',
+      projectName,
+      model
     }).then((res) => {
       if (res.isSubmit) {
         this.refreshIndexGraphAfterSubmitSetting()
@@ -910,13 +914,13 @@ export default class ModelAggregate extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
+        const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled, indexType: this.showModelTypeSwitch ? this.switchModelType : '' })
         isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
         isSubmit && await this.$emit('refreshModel')
       })
     } else {
       const { projectName, model } = this
-      const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
+      const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled, indexType: this.showModelTypeSwitch ? this.switchModelType : '' })
       isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
       isSubmit && await this.$emit('refreshModel')
     }

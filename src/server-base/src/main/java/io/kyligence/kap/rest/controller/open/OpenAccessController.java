@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static io.kyligence.kap.rest.insensitive.InsensitiveNameAspect.getCaseInsentiveType;
+import static io.kyligence.kap.rest.aspect.InsensitiveNameAspect.getCaseInsentiveType;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;

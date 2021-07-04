@@ -470,6 +470,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.query.pushdown.converter-class-names", "",
                         new String[] { "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                                 "org.apache.kylin.query.util.PowerBIConverter",
+                                "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
                                 "io.kyligence.kap.query.util.RestoreFromComputedColumn",
                                 "io.kyligence.kap.query.security.RowFilter",
                                 "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
@@ -865,7 +866,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(479, methodsCount);
+        Assert.assertEquals(480, methodsCount);
     }
 
     @Test

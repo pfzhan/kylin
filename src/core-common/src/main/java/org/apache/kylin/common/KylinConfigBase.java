@@ -1283,7 +1283,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getSparkEngineDriverMemorySnapshotBuilding() {
         return (int) SizeConvertUtil
-                .byteStringAsMb(getOptional("kylin.engine.driver-memory-snapshot-building", "1024"));
+                .byteStringAsMb(getOptional("kylin.engine.snapshot.spark-conf.spark.driver.memory", "1024"));
     }
 
     public int getSparkEngineDriverMemoryBase() {
@@ -1455,6 +1455,15 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.large-query-threshold", String.valueOf(1000000)));
     }
 
+    /**
+     * The threshold for cartesian product partition number is
+     * executor instance num * executor core num * cartesian-partition-num-threshold-factor
+     * @return
+     */
+    public int getCartesianPartitionNumThresholdFactor() {
+        return Integer.parseInt(getOptional("kylin.query.cartesian-partition-num-threshold-factor", String.valueOf(100)));
+    }
+
     public int getLoadCounterCapacity() {
         return Integer.parseInt(getOptional("kylin.query.load-counter-capacity", "50"));
     }
@@ -1611,6 +1620,7 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
                 new String[]{"org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
                         "org.apache.kylin.query.util.PowerBIConverter",
+                        "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
                         "io.kyligence.kap.query.util.RestoreFromComputedColumn",
                         "io.kyligence.kap.query.security.RowFilter",
                         "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",

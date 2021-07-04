@@ -25,7 +25,8 @@ package org.apache.spark.sql.execution
 import org.apache.hadoop.fs.{BlockLocation, FileStatus, LocatedFileStatus, Path}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
+import org.apache.spark.sql.catalyst.expressions.{Ascending, Attribute, Expression, SortOrder}
+import org.apache.spark.sql.catalyst.plans.physical.{HashPartitioning, Partitioning, UnknownPartitioning}
 import org.apache.spark.sql.catalyst.{InternalRow, TableIdentifier}
 import org.apache.spark.sql.execution.datasource.{FilePruner, ShardSpec}
 import org.apache.spark.sql.execution.datasources._
@@ -75,7 +76,7 @@ class KylinFileSourceScanExec(
         hadoopConf = relation.sparkSession.sessionState.newHadoopConfWithOptions(relation.options))
 
     optionalShardSpec match {
-      case Some(spec) if KylinConfig.getInstanceFromEnv.isShardingJoinOptEnabled =>
+      case Some(spec) =>
         createShardingReadRDD(spec, readFile, selectedPartitions, relation)
       case _ =>
         createNonShardingReadRDD(readFile, selectedPartitions, relation)
@@ -84,6 +85,39 @@ class KylinFileSourceScanExec(
 
   override def inputRDDs(): Seq[RDD[InternalRow]] = {
     inputRDD :: Nil
+  }
+
+  override lazy val (outputPartitioning, outputOrdering): (Partitioning, Seq[SortOrder]) = {
+    val shardSpec = if (KylinConfig.getInstanceFromEnv.isShardingJoinOptEnabled) {
+      optionalShardSpec
+    } else {
+      None
+    }
+
+    shardSpec match {
+      case Some(spec) =>
+
+        def toAttribute(colName: String): Option[Attribute] =
+          output.find(_.name == colName)
+
+        val shardCols = spec.shardColumnNames.flatMap(toAttribute)
+        val partitioning = if (shardCols.size == spec.shardColumnNames.size) {
+          HashPartitioning(shardCols, spec.numShards)
+        } else {
+          UnknownPartitioning(0)
+        }
+
+        val sortColumns = spec.sortColumnNames.map(toAttribute).takeWhile(_.isDefined).map(_.get)
+        val sortOrder = if (sortColumns.nonEmpty) {
+          sortColumns.map(SortOrder(_, Ascending))
+        } else {
+          Nil
+        }
+
+        (partitioning, sortOrder)
+      case _ =>
+        (UnknownPartitioning(0), Nil)
+    }
   }
 
   /**
@@ -135,6 +169,7 @@ class KylinFileSourceScanExec(
   private def createNonShardingReadRDD(readFile: (PartitionedFile) => Iterator[InternalRow],
                                        selectedPartitions: Seq[PartitionDirectory],
                                        fsRelation: HadoopFsRelation): RDD[InternalRow] = {
+
     val defaultMaxSplitBytes =
       fsRelation.sparkSession.sessionState.conf.filesMaxPartitionBytes
     val openCostInBytes = fsRelation.sparkSession.sessionState.conf.filesOpenCostInBytes
@@ -237,6 +272,22 @@ class KylinFileSourceScanExec(
       val (hosts, _) = candidates.maxBy { case (_, size) => size }
       hosts
     }
+  }
+
+  override def clone(): SparkPlan = {
+    val plan = new KylinFileSourceScanExec(
+      relation,
+      output,
+      requiredSchema,
+      partitionFilters,
+      optionalShardSpec,
+      optionalNumCoalescedBuckets,
+      dataFilters,
+      tableIdentifier,
+      disableBucketedScan
+    )
+    plan.copyTagsFrom(this)
+    plan
   }
 
 }

@@ -64,8 +64,6 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 
 public class MetricsGroup {
 
-    //redesign: event loop, metrics registering shouldn't block the main process
-
     private static final Logger logger = LoggerFactory.getLogger(MetricsGroup.class);
 
     private static final Set<String> gauges = Collections.synchronizedSet(new HashSet<>());

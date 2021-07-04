@@ -671,6 +671,29 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
     }
 
+    public void removeTobeDeleteIndexIfNecessary() {
+        checkIsNotCachedAndShared();
+        val toBeDeleteIds = this.getAllToBeDeleteLayoutId();
+        if (toBeDeleteIds.isEmpty()) {
+            return;
+        }
+        NDataflow dataFlow = NDataflowManager.getInstance(config, project).getDataflow(getUuid());
+        if (null == dataFlow.getLatestReadySegment()) {
+            toBeDeletedIndexes.clear();
+            return;
+        }
+
+        boolean existTobeDeleteLayout = false;
+        for (NDataSegment seg : dataFlow.getSegments()) {
+            if (CollectionUtils.isNotEmpty(Sets.intersection(seg.getLayoutsMap().keySet(), toBeDeleteIds))) {
+                existTobeDeleteLayout = true;
+                break;
+            }
+        }
+        if (!existTobeDeleteLayout) {
+            toBeDeletedIndexes.clear();
+        }
+    }
     public void addRuleBasedBlackList(Collection<Long> blacklist) {
         checkIsNotCachedAndShared();
         if (ruleBasedIndex != null) {
@@ -982,6 +1005,10 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return getIdMapping().getAllLayoutIds(withTobeDel);
     }
 
+    public Set<Long> getAllToBeDeleteLayoutId() {
+        return getIdMapping().getAllToBeDelete();
+    }
+
     public long getAllLayoutsSize() {
         return getIdMapping().getAllLayoutsSize();
     }
@@ -1159,6 +1186,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
         public long getAllLayoutsSize() {
             return allLayoutMapping.size();
+        }
+
+        public Set<Long> getAllToBeDelete() {
+            return allLayoutMapping.values().stream().filter(LayoutEntity::isToBeDeleted).map(LayoutEntity::getId)
+                    .collect(Collectors.toSet());
         }
     }
 }

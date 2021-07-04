@@ -50,6 +50,7 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.ExecutableAddCuboidHandler;
@@ -178,6 +179,20 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_FAIL());
         jobManager.addRelatedIndexJob(new JobParam(relatedSegments, targetLayouts, MODEL_ID, "ADMIN"));
+    }
+
+    @Test
+    public void testRefreshSegmentExcludeLockedIndex() {
+        val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        var df = dfm.getDataflow(MODEL_ID);
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        UnitOfWork.doInTransactionWithRetry(() -> indexManager.updateIndexPlan(MODEL_ID, copyForWrite -> {
+            copyForWrite.markWhiteIndexToBeDelete(MODEL_ID, Sets.newHashSet(20000000001L));
+        }), MODEL_ID);
+        jobManager.refreshSegmentJob(new JobParam(df.getSegments().get(0), MODEL_ID, "ADMIN"));
+        List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
+        Assert.assertEquals(18, getProcessLayout(executables.get(0)));
     }
 
     @Test

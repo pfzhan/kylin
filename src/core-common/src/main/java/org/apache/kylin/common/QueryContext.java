@@ -43,7 +43,6 @@
 package org.apache.kylin.common;
 
 import java.io.Closeable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -51,11 +50,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.kylin.common.util.Pair;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
-
 import com.google.common.collect.Lists;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -72,8 +72,6 @@ public class QueryContext implements Closeable {
     public static final String PUSHDOWN_OBJECT_STORAGE = "OBJECT STORAGE";
 
     public static final long DEFAULT_NULL_SCANNED_DATA = -1L;
-
-    public static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     private static final TransmittableThreadLocal<QueryContext> contexts = new TransmittableThreadLocal<QueryContext>() {
         @Override
@@ -227,55 +225,34 @@ public class QueryContext implements Closeable {
         private String server;
         private long resultRowCount;
 
-        private AtomicLong sourceScanBytes = new AtomicLong();
-        private AtomicLong sourceScanRows = new AtomicLong();
-        @Getter
         @Setter
-        private List<Long> scanRows;
         @Getter
+        private List<Pair<String, Long>> sourceScanBytes;
+
         @Setter
-        private List<Long> scanBytes;
         @Getter
-        @Setter
-        private long scannedRows = DEFAULT_NULL_SCANNED_DATA;
-        @Getter
-        @Setter
-        private long scannedBytes = DEFAULT_NULL_SCANNED_DATA;
+        private List<Pair<String, Long>> sourceScanRows;
 
-        public long getSourceScanBytes() {
-            return sourceScanBytes.get();
+        public long getTotalSourceScanBytes() {
+            return calScannedValueWithDefault(sourceScanBytes);
         }
 
-        public long addAndGetSourceScanBytes(long bytes) {
-            return sourceScanBytes.addAndGet(bytes);
+        public void addSourceScanBytes(String engineType, long bytes) {
+            if (sourceScanBytes == null) {
+                sourceScanBytes = Lists.newArrayList();
+            }
+            sourceScanBytes.add(Pair.newPair(engineType, bytes));
         }
 
-        public long getSourceScanRows() {
-            return sourceScanRows.get();
+        public long getTotalSourceScanRows() {
+            return calScannedValueWithDefault(sourceScanRows);
         }
 
-        public long addAndGetSourceScanRows(long rows) {
-            return sourceScanRows.addAndGet(rows);
-        }
-
-        /**
-         * update scanRows and calculate scannedRows
-         *
-         * @param scanRows
-         */
-        public void updateAndCalScanRows(List<Long> scanRows) {
-            setScanRows(scanRows);
-            setScannedRows(calScannedValueWithDefault(scanRows));
-        }
-
-        /**
-         * update scanBytes and calculate scannedBytes
-         *
-         * @param scanBytes
-         */
-        public void updateAndCalScanBytes(List<Long> scanBytes) {
-            setScanBytes(scanBytes);
-            setScannedBytes(calScannedValueWithDefault(scanBytes));
+        public void addSourceScanRows(String engineType, long rows) {
+            if (sourceScanRows == null) {
+                sourceScanRows = Lists.newArrayList();
+            }
+            sourceScanRows.add(Pair.newPair(engineType, rows));
         }
     }
 
@@ -283,17 +260,17 @@ public class QueryContext implements Closeable {
      * @param scanList
      * @return if scanList == null return default -1, else return sum of list
      */
-    public static long calScannedValueWithDefault(List<Long> scanList) {
+    public static long calScannedValueWithDefault(List<Pair<String, Long>> scanList) {
         if (Objects.isNull(scanList)) {
             return DEFAULT_NULL_SCANNED_DATA;
         } else {
-            return scanList.stream().mapToLong(Long::longValue).sum();
+            return scanList.stream().mapToLong(Pair::getValue).sum();
         }
     }
 
     public static void fillEmptyResultSetMetrics() {
-        QueryContext.current().getMetrics().updateAndCalScanRows(QueryContext.DEFAULT_SCANNED_DATA);
-        QueryContext.current().getMetrics().updateAndCalScanBytes(QueryContext.DEFAULT_SCANNED_DATA);
+        QueryContext.current().getMetrics().setSourceScanRows(Lists.newArrayList());
+        QueryContext.current().getMetrics().setSourceScanBytes(Lists.newArrayList());
     }
 
     // ============================================================================
@@ -320,7 +297,7 @@ public class QueryContext implements Closeable {
         private boolean isPartial = false;
         private boolean isStorageCacheUsed = false;
         private boolean hitExceptionCache = false;
-        private boolean isConstantQuery= false;
+        private boolean isConstantQuery = false;
         private String fileFormat;
         private String fileEncode;
         private String fileName;

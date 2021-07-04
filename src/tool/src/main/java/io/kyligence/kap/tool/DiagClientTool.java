@@ -134,12 +134,12 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         if (includeMeta) {
             File metaDir = new File(exportDir, "metadata");
             FileUtils.forceMkdir(metaDir);
-            String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
-                    "-excludeTableExd" };
+            String[] metaToolArgs = {"-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_COMPRESS, FALSE,
+                    "-excludeTableExd"};
             dumpMetadata(metaToolArgs, recordTime);
         }
 
-        if(includeAuditLog) {
+        if (includeAuditLog) {
             File auditLogDir = new File(exportDir, "audit_log");
             FileUtils.forceMkdir(auditLogDir);
             String[] auditLogToolArgs = {"-startTime", String.valueOf(startTime), "-endTime", String.valueOf(endTime),
@@ -162,7 +162,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
-        exportTieredStorage(exportDir, startTime, endTime, recordTime);
+        exportTieredStorage(null, exportDir, startTime, endTime, recordTime);
 
         executeTimeoutTask(taskQueue);
 

@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -46,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import lombok.NoArgsConstructor;
 import lombok.val;
 
@@ -64,6 +66,16 @@ public class ClickhouseDiagTool {
                     SECOND_DATE_FORMAT);
 
     public static final String SUB_DIR = "tieredStorage";
+
+    private String project;
+
+    public ClickhouseDiagTool(String project) {
+        this.project = project;
+    }
+
+    private boolean isFullDiag() {
+        return project == null;
+    }
 
     public void dumpClickHouseServerLog(File exportDir, long startTime, long endTime) {
 
@@ -109,7 +121,13 @@ public class ClickhouseDiagTool {
         val timeRange = new Pair<>(new DateTime(startTime).toString(SECOND_DATE_FORMAT),
                 new DateTime(endTime).toString(SECOND_DATE_FORMAT));
 
-        cluster.getNodes().forEach(node -> {
+        val allNodes = isFullDiag() ? cluster.getNodes() : SecondStorageNodeHelper.getALlNodesInProject(project);
+
+        if (CollectionUtils.isEmpty(allNodes)) {
+            logger.warn("There is no active node in TieredStorage");
+        }
+
+        allNodes.forEach(node -> {
             val cliCommandExecutor = new CliCommandExecutor(node.getIp(), cluster.getUserName(), cluster.getPassword(), kylinConfig.getSecondStorageSshIdentityPath());
             val nodeTargetPath = new File(exportDir, String.format(Locale.ROOT, CK_NODE_PATH_FORMAT, node.getName(), node.getIp(), node.getPort()));
             val nodeTargetTmpPath = new File(exportDir, nodeTargetPath.getName() + "_tmp");
@@ -119,10 +137,7 @@ public class ClickhouseDiagTool {
                 FileUtils.forceMkdir(nodeTargetTmpPath);
                 cliCommandExecutor.copyRemoteToLocal(remoteFilePath.getAbsolutePath(), nodeTargetTmpPath.getAbsolutePath());
 
-                if (remoteHistoryGZPath != null) {
-                    cliCommandExecutor.copyRemoteToLocal(remoteHistoryGZPath.getAbsolutePath(), nodeTargetTmpPath.getAbsolutePath());
-                    unzipLogFile(nodeTargetTmpPath);
-                }
+                copyAndUnzipCompressedLogFile(remoteHistoryGZPath, cliCommandExecutor, nodeTargetTmpPath);
 
                 if (!extractCkLogByRange(timeRange, nodeTargetPath, nodeTargetTmpPath)) {
                     return;
@@ -137,6 +152,20 @@ public class ClickhouseDiagTool {
             }
 
         });
+    }
+
+    private void copyAndUnzipCompressedLogFile(File remoteHistoryGZPath, CliCommandExecutor cliCommandExecutor, File nodeTargetTmpPath) {
+        if (remoteHistoryGZPath == null) {
+            return;
+        }
+
+        try {
+            cliCommandExecutor.copyRemoteToLocal(remoteHistoryGZPath.getAbsolutePath(), nodeTargetTmpPath.getAbsolutePath());
+            unzipLogFile(nodeTargetTmpPath);
+        } catch (IOException e) {
+            logger.error("copy remote compressed file failed,{},", nodeTargetTmpPath.getAbsolutePath(), e);
+        }
+
     }
 
     private boolean extractCkLogByRange(Pair<String, String> timeRange, File nodeTargetPath, File nodeTargetTmpPath) {

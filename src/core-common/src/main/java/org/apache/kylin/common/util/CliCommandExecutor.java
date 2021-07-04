@@ -131,10 +131,10 @@ public class CliCommandExecutor {
         }
     }
 
-    public void copyRemoteToLocal(String localFile, String destDir) throws IOException {
+    public void copyRemoteToLocal(String remoteFile, String destDir) throws IOException {
         SSHClient ssh = getSshClient();
         try {
-            ssh.scpRemoteFileToLocal(localFile, destDir);
+            ssh.scpRemoteFileToLocal(remoteFile, destDir);
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {

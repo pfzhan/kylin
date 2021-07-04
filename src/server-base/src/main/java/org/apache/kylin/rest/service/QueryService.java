@@ -171,7 +171,7 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryScheduler;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -650,8 +650,8 @@ public class QueryService extends BasicService {
         if (sqlResponse.getEngineType() != null) {
             queryContext.setEngineType(sqlResponse.getEngineType());
         }
-        queryContext.getMetrics().setScannedBytes(sqlResponse.getTotalScanBytes());
-        queryContext.getMetrics().setScannedRows(sqlResponse.getTotalScanRows());
+        queryContext.getMetrics().setSourceScanBytes(sqlResponse.getScanBytes());
+        queryContext.getMetrics().setSourceScanRows(sqlResponse.getScanRows());
         queryContext.getMetrics().setResultRowCount(sqlResponse.getResultRowCount());
 
         List<QueryContext.NativeQueryRealization> nativeQueryRealizationList = Lists.newArrayList();

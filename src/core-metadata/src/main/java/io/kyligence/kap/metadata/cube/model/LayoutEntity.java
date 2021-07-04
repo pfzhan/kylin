@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -306,6 +307,10 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
 
     public List<Integer> getShardByColumns() {
         return isCachedAndShared() ? Lists.newArrayList(shardByColumns) : shardByColumns;
+    }
+
+    public List<TblColRef> getShardByColumnRefs() {
+        return shardByColumns.stream().map(id -> getOrderedDimensions().get(id)).collect(Collectors.toList());
     }
 
     public void setShardByColumns(List<Integer> shardByColumns) {

@@ -45,7 +45,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Component("tableSamplingService")

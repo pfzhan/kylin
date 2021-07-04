@@ -263,7 +263,7 @@ import io.kyligence.kap.rest.service.params.FullBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
@@ -372,7 +372,7 @@ public class ModelService extends BasicService {
                 addOldSegmentParams(model, oldParams, executables);
             }
 
-            if (model instanceof NDataModelResponse || model instanceof FusionModelResponse) {
+            if (model instanceof NDataModelResponse) {
                 oldParams.setProjectName(model.getProject());
                 oldParams.setSizeKB(((NDataModelResponse) model).getStorage() / 1024);
                 ((NDataModelResponse) model).setOldParams(oldParams);
@@ -392,13 +392,11 @@ public class ModelService extends BasicService {
 
         if (model instanceof NDataModelResponse) {
             ((NDataModelResponse) model).setSegments(segments);
-            ((NDataModelResponse) model).setHasSegments(CollectionUtils.isNotEmpty(segments));
+            ((NDataModelResponse) model).setHasSegments(
+                    ((NDataModelResponse) model).isHasSegments() || CollectionUtils.isNotEmpty(segments));
         }
 
         if (model instanceof FusionModelResponse) {
-            ((NDataModelResponse) model).setSegments(segments);
-            ((NDataModelResponse) model).setHasSegments(CollectionUtils.isNotEmpty(segments));
-
             FusionModel fusionModel = getFusionModelManager(model.getProject()).getFusionModel(model.getId());
             List<NDataSegmentResponse> batchSegments = getSegmentsResponse(fusionModel.getBatchModel().getUuid(),
                     model.getProject(), "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
@@ -600,7 +598,7 @@ public class ModelService extends BasicService {
                 }
 
                 modelResponse.setSegments(segments);
-                modelResponse.setHasSegments(CollectionUtils.isNotEmpty(segments));
+                modelResponse.setHasSegments(modelResponse.isHasSegments() || CollectionUtils.isNotEmpty(segments));
 
             }
 
@@ -728,6 +726,29 @@ public class ModelService extends BasicService {
                     .getSegments(SegmentStatusEnum.WARNING).size();
             ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName,
                     inconsistentSegmentCount);
+            if (modelDesc.isFusionModel()) {
+                FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName)
+                        .getFusionModel(modelDesc.getFusionId());
+                val batchModel = fusionModel.getBatchModel();
+                long inconsistentBatchSegmentCount = dfManager.getDataflow(batchModel.getId())
+                        .getSegments(SegmentStatusEnum.WARNING).size();
+                ModelStatusToDisplayEnum batchModelResponseStatus = convertModelStatusToDisplay(batchModel, projectName,
+                        inconsistentBatchSegmentCount);
+                if (!batchModel.isBroken() && !modelDesc.isBroken()) {
+                    switch (modelResponseStatus) {
+                    case ONLINE:
+                        if (batchModelResponseStatus == ModelStatusToDisplayEnum.WARNING) {
+                            modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
+                        }
+                        break;
+                    case OFFLINE:
+                        modelResponseStatus = batchModelResponseStatus;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
             boolean isScd2ForbiddenOnline = checkSCD2ForbiddenOnline(modelDesc, projectName);
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
@@ -887,8 +908,25 @@ public class ModelService extends BasicService {
             List<AbstractExecutable> executables, boolean allToComplement, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        List<NDataSegmentResponse> segmentResponseList;
         NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        List<NDataSegmentResponse> segmentResponseList = getSegmentsResponseCore(modelId, project, start, end, status,
+                withAllIndexes, withoutAnyIndexes, executables, allToComplement, dataflow);
+        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
+        segmentsResponseListSort(sortBy, reverse, segmentResponseList);
+        return segmentResponseList;
+    }
+
+    public void segmentsResponseListSort(String sortBy, boolean reverse,
+            List<NDataSegmentResponse> segmentResponseList) {
+        Comparator<NDataSegmentResponse> comparator = propertyComparator(
+                StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
+        segmentResponseList.sort(comparator);
+    }
+
+    public List<NDataSegmentResponse> getSegmentsResponseCore(String modelId, String project, String start, String end,
+            String status, Collection<Long> withAllIndexes, Collection<Long> withoutAnyIndexes,
+            List<AbstractExecutable> executables, boolean allToComplement, NDataflow dataflow) {
+        List<NDataSegmentResponse> segmentResponseList;
         val segs = getSegmentsByRange(modelId, project, start, end);
 
         // filtering on index
@@ -916,16 +954,11 @@ public class ModelService extends BasicService {
                 .filter(segment -> !StringUtils.isNotEmpty(status) || status
                         .equalsIgnoreCase(SegmentUtil.getSegmentStatusToDisplay(segs, segment, executables).toString()))
                 .map(segment -> new NDataSegmentResponse(dataflow, segment, executables)).collect(Collectors.toList());
-        Comparator<NDataSegmentResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(sortBy) ? "create_time_utc" : sortBy, reverse);
-        segmentResponseList.sort(comparator);
-
-        addSecondStorageResponse(modelId, project, segmentResponseList, dataflow);
         return segmentResponseList;
     }
 
-    private void addSecondStorageResponse(String modelId, String project,
-            List<NDataSegmentResponse> segmentResponseList, NDataflow dataflow) {
+    public void addSecondStorageResponse(String modelId, String project, List<NDataSegmentResponse> segmentResponseList,
+            NDataflow dataflow) {
 
         if (!SecondStorageUtil.isModelEnable(project, modelId))
             return;
@@ -941,11 +974,11 @@ public class ModelService extends BasicService {
                     val nodes = tablePartitions.get(segment.getId()).getShardNodes().stream()
                             .map(SecondStorageUtil::transformNode).collect(Collectors.toList());
                     segment.setSecondStorageNodes(nodes);
-                    segment.setSecondStorageDiskSize(tablePartitions.get(segment.getId()).getSizeInNode().values()
-                            .stream().reduce(Long::sum).orElse(0L));
+                    segment.setSecondStorageSize(tablePartitions.get(segment.getId()).getSizeInNode().values().stream()
+                            .reduce(Long::sum).orElse(0L));
                 } else {
                     segment.setSecondStorageNodes(Collections.emptyList());
-                    segment.setSecondStorageDiskSize(0L);
+                    segment.setSecondStorageSize(0L);
                 }
             });
         }
@@ -1177,8 +1210,6 @@ public class ModelService extends BasicService {
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
             nDataflowUpdate.setToRemoveSegs(nDataSegments);
             dataflowManager.updateDataflow(nDataflowUpdate);
-
-            cleanIndexPlanWhenNoSegments(project, modelId);
         }
         offlineModelIfNecessary(dataflowManager, modelId);
     }
@@ -2533,6 +2564,8 @@ public class ModelService extends BasicService {
                 layouts.removeIf(layout -> indexIds.contains(layout.getLayoutId()));
                 dfManger.updateDataflowDetailsLayouts(seg, layouts);
             }
+            getIndexPlanManager(project).updateIndexPlan(dataflow.getUuid(),
+                    IndexPlan::removeTobeDeleteIndexIfNecessary);
             return null;
         }, project);
     }
@@ -2999,7 +3032,6 @@ public class ModelService extends BasicService {
             getJobManager(project).addJob(param, jobHandler);
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
-        cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
         offlineModelIfNecessary(dataflowManager, model);
     }
 
@@ -3011,9 +3043,14 @@ public class ModelService extends BasicService {
     }
 
     private void checkSegmentsExistById(String modelId, String project, String[] ids) {
+        checkSegmentsExistById(modelId, project, ids, true);
+    }
+
+    public boolean checkSegmentsExistById(String modelId, String project, String[] ids, boolean shouldThrown) {
         Preconditions.checkNotNull(modelId);
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(ids);
+        aclEvaluate.checkProjectOperationPermission(project);
 
         NDataflowManager dataflowManager = getDataflowManager(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
@@ -3021,16 +3058,22 @@ public class ModelService extends BasicService {
 
         List<String> notExistIds = Stream.of(ids).filter(segmentId -> null == dataflow.getSegment(segmentId))
                 .filter(Objects::nonNull).collect(Collectors.toList());
-        if (!CollectionUtils.isEmpty(notExistIds)) {
+        if (shouldThrown && !CollectionUtils.isEmpty(notExistIds)) {
             throw new KylinException(SEGMENT_NOT_EXIST, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getSEGMENT_ID_NOT_EXIST(), StringUtils.join(notExistIds, ",")));
         }
+        return CollectionUtils.isEmpty(notExistIds);
     }
 
     private void checkSegmentsExistByName(String model, String project, String[] names) {
+        checkSegmentsExistByName(model, project, names, true);
+    }
+
+    public boolean checkSegmentsExistByName(String model, String project, String[] names, boolean shouldThrow) {
         Preconditions.checkNotNull(model);
         Preconditions.checkNotNull(project);
         Preconditions.checkNotNull(names);
+        aclEvaluate.checkProjectOperationPermission(project);
 
         NDataflowManager dataflowManager = getDataflowManager(project);
         IndexPlan indexPlan = getIndexPlan(model, project);
@@ -3039,10 +3082,11 @@ public class ModelService extends BasicService {
         List<String> notExistNames = Stream.of(names)
                 .filter(segmentName -> null == dataflow.getSegmentByName(segmentName)).filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        if (!CollectionUtils.isEmpty(notExistNames)) {
+        if (shouldThrow && !CollectionUtils.isEmpty(notExistNames)) {
             throw new KylinException(SEGMENT_NOT_EXIST, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getSEGMENT_NAME_NOT_EXIST(), StringUtils.join(notExistNames, ",")));
         }
+        return CollectionUtils.isEmpty(notExistNames);
     }
 
     private void checkSegmentsStatus(String model, String project, String[] ids,

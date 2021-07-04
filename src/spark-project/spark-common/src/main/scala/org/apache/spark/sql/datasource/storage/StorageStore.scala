@@ -22,33 +22,29 @@
 
 package org.apache.spark.sql.datasource.storage
 
-import java.util.concurrent.Executors
-import java.util.{Objects, List => JList}
-import java.{lang, util}
-
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.StorageUtils.findCountDistinctMeasure
 import io.kyligence.kap.engine.spark.utils.{JobMetrics, Metrics, Repartitioner, StorageUtils}
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow}
-import io.kyligence.kap.metadata.job.JobBucket
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KapConfig
 import org.apache.kylin.common.util.HadoopUtil
-import org.apache.spark.SparkException
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.LayoutEntityConverter._
 import org.apache.spark.sql.catalyst.catalog.CatalogTable
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.plans.physical.HashPartitioning
-import org.apache.spark.sql.execution.SQLExecution
-import org.apache.spark.sql.execution.datasource.{FilePruner, LayoutFileIndex}
+import org.apache.spark.sql.execution.datasource.FilePruner
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SaveMode, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 import org.apache.spark.util.ThreadUtils
 
+import java.util.concurrent.Executors
+import java.util.{Objects, List => JList}
+import java.{lang, util}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}

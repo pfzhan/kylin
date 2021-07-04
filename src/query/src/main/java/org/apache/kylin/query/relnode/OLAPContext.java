@@ -215,6 +215,9 @@ public class OLAPContext {
     @Setter
     @Getter
     private Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    @Setter
+    @Getter
+    private Set<TblColRef> outerJoinParticipants = new HashSet<>();// join keys in the direct outer join (without agg, union etc in between)
     public Set<TblColRef> metricsColumns = new HashSet<>();
 
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply

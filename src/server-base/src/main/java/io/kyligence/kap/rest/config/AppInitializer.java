@@ -61,7 +61,6 @@ import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
 import io.kyligence.kap.rest.config.initialize.QueryMetricsListener;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
 import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
-import io.kyligence.kap.rest.config.initialize.SparderTaskListener;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryScheduler;
@@ -156,7 +155,6 @@ public class AppInitializer {
         // register for clean cache when delete
         EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListener(), "cacheInManager");
 
-        EventBusFactory.getInstance().register(new SparderTaskListener(), false);
         EventBusFactory.getInstance().register(new QueryMetricsListener(), false);
         try {
             QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();

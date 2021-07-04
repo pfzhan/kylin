@@ -256,8 +256,8 @@ public class JobSyncListener {
                     MetricsGroup.histogramUpdate(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
                             project, tags, duration);
 
-                    PrometheusMetricsGroup.summary(duration, PrometheusMetrics.MODEL_BUILD_DURATION, "project", project,
-                            "model", modelAlias);
+                    PrometheusMetricsGroup.summaryRecord(duration + notifier.getWaitTime(),
+                            PrometheusMetrics.MODEL_BUILD_DURATION, "project", project, "model", modelAlias);
                 }
 
                 Map<String, String> tags = getJobStatisticsTags(notifier.getJobType());

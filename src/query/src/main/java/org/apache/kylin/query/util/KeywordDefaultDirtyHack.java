@@ -43,8 +43,9 @@
 package org.apache.kylin.query.util;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-public class KeywordDefaultDirtyHack implements QueryUtil.IQueryTransformer {
+public class KeywordDefaultDirtyHack implements QueryUtil.IQueryTransformer, IPushDownConverter {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
@@ -64,4 +65,11 @@ public class KeywordDefaultDirtyHack implements QueryUtil.IQueryTransformer {
         return sql;
     }
 
+    @Override
+    public String convert(String originSql, String project, String defaultSchema) {
+        if (!KylinConfig.getInstanceFromEnv().isEscapeDefaultKeywordEnabled()) {
+            return originSql;
+        }
+        return transform(originSql);
+    }
 }

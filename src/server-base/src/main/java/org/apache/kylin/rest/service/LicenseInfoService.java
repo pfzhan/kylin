@@ -112,7 +112,7 @@ import io.kyligence.kap.rest.response.NodeMonitorInfoResponse;
 import io.kyligence.kap.rest.response.ProjectCapacityResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 

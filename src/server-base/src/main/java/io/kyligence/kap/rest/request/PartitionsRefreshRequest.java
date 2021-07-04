@@ -32,7 +32,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import io.kyligence.kap.rest.transaction.TransactionProjectUnit;
+import io.kyligence.kap.rest.aspect.TransactionProjectUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

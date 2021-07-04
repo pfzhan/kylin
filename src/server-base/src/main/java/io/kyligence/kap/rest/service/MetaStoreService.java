@@ -114,7 +114,7 @@ import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import io.kyligence.kap.rest.response.SimplifiedTablePreviewResponse;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.tool.routine.RoutineTool;
 import io.kyligence.kap.tool.util.HashFunction;
 import lombok.val;

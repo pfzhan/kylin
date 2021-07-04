@@ -457,7 +457,7 @@ export default class ModelPartitionModal extends Vue {
   }
   get isNotBatchModel () {
     const factTable = this.modelInstance.getFactTable()
-    return factTable.source_type === 1 || this.modelInstance.model_type !== 'BATCH'
+    return factTable.source_type === 1 || ['STREAMING', 'HYBRID'].includes(this.modelInstance.model_type)
   }
   get isHybridModel () {
     const factTable = this.modelInstance.getFactTable()

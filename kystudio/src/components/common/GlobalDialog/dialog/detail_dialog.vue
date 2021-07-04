@@ -90,7 +90,7 @@
       </template>
       <template v-else>
         <el-button v-if="needResolveCancel" :type="isSubSubmit? 'primary': ''" :text="isSubSubmit" @click="handleCloseAndResove">{{cancelT}}</el-button>
-        <el-button :type="isSubSubmit? 'primary': ''" :text="isSubSubmit" v-else class="ksd-ml-12" @click="handleClose">{{cancelT}}</el-button>
+        <el-button :type="isSubSubmit? 'primary': ''" :text="isSubSubmit" v-else :class="[needResolveCancel && 'ksd-ml-12']" @click="handleClose">{{cancelT}}</el-button>
         <el-button v-if="isSubSubmit" :loading="loading" class="ksd-ml-12" @click="handleSubmit(false)">{{submitSubText}}</el-button>
         <el-button type="primary" v-if="!isHideSubmit" class="ksd-ml-12" :loading="loading" @click="handleSubmit(true)">{{submitT}}</el-button>
       </template>

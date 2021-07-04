@@ -36,6 +36,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -56,6 +57,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -465,6 +468,81 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
 
         assertResultsAndScanFiles(modelId, complex_query0, 1, false, expectedRanges);
         assertResultsAndScanFiles(modelId, complex_query1, 1, false, expectedRanges);
+    }
+
+    @Test
+    public void testDimRangePruningAfterMerge() throws Exception {
+        String modelId = "3f152495-44de-406c-9abf-b11d4132aaed";
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "true");
+        buildMultiSegAndMerge("3f152495-44de-406c-9abf-b11d4132aaed");
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+
+        val lessThanEquality = base + "where TEST_KYLIN_FACT.ORDER_ID <= 10";
+        val in = base + "where TEST_KYLIN_FACT.ORDER_ID in (4998, 4999)";
+        val lessThan = base + "where TEST_KYLIN_FACT.ORDER_ID < 10";
+        val and = base + "where PRICE < -99 AND TEST_KYLIN_FACT.ORDER_ID = 1";
+        val or = base + "where TEST_KYLIN_FACT.ORDER_ID = 1 or TEST_KYLIN_FACT.ORDER_ID = 10";
+        val notSupported0 = base + "where SELLER_ID <> 10000233";
+        val notSupported1 = base + "where SELLER_ID > 10000233";
+
+        val expectedRanges = Lists.<Pair<String, String>> newArrayList();
+        val segmentRange1 = Pair.newPair("2009-01-01 00:00:00", "2011-01-01 00:00:00");
+        val segmentRange2 = Pair.newPair("2011-01-01 00:00:00", "2015-01-01 00:00:00");
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+
+        assertResultsAndScanFiles(modelId, lessThanEquality, 2, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, in, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, lessThan, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, and, 1, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, or, 2, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, notSupported0, 2, false, expectedRanges);
+        assertResultsAndScanFiles(modelId, notSupported1, 2, false, expectedRanges);
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("", lessThanEquality));
+        query.add(Pair.newPair("", in));
+        query.add(Pair.newPair("", lessThan));
+        query.add(Pair.newPair("", and));
+        query.add(Pair.newPair("", or));
+        query.add(Pair.newPair("", notSupported0));
+        query.add(Pair.newPair("", notSupported1));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+    }
+
+    @Test
+    public void testMergeDimRange() throws Exception{
+        String dataflowId = "3f152495-44de-406c-9abf-b11d4132aaed";
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
+        buildMultiSegAndMerge(dataflowId);
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
+        Segments<NDataSegment> segments = dataflow.getSegments();
+        Assert.assertEquals(2, segments.size());
+        NDataSegment mergedSegment = segments.get(1);
+        Assert.assertEquals(14, mergedSegment.getDimensionRangeInfoMap().size());
+    }
+
+    @Test
+    public void testMergeDimRangeFalse() throws Exception{
+        String dataflowId = "3f152495-44de-406c-9abf-b11d4132aaed";
+        overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
+        buildMultiSegs(dataflowId);
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow dataflow = dataflowManager.getDataflow(dataflowId);
+        Segments<NDataSegment> segments = dataflow.getSegments();
+        Assert.assertEquals(3, segments.size());
+        segments.get(1).getDimensionRangeInfoMap().clear();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow df = dsMgr.getDataflow(dataflowId);
+        IndexPlan indexPlan = df.getIndexPlan();
+        List<LayoutEntity> layouts = indexPlan.getAllLayouts();
+        mergeSegments(dataflowId, Sets.newLinkedHashSet(layouts));
+        segments = dataflowManager.getDataflow(dataflowId).getSegments();
+        Assert.assertEquals(2, segments.size());
+        NDataSegment segment = segments.get(1);
+        Assert.assertTrue(segment.getDimensionRangeInfoMap().isEmpty());
     }
 
     private void basicPruningScenario(String dfId) throws Exception {

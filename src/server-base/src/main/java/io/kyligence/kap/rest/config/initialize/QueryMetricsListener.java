@@ -51,6 +51,8 @@ package io.kyligence.kap.rest.config.initialize;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
@@ -62,14 +64,17 @@ import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
+import lombok.val;
 
 public class QueryMetricsListener {
 
     @Subscribe
     public void recordMetric(QueryMetrics queryMetric) {
         String project = queryMetric.getProjectName();
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 
         Map<String, String> tags = Maps.newHashMap();
         tags.put(MetricsTag.HOST.getVal(), queryMetric.getServer().concat("-").concat(project));
@@ -91,15 +96,18 @@ public class QueryMetricsListener {
         MetricsGroup.histogramUpdate(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, project, tags,
                 queryMetric.getTotalScanBytes());
 
-        PrometheusMetricsGroup.summary(queryMetric.getQueryDuration() * 1.0 / 1000, PrometheusMetrics.QUERY_SECONDS, //
+        PrometheusMetricsGroup.summaryRecord(queryMetric.getQueryDuration() * 1.0 / 1000,
+                PrometheusMetrics.QUERY_SECONDS, //
                 "pushdown", queryMetric.isPushdown() + "", //
                 "cache", queryMetric.isCacheHit() + "", "hit_index", queryMetric.isIndexHit() + "", //
                 "hit_exactly_index", queryMetric.getQueryHistoryInfo().isExactlyMatch() + "", //
                 "instance", queryMetric.getServer(), "project", queryMetric.getProjectName());
 
-        PrometheusMetricsGroup.summary(queryMetric.getTotalScanBytes(), PrometheusMetrics.QUERY_SCAN_BYTES, "project",
-                project, "model", queryMetric.getRealizationMetrics().stream()
-                        .map(QueryMetrics.RealizationMetrics::getModelId).collect(Collectors.joining(",")),
+        PrometheusMetricsGroup.summaryRecord(queryMetric.getTotalScanBytes(), PrometheusMetrics.QUERY_SCAN_BYTES,
+                "project", project, "model",
+                queryMetric.getRealizationMetrics().stream()
+                        .map(m -> modelManager.getDataModelDesc(m.getModelId()).getAlias())
+                        .collect(Collectors.joining(",")),
                 "instance", queryMetric.getServer());
 
     }

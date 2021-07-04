@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import java.io.Serializable;
 import java.util.List;
 
@@ -31,13 +32,11 @@ import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -64,6 +63,9 @@ public class NDataSegmentResponse extends NDataSegment {
     @JsonProperty("index_count")
     private long indexCount;
 
+    @JsonProperty("locked_index_count")
+    private long lockedIndexCount;
+
     @JsonProperty("index_count_total")
     private long indexCountTotal;
 
@@ -84,7 +86,7 @@ public class NDataSegmentResponse extends NDataSegment {
 
     // byte
     @JsonProperty("second_storage_size")
-    private long secondStorageDiskSize;
+    private long secondStorageSize;
 
     private long createTime;
 
@@ -119,6 +121,8 @@ public class NDataSegmentResponse extends NDataSegment {
         multiPartitionCount = segment.getMultiPartitions().size();
         hasBaseAggIndex = segment.getIndexPlan().containBaseAggLayout();
         hasBaseTableIndex = segment.getIndexPlan().containBaseTableLayout();
+        lockedIndexCount = segment.getLayoutsMap().values().stream()
+                .filter(nDataLayout -> nDataLayout.getLayout().isToBeDeleted()).count();
         if (dataflow.getModel().getMultiPartitionDesc() != null) {
             multiPartitionCountTotal = dataflow.getModel().getMultiPartitionDesc().getPartitions().size();
         }
@@ -132,6 +136,7 @@ public class NDataSegmentResponse extends NDataSegment {
         setLastBuildTime(segment.getLastBuildTime());
         setSegDetails(segment.getSegDetails());
         setMaxBucketId(segment.getMaxBucketId());
+        lastModifiedTime = getLastBuildTime() != 0 ? getLastBuildTime() : getCreateTime();
     }
 
     /**
@@ -152,9 +157,7 @@ public class NDataSegmentResponse extends NDataSegment {
         private long inputRecords;
     }
 
-    @JsonGetter("last_modified_time")
-    public long lastModifiedTime() {
-        return getLastBuildTime() != 0 ? getLastBuildTime() : getCreateTime();
-    }
+    @JsonProperty("last_modified_time")
+    private long lastModifiedTime;
 
 }

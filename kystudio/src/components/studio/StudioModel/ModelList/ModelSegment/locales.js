@@ -96,7 +96,8 @@ export default {
     batch: 'Batch',
     streaming: 'Streaming',
     syncSegmentTip: 'Sync',
-    confirmSyncSegments: 'Are you sure you want to load the table index data of the following segments to the tiered storage?'
+    confirmSyncSegments: 'Are you sure you want to load the table index data of the following segments to the tiered storage?',
+    refreshErrorTips: 'No index is available to be refreshed. Please check and try again.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -195,6 +196,7 @@ export default {
     batch: '离线',
     streaming: '实时',
     syncSegmentTip: '同步',
-    confirmSyncSegments: '确定要将以下 Segment(s) 中的明细索引数据加载到分层存储中吗？'
+    confirmSyncSegments: '确定要将以下 Segment(s) 中的明细索引数据加载到分层存储中吗？',
+    refreshErrorTips: '当前没有可刷新索引。请检查后重试。'
   }
 }

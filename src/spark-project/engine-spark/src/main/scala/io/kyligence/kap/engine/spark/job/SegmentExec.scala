@@ -35,7 +35,7 @@ import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.{StorageListener, StorageStoreFactory, WriteTaskStats}
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import java.util
 import java.util.Objects
@@ -226,6 +226,35 @@ trait SegmentExec extends Logging {
     val stats = store.save(layout, new Path(storagePath), KapConfig.wrap(config), layoutDS)
     sparkSession.sparkContext.setJobDescription(null)
     stats
+  }
+
+  protected def calDimRange(segment: NDataSegment, ds: Dataset[Row]): java.util.HashMap[String, DimensionRangeInfo] = {
+    val dimensions = segment.getDataflow.getIndexPlan.getEffectiveDimCols.keySet()
+    val dimRangeInfo = new java.util.HashMap[String, DimensionRangeInfo]
+    // Not support multi partition for now
+    if (Objects.isNull(segment.getModel.getMultiPartitionDesc)
+            && config.isDimensionRangeFilterEnabled
+            && !dimensions.isEmpty) {
+      val start = System.currentTimeMillis()
+      import org.apache.spark.sql.functions._
+
+      val columns = NSparkCubingUtil.getColumns(dimensions)
+      val dimDS = ds.select(columns: _*)
+
+      // Calculate max and min of all dimensions
+      val minCols: Array[Column] = dimDS.columns.map(min)
+      val maxCols: Array[Column] = dimDS.columns.map(max)
+      val cols = Array.concat(minCols, maxCols)
+      val row = dimDS.agg(cols.head, cols.tail: _*).head.toSeq.splitAt(columns.length)
+      (dimensions.asScala.toSeq, row._1, row._2)
+              .zipped.map {
+        case (_, null, null) =>
+        case (column, min, max) => dimRangeInfo.put(column.toString, new DimensionRangeInfo(min.toString, max.toString))
+      }
+      val timeCost = System.currentTimeMillis() - start
+      logInfo(s"Segment: $segmentId, calculate dimension range cost $timeCost ms")
+    }
+    dimRangeInfo
   }
 
   protected def cleanup(): Unit = {

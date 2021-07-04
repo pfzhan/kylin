@@ -24,21 +24,27 @@
 
 package io.kyligence.kap.secondstorage;
 
-import com.clearspring.analytics.util.Preconditions;
-import io.kyligence.kap.secondstorage.config.Cluster;
-import io.kyligence.kap.secondstorage.config.Node;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.secondstorage.config.Cluster;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 
 public class SecondStorageNodeHelper {
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -75,6 +81,20 @@ public class SecondStorageNodeHelper {
 
     public static Node getNode(String name) {
         return new Node(NODE_MAP.get(name));
+    }
+
+    public static List<Node> getALlNodes() {
+        Preconditions.checkState(initialized.get());
+        return new ArrayList<>(NODE_MAP.values());
+    }
+
+    public static List<Node> getALlNodesInProject(String project) {
+        Optional<NManager<NodeGroup>> nodeGroupOptional = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
+        Preconditions.checkState(nodeGroupOptional.isPresent(), "node group manager is not init");
+        return nodeGroupOptional.get().listAll().stream()
+                .flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).map(NODE_MAP::get)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     public static List<String> getAllNames() {

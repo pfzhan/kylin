@@ -21,9 +21,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.transaction;
 
-public interface TransactionProjectUnit {
+package org.apache.kylin.query.util;
 
-    String transactionProjectUnit();
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.query.calcite.KEDialect;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
+
+import io.kyligence.kap.common.obf.IKeep;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class DialectConverter implements IPushDownConverter, IKeep {
+
+    @Override
+    public String convert(String originSql, String project, String defaultSchema) {
+        try {
+            SqlNode node = CalciteParser.parse(originSql);
+            SqlPrettyWriter writer = new SqlPrettyWriter(KEDialect.DEFAULT);
+            return writer.format(node);
+        } catch (Exception e) {
+            log.error("dialect push down converter failed.", e);
+        }
+        return originSql;
+    }
 }

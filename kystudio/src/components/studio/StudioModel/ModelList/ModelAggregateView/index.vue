@@ -257,15 +257,15 @@ export default class AggregateView extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
+        const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
         isSubmit && this.loadAggregateGroups()
-        isSubmit && this.$emit('loadModels')
+        isSubmit && this.$emit('refreshModel')
       })
     } else {
       const { projectName, model } = this
-      const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
+      const { isSubmit } = await this.callAggregateModal({ editType: 'new', model, projectName, indexUpdateEnabled: this.indexUpdateEnabled })
       isSubmit && this.loadAggregateGroups()
-      isSubmit && this.$emit('loadModels')
+      isSubmit && this.$emit('refreshModel')
     }
   }
   async editAggGroup (aggregateIdx) {
@@ -278,15 +278,15 @@ export default class AggregateView extends Vue {
       }
       kapConfirm(msg, {cancelButtonText: this.$t('kylinLang.common.continueOperate'), confirmButtonText: this.$t('kylinLang.common.tryLater'), type: 'warning', showClose: false, closeOnClickModal: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then().catch(async () => {
         const { projectName, model } = this
-        const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '', indexUpdateEnabled: this.indexUpdateEnabled })
+        const { isSubmit } = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '', indexUpdateEnabled: this.indexUpdateEnabled })
         isSubmit && this.loadAggregateGroups()
-        isSubmit && this.$emit('loadModels')
+        isSubmit && this.$emit('refreshModel')
       })
     } else {
       const { projectName, model } = this
-      const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '', indexUpdateEnabled: this.indexUpdateEnabled })
+      const { isSubmit } = await this.callAggregateModal({ editType: 'edit', model, projectName, aggregateIdx: aggregateIdx + '', indexUpdateEnabled: this.indexUpdateEnabled })
       isSubmit && this.loadAggregateGroups()
-      isSubmit && this.$emit('loadModels')
+      isSubmit && this.$emit('refreshModel')
     }
   }
   async deleteAggGroup (aggregateIdx) {
@@ -302,6 +302,7 @@ export default class AggregateView extends Vue {
         aggregationGroups: this.aggregationObj.aggregation_groups
       })
       this.loadAggregateGroups()
+      this.$emit('refreshModel')
     } catch (e) {
       handleError(e)
     }

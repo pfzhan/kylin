@@ -1056,19 +1056,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         SQLResponse sqlResponse = queryService.queryWithCache(request);
         Assert.assertNull(QueryContext.current().getEngineType());
-        Assert.assertEquals(-1, QueryContext.current().getMetrics().getScannedBytes());
-        Assert.assertEquals(-1, QueryContext.current().getMetrics().getScannedRows());
+        Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalSourceScanBytes());
+        Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalSourceScanRows());
         Assert.assertEquals(0, QueryContext.current().getMetrics().getResultRowCount());
 
-        sqlResponse.setTotalScanBytes(1024);
-        sqlResponse.setTotalScanRows(10000);
+        sqlResponse.setScanBytes(Lists.newArrayList(Pair.newPair("m1", 1024L)));
+        sqlResponse.setScanRows(Lists.newArrayList(Pair.newPair("m1", 10000L)));
         sqlResponse.setResultRowCount(500);
         queryCacheManager.cacheSuccessQuery(request, sqlResponse);
 
         queryService.queryWithCache(request);
         Assert.assertEquals("NATIVE", QueryContext.current().getEngineType());
-        Assert.assertEquals(1024, QueryContext.current().getMetrics().getScannedBytes());
-        Assert.assertEquals(10000, QueryContext.current().getMetrics().getScannedRows());
+        Assert.assertEquals(1024, QueryContext.current().getMetrics().getTotalSourceScanBytes());
+        Assert.assertEquals(10000, QueryContext.current().getMetrics().getTotalSourceScanRows());
         Assert.assertEquals(500, QueryContext.current().getMetrics().getResultRowCount());
 
         queryCacheManager.clearQueryCache(request);
@@ -1314,10 +1314,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         long defaultValue = QueryContext.DEFAULT_NULL_SCANNED_DATA;
 
         SQLResponse sqlResponse = new SQLResponse();
-        sqlResponse.setScanRows(Arrays.asList(1L, 2L));
-        sqlResponse.setScanBytes(Arrays.asList(2L, 3L));
-        sqlResponse.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponse.getScanBytes()));
-        sqlResponse.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponse.getScanRows()));
+        sqlResponse.setScanRows(Lists.newArrayList(Pair.newPair("m1", 1L), Pair.newPair("m2", 2L)));
+        sqlResponse.setScanBytes(Lists.newArrayList(Pair.newPair("m1", 2L), Pair.newPair("m2", 3L)));
 
         Assert.assertEquals(3L, sqlResponse.getTotalScanRows());
         Assert.assertEquals(5L, sqlResponse.getTotalScanBytes());
@@ -1325,28 +1323,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse sqlResponseNull = new SQLResponse();
         sqlResponseNull.setScanRows(null);
         sqlResponseNull.setScanBytes(null);
-        sqlResponseNull.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponseNull.getScanBytes()));
-        sqlResponseNull.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponseNull.getScanRows()));
 
         Assert.assertEquals(sqlResponseNull.getTotalScanRows(), defaultValue);
         Assert.assertEquals(sqlResponseNull.getTotalScanBytes(), defaultValue);
 
         SQLResponse sqlResponseEmpty = new SQLResponse();
 
-        sqlResponseEmpty.setScanRows(Collections.emptyList());
-        sqlResponseEmpty.setScanBytes(Collections.emptyList());
-        sqlResponseEmpty.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponseEmpty.getScanBytes()));
-        sqlResponseEmpty.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponseEmpty.getScanRows()));
+        sqlResponseEmpty.setScanRows(Lists.newArrayList());
+        sqlResponseEmpty.setScanBytes(Lists.newArrayList());
 
         Assert.assertEquals(0, sqlResponseEmpty.getTotalScanRows());
         Assert.assertEquals(0, sqlResponseEmpty.getTotalScanBytes());
 
         QueryContext queryContext = QueryContext.current();
-        queryContext.getMetrics().updateAndCalScanRows(Arrays.asList(1L, 2L));
-        queryContext.getMetrics().updateAndCalScanBytes(Arrays.asList(2L, 3L));
-
-        Assert.assertEquals(3L, queryContext.getMetrics().getScannedRows());
-        Assert.assertEquals(5L, queryContext.getMetrics().getScannedBytes());
 
     }
 

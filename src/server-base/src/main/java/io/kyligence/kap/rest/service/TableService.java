@@ -182,7 +182,7 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 import lombok.var;
 
@@ -1575,6 +1575,13 @@ public class TableService extends BasicService {
             NDataModel model = modelService.getModelByAlias(schemaNode.getSubject(), newTableDesc.getProject());
             if (newTableDesc.getIdentity().equals(model.getRootFactTableRef().getTableDesc().getIdentity())) {
                 duplicatedColumns.put(newTableDesc.getIdentity(), schemaNode.getDetail());
+            } else {
+                for (JoinTableDesc joinTable : model.getJoinTables()) {
+                    if (newTableDesc.getIdentity().equals(joinTable.getTableRef().getTableDesc().getIdentity())) {
+                        duplicatedColumns.put(newTableDesc.getIdentity(), schemaNode.getDetail());
+                        break;
+                    }
+                }
             }
         }
         return duplicatedColumns;

@@ -21,21 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.util;
+package io.kyligence.kap.rest.aspect;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class TaskStatusEvent {
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Transaction {
 
-    private int pendingTaskCount;
+    int project() default -1;
 
-    private int activeTaskCount;
+    int retry() default 3;
 
-    private int finishedTaskCount;
-
+    boolean readonly() default false;
 }

@@ -64,7 +64,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
 import io.kyligence.kap.rest.response.UserGroupResponseKI;
-import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Component("nUserGroupService")

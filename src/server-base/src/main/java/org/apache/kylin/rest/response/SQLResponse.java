@@ -47,6 +47,7 @@ import java.util.List;
 
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,13 +90,13 @@ public class SQLResponse implements Serializable {
 
     protected boolean isPartial = false;
 
-    private List<Long> scanRows;
+    private List<Pair<String, Long>> scanRows;
 
-    private long totalScanRows;
+    //    private long totalScanRows;
 
-    private List<Long> scanBytes;
+    private List<Pair<String, Long>> scanBytes;
 
-    private long totalScanBytes;
+    //    private long totalScanBytes;
 
     private String appMasterURL = "";
 
@@ -183,17 +184,20 @@ public class SQLResponse implements Serializable {
     public SQLResponse wrapResultOfQueryContext(QueryContext queryContext) {
         Preconditions.checkNotNull(queryContext, "queryContext is null");
         this.setQueryId(queryContext.getQueryId());
-        this.setScanRows(queryContext.getMetrics().getScanRows());
-        this.setScanBytes(queryContext.getMetrics().getScanBytes());
-
-        //QueryContext.scannedRows and scannedBytes must be calculated
-        //directly set value avoid repeated calculation
-        this.setTotalScanRows(queryContext.getMetrics().getScannedRows());
-        this.setTotalScanBytes(queryContext.getMetrics().getScannedBytes());
+        this.setScanRows(queryContext.getMetrics().getSourceScanRows());
+        this.setScanBytes(queryContext.getMetrics().getSourceScanBytes());
 
         this.setShufflePartitions(queryContext.getShufflePartitions());
 
         return this;
 
+    }
+
+    public long getTotalScanRows() {
+        return QueryContext.calScannedValueWithDefault(scanRows);
+    }
+
+    public long getTotalScanBytes() {
+        return QueryContext.calScannedValueWithDefault(scanBytes);
     }
 }

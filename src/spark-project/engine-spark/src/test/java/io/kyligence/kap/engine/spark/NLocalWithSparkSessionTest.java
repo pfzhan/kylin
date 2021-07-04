@@ -81,7 +81,10 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
+import io.kyligence.kap.engine.spark.job.NSparkMergingStep;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -391,6 +394,67 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         end = SegmentRange.dateToLong("2015-01-01 00:00:00");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
+    }
+
+    public void buildMultiSegAndMerge(String dfName, long... layoutID) throws Exception {
+        buildMultiSegs(dfName, layoutID);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow df = dsMgr.getDataflow(dfName);
+        List<LayoutEntity> layouts = new ArrayList<>();
+        IndexPlan indexPlan = df.getIndexPlan();
+        if (layoutID.length == 0) {
+            layouts = indexPlan.getAllLayouts();
+        } else {
+            for (long id : layoutID) {
+                layouts.add(indexPlan.getLayoutEntity(id));
+            }
+        }
+        mergeSegments(dfName, Sets.newLinkedHashSet(layouts));
+    }
+
+    public void mergeSegments(String dfName, Set<LayoutEntity> toBuildLayouts) throws Exception {
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        NDataflow df = dsMgr.getDataflow(dfName);
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2011-01-01 00:00:00"), SegmentRange.dateToLong("2015-01-01 00:00:00")), false);
+        NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(toBuildLayouts), "ADMIN",
+                UUID.randomUUID().toString());
+        NSparkMergingStep sparkStep = job.getSparkMergingStep();
+        NExecutableManager execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
+        // launch the job
+        execMgr.addJob(job);
+
+        if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
+            val firstErrorMsg = job.getTasks().stream()
+                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
+                    .map(task -> {
+                        try (InputStream verboseMsgStream = execMgr
+                                .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
+                                .getVerboseMsgStream();
+                             BufferedReader reader = new BufferedReader(
+                                     new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
+
+                            String line;
+                            StringBuilder sampleData = new StringBuilder();
+                            while ((line = reader.readLine()) != null) {
+                                if (sampleData.length() > 0) {
+                                    sampleData.append('\n');
+                                }
+                                sampleData.append(line);
+                            }
+
+                            return sampleData.toString();
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    }).orElse("Unknown Error");
+            throw new IllegalStateException(firstErrorMsg);
+        }
+
+        Assert.assertTrue(job instanceof NSparkMergingJob);
+        val merger = new AfterMergeOrRefreshResourceMerger(getTestConfig(), getProject());
+        merger.merge(job.getSparkMergingStep());
+
     }
 
     public void buildMultiSegmentPartitions(String dfName, String segStart, String segEnd, List<Long> layouts,

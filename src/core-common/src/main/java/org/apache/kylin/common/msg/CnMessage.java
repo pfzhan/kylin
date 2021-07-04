@@ -1790,4 +1790,9 @@ public class CnMessage extends Message {
     public String getPARTITION_COLUMN_NOT_AVAILABLE() {
         return "无法开启。请先将时间分区列添加到基础明细索引。";
     }
+
+    @Override
+    public String getFIX_STREAMING_SEGMENT() {
+        return "无法修复实时模型的 Segment。";
+    }
 }

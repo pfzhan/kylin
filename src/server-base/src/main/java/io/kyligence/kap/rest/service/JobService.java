@@ -87,6 +87,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
@@ -95,12 +96,12 @@ import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
-import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -698,7 +699,7 @@ public class JobService extends BasicService {
 
     @Setter
     @Getter
-    class ExecutablePOSortBean {
+    class ExecutablePOSortBean implements IKeep {
 
         private String project;
 

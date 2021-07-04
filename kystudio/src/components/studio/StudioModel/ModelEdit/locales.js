@@ -88,7 +88,8 @@ export default {
     iKnow: 'Got It',
     disabledConstantMeasureTip: 'Can\'t modify the default measure.',
     flattenLookupTableTips: 'Unable to use columns from this table for dimension and measure. Because the join relationship of this dimension table won\'t be precomputed.',
-    disableDelDimTips: 'When the tiered storage is ON, the time partition column can\'t be deleted from the dimension.'
+    disableDelDimTips: 'When the tiered storage is ON, the time partition column can\'t be deleted from the dimension.',
+    forbidenCreateCCTip: 'Can\'t add computed column to hybrid model'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -180,6 +181,7 @@ export default {
     disabledConstantMeasureTip: '默认度量，暂不支持编辑和删除。',
     flattenLookupTableTips: '无法在维度和度量中使用该表中的列，因为该维度表的关联关系不进行预计算。',
     batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
-    disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。'
+    disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。',
+    forbidenCreateCCTip: '融合模型暂不支持添加可计算列'
   }
 }

@@ -39,6 +39,7 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.{StorageStoreUtils, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row, SaveMode}
 
+import scala.collection.JavaConverters
 import scala.collection.JavaConverters._
 
 class SegmentMergeExec(private val jobContext: SegmentMergeJob,
@@ -214,6 +215,22 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
     unmerged.map(segment => config.getFlatTableDir(project, dataflowId, segment.getId))
   }
 
+  private def mergeDimRange(): java.util.Map[String, DimensionRangeInfo] = {
+    val emptyDimRangeSeg = unmerged.filter(seg => seg.getDimensionRangeInfoMap.isEmpty)
+    val mergedSegment = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getSegment(segmentId)
+    if (mergedSegment.isFlatTableReady) {
+      val flatTablePath = config.getFlatTableDir(project, dataflowId, segmentId)
+      val mergedDS = sparkSession.read.parquet(flatTablePath.toString)
+      calDimRange(mergedSegment, mergedDS)
+    } else if (!emptyDimRangeSeg.isEmpty) {
+      new java.util.HashMap[String, DimensionRangeInfo];
+    } else {
+      val mergedDimRange = unmerged.map(seg => JavaConverters.mapAsScalaMap(seg.getDimensionRangeInfoMap).toSeq)
+              .reduce(_ ++ _).groupBy(_._1).mapValues(_.map(_._2).reduce(_.merge(_)))
+      JavaConverters.mapAsJavaMap(mergedDimRange)
+    }
+  }
+
   protected def mergeColumnBytes(): Unit = {
     UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
       override def process(): Unit = {
@@ -234,6 +251,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
         val copiedSegment = copiedDataflow.getSegment(segmentId)
         val dataflowUpdate = new NDataflowUpdate(dataflowId)
         copiedSegment.setSourceCount(totalCount)
+        copiedSegment.setDimensionRangeInfoMap(mergeDimRange())
         // By design, no fencing.
         copiedSegment.getColumnSourceBytes.putAll(evaluated)
         dataflowUpdate.setToUpdateSegs(copiedSegment)
