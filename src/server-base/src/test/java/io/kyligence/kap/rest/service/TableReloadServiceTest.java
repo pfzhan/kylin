@@ -1039,6 +1039,19 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testReload_AddLookupColumn() throws Exception {
+        addColumn("EDW.TEST_CAL_DT", true, new ColumnDesc("", "DEAL_YEAR", "int", "", "", "", null));
+
+        OpenPreReloadTableResponse response = tableService.preProcessBeforeReloadWithoutFailFast(PROJECT,
+                "EDW.TEST_CAL_DT");
+        Assert.assertTrue(response.isHasDatasourceChanged());
+        Assert.assertTrue(response.isHasDuplicatedColumns());
+        Assert.assertEquals(1, response.getDuplicatedColumns().size());
+        String colName = response.getDuplicatedColumns().get(0);
+        Assert.assertEquals("EDW.TEST_CAL_DT.DEAL_YEAR", colName);
+    }
+
+    @Test
     public void testCheckEffectedJobs() throws Exception {
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         AbstractExecutable job1 = new NTableSamplingJob();
