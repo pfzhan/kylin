@@ -142,7 +142,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             .create("obfLevel");
 
     private static final String DEFAULT_PACKAGE_TYPE = "base";
-    private static final String[] COMMIT_SHA1_FILES = { "commit_SHA1", "commit.sha1" };
+    private static final String[] COMMIT_SHA1_FILES = {"commit_SHA1", "commit.sha1"};
 
     public static final String SLASH = "/";
     public static final String TRUE = "true";
@@ -250,7 +250,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         // create new folder to contain the output
         String packageName = packageType.toLowerCase(Locale.ROOT) + "_"
                 + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
-                        .format(new Date());
+                .format(new Date());
         if (!submodule) {
             exportDest = exportDest + packageName + SLASH;
         }
@@ -274,8 +274,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             FileUtils.cleanDirectory(exportDir);
             String sha256Sum = DatatypeConverter.printHexBinary((HashFunction.SHA256.checksum(tempZipFile)));
 
-            String packageFilename = StringUtils.join(new String[] { ToolUtil.getHostName(),
-                    getKylinConfig().getServerPort(), packageName, sha256Sum.substring(0, 6) }, '_');
+            String packageFilename = StringUtils.join(new String[]{ToolUtil.getHostName(),
+                    getKylinConfig().getServerPort(), packageName, sha256Sum.substring(0, 6)}, '_');
             File zipFile = new File(exportDir, packageFilename + ".zip");
             FileUtils.moveFile(tempZipFile, zipFile);
             exportDest = zipFile.getAbsolutePath();
@@ -564,10 +564,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         scheduleTimeoutTask(recTask, REC_CANDIDATE);
     }
 
-    protected void exportTieredStorage(File exportDir, long startTime, long endTime, File recordTime) {
+    protected void exportTieredStorage(String project, File exportDir, long startTime, long endTime, File recordTime) {
         Future kgLogTask = executorService.submit(() -> {
             recordTaskStartTime(TIERED_STORAGE_LOGS);
-            new ClickhouseDiagTool().dumpClickHouseServerLog(exportDir, startTime, endTime);
+            new ClickhouseDiagTool(project).dumpClickHouseServerLog(exportDir, startTime, endTime);
             recordTaskExecutorTimeToFile(TIERED_STORAGE_LOGS, recordTime);
         });
 

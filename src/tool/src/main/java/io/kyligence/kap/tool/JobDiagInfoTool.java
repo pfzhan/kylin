@@ -130,12 +130,12 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             // dump job metadata
             File metaDir = new File(exportDir, "metadata");
             FileUtils.forceMkdir(metaDir);
-            String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
-                    "-excludeTableExd" };
+            String[] metaToolArgs = {"-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
+                    "-excludeTableExd"};
             dumpMetadata(metaToolArgs, recordTime);
         }
 
-        if(includeAuditLog) {
+        if (includeAuditLog) {
             File auditLogDir = new File(exportDir, "audit_log");
             FileUtils.forceMkdir(auditLogDir);
             String[] auditLogToolArgs = {OPT_JOB, jobId, OPT_PROJECT, project, OPT_DIR, auditLogDir.getAbsolutePath()};
@@ -169,7 +169,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 
-        exportTieredStorage(exportDir, startTime, endTime, recordTime);
+        exportTieredStorage(project, exportDir, startTime, endTime, recordTime);
 
         exportInfluxDBMetrics(exportDir, recordTime);
 
@@ -187,7 +187,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     }
 
     private void exportSparkLog(File exportDir, final File recordTime, String project, String jobId,
-            AbstractExecutable job) {
+                                AbstractExecutable job) {
         // job spark log
         Future sparkLogTask = executorService.submit(() -> {
             recordTaskStartTime(SPARK_LOGS);

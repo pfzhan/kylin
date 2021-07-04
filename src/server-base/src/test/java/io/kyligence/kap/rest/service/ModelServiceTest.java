@@ -224,7 +224,10 @@ import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
@@ -6024,5 +6027,45 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel result = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertNotEquals(0L, result.getLastModified());
         Assert.assertEquals(result.getUuid(), result.getFusionId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testListNodesByProject() throws IOException {
+        val project = "default";
+        MockSecondStorage.mock(project, new ArrayList<>(), this);
+        val nodeGroupManagerOption = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
+
+        Assert.assertTrue(nodeGroupManagerOption.isPresent());
+        val nodeGroupManager = nodeGroupManagerOption.get();
+
+        NodeGroup nodeGroup1 = new NodeGroup();
+        nodeGroup1.setNodeNames(Lists.newArrayList("node01", "node02"));
+        NodeGroup nodeGroup2 = new NodeGroup();
+        nodeGroup2.setNodeNames(Lists.newArrayList("node01"));
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            nodeGroupManager.createAS(nodeGroup1);
+            return null;
+        }, project);
+
+        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
+        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
+        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
+        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
+
+        Assert.assertEquals(2, SecondStorageNodeHelper.getALlNodesInProject(project).size());
+        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testAllListNodes() throws IOException {
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+
+        val mockNodeMap = (Map<String, Node>) (ReflectionTestUtils.getField(SecondStorageNodeHelper.class, "NODE_MAP"));
+        mockNodeMap.put("node01", new Node().setName("node01").setIp("127.0.0.1").setPort(9000));
+        mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
+        mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
+        Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
     }
 }

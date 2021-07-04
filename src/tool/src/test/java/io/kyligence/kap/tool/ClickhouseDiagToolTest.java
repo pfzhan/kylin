@@ -24,11 +24,16 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.kylin.common.util.Pair;
 import org.joda.time.DateTime;
 import org.junit.Assert;
@@ -154,4 +159,60 @@ public class ClickhouseDiagToolTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testCleanEmptyFile() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        FileUtils.touch(new File(mainDir, "click-server.log"));
+        val fileFilter = FileFilterUtils.suffixFileFilter("log");
+
+        val fileList = FileUtils.listFiles(mainDir, fileFilter, null);
+
+        Assert.assertEquals(1, fileList.size());
+        fileList.forEach(file -> {
+            Assert.assertEquals(0, FileUtils.sizeOf(file));
+        });
+
+        ClickhouseDiagTool clickhouseDiagTool = new ClickhouseDiagTool();
+
+        ReflectionTestUtils.invokeMethod(clickhouseDiagTool, "cleanEmptyFile", mainDir);
+
+        Assert.assertEquals(0, FileUtils.listFiles(mainDir, fileFilter, null).size());
+
+    }
+
+    @Test
+    public void testUnzipLogFile() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        val fileFilter = FileFilterUtils.suffixFileFilter("log");
+        File tarTempDir = new File(mainDir, "tarTemp");
+        FileUtils.forceMkdir(mainDir);
+        FileUtils.forceMkdir(tarTempDir);
+        val logFile = new File(mainDir, "click-server.log");
+        FileUtils.touch(logFile);
+        FileUtils.writeStringToFile(logFile, "abc");
+
+        writeFileToTar(new File(tarTempDir, "t.gz"), logFile);
+
+        ClickhouseDiagTool clickhouseDiagTool = new ClickhouseDiagTool();
+        ReflectionTestUtils.invokeMethod(clickhouseDiagTool, "unzipLogFile", tarTempDir);
+
+        Assert.assertEquals(1, FileUtils.listFiles(tarTempDir, fileFilter, null).size());
+
+    }
+
+    private void writeFileToTar(File tarTempFile, File logFile) throws IOException {
+        GZIPOutputStream out = new GZIPOutputStream(new FileOutputStream(tarTempFile));
+        InputStream in = new FileInputStream(logFile);
+
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = in.read(buf)) > 0) {
+            out.write(buf, 0, len);
+        }
+        in.close();
+
+        out.finish();
+        out.close();
+    }
 }
