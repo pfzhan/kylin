@@ -28,6 +28,8 @@ import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.apache.kylin.metadata.datatype.DataType;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -64,9 +66,9 @@ public class DimensionRangeInfo implements Serializable {
         this.max = max;
     }
 
-    public DimensionRangeInfo merge(DimensionRangeInfo dimensionRangeInfo) {
-        String minValue = this.min.compareTo(dimensionRangeInfo.getMin()) < 0 ? this.min:dimensionRangeInfo.getMin();
-        String maxValue = this.max.compareTo(dimensionRangeInfo.getMax()) > 0 ? this.max: dimensionRangeInfo.getMax();
+    public DimensionRangeInfo merge(DimensionRangeInfo dimensionRangeInfo, DataType dataType) {
+        String minValue = dataType.compare(this.min, dimensionRangeInfo.getMin()) < 0 ? this.min:dimensionRangeInfo.getMin();
+        String maxValue = dataType.compare(this.max, dimensionRangeInfo.getMax()) > 0 ? this.max: dimensionRangeInfo.getMax();
         return new DimensionRangeInfo(minValue, maxValue);
     }
 }

@@ -217,16 +217,20 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
 
   private def mergeDimRange(): java.util.Map[String, DimensionRangeInfo] = {
     val emptyDimRangeSeg = unmerged.filter(seg => seg.getDimensionRangeInfoMap.isEmpty)
-    val mergedSegment = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getSegment(segmentId)
+    val dataflow = NDataflowManager.getInstance(config, project).getDataflow(dataflowId)
+    val mergedSegment = dataflow.getSegment(segmentId)
     if (mergedSegment.isFlatTableReady) {
       val flatTablePath = config.getFlatTableDir(project, dataflowId, segmentId)
       val mergedDS = sparkSession.read.parquet(flatTablePath.toString)
       calDimRange(mergedSegment, mergedDS)
-    } else if (!emptyDimRangeSeg.isEmpty) {
-      new java.util.HashMap[String, DimensionRangeInfo];
+    } else if (emptyDimRangeSeg.nonEmpty) {
+      new java.util.HashMap[String, DimensionRangeInfo]
     } else {
+      val dimCols = dataflow.getIndexPlan.getEffectiveDimCols
       val mergedDimRange = unmerged.map(seg => JavaConverters.mapAsScalaMap(seg.getDimensionRangeInfoMap).toSeq)
-              .reduce(_ ++ _).groupBy(_._1).mapValues(_.map(_._2).reduce(_.merge(_)))
+              .reduce(_ ++ _).groupBy(_._1).mapValues(_.map(_._2).seq).map(dim => {
+         (dim._1, dim._2.reduce(_.merge(_, dimCols.get(Integer.parseInt(dim._1)).getType)))
+       })
       JavaConverters.mapAsJavaMap(mergedDimRange)
     }
   }

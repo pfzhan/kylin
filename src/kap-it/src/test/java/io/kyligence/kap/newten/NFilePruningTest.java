@@ -510,8 +510,9 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
     }
 
     @Test
-    public void testMergeDimRange() throws Exception{
+    public void testMergeDimRange() throws Exception {
         String dataflowId = "3f152495-44de-406c-9abf-b11d4132aaed";
+        String modelId = dataflowId;
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         buildMultiSegAndMerge(dataflowId);
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -521,6 +522,19 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest implements Adap
         Assert.assertEquals(2, segments.size());
         NDataSegment mergedSegment = segments.get(1);
         Assert.assertEquals(14, mergedSegment.getDimensionRangeInfoMap().size());
+
+        val priceTest = base + "where PRICE <= -99.7900";
+
+        val expectedRanges = Lists.<Pair<String, String>> newArrayList();
+        val segmentRange1 = Pair.newPair("2009-01-01 00:00:00", "2011-01-01 00:00:00");
+        val segmentRange2 = Pair.newPair("2011-01-01 00:00:00", "2015-01-01 00:00:00");
+        expectedRanges.add(segmentRange1);
+        expectedRanges.add(segmentRange2);
+
+        assertResultsAndScanFiles(modelId, priceTest, 1, false, expectedRanges);
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("", priceTest));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
     }
 
     @Test
