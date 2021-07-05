@@ -1,5 +1,5 @@
 <template>
-  <div class="security-user">
+  <div class="security-user" v-loading="isLoadingUsers">
     <div class="ksd-title-label ksd-mt-20">{{$t('userList')}}</div>
     <!-- 新建/过滤用户 -->
     <el-row class="ksd-mt-10 ksd-mb-10">
@@ -155,6 +155,7 @@ export default class SecurityUser extends Vue {
     page_size: +localStorage.getItem(this.pageRefTags.userPager) || 20,
     page_offset: 0
   }
+  isLoadingUsers = false
   get currentGroup () {
     const current = this.$store.state.user.usersGroupList.filter((g) => {
       return g.group_name === this.$route.params.groupName
@@ -198,6 +199,7 @@ export default class SecurityUser extends Vue {
   }
 
   async loadUsers (name) {
+    this.isLoadingUsers = true
     try {
       const parameter = {
         ...this.pagination,
@@ -212,11 +214,14 @@ export default class SecurityUser extends Vue {
       // this.userData = res.data.data && (res.data.data.users || res.data.data.groupMembers) || []
       this.userData = res.data.data && res.data.data.value || []
       this.totalSize = res.data.data && res.data.data.total_size || 0
+      this.isLoadingUsers = false
       if (res.status !== 200) {
         handleError(res)
+        this.isLoadingUsers = false
       }
     } catch (e) {
       handleError(e)
+      this.isLoadingUsers = false
     }
   }
 
