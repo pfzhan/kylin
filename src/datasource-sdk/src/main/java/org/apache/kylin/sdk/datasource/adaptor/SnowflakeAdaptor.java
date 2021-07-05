@@ -28,12 +28,23 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.sql.rowset.CachedRowSet;
 
+import net.snowflake.client.jdbc.SnowflakeSQLException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.sdk.datasource.adaptor.response.KylinSnowflakeResponse;
 
 import com.google.common.base.Preconditions;
 
@@ -44,11 +55,31 @@ import com.google.common.base.Preconditions;
  */
 public class SnowflakeAdaptor extends DefaultAdaptor {
 
+    public static final String AUTHENTICATOR = "kylin.source.authenticator";
+    public static final String OAUTH_ENABLED = "snowflake.oauth.enabled";
+    public static final String OAUTH_TOKEN_URL = "snowflake.oauth.token.url";
+    public static final String AAD_CLIENT_ID = "snowflake.aad.client.id";
+    public static final String AAD_CLIENT_SECRET = "snowflake.aad.client.secret";
+    public static final String AAD_SCOPE = "snowflake.aad.scope";
+    public static final String AAD_GRANT_TYPE = "snowflake.aad.grant.type";
+
     private static Pattern patternSubstr = Pattern.compile("SUBSTRING\\(([^,]*)\\)");
     private Pattern patternTrim = Pattern.compile("TRIM\\(.*BOTH.*FROM\\s+(.+)\\)");
 
     public SnowflakeAdaptor(AdaptorConfig config) throws Exception {
         super(config);
+        initAADParams();
+    }
+
+    @Override
+    public Connection getConnection() throws SQLException {
+        try {
+            return super.getConnection();
+        } catch (SnowflakeSQLException e) {
+            initAADParams();
+        }
+
+        return super.getConnection();
     }
 
     @Override
@@ -110,6 +141,20 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
         }
     }
 
+    protected void initAADParams() {
+        Map<String, String> options = config.getOptions();
+        if (options.get(OAUTH_ENABLED).equals("true")) {
+            dataSource.addConnectionProperty("authenticator", options.get(AUTHENTICATOR));
+            String url = options.get(OAUTH_TOKEN_URL);
+            String clientId = options.get(AAD_CLIENT_ID);
+            String clientSecret = options.get(AAD_CLIENT_SECRET);
+            String scope = options.get(AAD_SCOPE);
+            String grantType = options.get(AAD_GRANT_TYPE);
+            KylinSnowflakeResponse response = requestSnowflakeToken(url, clientId, clientSecret, grantType, scope);
+            dataSource.addConnectionProperty("token", response.getAccessToken());
+        }
+    }
+
     private String tryReplaceBackTick(String sql) {
         return sql.replace("`", "\"");
     }
@@ -139,5 +184,30 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
 
     private String rmAsyncMetric(String sql) {
         return sql.replaceAll("ASYMMETRIC", "");
+    }
+
+    private KylinSnowflakeResponse requestSnowflakeToken(String url, String clientId, String clientSecret,
+            String grantType, String scope) {
+        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
+
+            List<NameValuePair> parameters = new ArrayList<>(10);
+            parameters.add(new BasicNameValuePair("client_id", clientId));
+            parameters.add(new BasicNameValuePair("client_secret", clientSecret));
+            parameters.add(new BasicNameValuePair("grant_type", grantType));
+            parameters.add(new BasicNameValuePair("scope", scope));
+            httpPost.setEntity(new UrlEncodedFormEntity(parameters));
+            CloseableHttpResponse response = httpclient.execute(httpPost);
+
+            if (response.getStatusLine().getStatusCode() == 200) {
+                return JsonUtil.readValue(response.getEntity().getContent(), KylinSnowflakeResponse.class);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("request snowflake token exception", e);
+        }
+
+        return null;
     }
 }

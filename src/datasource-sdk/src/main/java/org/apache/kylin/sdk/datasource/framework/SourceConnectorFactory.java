@@ -24,9 +24,13 @@
 package org.apache.kylin.sdk.datasource.framework;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.sdk.datasource.adaptor.AdaptorConfig;
 import org.apache.kylin.sdk.datasource.adaptor.DefaultAdaptor;
 import org.apache.kylin.sdk.datasource.adaptor.MysqlAdaptor;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SourceConnectorFactory {
     private SourceConnectorFactory() {
@@ -39,7 +43,11 @@ public class SourceConnectorFactory {
         String jdbcPass = config.getJdbcPass();
         String adaptorClazz = config.getJdbcAdaptorClass();
 
-        AdaptorConfig jdbcConf = new AdaptorConfig(jdbcUrl, jdbcDriver, jdbcUser, jdbcPass);
+        Map<String, String> options = new HashMap<>();
+        if (config instanceof KylinConfigExt) {
+            options = ((KylinConfigExt) config).getExtendedOverrides();
+        }
+        AdaptorConfig jdbcConf = new AdaptorConfig(jdbcUrl, jdbcDriver, jdbcUser, jdbcPass, options);
         jdbcConf.poolMaxIdle = config.getPoolMaxIdle();
         jdbcConf.poolMinIdle = config.getPoolMinIdle();
         jdbcConf.poolMaxTotal = config.getPoolMaxTotal();

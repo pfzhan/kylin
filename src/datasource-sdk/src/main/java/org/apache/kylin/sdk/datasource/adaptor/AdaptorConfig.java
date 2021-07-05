@@ -23,6 +23,10 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
+import lombok.Getter;
+
+import java.util.Map;
+
 public class AdaptorConfig {
     public final String url;
     public final String driver;
@@ -39,11 +43,15 @@ public class AdaptorConfig {
     private int connectRetryTimes = 1;
     private long sleepMillisecBetweenRetry = 100;
 
-    public AdaptorConfig(String url, String driver, String username, String password) {
+    @Getter
+    public Map<String, String> options;
+
+    public AdaptorConfig(String url, String driver, String username, String password, Map<String, String> options) {
         this.url = url;
         this.driver = driver;
         this.username = username;
         this.password = password;
+        this.options = options;
     }
 
     @Override

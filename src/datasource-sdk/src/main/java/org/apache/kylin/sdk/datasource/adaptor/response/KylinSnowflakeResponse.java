@@ -21,22 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.kylin.sdk.datasource.adaptor;
+package org.apache.kylin.sdk.datasource.adaptor.response;
 
-import org.junit.Assert;
-import org.junit.Test;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class AdaptorConfigTest {
-    @Test
-    public void testEquals() {
-        AdaptorConfig conf1 = new AdaptorConfig("a", "b", "c", "d", null);
-        AdaptorConfig conf2 = new AdaptorConfig("a", "b", "c", "d", null);
-        AdaptorConfig conf3 = new AdaptorConfig("a1", "b1", "c1", "d1", null);
+import lombok.Data;
 
-        Assert.assertEquals(conf1, conf2);
-        Assert.assertEquals(conf1.hashCode(), conf2.hashCode());
-        Assert.assertNotSame(conf1, conf2);
-        Assert.assertNotEquals(conf1, conf3);
-        Assert.assertNotEquals(conf1.hashCode(), conf3.hashCode());
-    }
+@Data
+public class KylinSnowflakeResponse {
+
+    @JsonProperty("token_type")
+    private String tokenType;
+
+    @JsonProperty("expires_in")
+    private Long expiresIn;
+
+    @JsonProperty("ext_expires_in")
+    private Long extExpiresIn;
+
+    @JsonProperty("access_token")
+    private String accessToken;
+
 }
