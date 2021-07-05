@@ -43,6 +43,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
@@ -51,6 +52,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
+
+import static org.apache.kylin.query.exception.QueryErrorCode.UNSUPPORTED_EXPRESSION;
 
 public class FilterConditionExpander {
     public static final Logger logger = LoggerFactory.getLogger(FilterConditionExpander.class);
@@ -69,22 +72,23 @@ public class FilterConditionExpander {
     }
 
     public List<RexNode> convert(RexNode node) {
-        List<RexNode> results = new LinkedList<>();
         if (!(node instanceof RexCall)) {
-            return results;
+            return new LinkedList<>();
         }
-        RexCall call = (RexCall) node;
-        RexNode cnf = RexUtil.toCnf(rexBuilder, 100, call);
-        if (cnf == node) {
-            return results;
-        }
-        for (RexNode conjunction : RelOptUtil.conjunctions(cnf)) {
-            RexNode converted = convertDisjunctionCall(conjunction);
-            if (converted != null) {
-                results.add(converted);
+        try {
+            List<RexNode> results = new LinkedList<>();
+            RexCall call = (RexCall) node;
+            for (RexNode conjunction : RelOptUtil.conjunctions(RexUtil.toCnf(rexBuilder, 100, call))) {
+                RexNode converted = convertDisjunctionCall(conjunction);
+                if (converted != null) {
+                    results.add(converted);
+                }
             }
+            return results;
+        } catch (KylinException e) {
+            logger.warn("Filter condition is too complex to be converted");
+            return new LinkedList<>();
         }
-        return results;
     }
 
     // handle calls of form (A or B or C)
@@ -95,6 +99,7 @@ public class FilterConditionExpander {
         RexCall call = (RexCall) node;
         // OR: discard the whole part if any sub expr fails to push down
         // NOT: discard the whole part if any sub expr fails to push down
+        // AND: if AND appears, CNF conversion is failed, throw exception and exit
         if (call.getOperator() == SqlStdOperatorTable.OR) {
             List<RexNode> convertedList = new LinkedList<>();
             for (RexNode operand : call.getOperands()) {
@@ -105,6 +110,8 @@ public class FilterConditionExpander {
                 convertedList.add(converted);
             }
             return convertedList.isEmpty() ? null : rexBuilder.makeCall(SqlStdOperatorTable.OR, convertedList);
+        } else if (call.getOperator() == SqlStdOperatorTable.AND) {
+            throw new KylinException(UNSUPPORTED_EXPRESSION, "filter expression not in CNF");
         } else if (call.getOperator() == SqlStdOperatorTable.NOT) {
             RexNode converted = convertDisjunctionCall(call.getOperands().get(0));
             return converted == null ? null : rexBuilder.makeCall(SqlStdOperatorTable.NOT, converted);
