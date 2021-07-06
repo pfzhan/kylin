@@ -238,26 +238,31 @@ then
         quit "ERROR: Test of submitting spark job failed,error when testing spark with spark configurations in Kyligence Enterprise!"
     fi
 
-    echo "===================================="
-    echo "Testing spark-sql..."
-    if [[ $(hadoop version) != *"mapr"* ]]; then
-        if [ ! -f $kylin_hadoop_conf_dir/hive-site.xml ]; then
-            quit "ERROR:Test of spark-sql failed,$kylin_hadoop_conf_dir is not valid hadoop dir conf because hive-site.xml is missing!"
+    SPARK_SUBMIT_CLIENT_MODE="`echo "$SPARK_ENGINE_CONF_PROPS" | grep -c -E "spark.submit.deployMode=client"`"
+    if [ $SPARK_SUBMIT_CLIENT_MODE == 1 ]; then
+        echo "===================================="
+        echo "Testing spark-sql..."
+        if [[ $(hadoop version) != *"mapr"* ]]; then
+            if [ ! -f $kylin_hadoop_conf_dir/hive-site.xml ]; then
+                quit "ERROR:Test of spark-sql failed,$kylin_hadoop_conf_dir is not valid hadoop dir conf because hive-site.xml is missing!"
+            fi
         fi
+
+        HIVE_TEST_DB=default
+
+        SPARK_HQL_TMP_FILE=spark_hql_tmp__${RANDOM}
+        spark_sql="${SPARK_HOME}/bin/spark-sql"
+        spark_sql_command="export HADOOP_CONF_DIR=${kylin_hadoop_conf_dir} && ${spark_sql} ${engineConfStr} -f ${SPARK_HQL_TMP_FILE}"
+        echo "use ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
+        eval $spark_sql_command
+        [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Test of spark-sql failed"; }
+
+        # safeguard cleanup
+        verbose "Safeguard cleanup..."
+        rm -f ${SPARK_HQL_TMP_FILE}
+    else
+        echo "Skip testing spark-sql in cluster mode."
     fi
-
-    HIVE_TEST_DB=default
-
-    SPARK_HQL_TMP_FILE=spark_hql_tmp__${RANDOM}
-    spark_sql="${SPARK_HOME}/bin/spark-sql"
-    spark_sql_command="export HADOOP_CONF_DIR=${kylin_hadoop_conf_dir} && ${spark_sql} ${engineConfStr} -f ${SPARK_HQL_TMP_FILE}"
-    echo "use ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
-    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Test of spark-sql failed"; }
-
-    # safeguard cleanup
-    verbose "Safeguard cleanup..."
-    rm -f ${SPARK_HQL_TMP_FILE}
     exit 0
 else
     quit "usage: spark-test.sh test"
