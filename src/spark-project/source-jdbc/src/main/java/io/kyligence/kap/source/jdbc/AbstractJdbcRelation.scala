@@ -39,7 +39,7 @@ import org.apache.spark.sql.{Row, SQLContext, SparkSession}
 import scala.collection.mutable
 
 abstract class AbstractJdbcRelation(jdbcOptions: JDBCOptions)(@transient val sparkSession: SparkSession) extends BaseRelation
-  with PrunedFilteredScan with Logging with IKeep{
+  with PrunedFilteredScan with Logging with IKeep {
 
   val KEY2OUTPUTS = new mutable.HashMap[CacheKey, WriteOutput]
 
@@ -98,7 +98,7 @@ abstract class AbstractJdbcRelation(jdbcOptions: JDBCOptions)(@transient val spa
 
   case class CacheKey(requiredColumns: Array[String], filters: Array[Filter], sql: String)
 
-  trait WriteOutput
+  trait WriteOutput extends IKeep
 
 }
 

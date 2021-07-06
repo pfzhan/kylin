@@ -1,5 +1,5 @@
 <template>
-  <div class="security-group">
+  <div class="security-group" v-loading="isLoadingUserGroups">
     <div class="ksd-title-label ksd-mt-20 ksd-mrl-20">{{$t('userGroupsList')}}</div>
     <el-row class="ksd-mb-10 ksd-mt-10 ksd-mrl-20">
       <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-ksd-icon-add_22" @click="editGroup('new')">{{$t('userGroup')}}</el-button>
@@ -108,6 +108,7 @@ export default class SecurityGroup extends Vue {
     page_offset: 0
   }
   filterName = ''
+  isLoadingUserGroups = false
 
   created () {
     this.loadGroupUsers()
@@ -156,12 +157,15 @@ export default class SecurityGroup extends Vue {
   }
 
   loadGroupUsers (filterGroupName) {
+    this.isLoadingUserGroups = true
     this.loadGroupUsersList({
       ...this.pagination,
       user_group_name: filterGroupName
     }).then(() => {
+      this.isLoadingUserGroups = false
     }, (res) => {
       handleError(res)
+      this.isLoadingUserGroups = false
     })
   }
 

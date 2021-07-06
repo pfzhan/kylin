@@ -527,6 +527,79 @@ public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest 
         }
     }
 
+    @Test
+    public void testHeterogeneousSegmentFilterConditionLimit() throws SQLException {
+        // layout 20000000001, tableindex
+        // layout 20001, cal_dt & trans_id
+        // layout 10001, cal_dt
+        // layout 1, trans_id
+
+        // segment1 [2012-01-01, 2012-01-02] layout 20000000001, 20001
+        // segment2 [2012-01-02, 2012-01-03] layout 20000000001, 20001, 10001
+        // segment3 [2012-01-03, 2012-01-04] layout 20001, 10001, 1
+        // segment4 [2012-01-04, 2012-01-05] layout 10001, 1
+        // segment5 [2012-01-05, 2012-01-06] layout 20000000001, 20001, 10001, 1
+
+        val project = "heterogeneous_segment";
+        val dfId = "747f864b-9721-4b97-acde-0aa8e8656cba";
+        val seg1Id = "8892fa3f-f607-4eec-8159-7c5ae2f16942";
+        val seg2Id = "d75a822c-788a-4592-a500-cf20186dded1";
+        val seg3Id = "54eaf96d-6146-45d2-b94e-d5d187f89919";
+        val seg4Id = "411f40b9-a80a-4453-90a9-409aac6f7632";
+        val seg5Id = "a8318597-cb75-416f-8eb8-96ea285dd2b4";
+
+        val sql = "with T1 as (select cal_dt, trans_id \n"
+                + "from test_kylin_fact inner join test_account \n"
+                + "on test_kylin_fact.seller_id = test_account.account_id \n"
+                + "where cal_dt between date'2012-01-01' and date'2012-01-03'\n"
+                + "group by cal_dt, trans_id)\n";
+
+        {
+            val sqlWithTooManyOrs = sql
+                    + " select * from T1 where "
+                    + "(cal_dt='2012-01-01' and trans_id = 1) or \n"
+                    + "(cal_dt='2012-01-01' and trans_id = 2) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 3) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 4) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 5) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 6) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 7) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 8) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 9) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 10) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 12) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 13) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 14) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 15) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 16) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 17) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 18) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 19) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 20)";
+            val contexts = getMatchedContexts(project, sqlWithTooManyOrs);
+            Assert.assertEquals(">=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01),<=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-03)",
+                    contexts.get(0).getExpandedFilterConditions().stream().map(RexNode::toString).collect(Collectors.joining(",")));
+        }
+
+        {
+            val sqlWithFilter = sql
+                    + " select * from T1 where "
+                    + "(cal_dt='2012-01-01' and trans_id = 1) or \n"
+                    + "(cal_dt='2012-01-01' and trans_id = 2) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 3) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 4) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 5) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 6) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 7) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 8) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 9) or\n"
+                    + "(cal_dt='2012-01-01' and trans_id = 10)";
+            val contexts = getMatchedContexts(project, sqlWithFilter);
+            Assert.assertNotEquals(">=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-01),<=(DEFAULT.TEST_KYLIN_FACT.CAL_DT, 2012-01-03)",
+                    contexts.get(0).getExpandedFilterConditions().stream().map(RexNode::toString).collect(Collectors.joining(",")));
+        }
+
+    }
 
     private List<OLAPContext> getMatchedContexts(String project, String sql) {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
@@ -547,8 +620,10 @@ public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest 
         if (segId != null) {
             Assert.assertEquals(segId, context.storageContext.getPrunedSegments().get(0).getId());
         }
-        Assert.assertEquals(expectedFilterCond,
-                context.getExpandedFilterConditions().stream().map(RexNode::toString).collect(Collectors.joining(",")));
+        if (expectedFilterCond != null) {
+            Assert.assertEquals(expectedFilterCond,
+                    context.getExpandedFilterConditions().stream().map(RexNode::toString).collect(Collectors.joining(",")));
+        }
     }
 
     private void assertPrunedSegmentsRange(String project, String sql, String dfId,

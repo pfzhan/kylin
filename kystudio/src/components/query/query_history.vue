@@ -1,5 +1,5 @@
 <template>
-  <div id="queryHistory">
+  <div id="queryHistory" v-loading="isLoadingHistory">
     <query_history_table
       :queryHistoryData="queryHistoryData.query_histories"
       :queryHistoryTotalSize="queryHistoryData.size"
@@ -73,7 +73,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccessAsync } from '../../util/index'
+import { handleError, handleSuccessAsync } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
 import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
@@ -164,6 +164,7 @@ export default class QueryHistory extends Vue {
   pageSize = +localStorage.getItem(this.pageRefTags.queryHistoryPager) || 20
   isExportSqlOnly = false
   exportSqlDialogVisible = false
+  isLoadingHistory = false
 
   get exportMsg () {
     // 最多导出10万条查询历史
@@ -211,23 +212,30 @@ export default class QueryHistory extends Vue {
     this.aggDetailVisible = true
   }
   async loadHistoryList (pageIndex) {
-    const resData = {
-      project: this.currentSelectedProject || null,
-      limit: this.pageSize || 20,
-      offset: pageIndex || 0,
-      start_time_from: this.filterData.startTimeFrom,
-      start_time_to: this.filterData.startTimeTo,
-      latency_from: this.filterData.latencyFrom,
-      latency_to: this.filterData.latencyTo,
-      realization: this.filterData.realization,
-      submitter: this.filterData.submitter,
-      server: this.filterData.server,
-      sql: this.filterData.sql,
-      query_status: this.filterData.query_status
+    try {
+      this.isLoadingHistory = true
+      const resData = {
+        project: this.currentSelectedProject || null,
+        limit: this.pageSize || 20,
+        offset: pageIndex || 0,
+        start_time_from: this.filterData.startTimeFrom,
+        start_time_to: this.filterData.startTimeTo,
+        latency_from: this.filterData.latencyFrom,
+        latency_to: this.filterData.latencyTo,
+        realization: this.filterData.realization,
+        submitter: this.filterData.submitter,
+        server: this.filterData.server,
+        sql: this.filterData.sql,
+        query_status: this.filterData.query_status
+      }
+      const res = await this.getHistoryList(resData)
+      const data = await handleSuccessAsync(res)
+      this.isLoadingHistory = false
+      this.queryHistoryData = data
+    } catch (e) {
+      this.isLoadingHistory = false
+      handleError(e)
     }
-    const res = await this.getHistoryList(resData)
-    const data = await handleSuccessAsync(res)
-    this.queryHistoryData = data
   }
 
   loadFilterList (data) {
