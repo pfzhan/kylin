@@ -156,13 +156,13 @@ const dataSize = function (data) {
 const timeSize = function (data) {
   var size
   if (data / 1000 / 60 / 60 / 24 >= 1) {
-    size = (data / 1000 / 60 / 60 / 24).toFixed(2) + ' days'
+    size = (data / 1000 / 60 / 60 / 24).toFixed(2) + ` ${window.kapVm.$t('kylinLang.common.days')}`
   } else if (data / 1000 / 60 / 60 >= 1) {
-    size = (data / 1000 / 60 / 60).toFixed(2) + ' hours'
+    size = (data / 1000 / 60 / 60).toFixed(2) + ` ${window.kapVm.$t('kylinLang.common.hours')}`
   } else if (data / 1000 / 60 >= 1) {
-    size = (data / 1000 / 60).toFixed(2) + ' minutes'
+    size = (data / 1000 / 60).toFixed(2) + ` ${window.kapVm.$t('kylinLang.common.minutes')}`
   } else {
-    return (data / 1000) + ' seconds'
+    return (data / 1000) + ` ${window.kapVm.$t('kylinLang.common.seconds')}`
   }
   return size
 }

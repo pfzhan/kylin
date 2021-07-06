@@ -4,6 +4,10 @@ exports.default = {
     // 常规操作
     dialogHiveTreeNoData: 'Please click data source to load source tables',
     noProjectTips: 'You can click the button above to add a project',
+    seconds: 'seconds',
+    minutes: 'minutes',
+    hours: 'hours',
+    days: 'days',
     good: 'Good',
     warning: 'Warning',
     error: 'Error',

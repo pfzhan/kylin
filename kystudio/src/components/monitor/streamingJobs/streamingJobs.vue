@@ -103,7 +103,7 @@
               prop="data_latency"
               :label="$t('dataDuration')">
               <template slot-scope="scope">
-                {{scope.row.data_latency/60/1000 | number(2) }}  mins
+                {{scope.row.data_latency | timeSize }}
               </template>
             </el-table-column>
             <el-table-column
@@ -123,7 +123,7 @@
               prop="last_status_duration"
               sortable="custom">
               <template slot-scope="scope">
-                {{scope.row.last_status_duration/60/1000 | number(2) }}  mins
+                {{scope.row.last_status_duration | timeSize }}
               </template>
             </el-table-column>
             <el-table-column
