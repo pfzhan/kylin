@@ -22,11 +22,18 @@
 
 package org.apache.spark.sql
 
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
+import java.sql.Timestamp
+
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.model.FusionModelManager
 import io.kyligence.kap.secondstorage.SecondStorage
+import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.{HashMap => MutableHashMap}
 
 class KylinDataFrameManager(sparkSession: SparkSession) {
@@ -71,14 +78,39 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
   }
 
   def cuboidTable(dataflow: NDataflow, layout: LayoutEntity, pruningInfo: String): DataFrame = {
-    SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
-      format("parquet")
-      option("project", dataflow.getProject)
-      option("dataflowId", dataflow.getUuid)
-      option("cuboidId", layout.getId)
-      option("pruningInfo", pruningInfo)
-      StorageStoreFactory.create(dataflow.getModel.getStorageType)
-        .read(dataflow, layout, sparkSession, extraOptions.toMap)
+    format("parquet")
+    option("project", dataflow.getProject)
+    option("dataflowId", dataflow.getUuid)
+    option("cuboidId", layout.getId)
+    if (dataflow.isStreaming && dataflow.getModel.isFusionModel) {
+      val fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv, dataflow.getProject)
+              .getFusionModel(dataflow.getModel.getFusionId)
+      val batchModelId = fusionModel.getBatchModel.getUuid
+      val batchDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, dataflow.getProject).getDataflow(batchModelId)
+      val end = batchDataflow.getDateRangeEnd
+
+      val range = new SegmentRange.KafkaOffsetPartitionedSegmentRange(end, Long.MaxValue)
+      val segmentIds = dataflow.getQueryableSegmentsByRange(range).asScala.map(
+        seg => seg.getId
+      ).filter(pruningInfo.contains(_)).mkString(",")
+
+      val partition = dataflow.getModel.getPartitionDesc.getPartitionDateColumnRef
+      val id = layout.getOrderedDimensions.inverse().get(partition)
+      SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
+        option("pruningInfo", segmentIds)
+        var df = StorageStoreFactory.create(dataflow.getModel.getStorageType)
+                .read(dataflow, layout, sparkSession, extraOptions.toMap)
+        if (end != Long.MinValue) {
+          df = df.filter(col(id.toString).geq(new Timestamp(end)))
+        }
+        df
+      }
+    } else {
+      SecondStorage.trySecondStorage(sparkSession, dataflow, layout, pruningInfo).getOrElse {
+        option("pruningInfo", pruningInfo)
+        StorageStoreFactory.create(dataflow.getModel.getStorageType)
+                .read(dataflow, layout, sparkSession, extraOptions.toMap)
+      }
     }
   }
 
