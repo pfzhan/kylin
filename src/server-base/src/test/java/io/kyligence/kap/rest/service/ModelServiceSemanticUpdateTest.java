@@ -579,6 +579,32 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRemoveDimensionOfDirtyModel() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+
+        UpdateRuleBasedCuboidRequest.convertToRequest(getProject(), modelId, false, new RuleBasedIndex());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
+            RuleBasedIndex ruleBasedIndex = new RuleBasedIndex();
+            ruleBasedIndex.getMeasures().addAll(Lists.newArrayList(100000, 101000));
+            ruleBasedIndex.setSchedulerVersion(2);
+            ruleBasedIndex.setGlobalDimCap(0);
+            ruleBasedIndex.setLayoutIdMapping(Lists.newArrayList());
+            ruleBasedIndex.setIndexStartId(indexPlan.getNextAggregationIndexId());
+            copyForWrite.setRuleBasedIndex(ruleBasedIndex);
+        });
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("The dimension TEST_KYLIN_FACT.LSTG_FORMAT_NAME "
+                + "is being referenced by aggregation group, "
+                + "recommended aggregate index or table index. Please delete this dimension from the above first.");
+        val request = newSemanticRequest(modelId);
+        request.getSimplifiedDimensions().removeIf(col -> col.getName().equalsIgnoreCase("LSTG_FORMAT_NAME"));
+        modelService.updateDataModelSemantic(getProject(), request);
+
+    }
+
+    @Test
     public void testRemoveMeasureExistInAggIndex() throws Exception {
         String modelId = "82fa7671-a935-45f5-8779-85703601f49a";
         val request = newSemanticRequest(modelId);
@@ -889,8 +915,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", cubeBasic -> {
             val rule = new RuleBasedIndex();
-            rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 26));
-            rule.setMeasures(Arrays.asList(100001, 100002, 100003));
+            rule.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 26));
+            rule.setMeasures(Lists.newArrayList(100001, 100002, 100003));
             cubeBasic.setRuleBasedIndex(rule);
         });
         val request = newSemanticRequest();
@@ -1104,8 +1130,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             val rule = new RuleBasedIndex();
-            rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
-            rule.setMeasures(Arrays.asList(100000, 100001));
+            rule.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6));
+            rule.setMeasures(Lists.newArrayList(100000, 100001));
             val aggGroup = new NAggregationGroup();
             aggGroup.setIncludes(new Integer[] { 1, 2, 3, 4, 5, 6 });
             aggGroup.setMeasures(new Integer[] { 100000, 100001 });
@@ -1209,8 +1235,8 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
 
         val newCube = indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             val newRule = new RuleBasedIndex();
-            newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
-            newRule.setMeasures(Arrays.asList(100001, 100002));
+            newRule.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6));
+            newRule.setMeasures(Lists.newArrayList(100001, 100002));
             copyForWrite.setRuleBasedIndex(newRule);
         });
         semanticService.handleIndexPlanUpdateRule(getProject(), df.getModel().getUuid(), cube.getRuleBasedIndex(),

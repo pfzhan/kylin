@@ -1345,6 +1345,12 @@ public class NDataModel extends RootPersistentEntity {
         return effectiveCols.containsKey(id) ? effectiveCols.get(id).getAliasDotName() : null;
     }
 
+    public String getNonDimensionNameById(int id) {
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
+        return allNamedColumns.stream().filter(col -> col.getId() == id && !col.isDimension())
+                .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
+    }
+
     public String getTombColumnNameById(int id) {
         Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
         return allNamedColumns.stream().filter(col -> col.getId() == id && !col.isExist())

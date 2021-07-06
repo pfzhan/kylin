@@ -3342,7 +3342,11 @@ public class ModelService extends BasicService {
 
         modelManager.updateDataModel(uuid, copyForWrite -> {
             copyForWrite.getComputedColumnDescs().removeIf(cc -> invalidCCMap.containsKey(cc.getColumnName()));
-            copyForWrite.getAllMeasures().removeIf(measure -> invalidMeasures.contains(measure.getId()));
+            copyForWrite.getAllMeasures().forEach(measure -> {
+                if (invalidMeasures.contains(measure.getId())) {
+                    measure.setTomb(true);
+                }
+            });
             copyForWrite.getAllNamedColumns().forEach(column -> {
                 if (!column.isExist()) {
                     return;

@@ -401,6 +401,7 @@ public class RuleBasedIndex implements Serializable, IKeep {
 
     public void adjustMeasures() {
         if (CollectionUtils.isEmpty(aggregationGroups)) {
+            this.getMeasures().clear();
             return;
         }
 
@@ -409,10 +410,11 @@ public class RuleBasedIndex implements Serializable, IKeep {
     }
 
     private List<Integer> recomputeMeasures(List<NAggregationGroup> aggregationGroups) {
-        TreeSet<Integer> measures = new TreeSet<>();
-        if (CollectionUtils.isEmpty(aggregationGroups))
+        if (CollectionUtils.isEmpty(aggregationGroups)) {
             return Lists.newArrayList();
+        }
 
+        TreeSet<Integer> measures = new TreeSet<>();
         for (NAggregationGroup agg : aggregationGroups) {
             Integer[] aggMeasures = agg.getMeasures();
             if (aggMeasures == null || aggMeasures.length == 0)

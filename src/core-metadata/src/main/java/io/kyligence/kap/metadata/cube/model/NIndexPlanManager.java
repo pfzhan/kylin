@@ -264,7 +264,7 @@ public class NIndexPlanManager implements IKeepNames {
                     if (!selectedColumnIds.contains(dimId)) {
                         throw new IllegalStateException(
                                 String.format(Locale.ROOT, MsgPicker.getMsg().getDIMENSION_NOTFOUND(),
-                                        indexPlan.getModel().getTombColumnNameById(dimId)));
+                                        indexPlan.getModel().getNonDimensionNameById(dimId)));
                     }
                 }
             }
