@@ -143,7 +143,7 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
 
     protected void initAADParams() {
         Map<String, String> options = config.getOptions();
-        if (options.get(OAUTH_ENABLED).equals("true")) {
+        if ("true".equals(options.get(OAUTH_ENABLED))) {
             dataSource.addConnectionProperty("authenticator", options.get(AUTHENTICATOR));
             String url = options.get(OAUTH_TOKEN_URL);
             String clientId = options.get(AAD_CLIENT_ID);
