@@ -238,8 +238,13 @@ then
         quit "ERROR: Test of submitting spark job failed,error when testing spark with spark configurations in Kyligence Enterprise!"
     fi
 
-    SPARK_SUBMIT_CLIENT_MODE="`echo "$SPARK_ENGINE_CONF_PROPS" | grep -c -E "spark.submit.deployMode=client"`"
-    if [ $SPARK_SUBMIT_CLIENT_MODE == 1 ]; then
+    SPARK_SUBMIT_CLUSTER_MODE=$(echo "$SPARK_ENGINE_CONF_PROPS" | grep -c -E "spark.submit.deployMode=cluster")
+    SPARK_SUBMIT_YARN_CLUSTER=$(echo "$SPARK_ENGINE_CONF_PROPS" | grep -c -E "spark.master=yarn-cluster")
+    if [ $SPARK_SUBMIT_CLUSTER_MODE == 1 ]; then
+        echo "Skip testing spark-sql in cluster mode."
+    elif  [ $SPARK_SUBMIT_YARN_CLUSTER == 1 ]; then
+        echo "Skip testing spark-sql in cluster mode."
+    else
         echo "===================================="
         echo "Testing spark-sql..."
         if [[ $(hadoop version) != *"mapr"* ]]; then
@@ -260,8 +265,6 @@ then
         # safeguard cleanup
         verbose "Safeguard cleanup..."
         rm -f ${SPARK_HQL_TMP_FILE}
-    else
-        echo "Skip testing spark-sql in cluster mode."
     fi
     exit 0
 else
