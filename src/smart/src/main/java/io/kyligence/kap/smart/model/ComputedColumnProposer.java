@@ -138,7 +138,7 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             ccDesc.setComment("Auto suggested from: " + ccSuggestion);
             ccDesc.setDatatype("ANY"); // resolve data type later
             ccDesc.setExpression(ccSuggestion);
-            String newCCName = ComputedColumnUtil.shareCCNameAcrossModel(ccSuggestion, dataModel, otherModels);
+            String newCCName = ComputedColumnUtil.shareCCNameAcrossModel(ccDesc, dataModel, otherModels);
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
             } else {

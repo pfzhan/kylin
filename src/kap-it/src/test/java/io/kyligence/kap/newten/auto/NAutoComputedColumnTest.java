@@ -271,7 +271,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCC2 = modelContexts.get(1).getTargetModel().getComputedColumnDescs().get(0);
         Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC2.getTableIdentity());
         Assert.assertEquals(PRICE_MULTIPLY_ITEM_COUNT, suggestedCC2.getExpression());
-        Assert.assertEquals(suggestedCC1.getColumnName(), suggestedCC2.getColumnName());
+        Assert.assertNotEquals(suggestedCC1.getColumnName(), suggestedCC2.getColumnName());
         val suggestedCC3 = modelContexts.get(2).getTargetModel().getComputedColumnDescs().get(0);
         Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC3.getTableIdentity());
         Assert.assertEquals(PRICE_PLUS_ITEM_COUNT, suggestedCC3.getExpression());
@@ -408,7 +408,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCCList3 = modelContext3.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList3.size());
         val suggestedCC30 = suggestedCCList3.get(0);
-        Assert.assertEquals(suggestedCC.getColumnName(), suggestedCC30.getColumnName());
+        Assert.assertNotEquals(suggestedCC.getColumnName(), suggestedCC30.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC30.getTableIdentity());
         Assert.assertEquals(PRICE_MULTIPLY_ITEM_COUNT, suggestedCC30.getExpression());
 

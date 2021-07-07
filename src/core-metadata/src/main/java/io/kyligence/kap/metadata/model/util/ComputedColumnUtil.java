@@ -41,6 +41,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
@@ -72,16 +73,26 @@ public class ComputedColumnUtil {
     public static final String CC_NAME_PREFIX = "CC_AUTO_";
     public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
-    public static String shareCCNameAcrossModel(String ccExpression, NDataModel dataModel,
+    public static String shareCCNameAcrossModel(ComputedColumnDesc newCC, NDataModel newModel,
             List<NDataModel> otherModels) {
-        List<NDataModel> allModels = Lists.newArrayList(otherModels);
-        allModels.add(dataModel);
-
-        for (String originCCexp : getAllCCNameAndExp(allModels).values()) {
-            if (isLiteralSameCCExprString(originCCexp, ccExpression)) {
-                BiMap<String, String> inversedAllCCNameAndExp = getAllCCNameAndExp(allModels).inverse();
-                return inversedAllCCNameAndExp.get(originCCexp);
+        try {
+            for (NDataModel existingModel : otherModels) {
+                JoinsGraph newCCGraph = getCCExprRelatedSubgraph(newCC, newModel);
+                for (ComputedColumnDesc existingCC : existingModel.getComputedColumnDescs()) {
+                    if (!Strings.equals(newCC.getTableIdentity(), existingCC.getTableIdentity())) {
+                        continue;
+                    }
+                    JoinsGraph existCCGraph = getCCExprRelatedSubgraph(existingCC, existingModel);
+                    AliasMapping aliasMapping = getAliasMappingFromJoinsGraph(newCCGraph, existCCGraph);
+                    boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
+                    if (sameCCExpr) {
+                        return existingCC.getColumnName();
+                    }
+                }
             }
+        } catch (Exception e) {
+            logger.debug(String.format(Locale.ROOT, "share cc: '%s' name cross model fail", newCC.getExpression()), e);
+            return null;
         }
         return null;
     }

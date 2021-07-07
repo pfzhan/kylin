@@ -24,22 +24,27 @@
 
 package io.kyligence.kap.smart.util;
 
+import static org.apache.kylin.query.exception.QueryErrorCode.CC_EXPRESSION_ILLEGAL;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.junit.Assert;
+import org.junit.Test;
+
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.apache.kylin.query.exception.QueryErrorCode.CC_EXPRESSION_ILLEGAL;
 
 public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
 
@@ -238,15 +243,38 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         NDataModel dataModel = NDataModelManager.getInstance(config, project)
                 .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         Assert.assertTrue(dataModel.getComputedColumnDescs().isEmpty());
-
+        otherModels = NDataModelManager.getInstance(config, project).listAllModels();
         // first CC will named CC_AUTO_1
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
-        final String ccExp1 = "SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)";
+        final String ccExp1 = "SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)";
         cc1.setColumnName("CC_AUTO_1");
         cc1.setExpression(ccExp1);
         dataModel.getComputedColumnDescs().add(cc1);
-        String sharedName = ComputedColumnUtil.shareCCNameAcrossModel(ccExp1, dataModel, otherModels);
+        String sharedName = ComputedColumnUtil.shareCCNameAcrossModel(cc1, dataModel, otherModels);
         Assert.assertEquals("CC_AUTO_1", sharedName);
+    }
+
+    @Test
+    public void testNotShareExpressionUnmatchingSubgraph() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        final String project = "default";
+        NDataModel dataModel = NDataModelManager.getInstance(config, project)
+                .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        Assert.assertTrue(dataModel.getComputedColumnDescs().isEmpty());
+        // first CC will named CC_AUTO_1
+        ComputedColumnDesc cc1 = new ComputedColumnDesc();
+        final String ccExp1 = "TEST_ORDER.BUYER_ID + 1";
+        cc1.setColumnName("CC_AUTO_1");
+        cc1.setExpression(ccExp1);
+
+        NDataModel copyModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(dataModel), NDataModel.class);
+        copyModel.getJoinTables().get(0).getJoin().setType("inner");
+        dataModel.getComputedColumnDescs().add(cc1);
+        copyModel.init(KylinConfig.getInstanceFromEnv(),
+                NTableMetadataManager.getInstance(config, project).getAllTablesMap());
+
+        String sharedName = ComputedColumnUtil.shareCCNameAcrossModel(cc1, copyModel, Arrays.asList(dataModel));
+        Assert.assertEquals(null, sharedName);
     }
 
 }
