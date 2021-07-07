@@ -88,7 +88,7 @@ class SparkJobTrace(jobGroup: String,
         }
       val launchDelayTimeSum = jobDataSeq.flatMap(_.stageIds).flatMap(appStatus.getStage).map { stage =>
         appStatus.getTaskLaunchTime(stage.stageId(), 0.5) - stage.submissionTime()
-      }.sum
+      }.filter(v => !v.isNaN).sum
       val sum = jobMetrics._1 + jobMetrics._2 + launchDelayTimeSum
       val computingTime = jobMetrics._1 * jobExecutionTime / sum
       val getResultTime = jobMetrics._2 * jobExecutionTime / sum
