@@ -266,8 +266,8 @@ object KylinSession extends Logging {
       val cartesianFactor = KylinConfig.getInstanceFromEnv.getCartesianPartitionNumThresholdFactor
       var cartesianPartitionThreshold = sparkCores * cartesianFactor
       val confThreshold = sparkConf.get("spark.sql.cartesianPartitionNumThreshold")
-      if (!confThreshold.isEmpty) {
-        cartesianPartitionThreshold = Integer.parseInt(confThreshold)
+      if (!confThreshold.isEmpty && confThreshold.toInt >= 0) {
+        cartesianPartitionThreshold = confThreshold.toInt
       }
       sparkConf.set("spark.sql.cartesianPartitionNumThreshold", cartesianPartitionThreshold.toString)
       if (new File(
