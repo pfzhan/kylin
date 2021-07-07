@@ -80,7 +80,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.query.non-equi-join-model-enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        executeTestScenario(21,
+        executeTestScenario(22,
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql"), //
