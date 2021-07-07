@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -105,7 +106,6 @@ import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
-import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
@@ -130,7 +130,7 @@ public class OpenModelController extends NBasicController {
     private NModelController modelController;
 
     @Autowired
-    private IndexPlanService indexPlanService;
+    private FusionIndexService fusionIndexService;
 
     @Autowired
     private ModelService modelService;
@@ -188,7 +188,7 @@ public class OpenModelController extends NBasicController {
         List<IndexEntity.Status> statuses = checkIndexStatus(status);
         String modifiedSortBy = checkIndexSortBy(sortBy);
         List<IndexEntity.Source> modifiedSources = checkSources(sources);
-        List<IndexResponse> indexes = indexPlanService.getIndexes(projectName, model.getUuid(), key, statuses,
+        List<IndexResponse> indexes = fusionIndexService.getAllIndexes(projectName, model.getUuid(), key, statuses,
                 modifiedSortBy, reverse, modifiedSources);
         List<IndexResponse> listDataResult = DataResult.get(indexes, offset, limit).getValue();
 

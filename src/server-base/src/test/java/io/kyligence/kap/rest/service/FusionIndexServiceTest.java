@@ -806,4 +806,22 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(indexUpdateEnabled, nullResult.isIndexUpdateEnabled());
         Assert.assertEquals(0, nullResult.getTotalSize());
     }
+
+    @Test
+    public void testGetAllIndex() throws Exception {
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        var indexResponses = fusionIndexService.getAllIndexes("streaming_test", modelId, "", Lists.newArrayList(), "data_size",
+                true, Lists.newArrayList());
+        Assert.assertEquals(8, indexResponses.size());
+
+        val modelId1 = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        var indexResponses1 = fusionIndexService.getAllIndexes("streaming_test", modelId1, "", Lists.newArrayList(), "data_size",
+                true, Lists.newArrayList());
+        Assert.assertEquals(8, indexResponses1.size());
+
+        val modelId2 = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        var indexResponses2 = fusionIndexService.getAllIndexes("streaming_test", modelId2, "", Lists.newArrayList(), "data_size",
+                true, Lists.newArrayList());
+        Assert.assertEquals(64, indexResponses2.size());
+    }
 }

@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -365,6 +366,25 @@ public class FusionIndexService extends BasicService {
             indexPlanService.updateShardByColumns(project, batchRequest);
         }
         indexPlanService.updateShardByColumns(project, aggShardByColumnsRequest);
+    }
+
+    public List<IndexResponse> getAllIndexes(String project, String modelId, String key,
+            List<IndexEntity.Status> status, String orderBy, Boolean desc, List<IndexEntity.Source> sources) {
+        if (isFusionModel(project, modelId)) {
+            val batchId = getBatchModel(project, modelId);
+            List<IndexResponse> response = new ArrayList<>();
+            List<IndexResponse> batchResponse = indexPlanService.getIndexes(project, batchId, key, status, orderBy,
+                    desc, sources);
+            batchResponse.stream().forEach(index -> index.setIndexRange(Range.BATCH));
+            response.addAll(batchResponse);
+
+            List<IndexResponse> streamingResponse = indexPlanService.getIndexes(project, modelId, key, status, orderBy,
+                    desc, sources);
+            streamingResponse.stream().forEach(index -> index.setIndexRange(Range.STREAMING));
+            response.addAll(streamingResponse);
+            return response;
+        }
+        return indexPlanService.getIndexes(project, modelId, key, status, orderBy, desc, sources);
     }
 
     private String getBatchModel(String project, String modelId) {
