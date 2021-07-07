@@ -63,6 +63,7 @@ public class StreamingConstants {
 
     // streaming job
     public static final String STREAMING_DURATION = "kylin.streaming.duration";
+    public static final String STREAMING_CONFIG_PREFIX = "kylin.streaming.spark-conf.";
     public static final String STREAMING_DURATION_DEFAULT = "30";
     public static final String FILE_LAYER = "file_layer";
     public static final String STREAMING_MAX_RATE_PER_PARTITION = "kylin.streaming.kafka.max-rate-per-partition";
