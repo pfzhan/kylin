@@ -74,8 +74,8 @@ class SparkJobTrace(jobGroup: String,
         queryTrace.amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, submissionTime.get.getTime)
       }
       val completionTime = jobDataSeq.map(_.completionTime).max
-      if (submissionTime.isDefined && completionTime.isDefined) {
-        jobExecutionTime = completionTime.get.getTime - submissionTime.get.getTime
+      if (submissionTime.isDefined) {
+        jobExecutionTime = completionTime.map(_.getTime).getOrElse(System.currentTimeMillis()) - submissionTime.get.getTime
       }
 
       val jobMetrics = jobDataSeq.map(_.jobId)
