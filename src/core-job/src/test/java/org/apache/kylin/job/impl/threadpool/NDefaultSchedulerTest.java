@@ -2020,4 +2020,36 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             Assert.assertEquals(ExecutableState.PAUSED, executableManager.getJob(job.getId()).getStatus());
         }
     }
+
+    @Test
+    public void testDiscardPendingJobDuration() {
+        logger.info("testDiscardPendingJobDuration");
+        // add a long running job with max concurrent job = 1 to avoid further jobs added to be running
+        overwriteSystemProp("kylin.job.max-concurrent-jobs", "1");
+        overwriteSystemProp("kylin.storage.quota-in-giga-bytes", Integer.toString(Integer.MAX_VALUE));
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setProject(project);
+        AbstractExecutable task = new LongRunningTestExecutable();
+        task.setProject(project);
+        job.addTask(task);
+        executableManager.addJob(job);
+        waitForJobByStatus(job.getId(), 60000, ExecutableState.RUNNING, executableManager);
+
+        // add a pending job
+        DefaultChainedExecutable job1 = new DefaultChainedExecutable();
+        job1.setProject(project);
+        AbstractExecutable task1 = new LongRunningTestExecutable();
+        task1.setProject(project);
+        job1.addTask(task1);
+        executableManager.addJob(job1);
+        executableManager.discardJob(job1.getId());
+        long sleepStart = System.currentTimeMillis();
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        // wait time shoud be smaller than the sleep time as job is discard earlier
+        Assert.assertTrue(job1.getWaitTime() < System.currentTimeMillis() - sleepStart);
+    }
 }

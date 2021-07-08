@@ -645,9 +645,14 @@ public abstract class AbstractExecutable implements Executable {
             return 0;
         }
 
-        //the job/task is not started, use the current time
         if (startTime == 0) {
-            startTime = System.currentTimeMillis();
+            if (getParent() != null && getParent().getStatus() == ExecutableState.DISCARDED) {
+                // job is discarded before started
+                startTime = getParent().getEndTime();
+            } else {
+                //the job/task is not started, use the current time
+                startTime = System.currentTimeMillis();
+            }
         }
 
         return startTime - lastTaskEndTime;
