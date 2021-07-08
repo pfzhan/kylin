@@ -24,22 +24,29 @@
 
 package io.kyligence.kap.streaming.jobs;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
 import org.apache.spark.launcher.SparkLauncher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 
 public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
     private static final Logger logger = LoggerFactory.getLogger(AbstractSparkJobLauncher.class);
@@ -83,5 +90,15 @@ public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
     public abstract void launch();
 
     public abstract void stop();
+
+    protected static String javaPropertyFormatter(@Nonnull String key, @Nullable String value) {
+        Preconditions.checkNotNull(key, "the key of java property cannot be empty");
+        return String.format(Locale.ROOT, " -D%s=%s ", key, value);
+    }
+
+    protected static Map<String, String> getStreamingSparkConfig(KylinConfig config) {
+        return config.getStreamingSparkConfigOverride().entrySet().stream().filter(entry -> entry.getKey().startsWith("spark."))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
 
 }

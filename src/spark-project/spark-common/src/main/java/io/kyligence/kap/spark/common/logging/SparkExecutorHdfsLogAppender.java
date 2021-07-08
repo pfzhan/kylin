@@ -224,12 +224,15 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
     @VisibleForTesting
     String getRootPathName() {
-        if ("job".equals(getCategory())) {
-            return parseHdfsWordingDir() + "/" + getProject() + "/spark_logs";
-        } else if ("sparder".equals(getCategory())) {
-            return parseHdfsWordingDir() + "/_sparder_logs";
-        } else {
-            throw new IllegalArgumentException("illegal category: " + getCategory());
+        switch (getCategory()) {
+            case "job":
+                return parseHdfsWordingDir() + "/" + getProject() + "/spark_logs";
+            case "sparder":
+                return parseHdfsWordingDir() + "/_sparder_logs";
+            case "streaming_job":
+                return parseHdfsWordingDir() + "/streaming/spark_logs/" + getProject();
+            default:
+                throw new IllegalArgumentException("illegal category: " + getCategory());
         }
     }
 

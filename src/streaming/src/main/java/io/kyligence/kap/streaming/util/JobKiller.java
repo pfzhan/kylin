@@ -110,7 +110,7 @@ public class JobKiller {
             int errCode = result.getCode();
             if (errCode == 0) {
                 if (!strLogger.getContents().isEmpty()) {
-                    statusCode = exec.execute(cmd + "|xargs kill -9", null).getCode();
+                    statusCode = exec.execute(cmd + "|xargs kill ", null).getCode();
                 } else {
                     statusCode = 1;
                 }
