@@ -21,16 +21,29 @@
  */
 package org.apache.spark.sql.execution.datasource
 
-import org.apache.spark.sql.execution.datasources.FileStatusCache
+import com.google.common.cache.{Cache, CacheBuilder}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.execution.datasources.FileStatusCache
+
 import java.util.concurrent.atomic.AtomicReference
 
 object ShardFileStatusCache {
    var fsc: AtomicReference[FileStatusCache] = new AtomicReference[FileStatusCache]
+   val segmentBuildTimeCache: Cache[String, java.lang.Long] = CacheBuilder.newBuilder().build()
 
    def getFileStatusCache(session: SparkSession): FileStatusCache = {
       if (fsc.get() == null) {
          fsc.set(FileStatusCache.getOrCreate(session))
       }
       fsc.get()
-   }}
+   }
+
+   def getSegmentBuildTime(segmentId: String): Long = {
+      val cacheTime = segmentBuildTimeCache.getIfPresent(segmentId)
+      if (cacheTime == null) -1 else cacheTime
+   }
+
+   def refreshSegmentBuildTimeCache(segmentId: String, newBuildTime: Long): Unit = {
+      segmentBuildTimeCache.put(segmentId, newBuildTime)
+   }
+}

@@ -244,11 +244,10 @@ class FilePruner(val session: SparkSession,
           val bucketId = dataflow.getSegment(e.segmentID).getBucketId(layout.getId, id)
           val childDir = if (bucketId == null) id else bucketId
           val path = new Path(toPath(e.segmentID) + s"/${childDir}")
-          statuses = statuses ++ getFileStatues(path)
-
+          statuses = statuses ++ getFileStatues(e.segmentID, path)
         })
         if (statuses.isEmpty) {
-          statuses = statuses ++ getFileStatues(new Path(toPath(e.segmentID)))
+          statuses = statuses ++ getFileStatues(e.segmentID, new Path(toPath(e.segmentID)))
         }
 
         SegmentDirectory(e.segmentID, e.partitions, statuses)
@@ -275,15 +274,22 @@ class FilePruner(val session: SparkSession,
 
   }
 
-  private def getFileStatues(path: Path): Seq[FileStatus] = {
+  private def getFileStatues(segmentId: String, path: Path): Seq[FileStatus] = {
     val fsc = ShardFileStatusCache.getFileStatusCache(session)
 
     val maybeStatuses = fsc.getLeafFiles(path)
+    val lastBuildTime = dataflow.getSegment(segmentId).getLastBuildTime
+    var cacheValid = false
     if (maybeStatuses.isDefined) {
+      cacheValid = lastBuildTime.equals(ShardFileStatusCache.getSegmentBuildTime(segmentId))
+    }
+
+    if (cacheValid) {
       maybeStatuses.get
     } else {
       val statuses = path.getFileSystem(session.sparkContext.hadoopConfiguration).listStatus(path)
       fsc.putLeafFiles(path, statuses)
+      ShardFileStatusCache.refreshSegmentBuildTimeCache(segmentId, lastBuildTime)
       statuses
     }
   }
