@@ -48,13 +48,6 @@ object SchemaProcessor {
     genColumnNames(tableName, cuboid, mapping)
   }
 
-  def buildGTIntesectSchema(cuboid: LayoutEntity, cuboidStr: LayoutEntity,
-                            mapping: NLayoutToGridTableMapping,
-                            tableName: String):Seq[String] = {
-
-    genColumnNames(tableName, cuboid, cuboidStr, mapping)
-  }
-
   private def genColumnNames(tableName: String, cuboid: LayoutEntity, mapping: NLayoutToGridTableMapping) = {
     val columnMapping = initColumnNameMapping(cuboid).map(_._1)
     val colAll = new ImmutableBitSet(0, mapping.getDataTypes.length)
@@ -68,17 +61,6 @@ object SchemaProcessor {
         }
         .toSeq
   }
-
-  private def genColumnNames(tableName: String, cuboid: LayoutEntity, cuboidStr: LayoutEntity, mapping: NLayoutToGridTableMapping) = {
-    val columnMapping = initColumnNameMapping(cuboid).map(_._1)
-    val columnMappingStr = initColumnNameMapping(cuboidStr).map(_._1)
-    val colAll = new ImmutableBitSet(0, mapping.getDataTypes.length)
-    val measures = colAll.andNot(mapping.getPrimaryKey).asScala
-    mapping.getPrimaryKey.asScala.filter(i => columnMappingStr.contains(columnMapping.apply(i))).
-            map(i => FactTableCulumnInfo(tableName, i, columnMapping.apply(i)).toString).toSeq ++
-            measures.map(i => FactTableCulumnInfo(tableName, i, columnMapping.apply(i)).toString).toSeq
-  }
-
 
   def initColumnNameMapping(cuboid: LayoutEntity): Array[(String, String)] = {
     val cols = cuboid.getColumns.asScala.map(col =>

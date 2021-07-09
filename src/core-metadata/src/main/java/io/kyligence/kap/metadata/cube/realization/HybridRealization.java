@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.realization;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
@@ -34,6 +35,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -147,6 +149,7 @@ public class HybridRealization implements IRealization {
         CapabilityResult result = new CapabilityResult();
         result.cost = Integer.MAX_VALUE;
 
+        resolveSegmentsOverlap(prunedStreamingSegments);
         for (IRealization realization : getRealizations()) {
             CapabilityResult child;
             if (realization.isStreaming()) {
@@ -173,6 +176,23 @@ public class HybridRealization implements IRealization {
         result.cost--; // let hybrid win its children
 
         return result;
+    }
+
+    // Use batch segment when there's overlap of batch and stream segments, like follows
+    // batch segments:seg1['2012-01-01', '2012-02-01'], seg2['2012-02-01', '2012-03-01'],
+    // stream segments:seg3['2012-02-01', '2012-03-01'], seg4['2012-03-01', '2012-04-01']
+    // the chosen segments is: [seg1, seg2, seg4]
+    private void resolveSegmentsOverlap(List<NDataSegment> prunedStreamingSegments) {
+        long end = batchRealization.getDateRangeEnd();
+        if (end != Long.MIN_VALUE) {
+            String segments = prunedStreamingSegments.toString();
+            logger.info("Before resolve segments overlap between batch and stream of fusion model: {}", segments);
+            SegmentRange.BasicSegmentRange range = new SegmentRange.KafkaOffsetPartitionedSegmentRange(end, Long.MAX_VALUE);
+            List<NDataSegment> list = ((NDataflow)streamingRealization).getQueryableSegmentsByRange(range);
+            prunedStreamingSegments.removeIf(seg -> !list.contains(seg));
+            segments = prunedStreamingSegments.toString();
+            logger.info("After resolve segments overlap between batch and stream of fusion model: {}", segments);
+        }
     }
 
     @Override
