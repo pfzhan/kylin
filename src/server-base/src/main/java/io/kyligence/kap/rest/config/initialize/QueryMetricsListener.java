@@ -97,18 +97,23 @@ public class QueryMetricsListener {
                 queryMetric.getTotalScanBytes());
 
         PrometheusMetricsGroup.summaryRecord(queryMetric.getQueryDuration() * 1.0 / 1000,
-                PrometheusMetrics.QUERY_SECONDS, //
+                PrometheusMetrics.QUERY_SECONDS, new double[] { 0.8, 0.9 }, //
                 "pushdown", queryMetric.isPushdown() + "", //
                 "cache", queryMetric.isCacheHit() + "", "hit_index", queryMetric.isIndexHit() + "", //
                 "hit_exactly_index", queryMetric.getQueryHistoryInfo().isExactlyMatch() + "", //
+                "succeed", queryMetric.isSucceed() + "", "hit_snapshot", queryMetric.isTableSnapshotUsed() + "", //
                 "instance", queryMetric.getServer(), "project", queryMetric.getProjectName());
 
-        PrometheusMetricsGroup.summaryRecord(queryMetric.getTotalScanBytes(), PrometheusMetrics.QUERY_SCAN_BYTES,
-                "project", project, "model",
-                queryMetric.getRealizationMetrics().stream()
-                        .map(m -> modelManager.getDataModelDesc(m.getModelId()).getAlias())
-                        .collect(Collectors.joining(",")),
-                "instance", queryMetric.getServer());
+        // only record scan bytes when hit index
+        if (queryMetric.isIndexHit()) {
+            PrometheusMetricsGroup.summaryRecord(queryMetric.getTotalScanBytes(), //
+                    PrometheusMetrics.QUERY_SCAN_BYTES, new double[] { 0.8, 0.9 }, //
+                    "project", project, "model",
+                    queryMetric.getRealizationMetrics().stream()
+                            .map(m -> modelManager.getDataModelDesc(m.getModelId()).getAlias())
+                            .collect(Collectors.joining(",")),
+                    "instance", queryMetric.getServer());
+        }
 
     }
 

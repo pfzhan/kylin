@@ -38,6 +38,7 @@ import javax.sql.DataSource;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.lang.Nullable;
+import lombok.val;
 
 @Component
 public class PrometheusMetricsGroup {
@@ -194,9 +196,13 @@ public class PrometheusMetricsGroup {
         }
     }
 
-    public static void summaryRecord(double amount, PrometheusMetrics metric, String... tags) {
-        DistributionSummary.builder(metric.getValue()).tags(tags).distributionStatisticExpiry(Duration.ofMinutes(5))
-                .register(meterRegistry).record(amount);
+    public static void summaryRecord(double amount, PrometheusMetrics metric, double[] percentiles, String... tags) {
+        val builder = DistributionSummary.builder(metric.getValue()).tags(tags)
+                .distributionStatisticExpiry(Duration.ofDays(1));
+        if (ArrayUtils.isNotEmpty(percentiles)) {
+            builder.publishPercentileHistogram(true).publishPercentiles(percentiles);
+        }
+        builder.register(meterRegistry).record(amount);
     }
 
     public static Tags generateInstanceTags() {

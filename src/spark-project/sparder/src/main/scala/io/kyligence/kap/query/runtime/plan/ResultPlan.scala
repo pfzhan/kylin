@@ -185,7 +185,6 @@ object ResultPlan extends LogEx {
     } else {
       new util.LinkedList[util.List[String]]
     }
-    SparderEnv.cleanQueryInfo()
     result
   }
 

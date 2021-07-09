@@ -24,9 +24,6 @@
 
 package org.apache.spark.sql
 
-import java.lang.{Boolean => JBoolean, String => JString}
-import java.security.PrivilegedAction
-
 import io.kyligence.kap.common.util.DefaultHostInfoFetcher
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.hadoop.security.UserGroupInformation
@@ -43,6 +40,9 @@ import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.Utils
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
+
+import java.lang.{Boolean => JBoolean, String => JString}
+import java.security.PrivilegedAction
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -61,7 +61,7 @@ object SparderEnv extends Logging {
   @volatile
   var lastStartSparkFailureTime: Long = 0
 
-  def getSparkSession: SparkSession = withClassLoad {
+  def getSparkSession: SparkSession = {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
       initSpark()
@@ -71,7 +71,7 @@ object SparderEnv extends Logging {
 
   def rollUpEventLog(): String = {
     if (spark != null && !spark.sparkContext.isStopped) {
-      val check ="CHECK_ROLLUP_" + System.currentTimeMillis()
+      val check = "CHECK_ROLLUP_" + System.currentTimeMillis()
       spark.sparkContext.listenerBus.post(SparkListenerLogRollUp(check))
       return check
     }
@@ -91,7 +91,7 @@ object SparderEnv extends Logging {
     spark != null && !spark.sparkContext.isStopped
   }
 
-  def restartSpark(): Unit = withClassLoad {
+  def restartSpark(): Unit = {
     this.synchronized {
       if (spark != null && !spark.sparkContext.isStopped) {
         Utils.tryWithSafeFinally {
@@ -106,7 +106,7 @@ object SparderEnv extends Logging {
     }
   }
 
-  def init(): Unit = withClassLoad {
+  def init(): Unit = {
     getSparkSession
   }
 
@@ -134,7 +134,7 @@ object SparderEnv extends Logging {
     }
   }
 
-  def initSpark(): Unit = withClassLoad {
+  def initSpark(): Unit = {
     this.synchronized {
       if (initializingThread == null && (spark == null || spark.sparkContext.isStopped)) {
         initializingThread = new Thread(new Runnable {
@@ -146,7 +146,7 @@ object SparderEnv extends Logging {
 
             try {
               val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
-                                ("true").equals(System.getProperty("spark.local"))
+                ("true").equals(System.getProperty("spark.local"))
               val sparkSession = isLocalMode match {
                 case true =>
                   SparkSession.builder
@@ -186,12 +186,12 @@ object SparderEnv extends Logging {
             } catch {
               case throwable: Throwable =>
                 logError("Error for initializing spark ", throwable)
-              case e : InterruptedException =>
+              case e: InterruptedException =>
                 Thread.currentThread.interrupt()
                 QueryContext.current().getQueryTagInfo.setTimeout(true)
                 logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
                 throw new KylinTimeoutException("The query exceeds the set time limit of "
-                        + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Init sparder. ")
+                  + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Init sparder. ")
             } finally {
               if (startSparkSucceed) {
                 startSparkFailureTimes = 0
@@ -251,30 +251,14 @@ object SparderEnv extends Logging {
   }
 
   /**
-    * @param sqlText SQL to be validated
-    * @return The logical plan
-    * @throws ParseException if validate failed
-    */
+   * @param sqlText SQL to be validated
+   * @return The logical plan
+   * @throws ParseException if validate failed
+   */
   @throws[ParseException]
   def validateSql(sqlText: String): LogicalPlan = {
     val logicalPlan: LogicalPlan = getSparkSession.sessionState.sqlParser.parsePlan(sqlText)
     logicalPlan
-  }
-
-  /**
-    * To avoid spark being affected by the environment, we use spark classloader load spark.
-    *
-    * @param body Somewhere if you use spark
-    * @tparam T Action function
-    * @return The body return
-    */
-  def withClassLoad[T](body: => T): T = {
-    //    val originClassLoad = Thread.currentThread().getContextClassLoader
-    // fixme aron
-    //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader)
-    val t = body
-    //    Thread.currentThread().setContextClassLoader(originClassLoad)
-    t
   }
 
   val _separator = new ThreadLocal[JString]
@@ -283,44 +267,18 @@ object SparderEnv extends Logging {
     override protected def initialValue = false
   }
 
-  //cleaned
-  val _numScanFiles =
-    new ThreadLocal[java.lang.Long] {
-      override protected def initialValue = 0L
-    }
+  def setSeparator(separator: java.lang.String): Unit = _separator.set(separator)
 
-  def accumulateScanFiles(numFiles: java.lang.Long): Unit = {
-    _numScanFiles.set(_numScanFiles.get() + numFiles)
-  }
-
-  def getNumScanFiles(): java.lang.Long = {
-    _numScanFiles.get()
-  }
-
-  def setSeparator(separator: java.lang.String): Unit = {
-    _separator.set(separator)
-  }
-
-  def getSeparator: java.lang.String =
-    if (_separator.get == null) ","
-    else _separator.get
+  def getSeparator: java.lang.String = if (_separator.get == null) "," else _separator.get
 
   def getDF: Dataset[Row] = _df.get
 
-  def setDF(df: Dataset[Row]): Unit = {
-    _df.set(df)
-  }
+  def setDF(df: Dataset[Row]): Unit = _df.set(df)
 
   // clean it after query end
   def clean(): Unit = {
-    _separator.set(null)
     _df.set(null)
     _needCompute.set(null)
-  }
-
-  // clean it after collect
-  def cleanQueryInfo(): Unit = {
-    _numScanFiles.set(0L)
   }
 
   def needCompute(): JBoolean = {

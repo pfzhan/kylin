@@ -102,6 +102,10 @@ public class QueryMetrics implements IKeep {
         return ImmutableList.copyOf(queryHistoryInfo.realizationMetrics);
     }
 
+    public boolean isSucceed() {
+        return QueryHistory.QUERY_HISTORY_SUCCEEDED.equals(queryStatus);
+    }
+
     @Getter
     @Setter
     // fields in this class are columns in InfluxDB table which records down query history's realization info

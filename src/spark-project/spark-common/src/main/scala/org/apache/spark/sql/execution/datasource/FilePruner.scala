@@ -226,7 +226,7 @@ class FilePruner(val session: SparkSession,
       pruneSegments
     }
 
-    if (projectKylinConfig.isDimensionRangeFilterEnabled()) {
+    if (projectKylinConfig.isDimensionRangeFilterEnabled) {
       selected = afterPruning("pruning segment with dimension range", dimFilters, selected) {
         pruneSegmentsDimRange
       }
@@ -235,7 +235,7 @@ class FilePruner(val session: SparkSession,
     QueryContext.current().record("seg_pruning")
     QueryContext.current().getMetrics.setSegCount(selected.size)
 
-    logInfo(s"Query Id: ${QueryContext.current().getQueryId()};Segment Num: ${selected.size}.")
+    logInfo(s"Query Id: ${QueryContext.current().getQueryId};Segment Num: ${selected.size}.")
     selected = selected.par.map { e =>
       val logString = s"[fetch file status for Segment ID: ${e.segmentID}; Partition Num: ${e.partitions.size}]"
       logTime(logString, true) {
