@@ -113,11 +113,22 @@ public class KafkaConfigManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testListAllKafkaConfigs() {
+        val id = "SSB.LINEORDER_HIVE";
+        val kafkaConfs = mgr.listAllKafkaConfigs();
+        Assert.assertEquals(5, kafkaConfs.size());
+
+        val tables = mgr.getKafkaTablesUsingTable(id);
+        Assert.assertEquals(2, tables.size());
+    }
+
+    @Test
     public void testBatchTableAlias() {
         val id = "SSB.P_LINEORDER_STREAMING";
         val kafkaConf = mgr.getKafkaConfig(id);
         Assert.assertNotNull(kafkaConf);
         Assert.assertTrue(kafkaConf.hasBatchTable());
         Assert.assertEquals("LINEORDER_HIVE", kafkaConf.getBatchTableAlias());
+        Assert.assertEquals(id, kafkaConf.getIdentity());
     }
 }

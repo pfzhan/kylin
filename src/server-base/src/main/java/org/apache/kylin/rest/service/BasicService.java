@@ -51,6 +51,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -161,6 +162,10 @@ public abstract class BasicService {
 
     public SourceUsageManager getSourceUsageManager() {
         return SourceUsageManager.getInstance(getConfig());
+    }
+
+    public KafkaConfigManager getKafkaConfigManager(String project) {
+        return KafkaConfigManager.getInstance(getConfig(), project);
     }
 
     protected static String getUsername() {

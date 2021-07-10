@@ -97,6 +97,10 @@ public class KafkaConfig extends RootPersistentEntity implements Serializable {
         return kafkaParam;
     }
 
+    public String getIdentity() {
+        return resourceName();
+    }
+
     @Override
     public String resourceName() {
         String originIdentity = String.format(Locale.ROOT, "%s.%s", this.database, this.name);

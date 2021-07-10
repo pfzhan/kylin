@@ -66,6 +66,7 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -94,6 +95,7 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.filter.function.LikeMatchers;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -161,7 +163,6 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -194,6 +195,9 @@ public class TableService extends BasicService {
 
     @Autowired
     private ModelService modelService;
+
+    @Autowired
+    private FusionModelService fusionModelService;
 
     @Autowired
     private ModelSemanticHelper semanticHelper;
@@ -954,12 +958,12 @@ public class TableService extends BasicService {
         val dataflowManager = getDataflowManager(project);
         if (cascade) {
             for (NDataModel tableRelatedModel : dataflowManager.getModelsUsingTable(tableDesc)) {
-                modelService.dropModel(tableRelatedModel.getId(), project, true);
+                fusionModelService.dropModel(tableRelatedModel.getId(), project, true);
             }
+            unloadKafkaTableUsingTable(project, tableDesc);
         }
 
-        tableMetadataManager.removeTableExt(table);
-        tableMetadataManager.removeSourceTable(table);
+        unloadTable(project, table);
 
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
@@ -980,11 +984,20 @@ public class TableService extends BasicService {
         }
     }
 
-    @Transaction(project = 0)
-    public void unloadKafkaConfig(String project, String tableIdentity) {
-        aclEvaluate.checkProjectWritePermission(project);
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        KafkaConfigManager.getInstance(kylinConfig, project).removeKafkaConfig(tableIdentity);
+    public void unloadKafkaTableUsingTable(String project, TableDesc tableDesc) {
+        if (tableDesc.getSourceType() != ISourceAware.ID_SPARK)
+            return;
+
+        val kafkaConfigManger = getKafkaConfigManager(project);
+        for (KafkaConfig kafkaConfig : kafkaConfigManger.getKafkaTablesUsingTable(tableDesc.getIdentity())) {
+            unloadTable(project, kafkaConfig.getIdentity());
+        }
+    }
+
+    public void unloadTable(String project, String tableIdentity) {
+        getTableManager(project).removeTableExt(tableIdentity);
+        getTableManager(project).removeSourceTable(tableIdentity);
+        getKafkaConfigManager(project).removeKafkaConfig(tableIdentity);
     }
 
     @Transaction(project = 0, readonly = true)

@@ -187,7 +187,6 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         String dbTblName = database + "." + table;
         tableService.unloadTable(project, dbTblName, cascade);
-        tableService.unloadKafkaConfig(project, dbTblName);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

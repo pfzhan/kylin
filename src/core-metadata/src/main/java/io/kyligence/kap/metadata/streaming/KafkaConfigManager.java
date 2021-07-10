@@ -31,6 +31,10 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  */
 public class KafkaConfigManager {
@@ -106,4 +110,18 @@ public class KafkaConfigManager {
         logger.info("Dropping Kafka Config '{}'", tableIdentity);
         return kafkaConfig;
     }
+
+    public List<KafkaConfig> listAllKafkaConfigs() {
+        return crud.listAll().stream().collect(Collectors.toList());
+    }
+
+    public List<KafkaConfig> getKafkaTablesUsingTable(String table) {
+        List<KafkaConfig> kafkaConfigs = new ArrayList<>();
+        for (KafkaConfig kafkaConfig : listAllKafkaConfigs()) {
+            if (kafkaConfig.hasBatchTable() && kafkaConfig.getBatchTable().equals(table))
+                kafkaConfigs.add(kafkaConfig);
+        }
+        return kafkaConfigs;
+    }
+
 }

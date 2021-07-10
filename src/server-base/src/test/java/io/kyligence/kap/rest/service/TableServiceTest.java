@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.codec.binary.Base64;
@@ -150,6 +149,9 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Mock
     private KafkaService kafkaServiceMock = Mockito.mock(KafkaService.class);
 
+    @InjectMocks
+    private FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
+
     private StreamingJobListener eventListener = new StreamingJobListener();
 
     @Before
@@ -164,6 +166,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(tableService, "kafkaService", kafkaServiceMock);
+        ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
+        ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -1337,13 +1341,14 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testUnloadKafkaConfig() {
         String project = "streaming_test";
-        val mgr = KafkaConfigManager.getInstance(getTestConfig(), project);
-        try {
-            tableService.unloadKafkaConfig(project, "DEFAULT.SSB_TOPIC");
-            Assert.assertNull(mgr.getKafkaConfig("DEFAULT.SSB_TOPIC"));
-        } catch (Exception e) {
-            Assert.fail();
-        }
-    }
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), project);
+        tableService.unloadTable(project, "DEFAULT.SSB_TOPIC", true);
+        val table = tableMgr.getTableDesc("DEFAULT.SSB_TOPIC");
+        Assert.assertNull(table);
 
+        tableService.unloadTable(project, "SSB.LINEORDER_HIVE", true);
+        val table1 = tableMgr.getTableDesc("SSB.P_LINEORDER_STREAMING");
+        Assert.assertNull(table1);
+
+    }
 }

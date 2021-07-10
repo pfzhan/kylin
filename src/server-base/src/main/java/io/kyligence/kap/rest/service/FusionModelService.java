@@ -85,6 +85,14 @@ public class FusionModelService extends BasicService {
         modelService.dropModel(modelId, project);
     }
 
+    void dropModel(String modelId, String project, boolean ignoreType) {
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        if (model.skipFusionModel()) {
+            modelId = model.getFusionId();
+        }
+        modelService.dropModel(modelId, project, ignoreType);
+    }
+
     @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
         val model = getDataModelManager(request.getProject()).getDataModelDesc(request.getUuid());
