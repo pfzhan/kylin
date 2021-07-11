@@ -2090,6 +2090,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.engine.persist-flatview", FALSE));
     }
 
+    public boolean isBuildExcludedTableEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.build-excluded-table", FALSE));
+    }
+
     public boolean isBuildCheckPartitionColEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.check-partition-col-enabled", TRUE));
     }
@@ -2710,7 +2714,6 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isSegmentParallelBuildEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.segment-exec-parallel-enabled", FALSE));
     }
-
 
     public boolean isEmbeddedEnable() {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.file-system.journal.embedded-enable", FALSE));

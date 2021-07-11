@@ -442,7 +442,9 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public void setExcludedTables(Set<String> excludedTables) {
-        this.excludedTables = excludedTables;
+        if (!KylinConfig.getInstanceFromEnv().isBuildExcludedTableEnabled()) {
+            this.excludedTables = excludedTables;
+        }
     }
 
     public long getSourceCount() {

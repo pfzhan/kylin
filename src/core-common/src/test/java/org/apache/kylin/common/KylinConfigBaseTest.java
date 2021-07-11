@@ -245,9 +245,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-concurrent-jobs", "10", 10));
 
-        map.put("getMaxStreamingConcurrentJobLimit",
-                new PropertiesEntity("kylin.streaming.job.max-concurrent-jobs", "10", 10));
-
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 
         map.put("isCtlJobPriorCrossProj",
@@ -567,6 +564,11 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMetricsReporterFrequency", new PropertiesEntity("kylin.metrics.file-frequency", "5000", 5000L));
 
+        map.put("getPerfLoggerClassName",
+                new PropertiesEntity("kylin.metrics.perflogger-class", "PerfLogger", "PerfLogger"));
+
+        map.put("isHtraceTracingEveryQuery", new PropertiesEntity("kylin.htrace.trace-every-query", "false", false));
+
         map.put("getBuildConf", new PropertiesEntity("kylin.engine.submit-hadoop-conf-dir", "", ""));
 
         map.put("getParquetReadFileSystem", new PropertiesEntity("kylin.storage.columnar.file-system", "", ""));
@@ -656,6 +658,19 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getStorageProvider",
                 new PropertiesEntity("kylin.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider",
                         "org.apache.kylin.common.storage.DefaultStorageProvider"));
+
+        map.put("getStreamingBaseCheckpointLocation", new PropertiesEntity(
+                "kylin.engine.streaming-base-ckeckpoint-location", "/kylin/checkpoint", "/kylin/checkpoint"));
+
+        map.put("getStreamingMetricsEnabled",
+                new PropertiesEntity("kylin.engine.streaming-metrics-enabled", "false", false));
+
+        map.put("getStreamingSegmentMergeThresholds",
+                new PropertiesEntity("kylin.engine.streaming-segment-merge-threshold", "20", 20));
+
+        map.put("getStreamingDuration", new PropertiesEntity("kylin.engine.streaming-duration", "30000", "30000"));
+
+        map.put("getTriggerOnce", new PropertiesEntity("kylin.engine.streaming-trigger-once", "false", false));
 
         map.put("getLoadHiveTablenameIntervals",
                 new PropertiesEntity("kylin.source.load-hive-tablename-interval-seconds", "3600", 3600L));
@@ -867,7 +882,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(483, methodsCount);
+        Assert.assertEquals(484, methodsCount);
     }
 
     @Test
@@ -946,11 +961,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         List<ListenableFuture<Object>> pendingTasks = new ArrayList<>();
         final ExecutorService callbackExecutor = Executors.newFixedThreadPool(concurThread,
                 new ThreadFactoryBuilder().setDaemon(false).setNameFormat("CallbackExecutor").build());
-        ListeningExecutorService taskExecutorService =
-                MoreExecutors.listeningDecorator(callbackExecutor);
-        while(concurThread > 0){
-            ListenableFuture<Object> runningTaskFuture =
-                    taskExecutorService.submit(new EnvironmentRequest());
+        ListeningExecutorService taskExecutorService = MoreExecutors.listeningDecorator(callbackExecutor);
+        while (concurThread > 0) {
+            ListenableFuture<Object> runningTaskFuture = taskExecutorService.submit(new EnvironmentRequest());
             pendingTasks.add(runningTaskFuture);
             concurThread--;
         }
@@ -970,7 +983,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         //stop accepting new threads and shutdown threadpool
         taskExecutorService.shutdown();
         try {
-            if(!taskExecutorService.awaitTermination(timeoutSecond, TimeUnit.SECONDS)) {
+            if (!taskExecutorService.awaitTermination(timeoutSecond, TimeUnit.SECONDS)) {
                 taskExecutorService.shutdownNow();
             }
         } catch (InterruptedException ie) {
@@ -984,8 +997,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         @Override
         public Object call() throws Exception {
-            EnvironmentUpdateUtils.put("test.environment.concurrent"
-                    +Thread.currentThread().getId(), "test.evironment.concurrent");
+            EnvironmentUpdateUtils.put("test.environment.concurrent" + Thread.currentThread().getId(),
+                    "test.evironment.concurrent");
             return null;
         }
     }
@@ -1057,8 +1070,7 @@ class EnvironmentUpdateUtils {
         try {
             Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
             copyMapValuesToPrivateField(processEnvironmentClass, null, "theEnvironment", environment);
-            copyMapValuesToPrivateField(processEnvironmentClass, null, "theCaseInsensitiveEnvironment",
-                    environment);
+            copyMapValuesToPrivateField(processEnvironmentClass, null, "theCaseInsensitiveEnvironment", environment);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Failed to update Environment variables", e);
         }
@@ -1074,7 +1086,7 @@ class EnvironmentUpdateUtils {
      */
     @SuppressWarnings("unchecked")
     private static void copyMapValuesToPrivateField(Class<?> klass, Object object, String fieldName,
-                                                    Map<String, String> newMapValues) {
+            Map<String, String> newMapValues) {
         try {
             Field field = klass.getDeclaredField(fieldName);
             field.setAccessible(true);
