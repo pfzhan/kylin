@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -126,6 +127,9 @@ public class JobService extends BasicService {
 
     private static final Map<String, String> jobTypeMap = Maps.newHashMap();
 
+    private static final String TOTAL_DURATION = "total_duration";
+    private static final String LAST_MODIFIED = "last_modified";
+
     static {
         jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
         jobTypeMap.put("INDEX_MERGE", "Merge Data");
@@ -146,7 +150,7 @@ public class JobService extends BasicService {
         Preconditions.checkNotNull(jobs);
 
         Comparator<ExecutablePOSortBean> comparator = propertyComparator(
-                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
+                StringUtils.isEmpty(jobFilter.getSortBy()) ? LAST_MODIFIED : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
         Set<JobStatusEnum> matchedJobStatusEnums = jobFilter.getStatuses().stream().map(JobStatusEnum::valueOf)
                 .collect(Collectors.toSet());
@@ -188,8 +192,15 @@ public class JobService extends BasicService {
                 .map(in -> in.getExecutablePO())
                 .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
+        return new DataResult<>(sortTotalDurationList(result, jobFilter), beanList.size(), offset, limit);
+    }
 
-        return new DataResult<>(result, beanList.size(), offset, limit);
+    private List<ExecutableResponse> sortTotalDurationList(List<ExecutableResponse> result, final JobFilter jobFilter) {
+        //constructing objects takes time
+        if (StringUtils.isNotEmpty(jobFilter.getSortBy()) && jobFilter.getSortBy().equals(TOTAL_DURATION)) {
+            Collections.sort(result, propertyComparator(TOTAL_DURATION, !jobFilter.isReverse()));
+        }
+        return result;
     }
 
     private String getTargetSubjectAlias(ExecutablePO executablePO) {
@@ -207,9 +218,11 @@ public class JobService extends BasicService {
     }
 
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
-        return filterAndSortExecutablePO(jobFilter, jobs).stream().map(in -> in.getExecutablePO())
+        val beanList = filterAndSortExecutablePO(jobFilter, jobs).stream()//
+                .map(in -> in.getExecutablePO())
                 .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
+        return sortTotalDurationList(beanList, jobFilter);
     }
 
     private List<ExecutablePO> listExecutablePO(final JobFilter jobFilter) {
@@ -699,7 +712,7 @@ public class JobService extends BasicService {
 
     @Setter
     @Getter
-    class ExecutablePOSortBean implements IKeep {
+    static class ExecutablePOSortBean implements IKeep {
 
         private String project;
 
@@ -717,27 +730,35 @@ public class JobService extends BasicService {
         @JsonProperty("create_time")
         private long createTime;
 
+        @JsonProperty("total_duration")
         private long totalDuration;
 
         private ExecutablePO executablePO;
 
         private long computeTotalDuration(ExecutablePO executablePO) {
             List<ExecutablePO> tasks = executablePO.getTasks();
-            if (tasks == null || tasks.isEmpty()) {
-                return 0;
+            if (CollectionUtils.isEmpty(tasks)) {
+                return 0L;
+            }
+
+            long taskCreateTime = executablePO.getOutput().getCreateTime();
+            ExecutableState state = ExecutableState.valueOf(executablePO.getOutput().getStatus());
+            if (state.isProgressing()) {
+                return System.currentTimeMillis() - taskCreateTime;
             }
             long duration = 0L;
             for (ExecutablePO subTask : tasks) {
-                long startTime = subTask.getOutput().getStartTime();
-                if (startTime == 0)
+                if (subTask.getOutput().getStartTime() == 0L) {
                     break;
-                long endTime = subTask.getOutput().getEndTime();
-                if (startTime > 0 && endTime == 0)
-                    endTime = System.currentTimeMillis();//task running
-                duration = endTime - executablePO.getOutput().getCreateTime();
+                }
+                duration = getExecutablePOEndTime(subTask) - taskCreateTime;
             }
-            return duration;
+            return duration == 0L ? getExecutablePOEndTime(executablePO) - taskCreateTime : duration;
+        }
+
+        private long getExecutablePOEndTime(ExecutablePO executablePO) {
+            long time = executablePO.getOutput().getEndTime();
+            return time == 0L ? System.currentTimeMillis() : time;
         }
     }
-
 }
