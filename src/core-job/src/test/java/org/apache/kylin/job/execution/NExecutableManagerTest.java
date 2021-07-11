@@ -682,5 +682,30 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(result);
     }
 
+    @Test
+    public void testGetgetTargetModelAlias() {
+        val project = "streaming_test";
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setProject(project);
+        val start = "2015-01-01 00:00:00";
+        val end = "2015-02-01 00:00:00";
+        job.setParam(NBatchConstants.P_DATA_RANGE_START, SegmentRange.dateToLong(start) + "");
+        job.setParam(NBatchConstants.P_DATA_RANGE_END, SegmentRange.dateToLong(end) + "");
 
+        job.setTargetSubject("334671fd-e383-4fc9-b5c2-94fce832f77a");
+        Assert.assertEquals("streaming_test", job.getTargetModelAlias());
+
+        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .dropDataflow("334671fd-e383-4fc9-b5c2-94fce832f77a");
+        Assert.assertEquals("streaming_test_b05034a8", job.getTargetModelAlias());
+
+        job.setTargetSubject("554671fd-e383-4fc9-b5c2-94fce832f77a");
+        Assert.assertEquals("batch", job.getTargetModelAlias());
+
+        job.setTargetSubject("554671fd-e383-4fc9-b5c2-94fce832f77b");
+        Assert.assertEquals(null, job.getTargetModelAlias());
+
+    }
 }

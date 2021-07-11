@@ -101,8 +101,8 @@ public class FusionModel extends RootPersistentEntity implements Serializable {
         this.modelMapping.put(batchModel.getUuid(), tableMapping);
     }
 
-    public static String getBatchName(String streamAlias) {
-        return streamAlias + "_batch";
+    public static String getBatchName(String streamingAlias, String modelId) {
+        return streamingAlias + "_" + modelId.substring(0, 8);
     }
 
     public void init(KylinConfig config, String project) {

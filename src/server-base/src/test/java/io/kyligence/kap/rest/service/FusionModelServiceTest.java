@@ -207,7 +207,7 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         fusionModelService.renameDataModel(project, modelId, newModelName);
         Assert.assertEquals(newModelName,
                 NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(modelId).getAlias());
-        Assert.assertEquals(FusionModel.getBatchName(newModelName),
+        Assert.assertEquals(FusionModel.getBatchName(newModelName, modelId),
                 NDataModelManager.getInstance(getTestConfig(), project).getDataModelDesc(batchId).getAlias());
     }
 
@@ -406,6 +406,18 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.fail();
         }
+    }
+
+    @Test
+    public void testGetBatchName() {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        val batchId = "334671fd-e383-4fc9-b5c2-94fce832f77a";
+
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val model = modelMgr.getDataModelDesc(modelId);
+        val batchModel = modelMgr.getDataModelDesc(batchId);
+        val alias = FusionModel.getBatchName(model.getAlias(), modelId);
+        Assert.assertEquals(batchModel.getAlias(), alias);
     }
 
     @Test

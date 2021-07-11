@@ -172,11 +172,17 @@ public abstract class AbstractExecutable implements Executable {
         val modelManager = NDataModelManager.getInstance(getConfig(), getProject());
         NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
                 .getDataModelDesc(targetSubject);
-        return dataModelDesc == null ? null
-                : modelManager.isModelBroken(targetSubject)
-                        ? modelManager.getDataModelDescWithoutInit(targetSubject).getAlias()
-                        : dataModelDesc.getAlias();
+        if (dataModelDesc != null) {
+            if (modelManager.isModelBroken(targetSubject)) { 
+                return modelManager.getDataModelDescWithoutInit(targetSubject).getAlias();
+            } else if (dataModelDesc.skipFusionModel()) {
+                return dataModelDesc.getFusionModelAlias();
+            } else {
+                return dataModelDesc.getAlias();
+            }
+        }
 
+        return null;
     }
 
     public String getTargetModelId() {
@@ -282,7 +288,7 @@ public abstract class AbstractExecutable implements Executable {
     protected void onExecuteErrorHook(String jobId) {
         // At present, only instance of DefaultChainedExecutableOnModel take full advantage of this method.
     }
-    
+
     protected long getEpochId() {
         return context == null ? -1 : context.getEpochId();
     }
@@ -658,7 +664,7 @@ public abstract class AbstractExecutable implements Executable {
         return startTime - lastTaskEndTime;
     }
 
-    public long getTotalDurationTime(){
+    public long getTotalDurationTime() {
         return getDuration() + getWaitTime();
     }
 

@@ -1466,6 +1466,10 @@ public class NDataModel extends RootPersistentEntity {
         return StringUtils.isNotEmpty(fusionId) && ModelType.BATCH == getModelType();
     }
 
+    public String getFusionModelAlias() {
+        return this.alias.substring(0, this.alias.length() - 9);
+    }
+
     public boolean showFusionModel() {
         return StringUtils.isNotEmpty(fusionId) && ModelType.HYBRID == getModelType();
     }

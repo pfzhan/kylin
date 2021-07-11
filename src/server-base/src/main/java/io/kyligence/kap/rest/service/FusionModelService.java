@@ -102,7 +102,7 @@ public class FusionModelService extends BasicService {
             ModelRequest copy = JsonUtil.deepCopyQuietly(request, ModelRequest.class);
             String tableName = model.getRootFactTableRef().getTableDesc().getKafkaConfig().getBatchTable();
 
-            copy.setAlias(model.getAlias() + "_batch");
+            copy.setAlias(FusionModel.getBatchName(model.getAlias(), model.getUuid()));
             copy.setRootFactTableName(tableName);
             copy.setUuid(batchId);
 
@@ -128,7 +128,7 @@ public class FusionModelService extends BasicService {
         if (model.isFusionModel()) {
             val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             String batchId = fusionModelManager.getFusionModel(modelId).getBatchModel().getUuid();
-            modelService.renameDataModel(project, batchId, FusionModel.getBatchName(newAlias));
+            modelService.renameDataModel(project, batchId, FusionModel.getBatchName(newAlias, modelId));
         }
         modelService.renameDataModel(project, modelId, newAlias);
     }
