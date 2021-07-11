@@ -90,7 +90,7 @@ public class FusionModelResponse extends NDataModelResponse {
         this.setBatchSegmentHoles(calculateTotalSegHoles(batchDataflow));
         this.setSegmentHoles(calculateTotalSegHoles(streamingDataflow));
         this.setExpansionrate(ModelUtils.computeExpansionRate(this.getStorage(), this.getSource()));
-        this.setUsage(getTotalUsage(batchDataflow, streamingDataflow));
+        this.setUsage(getTotalUsage(streamingDataflow));
         this.setInconsistentSegmentCount(getTotalInconsistentSegmentCount(batchDataflow, streamingDataflow));
         if (!modelDesc.isBroken() && !batchModel.isBroken()) {
             this.setHasSegments(CollectionUtils.isNotEmpty(streamingDataflow.getSegments())
@@ -126,8 +126,8 @@ public class FusionModelResponse extends NDataModelResponse {
         return dfManager.calculateSegHoles(batchDataflow.getUuid());
     }
 
-    private long getTotalUsage(NDataflow batchDataflow, NDataflow streamingDataflow) {
-        return (long) batchDataflow.getQueryHitCount() + (long) streamingDataflow.getQueryHitCount();
+    private long getTotalUsage(NDataflow streamingDataflow) {
+        return streamingDataflow.getQueryHitCount();
     }
 
     private long getTotalInconsistentSegmentCount(NDataflow batchDataflow, NDataflow streamingDataflow) {

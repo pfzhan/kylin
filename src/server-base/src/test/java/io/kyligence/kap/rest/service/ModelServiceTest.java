@@ -5986,6 +5986,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, model.getAvailableIndexesCount());
         Assert.assertEquals(3, model.getTotalIndexes());
         Assert.assertEquals(5, model.getStreamingIndexes());
+        Assert.assertEquals(10, model.getUsage());
         Assert.assertEquals(0, model.getStorage());
         Assert.assertEquals(0, model.getSource());
 

@@ -9,7 +9,7 @@
   "create_time_utc" : 1622018770880,
   "status" : "OFFLINE",
   "cost" : 50,
-  "query_hit_count" : 0,
+  "query_hit_count" : 10,
   "last_query_time" : 0,
   "layout_query_hit_count" : { },
   "event_error" : false,
