@@ -82,7 +82,7 @@ public class StreamingJobController extends NBasicController {
             @RequestParam(value = "project", required = false, defaultValue = "") String project,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
-            @RequestParam(value = "sort_by", required = false, defaultValue = "last_update_time") String sortBy,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse) {
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse);
@@ -97,7 +97,7 @@ public class StreamingJobController extends NBasicController {
             @RequestParam(value = "project") String project,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, Collections.EMPTY_LIST,
-                Arrays.asList("STREAMING_BUILD"), Collections.EMPTY_LIST, project, "last_update_time", true);
+                Arrays.asList("STREAMING_BUILD"), Collections.EMPTY_LIST, project, "last_modified", true);
         List<String> data;
         val dataResult = streamingJobService.getStreamingJobList(jobFilter, 0, pageSize);
         if (dataResult != null) {

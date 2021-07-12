@@ -122,11 +122,11 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
                         .param("model_name", StringUtils.EMPTY).param("model_names", StringUtils.EMPTY)
                         .param("job_types", StringUtils.EMPTY)
                         .param("statuses", StringUtils.EMPTY).param("project", PROJECT)
-                        .param("page_offset", "0").param("page_size", "10").param("sort_by", "last_update_time")
+                        .param("page_offset", "0").param("page_size", "10").param("sort_by", "last_modified")
                         .param("reverse", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(streamingJobController).getStreamingJobList(StringUtils.EMPTY, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, Collections.EMPTY_LIST, PROJECT, 0, 10, "last_update_time", true);
+                Collections.EMPTY_LIST, Collections.EMPTY_LIST, PROJECT, 0, 10, "last_modified", true);
     }
 
     @Test

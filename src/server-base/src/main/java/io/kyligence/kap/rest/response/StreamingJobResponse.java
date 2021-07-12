@@ -46,6 +46,7 @@ public class StreamingJobResponse extends StreamingJobMeta{
         setYarnAppUrl(jobMeta.getYarnAppUrl());
         setOwner(jobMeta.getOwner());
         setCreateTime(jobMeta.getCreateTime());
+        setLastModified(jobMeta.getLastModified());
         setLastUpdateTime(jobMeta.getLastUpdateTime());
     }
 

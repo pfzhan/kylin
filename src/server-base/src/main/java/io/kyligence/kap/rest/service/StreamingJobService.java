@@ -30,6 +30,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
@@ -38,7 +40,6 @@ import io.kyligence.kap.metadata.streaming.StreamingJobStats;
 import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import io.kyligence.kap.rest.request.StreamingJobFilter;
-import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
 import io.kyligence.kap.rest.response.StreamingJobResponse;
 import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
@@ -93,10 +94,6 @@ public class StreamingJobService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
-
-    @Autowired
-    @Qualifier("modelService")
-    private ModelService modelService;
 
     @Autowired
     @Qualifier("indexPlanService")
@@ -314,7 +311,7 @@ public class StreamingJobService extends BasicService {
             int limit) {
         val config = KylinConfig.getInstanceFromEnv();
         List<StreamingJobMeta> list;
-        List<NDataModelResponse> modelList = null;
+        List<NDataModel> modelList = null;
         if (StringUtils.isEmpty(jobFilter.getProject())) {
             val prjMgr = NProjectManager.getInstance(config);
             val prjList = prjMgr.listAllProjects();
@@ -323,15 +320,15 @@ public class StreamingJobService extends BasicService {
             for (ProjectInstance instance : prjList) {
                 val mgr = StreamingJobManager.getInstance(config, instance.getName());
                 list.addAll(mgr.listAllStreamingJobMeta());
-                modelList.addAll(modelService.getModels(StringUtils.EMPTY, instance.getName(), false, "", null,
-                        "last_modify", true, null, null, null));
+                val modelMgr = NDataModelManager.getInstance(config, instance.getName());
+                modelList.addAll(modelMgr.listAllModels());
 
             }
         } else {
             StreamingJobManager mgr = StreamingJobManager.getInstance(config, jobFilter.getProject());
             list = mgr.listAllStreamingJobMeta();
-            modelList = modelService.getModels(StringUtils.EMPTY, jobFilter.getProject(), false, "", null,
-                    "last_modify", true, null, null, null);
+            val modelMgr = NDataModelManager.getInstance(config, jobFilter.getProject());
+            modelList = modelMgr.listAllModels();
 
         }
         List<String> jobIdList = list.stream().filter(item -> JobTypeEnum.STREAMING_BUILD == item.getJobType())
@@ -355,7 +352,7 @@ public class StreamingJobService extends BasicService {
         }).collect(Collectors.toList());
 
         Comparator<StreamingJobResponse> comparator = propertyComparator(
-                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_update_time" : jobFilter.getSortBy(),
+                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
         val filterList = respList.stream().filter(item -> {
             if (StringUtils.isEmpty(jobFilter.getModelName())) {
@@ -380,7 +377,7 @@ public class StreamingJobService extends BasicService {
         }).sorted(comparator).collect(Collectors.toList());
         List<StreamingJobResponse> targetList = PagingUtil.cutPage(filterList, offset, limit).stream()
                 .collect(Collectors.toList());
-        val modelMap = new HashMap<String, NDataModelResponse>();
+        val modelMap = new HashMap<String, NDataModel>();
         if (modelList != null) {
             modelList.stream().forEach(item -> {
                 modelMap.put(item.getUuid(), item);
@@ -393,7 +390,7 @@ public class StreamingJobService extends BasicService {
                     val uuid = id.substring(0, id.lastIndexOf("_"));
                     val dataModel = modelMap.get(uuid);
                     if (dataModel != null) {
-                        if (dataModel.isModelBroken()) {
+                        if (dataModel.isBroken()) {
                             entry.setModelIndexes(0);
                         } else {
                             val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
@@ -416,15 +413,9 @@ public class StreamingJobService extends BasicService {
         if (timeFilter > 0) {
             switch (timeFilter) {
             case 1:
-                calendar.add(Calendar.DAY_OF_MONTH, -1);
-                startTime = calendar.getTimeInMillis();
-                break;
             case 3:
-                calendar.add(Calendar.DAY_OF_MONTH, -3);
-                startTime = calendar.getTimeInMillis();
-                break;
             case 7:
-                calendar.add(Calendar.DAY_OF_MONTH, -7);
+                calendar.add(Calendar.DAY_OF_MONTH, -timeFilter);
                 startTime = calendar.getTimeInMillis();
                 break;
             default:

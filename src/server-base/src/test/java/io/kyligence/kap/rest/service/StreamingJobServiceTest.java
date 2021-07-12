@@ -93,9 +93,6 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     private StreamingJobService streamingJobService = Mockito.spy(new StreamingJobService());
 
     @InjectMocks
-    private ModelService modelService = Mockito.spy(new ModelService());
-
-    @InjectMocks
     private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @Rule
@@ -119,9 +116,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(streamingJobService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(streamingJobService, "modelService", modelService);
         ReflectionTestUtils.setField(streamingJobService, "indexPlanService", indexPlanService);
 
         val prjManager = NProjectManager.getInstance(getTestConfig());
@@ -152,34 +147,34 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val streamingJobsStatsManager = createStatData(jobId);
 
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(8, list.getTotalSize());
 
         // modelName filter
         jobFilter = new StreamingJobFilter("stream_merge", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(6, list.getTotalSize());
 
         jobFilter = new StreamingJobFilter("stream_merge1", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(2, list.getTotalSize());
 
         jobFilter = new StreamingJobFilter("stream_merge2", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(0, list.getTotalSize());
 
         jobFilter = new StreamingJobFilter("", Arrays.asList("stream_merge1"), Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(2, list.getTotalSize());
 
         // job types filter
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Arrays.asList("STREAMING_BUILD"),
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(4, list.getValue().size());
 
@@ -190,37 +185,31 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
             copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
         });
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList("RUNNING"),
-                PROJECT, "last_update_time", true);
+                PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(3, list.getTotalSize());
 
         // project filter
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                PROJECT, "last_update_time", true);
+                PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
         Assert.assertEquals(4, list.getValue().size());
 
         // sort & reverse
-        Assert.assertTrue(
-                list.getValue().get(0).getLastUpdateTime().compareTo(list.getValue().get(1).getLastUpdateTime()) > 0);
-        Assert.assertTrue(
-                list.getValue().get(1).getLastUpdateTime().compareTo(list.getValue().get(2).getLastUpdateTime()) > 0);
-        Assert.assertTrue(
-                list.getValue().get(2).getLastUpdateTime().compareTo(list.getValue().get(3).getLastUpdateTime()) > 0);
+        Assert.assertTrue(list.getValue().get(0).getLastModified() >= list.getValue().get(1).getLastModified());
+        Assert.assertTrue(list.getValue().get(1).getLastModified() >= list.getValue().get(2).getLastModified());
+        Assert.assertTrue(list.getValue().get(2).getLastModified() >= list.getValue().get(3).getLastModified());
 
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                "", "last_update_time", false);
+                "", "last_modified", false);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertTrue(
-                list.getValue().get(0).getLastUpdateTime().compareTo(list.getValue().get(1).getLastUpdateTime()) < 0);
-        Assert.assertTrue(
-                list.getValue().get(1).getLastUpdateTime().compareTo(list.getValue().get(2).getLastUpdateTime()) < 0);
-        Assert.assertTrue(
-                list.getValue().get(2).getLastUpdateTime().compareTo(list.getValue().get(3).getLastUpdateTime()) < 0);
+        Assert.assertTrue(list.getValue().get(0).getLastModified() >= list.getValue().get(1).getLastModified());
+        Assert.assertTrue(list.getValue().get(1).getLastModified() >= list.getValue().get(2).getLastModified());
+        Assert.assertTrue(list.getValue().get(2).getLastModified() >= list.getValue().get(3).getLastModified());
 
         // project & page_size filter
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                "", "last_update_time", true);
+                "", "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
         Assert.assertEquals(8, list.getTotalSize());
         Assert.assertEquals(4, list.getValue().size());
@@ -237,7 +226,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val streamingJobsStatsManager = createStatData(jobId);
 
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST, PROJECT, "last_update_time", true);
+                Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(8, list.getTotalSize());
         Assert.assertEquals("model_streaming", list.getValue().get(0).getModelName());
