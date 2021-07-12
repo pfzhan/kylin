@@ -50,8 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-
-import org.apache.kylin.common.util.Pair;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
 import com.google.common.collect.Lists;
@@ -225,34 +224,41 @@ public class QueryContext implements Closeable {
         private String server;
         private long resultRowCount;
 
-        @Setter
+        // sourceScanXxx from Parquet
+        private AtomicLong sourceScanBytes = new AtomicLong();
+
+        private AtomicLong sourceScanRows = new AtomicLong();
+
+        public long getSourceScanBytes() {
+            return sourceScanBytes.get();
+        }
+
+        public long getSourceScanRows() {
+            return sourceScanRows.get();
+        }
+
+        public void setSourceScanBytes(long bytes) {
+            sourceScanBytes.set(bytes);
+        }
+
+        public void setSourceScanRows(long bytes) {
+            sourceScanRows.set(bytes);
+        }
+
+        // scanXxx from SparkUI
         @Getter
-        private List<Pair<String, Long>> sourceScanBytes;
-
         @Setter
+        private List<Long> scanRows;
         @Getter
-        private List<Pair<String, Long>> sourceScanRows;
+        @Setter
+        private List<Long> scanBytes;
 
-        public long getTotalSourceScanBytes() {
-            return calScannedValueWithDefault(sourceScanBytes);
+        public long getTotalScanBytes() {
+            return calValueWithDefault(scanBytes);
         }
 
-        public void addSourceScanBytes(String engineType, long bytes) {
-            if (sourceScanBytes == null) {
-                sourceScanBytes = Lists.newArrayList();
-            }
-            sourceScanBytes.add(Pair.newPair(engineType, bytes));
-        }
-
-        public long getTotalSourceScanRows() {
-            return calScannedValueWithDefault(sourceScanRows);
-        }
-
-        public void addSourceScanRows(String engineType, long rows) {
-            if (sourceScanRows == null) {
-                sourceScanRows = Lists.newArrayList();
-            }
-            sourceScanRows.add(Pair.newPair(engineType, rows));
+        public long getTotalScanRows() {
+            return calValueWithDefault(scanRows);
         }
     }
 
@@ -260,17 +266,17 @@ public class QueryContext implements Closeable {
      * @param scanList
      * @return if scanList == null return default -1, else return sum of list
      */
-    public static long calScannedValueWithDefault(List<Pair<String, Long>> scanList) {
+    public static long calValueWithDefault(List<Long> scanList) {
         if (Objects.isNull(scanList)) {
             return DEFAULT_NULL_SCANNED_DATA;
         } else {
-            return scanList.stream().mapToLong(Pair::getValue).sum();
+            return scanList.stream().mapToLong(Long::longValue).sum();
         }
     }
 
     public static void fillEmptyResultSetMetrics() {
-        QueryContext.current().getMetrics().setSourceScanRows(Lists.newArrayList());
-        QueryContext.current().getMetrics().setSourceScanBytes(Lists.newArrayList());
+        QueryContext.current().getMetrics().setScanRows(Lists.newArrayList());
+        QueryContext.current().getMetrics().setScanBytes(Lists.newArrayList());
     }
 
     // ============================================================================

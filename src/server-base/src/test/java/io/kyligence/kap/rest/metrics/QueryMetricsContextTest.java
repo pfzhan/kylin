@@ -31,7 +31,6 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -217,8 +216,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         queryContext.getMetrics().setQueryStartTime(System.currentTimeMillis());
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
         queryContext.setPushdownEngine("MOCKUP");
-        queryContext.getMetrics().setSourceScanBytes(Lists.newArrayList(Pair.newPair("m1", 999L)));
-        queryContext.getMetrics().setSourceScanRows(Lists.newArrayList(Pair.newPair("m1", 111L)));
+        queryContext.getMetrics().setScanBytes(Lists.newArrayList(999L));
+        queryContext.getMetrics().setScanRows(Lists.newArrayList(111L));
         queryContext.getQueryTagInfo().setPushdown(true);
 
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);

@@ -88,8 +88,8 @@ public final class ResultDetails {
 
     void enrich(QueryContext queryContext) {
         Preconditions.checkNotNull(queryContext);
-        this.scannedBytes = queryContext.getMetrics().getTotalSourceScanBytes();
-        this.scannedRows = queryContext.getMetrics().getTotalSourceScanRows();
+        this.scannedBytes = queryContext.getMetrics().getTotalScanBytes();
+        this.scannedRows = queryContext.getMetrics().getTotalScanRows();
         this.queryId = queryContext.getQueryId();
     }
 }

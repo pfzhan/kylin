@@ -112,8 +112,8 @@ public class QueryMetricsContext extends QueryMetrics {
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
         }
         this.queryDuration = System.currentTimeMillis() - queryTime;
-        this.totalScanBytes = context.getMetrics().getTotalSourceScanBytes();
-        this.totalScanCount = context.getMetrics().getTotalSourceScanRows();
+        this.totalScanBytes = context.getMetrics().getTotalScanBytes();
+        this.totalScanCount = context.getMetrics().getTotalScanRows();
         this.isPushdown = context.getQueryTagInfo().isPushdown();
         this.isTimeout = context.getQueryTagInfo().isTimeout();
         if (context.getQueryTagInfo().isStorageCacheUsed() && context.getEngineType() != null) {

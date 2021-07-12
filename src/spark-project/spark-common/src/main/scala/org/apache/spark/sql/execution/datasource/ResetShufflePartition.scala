@@ -27,19 +27,19 @@ import org.apache.spark.sql.SparkSession
 
 trait ResetShufflePartition extends Logging {
 
-  def setShufflePartitions(engineId: String, bytes: Long, sourceRows: Long, sparkSession: SparkSession): Unit = {
-    QueryContext.current().getMetrics.addSourceScanBytes(engineId, bytes)
-    QueryContext.current().getMetrics.addSourceScanRows(engineId, sourceRows)
+  def setShufflePartitions(bytes: Long, sourceRows: Long, sparkSession: SparkSession): Unit = {
+    QueryContext.current().getMetrics.setSourceScanBytes(bytes)
+    QueryContext.current().getMetrics.setSourceScanRows(sourceRows)
     val defaultParallelism = sparkSession.sparkContext.defaultParallelism
     val kapConfig = KapConfig.getInstanceFromEnv
     val partitionsNum = if (kapConfig.getSparkSqlShufflePartitions != -1) {
       kapConfig.getSparkSqlShufflePartitions
     } else {
-      Math.min(QueryContext.current().getMetrics.getTotalSourceScanBytes / (
-        KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 * 2) + 1,
+      Math.min(QueryContext.current().getMetrics.getSourceScanBytes / (
+        KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024) + 1,
         defaultParallelism).toInt
     }
     sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
-    logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getMetrics.getTotalSourceScanBytes}")
+    logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getMetrics.getSourceScanBytes}")
   }
 }

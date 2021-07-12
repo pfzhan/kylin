@@ -95,8 +95,6 @@ object TableScanPlan extends LogEx {
     if (cuboidLayout.getIndex.isTableIndex) {
       QueryContext.current().getQueryTagInfo.setTableIndex(true)
     }
-    val sourceBytes = prunedSegments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
-//    QueryContext.current().getMetrics.addSourceScanBytes(sourceBytes)
     val tableName = olapContext.firstTableScan.getBackupAlias
     val mapping = new NLayoutToGridTableMapping (cuboidLayout)
     val columnNames = SchemaProcessor.buildGTSchema (cuboidLayout, mapping, tableName)

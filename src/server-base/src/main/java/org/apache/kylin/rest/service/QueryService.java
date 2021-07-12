@@ -650,8 +650,8 @@ public class QueryService extends BasicService {
         if (sqlResponse.getEngineType() != null) {
             queryContext.setEngineType(sqlResponse.getEngineType());
         }
-        queryContext.getMetrics().setSourceScanBytes(sqlResponse.getScanBytes());
-        queryContext.getMetrics().setSourceScanRows(sqlResponse.getScanRows());
+        queryContext.getMetrics().setScanBytes(sqlResponse.getScanBytes());
+        queryContext.getMetrics().setScanRows(sqlResponse.getScanRows());
         queryContext.getMetrics().setResultRowCount(sqlResponse.getResultRowCount());
 
         List<QueryContext.NativeQueryRealization> nativeQueryRealizationList = Lists.newArrayList();

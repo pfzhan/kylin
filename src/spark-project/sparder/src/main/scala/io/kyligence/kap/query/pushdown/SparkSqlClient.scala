@@ -121,8 +121,8 @@ object SparkSqlClient {
       jobTrace.resultConverted()
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-      QueryContext.current().getMetrics.addSourceScanBytes("spark-sql", scanRows.sum)
-      QueryContext.current().getMetrics.addSourceScanRows("spark-sql", scanBytes.sum)
+      QueryContext.current().getMetrics.setScanRows(scanRows)
+      QueryContext.current().getMetrics.setScanBytes(scanBytes)
       Pair.newPair(rowList, fieldList)
     } catch {
       case e: Throwable =>

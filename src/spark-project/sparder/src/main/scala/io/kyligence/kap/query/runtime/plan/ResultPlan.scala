@@ -61,12 +61,12 @@ object ResultPlan extends LogEx {
       if (kapConfig.getSparkSqlShufflePartitions != -1) {
         kapConfig.getSparkSqlShufflePartitions
       } else {
-        Math.min(QueryContext.current().getMetrics.getTotalSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
+        Math.min(QueryContext.current().getMetrics.getSourceScanBytes / PARTITION_SPLIT_BYTES + 1,
           SparderEnv.getTotalCore).toInt
       }
     QueryContext.current().setShufflePartitions(partitionsNum)
     logInfo(s"partitions num are : $partitionsNum," +
-      s" total scan bytes are ${QueryContext.current().getMetrics.getTotalSourceScanBytes}" +
+      s" total scan bytes are ${QueryContext.current().getMetrics.getSourceScanBytes}" +
       s" total cores are ${SparderEnv.getTotalCore}")
     if (QueryContext.current().getQueryTagInfo.isHighPriorityQuery) {
       pool = "vip_tasks"
@@ -90,8 +90,8 @@ object ResultPlan extends LogEx {
       df.queryExecution.executedPlan
       logInfo(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
         s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
-      sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getTotalSourceScanRows.toString)
-      logInfo(s"source_scan_rows is ${QueryContext.current().getMetrics.getTotalSourceScanRows.toString}")
+      sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
+      logInfo(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
@@ -99,9 +99,10 @@ object ResultPlan extends LogEx {
       if (kapConfig.isQuerySparkJobTraceEnabled) jobTrace.jobFinished()
       QueryContext.current.record("collect_result")
 
-//      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-//      QueryContext.current().getMetrics.addSourceScanRows(scanRows)
-//      QueryContext.current().getMetrics.addSourceScanBytes(scanBytes)
+      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
+      QueryContext.current().getMetrics.setScanRows(scanRows)
+      QueryContext.current().getMetrics.setScanBytes(scanBytes)
+
       val resultTypes = rowType.getFieldList.asScala
       val dt = convertResultWithMemLimit(rows) { row =>
         if (Thread.interrupted()) {
@@ -214,10 +215,10 @@ object ResultPlan extends LogEx {
       jobTrace.jobFinished()
     }
     val newExecution = QueryToExecutionIDCache.getQueryExecution(queryExecutionId)
-//    val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
-//    logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")
-//    QueryContext.current().getMetrics.updateAndCalScanRows(scanRows)
-//    QueryContext.current().getMetrics.updateAndCalScanBytes(scanBytes)
+    val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(newExecution.executedPlan)
+    logInfo(s"scanRows is ${scanRows}, scanBytes is ${scanBytes}")
+    QueryContext.current().getMetrics.setScanRows(scanRows)
+    QueryContext.current().getMetrics.setScanBytes(scanBytes)
     QueryContext.current().getMetrics.setResultRowCount(newExecution.executedPlan.metrics.get("numOutputRows")
       .map(_.value).get)
   }

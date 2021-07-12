@@ -37,6 +37,7 @@ import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.kylin.common.util.Pair;
 import org.joda.time.DateTime;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -100,6 +101,7 @@ public class ClickhouseDiagToolTest extends NLocalFileMetadataTestCase {
 
 
     @Test
+    @Ignore
     public void testExtractCkLog() throws IOException {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
 

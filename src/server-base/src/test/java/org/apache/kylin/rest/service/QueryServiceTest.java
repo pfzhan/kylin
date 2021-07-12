@@ -65,7 +65,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -126,6 +125,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -1056,19 +1056,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         SQLResponse sqlResponse = queryService.queryWithCache(request);
         Assert.assertNull(QueryContext.current().getEngineType());
-        Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalSourceScanBytes());
-        Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalSourceScanRows());
+        Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalScanBytes());
+        Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalScanRows());
         Assert.assertEquals(0, QueryContext.current().getMetrics().getResultRowCount());
 
-        sqlResponse.setScanBytes(Lists.newArrayList(Pair.newPair("m1", 1024L)));
-        sqlResponse.setScanRows(Lists.newArrayList(Pair.newPair("m1", 10000L)));
+        sqlResponse.setScanBytes(Lists.newArrayList(1024L));
+        sqlResponse.setScanRows(Lists.newArrayList(10000L));
         sqlResponse.setResultRowCount(500);
         queryCacheManager.cacheSuccessQuery(request, sqlResponse);
 
         queryService.queryWithCache(request);
         Assert.assertEquals("NATIVE", QueryContext.current().getEngineType());
-        Assert.assertEquals(1024, QueryContext.current().getMetrics().getTotalSourceScanBytes());
-        Assert.assertEquals(10000, QueryContext.current().getMetrics().getTotalSourceScanRows());
+        Assert.assertEquals(1024, QueryContext.current().getMetrics().getTotalScanBytes());
+        Assert.assertEquals(10000, QueryContext.current().getMetrics().getTotalScanRows());
         Assert.assertEquals(500, QueryContext.current().getMetrics().getResultRowCount());
 
         queryCacheManager.clearQueryCache(request);
@@ -1314,8 +1314,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         long defaultValue = QueryContext.DEFAULT_NULL_SCANNED_DATA;
 
         SQLResponse sqlResponse = new SQLResponse();
-        sqlResponse.setScanRows(Lists.newArrayList(Pair.newPair("m1", 1L), Pair.newPair("m2", 2L)));
-        sqlResponse.setScanBytes(Lists.newArrayList(Pair.newPair("m1", 2L), Pair.newPair("m2", 3L)));
+        sqlResponse.setScanRows(Lists.newArrayList(1L, 2L));
+        sqlResponse.setScanBytes(Lists.newArrayList(2L, 3L));
 
         Assert.assertEquals(3L, sqlResponse.getTotalScanRows());
         Assert.assertEquals(5L, sqlResponse.getTotalScanBytes());
