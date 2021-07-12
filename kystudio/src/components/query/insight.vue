@@ -589,12 +589,12 @@ export default class NewQuery extends Vue {
       .el-tabs__new-tab{
         display: none;
       }
-      > .el-tabs__header {
+      > .el-tabs > .el-tabs__header {
         margin-bottom: 0;
-        width: 80%;
+        width: calc(~'100% - 180px');;
         &::after {
           content: '';
-          width: calc(~'100% + 24% + 5px');
+          width: calc(~'100% + 180px');
           border-top: 1px solid #ECF0F8;
           position: absolute;
           left: 0;

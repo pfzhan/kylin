@@ -25,6 +25,7 @@ package io.kyligence.kap.streaming
 import java.sql.{Date, Timestamp}
 import java.util.Locale
 
+import com.google.gson.JsonParser
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.{CreateFlatTable, NBuildSourceInfo}
 import io.kyligence.kap.engine.spark.job.{FlatTableHelper, NSparkCubingUtil}
@@ -35,7 +36,7 @@ import io.kyligence.kap.source.kafka.NSparkKafkaSource
 import io.kyligence.kap.streaming.constants.StreamingConstants
 import org.apache.commons.lang.time.DateUtils
 import org.apache.commons.lang3.StringUtils
-import org.apache.kylin.common.util.{DateFormat, JsonUtil}
+import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
@@ -46,6 +47,7 @@ import org.apache.spark.storage.StorageLevel
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
                                seg: NDataSegment,
@@ -165,31 +167,13 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
   }
 
   def next: Row = {
-    val row = iter.next
-    val csvString = row.get(0)
+    val csvString = iter.next.get(0)
+    val parser = new JsonParser()
     if (csvString == null || StringUtils.isEmpty(csvString.toString)) {
       EMPTY_ROW
     } else {
       try {
-        val json = JsonUtil.readValueAsMap(csvString.toString())
-        Row((0 to parsedSchema.fields.length - 1).map { index =>
-          val colName = parsedSchema.fields(index).name.toLowerCase(Locale.ROOT)
-          if (!json.containsKey(colName)) {
-            null
-          } else {
-            parsedSchema.fields(index).dataType match {
-              case ShortType => json.get(colName).toShort
-              case IntegerType => json.get(colName).toInt
-              case LongType => json.get(colName).toLong
-              case DoubleType => json.get(colName).toDouble
-              case FloatType => json.get(colName).toFloat
-              case BooleanType => json.get(colName).toBoolean
-              case TimestampType => new Timestamp(DateUtils.parseDate(json.get(colName), DATE_PATTERN).getTime)
-              case DateType => new Date(DateUtils.parseDate(json.get(colName), DATE_PATTERN).getTime)
-              case _ => json.get(colName)
-            }
-          }
-        }: _*)
+        convertJson2Row(csvString.toString(), parser)
       } catch {
         case e: Exception =>
           logger.error(s"parse json text fail ${e.toString}  stackTrace is: " +
@@ -198,4 +182,35 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
       }
     }
   }
+
+  def convertJson2Row(jsonStr: String, parser: JsonParser): Row = {
+    val jsonMap = new mutable.HashMap[String, String]()
+    val jsonObj = parser.parse(jsonStr).getAsJsonObject
+    val entries = jsonObj.entrySet().asScala
+    entries.foreach{ entry =>
+      jsonMap.put(entry.getKey.toLowerCase(Locale.ROOT), entry.getValue.getAsString)
+    }
+    Row((0 to parsedSchema.fields.length - 1).map { index =>
+      val colName = parsedSchema.fields(index).name.toLowerCase(Locale.ROOT)
+      if (!jsonMap.contains(colName)) { // key not exist
+        null
+      } else {
+        val value = jsonMap.get(colName).getOrElse(null)  // value not exist
+        parsedSchema.fields(index).dataType match {
+          case ShortType => if (value == null || value.equals("")) null else value.toShort
+          case IntegerType => if (value == null || value.equals("")) null else value.toInt
+          case LongType => if (value == null || value.equals("")) null else value.toLong
+          case DoubleType => if (value == null || value.equals("")) null else value.toDouble
+          case FloatType => if (value == null || value.equals("")) null else value.toFloat
+          case BooleanType => if (value == null || value.equals("")) null else value.toBoolean
+          case TimestampType => if (value == null || value.equals("")) null
+                                else new Timestamp(DateUtils.parseDate(value, DATE_PATTERN).getTime)
+          case DateType => if (value == null || value.equals("")) null
+                           else new Date(DateUtils.parseDate(value, DATE_PATTERN).getTime)
+          case _ => value
+        }
+      }
+    }: _*)
+  }
+
 }

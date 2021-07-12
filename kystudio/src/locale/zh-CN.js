@@ -4,6 +4,10 @@ exports.default = {
     // 常规操作
     dialogHiveTreeNoData: '请点击数据源来加载源表',
     noProjectTips: '请点击上面按钮添加项目',
+    seconds: '秒',
+    minutes: '分',
+    hours: '小时',
+    days: '天',
     good: '正常',
     warning: '警告',
     error: '错误',
