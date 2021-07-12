@@ -1492,5 +1492,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 sqlResponse.getNativeRealizations().get(1).getModelId());
         Assert.assertEquals((Long) 20001L,
                 sqlResponse.getNativeRealizations().get(1).getLayoutId());
+
+        Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
+        Assert.assertFalse(sqlResponse.getNativeRealizations().get(1).isStreamingLayout());
     }
 }

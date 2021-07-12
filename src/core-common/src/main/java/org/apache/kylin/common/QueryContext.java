@@ -323,6 +323,7 @@ public class QueryContext implements Closeable {
         private boolean isPartialMatchModel;
         private boolean isValid = true;
         private boolean isLayoutExist = true;
+        private boolean isStreamingLayout = false;
         private List<String> snapshots;
     }
 

@@ -43,12 +43,12 @@ public class NativeQueryRealization implements Serializable {
     private String modelId;
     private String modelAlias;
     private Long layoutId;
-    private Long streamingLayoutId;
     private String indexType;
     private boolean isPartialMatchModel;
     private boolean isValid = true;
     private boolean isLayoutExist = true;
     private boolean isSecondStorage = false;
+    private boolean isStreamingLayout = false;
     private List<String> snapshots;
 
     @JsonUnwrapped

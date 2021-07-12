@@ -215,6 +215,7 @@ public class QueryMetricsContext extends QueryMetrics {
             realizationMetrics.setDuration(queryDuration);
             realizationMetrics.setQueryTime(queryTime);
             realizationMetrics.setProjectName(projectName);
+            realizationMetrics.setStreamingLayout(realization.isStreamingLayout());
             realizationMetrics.setSnapshots(realization.getSnapshots());
             realizationMetricList.add(realizationMetrics);
 

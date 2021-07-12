@@ -293,10 +293,10 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         queryContext.getQueryTagInfo().setPushdown(false);
 
         QueryContext.NativeQueryRealization aggIndex = new QueryContext.NativeQueryRealization("mocked_model_id",
-                "mocked_model", 1L, QueryMetricsContext.AGG_INDEX, false, false, false, Lists.newArrayList());
+                "mocked_model", 1L, QueryMetricsContext.AGG_INDEX, false, false, false, false, Lists.newArrayList());
         QueryContext.NativeQueryRealization tableIndex = new QueryContext.NativeQueryRealization("mocked_model_id",
                 "mocked_model", IndexEntity.TABLE_INDEX_START_ID + 2, QueryMetricsContext.TABLE_INDEX, false, false,
-                false, Lists.newArrayList());
+                false, false, Lists.newArrayList());
         queryContext.setNativeQueryRealizationList(Lists.newArrayList(aggIndex, tableIndex));
 
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);

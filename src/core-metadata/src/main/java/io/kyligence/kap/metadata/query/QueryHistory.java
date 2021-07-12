@@ -195,6 +195,7 @@ public class QueryHistory implements IKeep {
                     metrics.indexType == null || metrics.indexType.equals("null") ? null : metrics.indexType,
                     metrics.snapshots == null || metrics.snapshots.isEmpty() ? Lists.newArrayList() : metrics.snapshots);
             realization.setSecondStorage(metrics.isSecondStorage);
+            realization.setStreamingLayout(metrics.isStreamingLayout);
             realizations.add(realization);
         }
         return realizations;

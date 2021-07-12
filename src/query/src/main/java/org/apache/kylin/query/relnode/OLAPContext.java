@@ -331,6 +331,7 @@ public class OLAPContext {
                                 ctx.storageContext.isPartialMatchModel(), snapshots);
                         streamingRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
                                 .getOrDefault(streamingRealization.getLayoutId(), false));
+                        streamingRealization.setStreamingLayout(true);
                         realizations.add(streamingRealization);
 
                         String batchId = ((HybridRealization) ctx.realization).getBatchRealization().getUuid();

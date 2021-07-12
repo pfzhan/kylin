@@ -465,8 +465,8 @@ public class RealizationChooser {
         }
 
         if (layoutCandidate == NLayoutCandidate.EMPTY && layoutStreamingCandidate == NLayoutCandidate.EMPTY) {
-            context.setCuboidLayoutId(null);
-            context.setStreamingLayoutId(null);
+            context.setCuboidLayoutId(-1L);
+            context.setStreamingLayoutId(-1L);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;

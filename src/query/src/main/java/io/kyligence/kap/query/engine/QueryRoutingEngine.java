@@ -172,7 +172,7 @@ public class QueryRoutingEngine {
         for (NativeQueryRealization nqReal : OLAPContext.getNativeRealizations()) {
             nativeQueryRealizationList.add(new QueryContext.NativeQueryRealization(nqReal.getModelId(),
                     nqReal.getModelAlias(), nqReal.getLayoutId(), nqReal.getIndexType(), nqReal.isPartialMatchModel(),
-                    nqReal.isValid(), nqReal.isLayoutExist(), nqReal.getSnapshots()));
+                    nqReal.isValid(), nqReal.isLayoutExist(), nqReal.isStreamingLayout(), nqReal.getSnapshots()));
         }
         QueryContext.current().setNativeQueryRealizationList(nativeQueryRealizationList);
 
