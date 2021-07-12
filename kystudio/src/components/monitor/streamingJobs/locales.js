@@ -52,7 +52,8 @@ export default {
     stopStreamingJobTips: 'Stopping the job may take several minutes. If you need to stop the job immediately, some segments would be in "REFRESHING" or "LOCKED" state. They would be deleted when the job starts again, or you could delete them manually.',
     stopJob: 'Stop Job',
     stopJobImme: 'Stop Immediately',
-    mulParamsKeyTips: 'This key already exists.'
+    mulParamsKeyTips: 'This key already exists.',
+    errorStautsTips: 'An unknown error occurred. Please contact the admin.'
   },
   'zh-cn': {
     adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
@@ -107,6 +108,7 @@ export default {
     stopStreamingJobTips: '停止任务可能需要花费几分钟。如需立即停止，可能导致一些 Segment 处于“REFRESHING”或“LOCKED”状态。这些 Segment 将在任务下次启动时自动删除，也可被手动删除。',
     stopJob: '停止任务',
     stopJobImme: '立即停止',
-    mulParamsKeyTips: '该参数已存在'
+    mulParamsKeyTips: '该参数已存在',
+    errorStautsTips: '出现未知错误，请联系管理员查看。'
   }
 }

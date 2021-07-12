@@ -138,12 +138,12 @@
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
                 <div v-if="scope.row.status === 'WARNING' && scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
-                <div v-if="scope.row.status === 'WARNING' && (scope.row.segment_holes && scope.row.segment_holes.length && scope.row.model_type !== 'HYBRID') || (scope.row.batch_segment_holes && scope.row.batch_segment_holes.length)">
+                <div v-if="scope.row.status === 'WARNING' && (scope.row.segment_holes && scope.row.segment_holes.length && scope.row.model_type === 'BATCH') || (scope.row.batch_segment_holes && scope.row.batch_segment_holes.length && scope.row.model_type === 'HYBRID')">
                   <span>{{scope.row.model_type === 'HYBRID' ? $t('modelSegmentHoleTips1') : $t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.model_type === 'HYBRID' ? scope.row.batch_id : scope.row.uuid, scope.row.model_type === 'HYBRID' ? scope.row.batch_segment_holes : scope.row.segment_holes)">{{$t('seeDetail')}}</span>
                 </div>
-                <div v-if="scope.row.status === 'WARNING' && (scope.row.segment_holes && scope.row.segment_holes.length && scope.row.model_type === 'HYBRID')">
+                <div v-if="scope.row.status === 'WARNING' && (scope.row.segment_holes && scope.row.segment_holes.length && scope.row.model_type !== 'BATCH')">
                   <span>{{$t('modelSegmentHoleTips2')}}</span>
                 </div>
                 <div v-if="scope.row.status === 'WARNING' && scope.row.inconsistent_segment_count">

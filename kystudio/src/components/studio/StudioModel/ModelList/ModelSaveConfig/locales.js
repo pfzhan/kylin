@@ -50,8 +50,12 @@ export default {
     secStorageDesc: 'With this switch ON, the system will create a base table index, which will be sync to the tiered storage. It will improve the performance of ad-hoc query and detail query analysis scenarios.<br/>The index can\'t be deleted when the tiered storage is ON.',
     secStorageTips: 'With this switch OFF, the model\'s tiered storage data will be cleared。',
     openSecStorageTips: 'It\'s recommended to turn on the tiered storage, as too many dimensions are included.',
-    disableSecStorageActionTips: 'The tiered storage can\'t be used for hybrid or streaming models at the moment.',
-    secondStoragePartitionTips: 'Can\'t save the model. When the model uses incremental load method and the tiered storage is ON, the time partition column must be added as a dimension.'
+    openSecStorageTips2: 'With the tiered storage ON, the existing data needs to be loaded to tiered storage to take effect.',
+    disableSecStorageActionTips: 'The tiered storage can\'t be used for fusion or streaming models at the moment.',
+    disableSecStorageActionTips2: 'The tiered storage can\'t be used because no dimension or measure has been added and the base table index can\'t be added.',
+    secondStoragePartitionTips: 'Can\'t save the model. When the model uses incremental load method and the tiered storage is ON, the time partition column must be added as a dimension.',
+    streamSecStoragePartitionTips: 'Can\'t save the model. For fusion model, the time partition column must be added as a dimension.',
+    baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default.'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -104,7 +108,11 @@ export default {
     secStorageDesc: '开启后系统将为模型创建一个基础明细索引。分层存储用于同步该索引数据，以提高多维度灵活查询和明细查询的查询性能。<br/>且在开启分层存储时该索引不可删除。',
     secStorageTips: '关闭后，模型的分层存储数据将被清空，可能会影响查询效率。',
     openSecStorageTips: '检测到模型维度数较多，建议开启分层存储。',
+    openSecStorageTips2: '开启分层存储后，现有 Segment 数据需加载到分层存储后生效。',
     disableSecStorageActionTips: '融合模型或实时模型暂无法使用分层存储',
-    secondStoragePartitionTips: '无法保存模型。当增量加载的模型开启分层存储时，必须将时间分区列加入维度。'
+    disableSecStorageActionTips2: '模型未定义维度/度量，无法生成基础明细索引和使用分层缓存。',
+    secondStoragePartitionTips: '无法保存模型。当增量加载的模型开启分层存储时，必须将时间分区列加入维度。',
+    streamSecStoragePartitionTips: '无法保存模型。融合模型必须将时间分区列加入模型维度。',
+    baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。'
   }
 }

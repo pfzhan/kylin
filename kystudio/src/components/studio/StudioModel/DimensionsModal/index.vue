@@ -42,6 +42,8 @@
                   <el-table-column
                     type="selection"
                     :selectable="setSelectable"
+                    :checkbox-disable-tooltip="disableTips"
+                    checkbox-disable-tooltip-placement="top"
                     width="44">
                   </el-table-column>
                   <el-table-column
@@ -391,8 +393,21 @@ export default class DimensionsModal extends Vue {
     return !this.flattenLookupTables.includes(row.tableName)
   }
 
+  get isHybridModel () {
+    return this.modelInstance.getFactTable() && this.modelInstance.getFactTable().batch_table_identity || this.modelData.model_type === 'HYBRID'
+  }
+
+  get disableTips () {
+    if (this.modelInstance.second_storage_enabled) {
+      return this.$t('secStorTips')
+    }
+    if (this.isHybridModel) {
+      return this.$t('streamTips')
+    }
+  }
+
   setSelectable (row) {
-    return !(this.modelInstance.second_storage_enabled && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === row.tableName + '.' + row.name)
+    return !((this.modelInstance.second_storage_enabled || this.isHybridModel) && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === row.tableName + '.' + row.name)
   }
 
   // 判断 cc 是否引用了不预计算的维表

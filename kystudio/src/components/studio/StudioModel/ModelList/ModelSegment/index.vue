@@ -37,9 +37,11 @@
           <el-dropdown split-button @click="handleSyncSegment" type="primary" text class="ksd-fleft" btn-icon="el-ksd-icon-sync_old" size="medium" :disabled="hasEventAuthority('sync')">
             {{$t('sync')}}
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click="handleDelSyncSegment" :disabled="hasEventAuthority('sync')">
-                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
-                <span class="ksd-fs-12">{{$t('delSync')}}</span>
+              <el-dropdown-item @click="handleDelSyncSegment" :class="{'disabled-action': hasEventAuthority('delSync')||!selectedSegments.length}">
+                <common-tip :content="$t('delSyncTips')" :disabled="!(hasEventAuthority('delSync')&&selectedSegments.length>0)">
+                  <i class="el-ksd-icon-table_delete_16 ksd-fs-16"></i>
+                  <span class="ksd-fs-12">{{$t('delSync')}}</span>
+                </common-tip>
               </el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -47,13 +49,15 @@
          <el-dropdown split-button @click="handleSyncSegment" type="primary" text class="ksd-fleft" v-if="!hasEventAuthority('sync')&&model.second_storage_enabled" btn-icon="el-ksd-icon-sync_old" size="medium" :disabled="!selectedSegments.length">
             {{$t('sync')}}
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click="handleDelSyncSegment" :disabled="!selectedSegments.length">
-                <i class="el-ksd-icon-sync_old ksd-fs-16"></i>
-                <span class="ksd-fs-12">{{$t('delSync')}}</span>
+              <el-dropdown-item @click="handleDelSyncSegment" :class="{'disabled-action': hasEventAuthority('delSync')||!selectedSegments.length}">
+                <common-tip :content="$t('delSyncTips')" :disabled="!(hasEventAuthority('delSync')&&selectedSegments.length>0)">
+                  <i class="el-ksd-icon-table_delete_16 ksd-fs-16"></i>
+                  <span class="ksd-fs-12">{{$t('delSync')}}</span>
+                </common-tip>
               </el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
-        <el-button icon="el-ksd-icon-repair_22" type="primary" class="ksd-ml-8" text v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}</el-button>
+        <el-button icon="el-ksd-icon-repair_22" type="primary" class="ksd-ml-8" text v-if="(model.segment_holes && model.segment_holes.length && model.model_type === 'BATCH') || (model.batch_segment_holes && model.batch_segment_holes.length && model.model_type === 'HYBRID')" @click="handleFixSegment">{{$t('fix')}}</el-button>
       </div>
       <!-- <div class="segment-button-groups left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button icon="el-ksd-icon-refresh_22" type="primary" text :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
@@ -847,7 +851,23 @@ export default class ModelSegment extends Vue {
     } else if (type === 'merge') {
       return typeList(['ONLINE', 'WARNING'])
     } else if (type === 'sync') {
-      return typeList(['ONLINE', 'WARNING'])
+      let isAllHaveBaseTableIndex = true
+      for (let i = 0; i < this.selectedSegments.length; i++) {
+        if (!this.selectedSegments[i].has_base_table_index_data) {
+          isAllHaveBaseTableIndex = false
+          break
+        }
+      }
+      return typeList(['ONLINE', 'WARNING']) || !isAllHaveBaseTableIndex
+    } else if (type === 'delSync') {
+      let isAllHaveSecStorageSize = true
+      for (let k = 0; k < this.selectedSegments.length; k++) {
+        if (!this.selectedSegments[k].second_storage_size) {
+          isAllHaveSecStorageSize = false
+          break
+        }
+      }
+      return !isAllHaveSecStorageSize
     } else if (type === 'delete') {
       return typeList(['ONLINE', 'LOADING', 'REFRESHING', 'MERGING', 'WARNING'])
     }
@@ -1074,6 +1094,7 @@ export default class ModelSegment extends Vue {
     }
   }
   async handleDelSyncSegment () {
+    if (this.hasEventAuthority('delSync')) return
     try {
       const segmentIds = this.selectedSegmentIds
       if (!segmentIds.length) {
@@ -1267,6 +1288,14 @@ export default class ModelSegment extends Vue {
   .segment-actions {
     .segment-button-groups {
       // margin-left: -14px;
+    }
+    .disabled-action {
+      color: @text-disabled-color;
+      cursor: not-allowed;
+      &:hover {
+        background: none;
+        color: #bbbbbb;
+      }
     }
     .el-icon-question {
       color: @base-color;

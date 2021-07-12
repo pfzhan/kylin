@@ -93,7 +93,7 @@ export default {
     modelType: 'Types',
     STREAMING: 'Streaming Model',
     BATCH: 'Batch Model',
-    HYBRID: 'Hybrid Model',
+    HYBRID: 'Fusion Model',
     changeTo: 'Change Owner To',
     pleaseChangeOwner: 'Please change model owner',
     changeDesc: 'You can change the owner of the model to a system admin, a user in the project ADMIN role, or a user in the project management role.',

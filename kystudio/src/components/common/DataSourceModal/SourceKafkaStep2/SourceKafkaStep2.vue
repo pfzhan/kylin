@@ -1,5 +1,5 @@
 <template>
-  <div class="kafka-table-setting ksd-mtb-20 ksd-mrl-20">
+  <div class="kafka-table-setting ksd-mtb-16 ksd-mrl-24">
     <el-form :model='kafkaMeta' :rules='rules' label-position="top" ref="kafkaForm">
       <el-form-item :label="$t('tableName')" required>
         <el-row :gutter="10">
@@ -20,7 +20,40 @@
           </el-col>
         </el-row>
       </el-form-item>
-      <div class="colums-table-block ksd-mtb-20">
+      <div class="ksd-mb-24">
+        <span class="ksd-title-label-mini">{{$t('attachHiveToggle')}}</span>
+        <el-tooltip effect="dark" :content="$t('attachHiveTips')" placement="top">
+            <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
+          </el-tooltip>
+        <el-switch
+          v-model="isShowHiveTree"
+          @change="storeKafkaMeta"
+          size="small">
+        </el-switch>
+      </div>
+      <el-form-item :label="$t('attachedHiveTable')" v-if="isShowHiveTree">
+        <el-input size="medium" class="ksd-mb-8" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()" :placeholder="$t('filterTableName')" v-model="filterText"></el-input>
+        <input type="hidden" name="batch_table_identity" v-model="kafkaMeta.batch_table_identity"/>
+        <div class="hive-table-tree" v-loading="isLoadingTreeData">
+          <TreeList
+            :tree-key="treeKey"
+            ref="treeList"
+            :data="databaseArray"
+            :placeholder="$t('filterTableName')"
+            :default-expanded-keys="defaultExpandedKeys"
+            :is-show-filter="false"
+            :is-expand-on-click-node="false"
+            :is-resizable="false"
+            :on-filter="handleFilter"
+            @click="handleClick"
+            @load-more="handleLoadMore">
+            <template>
+              <kap-nodata :content="emptyText" v-if="databaseArray.length <= 0 || tableArray.length <= 0" size="small"></kap-nodata>
+            </template>
+          </TreeList>
+        </div>
+      </el-form-item>
+      <div class="colums-table-block ksd-mtb-16">
         <div class="clearfix">
           <div class="ksd-title-label-small ksd-fleft">{{$t('columns')}}</div>
           <div  class="ksd-mb-10 ksd-fright">
@@ -31,7 +64,7 @@
         <el-table
           :data='filterColumns'
           border
-          height="220px"
+          height="200px"
           style='width: 100%' class="formTable">
           <!-- <el-table-column
           label=""
@@ -57,7 +90,7 @@
           <el-table-column
           :label="$t('columnType')">
             <template slot-scope="scope">
-              <el-select v-model="scope.row.datatype" size="small" @change="storeKafkaMeta" :disabled="scope.row.fromSource=='N'">
+              <el-select v-model="scope.row.datatype" size="small" @change="storeKafkaMeta" :disabled="scope.row.fromSource=='N' || isShowHiveTree">
                 <el-option
                   v-for="(item, index) in dataTypes"
                   :key="index"
@@ -85,28 +118,6 @@
         <div class="column-rename-msg" v-if="isShowColNameError">
           {{colNameError}}
         </div>
-      </div>
-      <el-form-item :label="$t('attachedHiveTable')">
-        <el-input size="medium" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()" :placeholder="$t('filterTableName')" v-model="filterText"></el-input>
-        <input type="hidden" name="batch_table_identity" v-model="kafkaMeta.batch_table_identity"/>
-      </el-form-item>
-      <div class="hive-table-tree" v-loading="isLoadingTreeData">
-        <TreeList
-          :tree-key="treeKey"
-          ref="treeList"
-          :data="databaseArray"
-          :placeholder="$t('filterTableName')"
-          :default-expanded-keys="defaultExpandedKeys"
-          :is-show-filter="false"
-          :is-expand-on-click-node="false"
-          :is-resizable="false"
-          :on-filter="handleFilter"
-          @click="handleClick"
-          @load-more="handleLoadMore">
-          <template>
-            <kap-nodata :content="emptyText" v-if="databaseArray.length <= 0 || tableArray.length <= 0" size="small"></kap-nodata>
-          </template>
-        </TreeList>
       </div>
     </el-form>
   </div>
@@ -209,6 +220,7 @@ export default class SourceKafkaStep2 extends Vue {
   verifyTable = []
   searchLoading = false
   filterText = ''
+  isShowHiveTree = true
   treeKey = 'hivetree' + Number(new Date())
   isLoadingTreeData = false
   hideFactIcon = true
@@ -231,6 +243,7 @@ export default class SourceKafkaStep2 extends Vue {
     const kafkaMetaObj = objectClone(this.kafkaMeta)
     delete kafkaMetaObj.columns
     this.$emit('input', { kafkaMeta: {
+      isShowHiveTree: this.isShowHiveTree,
       kafka_config: kafkaMetaObj,
       table_desc: { name: this.kafkaMeta.name, columns: this.kafkaMeta.columns, source_type: 1, database: this.kafkaMeta.database },
       project: this.currentSelectedProject
@@ -517,7 +530,7 @@ export default class SourceKafkaStep2 extends Vue {
     }
   }
   .hive-table-tree {
-    border: 1px solid @line-border-color;
+    border: 1px solid @ke-border-divider-color;
     height: 200px;
     max-height: 400px;
     overflow: hidden;

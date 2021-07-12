@@ -19,8 +19,10 @@ export default {
     subPartitionValuesManage: 'Manage Sub-Partition Values',
     secStorage: 'Tiered Storage',
     openSecStorageTips: 'The system will create a base table index for model "{modelName}". The index can\'t be deleted when the tiered storage is ON.',
+    openSecStorageTips2: 'With the tiered storage ON, the existing data needs to be loaded to tiered storage to take effect. ',
     closeSecStorageTips: 'With this switch OFF, the model\'s tiered storage data will be cleared。',
     secStorageDesc: 'With this switch ON, the basic table index will be synchronized to the tiered storage. It will improve the performance of ad-hoc query and detail query analysis scenarios.',
+    disableSecStorageActionTips2: 'The tiered storage can\'t be used because no dimension or measure has been added and the base table index can\'t be added.',
     supportSecStoage: 'Support Tiered Storage',
     node: 'Node',
     exportMetadatas: 'Export Model',
@@ -58,9 +60,9 @@ export default {
     changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.',
     jobSuccess: 'Submitted successfully. You may go to  the job page to ',
     disableActionTips: 'Unavailable for streaming model',
-    disableActionTips2: 'Unavailable for hybrid or streaming model',
-    disableActionTips3: 'Unavailable for hybrid model',
-    disableSecStorageActionTips: 'The tiered storage can\'t be used for hybrid or streaming models at the moment.'
+    disableActionTips2: 'Unavailable for fusion or streaming model',
+    disableActionTips3: 'Unavailable for fusion model',
+    disableSecStorageActionTips: 'The tiered storage can\'t be used for fusion or streaming models at the moment.'
   },
   'zh-cn': {
     authorityDetails: '权限详情',
@@ -82,6 +84,8 @@ export default {
     subPartitionValuesManage: '子分区值设置',
     secStorage: '分层存储',
     openSecStorageTips: '开启后系统将为模型“{modelName}”创建一个基础明细索引。在开启分层存储时该索引不可删除。',
+    openSecStorageTips2: '开启分层存储后，现有 Segment 数据需加载到分层存储后生效。',
+    disableSecStorageActionTips2: '模型未定义维度/度量，无法生成基础明细索引和使用分层缓存。',
     closeSecStorageTips: '关闭后，模型的分层存储数据将被清空，可能会影响查询效率。',
     secStorageDesc: '分层存储用于同步模型中的基础明细索引数据，以提高多维度灵活查询和明细查询的查询性能。',
     supportSecStoage: '支持分层存储',

@@ -102,7 +102,8 @@ import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../
       stopQuery: 'Stop Query',
       overIntegerLength: 'Please enter a value no larger than 2,147,483,647.',
       viewLogs: 'View Logs',
-      htraceTips: 'Please make sure Zipkin server is properly deployed according to the manual of performance diagnose package.'
+      htraceTips: 'Please make sure Zipkin server is properly deployed according to the manual of performance diagnose package.',
+      queryError: 'The query fails.'
     },
     'zh-cn': {
       trace: '追踪',
@@ -115,7 +116,8 @@ import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../
       stopQuery: '停止',
       overIntegerLength: '请输入小于等于 2,147,483,647 的数值。',
       viewLogs: '查看日志',
-      htraceTips: '请确保已经按照性能诊断工具包使用说明部署完毕Zipkin服务器。'
+      htraceTips: '请确保已经按照性能诊断工具包使用说明部署完毕Zipkin服务器。',
+      queryError: '查询失败'
     }
   }
 })
@@ -268,8 +270,8 @@ export default class QueryTab extends Vue {
         this.isStopping = false
         this.extraoptionObj = data
         if (data.isException) {
-          this.errinfo = data.exceptionMessage
-          this.$emit('changeView', this.tabsItem.index, data, data.exceptionMessage)
+          this.errinfo = data.exceptionMessage || this.$t('queryError')
+          this.$emit('changeView', this.tabsItem.index, data, this.errinfo)
         } else {
           this.errinfo = ''
           this.$emit('changeView', this.tabsItem.index, data)

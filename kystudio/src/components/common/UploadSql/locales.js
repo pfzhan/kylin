@@ -71,7 +71,8 @@ export default {
     uploadRule2: 'Valid SQLs shall be included in the file',
     uploadRule3: 'The total file size can\'t be larger than 5 MB',
     uploadRule4: 'Up to {size} SQLs could be uploaded at a time',
-    addBaseIndexCheckBox: 'Add Base Indexes'
+    addBaseIndexCheckBox: 'Add Base Indexes',
+    baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default.'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -145,6 +146,7 @@ export default {
     uploadRule2: '文件包含有效的 SQL',
     uploadRule3: '文件大小总量不超过 5MB',
     uploadRule4: '一次最多可上传 {size} 条 SQL',
-    addBaseIndexCheckBox: '添加基础索引'
+    addBaseIndexCheckBox: '添加基础索引',
+    baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。'
   }
 }

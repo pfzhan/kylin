@@ -260,8 +260,12 @@
                           <span class="title font-medium measure-title">{{$t('includeMeasure')}}</span>
                           <div class="row ksd-mb-10 ksd-fright ky-no-br-space">
                             <!-- <el-button plain size="mini" class="add-all-item" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button> -->
-                            <el-button plain size="mini" class="ksd-ml-10" @click="handleRemoveAllMeasure(aggregateIdx, aggregateIdx+1, aggregate.id)">{{$t('clearAll')}}</el-button>
-                            <el-button plain size="mini" class="add-all-item" type="primary" @click="handleEditMeasures(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-edit_16 ksd-mr-5"></i>{{$t('edit')}}</el-button>
+                            <el-button plain size="mini" class="ksd-ml-10"
+                              :disabled="!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range)"
+                              @click="handleRemoveAllMeasure(aggregateIdx, aggregateIdx+1, aggregate.id)">{{$t('clearAll')}}</el-button>
+                            <el-button plain size="mini" class="add-all-item" type="primary"
+                              :disabled="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))"
+                              @click="handleEditMeasures(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-edit_16 ksd-mr-5"></i>{{$t('edit')}}</el-button>
                           </div>
                         </div>
                         <!-- <el-select
@@ -441,8 +445,8 @@
           </div>
         </div>
         <div class="right ksd-fs-0">
-          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button :type="!onlyRealTimeType ? 'primary' : ''" :text="!onlyRealTimeType" size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button :type="onlyRealTimeType ? 'primary' : ''" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button>
           <el-button v-if="isShow && !onlyRealTimeType" type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
         </div>
       </div>
@@ -1176,8 +1180,10 @@ export default class AggregateModal extends Vue {
     })
   }
   async handleSubmit (isCatchUp) {
+    // 该字段只有在保存并构建时才会用到，纯流模型是屏蔽保存并构建的
+    const isHaveBatchSegment = this.model.model_type === 'HYBRID' ? this.model.batch_segments.length > 0 : this.model.segments.length > 0
     // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
-    if (isCatchUp && this.model.segments.length > 0 && !this.model.partition_desc || !isCatchUp) {
+    if (isCatchUp && isHaveBatchSegment && !this.model.partition_desc || !isCatchUp) {
       this.setModalForm({isCatchUp: set(this.form, 'isCatchUp', isCatchUp)['isCatchUp']})
     }
     this.isSubmit = true
@@ -1239,11 +1245,11 @@ export default class AggregateModal extends Vue {
         // if (!isCatchUp && !this.model.segments.length) {
         //   this.$emit('needShowBuildTips', this.model.uuid)
         // }
-        if (isCatchUp && this.model.segments.length === 0) {
+        if (isCatchUp && !isHaveBatchSegment) {
           this.$emit('openBuildDialog', this.model, true)
         }
         // 保存并增量构建时，需弹出segment list选择构建区域
-        if (isCatchUp && this.model.segments.length > 0 && this.model.partition_desc && this.model.partition_desc.partition_date_column) {
+        if (isCatchUp && isHaveBatchSegment && this.model.partition_desc && this.model.partition_desc.partition_date_column) {
           this.$emit('openComplementAllIndexesDialog', this.model)
         }
         if (result.warn_code && result.type === 'NORM_BUILD') {

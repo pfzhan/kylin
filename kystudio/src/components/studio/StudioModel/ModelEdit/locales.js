@@ -89,7 +89,8 @@ export default {
     disabledConstantMeasureTip: 'Can\'t modify the default measure.',
     flattenLookupTableTips: 'Unable to use columns from this table for dimension and measure. Because the join relationship of this dimension table won\'t be precomputed.',
     disableDelDimTips: 'When the tiered storage is ON, the time partition column can\'t be deleted from the dimension.',
-    forbidenCreateCCTip: 'Can\'t add computed column to hybrid model'
+    forbidenCreateCCTip: 'Can\'t add computed column to fusion model',
+    streamTips: 'For fusion model, the time partition column can\'t be deleted from the dimension.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -132,7 +133,7 @@ export default {
     saveSuccessTip: '模型保存成功。',
     buildIndex: '构建索引',
     createBaseIndexTips: '成功添加 {createBaseNum} 个基础索引。',
-    updateBaseIndexTips: '成功刷新 {updateBaseNum} 个基础索引。',
+    updateBaseIndexTips: '成功更新 {updateBaseNum} 个基础索引。',
     addSegmentTips: '为了使模型可服务于查询，请添加可服务的数据范围。',
     addIndexTips: '为了提高模型的查询效率，请添加索引并构建。',
     addIndexAndBaseIndex: '为了提高模型的查询效率，可继续添加索引并构建。',
@@ -182,6 +183,7 @@ export default {
     flattenLookupTableTips: '无法在维度和度量中使用该表中的列，因为该维度表的关联关系不进行预计算。',
     batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
     disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。',
-    forbidenCreateCCTip: '融合模型暂不支持添加可计算列'
+    forbidenCreateCCTip: '融合模型暂不支持添加可计算列',
+    streamTips: '融合模型必须在维度中包含时间分区列。'
   }
 }

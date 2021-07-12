@@ -82,7 +82,8 @@ export default {
     disabledDelBaseIndexTips: 'The base table index can\'t be deleted when the tiered storage is ON.',
     realTimeModelActionTips: 'To add/delete streaming indexes, please take the following steps: stop the streaming job, delete all the streaming segments, add/delete streaming indexes, start the streaming job.',
     refuseAddIndexTip: 'Can\'t add streaming indexes. Please stop the streaming job and then delete all the streaming segments.',
-    refuseRemoveIndexTip: 'Can\'t delete streaming indexes. Please stop the streaming job and then delete all the streaming segments.'
+    refuseRemoveIndexTip: 'Can\'t delete streaming indexes. Please stop the streaming job and then delete all the streaming segments.',
+    disabledBuildIndexTips: 'disabledBuildIndexTips'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -167,6 +168,7 @@ export default {
     disabledDelBaseIndexTips: '在开启分层存储时基础明细索引不可删除。',
     realTimeModelActionTips: '添加/删除实时索引请进行以下步骤：停止实时任务，清空实时 Segment，添加/删除索引，启动实时任务。',
     refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。',
-    refuseRemoveIndexTip: '无法删除实时索引。请先停止实时任务，再清空实时 Segment。'
+    refuseRemoveIndexTip: '无法删除实时索引。请先停止实时任务，再清空实时 Segment。',
+    disabledBuildIndexTips: '锁定状态的索引禁止构建'
   }
 }

@@ -108,20 +108,24 @@ function initPieChart (that) {
 }
 
 function combinationData (that) {
-  const { dimension, measure } = that.charts
-  const dataMap = {}
-  const dimensionIndex = that.tableMetaBackup.findIndex(item => item.name === dimension)
-  const measureIndex = that.tableMetaBackup.findIndex(item => item.name === measure)
-  const xSourceData = that.extraoption.results.map(it => it[dimensionIndex])
-  const ySourceData = that.extraoption.results.map(it => it[measureIndex])
-  xSourceData.forEach((item, index) => {
-    if (item in dataMap) {
-      dataMap[item] = +dataMap[item] + (+ySourceData[index])
-    } else {
-      dataMap[item] = +ySourceData[index]
-    }
-  })
-  return dataMap
+  if (that.extraoption.results) {
+    const { dimension, measure } = that.charts
+    const dataMap = {}
+    const dimensionIndex = that.tableMetaBackup.findIndex(item => item.name === dimension)
+    const measureIndex = that.tableMetaBackup.findIndex(item => item.name === measure)
+    const xSourceData = that.extraoption.results.map(it => it[dimensionIndex])
+    const ySourceData = that.extraoption.results.map(it => it[measureIndex])
+    xSourceData.forEach((item, index) => {
+      if (item in dataMap) {
+        dataMap[item] = +dataMap[item] + (+ySourceData[index])
+      } else {
+        dataMap[item] = +ySourceData[index]
+      }
+    })
+    return dataMap
+  } else {
+    return {}
+  }
 }
 
 export function compareDataSize (that) {

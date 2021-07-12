@@ -159,11 +159,11 @@
                 <ul class="dimension-list">
                   <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
                     <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowCheckbox}]">
-                      <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :disabled="modelInstance.second_storage_enabled&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column" :label="d.name" class="text">{{d.name}}</el-checkbox>
+                      <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :disabled="(modelInstance.second_storage_enabled||isHybridModel)&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column" :label="d.name" class="text">{{d.name}}</el-checkbox>
                       <span v-else :title="d.name" class="text">{{d.name}}</span>
                       <span class="icon-group">
-                        <el-tooltip :content="$t('disableDelDimTips')" placement="top-end" :disabled="!(modelInstance.second_storage_enabled&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column)">
-                          <span class="icon-span" :class="{'is-disabled': modelInstance.second_storage_enabled&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column}" @click="deleteDimenison(d)"><i class="el-icon-ksd-table_delete"></i></span>
+                        <el-tooltip :content="disableDelDimTips" placement="top-end" :disabled="!((modelInstance.second_storage_enabled||isHybridModel)&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column)">
+                          <span class="icon-span" :class="{'is-disabled': (modelInstance.second_storage_enabled||isHybridModel)&&modelInstance.partition_desc&&modelInstance.partition_desc.partition_date_column===d.column}" @click="deleteDimenison(d)"><i class="el-icon-ksd-table_delete"></i></span>
                         </el-tooltip>
                         <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
                         <span class="li-type ky-option-sub-info">{{d.datatype && d.datatype.toLocaleLowerCase()}}</span>
@@ -674,8 +674,16 @@ export default class ModelEdit extends Vue {
   }
   delTipVisible = false
 
+  get disableDelDimTips () {
+    if (this.isHybridModel) {
+      return this.$t('streamTips')
+    } else {
+      return this.$t('disableDelDimTips')
+    }
+  }
+
   get isHybridModel () {
-    return this.modelInstance.getFactTable() && this.modelInstance.getFactTable().batch_table_identity || this.modelData.model_type === 'HYBRID'
+    return this.modelInstance.getFactTable() && this.modelInstance.getFactTable().batch_table_identity || this.modelInstance.model_type === 'HYBRID'
   }
 
   validateName (rule, value, callback) {

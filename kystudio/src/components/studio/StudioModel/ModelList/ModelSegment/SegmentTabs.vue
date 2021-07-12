@@ -28,7 +28,7 @@
         @loadModels="loadModelsList"
         @refreshModel="refreshModel"
         @willAddIndex="willAddIndex"
-        @auto-fix="autoFix(model.alias, model.uuid, model.segment_holes)"
+        @auto-fix="autoFix(model.alias, model.uuid, model.batch_segment_holes)"
         :model="model" />
     </el-tab-pane>
     <el-tab-pane :label="$t('streaming')" name="streaming">

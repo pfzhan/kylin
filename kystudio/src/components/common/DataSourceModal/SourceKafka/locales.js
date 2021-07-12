@@ -7,13 +7,17 @@ export default {
     sampleData: 'Sample Data',
     searchTopicPlaceholder: 'Search Topic Name',
     parserName: 'Parser Name',
-    next: 'Next',
+    next: 'Try Another Row',
     parse: 'Parse',
     dupBlokersTips: 'Some values are duplicated.',
     errorBlokersTips: 'Only supports host:port format',
     brockerTips: 'Please enter the broker information. Use “,“ to separate different brokers in the same cluster, e.g., host1:port1,host2:port2.',
     jsonDataErrorTips: 'The sample data is not a JSON string. Please customize the parser beforehand , then select and parse it below.',
-    emptyTopicTips: 'This topic is empty. Please check and try again.'
+    emptyTopicTips: 'This topic is empty. Please check and try again.',
+    noTopic: 'Display Topics After Get Cluster Info',
+    emptyDataTips: 'No Sample Data',
+    selected: 'Selected: ',
+    errorCodeTips: 'Can\'t get the info of certain broker. Please check and try again. '
   },
   'zh-cn': {
     inputClusterInfo: '填写集群信息',
@@ -29,6 +33,10 @@ export default {
     errorBlokersTips: '格式为 host:port',
     brockerTips: '请填写 Broker 信息，同一集群下的多个 Broker 用“,”分隔，例如 host1:port1,host2:port2',
     jsonDataErrorTips: '样例数据非 JSON 字符串，请预先自定义解析器，再在下方选择并解析。',
-    emptyTopicTips: '该 Topic 为空。请检查后重试。'
+    emptyTopicTips: '该 Topic 为空。请检查后重试。',
+    noTopic: '获取集群信息后显示 Topic',
+    emptyDataTips: '暂无样例数据',
+    selected: '已选：',
+    errorCodeTips: '部分 Broker 信息无法获取，请检查后重试。'
   }
 }

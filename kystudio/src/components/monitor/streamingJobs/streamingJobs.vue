@@ -94,7 +94,9 @@
               :show-multiple-footer="false"
               :filter-change="(v) => filterContent(v, 'status')">
               <template slot-scope="scope">
+                <common-tip :content="$t('errorStautsTips')" :disabled="scope.row.job_status!=='ERROR'">
                 <el-tag :type="jobStatus(scope.row.job_status)" size="small">{{$t(scope.row.job_status)}}</el-tag>
+                </common-tip>
               </template>
             </el-table-column>
             <el-table-column
@@ -861,9 +863,13 @@ export default class StreamingJobsList extends Vue {
     .streaming-jobs-table {
       .icon-column {
         .cell {
-          padding-left: 8px;
-          padding-right: 8px;
+          padding-left: 5px;
+          padding-right: 5px;
         }
+      }
+      .el-ksd-icon-arrow_table_right_22,
+      .el-ksd-icon-arrow_table_down_22 {
+        color: @text-disabled-color;
       }
       .link{
         text-decoration: underline;

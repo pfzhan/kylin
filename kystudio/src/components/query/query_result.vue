@@ -9,81 +9,101 @@
       show-icon>
     </el-alert>
     <div class="resultTipsLine">
-      <div class="resultTips">
-        <p class="resultText" v-if="extraoption.queryId">
-          <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
-          <span class="text">{{extraoption.queryId}}</span>
-          <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL && insightActions.includes('viewAppMasterURL')">
-            <a target="_blank" :href="extraoption.appMasterURL"><i class="el-ksd-icon-spark_link_16"></i></a>
-          </common-tip>
-        </p>
-        <!-- <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.status')}}</span>
-          <span>{{$t('kylinLang.common.success')}}</span>
-        </p> -->
-        <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.duration')}}: </span>
-          <span class="text" v-if="querySteps.length">
-            <el-popover
-              placement="right"
-              :width="$lang === 'en' ? 340 : 320"
-              popper-class="duration-popover"
-              trigger="hover">
-              <el-row v-for="(step, index) in querySteps" :key="step.name">
-                <el-col :span="14">
-                  <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
-                  <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
-                </el-col>
-                <el-col :span="4">
-                  <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
-                </el-col>
-                <el-col :span="6" v-if="querySteps&&querySteps[0].duration>0">
-                  <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
-                </el-col>
-              </el-row>
-              <span slot="reference" class="duration">{{Math.round(extraoption.duration / 1000 * 100)/100||0.00}}s</span>
-            </el-popover>
-          </span>
-          <span class="text" v-else>{{Math.round(extraoption.duration / 1000 * 100) / 100 || 0.00}}s</span>
-        </p>
-        <p class="resultText query-obj" :class="{'guide-queryAnswerBy': isWorkspace}">
-          <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
-          <span class="text" :title="answeredBy">{{answeredBy}}</span>
-        </p>
-        <p class="resultText" v-if="layoutIds.length">
-          <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
-          <span class="text" :title="layoutIds.map(it => it.layoutId || it.streamingLayoutId).join(',')">
-            <span class="realizations-layout-id" v-for="(item, index) in layoutIds" :key="item.layoutId">
-              <span v-if="item.layoutIdType === 'BATCH'">{{item.layoutId}}</span>
-              <span v-else>{{item.streamingLayoutId}}<el-tag size="mini" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag></span>
-              <el-tooltip placement="top" :content="$t('secStorage')">
-                <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
-              </el-tooltip><span>{{`${index !== layoutIds.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
-            </span>
-          </span>
-        </p>
-        <p class="resultText query-obj" v-if="snapshots">
-          <span class="label">{{$t('kylinLang.query.snapshot')}}: </span>
-          <span class="text" :title="snapshots">{{snapshots}}</span>
-        </p>
-        <el-button type="primary" text size="small" @click="toggleDetail" :iconr="showDetail ? 'el-ksd-icon-arrow_up_16': 'el-ksd-icon-arrow_down_16'" class="show-more-btn">
-          {{$t('kylinLang.common.seeDetail')}}
-        </el-button>
-      </div>
-      <div class="resultTips" v-show="showDetail">
-        <p class="resultText ksd-mt-8">
-          <span class="label">{{$t('kylinLang.query.queryNode')}}: </span>
-          <span class="text">{{extraoption.server}}</span>
-        </p>
-        <p class="resultText" v-if="!extraoption.pushDown">
-          <span class="label">{{$t('kylinLang.query.total_scan_count')}}: </span>
-          <span class="text">{{extraoption.totalScanRows | filterNumbers}}</span>
-        </p>
-        <p class="resultText" v-if="!extraoption.pushDown">
-          <span class="label">{{$t('kylinLang.query.result_row_count')}}: </span>
-          <span class="text">{{extraoption.resultRowCount | filterNumbers}}</span>
-        </p>
-      </div>
+      <el-row :gutter="24">
+        <el-col :span="12">
+          <div class="resultTips left">
+            <p class="resultText" v-if="extraoption.queryId">
+              <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
+              <span class="text">{{extraoption.queryId}}</span>
+              <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL && insightActions.includes('viewAppMasterURL')">
+                <a target="_blank" :href="extraoption.appMasterURL"><i class="el-ksd-icon-spark_link_16"></i></a>
+              </common-tip>
+            </p>
+            <!-- <p class="resultText">
+              <span class="label">{{$t('kylinLang.query.status')}}</span>
+              <span>{{$t('kylinLang.common.success')}}</span>
+            </p> -->
+            <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
+              <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
+              <span class="text">
+                <span v-if="extraoption.realizations && extraoption.realizations.length" class="realization-tags">
+                  <span v-for="(item, index) in extraoption.realizations" :key="item.modelId">
+                    <template v-if="'visible' in item && !item.visible">
+                      <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== extraoption.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                    </template>
+                    <template v-else>
+                      <span @click="openIndexDialog(item, extraoption.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== extraoption.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                    </template>
+                  </span>
+                </span>
+                <span v-else class="realization-tags">{{extraoption.engineType}}</span>
+              </span>
+            </p>
+            <p class="resultText" v-if="layoutIds.length">
+              <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
+              <span class="text">
+                <span class="realizations-layout-id" v-for="(item, index) in layoutIds" :key="item.layoutId">
+                  <span class="layout-id">
+                    <span :class="{'ksd-mr-22': item.secondStorage}" @click="openLayoutDetails(item)">{{item.layoutId}}</span>
+                    <el-tag size="mini" v-if="item.streamingLayout" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag>
+                    <el-tooltip placement="top" :content="$t('secStorage')">
+                      <el-icon v-if="item.secondStorage" class="ksd-fs-22" name="el-ksd-icon-tieredstorage_22" type="mult"></el-icon>
+                    </el-tooltip>
+                  </span><span>{{`${index !== layoutIds.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                </span>
+              </span>
+            </p>
+            <p class="resultText" v-if="snapshots">
+              <span class="label">{{$t('kylinLang.query.snapshot')}}: </span>
+              <span class="text" :title="snapshots">{{snapshots}}</span>
+            </p>
+            <p class="resultText">
+              <span class="label">{{$t('kylinLang.query.queryNode')}}: </span>
+              <span class="text">{{extraoption.server}}</span>
+            </p>
+            <!-- <el-button type="primary" text size="small" @click="toggleDetail" :iconr="showDetail ? 'el-ksd-icon-arrow_up_16': 'el-ksd-icon-arrow_down_16'" class="show-more-btn">
+              {{$t('kylinLang.common.seeDetail')}}
+            </el-button> -->
+          </div>
+        </el-col>
+        <el-col :span="12">
+          <div class="resultTips right">
+            <p class="resultText">
+              <span class="label">{{$t('kylinLang.query.duration')}}: </span>
+              <span class="text" v-if="querySteps.length">
+                <el-popover
+                  placement="right"
+                  :width="$lang === 'en' ? 400 : 320"
+                  popper-class="duration-popover"
+                  trigger="hover">
+                  <el-row v-for="(step, index) in querySteps" :key="step.name">
+                    <el-col :span="14">
+                      <span class="step-name" :class="{'font-medium': index === 0, 'sub-step': step.group === 'PREPARATION'}" v-show="step.group !== 'PREPARATION' || (step.group === 'PREPARATION' && isShowDetail)">{{$t(step.name)}}</span>
+                      <i class="el-icon-ksd-more_01" :class="{'up': isShowDetail}" v-if="step.name==='PREPARATION'" @click.stop="isShowDetail = !isShowDetail"></i>
+                    </el-col>
+                    <el-col :span="4">
+                      <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
+                    </el-col>
+                    <el-col :span="6" v-if="querySteps&&querySteps[0].duration>0">
+                      <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
+                    </el-col>
+                  </el-row>
+                  <span slot="reference" class="duration">{{Math.round(extraoption.duration / 1000 * 100)/100||0.00}}s</span>
+                </el-popover>
+              </span>
+              <span class="text" v-else>{{Math.round(extraoption.duration / 1000 * 100) / 100 || 0.00}}s</span>
+            </p>
+            <p class="resultText" v-if="!extraoption.pushDown">
+              <span class="label">{{$t('kylinLang.query.total_scan_count')}}: </span>
+              <span class="text">{{extraoption.totalScanRows | filterNumbers}}</span>
+            </p>
+            <p class="resultText" v-if="!extraoption.pushDown">
+              <span class="label">{{$t('kylinLang.query.result_row_count')}}: </span>
+              <span class="text">{{extraoption.resultRowCount | filterNumbers}}</span>
+            </p>
+          </div>
+        </el-col>
+      </el-row>
     </div>
     <div v-if="!isStop" class="result-block">
       <!-- <el-button-group class="result-layout-btns">
@@ -159,16 +179,39 @@
         </el-button>
       </div>
     </div>
+    <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
+    <el-dialog
+      :title="$t('indexOverview')"
+      top="5vh"
+      limited-area
+      :visible.sync="aggDetailVisible"
+      class="agg-dialog"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      width="1200px">
+      <ModelAggregate
+        v-if="aggDetailVisible"
+        :model="model"
+        :project-name="currentSelectedProject"
+        :layout-id="aggIndexLayoutId"
+        :is-show-aggregate-action="false"
+        :isShowEditAgg="datasourceActions.includes('editAggGroup')"
+        :isShowBulidIndex="datasourceActions.includes('buildIndex')"
+        :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')">
+      </ModelAggregate>
+    </el-dialog>
   </div>
 </template>
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { scToFloat, showNull } from '../../util/index'
-import { hasRole, transToGmtTime } from '../../util/business'
+import { scToFloat, showNull, handleSuccessAsync } from '../../util/index'
+import { hasRole, transToGmtTime, handleError } from '../../util/business'
 import { pageRefTags } from 'config'
 import { getOptions, compareDataSize } from './handler'
+import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDetails'
+import ModelAggregate from '../studio/StudioModel/ModelList/ModelAggregate/index.vue'
 import moment from 'moment'
 import echarts from 'echarts'
 @Component({
@@ -177,14 +220,23 @@ import echarts from 'echarts'
     transToGmtTime: transToGmtTime,
     ...mapActions({
       query: 'QUERY_BUILD_TABLES',
-      postToExportCSV: 'EXPORT_CSV'
+      postToExportCSV: 'EXPORT_CSV',
+      loadAllIndex: 'LOAD_ALL_INDEX'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'insightActions'
+      'insightActions',
+      'datasourceActions'
     ])
+  },
+  components: {
+    IndexDetails,
+    ModelAggregate
   },
   locales: {
     'en': {
@@ -228,7 +280,10 @@ import echarts from 'echarts'
       HIT_CACHE: 'Cache hit',
       pleaseSelect: 'Please select',
       secStorage: 'Tiered Storage',
-      streamingTag: 'streaming'
+      aggDetailTitle: 'Aggregate Detail',
+      tabelDetailTitle: 'Table Index Detail',
+      streamingTag: 'streaming',
+      indexOverview: 'Index Overview'
     },
     'zh-cn': {
       username: '用户名',
@@ -271,7 +326,10 @@ import echarts from 'echarts'
       HIT_CACHE: '击中缓存',
       pleaseSelect: '请选择',
       secStorage: '分层存储',
-      streamingTag: '实时'
+      aggDetailTitle: '聚合索引详情',
+      tabelDetailTitle: '明细索引详情',
+      streamingTag: '实时',
+      indexOverview: '索引总览'
     }
   },
   filters: {
@@ -294,7 +352,7 @@ export default class queryResult extends Vue {
   showDetail = false
   pageSize = +localStorage.getItem(this.pageRefTags.queryResultPager) || 10
   currentPage = 0
-  modelsTotal = this.extraoption.results.length
+  modelsTotal = this.extraoption.results && this.extraoption.results.length
   timer = null
   pageX = 0
   pageSizeX = 30
@@ -316,6 +374,12 @@ export default class queryResult extends Vue {
     {text: 'barChart', value: 'barChart', isDisabled: false},
     {text: 'pieChart', value: 'pieChart', isDisabled: false}
   ]
+  indexDetailShow = false
+  aggDetailVisible = false
+  aggIndexLayoutId = ''
+  model = {
+    uuid: ''
+  }
   // 增加可视化按钮
   get insightBtnGroups () {
     return [
@@ -466,7 +530,7 @@ export default class queryResult extends Vue {
   }
   transDataForGrid (data) {
     var columnMeata = this.extraoption.columnMetas
-    var lenOfMeta = columnMeata.length
+    var lenOfMeta = columnMeata && columnMeata.length
     for (var i = 0; i < lenOfMeta; i++) {
       this.tableMeta.push(columnMeata[i])
     }
@@ -477,24 +541,51 @@ export default class queryResult extends Vue {
   toggleDetail () {
     this.showDetail = !this.showDetail
   }
-  get answeredBy () {
-    if (this.extraoption.realizations && this.extraoption.realizations.length) {
-      return this.extraoption.realizations.map((i) => {
-        return i.modelAlias
-      }).join(', ')
-    } else {
-      return this.extraoption.engineType
-    }
+  openIndexDialog ({indexType, modelId, modelAlias, layoutId, valid}, totalList) {
+    if (!valid || indexType === 'Table Snapshot') return
+    this.model.uuid = modelId
+    let aggLayoutId = totalList.filter(it => it.modelAlias === modelAlias && it.layoutId).map(item => item.layoutId).join(',')
+    this.aggIndexLayoutId = aggLayoutId
+    this.aggDetailVisible = true
   }
+  openAuthorityDialog (item) {
+    const { unauthorized_tables, unauthorized_columns, modelAlias } = item
+    let details = []
+    if (unauthorized_tables && unauthorized_tables.length) {
+      details.push({title: `Table (${unauthorized_tables.length})`, list: unauthorized_tables})
+    }
+    if (unauthorized_columns && unauthorized_columns.length) {
+      details.push({title: `Columns (${unauthorized_columns.length})`, list: unauthorized_columns})
+    }
+    this.callGlobalDetailDialog({
+      theme: 'plain-mult',
+      title: this.$t('kylinLang.model.authorityDetail'),
+      msg: this.$t('kylinLang.model.authorityMsg', {modelName: modelAlias}),
+      showCopyBtn: true,
+      showIcon: false,
+      showDetailDirect: true,
+      details,
+      showDetailBtn: false,
+      dialogType: 'error',
+      customClass: 'no-acl-model',
+      showCopyTextLeftBtn: true
+    })
+  }
+  // get answeredBy () {
+  //   if (this.extraoption.realizations && this.extraoption.realizations.length) {
+  //     return this.extraoption.realizations.map((i) => {
+  //       return i.modelAlias
+  //     })
+  //   } else {
+  //     return this.extraoption.engineType
+  //   }
+  // }
   get layoutIds () {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
       let filterIds = []
       for (let i of this.extraoption.realizations) {
         if (i.layoutId !== -1 && i.layoutId !== null && i.layoutId !== 0) {
-          filterIds.push({layoutId: i.layoutId, layoutIdType: 'BATCH', secondStorage: i.secondStorage})
-        }
-        if (i.streamingLayoutId !== -1 && i.streamingLayoutId !== null) {
-          filterIds.push({streamingLayoutId: i.streamingLayoutId, layoutIdType: 'STREAMING', secondStorage: i.secondStorage})
+          filterIds.push({layoutId: i.layoutId, modelId: i.modelId, streamingLayout: i.streamingLayout, secondStorage: i.secondStorage})
         }
       }
       return filterIds
@@ -520,7 +611,7 @@ export default class queryResult extends Vue {
     let isAnyNull = false
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
       for (let i in this.extraoption.realizations) {
-        if (this.extraoption.realizations[i].layoutId === null) {
+        if (this.extraoption.realizations[i].layoutId === -1 && this.extraoption.realizations[i].indexType === null) {
           isAnyNull = true
           break
         }
@@ -531,9 +622,41 @@ export default class queryResult extends Vue {
   get noModelRangeTips () {
     return this.$store.state.project.multi_partition_enabled ? this.$t('noModelRangeTips2') : this.$t('noModelRangeTips')
   }
+  // 展示 layout 详情
+  async openLayoutDetails (item) {
+    const {modelId, layoutId} = item
+    try {
+      const res = await this.loadAllIndex({
+        project: this.currentSelectedProject,
+        model: modelId,
+        key: layoutId,
+        page_offset: 0,
+        page_size: 10,
+        sort_by: '',
+        reverse: '',
+        sources: [],
+        status: []
+      })
+      const data = await handleSuccessAsync(res)
+      let row = data.value[0]
+      this.cuboidData = row
+      let idStr = (row.id !== undefined) && (row.id !== null) && (row.id !== '') ? ' [' + row.id + ']' : ''
+      this.detailType = row.source.indexOf('AGG') >= 0 ? 'aggDetail' : 'tabelIndexDetail'
+      this.indexDetailTitle = row.source.indexOf('AGG') >= 0 ? this.$t('aggDetailTitle') + idStr : this.$t('tabelDetailTitle') + idStr
+      this.indexDetailShow = true
+      // this.indexLoading = false
+    } catch (e) {
+      handleError(e)
+    }
+  }
+
+  // 关闭 layout 详情
+  closeDetailDialog () {
+    this.indexDetailShow = false
+  }
   filterTableData () {
     if (this.resultFilter) {
-      const filteredData = this.extraoption.results.filter((item) => {
+      const filteredData = this.extraoption.results && this.extraoption.results.filter((item) => {
         const cur = item
         const trans = scToFloat(cur)
         const finalItem = showNull(trans)
@@ -542,7 +665,7 @@ export default class queryResult extends Vue {
       this.modelsTotal = filteredData.length
       return filteredData
     } else {
-      this.modelsTotal = this.extraoption.results.length
+      this.modelsTotal = this.extraoption.results && this.extraoption.results.length
       return this.extraoption.results
     }
   }
@@ -552,8 +675,8 @@ export default class queryResult extends Vue {
       this.pageSize = pageSize
     }
     const filteredData = this.filterTableData()
-    this.tableData = filteredData.slice(currentPage * this.pageSize, (currentPage + 1) * this.pageSize)
-    var len = this.tableData.length
+    this.tableData = filteredData && filteredData.slice(currentPage * this.pageSize, (currentPage + 1) * this.pageSize)
+    var len = this.tableData && this.tableData.length
     for (let i = 0; i < len; i++) {
       var innerLen = this.tableData[i].length
       for (var m = 0; m < innerLen; m++) {
@@ -676,26 +799,63 @@ export default class queryResult extends Vue {
     }
     .resultTips{
       align-items: center;
-      flex-wrap:wrap;
+      flex-wrap: wrap;
       .resultText{
         color:@text-normal-color;
         margin-top: 8px;
+        display: flex;
         &:first-child {
           margin-top: 0px;
         }
         .label {
           font-weight: normal;
+          flex: none;
         }
         .text{
           color:@color-text-primary;
+          word-break: break-all;
+          margin-left: 8px;
           .duration {
-            color: @base-color;
+            color: @ke-color-primary;
             cursor: pointer;
+          }
+          .realization-tags {
+            .model-tag {
+              color: @ke-color-primary;
+              cursor: pointer;
+            }
+            .disable{
+              color: @text-disabled-color;
+              cursor: default;
+            }
+            .split{
+              margin-right:10px;
+            }
+            .no-authority-model {
+              color: @text-disabled-color;
+              cursor: pointer;
+              &:hover {
+                color: @base-color;
+              }
+              .el-icon-ksd-lock {
+                margin-right: 3px;
+              }
+            }
           }
           .realizations-layout-id {
             align-items: center;
             display: inline-flex;
             line-height: 16px;
+            .layout-id {
+              position: relative;
+              color: @ke-color-primary;
+              cursor: pointer;
+            }
+            .mutiple-color-icon {
+              position: absolute;
+              right: 0px;
+              top: -3px;
+            }
           }
         }
         a {

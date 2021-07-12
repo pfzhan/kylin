@@ -7,6 +7,7 @@
     <el-dialog class="errMsgBox"
       width="480px"
       limited-area
+      status-icon="el-ksd-icon-error_24"
       :before-close="handleClose"
       :title="$t('kylinLang.common.notice')"
       :close-on-click-modal="false"
@@ -16,8 +17,7 @@
       <el-alert
         type="error"
         :show-background="false"
-        :closable="false"
-        show-icon>
+        :closable="false">
         <span class="error-title" v-html="filterInjectScript($store.state.config.errorMsgBox.msg).replace(/\r\n/g, '<br/><br/>')"></span>
         <a href="javascript:;" @click="toggleDetail" v-if="enableStackTrace === 'true'">{{$t('kylinLang.common.seeDetail')}}  
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
@@ -238,6 +238,8 @@ body{
       white-space: pre;
       white-space: pre-wrap;
       white-space: pre-line;
+      font-size: 14px;
+      line-height: 22px;
     }
   }
   .copy-status-msg{

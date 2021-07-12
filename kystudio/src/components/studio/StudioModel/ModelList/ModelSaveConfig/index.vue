@@ -12,7 +12,7 @@
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
     <div class="partition-set ksd-mb-10" v-if="mode === 'saveModel'">
       <el-alert
-        :title="$t('secondStoragePartitionTips')"
+        :title="cannotSaveModelTips"
         type="error"
         :closable="false"
         class="ksd-mb-10"
@@ -30,7 +30,7 @@
       <div class="ksd-title-label-mini">{{$t('chooseBuildType')}}</div>
       <el-select v-model="buildType" class="ksd-mtb-10" @change="handChangeBuildType" :disabled="!datasourceActions.includes('changeBuildType')" style="width:100%">
         <el-option :label="$t('incremental')" value="incremental"></el-option>
-        <el-option v-if="!isStreamModel" :label="$t('fullLoad')" value="fullLoad"></el-option>
+        <el-option v-if="!isNotBatchModel" :label="$t('fullLoad')" value="fullLoad"></el-option>
       </el-select>
       <el-alert
         class="ksd-pt-0"
@@ -144,12 +144,22 @@
       </div>
       <div v-show="isExpand">
         <div class="ksd-mb-24" v-if="$store.state.project.second_storage_enabled">
+          <!-- 已有模型提示 开始 -->
+          <el-alert
+            :title="$t('openSecStorageTips2')"
+            type="tip"
+            :closable="false"
+            class="ksd-mb-8"
+            v-if="isShowSecStorageTips2&&modelDesc.uuid&&!isNotBatchModel"
+            show-icon>
+          </el-alert>
+          <!-- 已有模型提示 结束 -->
           <el-alert
             :title="$t('openSecStorageTips')"
             type="tip"
             :closable="false"
             class="ksd-mb-8"
-            v-if="modelDesc.simplified_dimensions.length>=20&&!isStreamModel"
+            v-if="modelDesc.simplified_dimensions.length>=20&&!isNotBatchModel"
             show-icon>
           </el-alert>
           <el-alert
@@ -162,7 +172,7 @@
           </el-alert>
           <span class="ksd-title-label-mini">{{$t('secStorage')}}</span>
           <span class="sec-switch">
-            <common-tip :content="$t('disableSecStorageActionTips')" v-if="isStreamModel">
+            <common-tip :content="disableSecStorageTips" v-if="isNotBatchModel || isHaveNoDimMeas">
               <el-switch
                 disabled
                 v-model="modelDesc.with_second_storage"
@@ -203,10 +213,13 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" v-if="modelInstance && modelInstance.model_type !== 'STREAMING' && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && (!modelInstance.has_base_table_index || !modelInstance.has_base_agg_index)))">
+      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && modelInstance.model_type !== 'STREAMING' && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && (!modelInstance.has_base_table_index || !modelInstance.has_base_agg_index)))">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
+        <el-tooltip effect="dark" :content="$t('baseIndexTips')" placement="top">
+          <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
+        </el-tooltip>
       </div>
       <el-button size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange||disabledSave" :loading="isLoadingSave" v-guide.partitionSaveBtn @click="savePartitionConfirm" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
@@ -225,7 +238,7 @@ import store, { types } from './store'
 import { timeDataType, dateFormats, timestampFormats } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { objectClone, isSubPartitionType, indexOfObjWithSomeKey } from '../../../../../util'
+import { objectClone, isSubPartitionType, indexOfObjWithSomeKey, isStreamingPartitionType } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelSaveConfig'], store)
@@ -312,6 +325,7 @@ export default class ModelPartitionModal extends Vue {
   defaultBuildType = 'incremental'
   addBaseIndex = true
   isShowSecStorageTips = false
+  isShowSecStorageTips2 = false
   isShowSecondStoragePartitionTips = false
   filterCondition = ''
   originFilterCondition = ''
@@ -319,6 +333,7 @@ export default class ModelPartitionModal extends Vue {
   timestampFormats = timestampFormats
 
   handleSecStorageEnabled (val) {
+    this.isShowSecStorageTips2 = val
     if (!val && this.modelDesc.second_storage_size > 0) {
       this.isShowSecStorageTips = true
     } else {
@@ -451,13 +466,24 @@ export default class ModelPartitionModal extends Vue {
       }
     }
   }
+  get disableSecStorageTips () {
+    if (this.isNotBatchModel) {
+      return this.$t('disableSecStorageActionTips')
+    }
+    if (this.isHaveNoDimMeas) {
+      return this.$t('disableSecStorageActionTips2')
+    }
+  }
+  get isHaveNoDimMeas () {
+    return this.modelDesc.simplified_dimensions.length === 0 && this.modelDesc.simplified_measures.length === 1 && this.modelDesc.simplified_measures[0].name === 'COUNT_ALL' // 没有设置维度，只有默认度量
+  }
   get isStreamModel () {
     const factTable = this.modelInstance.getFactTable()
-    return factTable.source_type === 1 || this.modelInstance.model_type === 'STREAMING'
+    return factTable.source_type ? factTable.source_type === 1 : this.modelInstance.model_type === 'STREAMING'
   }
   get isNotBatchModel () {
     const factTable = this.modelInstance.getFactTable()
-    return factTable.source_type === 1 || ['STREAMING', 'HYBRID'].includes(this.modelInstance.model_type)
+    return factTable.source_type ? factTable.source_type === 1 : ['STREAMING', 'HYBRID'].includes(this.modelInstance.model_type)
   }
   get isHybridModel () {
     const factTable = this.modelInstance.getFactTable()
@@ -474,7 +500,9 @@ export default class ModelPartitionModal extends Vue {
     let factTable = this.modelInstance.getFactTable()
     if (factTable) {
       factTable.columns.forEach((x) => {
-        if (isSubPartitionType(x.datatype)) {
+        if (this.isNotBatchModel && isStreamingPartitionType(x.datatype)) {
+          result.push(x)
+        } else if (!this.isNotBatchModel && isSubPartitionType(x.datatype)) {
           result.push(x)
         }
       })
@@ -527,8 +555,8 @@ export default class ModelPartitionModal extends Vue {
       //   this.$refs.partitionForm && this.$refs.partitionForm.validate()
       // })
       const partition_desc = this.modelDesc.partition_desc
-      this.isExpand = !this.modelDesc.uuid && !this.isStreamModel
-      if (this.modelDesc.uuid && !(partition_desc && partition_desc.partition_date_column) && !this.isStreamModel) {
+      this.isExpand = !this.modelDesc.uuid && !this.isNotBatchModel
+      if (this.modelDesc.uuid && !(partition_desc && partition_desc.partition_date_column) && !this.isNotBatchModel) {
         this.buildType = 'fullLoad'
         this.defaultBuildType = 'fullLoad'
       }
@@ -580,6 +608,7 @@ export default class ModelPartitionModal extends Vue {
     this.isShowWarning = false
     this.defaultBuildType = 'incremental'
     this.isShowSecStorageTips = false
+    this.isShowSecStorageTips2 = false
     this.isShowSecondStoragePartitionTips = false
   }
 
@@ -591,11 +620,19 @@ export default class ModelPartitionModal extends Vue {
     return (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format || this.prevPartitionMeta.multiPartition !== this.partitionMeta.multiPartition) && this.buildType === 'incremental'
   }
 
+  get cannotSaveModelTips () {
+    if (this.isHybridModel) {
+      return this.$t('streamSecStoragePartitionTips')
+    } else {
+      return this.$t('secondStoragePartitionTips')
+    }
+  }
+
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
-    // 开启了分层存储，时间分区列必须选做维度列
-    if (this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental' && this.modelDesc.with_second_storage) {
+    // 开启了分层存储或者融合模型，时间分区列必须选做维度列
+    if (this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental' && (this.modelDesc.with_second_storage || this.isHybridModel)) {
       const partitionColumn = this.partitionMeta.table + '.' + this.partitionMeta.column
       const index = indexOfObjWithSomeKey(this.allDimension, 'column', partitionColumn)
       if (index === -1) {

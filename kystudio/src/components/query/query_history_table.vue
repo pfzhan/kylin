@@ -75,7 +75,7 @@
                     <span class="text">
                       <el-popover
                         placement="bottom"
-                        :width="$lang === 'en' ? 340 : 320"
+                        :width="$lang === 'en' ? 400 : 320"
                         v-if="props.row.query_steps.length&&props.row.query_status==='SUCCEEDED'"
                         popper-class="duration-popover"
                         trigger="hover">
@@ -102,10 +102,10 @@
                       <span v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
                         <span v-for="(item, index) in props.row.realizations" :key="item.modelId">
                           <template v-if="'visible' in item && !item.visible">
-                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                           </template>
                           <template v-else>
-                            <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                            <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                           </template>
                         </span>
                       </span>
@@ -118,10 +118,10 @@
                       <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId">
                         <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
                           <span @click="openLayoutDetails(item)" v-if="item.layoutId !== -1 && item.layoutId !== 0">{{item.layoutId}}</span>
-                          <span @click="openLayoutDetails(item)" v-if="item.streamingLayoutId !== -1 && item.streamingLayoutId !== null">{{item.streamingLayoutId}}<el-tag size="mini" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag></span>
                         </el-tooltip>
+                        <el-tag size="mini" v-if="item.layoutId !== -1 && item.layoutId !== 0&&item.streamingLayout" class="ksd-ml-2" style="cursor:default">{{$t('streamingTag')}}</el-tag>
                         <el-tooltip placement="top" :content="$t('secStorage')">
-                          <el-icon v-if="item.secondStorage" class="ksd-fs-16" name="el-ksd-icon-tieredstorage_16" type="mult"></el-icon>
+                          <el-icon v-if="item.secondStorage" class="ksd-fs-22" name="el-ksd-icon-tieredstorage_22" type="mult"></el-icon>
                         </el-tooltip><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                       </span>
                     </span>
@@ -689,10 +689,7 @@ export default class QueryHistoryTable extends Vue {
       let filterIds = []
       for (let i of realizations) {
         if (i.layoutId !== -1 && i.layoutId !== null && i.layoutId !== 0) {
-          filterIds.push({layoutId: i.layoutId, layoutIdType: 'BATCH', secondStorage: i.secondStorage})
-        }
-        if (i.streamingLayoutId !== -1 && i.streamingLayoutId !== null) {
-          filterIds.push({streamingLayoutId: i.streamingLayoutId, layoutIdType: 'STREAMING', secondStorage: i.secondStorage})
+          filterIds.push({layoutId: i.layoutId, streamingLayout: i.streamingLayout, secondStorage: i.secondStorage})
         }
       }
       return filterIds.join(', ')
@@ -1181,6 +1178,9 @@ export default class QueryHistoryTable extends Vue {
         align-items: center;
         display: inline-flex;
         line-height: 16px;
+        .el-tag__text {
+          cursor: default !important;
+        }
         span:first-child {
           color: @base-color;
           cursor: pointer;

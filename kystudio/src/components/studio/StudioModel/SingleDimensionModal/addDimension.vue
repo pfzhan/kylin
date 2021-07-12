@@ -14,7 +14,7 @@
         <el-form-item :label="$t('dimensionCandidate')" prop="column">
           <div class="measure-flex-row">
             <div class="flex-item">
-              <el-tooltip :content="$t('disableDelDimTips')" placement="bottom" :disabled="!isSecondStorageCannotEdit">
+              <el-tooltip :content="disableDelDimTips" placement="bottom" :disabled="!isSecondStorageCannotEdit">
                 <el-select filterable style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="showCC||isSecondStorageCannotEdit" v-model="dimensionInfo.column">
                   <el-option-group
                     v-for="(columns, key) in allColumnsGroup"
@@ -146,8 +146,19 @@ export default class SingleDimensionModal extends Vue {
     this.dimensionInfo.cc = null
     this.dimensionInfo.isCC = false
   }
+  get isHybridModel () {
+    const factTable = this.modelInstance.getFactTable()
+    return factTable.source_type === 1 || ['HYBRID'].includes(this.modelInstance.model_type)
+  }
+  get disableDelDimTips () {
+    if (this.isHybridModel) {
+      return this.$t('streamTips')
+    } else {
+      return this.$t('disableDelDimTips')
+    }
+  }
   get isSecondStorageCannotEdit () {
-    return this.modelInstance.second_storage_enabled && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === this.dimensionInfo.column
+    return (this.modelInstance.second_storage_enabled || this.isHybridModel) && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === this.dimensionInfo.column
   }
   get allColumnsGroup () {
     if (this.modelInstance) {

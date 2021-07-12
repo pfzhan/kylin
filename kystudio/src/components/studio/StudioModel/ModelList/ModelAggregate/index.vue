@@ -105,15 +105,14 @@
                   <el-dropdown-item :class="{'action-disabled': Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index}" v-if="model.model_type === 'HYBRID' ? switchModelType !== 'STREAMING' : model.model_type !== 'STREAMING'">
                     <span :title="Object.keys(indexStat).length && !indexStat.need_create_base_agg_index && !indexStat.need_create_base_table_index ? $t('unCreateBaseIndexTip') : ''" @click="createBaseIndex">{{$t('baseIndex')}}</span>
                   </el-dropdown-item>
-
                 </el-dropdown-menu>
               </el-dropdown>
-              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length" text type="primary" v-if="datasourceActions.includes('buildIndex') && !isRealTimeMode" class="ksd-ml-2 ksd-fleft" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
+              <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length || isHaveLockedIndex" text type="primary" class="ksd-ml-2 ksd-fleft" v-if="datasourceActions.includes('buildIndex') && !isRealTimeMode" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
               <template v-if="isRealTimeMode">
                 <common-tip :content="!indexUpdateEnabled ? $t('refuseRemoveIndexTip') : $t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)">
-                  <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                  <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" class="ksd-fleft" text>{{$t('kylinLang.common.delete')}}</el-button>
                 </common-tip>
-                <el-button v-if="datasourceActions.includes('delAggIdx') && !isDisableDelBaseIndex && indexUpdateEnabled" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                <el-button v-if="datasourceActions.includes('delAggIdx') && !isDisableDelBaseIndex && indexUpdateEnabled" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" class="ksd-fleft" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
               </template>
               <template v-else>
                 <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
@@ -488,6 +487,15 @@ export default class ModelAggregate extends Vue {
     } else {
       const num = +size
       return `${num.toFixed(1)} ${ext}`
+    }
+  }
+
+  get isHaveLockedIndex () {
+    if (this.checkedList.length) {
+      const indexStatus = this.checkedList.map((c) => {
+        return c.status
+      })
+      return indexStatus.indexOf('LOCKED') !== -1
     }
   }
 

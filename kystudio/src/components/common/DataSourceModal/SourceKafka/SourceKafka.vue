@@ -1,15 +1,25 @@
 <template>
   <div class="create-kafka">
+    <el-alert
+      :title="$t('errorCodeTips')"
+      :description="errorCode"
+      type="error"
+      :closable="false"
+      class="ksd-mb-8"
+      v-if="isShowErrorBrokers"
+      show-icon>
+    </el-alert>
     <div class="ksd-title-label-small">{{$t('inputClusterInfo')}}</div>
     <el-row v-for="(c, index) in kafkaMeta.clusters" :key="index" class="ksd-mt-10">
-      <el-col :span="2">
+      <!-- <el-col :span="2">
         <div class="cluster-id">{{$t('cluster')}}{{index+1}}</div>
-      </el-col>
-      <el-col :span="20">
+      </el-col> -->
+      <el-col :span="24">
         <div>
           <arealabel
             :duplicateremove="false"
             :validateRegex="validateRegex"
+            :errorValues="failed_servers"
             :validateFailedMove="false"
             :isNeedNotUpperCase="true"
             :isSignSameValue="true"
@@ -28,25 +38,25 @@
         <div class="error-msg" v-if="isHaveDupBlokers">{{$t('dupBlokersTips')}}</div>
         <div class="error-msg" v-if="isHaveErrorBlokers">{{$t('errorBlokersTips')}}</div>
       </el-col>
-      <el-col :span="2">
-        <!-- <div class="cluster-action ky-no-br-space">
+      <!-- <el-col :span="2">
+        <div class="cluster-action ky-no-br-space">
           <el-button type="primary" plain circle icon="el-icon-ksd-add_2" class="ksd-ml-10" size="mini"  @click="addNewCluster"></el-button>
           <el-button plain icon="el-icon-minus" size="mini" circle :disabled="kafkaMeta.clusters.length==1" @click="deleteCluster(index)" class="del-pro ksd-ml-5"></el-button>
-        </div> -->
-      </el-col>
+        </div>
+      </el-col> -->
     </el-row>
     <el-button type="primary" size="small" class="ksd-mt-20" :disabled="!brokers.length || isHaveDupBlokers || isHaveErrorBlokers" @click="getClusterInfo" :loading="loading">{{$t('getClusterInfo')}}</el-button>
-    <div v-if="showTopicBox" v-loading="topicDetailLoading">
+    <div v-loading="topicDetailLoading">
       <el-row :gutter="10" class='json-box ksd-mtb-20'>
         <el-col :span='9' >
           <div class="topic-box">
             <div class="ksd-title-label-small ksd-mb-10">{{$t('topicTitle')}}</div>
             <el-input prefix-icon="el-icon-search" v-model="searchStr" :placeholder="$t('searchTopicPlaceholder')" size="small" style="width:100%" class="ksd-mb-10"></el-input>
             <div v-scroll class="topic-list" >
-              <el-tree :data="pagerTreeData" default-expand-all show-overflow-tooltip :props="treeProps" @node-click="getTopicInfo">
-                <span class="custom-tree-node" slot-scope="{ node, data }">
-                  <span :class="{'load-more': data.loadMore}">{{ node.label }}</span>
-                </span>
+              <el-tree :data="pagerTreeData" default-expand-all show-overflow-tooltip :empty-text="$t('noTopic')" :props="treeProps" @node-click="getTopicInfo">
+                <div class="custom-tree-node" slot-scope="{ node, data }">
+                  <div :class="{'load-more': data.loadMore, 'is-selected': data.isSelected}">{{ node.label }}</div>
+                </div>
               </el-tree>
             </div>
           </div>
@@ -59,7 +69,10 @@
               <span>{{$t('next')}}</span>
             </span>
           </div>
-          <kap-editor v-model="sourceSchema" @input="handleParseKafkaData" ref="jsonDataBox" :dragable="false" lang="json" theme="chrome" width="460px" height="297"></kap-editor>
+          <kap-editor v-model="sourceSchema" @input="handleParseKafkaData" ref="jsonDataBox" :dragable="false" lang="json" theme="chrome" width="460px" height="300"></kap-editor>
+          <div class="json-empty-tips" v-if="!sourceSchema&&!isEmptyTopic&&!isShowError">
+            {{$t('emptyDataTips')}}
+          </div>
           <div class="json-error-tips" v-if="isShowError">
             <i class="el-icon-ksd-error_01"></i>
             {{$t('jsonDataErrorTips')}}
@@ -68,6 +81,7 @@
             {{$t('emptyTopicTips')}}
           </div>
         </el-col>
+        <div class="selected-topics" v-if="kafkaMeta.subscribe">{{$t('selected')}}{{kafkaMeta.subscribe}}</div>
       </el-row>
       <div class="ksd-title-label-small ksd-mb-4">{{$t('parserName')}}</div>
       <el-input v-model="kafkaMeta.parser_name" disabled size="medium" @input="resetParser"></el-input>
@@ -158,6 +172,8 @@ export default class SourceKafka extends Vue {
   parserErrorMsg = ''
   isHaveDupBlokers = false
   isHaveErrorBlokers = false
+  failed_servers = []
+  isShowErrorBrokers = false
   checkDuplicateValue (val) {
     this.isHaveDupBlokers = val
   }
@@ -247,6 +263,11 @@ export default class SourceKafka extends Vue {
     this.loading = false
     this.columnList = []
     this.convertLoading = false
+    this.isShowError = false
+    this.isEmptyTopic = false
+    this.kafkaMeta.subscribe = ''
+    this.isShowErrorBrokers = false
+    this.errorCode = ''
   }
   kafkaData (kafkaMeta) {
     const kafkaMetaObj = objectClone(kafkaMeta)
@@ -284,7 +305,16 @@ export default class SourceKafka extends Vue {
       })
       this.loading = false
     }, (res) => {
-      handleError(res)
+      // handleError(res)
+      if (!res.data.data.failed_servers.length) {
+        handleError(res)
+      } else {
+        this.isShowErrorBrokers = true
+        this.$nextTick(() => {
+          this.errorCode = `Error Code - ${res.data.msg.split('(')[0]}`
+          this.failed_servers = res.data.data.failed_servers
+        })
+      }
       this.loading = false
     })
   }
@@ -293,6 +323,18 @@ export default class SourceKafka extends Vue {
       this.treeData[topic.index].currentPage++
     } else {
       this.resetParser()
+      let selectedTreeIndex
+      let selectedTopicIndex
+      this.treeData.forEach((t, index) => {
+        this.treeData[index].children.forEach((d, indexC) => {
+          if (d.label === topic.label) {
+            selectedTreeIndex = index
+            selectedTopicIndex = indexC
+          }
+          this.$set(this.treeData[index].children[indexC], 'isSelected', false)
+        })
+      })
+      this.$set(this.treeData[selectedTreeIndex].children[selectedTopicIndex], 'isSelected', true)
       this.kafkaMeta.subscribe = topic.label
       const kafkaMetaObj = this.kafkaData(this.kafkaMeta)
       this.clusterIndex = topic.clusterIndex
@@ -375,12 +417,36 @@ export default class SourceKafka extends Vue {
     font-size: 12px;
   }
   .json-box {
+    .selected-topics {
+      color: @ke-color-primary;
+      margin-left: 5px;
+    }
     .topic-list {
       border: 1px solid @ke-border-secondary;
       border-radius: 6px;
       height: 260px;
+      .el-tree__empty-block {
+        min-height: 260px;
+        .el-tree__empty-text {
+          width: 80%;
+        }
+      }
+      .el-tree-node__content {
+        .custom-tree-node {
+          width: 100%;
+          .is-selected {
+            width: 100%;
+            background-color: @ke-color-info-bg;
+            height: 34px;
+            line-height: 34px;
+            margin-left: -42px;
+            padding-left: 42px;
+          }
+        }
+      }
     }
-    .json-error-tips {
+    .json-error-tips,
+    .json-empty-tips {
       position: absolute;
       position: absolute;
       top: 81px;
@@ -396,6 +462,9 @@ export default class SourceKafka extends Vue {
         color: @error-color-1;
         font-size: 16px;
       }
+    }
+    .json-empty-tips {
+      color: @text-disabled-color;
     }
   }
   .refresh-btn {

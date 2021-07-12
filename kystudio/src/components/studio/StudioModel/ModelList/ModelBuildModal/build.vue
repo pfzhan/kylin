@@ -232,9 +232,9 @@
             </common-tip>
           </el-checkbox>
         </div> -->
-        <el-button plain @click="closeModal(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="closeModal(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <template v-if="isAddSegment">
-          <el-button type="primary" plain :loading="btnLoading" @click="setbuildModel(false, 'onlySave')" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button type="primary" :loading="btnLoading" @click="setbuildModel(false, 'onlySave')" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('kylinLang.common.save')}}</el-button>
           <el-button type="primary" :loading="btnLoading" v-if="modelDesc.total_indexes && !multiPartitionEnabled" v-guide.setbuildModelRange @click="setbuildModel(true)" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndBuild')}}</el-button>
           <el-button type="primary" :loading="btnLoading" v-else-if="!multiPartitionEnabled" v-guide.setbuildModelRange @click="saveAndAddIndex" :disabled="incrementalDisabled || disableFullLoad" size="medium">{{$t('saveAndAddIndex')}}</el-button>
         </template>

@@ -152,10 +152,13 @@
         </el-tabs>
       </div>
       <span slot="footer" class="dialog-footer">
-        <div class="ksd-fleft" v-if="uploadFlag==='step3' && (isShowSuggestModels || isShowTabModels && modelType === 'suggest')">
+        <div class="ksd-fleft" style="display: flex;" v-if="uploadFlag==='step3' && (isShowSuggestModels || isShowTabModels && modelType === 'suggest')">
           <el-checkbox v-model="addBaseIndex">
             <span>{{$t('addBaseIndexCheckBox')}}</span>
           </el-checkbox>
+          <el-tooltip effect="dark" :content="$t('baseIndexTips')" placement="top">
+            <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
+          </el-tooltip>
         </div>
         <div class="ksd-fleft query-count">
           <span v-if="uploadFlag==='step2'">
@@ -1253,7 +1256,7 @@ export default class UploadSqlModel extends Vue {
       .ky-list-title {
         padding: 4px 0;
         box-sizing: border-box;
-        border-bottom: 1px solid #dddddd;
+        // border-bottom: 1px solid #dddddd;
       }
       .model-layout {
         height: calc(~'100% - 30px');

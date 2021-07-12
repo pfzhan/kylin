@@ -242,12 +242,30 @@
 
     <!-- 分层存储 -->
     <el-dialog width="600px" :title="$t('secStorage')" class="sec_storage_dialog" v-if="showSecStorageDialog" :append-to-body="true" :visible="true" @close="closeSecStorageDialog" :close-on-click-modal="false">
+      <el-alert
+        :title="$t('openSecStorageTips2')"
+        type="tip"
+        :closable="false"
+        class="ksd-mb-8"
+        v-if="isShowSecStorageTips2"
+        show-icon>
+      </el-alert>
       <el-alert v-if="isShowSecStorageTips" show-icon :title="secStorageTips" :type="secStorageTipsType" class="ksd-mb-24" :closable="false"></el-alert>
       <div>{{$t('secStorageDesc')}}</div>
       <div class="ksd-mt-24 ksd-mb-24">
         <span class="font-medium">{{$t('supportSecStoage')}}</span>
         <span class="">
+          <common-tip :content="$t('disableSecStorageActionTips2')" v-if="isHaveNoDimMeas">
+            <el-switch
+              disabled
+              v-model="second_storage_enabled"
+              @change="val => handleChangeSecStorage(val)"
+              :active-text="$t('kylinLang.common.OFF')"
+              :inactive-text="$t('kylinLang.common.ON')">
+            </el-switch>
+          </common-tip>
           <el-switch
+            v-else
             v-model="second_storage_enabled"
             @change="val => handleChangeSecStorage(val)"
             :active-text="$t('kylinLang.common.OFF')"
@@ -377,6 +395,7 @@ export default class ModelActions extends Vue {
   secStorageTips = ''
   secStorageTipsType = ''
   isShowSecStorageTips = false
+  isShowSecStorageTips2 = false
   secStorageLoading = false
   second_storage_enabled = this.currentModel.second_storage_enabled
   exportTDSOtions = [
@@ -676,6 +695,10 @@ export default class ModelActions extends Vue {
     this.$router.push({name: 'ModelSubPartitionValues', params: { modelName: model.alias, modelId: model.uuid }})
   }
 
+  get isHaveNoDimMeas () {
+    return this.currentModel.simplified_dimensions.length === 0 && this.currentModel.simplified_measures.length === 1 && this.currentModel.simplified_measures[0].name === 'COUNT_ALL' // 没有设置维度，只有默认度量
+  }
+
   openSecStorageDialog () {
     if (this.currentModel.model_type !== 'BATCH') {
       return
@@ -684,7 +707,8 @@ export default class ModelActions extends Vue {
   }
 
   handleChangeSecStorage (val) {
-    if (val && !this.currentModel.base_index_count) {
+    this.isShowSecStorageTips2 = val
+    if (val && !this.currentModel.has_base_table_index) {
       this.secStorageTips = this.$t('openSecStorageTips', {modelName: this.currentModel.alias})
       this.secStorageTipsType = 'tip'
       this.isShowSecStorageTips = true
@@ -751,11 +775,13 @@ export default class ModelActions extends Vue {
       this.secStorageLoading = false
       this.showSecStorageDialog = false
       this.isShowSecStorageTips = false
+      this.isShowSecStorageTips2 = false
       this.$emit('loadModelsList')
     } catch (e) {
       handleError(e)
       this.secStorageLoading = false
       this.isShowSecStorageTips = false
+      this.isShowSecStorageTips2 = false
     }
   }
 
@@ -800,6 +826,7 @@ export default class ModelActions extends Vue {
   // 关闭分层存储弹窗
   closeSecStorageDialog () {
     this.isShowSecStorageTips = false
+    this.isShowSecStorageTips2 = false
     this.showSecStorageDialog = false
     this.second_storage_enabled = this.currentModel.second_storage_enabled
   }

@@ -355,7 +355,26 @@ export default class DataSourceModal extends Vue {
         return isValid
       }
       case editTypes.KAFKA2: {
-        return await this.$refs['kafka-form2'].$refs.kafkaForm.validate()
+        const submitData = getSubmitData(this.form, this.editType)
+        let isValid = true
+        if (!await this.$refs['kafka-form2'].$refs.kafkaForm.validate()) {
+          isValid = false
+          return
+        }
+        if (submitData.isShowHiveTree && !submitData.kafka_config.has_shadow_table) {
+          isValid = false
+          this.$message(this.$t('needAttachedHiveTableInfo'))
+          return
+        }
+        const columnDateTypes = submitData.table_desc.columns.map(c => {
+          return c.datatype
+        })
+        if (!submitData.isShowHiveTree && 'timestamp'.indexOf(columnDateTypes) === -1) {
+          isValid = false
+          this.$message(this.$t('needTimestampColumnInfo'))
+          return
+        }
+        return isValid
       }
       default:
         return true

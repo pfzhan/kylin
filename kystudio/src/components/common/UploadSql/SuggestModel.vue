@@ -51,7 +51,6 @@
           v-if="activeRowId"
           :data="modelDetails"
           class="model-table"
-          border
           v-scroll-shadow
           ref="newModelDetails"
           style="width: 100%">
@@ -448,7 +447,7 @@ export default class SuggestModel extends Vue {
         overflow: auto;
       }
       .el-col.details {
-        border-left: 1px solid #DDDDDD;
+        border-left: 1px solid @ke-border-divider-color;
       }
     }
     .model-table {

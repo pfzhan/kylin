@@ -90,9 +90,9 @@
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <!-- <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox> -->
-        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
-        <el-button v-if="(modelInstance.model_type === 'HYBRID' && tableIndexMeta.index_range !== 'STREAMING') || (modelInstance.model_type !== 'STREAMING' && modelInstance.model_type !== 'HYBRID')" type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
+        <el-button :type="onlyBatchType ? 'primary' : ''" :text="onlyBatchType" @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button :type="!onlyBatchType ? 'primary' : ''" :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button v-if="onlyBatchType" type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -172,6 +172,10 @@
 
     get getSelectedColumns () {
       return this.allColumns.filter(it => it.isUsed)
+    }
+
+    get onlyBatchType () {
+      return (this.modelInstance.model_type === 'HYBRID' && this.tableIndexMeta.index_range !== 'STREAMING') || (this.modelInstance.model_type !== 'STREAMING' && this.modelInstance.model_type !== 'HYBRID')
     }
 
     get showExcludedTableCheckBox () {
@@ -448,14 +452,13 @@
         })
         this.closeModal(true)
         this.btnLoading = false
-        // if (!isLoadData && !this.modelInstance.segments.length) {
-        //   this.$emit('needShowBuildTips', this.modelInstance.uuid)
-        // }
-        if (isLoadData && !this.modelInstance.segments.length) {
+        // 该字段只有在保存并构建时才会用到，纯流模型是屏蔽保存并构建的
+        const isHaveBatchSegment = this.modelInstance.model_type === 'HYBRID' ? this.modelInstance.batch_segments.length > 0 : this.modelInstance.segments.length > 0
+        if (isLoadData && !isHaveBatchSegment) {
           this.$emit('openBuildDialog', this.modelInstance, true)
         }
         // 保存并增量构建时，需弹出segment list选择构建区域
-        if (isLoadData && this.modelInstance.segments.length > 0 && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column) {
+        if (isLoadData && isHaveBatchSegment > 0 && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column) {
           this.$emit('openComplementAllIndexesDialog', this.modelInstance)
         }
       }
@@ -489,8 +492,10 @@
     }
     async submit (isLoadData) {
       const { status } = this.tableIndexDesc || {}
+      // 该字段只有在保存并构建时才会用到，纯流模型是屏蔽保存并构建的
+      const isHaveBatchSegment = this.modelInstance.model_type === 'HYBRID' ? this.modelInstance.batch_segments.length > 0 : this.modelInstance.segments.length > 0
       // 保存并全量构建时，可以直接提交构建任务，保存并增量构建时，需弹出segment list选择构建区域
-      if (isLoadData && this.modelInstance.segments.length > 0 && (!this.modelInstance.partition_desc || this.modelInstance.partition_desc && !this.modelInstance.partition_desc.partition_date_column) || !isLoadData) {
+      if (isLoadData && isHaveBatchSegment && (!this.modelInstance.partition_desc || this.modelInstance.partition_desc && !this.modelInstance.partition_desc.partition_date_column) || !isLoadData) {
         this.tableIndexMeta.load_data = isLoadData
       }
       if (status && status !== 'EMPTY' && status === 'ONLINE') {

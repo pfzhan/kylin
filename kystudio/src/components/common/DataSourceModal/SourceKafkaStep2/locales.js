@@ -1,38 +1,42 @@
 export default {
   'en': {
-    tableName: 'Table Name',
+    tableName: 'Database and Table Name',
     inputTable: 'Please enter a table name',
     inputDatabase: 'Please select a database',
-    inputColName: 'Please input the column name',
+    inputColName: 'Search column name',
     attribute: 'Attribute',
     sampleValue: 'Sample Value',
     column: 'Column Name',
     columnType: 'Column Type',
     comment: 'Comment',
-    attachedHiveTable: 'Select Attached Hive Table',
+    attachedHiveTable: 'Select Mapped Table',
     filterTableName: 'Search Database/Table',
     derivedTimeDimension: 'Derived Time Dimension',
     nameUsedValidTip: 'This table already exists, please use a different name',
     pleaseInputTableName: 'Please enter the table name',
     cancelSelected: 'Uncheck',
-    columns: 'Columns'
+    columns: 'Columns',
+    attachHiveToggle: 'Mapped table',
+    attachHiveTips: 'Kafka table with an attached Hive table can be used for fusion model, while Kafka table without an attached table can be used for streaming model. When attaching, please ensure that the data type of the columns of the two tables are identical.'
   },
   'zh-cn': {
-    tableName: '填写表名',
+    tableName: '填写数据库和表名',
     inputTable: '请输入表名',
     inputDatabase: '请选择数据库',
-    inputColName: '请输入列名',
+    inputColName: '搜索列名',
     attribute: '属性',
     sampleValue: '样例值',
     column: '列名',
     columnType: '列类型',
     comment: '注释',
-    attachedHiveTable: '设置关联 Hive 表',
+    attachedHiveTable: '设置映射表',
     filterTableName: '搜索数据库名称或表名',
     derivedTimeDimension: '推导的时间维度',
     nameUsedValidTip: '此表已存在，请使用不同的表名',
     pleaseInputTableName: '请填写表名',
     cancelSelected: '取消选中',
-    columns: '列信息'
+    columns: '列信息',
+    attachHiveToggle: '映射表',
+    attachHiveTips: '关联了 Hive 表的 Kafka 表可用于融合模型，未进行关联的 Kafka 表可用于实时模型。进行关联时，Kafka 表中列的数据类型必须与 Hive 表中的列保持一致。'
   }
 }
