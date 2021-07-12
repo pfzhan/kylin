@@ -1372,6 +1372,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "last_modify", true);
         Assert.assertEquals(1, models.size());
         Assert.assertFalse(models.get(0).isHasSegments());
+        Assert.assertTrue(models.get(0) instanceof FusionModelResponse);
+        Assert.assertTrue(((FusionModelResponse)models.get(0)).getBatchSegments().isEmpty());
         Assert.assertEquals(ModelStatusToDisplayEnum.OFFLINE, models.get(0).getStatus());
     }
 
@@ -1392,6 +1394,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "last_modify", true);
         Assert.assertEquals(1, models.size());
         Assert.assertTrue(models.get(0).isHasSegments());
+        Assert.assertTrue(models.get(0) instanceof FusionModelResponse);
+        Assert.assertNotNull(((FusionModelResponse)models.get(0)).getBatchSegments());
         Assert.assertEquals(ModelStatusToDisplayEnum.ONLINE, models.get(0).getStatus());
 
         modelService.updateDataModelStatus("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, "OFFLINE");

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -62,6 +63,9 @@ public class FusionModelResponse extends NDataModelResponse {
     @EqualsAndHashCode.Include
     @JsonProperty("batch_partition_desc")
     private PartitionDesc batchPartitionDesc;
+
+    @JsonProperty("batch_segments")
+    private List<NDataSegmentResponse> batchSegments = new ArrayList<>();
 
     @JsonProperty("batch_segment_holes")
     private List<SegmentRange> batchSegmentHoles;

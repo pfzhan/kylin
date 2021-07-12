@@ -401,6 +401,7 @@ public class ModelService extends BasicService {
             List<NDataSegmentResponse> batchSegments = getSegmentsResponse(fusionModel.getBatchModel().getUuid(),
                     model.getProject(), "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
             calculateRecordSizeAndCount(batchSegments, oldParams);
+            ((FusionModelResponse) model).setBatchSegments(batchSegments);
         }
     }
 
@@ -727,27 +728,8 @@ public class ModelService extends BasicService {
             ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName,
                     inconsistentSegmentCount);
             if (modelDesc.isFusionModel()) {
-                FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName)
-                        .getFusionModel(modelDesc.getFusionId());
-                val batchModel = fusionModel.getBatchModel();
-                long inconsistentBatchSegmentCount = dfManager.getDataflow(batchModel.getId())
-                        .getSegments(SegmentStatusEnum.WARNING).size();
-                ModelStatusToDisplayEnum batchModelResponseStatus = convertModelStatusToDisplay(batchModel, projectName,
-                        inconsistentBatchSegmentCount);
-                if (!batchModel.isBroken() && !modelDesc.isBroken()) {
-                    switch (modelResponseStatus) {
-                    case ONLINE:
-                        if (batchModelResponseStatus == ModelStatusToDisplayEnum.WARNING) {
-                            modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
-                        }
-                        break;
-                    case OFFLINE:
-                        modelResponseStatus = batchModelResponseStatus;
-                        break;
-                    default:
-                        break;
-                    }
-                }
+                modelResponseStatus = convertFusionModelStatusToDisplay(modelDesc, modelResponseStatus, projectName,
+                        dfManager);
             }
             boolean isScd2ForbiddenOnline = checkSCD2ForbiddenOnline(modelDesc, projectName);
             boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
@@ -771,6 +753,30 @@ public class ModelService extends BasicService {
                     StringUtils.isEmpty(sortBy) ? ModelService.LAST_MODIFY : sortBy, !reverse);
             filterModels.sort(comparator);
             return filterModels;
+        }
+    }
+
+    private ModelStatusToDisplayEnum convertFusionModelStatusToDisplay(NDataModel modelDesc,
+            ModelStatusToDisplayEnum modelResponseStatus, String projectName, NDataflowManager dfManager) {
+        FusionModel fusionModel = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName)
+                .getFusionModel(modelDesc.getFusionId());
+        val batchModel = fusionModel.getBatchModel();
+        long inconsistentBatchSegmentCount = dfManager.getDataflow(batchModel.getId())
+                .getSegments(SegmentStatusEnum.WARNING).size();
+        ModelStatusToDisplayEnum batchModelResponseStatus = convertModelStatusToDisplay(batchModel, projectName,
+                inconsistentBatchSegmentCount);
+        if (!batchModel.isBroken() && !modelDesc.isBroken()) {
+            switch (modelResponseStatus) {
+            case ONLINE:
+                return (batchModelResponseStatus == ModelStatusToDisplayEnum.WARNING ? ModelStatusToDisplayEnum.WARNING
+                        : modelResponseStatus);
+            case OFFLINE:
+                return batchModelResponseStatus;
+            default:
+                return modelResponseStatus;
+            }
+        } else {
+            return modelResponseStatus;
         }
     }
 
