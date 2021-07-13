@@ -24,11 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.BROKER_TIMEOUT_MESSAGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_TIMEOUT_MESSAGE;
 
+import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.source.kafka.KafkaTableUtil;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -51,8 +54,21 @@ public class KafkaService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    public void checkBrokerStatus(KafkaConfig kafkaConfig) {
+        List<String> brokenBrokers = KafkaTableUtil.getBrokenBrokers(kafkaConfig);
+        if (CollectionUtils.isEmpty(brokenBrokers)) {
+            return;
+        }
+
+        Map<String, Object> brokenBrokersMap = Maps.newHashMap();
+        brokenBrokersMap.put("failed_servers", brokenBrokers);
+        throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBROKER_TIMEOUT_MESSAGE())
+                .withData(brokenBrokersMap);
+    }
+
     public Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, String project, final String fuzzyTopic) {
         aclEvaluate.checkProjectWritePermission(project);
+        checkBrokerStatus(kafkaConfig);
         return KafkaTableUtil.getTopics(kafkaConfig, fuzzyTopic);
     }
 

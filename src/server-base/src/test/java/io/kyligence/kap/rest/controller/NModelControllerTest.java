@@ -299,7 +299,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model}/name", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).updateModelName(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(ModelUpdateRequest.class));
     }
@@ -414,7 +414,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
@@ -429,7 +429,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).refreshOrMergeSegments(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(SegmentsRequest.class));
     }
@@ -466,7 +466,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
     }
 
@@ -480,7 +480,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
     }
 
@@ -494,7 +494,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
     }
 
@@ -515,7 +515,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model}/clone", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
     }
 
     @Test
@@ -579,7 +579,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).buildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(BuildSegmentsRequest.class));
     }
@@ -595,7 +595,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).buildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(BuildSegmentsRequest.class));
     }
@@ -609,7 +609,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).updateSemantic(Mockito.any(ModelRequest.class));
     }
 
@@ -622,7 +622,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nModelController).updateSemantic(Mockito.any(ModelRequest.class));
     }
 

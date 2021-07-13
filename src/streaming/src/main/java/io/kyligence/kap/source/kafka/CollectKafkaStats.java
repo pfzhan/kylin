@@ -27,6 +27,7 @@ package io.kyligence.kap.source.kafka;
 import static org.apache.kylin.common.exception.ServerErrorCode.BROKER_TIMEOUT_MESSAGE;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,11 +35,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.source.kafka.util.KafkaClient;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.ListTopicsOptions;
+import org.apache.kafka.clients.admin.ListTopicsResult;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -62,9 +67,52 @@ public class CollectKafkaStats {
     private static final int SAMPLE_MSG_COUNT = 10;
     private static final long POLL_MESSAGE_TIMEOUT = KylinConfig.getInstanceFromEnv().getKafkaPollMessageTimeout();
     private static final String DEFAULT_CONSUMER_GROUP = "sample";
+    private static final int CLIENT_LIST_TOPICS_TIMEOUT = 5000;
+    private static final Long CONSUMER_LIST_TOPICS_TIMEOUT = 30000L;
 
     public static final String JSON_MESSAGE = "json";
     public static final String BINARY_MESSAGE = "binary";
+
+    /**
+     * get broken brokers
+     *
+     * @param kafkaConfig kafkaConfig
+     * @return broken broker list
+     */
+    public static List<String> getBrokenBrokers(KafkaConfig kafkaConfig) {
+
+        // broken broker list
+        List<String> failList = new ArrayList<>();
+        List<AdminClient> adminClientList = new ArrayList<>();
+        Map<String, ListTopicsResult> futureMap = new HashMap<>();
+
+        // AdminClient is Kafka management tool client
+        Arrays.stream(kafkaConfig.getKafkaBootstrapServers().split(",")).forEach(broker -> {
+            AdminClient kafkaAdminClient = KafkaClient.getKafkaAdminClient(broker, DEFAULT_CONSUMER_GROUP);
+            ListTopicsResult listTopicsResult = kafkaAdminClient
+                    .listTopics(new ListTopicsOptions().timeoutMs(CLIENT_LIST_TOPICS_TIMEOUT));
+            futureMap.put(broker, listTopicsResult);
+            adminClientList.add(kafkaAdminClient);
+        });
+
+        futureMap.forEach((broker, result) -> {
+            try {
+                // Get a list of topics
+                // If an exception is thrown, the broker marked as failed
+                result.names().get();
+            } catch (ExecutionException | org.apache.kafka.common.errors.TimeoutException e) {
+                failList.add(broker);
+                logger.warn("Broker [{}] cannot be connected, marked as failed", broker);
+            } catch (InterruptedException e) {
+                logger.error("The current thread is interrupted", e);
+                Thread.currentThread().interrupt();
+            }
+        });
+        // close all AdminClient
+        adminClientList.forEach(AdminClient::close);
+
+        return failList;
+    }
 
     //List topics
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, String fuzzyTopic) {
@@ -73,10 +121,11 @@ public class CollectKafkaStats {
         int index = 0;
         index++;
         List<String> topics = Lists.newArrayList();
-        Consumer consumer = KafkaClient.getKafkaConsumer(kafkaConfig.getKafkaBootstrapServers(), DEFAULT_CONSUMER_GROUP);
+        Consumer consumer = KafkaClient.getKafkaConsumer(kafkaConfig.getKafkaBootstrapServers(),
+                DEFAULT_CONSUMER_GROUP);
         Map<String, List<PartitionInfo>> topicsMap = new HashMap<>();
         try {
-            topicsMap.putAll(consumer.listTopics());
+            topicsMap.putAll(consumer.listTopics(Duration.ofMillis(CONSUMER_LIST_TOPICS_TIMEOUT)));
         } catch (TimeoutException e) {
             throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBROKER_TIMEOUT_MESSAGE());
         }

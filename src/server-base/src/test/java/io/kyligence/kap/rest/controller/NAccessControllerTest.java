@@ -256,7 +256,7 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
                 .param("model", UUID.randomUUID().toString()).param("name", "").param("is_case_sensitive", "false")
                 .param("page_offset", "0").param("page_size", "10")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nAccessController).getAvailableUsers(type, "default", uuid, "", false, 0, 10);
     }
 
@@ -294,7 +294,7 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
         List<BatchAccessRequest> requests = Lists.newArrayList(accessRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/batch/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(requests)).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nAccessController).batchGrant(type, uuid, true, requests);
     }
 }

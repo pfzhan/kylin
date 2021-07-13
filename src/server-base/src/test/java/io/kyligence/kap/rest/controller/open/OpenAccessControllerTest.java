@@ -179,7 +179,7 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/project").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("type", "user").param("name", "test")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(openAccessController).revokeProjectPermission("default", "user", "test");
     }
@@ -209,7 +209,7 @@ public class OpenAccessControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/acls").contentType(MediaType.APPLICATION_JSON)
                 .param("type", "error").param("name", "test").param("project", "")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(openAccessController).getUserOrGroupAclPermissions("error", "test", "");
     }

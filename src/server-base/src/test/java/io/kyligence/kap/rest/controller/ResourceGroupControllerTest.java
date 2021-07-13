@@ -121,7 +121,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
@@ -137,7 +137,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
@@ -153,7 +153,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
@@ -169,7 +169,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_FIELD_IS_NULL());
@@ -245,7 +245,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_DISABLED_WITH_INVLIAD_PARAM());
@@ -268,7 +268,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_CAN_NOT_BE_EMPTY());
@@ -288,7 +288,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getEMPTY_RESOURCE_GROUP_ID());
@@ -312,7 +312,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getDUPLICATED_RESOURCE_GROUP_ID("123"));
@@ -337,7 +337,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getEMPTY_KYLIN_INSTANCE_IDENTITY());
@@ -363,7 +363,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getEMPTY_KYLIN_INSTANCE_RESOURCE_GROUP_ID());
@@ -390,7 +390,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_ID_NOT_EXIST_IN_KYLIN_INSTANCE("1"));
@@ -418,7 +418,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getDUPLICATED_KYLIN_INSTANCE());
@@ -448,7 +448,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getEMPTY_PROJECT_IN_MAPPING_INFO());
@@ -479,7 +479,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can't find project \"213\". Please check and try again.");
@@ -510,7 +510,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getEMPTY_RESOURCE_GROUP_ID_IN_MAPPING_INFO());
@@ -542,7 +542,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getRESOURCE_GROUP_ID_NOT_EXIST_IN_MAPPING_INFO("1"));
@@ -594,7 +594,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT,
@@ -638,7 +638,7 @@ public class ResourceGroupControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/resource_groups").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(Locale.ROOT,

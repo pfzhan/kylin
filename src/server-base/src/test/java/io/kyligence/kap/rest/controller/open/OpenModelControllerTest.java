@@ -206,7 +206,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false,
                 "end_time", true)).thenReturn(
-                        new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
+                new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).param("page_offset", "1").param("project", project)
                 .param("page_size", "5").param("start", "432").param("end", "2234").param("sort_by", "end_time")
@@ -247,7 +247,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = new SegmentsRequest();
         request.setProject(project);
         request.setType(SegmentsRequest.SegmentsRequestType.REFRESH);
-        request.setIds(new String[] { "1", "2" });
+        request.setIds(new String[]{"1", "2"});
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .refreshOrMergeSegments(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments", modelName)
@@ -262,7 +262,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelName = "default_model_name";
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String project = "default";
-        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        String[] ids = {"ef5e0663-feba-4ed2-b71c-21958122bbff"};
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
         req.setProject(project);
         req.setParallelBuildBySegment(false);
@@ -298,7 +298,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("project", "default") //
                         .param("parallel", "false") //
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         String contentAsString = result.getResponse().getContentAsString();
         Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getEMPTY_SEGMENT_PARAMETER()));
     }
@@ -308,8 +308,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelName = "default_model_name";
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String project = "default";
-        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
-        String[] names = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        String[] ids = {"ef5e0663-feba-4ed2-b71c-21958122bbff"};
+        String[] names = {"ef5e0663-feba-4ed2-b71c-21958122bbff"};
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
         req.setProject(project);
         req.setParallelBuildBySegment(false);
@@ -323,7 +323,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("ids", ids) //
                         .param("names", names) //
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         String contentAsString = result.getResponse().getContentAsString();
         Assert.assertTrue(contentAsString.contains(MsgPicker.getMsg().getCONFLICT_SEGMENT_PARAMETER()));
     }
@@ -352,7 +352,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
 
         SegmentsRequest request = new SegmentsRequest();
-        request.setIds(new String[] { "1", "2" });
+        request.setIds(new String[]{"1", "2"});
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, false, false, request.getIds(), null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
@@ -629,7 +629,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .post("/api/models/{model_name}/segments/multi_partition/sub_partition_values", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is4xxClientError());
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
     }
 
     @Test

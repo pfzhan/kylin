@@ -78,15 +78,16 @@ public class ErrorResponse extends EnvelopeResponse {
             if (kylinException.isThrowTrace()) {
                 this.stacktrace = Throwables.getStackTraceAsString(exception);
             }
+            this.data = kylinException.getData();
         } else {
-            String error_code = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString();
+            String errorCode = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString();
             if (exception.getClass() == JsonParseException.class) {
-                error_code = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
+                errorCode = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
             }
-
-            this.msg = error_code + " " + exception.getLocalizedMessage();
+            this.msg = errorCode + " " + exception.getLocalizedMessage();
             this.code = ResponseCode.CODE_UNDEFINED;
             this.stacktrace = Throwables.getStackTraceAsString(exception);
         }
     }
+
 }

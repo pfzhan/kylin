@@ -141,7 +141,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         val map = KafkaTableUtil.getMessageTypeAndDecodedMessages(msgList);
         Assert.assertEquals(2, map.size());
         Assert.assertEquals(CollectKafkaStats.BINARY_MESSAGE, map.get("message_type"));
-        Assert.assertEquals(1, ((List)map.get("message")).size());
+        Assert.assertEquals(1, ((List) map.get("message")).size());
     }
 
     @Test
@@ -156,6 +156,18 @@ public class KafkaTableUtilTest extends StreamingTestCase {
 
     @Test
     public void testGetTopics() {
+        String brokenBrokerServer = "1.1.1.1:9092,2.2.2.2:9092,3.3.3.3:9092";
+        kafkaConfig.setKafkaBootstrapServers(brokenBrokerServer);
+        val brokenBrokers1 = KafkaTableUtil.getBrokenBrokers(kafkaConfig);
+        Assert.assertEquals(3, brokenBrokers1.size());
+
+        val brokenBrokers = CollectKafkaStats.getBrokenBrokers(kafkaConfig);
+        Assert.assertEquals(3, brokenBrokers.size());
+
+        kafkaConfig.setKafkaBootstrapServers(brokerServer);
+        val brokenBrokers2 = KafkaTableUtil.getBrokenBrokers(kafkaConfig);
+        Assert.assertEquals(0, brokenBrokers2.size());
+
         val topics = KafkaTableUtil.getTopics(kafkaConfig, "ssb");
         Assert.assertEquals(3, topics.get("kafka-cluster-1").size());
 
@@ -168,9 +180,27 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         try {
             ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", "");
             KafkaTableUtil.getTopics(kafkaConfig, "default");
+            Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
         }
+
+        try {
+            ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", "");
+            KafkaTableUtil.getBrokenBrokers(kafkaConfig);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            KylinException kylinException = (KylinException) e;
+            Assert.assertEquals(kylinException, kylinException.withData("test"));
+            Assert.assertEquals("test", kylinException.getData());
+        }
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Can’t get cluster information. Please check and try again.");
+        kafkaConfig.setKafkaBootstrapServers(brokenBrokerServer);
+        CollectKafkaStats.getTopics(kafkaConfig, "ssb");
+
         ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
     }
 

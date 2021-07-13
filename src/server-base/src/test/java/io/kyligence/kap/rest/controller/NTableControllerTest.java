@@ -321,7 +321,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(requests)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -341,7 +341,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(requests)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -359,7 +359,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -378,7 +378,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -463,7 +463,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -525,7 +525,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .param("model", "") //
                 .param("table", "") //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).getAutoMergeConfig("", "", "default");
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
@@ -587,7 +587,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(autoMergeRequest)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
@@ -604,7 +604,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                         .contentType(MediaType.APPLICATION_JSON) //
                         .content(JsonUtil.writeValueAsString(autoMergeRequest)) //
                         .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
@@ -699,7 +699,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
@@ -720,7 +720,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
@@ -741,7 +741,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
@@ -762,7 +762,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
@@ -831,7 +831,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }

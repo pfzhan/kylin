@@ -122,7 +122,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
         String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
@@ -159,7 +159,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Mockito.verify(nSnapshotController).refreshSnapshotsManually(Mockito.any(SnapshotRequest.class));
         String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
@@ -227,7 +227,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
                 .perform(MockMvcRequestBuilders.get("/api/snapshots").param("project", project).param("sort_by", sortBy)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nSnapshotController).getSnapshots(project, table, 0, 10, statusFilter, Sets.newHashSet(), sortBy,
                 isReversed);
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());

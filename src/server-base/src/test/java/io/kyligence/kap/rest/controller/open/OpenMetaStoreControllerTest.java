@@ -143,7 +143,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
                 any(HttpServletResponse.class));
@@ -160,7 +160,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
                 any(HttpServletResponse.class));
@@ -179,7 +179,7 @@ public class OpenMetaStoreControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(JsonUtil.writeValueAsString(request))
                 .param("project", defaultProjectName)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(openMetaStoreController).exportModelMetadata(anyString(), any(OpenModelPreviewRequest.class),
                 any(HttpServletResponse.class));

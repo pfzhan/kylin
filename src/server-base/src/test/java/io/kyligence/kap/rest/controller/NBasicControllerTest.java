@@ -108,7 +108,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
         // assert handleErrorCode
         mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
     }
 
     @Test

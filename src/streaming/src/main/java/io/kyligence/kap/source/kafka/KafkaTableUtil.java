@@ -93,6 +93,13 @@ public class KafkaTableUtil {
         return true;
     }
 
+    public static List<String> getBrokenBrokers(KafkaConfig kafkaConfig) {
+        if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
+        }
+        return CollectKafkaStats.getBrokenBrokers(kafkaConfig);
+    }
+
     public static Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, final String fuzzyTopic) {
         if (!KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers())) {
             throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());

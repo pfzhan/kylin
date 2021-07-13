@@ -125,7 +125,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/async_query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).query(Mockito.any());
     }
@@ -137,7 +137,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).batchDelete(Mockito.any(), Mockito.any());
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -151,7 +151,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/async_query").param("project", PROJECT)
                 .param("older_than", "2011-11-11 11:11:11")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).batchDelete(Mockito.any(), Mockito.any());
     }
@@ -165,7 +165,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).deleteByQueryId(Mockito.anyString(), Mockito.any(), Mockito.any());
     }
@@ -179,7 +179,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).inqueryStatus(Mockito.any(), Mockito.anyString(), Mockito.any());
     }
@@ -193,7 +193,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).fileStatus(Mockito.anyString(), Mockito.any(), Mockito.any());
     }
@@ -207,7 +207,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).metadata(Mockito.any(), Mockito.anyString(), Mockito.any());
     }
@@ -221,7 +221,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).downloadQueryResult(Mockito.anyString(), Mockito.anyBoolean(),
                 Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
@@ -257,7 +257,7 @@ public class NAsyncQueryControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockAsyncQuerySQLRequest()))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.verify(nAsyncQueryController).queryPath(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
     }

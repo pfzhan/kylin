@@ -204,7 +204,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).loadTables(tableLoadRequest);
     }
 
@@ -249,7 +249,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request2)) //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).reloadTable(request2);
     }
 

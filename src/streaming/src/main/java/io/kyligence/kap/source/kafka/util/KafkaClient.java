@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -44,8 +45,27 @@ public class KafkaClient {
     }
 
     public static KafkaConsumer getKafkaConsumer(String brokers, String consumerGroup) {
+        return getKafkaConsumer(brokers, consumerGroup, new Properties());
+    }
+
+    public static AdminClient getKafkaAdminClient(String brokers, String consumerGroup) {
+        return getKafkaAdminClient(brokers, consumerGroup, new Properties());
+    }
+
+    public static AdminClient getKafkaAdminClient(String brokers, String consumerGroup, Properties properties) {
+        Properties props = constructDefaultKafkaAdminClientProperties(brokers, consumerGroup, properties);
+        return AdminClient.create(props);
+    }
+
+    public static Properties constructDefaultKafkaAdminClientProperties(String brokers, String consumerGroup,
+            Properties properties) {
         Properties props = new Properties();
-        return getKafkaConsumer(brokers, consumerGroup, props);
+        props.put("bootstrap.servers", brokers);
+        props.put("group.id", consumerGroup);
+        if (properties != null) {
+            props.putAll(properties);
+        }
+        return props;
     }
 
     public static Properties constructDefaultKafkaConsumerProperties(String brokers, String consumerGroup,

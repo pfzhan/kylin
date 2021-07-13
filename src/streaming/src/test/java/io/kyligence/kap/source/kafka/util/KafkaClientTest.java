@@ -26,6 +26,7 @@ package io.kyligence.kap.source.kafka.util;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
 import lombok.val;
 import org.apache.kafka.clients.Metadata;
+import org.apache.kafka.clients.admin.internals.AdminMetadataManager;
 import org.apache.kafka.clients.consumer.internals.ConsumerCoordinator;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.Node;
@@ -40,7 +41,9 @@ public class KafkaClientTest {
     @Test
     public void testConstructDefaultKafkaConsumerProperties() {
         val prop = KafkaClient.constructDefaultKafkaConsumerProperties("localhost:9092", "client1", new Properties());
-        Assert.assertNotNull(prop.isEmpty());
+        Assert.assertNotNull(prop);
+        val propNull = KafkaClient.constructDefaultKafkaConsumerProperties("localhost:9092", "client1", null);
+        Assert.assertNotNull(propNull);
         Assert.assertEquals("localhost:9092", prop.getProperty("bootstrap.servers"));
         Assert.assertEquals("client1", prop.getProperty("group.id"));
         Assert.assertEquals("false", prop.getProperty("enable.auto.commit"));
@@ -60,5 +63,27 @@ public class KafkaClientTest {
         List<Node> nodes = cluster.nodes();
         Assert.assertEquals("localhost", nodes.get(0).host());
         Assert.assertEquals(9092, nodes.get(0).port());
+    }
+
+    @Test
+    public void testKafkaAdminClient() {
+        val client = KafkaClient.getKafkaAdminClient("localhost:9092", "group1", new Properties());
+
+        AdminMetadataManager metadataManager = (AdminMetadataManager) ReflectionUtils.getField(client,
+                "metadataManager");
+        Cluster cluster = (Cluster) ReflectionUtils.getField(metadataManager, "cluster");
+        List<Node> nodes = cluster.nodes();
+        Assert.assertEquals("localhost", nodes.get(0).host());
+        Assert.assertEquals(9092, nodes.get(0).port());
+    }
+
+    @Test
+    public void testConstructDefaultKafkaAdminClientProperties() {
+        val prop = KafkaClient.constructDefaultKafkaAdminClientProperties("localhost:9092", "group1", new Properties());
+        Assert.assertNotNull(prop);
+        val propNull = KafkaClient.constructDefaultKafkaAdminClientProperties("localhost:9092", "group1", null);
+        Assert.assertNotNull(propNull);
+        Assert.assertEquals("localhost:9092", prop.getProperty("bootstrap.servers"));
+        Assert.assertEquals("group1", prop.getProperty("group.id"));
     }
 }

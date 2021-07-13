@@ -56,6 +56,7 @@ public class KylinException extends RuntimeException {
 
     private final ErrorCode errorCode;
     private final String code; //for example 999
+    private Object data;
     private boolean throwTrace = true;
 
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg) {
@@ -98,6 +99,11 @@ public class KylinException extends RuntimeException {
         super(msg, cause);
         this.errorCode = errorCodeSupplier.toErrorCode();
         this.code = code;
+    }
+
+    public KylinException withData(Object data) {
+        this.data = data;
+        return this;
     }
 
     @Override

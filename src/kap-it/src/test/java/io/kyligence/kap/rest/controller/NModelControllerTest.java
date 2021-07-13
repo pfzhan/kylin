@@ -58,7 +58,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
         String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());
@@ -82,7 +82,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .contentType(MediaType.APPLICATION_JSON).param("project", "GC_TEST")
                         .content(JsonUtil.writeValueAsString(modelRequests))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
         String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(),
                 "new_MOdel, new_model");
@@ -132,7 +132,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .perform(MockMvcRequestBuilders.post("/api/models/89af4ee2-2cdb-4b07-b39e-4c29856309aa/clone")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
         String msg = String.format(Locale.ROOT, Message.getInstance().getMODEL_ALIAS_DUPLICATED(), "nmodel_basic");
         JsonNode jsonNode = JsonUtil.readValueAsTree(result.getResponse().getContentAsString());

@@ -221,15 +221,12 @@ public class NBasicController {
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), e);
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(KylinException.class)
     @ResponseBody
     ErrorResponse handleErrorCode(HttpServletRequest req, Throwable ex) {
         getLogger().error("", ex);
         KylinException cause = (KylinException) ex;
-        while (cause != null && cause.getCause() != null && cause.getCause() instanceof KylinException) {
-            cause = (KylinException) cause.getCause();
-        }
         return new ErrorResponse(Unsafe.getUrlFromHttpServletRequest(req), cause);
     }
 

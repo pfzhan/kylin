@@ -342,7 +342,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/segment_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig("default", request);
     }
 
@@ -355,7 +355,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/segment_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
         Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig("default", request);
     }
 
@@ -419,7 +419,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(map))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.doThrow(KylinException.class).when(nProjectController).updateProjectConfig("default", map);
     }
 
@@ -433,7 +433,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         Mockito.doThrow(KylinException.class).when(nProjectController).deleteProjectConfig(request);
     }
@@ -520,7 +520,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is(400));
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
 
         request.setFreqEnable(false);
         request.setDurationEnable(true);
@@ -528,7 +528,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/favorite_rules", project)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is(400));
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
     }
 
     @Test
