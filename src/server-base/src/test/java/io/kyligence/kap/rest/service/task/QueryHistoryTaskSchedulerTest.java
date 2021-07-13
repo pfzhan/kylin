@@ -45,6 +45,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.AccelerateRuleUtil;
 import io.kyligence.kap.metadata.favorite.AsyncAccelerationTask;
 import io.kyligence.kap.metadata.favorite.AsyncTaskManager;
+import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryIdOffsetManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
@@ -103,6 +104,53 @@ public class QueryHistoryTaskSchedulerTest extends NLocalFileMetadataTestCase {
         // after update id offset
         Assert.assertEquals(8, idOffsetManager.get().getQueryHistoryIdOffset());
 
+    }
+
+    @Test
+    public void testQueryAccResetOffset() {
+        qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
+        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList());
+
+        // before update id offset
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
+        QueryHistoryIdOffset queryHistoryIdOffset = idOffsetManager.get();
+        queryHistoryIdOffset.setQueryHistoryIdOffset(999L);
+        queryHistoryIdOffset.setQueryHistoryStatMetaUpdateIdOffset(999L);
+        idOffsetManager.save(queryHistoryIdOffset);
+        Assert.assertEquals(999L, idOffsetManager.get().getQueryHistoryIdOffset());
+        // run update
+        QueryHistoryTaskScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
+                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
+        queryHistoryAccelerateRunner.run();
+        // after auto reset offset
+        Assert.assertEquals(0L, idOffsetManager.get().getQueryHistoryIdOffset());
+    }
+
+    @Test
+    public void testQueryAccNotResetOffset() {
+        qhAccelerateScheduler.queryHistoryDAO = Mockito.spy(RDBMSQueryHistoryDAO.getInstance());
+        qhAccelerateScheduler.accelerateRuleUtil = Mockito.mock(AccelerateRuleUtil.class);
+        qhAccelerateScheduler.rawRecService = Mockito.mock(RawRecService.class);
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.queryQueryHistoriesByIdOffset(Mockito.anyLong(),
+                Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList());
+        Mockito.when(qhAccelerateScheduler.queryHistoryDAO.getQueryHistoryMaxId(Mockito.anyString())).thenReturn(12L);
+        // before update id offset
+        QueryHistoryIdOffsetManager idOffsetManager = QueryHistoryIdOffsetManager.getInstance(getTestConfig(), PROJECT);
+        QueryHistoryIdOffset queryHistoryIdOffset = idOffsetManager.get();
+        queryHistoryIdOffset.setQueryHistoryIdOffset(9L);
+        queryHistoryIdOffset.setQueryHistoryStatMetaUpdateIdOffset(9L);
+        idOffsetManager.save(queryHistoryIdOffset);
+        Assert.assertEquals(9L, idOffsetManager.get().getQueryHistoryIdOffset());
+
+        // run update
+        QueryHistoryTaskScheduler.QueryHistoryAccelerateRunner queryHistoryAccelerateRunner = //
+                qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false);
+        queryHistoryAccelerateRunner.run();
+        // after auto reset offset
+        Assert.assertEquals(9L, idOffsetManager.get().getQueryHistoryIdOffset());
     }
 
     @Test

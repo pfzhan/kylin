@@ -156,7 +156,8 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         return jdbcQueryHisStore.queryQueryHistoriesByConditions(request, limit, page * limit);
     }
 
-    public List<QueryHistory> getQueryHistoriesByConditionsWithOffset(QueryHistoryRequest request, int limit, int offset) {
+    public List<QueryHistory> getQueryHistoriesByConditionsWithOffset(QueryHistoryRequest request, int limit,
+            int offset) {
         return jdbcQueryHisStore.queryQueryHistoriesByConditions(request, limit, offset);
     }
 
@@ -189,6 +190,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
 
     public long getQueryHistoryCountBeyondOffset(long offset, String project) {
         return jdbcQueryHisStore.queryQueryHistoryCountBeyondOffset(offset, project);
+    }
+
+    public long getQueryHistoryMaxId(String project) {
+        return jdbcQueryHisStore.queryQueryHistoryMaxId(project);
     }
 
     public List<QueryStatistics> getQueryCountByTime(long startTime, long endTime, String timeDimension,

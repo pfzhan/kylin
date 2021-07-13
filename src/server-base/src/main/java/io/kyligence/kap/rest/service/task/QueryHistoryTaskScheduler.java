@@ -173,9 +173,10 @@ public class QueryHistoryTaskScheduler {
         protected List<QueryHistory> getQueryHistories(int batchSize) {
             QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
-            return queryHistoryDAO.queryQueryHistoriesByIdOffset(
+            List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
                     qhIdOffsetManager.get().getQueryHistoryStatMetaUpdateIdOffset(), batchSize, project);
-
+            resetIdOffset(queryHistoryList);
+            return queryHistoryList;
         }
 
         @Override
@@ -357,8 +358,10 @@ public class QueryHistoryTaskScheduler {
         protected List<QueryHistory> getQueryHistories(int batchSize) {
             QueryHistoryIdOffsetManager qhIdOffsetManager = QueryHistoryIdOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
-            return queryHistoryDAO.queryQueryHistoriesByIdOffset(qhIdOffsetManager.get().getQueryHistoryIdOffset(),
-                    batchSize, project);
+            List<QueryHistory> queryHistoryList = queryHistoryDAO.queryQueryHistoriesByIdOffset(
+                    qhIdOffsetManager.get().getQueryHistoryIdOffset(), batchSize, project);
+            resetIdOffset(queryHistoryList);
+            return queryHistoryList;
         }
 
         @Override
@@ -416,6 +419,31 @@ public class QueryHistoryTaskScheduler {
     private abstract class QueryHistoryTask implements Runnable {
 
         protected abstract String name();
+
+        private volatile boolean needResetOffset = true;
+
+        protected void resetIdOffset(List<QueryHistory> queryHistories) {
+            if (needResetOffset && CollectionUtils.isEmpty(queryHistories)) {
+                long maxId = queryHistoryDAO.getQueryHistoryMaxId(project);
+                resetIdOffset(maxId);
+            }
+        }
+
+        private void resetIdOffset(long maxId) {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                KylinConfig config = KylinConfig.getInstanceFromEnv();
+                QueryHistoryIdOffsetManager manager = QueryHistoryIdOffsetManager.getInstance(config, project);
+                QueryHistoryIdOffset queryHistoryIdOffset = manager.get();
+                if (queryHistoryIdOffset.getQueryHistoryIdOffset() > maxId
+                        || queryHistoryIdOffset.getQueryHistoryStatMetaUpdateIdOffset() > maxId) {
+                    queryHistoryIdOffset.setQueryHistoryIdOffset(maxId);
+                    queryHistoryIdOffset.setQueryHistoryStatMetaUpdateIdOffset(maxId);
+                    manager.save(queryHistoryIdOffset);
+                }
+                needResetOffset = false;
+                return 0;
+            }, project);
+        }
 
         public void batchHandle(int batchSize, int maxSize, Consumer<List<QueryHistory>> consumer) {
             if (!(batchSize > 0 && maxSize >= batchSize)) {

@@ -34,6 +34,7 @@ import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLike;
 import static org.mybatis.dynamic.sql.SqlBuilder.isLikeCaseInsensitive;
 import static org.mybatis.dynamic.sql.SqlBuilder.isNotEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.max;
 import static org.mybatis.dynamic.sql.SqlBuilder.or;
 import static org.mybatis.dynamic.sql.SqlBuilder.select;
 import static org.mybatis.dynamic.sql.SqlBuilder.selectDistinct;
@@ -308,6 +309,18 @@ public class JdbcQueryHistoryStore {
                     .and(queryHistoryTable.projectName, isEqualTo(project)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             return mapper.selectAsLong(statementProvider);
+        }
+    }
+
+    public long queryQueryHistoryMaxId(String project) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);
+            SelectStatementProvider statementProvider = select(max(queryHistoryTable.id)) //
+                    .from(queryHistoryTable) //
+                    .where(queryHistoryTable.projectName, isEqualTo(project)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            Long maxId = mapper.selectAsLong(statementProvider);
+            return maxId == null ? 0L : maxId;
         }
     }
 
