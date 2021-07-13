@@ -15,7 +15,8 @@ export default {
     cloudHive: 'Object Storage',
     pleaseGetClusterInfoAndTopicInfo: 'Please get the Kafka cluster and topic information.',
     needAttachedHiveTableInfo: 'Please select an attached Hive table.',
-    needTimestampColumnInfo: 'Can\'t load. Please ensure the table has at least a timestamp column. '
+    needTimestampColumnInfo: 'Can\'t load. Please ensure the table has at least a timestamp column.',
+    hiveTableErrorTips: 'Can\'t attach. Please ensure that the columns of the Kafka table and the Hive table are identical.'
   },
   'zh-cn': {
     selectSource: '添加新数据源',
@@ -33,6 +34,7 @@ export default {
     cloudHive: '文件数据源',
     pleaseGetClusterInfoAndTopicInfo: '请获取 Kafka 集群和 Topic 信息',
     needAttachedHiveTableInfo: '请选择关联 Hive 表。',
-    needTimestampColumnInfo: '无法加载。请确保表中有 timestamp 类型的列。'
+    needTimestampColumnInfo: '无法加载。请确保表中有 timestamp 类型的列。',
+    hiveTableErrorTips: '无法关联。请确保 Kafka 表中的列和 Hive 表中的列一致。'
   }
 }

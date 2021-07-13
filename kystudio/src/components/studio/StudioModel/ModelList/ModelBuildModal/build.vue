@@ -67,7 +67,7 @@
             <el-row :gutter="5">
               <el-col :span="12">
                 <el-select :disabled="isLoadingNewRange || isLoadingFormat || !datasourceActions.includes('changePartition')" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
-                  <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
+                  <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
                   <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
                 </el-select>
               </el-col>
@@ -250,12 +250,12 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from 'store'
   import { handleError, transToUTCMs, getGmtDateFromUtcLike, kapMessage, postCloudUrlMessage } from 'util/business'
-  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, isSubPartitionType, kapConfirm, split_array, getQueryString } from 'util/index'
+  import { handleSuccessAsync, transToServerGmtTime, isDatePartitionType, isStreamingPartitionType, isSubPartitionType, kapConfirm, split_array, getQueryString } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
   import { BuildIndexStatus } from 'config/model'
-  import { dateFormats } from 'config'
+  import { dateFormats, timestampFormats } from 'config'
   import arealabel from '../../../../common/area_label.vue'
   import moment from 'moment'
 
@@ -349,6 +349,7 @@
     }
     isLoadingFormat = false
     dateFormats = dateFormats
+    timestampFormats = timestampFormats
     isExpand = true
     isShowWarning = false
     isWillAddIndex = false
@@ -400,6 +401,9 @@
     }
     get isHybridModel () {
       return this.modelDesc.model_type === 'HYBRID'
+    }
+    get dateFormatsOptions () {
+      return this.isNotBatchModel ? timestampFormats : dateFormats
     }
 
     refreshPartitionValues (val) {
@@ -488,7 +492,9 @@
       let factTable = this.modelInstance.getFactTable()
       if (factTable) {
         factTable.columns.forEach((x) => {
-          if (isDatePartitionType(x.datatype)) {
+          if (this.isNotBatchModel && isStreamingPartitionType(x.datatype)) {
+            result.push(x)
+          } else if (!this.isNotBatchModel && isDatePartitionType(x.datatype)) {
             result.push(x)
           }
         })

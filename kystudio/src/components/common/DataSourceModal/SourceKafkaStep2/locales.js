@@ -9,14 +9,14 @@ export default {
     column: 'Column Name',
     columnType: 'Column Type',
     comment: 'Comment',
-    attachedHiveTable: 'Select Mapped Table',
+    attachedHiveTable: 'Select Attached Hive Table',
     filterTableName: 'Search Database/Table',
     derivedTimeDimension: 'Derived Time Dimension',
     nameUsedValidTip: 'This table already exists, please use a different name',
     pleaseInputTableName: 'Please enter the table name',
     cancelSelected: 'Uncheck',
     columns: 'Columns',
-    attachHiveToggle: 'Mapped table',
+    attachHiveToggle: 'Attach a Hive Table',
     attachHiveTips: 'Kafka table with an attached Hive table can be used for fusion model, while Kafka table without an attached table can be used for streaming model. When attaching, please ensure that the data type of the columns of the two tables are identical.'
   },
   'zh-cn': {
@@ -29,14 +29,14 @@ export default {
     column: '列名',
     columnType: '列类型',
     comment: '注释',
-    attachedHiveTable: '设置映射表',
+    attachedHiveTable: '设置关联 Hive 表',
     filterTableName: '搜索数据库名称或表名',
     derivedTimeDimension: '推导的时间维度',
     nameUsedValidTip: '此表已存在，请使用不同的表名',
     pleaseInputTableName: '请填写表名',
     cancelSelected: '取消选中',
     columns: '列信息',
-    attachHiveToggle: '映射表',
+    attachHiveToggle: '关联 Hive 表',
     attachHiveTips: '关联了 Hive 表的 Kafka 表可用于融合模型，未进行关联的 Kafka 表可用于实时模型。进行关联时，Kafka 表中列的数据类型必须与 Hive 表中的列保持一致。'
   }
 }

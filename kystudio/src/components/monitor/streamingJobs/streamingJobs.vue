@@ -38,7 +38,12 @@
             @cell-click="showLineSteps"
             :row-class-name="tableRowClassName"
             :key="$store.state.project.isAllProject">
-            <el-table-column class-name="icon-column" :selectable="setJobSelectable" type="selection" align="center" width="32"></el-table-column>
+            <el-table-column
+              class-name="icon-column"
+              :selectable="setJobSelectable"
+              :checkbox-disable-tooltip="$t('disableStartJobTips')"
+              checkbox-disable-tooltip-placement="top"
+              type="selection" align="center" width="32"></el-table-column>
             <el-table-column class-name="icon-column" align="center" width="32" prop="icon" v-if="monitorActions.includes('jobActions')">
               <template slot-scope="scope">
                 <i class="ksd-fs-22" :class="{
@@ -112,10 +117,10 @@
               width="218"
               :label="$t('lastStatusChangeTime')"
               show-overflow-tooltip
-              prop="last_update_time"
+              prop="last_modified"
               sortable="custom">
               <template slot-scope="scope">
-                {{transToGmtTime(scope.row.last_update_time)}}
+                {{transToGmtTime(scope.row.last_modified)}}
               </template>
             </el-table-column>
             <el-table-column

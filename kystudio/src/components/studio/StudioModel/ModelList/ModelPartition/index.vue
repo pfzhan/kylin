@@ -44,7 +44,7 @@
           </el-col>
           <el-col :span="11">
             <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" @change="changePartitionSetting" :placeholder="$t('pleaseInputColumn')">
-              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
+              <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
           </el-col>
@@ -64,7 +64,7 @@
           </el-col>
         </el-row>
       </el-form-item>
-      <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table && !isStreamModel">
+      <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table && !isNotBatchModel">
         <span slot="label">
           <span>{{$t('multilevelPartition')}}</span>
           <el-tooltip effect="dark" :content="$t('multilevelPartitionDesc')" placement="right">
@@ -108,9 +108,9 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from 'store'
 import locales from './locales'
 import store, { types } from './store'
-import { timeDataType, dateFormats } from 'config'
+import { timeDataType, dateFormats, timestampFormats } from 'config'
 import NModel from '../../ModelEdit/model.js'
-import { isDatePartitionType, isSubPartitionType, kapConfirm } from 'util'
+import { isDatePartitionType, isStreamingPartitionType, isSubPartitionType, kapConfirm } from 'util'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartition'], store)
 
@@ -158,6 +158,7 @@ export default class ModelPartition extends Vue {
     column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
   }
   dateFormats = dateFormats
+  timestampFormats = timestampFormats
   prevPartitionMeta = {
     table: '',
     column: '',
@@ -182,7 +183,10 @@ export default class ModelPartition extends Vue {
     }
     return false
   }
-  get isStreamModel () {
+  get dateFormatsOptions () {
+    return this.isNotBatchModel ? timestampFormats : dateFormats
+  }
+  get isNotBatchModel () {
     const factTable = this.modelInstance.getFactTable()
     return factTable.source_type === 1 || this.modelInstance.model_type !== 'BATCH'
   }
@@ -210,7 +214,9 @@ export default class ModelPartition extends Vue {
     let factTable = this.modelInstance.getFactTable()
     if (factTable) {
       factTable.columns.forEach((x) => {
-        if (isDatePartitionType(x.datatype)) {
+        if (this.isNotBatchModel && isStreamingPartitionType(x.datatype)) {
+          result.push(x)
+        } else if (!this.isNotBatchModel && isDatePartitionType(x.datatype)) {
           result.push(x)
         }
       })

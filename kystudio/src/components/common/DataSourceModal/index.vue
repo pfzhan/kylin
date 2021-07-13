@@ -88,7 +88,7 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { titleMaps, cancelMaps, confirmMaps, getSubmitData, editTypes } from './handler'
-import { handleSuccessAsync, handleError } from '../../../util'
+import { handleSuccessAsync, handleError, indexOfObjWithSomeKey } from '../../../util'
 import { set } from '../../../util/object'
 
 import SourceSelect from './SourceSelect/SourceSelect.vue'
@@ -369,10 +369,33 @@ export default class DataSourceModal extends Vue {
         const columnDateTypes = submitData.table_desc.columns.map(c => {
           return c.datatype
         })
-        if (!submitData.isShowHiveTree && 'timestamp'.indexOf(columnDateTypes) === -1) {
+        if (!submitData.isShowHiveTree && columnDateTypes.indexOf('timestamp') === -1) {
           isValid = false
           this.$message(this.$t('needTimestampColumnInfo'))
           return
+        }
+        if (submitData.isShowHiveTree && submitData.table_desc.columns.length !== submitData.batchTableColumns.length) {
+          isValid = false
+          this.$message(this.$t('hiveTableErrorTips'))
+          return
+        }
+        if (submitData.isShowHiveTree && submitData.table_desc.columns.length === submitData.batchTableColumns.length) {
+          for (let i; i < submitData.table_desc.columns.length - 1; i++) {
+            const index = indexOfObjWithSomeKey(submitData.batchTableColumns, 'name', submitData.table_desc.columns[i].name)
+            if (index === -1) {
+              isValid = false
+              this.$message(this.$t('hiveTableErrorTips'))
+              return
+            }
+          }
+          const batchTableColumnDateTypes = submitData.batchTableColumns.map(c => {
+            return c.datatype
+          })
+          if (batchTableColumnDateTypes.indexOf('timestamp') === -1) {
+            isValid = false
+            this.$message(this.$t('needTimestampColumnInfo'))
+            return
+          }
         }
         return isValid
       }

@@ -90,7 +90,7 @@
           <el-table-column
           :label="$t('columnType')">
             <template slot-scope="scope">
-              <el-select v-model="scope.row.datatype" size="small" @change="storeKafkaMeta" :disabled="scope.row.fromSource=='N' || isShowHiveTree">
+              <el-select v-model="scope.row.datatype" size="small" @change="handleChangeDatatype(scope.row)" :disabled="scope.row.fromSource=='N' || isShowHiveTree">
                 <el-option
                   v-for="(item, index) in dataTypes"
                   :key="index"
@@ -130,7 +130,7 @@ import { Component } from 'vue-property-decorator'
 import { NamedRegex, pageSizeMapping } from 'config'
 import locales from './locales'
 import TreeList from '../../TreeList'
-import { handleError, handleSuccess, handleSuccessAsync, sampleGuid } from 'util'
+import { handleError, handleSuccess, handleSuccessAsync, sampleGuid, indexOfObjWithSomeKey } from 'util'
 import { getDatasourceObj, getTableObj, getDatabaseTablesObj } from 'util/datasourceDataHandler'
 import { objectClone } from '../../../../util'
 @Component({
@@ -228,6 +228,7 @@ export default class SourceKafkaStep2 extends Vue {
   datasources = []
   defaultExpandedKeys = []
   ignoreNodeTypes = ['column']
+  batchTableColumns = []
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
@@ -238,12 +239,20 @@ export default class SourceKafkaStep2 extends Vue {
       callback()
     }
   }
+  handleChangeDatatype (row) {
+    const index = indexOfObjWithSomeKey(this.kafkaMeta.columns, 'guid', row.guid)
+    if (index !== -1) {
+      this.$set(this.kafkaMeta.columns[index], 'datatype', row.datatype)
+      this.storeKafkaMeta()
+    }
+  }
   storeKafkaMeta () {
     this.kafkaMeta.name = this.kafkaMeta.name.toUpperCase()
     const kafkaMetaObj = objectClone(this.kafkaMeta)
     delete kafkaMetaObj.columns
     this.$emit('input', { kafkaMeta: {
       isShowHiveTree: this.isShowHiveTree,
+      batchTableColumns: this.batchTableColumns,
       kafka_config: kafkaMetaObj,
       table_desc: { name: this.kafkaMeta.name, columns: this.kafkaMeta.columns, source_type: 1, database: this.kafkaMeta.database },
       project: this.currentSelectedProject
@@ -471,6 +480,7 @@ export default class SourceKafkaStep2 extends Vue {
       data.isSelected = false
       this.kafkaMeta.batch_table_identity = ''
       this.kafkaMeta.has_shadow_table = false
+      this.batchTableColumns = []
       this.storeKafkaMeta()
     } else {
       this.databaseArray.forEach(d => {
@@ -486,6 +496,7 @@ export default class SourceKafkaStep2 extends Vue {
       node.isSelected = true
       this.kafkaMeta.batch_table_identity = node.database + '.' + node.label
       this.kafkaMeta.has_shadow_table = true
+      this.batchTableColumns = node.__data.columns
       this.storeKafkaMeta()
     }
   }

@@ -53,7 +53,8 @@ export default {
     stopJob: 'Stop Job',
     stopJobImme: 'Stop Immediately',
     mulParamsKeyTips: 'This key already exists.',
-    errorStautsTips: 'An unknown error occurred. Please contact the admin.'
+    errorStautsTips: 'An unknown error occurred. Please contact the admin.',
+    disableStartJobTips: 'Can\'t be used. Please add streaming indexes first. '
   },
   'zh-cn': {
     adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
@@ -109,6 +110,7 @@ export default {
     stopJob: '停止任务',
     stopJobImme: '立即停止',
     mulParamsKeyTips: '该参数已存在',
-    errorStautsTips: '出现未知错误，请联系管理员查看。'
+    errorStautsTips: '出现未知错误，请联系管理员查看。',
+    disableStartJobTips: '无法使用，请先添加实时索引'
   }
 }

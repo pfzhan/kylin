@@ -394,7 +394,7 @@ export default class DimensionsModal extends Vue {
   }
 
   get isHybridModel () {
-    return this.modelInstance.getFactTable() && this.modelInstance.getFactTable().batch_table_identity || this.modelData.model_type === 'HYBRID'
+    return this.modelInstance.getFactTable() && this.modelInstance.getFactTable().batch_table_identity || this.modelInstance.model_type === 'HYBRID'
   }
 
   get disableTips () {
