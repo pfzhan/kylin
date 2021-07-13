@@ -43,6 +43,7 @@
 package org.apache.kylin.common.msg;
 
 import java.util.Locale;
+
 import org.apache.kylin.common.Singletons;
 
 public class Message {
@@ -1594,5 +1595,9 @@ public class Message {
 
     public String getFIX_STREAMING_SEGMENT() {
         return "Can’t fix segment in streaming model.";
+    }
+
+    public String getSPARK_FAILURE() {
+        return "Can't complete the operation. Please check the Spark environment and try again. ";
     }
 }

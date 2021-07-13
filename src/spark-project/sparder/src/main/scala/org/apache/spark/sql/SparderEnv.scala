@@ -24,10 +24,14 @@
 
 package org.apache.spark.sql
 
+import java.lang.{Boolean => JBoolean, String => JString}
+import java.security.PrivilegedAction
+
 import io.kyligence.kap.common.util.DefaultHostInfoFetcher
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.hadoop.security.UserGroupInformation
-import org.apache.kylin.common.exception.KylinTimeoutException
+import org.apache.kylin.common.exception.{KylinException, KylinTimeoutException, ServerErrorCode}
+import org.apache.kylin.common.msg.MsgPicker
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
@@ -40,9 +44,6 @@ import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.Utils
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
-
-import java.lang.{Boolean => JBoolean, String => JString}
-import java.security.PrivilegedAction
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -66,6 +67,8 @@ object SparderEnv extends Logging {
       logInfo("Init spark.")
       initSpark()
     }
+    if (spark == null)
+      throw new KylinException(ServerErrorCode.SPARK_FAILURE, MsgPicker.getMsg.getSPARK_FAILURE)
     spark
   }
 

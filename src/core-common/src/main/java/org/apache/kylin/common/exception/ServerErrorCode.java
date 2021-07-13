@@ -276,7 +276,8 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     SECOND_STORAGE_ADD_JOB_FAILED("KE-010037004"), //
 
     //10038XXX system profile
-    SYSTEM_PROFILE_ABNORMAL_DATA("KE-010038001");
+    SYSTEM_PROFILE_ABNORMAL_DATA("KE-010038001"), //
+    SPARK_FAILURE("KE-010038002"); //
 
     private final ErrorCode errorCode;
 

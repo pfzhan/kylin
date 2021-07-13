@@ -1795,4 +1795,9 @@ public class CnMessage extends Message {
     public String getFIX_STREAMING_SEGMENT() {
         return "无法修复实时模型的 Segment。";
     }
+
+    @Override
+    public String getSPARK_FAILURE() {
+        return "无法完成操作，请检查 Spark 环境后重试。";
+    }
 }
