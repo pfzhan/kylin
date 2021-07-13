@@ -127,6 +127,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         orElse.apply(Sets.newHashSet(ResourceStore.PROJECT_ROOT + "/" + project + ".json"));
         orElse.apply(resourceStore.listResources("/" + project + ResourceStore.TABLE_RESOURCE_ROOT));
         orElse.apply(resourceStore.listResources("/" + project + ResourceStore.TABLE_EXD_RESOURCE_ROOT));
+        orElse.apply(resourceStore.listResources("/" + project + ResourceStore.KAFKA_RESOURCE_ROOT));
         val runner = factoryBuilder.build(config, context.getSmartConfig().getProposeRunnerImpl(), project, resources);
         runner.setConfigUpdater(
                 props -> props.setProperty("kylin.query.queryhistory.url", config.getMetadataUrl().toString()));

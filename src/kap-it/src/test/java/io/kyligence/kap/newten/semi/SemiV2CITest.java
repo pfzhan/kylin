@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -808,5 +809,30 @@ public class SemiV2CITest extends SemiAutoTestBase {
         QueryHistoryInfo queryHistoryInfo = JsonUtil.readValue(queryHistoryInfoStr, QueryHistoryInfo.class);
         queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
         return queryMetrics;
+    }
+
+    @Test
+    public void testSuggestStreamingModel() {
+        String project = "streaming_test";
+
+        // optimize with a batch of sql list
+        List<String> li = Lists.newArrayList();
+        li.add("SELECT LO_CUSTKEY from SSB.P_LINEORDER_STR group by LO_CUSTKEY");
+        AbstractContext proposeContext = modelService.suggestModel(project, li, false, true);
+        List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
+        Assert.assertEquals(1, modelContextList.size());
+        Assert.assertEquals(NDataModel.ModelType.STREAMING, modelContextList.get(0).getTargetModel().getModelType());
+
+        String modelID = modelContextList.get(0).getTargetModel().getUuid();
+        ModelSuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResponse.getReusedModels();
+        List<ModelSuggestionResponse.NRecommendedModelResponse> newModels = suggestionResponse.getNewModels();
+        List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
+        List<ModelRequest> newModelRequests = mockModelRequest(newModels);
+        modelService.batchCreateModel(project, newModelRequests, reusedModelRequests);
+
+        val jobManager = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val job = jobManager.getStreamingJobByUuid(modelID + "_build");
+        Assert.assertNotNull(job);
     }
 }

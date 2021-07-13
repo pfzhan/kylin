@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -65,9 +66,12 @@ public class QueryContextCutter {
         while (retryCutTimes++ < MAX_RETRY_TIMES_OF_CONTEXT_CUT) {
             try {
                 return collectContextInfoAndSelectRealization(root);
-            } catch (NoRealizationFoundException e) {
+            } catch (NoStreamingRealizationFoundException e) {
                 if (isForAutoModeling) {
                     checkStreamingSqlWithAutoModeling();
+                }
+            } catch (NoRealizationFoundException e) {
+                if (isForAutoModeling) {
                     throw e;
                 }
 
@@ -90,8 +94,8 @@ public class QueryContextCutter {
             }
         }
 
-        ContextUtil.dumpCalcitePlan("cannot find proper realizations After re-cut " + MAX_RETRY_TIMES_OF_CONTEXT_CUT + " times",
-                root, log);
+        ContextUtil.dumpCalcitePlan(
+                "cannot find proper realizations After re-cut " + MAX_RETRY_TIMES_OF_CONTEXT_CUT + " times", root, log);
         logger.error("too many unmatched join in this query, please check it or create correspond realization");
         throw new NoRealizationFoundException(
                 "too many unmatched join in this query, please check it or create correspond realization");
@@ -143,7 +147,9 @@ public class QueryContextCutter {
     private static void checkStreamingSqlWithAutoModeling() {
         for (OLAPContext context : ContextUtil.listContextsHavingScan()) {
             for (OLAPTableScan tableScan : context.allTableScans) {
-                if (ISourceAware.ID_STREAMING == tableScan.getTableRef().getTableDesc().getSourceType()) {
+                TableDesc tableDesc = tableScan.getTableRef().getTableDesc();
+                if (ISourceAware.ID_STREAMING == tableDesc.getSourceType()
+                        && tableDesc.getKafkaConfig().hasBatchTable()) {
                     throw new NoStreamingRealizationFoundException("No support streaming table for auto modeling.");
                 }
             }

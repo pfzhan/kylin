@@ -43,6 +43,7 @@ public class ModelInfoAdjustProposer extends AbstractProposer {
             NDataModel model = modelCtx.getTargetModel();
             modelCtx.getProposeContext().changeModelMainType(model);
             setJoinTableType(model);
+            model.setModelType(model.getModelTypeFromTable());
         }
     }
 

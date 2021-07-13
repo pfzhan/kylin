@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -90,6 +91,9 @@ class LocalQueryRunnerBuilder {
 
         NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
         metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
+
+        KafkaConfigManager kafkaConfigManager = KafkaConfigManager.getInstance(srcKylinConfig, projectName);
+        kafkaConfigManager.listAllKafkaConfigs().forEach(kafkaConfig -> dumpResources.add(kafkaConfig.getResourcePath()));
 
         if (!containModel)
             return;

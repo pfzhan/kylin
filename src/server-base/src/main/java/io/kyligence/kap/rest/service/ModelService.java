@@ -1646,6 +1646,7 @@ public class ModelService extends BasicService {
                 dataflowManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
             }
 
+            createStreamingJob(project, model, modelRequest);
             updateIndexPlan(project, indexPlan);
             UnitOfWorkContext context = UnitOfWork.get();
             context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
