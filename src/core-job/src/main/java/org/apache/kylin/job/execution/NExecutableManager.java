@@ -41,7 +41,6 @@ import java.lang.reflect.Constructor;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Deque;
@@ -228,7 +227,10 @@ public class NExecutableManager {
         if (org.apache.commons.lang.StringUtils.isNotBlank(model)) {
             return listExecByModelAndStatus(model, ExecutableState::isRunning, null);
         } else {
-            return getAllExecutables().stream().filter(e -> e.getStatus().isRunning()).collect(Collectors.toList());
+            return executableDao.getJobs().stream() //
+                    .filter(job -> ExecutableState.valueOf(job.getOutput().getStatus()).isRunning()) //
+                    .map(this::fromPO) //
+                    .collect(Collectors.toList());
         }
     }
 
@@ -367,12 +369,13 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
-        return getAllExecutables().stream() //
-                .filter(e -> e.getTargetSubject() != null) //
-                .filter(e -> e.getTargetSubject().equals(model)) //
-                .filter(e -> predicate.test(e.getStatus())) //
-                .filter(e -> Array.isEmpty(jobTypes) || Lists.newArrayList(jobTypes).contains(e.getJobType())) //
-                .collect(Collectors.toList());
+        boolean allPass = Array.isEmpty(jobTypes);
+        return executableDao.getJobs().stream() //
+                .filter(job -> job.getTargetModel() != null) //
+                .filter(job -> job.getTargetModel().equals(model)) //
+                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
+                .filter(job -> allPass || Lists.newArrayList(jobTypes).contains(job.getJobType())) //
+                .map(this::fromPO).collect(Collectors.toList());
     }
 
     public AbstractExecutable getLastSuccessExecByModel(String modelId, JobTypeEnum... jobTypes) {
@@ -395,9 +398,16 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
-        return getAllExecutables().stream() //
-                .filter(e -> e.getJobType() != null && (Lists.newArrayList(jobTypes).contains(e.getJobType())))
-                .filter(e -> predicate.test(e.getStatus())).collect(Collectors.toList());
+        if (jobTypes == null) {
+            return Lists.newArrayList();
+        }
+        List<JobTypeEnum> jobTypeList = Lists.newArrayList(jobTypes);
+        return executableDao.getJobs().stream() //
+                .filter(job -> job.getJobType() != null) //
+                .filter(job -> jobTypeList.contains(job.getJobType())) //
+                .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
+                .map(this::fromPO) //
+                .collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> listMultiPartitionModelExec(String model, Predicate<ExecutableState> predicate,
@@ -427,43 +437,31 @@ public class NExecutableManager {
     }
 
     public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
-        val executables = getAllExecutables();
-        val resultExecutables = new ArrayList<AbstractExecutable>();
+        List<ExecutablePO> filterJobs = Lists.newArrayList(executableDao.getJobs());
         if (CollectionUtils.isNotEmpty(jobIds)) {
-            resultExecutables
-                    .addAll(executables.stream().filter(t -> jobIds.contains(t.getId())).collect(Collectors.toList()));
-        } else {
-            resultExecutables.addAll(executables);
+            filterJobs.removeIf(job -> !jobIds.contains(job.getId()));
         }
         if (CollectionUtils.isNotEmpty(statuses)) {
-            return resultExecutables.stream().filter(t -> statuses.contains(t.getStatus()))
-                    .collect(Collectors.toList());
-        } else {
-            return resultExecutables;
+            filterJobs.removeIf(job -> !statuses.contains(ExecutableState.valueOf(job.getOutput().getStatus())));
         }
+        return filterJobs.stream().map(this::fromPO).collect(Collectors.toList());
     }
 
-    public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusList) {
-        Preconditions.checkNotNull(statusList);
-
-        val executables = getAllExecutables();
-        if (CollectionUtils.isNotEmpty(statusList)) {
-            return executables.stream().filter(t -> statusList.isEmpty() || statusList.contains(t.getStatus()))
-                    .collect(Collectors.toList());
-        } else {
-            return executables;
+    public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusSet) {
+        Preconditions.checkNotNull(statusSet);
+        List<ExecutablePO> filterJobs = Lists.newArrayList(executableDao.getJobs());
+        if (CollectionUtils.isNotEmpty(statusSet)) {
+            filterJobs.removeIf(job -> !statusSet.contains(ExecutableState.valueOf(job.getOutput().getStatus())));
         }
+        return filterJobs.stream().map(this::fromPO).collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> getExecutablesByStatus(ExecutableState status) {
-
-        val executables = getAllExecutables();
-
+        List<ExecutablePO> filterJobs = Lists.newArrayList(executableDao.getJobs());
         if (Objects.nonNull(status)) {
-            return executables.stream().filter(t -> t.getStatus() == status).collect(Collectors.toList());
-        } else {
-            return executables;
+            filterJobs.removeIf(job -> status != ExecutableState.valueOf(job.getOutput().getStatus()));
         }
+        return filterJobs.stream().map(this::fromPO).collect(Collectors.toList());
     }
 
     public List<AbstractExecutable> getAllExecutables(long timeStartInMillis, long timeEndInMillis) {

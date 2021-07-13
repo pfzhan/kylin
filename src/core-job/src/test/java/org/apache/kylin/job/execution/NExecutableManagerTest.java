@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.execution;
 
+import static org.apache.kylin.job.execution.JobTypeEnum.SNAPSHOT_BUILD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -56,6 +57,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -531,6 +533,40 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         val savedPO = executableDao.addJob(po);
 
         Assert.assertNull(manager.getJob(savedPO.getId()));
+    }
+
+    @Test
+    public void testForCoverage() throws IOException {
+        DefaultChainedExecutable job = new DefaultChainedExecutableOnModel();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309gg");
+        job.setProject(DEFAULT_PROJECT);
+        job.setPriority(1);
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        val po = NExecutableManager.toPO(job, DEFAULT_PROJECT);
+        val executableDao = NExecutableDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        executableDao.addJob(po);
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT);
+        val runExecutables = executableManager.getRunningExecutables(DEFAULT_PROJECT, null);
+        Assert.assertEquals(1, runExecutables.size());
+        val runJobTypeExecutables = executableManager.listExecByJobTypeAndStatus(ExecutableState::isRunning,
+                SNAPSHOT_BUILD);
+        Assert.assertEquals(0, runJobTypeExecutables.size());
+        val executables = executableManager.getExecutablesByStatus(
+                com.google.common.collect.Lists.newArrayList(job.getId()),
+                com.google.common.collect.Lists.newArrayList(ExecutableState.READY));
+        Assert.assertEquals(1, executables.size());
+        val executables2 = executableManager.getExecutablesByStatusList(Sets.newHashSet(ExecutableState.READY));
+        val executables3 = executableManager.getExecutablesByStatus(ExecutableState.READY);
+        Assert.assertEquals(executables2.size(), executables3.size());
+        val executables4 = executableManager.getAllExecutables(0L, Long.MAX_VALUE);
+        Assert.assertEquals(1, executables4.size());
+        val executables5 = executableManager.getRunningJobs(10);
+        Assert.assertEquals(1, executables5.size());
+        val executables6 = executableManager.getAllJobs(0L, Long.MAX_VALUE);
+        Assert.assertEquals(1, executables6.size());
     }
 
     @Test

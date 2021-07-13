@@ -455,7 +455,7 @@ public class NDataModelResponse extends NDataModel {
         if (!modelDesc.isBroken()) {
             IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelDesc.getUuid());
             this.setAvailableIndexesCount(indexPlanManager.getAvailableIndexesCount(getProject(), modelDesc.getId()));
-            this.setTotalIndexes(indexPlan.getAllLayouts().size());
+            this.setTotalIndexes(indexPlan.getAllLayoutsReadOnly().size());
             this.setEmptyIndexesCount(this.totalIndexes - this.availableIndexesCount);
             this.setHasBaseAggIndex(indexPlan.containBaseAggLayout());
             this.setHasBaseTableIndex(indexPlan.containBaseTableLayout());

@@ -46,6 +46,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
@@ -472,6 +473,33 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return r;
     }
 
+    public List<ImmutablePair<LayoutEntity, Boolean>> getAllLayoutsReadOnly() {
+        Map<Long, Map<LayoutEntity, Boolean>> resultMap = Maps.newHashMap();
+        for (IndexEntity indexEntity : indexes) {
+            indexEntity.getLayouts().forEach(layout -> classifyByIndexId(layout, resultMap, layout.isToBeDeleted()));
+        }
+        for (LayoutEntity ruleBasedLayout : ruleBasedLayouts) {
+            classifyByIndexId(ruleBasedLayout, resultMap, false);
+        }
+        for (IndexEntity indexEntity : toBeDeletedIndexes) {
+            indexEntity.getLayouts().forEach(layout -> classifyByIndexId(layout, resultMap, true));
+            resultMap.get(indexEntity.getId()).entrySet().forEach(layoutMap -> layoutMap.setValue(true));
+        }
+        return resultMap.values().stream()//
+                .flatMap(layoutMap -> //
+                layoutMap.entrySet().stream().map(p -> ImmutablePair.of(p.getKey(), p.getValue())))
+                .collect(Collectors.toList());
+    }
+
+    private void classifyByIndexId(LayoutEntity layout, Map<Long, Map<LayoutEntity, Boolean>> resultMap,
+            boolean toBeDeleted) {
+        resultMap.compute(layout.getIndexId(), (indexId, layoutMap) -> {
+            layoutMap = layoutMap == null ? Maps.newHashMap() : layoutMap;
+            layoutMap.put(layout, toBeDeleted);
+            return layoutMap;
+        });
+    }
+
     public Map<Long, LayoutEntity> getAllLayoutsMap() {
         Map<Long, LayoutEntity> map = Maps.newHashMap();
         getAllLayouts().forEach(layout -> map.putIfAbsent(layout.getId(), layout));
@@ -694,6 +722,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             toBeDeletedIndexes.clear();
         }
     }
+
     public void addRuleBasedBlackList(Collection<Long> blacklist) {
         checkIsNotCachedAndShared();
         if (ruleBasedIndex != null) {
@@ -863,12 +892,12 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return baseAggLayout != null;
     }
 
-    public int getBaseIndexCount(){
+    public int getBaseIndexCount() {
         int num = 0;
-        if(baseAggLayout != null){
+        if (baseAggLayout != null) {
             num++;
         }
-        if(baseTableLayout != null){
+        if (baseTableLayout != null) {
             num++;
         }
         return num;

@@ -127,6 +127,7 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         Assert.assertEquals(0, modelBeforeApprove.getComputedColumnDescs().size());
         Assert.assertEquals(3, modelBeforeApprove.getRecommendationsCount());
         Assert.assertEquals(0, getIndexPlan().getAllLayouts().size());
+        Assert.assertEquals(0, getIndexPlan().getAllLayoutsReadOnly().size());
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
         Assert.assertEquals(14, response.getLayouts().size());
         jdbcRawRecStore.queryAll().forEach(rawRecItem -> {
@@ -151,6 +152,7 @@ public class OptRecServiceCompatibleTest extends OptRecV2TestBase {
         Assert.assertEquals(1, modelAfterApprove.getComputedColumnDescs().size());
         Assert.assertEquals(0, modelAfterApprove.getRecommendationsCount());
         Assert.assertEquals(7, getIndexPlan().getAllLayoutsMap().size());
+        Assert.assertEquals(7, getIndexPlan().getAllLayoutsReadOnly().size());
     }
 
     private void prepareAllLayoutRecs() throws IOException {

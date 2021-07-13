@@ -217,6 +217,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
@@ -263,7 +264,6 @@ import io.kyligence.kap.rest.service.params.FullBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
-import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
@@ -814,7 +814,7 @@ public class ModelService extends BasicService {
     private long getEmptyIndexesCount(String project, String id) {
         val indexPlanManager = getIndexPlanManager(project);
         val indexPlan = indexPlanManager.getIndexPlan(id);
-        return indexPlan.getAllLayouts().size() - indexPlanManager.getAvailableIndexesCount(project, id);
+        return indexPlan.getAllLayoutsReadOnly().size() - indexPlanManager.getAvailableIndexesCount(project, id);
     }
 
     private List<NDataModelResponse> sortExpansionRate(boolean reverse, List<NDataModelResponse> filterModels) {

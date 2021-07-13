@@ -622,9 +622,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         mockSegments.add(segmentResponse3);
         mockSegments.add(segmentResponse2);
 
-        Mockito.doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(), ArgumentMatchers.any(),
-                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
-                ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
+        Mockito.doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
+                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(),
+                ArgumentMatchers.any());
 
         Mockito.doAnswer(invocation -> {
             List<NDataSegmentResponse> segmentResponseList = invocation.getArgument(2);
@@ -635,8 +636,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }).when(modelService).addSecondStorageResponse(ArgumentMatchers.any(), ArgumentMatchers.any(),
                 ArgumentMatchers.any(), ArgumentMatchers.any());
 
-        List<NDataSegmentResponse> segmentResponseList = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0",
-                "" + Long.MAX_VALUE, "", "second_storage_size", false);
+        List<NDataSegmentResponse> segmentResponseList = modelService.getSegmentsResponse(
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "", "second_storage_size",
+                false);
 
         Assert.assertEquals(segmentResponseList.get(0).getId(), "3");
     }
