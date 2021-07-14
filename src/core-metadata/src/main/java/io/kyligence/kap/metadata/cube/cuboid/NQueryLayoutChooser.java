@@ -66,6 +66,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -500,8 +501,9 @@ public class NQueryLayoutChooser {
         // in order to get the correct result, the query result must join the snapshot of C.
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Set<String> excludedTables = FavoriteRuleManager.getInstance(config, model.getProject()).getExcludedTables();
+        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
         model.getJoinTables().forEach(joinTableDesc -> {
-            if (joinTableDesc.isDerivedToManyJoinRelation() || excludedTables.contains(joinTableDesc.getTable())) {
+            if (checker.getExcludedLookups().contains(joinTableDesc.getTable())) {
                 JoinDesc join = joinTableDesc.getJoin();
                 if (!needJoinSnapshot(sqlDigest, join)) {
                     return;

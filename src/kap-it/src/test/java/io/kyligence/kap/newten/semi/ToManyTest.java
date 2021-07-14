@@ -346,6 +346,61 @@ public class ToManyTest extends SemiAutoTestBase {
         NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
     }
 
+    @Test
+    public void snowModelTest() throws InterruptedException {
+        String sql2 = "SELECT LINEORDER.LO_CUSTKEY, SUM(LINEORDER.LO_EXTENDEDPRICE) \n"
+                + "FROM SSB.P_LINEORDER AS LINEORDER\n"
+                + "  LEFT JOIN SSB.DATES ON LINEORDER.LO_ORDERDATE = DATES.D_DATEKEY\n"
+                + "  LEFT JOIN SSB.CUSTOMER ON LINEORDER.LO_CUSTKEY = CUSTOMER.C_CUSTKEY\n"
+                + "  LEFT JOIN SSB.LINEORDER AS LR ON DATES.D_DATEKEY = LR.LO_ORDERDATE\n"
+                + "  GROUP BY LINEORDER.LO_CUSTKEY ORDER BY LINEORDER.LO_CUSTKEY";
+
+        // prepare an origin model
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { sql2 });
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+        String modelId = smartMaster.getContext().getModelContexts().get(0).getTargetModel().getUuid();
+
+        NDataModel originModel = modelManager.getDataModelDesc(modelId);
+        originModel.getJoinTables().forEach(join -> {
+            Assert.assertTrue(join.isFlattenable());
+            Assert.assertEquals(ModelJoinRelationTypeEnum.MANY_TO_ONE, join.getJoinRelationTypeEnum());
+        });
+        IndexPlan originIndexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertEquals(1, originIndexPlan.getAllLayouts().size());
+
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            final List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.forEach(join -> {
+                join.setKind(NDataModel.TableKind.LOOKUP);
+                join.setJoinRelationTypeEnum(ModelJoinRelationTypeEnum.ONE_TO_MANY);
+                if (join.getTable().equals("SSB.DATES")) {
+                    join.setFlattenable(JoinTableDesc.NORMALIZED);
+
+                } else if (join.getTable().equals("SSB.LINEORDER")) {
+                    join.setFlattenable(JoinTableDesc.FLATTEN);
+                    //join.setJoinRelationTypeEnum(ModelJoinRelationTypeEnum.MANY_TO_MANY);
+                }
+            });
+        });
+
+        // build indexes
+        buildAllCubes(getTestConfig(), getProject());
+
+        // query and assert
+        List<Pair<String, String>> queryList = Lists.newArrayList();
+        queryList.add(Pair.newPair("sql2", sql2));
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        try {
+            NExecAndComp.execAndCompare(queryList, getProject(), NExecAndComp.CompareLevel.SAME, "default");
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("not match"));
+        }
+    }
+
     private List<Pair<String, String>> readSQL() throws IOException {
         String folder = "src/test/resources/anti_flatten/to_many/sql/";
         return NExecAndComp.fetchPartialQueries(folder, 0, 100);
@@ -355,10 +410,22 @@ public class ToManyTest extends SemiAutoTestBase {
         replaceTableDesc("SSB.CUSTOMER");
         replaceTableDesc("SSB.DATES");
         replaceTableDesc("SSB.P_LINEORDER");
+        createTable("SSB.LINEORDER");
 
         replaceTableCSV("SSB.CUSTOMER");
         replaceTableCSV("SSB.DATES");
         replaceTableCSV("SSB.P_LINEORDER");
+        replaceTableCSV("SSB.LINEORDER");
+    }
+
+    private void createTable(String tableName) throws IOException {
+        String pathDir = "src/test/resources/anti_flatten/to_many/tables/";
+        TableDesc newTable = JsonUtil.readValue(new File(pathDir + tableName + ".json"), TableDesc.class);
+
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
+        newTable.setMvcc(-1);
+        tableMgr.saveSourceTable(newTable);
+
     }
 
     private void replaceTableDesc(String tableName) throws IOException {

@@ -195,6 +195,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   protected def newLookupTableDS(cols: Set[TblColRef]): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
     val ret = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
+    val normalizedTableSet = mutable.Set[String]()
     dataModel.getJoinTables.asScala
       .foreach { joinDesc =>
         val fkCols = joinDesc.getJoin.getForeignKeyColumns
@@ -203,8 +204,12 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
           case null => throw new IllegalArgumentException("foreign key is empty!")
           case _ => if (fkCols.nonEmpty) fkCols(0).getTable else if (fkTableRef != null) fkTableRef.getTableDesc.getIdentity else null
         }
+        if (!joinDesc.isFlattenable || normalizedTableSet.contains(fkTable)) {
+          normalizedTableSet.add(joinDesc.getTable)
+        }
         if (joinDesc.isFlattenable && !dataSegment.getExcludedTables.contains(joinDesc.getTable)
-          && !dataSegment.getExcludedTables.contains(fkTable)) {
+          && !dataSegment.getExcludedTables.contains(fkTable)
+          && !normalizedTableSet.contains(joinDesc.getTable)) {
           val tableRef = joinDesc.getTableRef
           val tableDS = newTableDS(tableRef)
           ret.put(joinDesc, fulfillDS(tableDS, cols, tableRef))
