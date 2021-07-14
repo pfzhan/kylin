@@ -33,6 +33,9 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 
+import java.util.Collections;
+import java.util.Set;
+
 public class ClickHouseProjectCleanJob extends DefaultChainedExecutable implements ProjectJob {
 
     public ClickHouseProjectCleanJob() {
@@ -56,6 +59,11 @@ public class ClickHouseProjectCleanJob extends DefaultChainedExecutable implemen
         step.setParams(getParams());
         step.init();
         addTask(step);
+    }
+
+    @Override
+    public Set<String> getSegmentIds() {
+        return Collections.emptySet();
     }
 
     public static class ProjectCleanJobFactory extends JobFactory {

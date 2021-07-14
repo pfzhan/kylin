@@ -40,6 +40,7 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.factory.JobFactory;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -90,6 +91,11 @@ public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
         step.setParams(getParams());
         step.init();
         addTask(step);
+    }
+
+    @Override
+    public Set<String> getSegmentIds() {
+        return Collections.emptySet();
     }
 
     public static class ModelCleanJobFactory extends JobFactory {

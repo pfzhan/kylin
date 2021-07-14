@@ -25,13 +25,17 @@ package io.kyligence.kap.secondstorage.abnormal;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -51,6 +55,8 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.File;
@@ -59,9 +65,6 @@ import java.net.URI;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 
 /**
  * {@link QueryRouteTest} simulates the case where KE(resolving clickhouse table schema on spark driver) or worker
@@ -80,10 +83,13 @@ public class QueryRouteTest {
     public static SharedSparkSession sharedSpark = new SharedSparkSession(
             ImmutableMap.of("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions")
     );
-
-    @Rule
+    @ClassRule
+    public static ClickHouseClassRule clickHouseClassRule = new ClickHouseClassRule(clickhouseNumber);
+    public EnableTestUser enableTestUser = new EnableTestUser();
     public EnableClickHouseJob test =
-            new EnableClickHouseJob(clickhouseNumber, 1, project, cubeName, "src/test/resources/ut_meta");
+            new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1, clickHouseClassRule.getExposePort(), project, cubeName, "src/test/resources/ut_meta");
+    @Rule
+    public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private final SparkSession sparkSession = sharedSpark.getSpark();
 
     @Rule
@@ -104,7 +110,7 @@ public class QueryRouteTest {
             test.checkHttpServer();
             test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
 
-            JdbcDatabaseContainer<?> clickhouse1 = test.getClickhouse(1);
+            JdbcDatabaseContainer<?> clickhouse1 = clickHouseClassRule.getClickhouse(1);
             sparkSession.sessionState().conf().setConfString(
                     "spark.sql.catalog." + queryCatalog,
                     "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
@@ -130,7 +136,7 @@ public class QueryRouteTest {
             NExecAndComp.execAndCompareNew(query, project, NExecAndComp.CompareLevel.SAME, "left", null);
 
             //close one of clickhouse
-            JdbcDatabaseContainer<?> clickhouse0 = test.getClickhouse(0);
+            JdbcDatabaseContainer<?> clickhouse0 = clickHouseClassRule.getClickhouse(0);
             clickhouse0.close();
 
             // Now rerun it, using
@@ -190,7 +196,7 @@ public class QueryRouteTest {
             test.checkHttpServer();
             test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
 
-            JdbcDatabaseContainer<?> clickhouse = test.getClickhouse(0);
+            JdbcDatabaseContainer<?> clickhouse = clickHouseClassRule.getClickhouse(0);
             sparkSession.sessionState().conf().setConfString(
                     "spark.sql.catalog." + queryCatalog,
                     "io.kyligence.kap.secondstorage.abnormal.AlwaysSQLExceptionCatalog");

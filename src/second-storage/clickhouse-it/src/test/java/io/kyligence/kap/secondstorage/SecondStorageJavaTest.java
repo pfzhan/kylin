@@ -42,6 +42,7 @@ import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
@@ -49,6 +50,7 @@ import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -60,12 +62,12 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.stream.Collectors;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+
+import java.util.stream.Collectors;
 
 public class SecondStorageJavaTest implements JobWaiter {
     private static final String modelName = "test_table_index";
@@ -77,10 +79,13 @@ public class SecondStorageJavaTest implements JobWaiter {
             ImmutableMap.of("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions")
     );
 
-    @Rule
     public EnableTestUser enableTestUser = new EnableTestUser();
+    @ClassRule
+    public static ClickHouseClassRule clickHouseClassRule = new ClickHouseClassRule(1);
+
+    public EnableClickHouseJob test = new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1, clickHouseClassRule.getExposePort(), project, modelId, "src/test/resources/ut_meta");
     @Rule
-    public EnableClickHouseJob test = new EnableClickHouseJob(1, 1, project, modelId, "src/test/resources/ut_meta");
+    public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private SecondStorageService secondStorageService = new SecondStorageService();
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
     private AclEvaluate aclEvaluate = Mockito.mock(AclEvaluate.class);
@@ -214,7 +219,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         test.checkHttpServer();
         test.overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
 
-        JdbcDatabaseContainer<?> clickhouse1 = test.getClickhouse(0);
+        JdbcDatabaseContainer<?> clickhouse1 = clickHouseClassRule.getClickhouse(0);
         sparkSession.sessionState().conf().setConfString(
                 "spark.sql.catalog." + queryCatalog,
                 "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");

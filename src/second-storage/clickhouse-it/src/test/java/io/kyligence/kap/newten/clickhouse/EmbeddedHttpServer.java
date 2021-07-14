@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.ContextHandler;
@@ -32,6 +33,7 @@ import org.testcontainers.Testcontainers;
 import java.net.URI;
 import java.util.Locale;
 
+@Slf4j
 public class EmbeddedHttpServer {
     private final Server server;
     public final URI serverUri;
@@ -43,10 +45,11 @@ public class EmbeddedHttpServer {
         this.uriAccessedByDocker = uriAccessedByDocker;
     }
 
-    public static EmbeddedHttpServer startServer(String workingDir) throws Exception {
+    public static EmbeddedHttpServer startServer(String workingDir, int port) throws Exception {
+        log.debug("start http server on port: {}", port);
         Server server = new Server();
         ServerConnector connector = new ServerConnector(server);
-        connector.setPort(0);
+        connector.setPort(port);
         server.addConnector(connector);
 
         ContextHandler contextHandler = new ContextHandler();
@@ -57,20 +60,21 @@ public class EmbeddedHttpServer {
         contextHandler.setHandler(contentResourceHandler);
         server.setHandler(contextHandler);
         server.start();
-
+        int listenedPort = connector.getLocalPort();
         String host = connector.getHost();
         if (host == null) {
             host = "localhost";
         }
-        int port = connector.getLocalPort();
-        URI serverUri = new URI(String.format(Locale.ROOT, "http://%s:%d", host, port));
-        Testcontainers.exposeHostPorts(port);
-        URI uriAccessedByDocker = new URI(String.format(Locale.ROOT, "http://host.testcontainers.internal:%d", port));
+        URI serverUri = new URI(String.format(Locale.ROOT, "http://%s:%d", host, listenedPort));
+        Testcontainers.exposeHostPorts(listenedPort);
+        URI uriAccessedByDocker = new URI(String.format(Locale.ROOT, "http://host.testcontainers.internal:%d", listenedPort));
         return new EmbeddedHttpServer(server, serverUri, uriAccessedByDocker);
     }
 
     public void stopServer() throws Exception {
-        server.stop();
-        server.join();
+        if (!server.isStopped()) {
+            server.stop();
+            server.join();
+        }
     }
 }

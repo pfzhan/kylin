@@ -25,13 +25,17 @@ package io.kyligence.kap.secondstorage.abnormal;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
+import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
+import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
@@ -42,12 +46,11 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.util.List;
-
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
-import static io.kyligence.kap.newten.clickhouse.ClickHouseUtils.columnMapping;
 
 public class SecondaryCatalogTest {
     static private final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
@@ -57,9 +60,12 @@ public class SecondaryCatalogTest {
     public static SharedSparkSession sharedSpark = new SharedSparkSession(
             ImmutableMap.of("spark.sql.extensions", "io.kyligence.kap.query.SQLPushDownExtensions")
     );
-
+    @ClassRule
+    public static ClickHouseClassRule clickHouseClassRule = new ClickHouseClassRule(1);
+    public EnableTestUser enableTestUser = new EnableTestUser();
+    public EnableClickHouseJob test = new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1, clickHouseClassRule.getExposePort(), project, cubeName, "src/test/resources/ut_meta");
     @Rule
-    public EnableClickHouseJob test = new EnableClickHouseJob(1, 1, project, cubeName, "src/test/resources/ut_meta");
+    public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private final SparkSession sparkSession = sharedSpark.getSpark();
 
     /**

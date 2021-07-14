@@ -177,7 +177,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         doSetup();
 
         if (needHttpServer()) {
-            _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory());
+            _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory(), 0);
         }
 
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
