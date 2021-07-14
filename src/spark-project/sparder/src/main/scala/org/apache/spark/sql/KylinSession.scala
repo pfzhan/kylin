@@ -26,7 +26,6 @@ import java.io.File
 import java.net.URI
 import java.nio.file.Paths
 import java.sql.SQLException
-
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
@@ -39,10 +38,10 @@ import org.apache.kylin.query.util.{QueryParams, QueryUtil}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
-import org.apache.spark.sql.internal.{SessionState, SharedState}
+import org.apache.spark.sql.internal.{SessionState, SharedState, StaticSQLConf}
 import org.apache.spark.sql.kylin.external.{KylinSessionStateBuilder, KylinSharedState}
 import org.apache.spark.sql.udf.UdfManager
-import org.apache.spark.util.KylinReflectUtils
+import org.apache.spark.util.{KylinReflectUtils, Utils}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConverters._
@@ -202,6 +201,9 @@ object KylinSession extends Logging {
 
           sc
         }
+        applyExtensions(
+          sparkContext.getConf.get(StaticSQLConf.SPARK_SESSION_EXTENSIONS).getOrElse(Seq.empty),
+          extensions)
         session = new KylinSession(sparkContext, existingSharedState, parentSessionState, extensions)
         SparkSession.setDefaultSession(session)
         SparkSession.setActiveSession(session)
@@ -266,7 +268,7 @@ object KylinSession extends Logging {
       val cartesianFactor = KylinConfig.getInstanceFromEnv.getCartesianPartitionNumThresholdFactor
       var cartesianPartitionThreshold = sparkCores * cartesianFactor
       val confThreshold = sparkConf.get("spark.sql.cartesianPartitionNumThreshold")
-      if (!confThreshold.isEmpty && confThreshold.toInt >= 0) {
+      if (confThreshold.nonEmpty && confThreshold.toInt >= 0) {
         cartesianPartitionThreshold = confThreshold.toInt
       }
       sparkConf.set("spark.sql.cartesianPartitionNumThreshold", cartesianPartitionThreshold.toString)
@@ -322,8 +324,8 @@ object KylinSession extends Logging {
 
       val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", defaultValue = false)
       var logDir = sparkConf.get("spark.eventLog.dir", "")
-      if (eventLogEnabled && !logDir.isEmpty) {
-        logDir = ExtractFactory.create.getSparderEvenLogDir
+      if (eventLogEnabled && logDir.nonEmpty) {
+        logDir = ExtractFactory.create.getSparderEvenLogDir()
         sparkConf.set("spark.eventLog.dir", logDir)
         val logPath = new Path(new URI(logDir).getPath)
         val fs = HadoopUtil.getWorkingFileSystem()
@@ -339,6 +341,32 @@ object KylinSession extends Logging {
       queryCluster = false
       this
     }
+  }
+
+  /**
+   * Copied from SparkSession.applyExtensions. So that KylinSession can load extensions through SparkConf.
+   * <p/>
+   * Initialize extensions for given extension classnames. The classes will be applied to the
+   * extensions passed into this function.
+   */
+  private def applyExtensions(
+    extensionConfClassNames: Seq[String],
+    extensions: SparkSessionExtensions): SparkSessionExtensions = {
+    extensionConfClassNames.foreach { extensionConfClassName =>
+      try {
+        val extensionConfClass = Utils.classForName(extensionConfClassName)
+        val extensionConf = extensionConfClass.getConstructor().newInstance()
+          .asInstanceOf[SparkSessionExtensions => Unit]
+        extensionConf(extensions)
+      } catch {
+        // Ignore the error if we cannot find the class or when the class has the wrong type.
+        case e@(_: ClassCastException |
+                _: ClassNotFoundException |
+                _: NoClassDefFoundError) =>
+          logWarning(s"Cannot use $extensionConfClassName to configure session extensions.", e)
+      }
+    }
+    extensions
   }
 
 }
