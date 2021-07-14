@@ -494,6 +494,33 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         mockQueryWithSqlMassage();
     }
 
+    private void mockOLAPContextWithStreaming() throws Exception {
+        val modelManager = Mockito
+                .spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "demo"));
+
+        Mockito.doReturn(modelManager).when(queryService).getDataModelManager("demo");
+        // mock agg index realization
+        OLAPContext aggMock = new OLAPContext(1);
+        NDataModel mockModel1 = Mockito.spy(new NDataModel());
+        Mockito.when(mockModel1.getUuid()).thenReturn("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        Mockito.when(mockModel1.getAlias()).thenReturn("model_streaming");
+        Mockito.doReturn(mockModel1).when(modelManager).getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        IRealization realization = Mockito.mock(IRealization.class);
+        Mockito.when(realization.getModel()).thenReturn(mockModel1);
+        aggMock.realization = realization;
+        IndexEntity mockIndexEntity1 = new IndexEntity();
+        mockIndexEntity1.setId(1);
+        LayoutEntity mockLayout1 = new LayoutEntity();
+        mockLayout1.setIndex(mockIndexEntity1);
+        aggMock.storageContext.setCandidateStreaming(new NLayoutCandidate(mockLayout1));
+        aggMock.storageContext.setStreamingLayoutId(10001L);
+        aggMock.storageContext.setPrunedStreamingSegments(Lists.newArrayList(new NDataSegment()));
+        OLAPContext.registerContext(aggMock);
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
+        mockQueryWithSqlMassage();
+    }
+
     private void mockQueryWithSqlMassage() throws Exception {
         Mockito.doAnswer(new Answer() {
             @Override
@@ -1495,5 +1522,28 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
         Assert.assertFalse(sqlResponse.getNativeRealizations().get(1).isStreamingLayout());
+    }
+
+    @Test
+    public void testQueryContextWithStreamingModel() throws Exception {
+        final String project = "demo";
+        final String sql = "select count(*) from SSB_STREAMING";
+
+        stubQueryConnection(sql, project);
+        mockOLAPContextWithStreaming();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        SQLResponse sqlResponse = queryService.queryWithCache(request);
+
+        Assert.assertEquals(1, sqlResponse.getNativeRealizations().size());
+
+        Assert.assertEquals("4965c827-fbb4-4ea1-a744-3f341a3b030d",
+                sqlResponse.getNativeRealizations().get(0).getModelId());
+        Assert.assertEquals((Long) 10001L,
+                sqlResponse.getNativeRealizations().get(0).getLayoutId());
+
+        Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
     }
 }

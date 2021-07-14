@@ -334,13 +334,16 @@ public class OLAPContext {
                         streamingRealization.setStreamingLayout(true);
                         realizations.add(streamingRealization);
 
-                        String batchId = ((HybridRealization) ctx.realization).getBatchRealization().getUuid();
-                        val batchRealization = new NativeQueryRealization(batchId, modelAlias,
-                                ctx.storageContext.getCuboidLayoutId(), realizationType,
-                                ctx.storageContext.isPartialMatchModel(), snapshots);
-                        batchRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
-                                .getOrDefault(batchRealization.getLayoutId(), false));
-                        realizations.add(batchRealization);
+                        if (ctx.realization instanceof HybridRealization) {
+                            String batchId = ((HybridRealization) ctx.realization).getBatchRealization().getUuid();
+                            val batchRealization = new NativeQueryRealization(batchId, modelAlias,
+                                    ctx.storageContext.getCuboidLayoutId(), realizationType,
+                                    ctx.storageContext.isPartialMatchModel(), snapshots);
+                            batchRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
+                                    .getOrDefault(batchRealization.getLayoutId(), false));
+                            realizations.add(batchRealization);
+                        }
+
                     } else {
                         val realization = new NativeQueryRealization(modelId, modelAlias,
                                 ctx.storageContext.getCuboidLayoutId(), realizationType,
