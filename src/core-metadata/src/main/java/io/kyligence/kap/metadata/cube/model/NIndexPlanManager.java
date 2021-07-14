@@ -332,7 +332,9 @@ public class NIndexPlanManager implements IKeepNames {
         }
 
         val readLayouts = readySegments.getLayoutsMap().keySet();
-        return dataflow.getIndexPlan().getAllLayouts().stream()
-                .filter(l -> readLayouts.contains(l.getId()) && !l.isToBeDeleted()).count();
+        return dataflow.getIndexPlan().getAllLayoutsReadOnly().stream() //
+                .filter(layoutEntityPair -> readLayouts.contains(layoutEntityPair.getLeft().getId())
+                        && !layoutEntityPair.getRight())
+                .count();
     }
 }

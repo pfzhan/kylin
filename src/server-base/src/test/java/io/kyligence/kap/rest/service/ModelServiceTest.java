@@ -75,6 +75,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -4762,17 +4763,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
         return segment;
     }
 
-    private List<LayoutEntity> spyLayouts() {
+    private List<ImmutablePair<LayoutEntity, Boolean>> spyLayouts() {
         val id = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         val index = indexPlanManager.getIndexPlan(id);
-        val layouts = index.getAllLayouts();
+        List<ImmutablePair<LayoutEntity, Boolean>> LayoutsPair = Lists.newArrayList();
+        val layouts = index.getAllLayoutsReadOnly();
         layouts.forEach(l -> {
-            if (l.getId() == 1L || l.getId() == 10001L) {
-                l.setToBeDeleted(true);
+            if (l.getLeft().getId() == 1L || l.getLeft().getId() == 10001L) {
+                LayoutsPair.add(ImmutablePair.of(l.getLeft(), true));
+            } else {
+                LayoutsPair.add(ImmutablePair.of(l.getLeft(), l.getRight()));
             }
         });
-        return layouts;
+        return LayoutsPair;
     }
 
     @Test
@@ -4798,7 +4802,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 return indexPlan;
             }
             IndexPlan indexPlan1 = Mockito.spy(indexPlan);
-            Mockito.doAnswer(invocationOnMock -> layouts).when(indexPlan1).getAllLayouts();
+            Mockito.doAnswer(invocationOnMock -> layouts).when(indexPlan1).getAllLayoutsReadOnly();
             return indexPlan1;
         });
         val res = modelService.getModels(alias, getProject(), false, "", null, "last_modify", true);
