@@ -78,7 +78,10 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     ASYNC_QUERY_ILLEGAL_PARAM("KE-020040001"),
 
     // 20050XXX invalid query params
-    INVALID_QUERY_PARAMS("KE-020050001");
+    INVALID_QUERY_PARAMS("KE-020050001"),
+
+    // 20060XXX parse error
+    FAILED_PARSE_ERROR("KE-020060001");
 
     private final ErrorCode errorCode;
 

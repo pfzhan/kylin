@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.query.engine.mask;
 
+import io.kyligence.kap.query.util.EscapeDialect;
+import io.kyligence.kap.query.util.EscapeParser;
+import io.kyligence.kap.query.util.ParseException;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -31,8 +34,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -55,12 +58,19 @@ class MaskUtil {
 
     static List<SqlIdentifier> getCCCols(String ccExpr) {
         SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder().setQuoting(Quoting.BACK_TICK);
-        SqlParser sqlParser = SqlParser.create("select " + ccExpr, parserBuilder.build());
+        String selectSql = "select " + ccExpr;
+        EscapeParser parser = new EscapeParser(EscapeDialect.CALCITE, selectSql);
+        try {
+            selectSql = parser.Input();
+        } catch (ParseException e) {
+            throw new KylinException(QueryErrorCode.FAILED_PARSE_ERROR, "Failed to convert column expr " + ccExpr, e);
+        }
+        SqlParser sqlParser = SqlParser.create(selectSql, parserBuilder.build());
         SqlSelect select;
         try {
             select = (SqlSelect) sqlParser.parseQuery();
         } catch (SqlParseException e) {
-            throw new KylinException(CommonErrorCode.UNKNOWN_ERROR_CODE, "Failed to parse computed column expr " + ccExpr, e);
+            throw new KylinException(QueryErrorCode.FAILED_PARSE_ERROR, "Failed to parse computed column expr " + ccExpr, e);
         }
         return select.getSelectList().getList().stream().flatMap(op -> getSqlIdentifiers(op).stream()).collect(Collectors.toList());
     }

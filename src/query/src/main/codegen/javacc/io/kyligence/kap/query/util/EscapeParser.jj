@@ -409,6 +409,9 @@ String TsDiffOrAddExpression() :
     (< SPACE >)* <LPAREN> (< SPACE >)*
     {
         String timeunit = ParameterExpression().trim();
+        if (timeunit.startsWith("'") && timeunit.endsWith("'") && timeunit.length() > 2) {
+            timeunit = timeunit.substring(1, timeunit.length() - 1);
+        }
         if (!timeunitSet.contains(timeunit.toUpperCase(Locale.ROOT))) {
             throw new IllegalStateException(String.format(Locale.ROOT, TIMESTAMP_DIFF_ADD_EXCEPTION_MSG,
                 functionName, timeunit, String.join(", ", timeunitSet)));
