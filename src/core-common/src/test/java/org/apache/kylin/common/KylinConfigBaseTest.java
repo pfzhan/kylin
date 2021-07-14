@@ -245,6 +245,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMaxConcurrentJobLimit", new PropertiesEntity("kylin.job.max-concurrent-jobs", "10", 10));
 
+        map.put("getMaxStreamingConcurrentJobLimit",
+                new PropertiesEntity("kylin.streaming.job.max-concurrent-jobs", "10", 10));
+
         map.put("getAutoSetConcurrentJob", new PropertiesEntity("kylin.job.auto-set-concurrent-jobs", "true", true));
 
         map.put("isCtlJobPriorCrossProj",
@@ -564,11 +567,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getMetricsReporterFrequency", new PropertiesEntity("kylin.metrics.file-frequency", "5000", 5000L));
 
-        map.put("getPerfLoggerClassName",
-                new PropertiesEntity("kylin.metrics.perflogger-class", "PerfLogger", "PerfLogger"));
-
-        map.put("isHtraceTracingEveryQuery", new PropertiesEntity("kylin.htrace.trace-every-query", "false", false));
-
         map.put("getBuildConf", new PropertiesEntity("kylin.engine.submit-hadoop-conf-dir", "", ""));
 
         map.put("getParquetReadFileSystem", new PropertiesEntity("kylin.storage.columnar.file-system", "", ""));
@@ -658,19 +656,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getStorageProvider",
                 new PropertiesEntity("kylin.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider",
                         "org.apache.kylin.common.storage.DefaultStorageProvider"));
-
-        map.put("getStreamingBaseCheckpointLocation", new PropertiesEntity(
-                "kylin.engine.streaming-base-ckeckpoint-location", "/kylin/checkpoint", "/kylin/checkpoint"));
-
-        map.put("getStreamingMetricsEnabled",
-                new PropertiesEntity("kylin.engine.streaming-metrics-enabled", "false", false));
-
-        map.put("getStreamingSegmentMergeThresholds",
-                new PropertiesEntity("kylin.engine.streaming-segment-merge-threshold", "20", 20));
-
-        map.put("getStreamingDuration", new PropertiesEntity("kylin.engine.streaming-duration", "30000", "30000"));
-
-        map.put("getTriggerOnce", new PropertiesEntity("kylin.engine.streaming-trigger-once", "false", false));
 
         map.put("getLoadHiveTablenameIntervals",
                 new PropertiesEntity("kylin.source.load-hive-tablename-interval-seconds", "3600", 3600L));
@@ -860,7 +845,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getKafkaRatePerPartition",
                 new PropertiesEntity("kylin.streaming.kafka.max-rate-per-partition", "-1", "-1"));
         map.put("getServerIpAddress", new PropertiesEntity("kylin.env.ip-address", "127.0.0.1", "127.0.0.1"));
-        map.put("getSystemProfileExtractor", new PropertiesEntity("kylin.tool.system-profile-extractor", "io.kyligence.kap.tool.LightningSystemProfileExtractor", "io.kyligence.kap.tool.LightningSystemProfileExtractor"));
+        map.put("getSystemProfileExtractor",
+                new PropertiesEntity("kylin.tool.system-profile-extractor",
+                        "io.kyligence.kap.tool.LightningSystemProfileExtractor",
+                        "io.kyligence.kap.tool.LightningSystemProfileExtractor"));
 
     }
 
