@@ -387,6 +387,7 @@ export default class SourceKafka extends Vue {
   mounted () {
     this.brokers = []
     if (this.convertDataStore && this.sampleDataStore && this.treeDataStore.length) {
+      this.topicOptions = objectClone(this.convertDataStore)
       this.kafkaMeta = this.convertDataStore.kafka.kafka_config
       this.brokers = [this.kafkaMeta.kafka_bootstrap_servers]
       this.kafkaMeta.clusters = [{brokers: [this.kafkaMeta.kafka_bootstrap_servers]}]

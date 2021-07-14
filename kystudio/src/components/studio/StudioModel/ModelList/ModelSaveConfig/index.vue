@@ -213,7 +213,7 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && modelInstance.model_type !== 'STREAMING' && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && (!modelInstance.has_base_table_index || !modelInstance.has_base_agg_index)))">
+      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && !isStreamModel && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && (!modelInstance.has_base_table_index || !modelInstance.has_base_agg_index)))">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
@@ -479,7 +479,7 @@ export default class ModelPartitionModal extends Vue {
   }
   get isStreamModel () {
     const factTable = this.modelInstance.getFactTable()
-    return factTable.source_type ? factTable.source_type === 1 : this.modelInstance.model_type === 'STREAMING'
+    return factTable.source_type ? (factTable.source_type === 1 && !factTable.batch_table_identity) : this.modelInstance.model_type === 'STREAMING'
   }
   get isNotBatchModel () {
     const factTable = this.modelInstance.getFactTable()
@@ -770,7 +770,7 @@ export default class ModelPartitionModal extends Vue {
         isSubmit: isSubmit,
         isPurgeSegment: this.isChangePartition,
         data: temp,
-        with_base_index: this.modelInstance.model_type === 'STREAMING' ? false : this.addBaseIndex
+        with_base_index: this.isStreamModel ? false : this.addBaseIndex
       })
       this.hideModal()
       this.resetModalForm()

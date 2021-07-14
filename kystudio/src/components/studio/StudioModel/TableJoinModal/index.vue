@@ -534,6 +534,14 @@ export default class TableJoinModal extends Vue {
 
     try {
       const res = await this.form.modelInstance.generateMetadata(true)
+      const factTable = this.form.modelInstance.getFactTable()
+      if (res.join_tables.length === 0 && factTable.name !== this.fTable.name) { // 维度表未空，且连接关系中没有事实表，提示应该先连事实表
+        this.$message({
+          type: 'error',
+          message: this.$t('noFactTableTips')
+        })
+        return
+      }
       // if (res.uuid) {
       const currentJoinIndex = res.join_tables.findIndex(it => it.alias === this.pTableName)
       if (currentJoinIndex > -1) {

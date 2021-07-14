@@ -144,7 +144,7 @@ export default {
         this.resetErrortags()
         this.isSignSameValue && this.signSameTags()
         !this.validateFailedMove && this.signValidateFailedTags()
-        this.errorValues.length > 0 && this.signServerValidateFailedTags()
+        this.errorValues && this.errorValues.length > 0 && this.signServerValidateFailedTags()
       })
     },
     bindTagClick () {
@@ -201,7 +201,7 @@ export default {
             tags[index] && (tags[index].className += ' error-tag')
             indexes.push(index)
           }
-          if (this.errorValues.indexOf(item.trim()) !== -1) {
+          if (this.errorValues && this.errorValues.indexOf(item.trim()) !== -1) {
             tags[index] && (tags[index].className += ' error-tag')
           }
         })
@@ -210,12 +210,11 @@ export default {
     },
     // 标记后端校验失败的tag
     signServerValidateFailedTags () {
-      debugger
       setTimeout(() => {
         const tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         const tagText = tags.map(item => item.querySelector('.el-select__tags-text') && item.querySelector('.el-select__tags-text').innerText)
         tagText.forEach((item, index) => {
-          if (this.errorValues.indexOf(item.trim()) !== -1) {
+          if (this.errorValues && this.errorValues.indexOf(item.trim()) !== -1) {
             tags[index] && (tags[index].className += ' error-tag')
           }
         })
@@ -232,7 +231,7 @@ export default {
       this.resetErrortags()
       this.isSignSameValue && this.signSameTags()
       !this.validateFailedMove && this.signValidateFailedTags()
-      this.errorValues.length > 0 && this.signServerValidateFailedTags()
+      this.errorValues && this.errorValues.length > 0 && this.signServerValidateFailedTags()
       this.$emit('removeTag', data, this.refreshInfo)
     },
     selectTag (e) {
@@ -283,7 +282,7 @@ export default {
       this.signSameTags()
       this.isSignSameValue && this.signSameTags()
       !this.validateFailedMove && this.signValidateFailedTags()
-      this.errorValues.length > 0 && this.signServerValidateFailedTags()
+      this.errorValues && this.errorValues.length > 0 && this.signServerValidateFailedTags()
     },
     manualInputEvent () {
       // 处理单独录入的情况 start
@@ -301,7 +300,7 @@ export default {
           this.resetErrortags()
           this.isSignSameValue && (this.selectedL = this.selectedL.filter(it => it), this.signSameTags())
           !this.validateFailedMove && (this.selectedL = this.selectedL.filter(it => it), this.signValidateFailedTags())
-          this.errorValues.length > 0 && (this.selectedL = this.selectedL.filter(it => it), this.signServerValidateFailedTags())
+          this.errorValues && this.errorValues.length > 0 && (this.selectedL = this.selectedL.filter(it => it), this.signServerValidateFailedTags())
           this.$emit('refreshData', this.selectedL, this.refreshInfo)
         }
         if (this.$refs.select.$refs.input) {
@@ -331,7 +330,7 @@ export default {
         this.resetErrortags()
         this.isSignSameValue && this.signSameTags()
         !this.validateFailedMove && this.signValidateFailedTags()
-        this.errorValues.length > 0 && this.signServerValidateFailedTags()
+        this.errorValues && this.errorValues.length > 0 && this.signServerValidateFailedTags()
       }
     }
     this.bindTagClick()

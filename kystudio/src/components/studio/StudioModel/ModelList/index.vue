@@ -182,7 +182,7 @@
               </el-popover>
               <span class="model-alias-title" @mouseenter.prevent v-popover:titlePopover>{{scope.row.alias}}</span>
             </div>
-            <el-tooltip class="last-modified-tooltip" effect="dark" :content="`${$t('dataLoadTime')}${scope.row.gmtTime}`" placement="top">
+            <el-tooltip class="last-modified-tooltip" effect="dark" :content="`${$t('dataLoadTime')}${scope.row.gmtTime}`" placement="bottom">
               <span>{{scope.row.gmtTime}}</span>
             </el-tooltip>
 

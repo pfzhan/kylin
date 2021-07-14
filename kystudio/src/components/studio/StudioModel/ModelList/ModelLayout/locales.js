@@ -20,7 +20,8 @@ export default {
     moreAction: 'More',
     noData: 'No Data',
     recommendationsBtn: 'Recommendations',
-    streaming: 'Streaming'
+    streaming: 'Streaming',
+    noResult: 'No Result'
   },
   'zh-cn': {
     overview: '基本信息',

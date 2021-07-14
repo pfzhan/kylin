@@ -199,7 +199,7 @@ describe('Component SettingBasic', () => {
       error: jest.fn()
     }
     await wrapper.vm.handleSubmit('basic-info', callbackFnc.success, callbackFnc.error)
-    expect(mockApi.mockCallGlobalDetailDialog.mock.calls[0][1]).toEqual({"dangerouslyUseHTMLString": true, "dialogType": "warning", "isBeta": true, "msg": "Please note that this feature is still in BETA phase. Potential risks or known limitations might exist. Check <a class=\"ky-a-like\" href=\"https://docs.kyligence.io/books/v4.3/en/acceleration/\" target=\"_blank\">user manual</a> for details.<br/>Do you want to continue?", "needConcelReject": true, "showDetailBtn": false, "submitText": "Turn On", "title": "Turn On Recommendation"})
+    expect(mockApi.mockCallGlobalDetailDialog.mock.calls[0][1]).toEqual({"dangerouslyUseHTMLString": true, "dialogType": "warning", "isBeta": true, "msg": "Please note that this feature is still in BETA phase. Potential risks or known limitations might exist. Check <a class=\"ky-a-like\" href=\"https://docs.kyligence.io/books/v4.5/en/acceleration/\" target=\"_blank\">user manual</a> for details.<br/>Do you want to continue?", "needConcelReject": true, "showDetailBtn": false, "submitText": "Turn On", "title": "Turn On Recommendation"})
     expect(mockApi.mockUpdateProjectGeneralInfo.mock.calls[0][1]).toEqual({"alias": "xm_test_1", "description": undefined, "maintain_model_type": "MANUAL_MAINTAIN", "project": "xm_test_1", "semi_automatic_mode": true})
     expect(callbackFnc.success).toBeCalled()
     expect(wrapper.emitted()['reload-setting'].length).toBe(5)
