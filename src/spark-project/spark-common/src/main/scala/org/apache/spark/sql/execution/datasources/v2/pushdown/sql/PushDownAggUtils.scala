@@ -176,7 +176,8 @@ object PushDownAggUtils {
           referenceAs(cntName, countAlias, countExpression))
 
       case Count(_) | Sum(_) | Max(_) | Min(_) =>
-        inputBuffers.map { ref =>
+        // See Sum for understanding why take 1
+        inputBuffers.take(1).map { ref =>
           val aliasName = createAliasName.map(_.apply()).getOrElse(outerName + ref.name)
           referenceAs(aliasName, ref, aggregateExpression.copy(mode = Partial))
         }
@@ -226,13 +227,22 @@ object PushDownAggUtils {
           qualifier = old.qualifier,
           explicitMetadata = old.explicitMetadata,
           nonInheritableMetadataKeys = old.nonInheritableMetadataKeys)
+      case oldSum@AggregateExpression(_: Sum, _, _, _, _) if pushedAggregateMap.contains(oldSum) =>
+        val pushedAgg = pushedAggregateMap(oldSum).head
+        require(pushedAgg.dataType == oldSum.dataType)
+        val newSumFunc = Sum(pushedAgg.toAttribute)
+        val newSum = oldSum.copy(aggregateFunction = newSumFunc)
+        if (oldSum.dataType == newSum.dataType) {
+          newSum
+        } else {
+          Cast(newSum, oldSum.dataType)
+        }
       case a@AggregateExpression(agg, _, _, _, _) if pushedAggregateMap.contains(a) =>
-        val x = pushedAggregateMap(a).head
+        val pushedAgg = pushedAggregateMap(a).head
         val newAgg = agg match {
-          case _: Max => Max(x.toAttribute)
-          case _: Min => Min(x.toAttribute)
-          case _: Sum => Sum(x.toAttribute)
-          case _: Count => Sum(x.toAttribute)
+          case _: Max => Max(pushedAgg.toAttribute)
+          case _: Min => Min(pushedAgg.toAttribute)
+          case _: Count => Sum(pushedAgg.toAttribute)
           case _ => throw new UnsupportedOperationException()
         }
         a.copy(aggregateFunction = newAgg)

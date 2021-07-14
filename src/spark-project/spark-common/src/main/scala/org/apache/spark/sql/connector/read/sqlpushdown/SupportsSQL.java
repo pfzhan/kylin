@@ -19,7 +19,7 @@ package org.apache.spark.sql.connector.read.sqlpushdown;
 import org.apache.spark.annotation.Evolving;
 import org.apache.spark.sql.connector.catalog.TableCatalog;
 
-/**
+/**.
  * A mix-in interface for {@link TableCatalog} to indicate that Data sources whether support SQL or
  * not
  *

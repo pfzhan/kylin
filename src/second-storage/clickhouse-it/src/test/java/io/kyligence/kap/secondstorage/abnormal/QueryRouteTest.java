@@ -64,6 +64,7 @@ import java.io.FileNotFoundException;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -87,7 +88,8 @@ public class QueryRouteTest {
     public static ClickHouseClassRule clickHouseClassRule = new ClickHouseClassRule(clickhouseNumber);
     public EnableTestUser enableTestUser = new EnableTestUser();
     public EnableClickHouseJob test =
-            new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1, clickHouseClassRule.getExposePort(), project, cubeName, "src/test/resources/ut_meta");
+            new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1,
+                    clickHouseClassRule.getExposePort(), project, Collections.singletonList(cubeName), "src/test/resources/ut_meta");
     @Rule
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private final SparkSession sparkSession = sharedSpark.getSpark();

@@ -16,13 +16,17 @@
  */
 package org.apache.spark.sql.execution.datasources.v2.pushdown.sql
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.catalyst.expressions.{BinaryArithmetic, BinaryComparison, BinaryExpression, CheckOverflow, Expression, Literal, PromotePrecision}
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.catalyst.{analysis, expressions => expr}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import java.math.BigInteger
 import java.sql.{Date, Timestamp}
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * SQL builder class.
@@ -30,17 +34,20 @@ import java.sql.{Date, Timestamp}
 object SQLBuilder {
 
   private def longToReadableTimestamp(t: Long): String = {
-    throw new UnsupportedOperationException
-    // DateTimeUtils.timestampToString(t) + "." +
-    //  "%07d".format(DateTimeUtils.toJavaTimestamp(t).getNanos()/100)
+    val ts = DateTimeUtils.toJavaTimestamp(t)
+    new SimpleDateFormat("yyyy-MM-dd hh:mm:ss", Locale.getDefault(Locale.Category.FORMAT)).format(ts)
   }
 
   protected def formatAttributeWithQualifiers(qualifiers: Seq[String], name: String): String =
     (qualifiers :+ name).map({ s => s""""$s"""" }).mkString(".")
 
+  // copied from JDBC DIALECT escapeSql
+  def escapeString(value: String): String =
+    if (value == null) null else StringUtils.replace(value, "'", "''")
+
   protected def literalToSql(value: Any): String = value match {
-    case s: String => s"'$s'"
-    case s: UTF8String => s"'$s'"
+    case s: String => s"'${escapeString(s)}'"
+    case s: UTF8String => s"'${escapeString(s.toString)}'"
     case b: Byte => s"$b"
     case i: Int => s"$i"
     case l: Long => s"$l"
@@ -54,16 +61,22 @@ object SQLBuilder {
     case other => other.toString
   }
 
-  def typeToSql(sparkType: DataType): String = sparkType match {
-      case `StringType` => "VARCHAR(*)"
+  // TODO：extend point
+  def typeToSql(sparkType: DataType, nullable: Boolean = false): String = sparkType match {
+      case `StringType` => "String"
       case `IntegerType` => "INTEGER"
       case `ByteType` => "TINYINT"
       case `ShortType` => "SMALLINT"
       case `LongType` => "BIGINT"
       case `FloatType` => "FLOAT"
       case `DoubleType` => "DOUBLE"
-      case DecimalType.Fixed(precision, scale) => s"DECIMAL($precision,$scale)"
-      case `DateType` => "DATE"
+      case DecimalType.Fixed(precision, scale) =>
+        if (nullable) {
+          s"Nullable(DECIMAL($precision,$scale))"
+        } else {
+          s"DECIMAL($precision,$scale)"
+        }
+      case `DateType` => if (nullable)  { "Nullable(DATE)" } else { "DATE" }
       case `BooleanType` => "BOOLEAN"
       case `TimestampType` => "TIMESTAMP"
       case _ =>
@@ -117,10 +130,10 @@ object SQLBuilder {
       // in Spark 1.5 timestamps are longs and processed internally, however we have to
       // convert that to TO_TIMESTAMP()
       case t@Literal(_, dataType) if dataType.equals(TimestampType) =>
-        s"TO_TIMESTAMP('${longToReadableTimestamp(t.value.asInstanceOf[Long])}')"
+        s"toDateTime('${longToReadableTimestamp(t.value.asInstanceOf[Long])}')"
       case expr.Literal(value, _) => literalToSql(value)
       case expr.Cast(child, dataType, _) =>
-        s"CAST(${expressionToSql(child)} AS ${typeToSql(dataType)})"
+        s"CAST(${expressionToSql(child)} AS ${typeToSql(dataType, child.nullable)})"
       // TODO work on that, for SPark 1.6
       // case expr.CountDistinct(children) => s"COUNT(DISTINCT ${expressionsToSql(children, ",")})"
       case expr.aggregate.AggregateExpression(aggFunc, _, _, _, _)
@@ -134,6 +147,8 @@ object SQLBuilder {
       case expr.Second(date, _) => s"EXTRACT(SECOND FROM ${expressionToSql(date)})"
       case expr.CurrentDate(_) => s"CURRENT_DATE()"
       case expr.Pow(left, right) => s"POWER(${expressionToSql(left)}, ${expressionToSql(right)})"
+      case expr.StringLocate(substr, str, start) =>  // for clickhouse locate
+        s"LOCATE(${expressionToSql(str)}, ${expressionToSql(substr)}, $start)"
       case expr.Substring(str, pos, len) =>
         s"SUBSTRING(${expressionToSql(str)}, $pos, $len)"
       // TODO work on that, for SPark 1.6

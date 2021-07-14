@@ -25,13 +25,13 @@ package org.apache.spark.sql.catalyst.expressions
 
 import java.time.ZoneId
 import java.util.TimeZone
-
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodeGenerator, CodegenContext, ExprCode, FalseLiteral}
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, GenericArrayData, KapDateTimeUtils}
+import org.apache.spark.sql.connector.read.sqlpushdown.NotSupportPushDown
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
@@ -54,7 +54,8 @@ import scala.collection.JavaConverters._
 // scalastyle:on line.size.limit
 case class KapAddMonths(startDate: Expression, numMonths: Expression)
   extends BinaryExpression
-    with ImplicitCastInputTypes {
+    with ImplicitCastInputTypes
+    with NotSupportPushDown {
 
   override def left: Expression = startDate
 
@@ -191,7 +192,8 @@ case class Sum0(child: Expression)
 
 case class KapDayOfWeek(a: Expression)
   extends UnaryExpression
-    with ImplicitCastInputTypes {
+    with ImplicitCastInputTypes
+    with NotSupportPushDown {
 
   override def child: Expression = a
 
@@ -283,7 +285,9 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
   }
 }
 
-case class TimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
+case class TimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression
+  with ExpectsInputTypes
+  with NotSupportPushDown {
 
   override def inputTypes: Seq[AbstractDataType] =
     Seq(StringType, TypeCollection(DateType, TimestampType), TypeCollection(DateType, TimestampType))

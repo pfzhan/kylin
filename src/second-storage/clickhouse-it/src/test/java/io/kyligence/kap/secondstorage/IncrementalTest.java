@@ -53,6 +53,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -75,14 +76,15 @@ public class IncrementalTest implements JobWaiter {
     @ClassRule
     public static ClickHouseClassRule clickHouseClassRule = new ClickHouseClassRule(1);
     public EnableTestUser enableTestUser = new EnableTestUser();
-    public EnableClickHouseJob test = new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1, clickHouseClassRule.getExposePort(), project, modelId, "src/test/resources/ut_meta");
+    public EnableClickHouseJob test = new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1,
+            clickHouseClassRule.getExposePort(), project, Collections.singletonList(modelId), "src/test/resources/ut_meta");
     @Rule
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private SecondStorageService secondStorageService = new SecondStorageService();
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
     }
 

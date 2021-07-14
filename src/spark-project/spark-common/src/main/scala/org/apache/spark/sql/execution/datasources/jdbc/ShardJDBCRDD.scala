@@ -138,12 +138,12 @@ object ShardJDBCRDD extends Logging {
    *
    * @param options - JDBC options that contains url, table and other information.
    */
-  private def createConnectionFactoryByShard(options: JDBCOptions): () => Connection = {
+  private def createConnectionFactoryByShard(options: JDBCOptions): Partition => Connection = {
     val shards = ShardOptions.create(options)
     val driverClass: String = options.driverClass
-    () => {
-      require(TaskContext.get.partitionId < shards.shards.length )
-      val url = shards.shards.apply(TaskContext.get.partitionId)
+    (thePart: Partition) => {
+      require(thePart.index < shards.shards.length)
+      val url = shards.shards.apply(thePart.index)
       logInfo(s"Create connection for shard: $url")
       DriverRegistry.register(driverClass)
       val driver: Driver = DriverManager.getDrivers.asScala.collectFirst {
@@ -198,7 +198,7 @@ object ShardJDBCRDD extends Logging {
  */
 private[jdbc] class ShardJDBCRDD(
     sc: SparkContext,
-    getConnection: () => Connection,
+    getConnection: Partition => Connection,
     schema: StructType,
     partitions: Array[Partition],
     url: String,
@@ -259,7 +259,7 @@ private[jdbc] class ShardJDBCRDD(
 
     val inputMetrics = context.taskMetrics().inputMetrics
     val part = thePart.asInstanceOf[JDBCPartition]
-    conn = getConnection()
+    conn = getConnection(thePart)
     val dialect = JdbcDialects.get(url)
     import scala.collection.JavaConverters._
     dialect.beforeFetch(conn, options.asProperties.asScala.toMap)

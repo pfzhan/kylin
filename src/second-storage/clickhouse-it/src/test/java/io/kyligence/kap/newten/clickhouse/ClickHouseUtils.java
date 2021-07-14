@@ -114,7 +114,6 @@ public class ClickHouseUtils {
         } else if (jdbcClassesArePresent("com.github.housepower.jdbc.ClickHouseDriver")) {
             clickhouse = new ClickHouseContainerWithNativeJDBC(CLICKHOUSE_IMAGE);
         }
-
         Assert.assertNotNull("Can not find JDBC Driver", clickhouse);
 
         try {
@@ -188,17 +187,17 @@ public class ClickHouseUtils {
             if (setupDataByDefault) {
                 setupData(connection1, (data) -> {
                     data.createTable();
-                    data.insertData(1, 1L, "2");
-                    data.insertData(2, 2L, "3");
-                    data.insertData(3, 3L, "3");
+                    data.insertData(1, 2L, "2");
+                    data.insertData(2, 3L, "3");
+                    data.insertData(3, 4L, "3");
                     data.insertData(7, 3L, "4");
                     return true;
                 });
                 setupData(connection2, (data) -> {
                     data.createTable();
-                    data.insertData(4, 4L, "3");
-                    data.insertData(5, 5L, "2");
-                    data.insertData(6, 6L, "2");
+                    data.insertData(4, 5L, "3");
+                    data.insertData(5, 6L, "2");
+                    data.insertData(6, 7L, "2");
                     return true;
                 });
             }

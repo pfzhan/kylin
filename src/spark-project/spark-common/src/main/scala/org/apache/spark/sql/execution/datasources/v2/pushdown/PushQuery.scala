@@ -18,18 +18,18 @@ package org.apache.spark.sql.execution.datasources.v2.pushdown
 
 import java.util.Locale
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.catalyst.expressions.{AliasHelper, And, AttributeReference, Expression, NamedExpression, ProjectionOverSchema, ScalaUDF}
+import org.apache.spark.sql.catalyst.expressions.{Abs, Acos, Alias, AliasHelper, And, Asin, Atan, Atan2, AttributeMap, AttributeReference, CaseWhen, Cast, Concat, Cos, DayOfMonth, DayOfYear, Exp, Expression, Floor, Hour, Literal, Lower, Minute, Month, NamedExpression, Pow, ProjectionOverSchema, Quarter, RegExpReplace, Remainder, ScalaUDF, Second, Signum, Sin, StringLocate, StringTrimLeft, StringTrimRight, Substring, Tan, ToDegrees, ToRadians}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, AggregateFunction, Average, Count, Max, Min, Sum}
 import org.apache.spark.sql.catalyst.planning.ScanOperation
 import org.apache.spark.sql.catalyst.plans.logical
 import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, LogicalPlan, Project}
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, V1Scan}
-import org.apache.spark.sql.connector.read.sqlpushdown.{SupportsSQL, SupportsSQLPushDown}
+import org.apache.spark.sql.connector.read.sqlpushdown.{NotSupportPushDown, SupportsSQL, SupportsSQLPushDown}
 import org.apache.spark.sql.execution.datasources.DataSourceStrategy
 import org.apache.spark.sql.execution.datasources.v2.{DataSourceV2Implicits, DataSourceV2Relation, DataSourceV2ScanRelation, PushDownUtils2, V1ScanWrapper}
 import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.{PushDownAggUtils, SingleCatalystStatement}
 import org.apache.spark.sql.sources
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{NullType, StructType}
 
 abstract sealed class PushQuery extends Logging {
   def push(): LogicalPlan
@@ -179,6 +179,13 @@ case class PushAggregateQuery(
       child = scanRelation)
   }
 
+  def replaceAliasMayKeepName(oldAttr: AttributeReference): NamedExpression = {
+    aliasMap.get(oldAttr).map {
+      case Alias(a: AttributeReference, _) => a
+      case x => x
+    }.getOrElse(oldAttr)
+  }
+
   def newScanRelation(
       aggregations: Seq[NamedExpression],
       groupBy: Seq[NamedExpression],
@@ -186,12 +193,14 @@ case class PushAggregateQuery(
     val SQLPushDown = scanChild.scanBuilder
 
     val outputAndProjectMap = output.map{ attr =>
-      if (aliasMap.contains(attr)) {
-        val newAttr = aliasMap(attr)
-        newAttr.collectFirst { case a: AttributeReference => a }.get -> newAttr
-      } else {
-        attr -> attr
-      }
+      aliasMap.get(attr)
+        .flatMap { alias =>
+          alias match {
+            case Alias(attr: AttributeReference, _) => Some(attr -> alias)
+            case _ => None
+          }
+        }
+        .getOrElse( attr -> attr)
     }
     val newProjects = outputAndProjectMap.map(_._2)
     val newOutput = outputAndProjectMap.map(_._1)
@@ -199,13 +208,13 @@ case class PushAggregateQuery(
     val aggregationsWithoutAlias = aggregations.map {
       e => e.transformDown {
         case agg: AggregateExpression => replaceAlias(agg, aliasMap)
-        case reference: AttributeReference => replaceAlias(reference, aliasMap)
+        case reference: AttributeReference => replaceAliasMayKeepName(reference)
       }
     }.asInstanceOf[Seq[NamedExpression]]
 
     val groupByWithoutAlias = groupBy.map {
       e => e.transformDown {
-        case reference: AttributeReference => replaceAlias(reference, aliasMap)
+        case reference: AttributeReference => replaceAliasMayKeepName(reference)
       }
     }.asInstanceOf[Seq[NamedExpression]]
 
@@ -213,6 +222,7 @@ case class PushAggregateQuery(
         aggregationsWithoutAlias,
         scanChild.pushedFilters,
         groupByWithoutAlias)
+
     SQLPushDown.pushStatement(pushStatement, StructType.fromAttributes(newOutput))
 
     val scan = SQLPushDown.build() match {
@@ -222,7 +232,6 @@ case class PushAggregateQuery(
     }
 
     val scanRelation = DataSourceV2ScanRelation(scanChild.relation, scan, newOutput)
-
     if(newOutput == output) {
       scanRelation
     } else {
@@ -273,14 +282,41 @@ object PushQuery extends Logging {
     }
 
   private def containNonSupportedAggregateFunction(
-      aggregateExpressions: Seq[NamedExpression]): Boolean =
-    aggregateExpressions
+      aggregateExpressions: Seq[NamedExpression]): Boolean = {
+    val (aggExpressions, nonAggExpressions) =
+      aggregateExpressions.partition(expr => expr.collect { case agg: AggregateExpression => agg }.nonEmpty)
+    val hasNonSupportAgg = aggExpressions
       .flatMap(expr => expr.collect { case agg: AggregateExpression => agg })
       .exists(agg => agg.isDistinct || nonSupportedAggregateFunction(agg.aggregateFunction))
 
+    hasNonSupportAgg ||
+      nonAggExpressions.flatMap { expr =>
+        expr.collect {
+          case nullAlias@Alias(l: Literal, _) if l.dataType.isInstanceOf[NullType] => nullAlias
+          case n: NotSupportPushDown => n  // sql036
+        }}
+      .nonEmpty
+  }
+
   private def containNonSupportProjects(
       projects: Seq[NamedExpression]): Boolean = {
-    projects.flatMap { expr => expr.collect { case u: ScalaUDF => u }}
+    projects
+      .flatMap { expr =>
+        expr.collect {
+          case u: ScalaUDF => u
+          case c: CaseWhen => c           // sql008
+          case s: StringTrimLeft => s     // sql192
+          case q: Quarter => q            // sql338
+          case d1: DayOfYear => d1        // sql345
+          case t: ToDegrees => t          // sql690
+          case t1: ToRadians => t1        // sql714
+          case s4: Signum => s4           // sql722
+          case r: RegExpReplace => r      // sql819
+          case s5: StringTrimRight => s5  // sql824
+          case n: NotSupportPushDown => n // sql163 TimestampDiff
+                                          // sql199 KapAddMonths
+                                          // sql384 KapDayOfWeek
+        }}
       .nonEmpty
   }
   private def subqueryPlan(op: LogicalPlan): Boolean =
@@ -295,7 +331,7 @@ object PushQuery extends Logging {
     plan match {
       case ScanOperation(project, filters, relation: DataSourceV2Relation) =>
         relation.table.asReadable.newScanBuilder(relation.options) match {
-          case down: SupportsSQLPushDown if relation.catalog.exists(_.isInstanceOf[SupportsSQL]) =>
+          case down: SupportsSQLPushDown if relation.catalog.exists(_.isInstanceOf[SupportsSQL])  && project.nonEmpty =>
             Some(PushScanQuery(project, filters, relation, down))
           case builder: ScanBuilder =>
             Some(new OldPush(project, filters, relation, builder))

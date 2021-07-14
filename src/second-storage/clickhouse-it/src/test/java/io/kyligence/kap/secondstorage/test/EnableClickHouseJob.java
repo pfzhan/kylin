@@ -42,11 +42,12 @@ import org.junit.Assert;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.IOException;
+import java.util.List;
 
 
 public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
 
-    private final String modelName;
+    private final List<String> modelNames;
     private final int replica;
     private final JdbcDatabaseContainer<?>[] clickhouse;
     private final SecondStorageService secondStorageService = new SecondStorageService();
@@ -54,9 +55,10 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
     private EmbeddedHttpServer _httpServer;
     private final int exposedPort;
 
-    public EnableClickHouseJob(JdbcDatabaseContainer<?>[] clickhouse, int replica, int exposedPort, String project, String modelName, String... extraMeta) {
+    public EnableClickHouseJob(JdbcDatabaseContainer<?>[] clickhouse,
+                               int replica, int exposedPort, String project, List<String> modelName, String... extraMeta) {
         super(project, extraMeta);
-        this.modelName = modelName;
+        this.modelNames = modelName;
         this.replica = replica;
         this.clickhouse = clickhouse;
         this.exposedPort = exposedPort;
@@ -76,7 +78,8 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
         ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
         secondStorageService.changeProjectSecondStorageState(project, SecondStorageNodeHelper.getAllNames(), true);
         Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(project).size());
-        secondStorageService.changeModelSecondStorageState(project, modelName, true);
+        modelNames.forEach(modelName ->
+                secondStorageService.changeModelSecondStorageState(project, modelName, true));
     }
 
     @SneakyThrows

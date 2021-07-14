@@ -67,6 +67,7 @@ import org.junit.rules.TestRule;
 import org.mockito.Mockito;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 public class SecondStorageJavaTest implements JobWaiter {
@@ -83,7 +84,8 @@ public class SecondStorageJavaTest implements JobWaiter {
     @ClassRule
     public static ClickHouseClassRule clickHouseClassRule = new ClickHouseClassRule(1);
 
-    public EnableClickHouseJob test = new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1, clickHouseClassRule.getExposePort(), project, modelId, "src/test/resources/ut_meta");
+    public EnableClickHouseJob test = new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1,
+            clickHouseClassRule.getExposePort(), project, Collections.singletonList(modelId), "src/test/resources/ut_meta");
     @Rule
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private SecondStorageService secondStorageService = new SecondStorageService();
@@ -93,7 +95,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     private final SparkSession sparkSession = sharedSpark.getSpark();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         secondStorageService.setAclEvaluate(aclEvaluate);
     }
@@ -150,7 +152,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testRecoverModelNotEnableSecondStorage() throws Exception {
+    public void testRecoverModelNotEnableSecondStorage() {
         val request = new RecoverRequest();
         request.setProject(project);
         request.setModelName(modelName);
@@ -160,7 +162,7 @@ public class SecondStorageJavaTest implements JobWaiter {
     }
 
     @Test(expected = KylinException.class)
-    public void testRecoverModelNotExist() throws Exception {
+    public void testRecoverModelNotExist() {
         val request = new RecoverRequest();
         request.setProject(project);
         request.setModelName(modelName + "123");

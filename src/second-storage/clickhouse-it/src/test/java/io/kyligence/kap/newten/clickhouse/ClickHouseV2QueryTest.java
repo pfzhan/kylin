@@ -131,25 +131,67 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
                     String.format(Locale.ROOT, "select * from %s.%s", catalogName, table);
             Assert.assertEquals(7, ss.sql(sql).count());
 
-            String sql2 = String.format(Locale.ROOT,
-                            "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by s2", catalogName, table);
-
+            List<String> expectedGroup = ImmutableList.of("s2");
             List<Row> expectedRow =
                     ImmutableList.of(
-                            RowFactory.create("2", 12, 4.0),
-                            RowFactory.create("3", 9, 3.0),
+                            RowFactory.create("2", 12, 5.0),
+                            RowFactory.create("3", 9, 4.0),
                             RowFactory.create("4", 7, 3.0));
 
-            Dataset<Row> dataset = ss.sql(sql2);
-            List<Row> results = dataset.collectAsList();
-            Assert.assertEquals(expectedRow, results);
+            String sql2 = String.format(Locale.ROOT,
+                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by s2", catalogName, table);
+            CheckSQL(sql2, expectedRow, expectedGroup, 2);
 
-            ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
-            Assert.assertEquals(2, shardJDBCScan.relation().parts().length);
-            List<String> expected = ImmutableList.of("s2");
-            ClickHouseUtils.checkGroupBy(shardJDBCScan, expected);
+            String sql3 = String.format(Locale.ROOT,
+                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 1", catalogName, table);
+            CheckSQL(sql3, expectedRow, expectedGroup, 2);
+
+            String sql4 = String.format(Locale.ROOT,
+                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 2 desc", catalogName, table);
+            CheckSQL(sql4, expectedRow, expectedGroup, 2);
+
+            String sql5 = String.format(Locale.ROOT,
+                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 3 desc", catalogName, table);
+            CheckSQL(sql5, expectedRow, expectedGroup, 2);
+
+            //Alias
+            String sql3_1 = String.format(Locale.ROOT,
+                    "select s2 as xxxx, sum(i1) as s_1, avg(i2) as a_1 from %s.%s group by s2 order by 1",
+                    catalogName, table);
+            CheckSQL(sql3_1, expectedRow, expectedGroup, 2);
+
+            String sql5_1 = String.format(Locale.ROOT,
+                    "select s2 as xxxx, sum(i1) as s_1, avg(i2) as a_1 from %s.%s group by s2 order by 3 desc",
+                    catalogName, table);
+            CheckSQL(sql5_1, expectedRow, expectedGroup, 2);
+
+            String sql5_2 = String.format(Locale.ROOT,
+                    "select s2 as xxxx, sum(i1) as s_1, (sum(i2) / count(i2)) as a_1 from %s.%s group by s2 order by 3 desc",
+                    catalogName, table);
+            CheckSQL(sql5_2, expectedRow, expectedGroup, 2);
+
+            //
+            List<Row> expectedRowAscByAvg =
+                    ImmutableList.of(
+                            RowFactory.create("4", 7, 3.0),
+                            RowFactory.create("3", 9, 4.0),
+                            RowFactory.create("2", 12, 5.0));
+            String sql6 = String.format(Locale.ROOT,
+                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 3", catalogName, table);
+            CheckSQL(sql6, expectedRowAscByAvg, expectedGroup, 2);
+
             return true;
         });
+    }
+
+    static void CheckSQL(String sql2, List<Row> expectedRow, List<String> expectedGroup, int expectedShards) {
+        Dataset<Row> dataset = ss.sql(sql2);
+        List<Row> results = dataset.collectAsList();
+        Assert.assertEquals(expectedRow, results);
+
+        ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
+        Assert.assertEquals(expectedShards, shardJDBCScan.relation().parts().length);
+        ClickHouseUtils.checkGroupBy(shardJDBCScan, expectedGroup);
     }
 
     @Test

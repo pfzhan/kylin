@@ -89,7 +89,7 @@ case class ShardJDBCScanBuilder(
     val groupBy = catalystStatement.groupBy
     SingleSQLStatement (
       relation = jdbcOptions.tableOrQuery,
-      projects = Some(projects.map(SQLBuilder.expressionToSql(_))),
+      projects = if (projects.isEmpty) None else Some(projects.map(SQLBuilder.expressionToSql(_))),
       filters = if (filters.isEmpty) None else Some(filters),
       groupBy = if (groupBy.isEmpty) None else Some(groupBy.map(SQLBuilder.expressionToSql(_))),
       url = Some(jdbcOptions.url)
