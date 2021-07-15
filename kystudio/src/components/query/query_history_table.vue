@@ -99,13 +99,13 @@
                   <p class="list" :class="{'active': props.row.hightlight_realizations}">
                     <span class="label">{{$t('kylinLang.query.answered_by')}}</span>
                     <span class="text">
-                      <span v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
-                        <span v-for="(item, index) in props.row.realizations" :key="item.modelId">
+                      <span v-if="props.row.realizations && getRealizations2(props.row.realizations).length" class="realization-tags">
+                        <span v-for="(item, index) in getRealizations2(props.row.realizations)" :key="item.modelId">
                           <template v-if="'visible' in item && !item.visible">
-                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                           </template>
                           <template v-else>
-                            <span @click="openIndexDialog(item, props.row.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                            <span @click="openIndexDialog(item, getRealizations2(props.row.realizations))" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                           </template>
                         </span>
                       </span>
@@ -115,14 +115,14 @@
                   <p class="list" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
                     <span class="label">{{$t('kylinLang.query.index_id')}}</span>
                     <span class="text">
-                      <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in props.row.realizations" :key="item.layoutId">
+                      <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in getRealizations(props.row.realizations)" :key="item.layoutId">
                         <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                          <span @click="openLayoutDetails(item)" v-if="item.layoutId !== -1 && item.layoutId !== 0">{{item.layoutId}}</span>
+                          <span @click="openLayoutDetails(item)">{{item.layoutId}}</span>
                         </el-tooltip>
-                        <el-tag size="mini" v-if="item.layoutId !== -1 && item.layoutId !== 0&&item.streamingLayout" class="ksd-ml-2" style="cursor:default">{{$t('streamingTag')}}</el-tag>
+                        <el-tag size="mini" v-if="item.streamingLayout" class="ksd-ml-2" style="cursor:default">{{$t('streamingTag')}}</el-tag>
                         <el-tooltip placement="top" :content="$t('secStorage')">
                           <el-icon v-if="item.secondStorage" class="ksd-fs-22" name="el-ksd-icon-tieredstorage_22" type="mult"></el-icon>
-                        </el-tooltip><span>{{`${index !== props.row.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                        </el-tooltip><span>{{`${index !== getRealizations(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                       </span>
                     </span>
                   </p>
@@ -198,9 +198,9 @@
         width="250">
         <template slot-scope="props">
           <div class="tag-ellipsis" :class="{'hasMore': checkIsShowMore(props.row.realizations)}">
-            <template v-if="props.row.realizations && props.row.realizations.length">
-              <el-tag v-for="(item, index) in props.row.realizations" :class="{'disabled': 'visible' in item && !item.visible}" v-if="index < checkShowCount(props.row.realizations)" :type="'visible' in item && !item.visible ? 'info' : item.valid ? 'success' : 'info'" size="small" :key="item.modelId"><i class="el-icon-ksd-lock" v-if="'visible' in item && !item.visible"></i>{{item.modelAlias}}</el-tag>
-              <a v-if="checkIsShowMore(props.row.realizations)" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: props.row.realizations.length - checkShowCount(props.row.realizations)})}}</a>
+            <template v-if="props.row.realizations && getRealizations2(props.row.realizations).length">
+              <el-tag v-for="(item, index) in getRealizations2(props.row.realizations)" :class="{'disabled': 'visible' in item && !item.visible}" v-if="index < checkShowCount(getRealizations2(props.row.realizations))" :type="'visible' in item && !item.visible ? 'info' : item.valid ? 'success' : 'info'" size="small" :key="item.modelId"><i class="el-icon-ksd-lock" v-if="'visible' in item && !item.visible"></i>{{item.modelAlias}}</el-tag>
+              <a v-if="checkIsShowMore(getRealizations2(props.row.realizations))" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: getRealizations2(props.row.realizations).length - checkShowCount(getRealizations2(props.row.realizations))})}}</a>
             </template>
             <template v-else>
               <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
@@ -430,7 +430,11 @@ export default class QueryHistoryTable extends Vue {
 
   // 排除击中 snapshot 的查询对象
   getRealizations (row) {
-    return row.filter(item => item.indexType !== 'Table Snapshot')
+    return row.filter(item => item.indexType !== 'Table Snapshot' && item.layoutId !== 0 && item.layoutId !== -1)
+  }
+
+  getRealizations2 (row) {
+    return row.filter(item => item.layoutId !== 0 && item.layoutId !== -1)
   }
 
   dateRangeChange () {

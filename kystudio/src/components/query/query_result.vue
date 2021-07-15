@@ -26,30 +26,30 @@
             <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
               <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
               <span class="text">
-                <span v-if="extraoption.realizations && extraoption.realizations.length" class="realization-tags">
-                  <span v-for="(item, index) in extraoption.realizations" :key="item.modelId">
+                <span v-if="realizations && realizations.length" class="realization-tags">
+                  <span v-for="(item, index) in realizations" :key="item.modelId">
                     <template v-if="'visible' in item && !item.visible">
-                      <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== extraoption.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                      <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                     </template>
                     <template v-else>
-                      <span @click="openIndexDialog(item, extraoption.realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== extraoption.realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                      <span @click="openIndexDialog(item, realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                     </template>
                   </span>
                 </span>
                 <span v-else class="realization-tags">{{extraoption.engineType}}</span>
               </span>
             </p>
-            <p class="resultText" v-if="layoutIds.length">
+            <p class="resultText" v-if="realizations.length">
               <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
               <span class="text">
-                <span class="realizations-layout-id" v-for="(item, index) in layoutIds" :key="item.layoutId">
+                <span class="realizations-layout-id" v-for="(item, index) in realizations" :key="item.layoutId">
                   <span class="layout-id">
                     <span :class="{'ksd-mr-22': item.secondStorage}" @click="openLayoutDetails(item)">{{item.layoutId}}</span>
                     <el-tag size="mini" v-if="item.streamingLayout" class="ksd-ml-2">{{$t('streamingTag')}}</el-tag>
                     <el-tooltip placement="top" :content="$t('secStorage')">
                       <el-icon v-if="item.secondStorage" class="ksd-fs-22" name="el-ksd-icon-tieredstorage_22" type="mult"></el-icon>
                     </el-tooltip>
-                  </span><span>{{`${index !== layoutIds.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                  </span><span>{{`${index !== realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                 </span>
               </span>
             </p>
@@ -580,15 +580,15 @@ export default class queryResult extends Vue {
   //     return this.extraoption.engineType
   //   }
   // }
-  get layoutIds () {
+  get realizations () {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
-      let filterIds = []
+      let realizations = []
       for (let i of this.extraoption.realizations) {
         if (i.layoutId !== -1 && i.layoutId !== null && i.layoutId !== 0) {
-          filterIds.push({layoutId: i.layoutId, modelId: i.modelId, streamingLayout: i.streamingLayout, secondStorage: i.secondStorage})
+          realizations.push(i)
         }
       }
-      return filterIds
+      return realizations
     } else {
       return []
     }

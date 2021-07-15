@@ -308,6 +308,10 @@ export default class DataSourceModal extends Vue {
         return this.setModal({ editType: editTypes.KAFKA2 })
       }
       case editTypes.KAFKA2: {
+        if (!submitData.isShowHiveTree) { // 如果选择不关联，确保关联的Hive去掉
+          submitData.kafka_config.batch_table_identity = ''
+          submitData.kafka_config.has_shadow_table = false
+        }
         const response = await this.saveKafka(submitData)
         return await handleSuccessAsync(response)
       }
