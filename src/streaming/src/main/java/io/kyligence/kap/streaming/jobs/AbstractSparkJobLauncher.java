@@ -75,7 +75,7 @@ public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
         this.jobType = jobType;
         this.env = Maps.newHashMap();
         this.config = KylinConfig.getInstanceFromEnv();
-        this.kylinJobJar = config.getKylinJobJarPath();
+        this.kylinJobJar = config.getStreamingJobJarPath();
         this.listener = new StreamingJobListener(project, jobId);
         this.streamingJobManager = StreamingJobManager.getInstance(config, project);
         this.strmJob = streamingJobManager.getStreamingJobByUuid(StreamingUtils.getJobId(modelId, jobType.name()));

@@ -1180,6 +1180,22 @@ public abstract class KylinConfigBase implements Serializable {
         return jar.getAbsolutePath();
     }
 
+    public String getStreamingJobJarPath() {
+        final String jobJar = getOptional("kylin.streaming.spark.job-jar");
+        if (StringUtils.isNotEmpty(jobJar)) {
+            return jobJar;
+        }
+        String kylinHome = getKylinHome();
+        if (StringUtils.isEmpty(kylinHome)) {
+            return "";
+        }
+        val jar = FileUtils.findFile(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
+        if (jar == null) {
+            return "";
+        }
+        return jar.getAbsolutePath();
+    }
+
     public String getKylinExtJarsPath() {
         String kylinHome = getKylinHome();
         if (StringUtils.isEmpty(kylinHome)) {
