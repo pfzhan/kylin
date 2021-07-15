@@ -18,7 +18,7 @@ export const editTypes = {
 //   }
 // }
 export const titleMaps = {
-  [editTypes.SELECT_SOURCE]: 'loadTables',
+  [editTypes.SELECT_SOURCE]: 'selectSource',
   [editTypes.CONFIG_SOURCE]: 'configSource',
   [editTypes.VIEW_SOURCE]: 'viewSource',
   // csv 数据源相关

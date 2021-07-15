@@ -303,8 +303,8 @@ exports.default = {
     authorityDetail: 'Permission denied details',
     authorityMsg: 'You cannot access the model {modelName}. Because you lack data access to the following tables and columns.',
     parameters: 'Parameters',
-    type_c: 'Type:',
-    value_c: 'Value:',
+    type_c: 'Type: ',
+    value_c: 'Value: ',
     orderBy_c: 'Order/SUM by:',
     groupBy_c: 'Group By:',
     returnType: 'Return Type'

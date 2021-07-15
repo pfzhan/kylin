@@ -149,6 +149,7 @@
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   @change="resetError"
                   value-format="timestamp"
+                  :is-auto-complete="true"
                   :format="partitionMeta.format"
                 >
                 </el-date-picker>
@@ -160,6 +161,7 @@
                   :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
                   value-format="timestamp"
                   @change="resetError"
+                  :is-auto-complete="true"
                   :format="partitionMeta.format"
                 >
                 </el-date-picker>

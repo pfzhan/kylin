@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :class="['data-srouce-modal', {'source-modal-limit': sourceHive}]" :width="modelWidth" limited-area v-guide.dataSourceSelectBox
+  <el-dialog :class="['data-srouce-modal', {'source-modal-limit': sourceHive}]" :width="modelWidth" v-guide.dataSourceSelectBox
     :title="$t(modalTitle)"
     :visible="isShow"
     :close-on-press-escape="false"
@@ -418,10 +418,10 @@ export default class DataSourceModal extends Vue {
     padding: 0;
   }
   .create-kafka {
-    padding: 20px;
+    padding: 24px 24px 0 24px;
   }
   .source-csv {
-    padding: 20px 20px 0;
+    padding: 24px 24px 0;
   }
   &.source-modal-limit {
     .el-dialog {
@@ -432,7 +432,7 @@ export default class DataSourceModal extends Vue {
       left: 0;
       right: 0;
       margin: auto;
-      height: 623px;
+      height: 647px;
     }
     .el-dialog__body {
       height: 524px;

@@ -81,10 +81,12 @@
       <el-dialog
         :visible.sync="isDelAllDepVisible"
         width="720px"
+        status-icon="el-ksd-icon-warning_24"
+        class="del-comfirm-dialog"
         :close-on-press-escape="false"
         :close-on-click-modal="false">
         <span slot="title">{{$t('unloadTableTitle')}}</span>
-        <el-alert :show-background="false" :closable="false" show-icon type="warning" style="padding:0">
+        <el-alert :show-background="false" :closable="false" type="warning" style="padding:0">
           <span slot="title" class="ksd-fs-14" v-html="delTabelConfirmMessage"></span>
         </el-alert>
         <span slot="footer" class="dialog-footer ky-no-br-space">
@@ -217,6 +219,12 @@ export default class StudioSource extends Vue {
       confirmMessage = confirmMessage1
     } else if (!hasJob && !hasModel) {
       confirmMessage = confirmMessage2
+    } else if (hasModel) { // 这种情况说明时有相关模型引用，且选择了全部删除
+      if (this.selectedTable.datasource === 9) {
+        confirmMessage = this.$t('delHiveTableAllTips')
+      } else if (this.selectedTable.datasource === 1) {
+        confirmMessage = this.$t('delKafkaTableAllTips')
+      }
     }
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
@@ -281,7 +289,9 @@ export default class StudioSource extends Vue {
       }
     } else {
       const storageSize = Vue.filter('dataSize')(modelSize)
-      const contentVal = { tableName, storageSize }
+      const dropTabelDepenSub = this.selectedTable.datasource === 1 ? this.$t('dropTabelDepenSub') : ''
+      const dropTabelDepenSub2 = this.selectedTable.datasource === 9 ? this.$t('dropTabelDepenSub2') : ''
+      const contentVal = { tableName, storageSize, dropTabelDepenSub, dropTabelDepenSub2 }
       if (hasModel && !hasSnapshot) {
         this.delTabelConfirmMessage = this.$t('dropTabelDepen', contentVal)
       } else if (hasModel && hasSnapshot) {
@@ -303,6 +313,7 @@ export default class StudioSource extends Vue {
       const projectName = this.currentSelectedProject
       const databaseName = this.selectedTable.database
       const tableName = this.selectedTable.name
+      cascade && await this.showDeleteTableConfirm(true) // 选择全部删除时，再次comfirm
       await this.deleteTable({ projectName, databaseName, tableName, cascade })
       this.$message({ type: 'success', message: this.$t('unloadSuccess') })
       await this.handleFreshTable({ isSetToDefault: true })
@@ -410,6 +421,11 @@ export default class StudioSource extends Vue {
 .studio-source {
   height: 100%;
   background: white;
+  .del-comfirm-dialog {
+    .el-alert__title {
+      line-height: 22px;
+    }
+  }
   .layout-left {
     z-index:8;
     .data-source-bar .el-tree {

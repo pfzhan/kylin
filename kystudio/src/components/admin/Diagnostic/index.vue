@@ -508,8 +508,9 @@ export default class Diagnostic extends Vue {
             margin-top: 0;
             .el-checkbox {
               float: left;
-              margin-top: 24px;
+              margin-top: 34px;
               margin-right: 10px;
+              line-height: 1;
             }
             .download-details {
               display: inline-block;
@@ -566,6 +567,10 @@ export default class Diagnostic extends Vue {
           margin-top: 15px;
           line-height: 30px;
           padding: 0 10px;
+          .el-checkbox {
+            line-height: 1;
+            margin-top: 4px;
+          }
           .download-msg {
             color: @base-color;
             position: absolute;

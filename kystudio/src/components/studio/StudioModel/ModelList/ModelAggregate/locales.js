@@ -80,7 +80,7 @@ export default {
     buildBaseIndexTip: 'Successfully added {baseIndexNum} base index(es). ',
     updateBaseIndexTips: 'A base index would be added. The previous base index might be in "locked" state while still could answer queries. Are you sure you wan to update？',
     disabledDelBaseIndexTips: 'The base table index can\'t be deleted when the tiered storage is ON.',
-    realTimeModelActionTips: 'To add/delete streaming indexes, please take the following steps: stop the streaming job, delete all the streaming segments, add/delete streaming indexes, start the streaming job.',
+    realTimeModelActionTips: 'To build streaming index needs to start the streaming job on the Job page. To add/delete streaming indexes, follow the steps: stop the streaming job, delete all the streaming segments, add/delete streaming indexes, start the streaming job.',
     refuseAddIndexTip: 'Can\'t add streaming indexes. Please stop the streaming job and then delete all the streaming segments.',
     refuseRemoveIndexTip: 'Can\'t delete streaming indexes. Please stop the streaming job and then delete all the streaming segments.',
     disabledBuildIndexTips: 'disabledBuildIndexTips'
@@ -166,7 +166,7 @@ export default {
     buildBaseIndexTip: '成功添加 {baseIndexNum} 个基础索引。',
     updateBaseIndexTips: '将新建 1 个基础索引。原基础索引可能处于“锁定”状态，但仍可服务查询。确定要更新吗？',
     disabledDelBaseIndexTips: '在开启分层存储时基础明细索引不可删除。',
-    realTimeModelActionTips: '添加/删除实时索引请进行以下步骤：停止实时任务，清空实时 Segment，添加/删除索引，启动实时任务。',
+    realTimeModelActionTips: '构建实时索引需在任务页启动实时任务。添加/删除实时索引请进行以下步骤：停止实时任务，清空实时 Segment，添加/删除索引，启动实时任务。',
     refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。',
     refuseRemoveIndexTip: '无法删除实时索引。请先停止实时任务，再清空实时 Segment。',
     disabledBuildIndexTips: '锁定状态的索引禁止构建'

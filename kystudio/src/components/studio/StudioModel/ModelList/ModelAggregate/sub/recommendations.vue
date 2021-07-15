@@ -34,7 +34,7 @@
           show-overflow-tooltip>
           <template slot-scope="scope">
             <el-tag size="mini" :type="scope.row.type.split('_')[0] === 'ADD' ? 'success' : 'danger'" v-if="['ADD', 'REMOVE'].includes(scope.row.type.split('_')[0])">{{scope.row.type.split('_')[0] === 'ADD' ? $t('newAdd') : $t('delete')}}</el-tag>
-            {{$t(scope.row.type.split('_')[1])}}
+            <span style="position:relative;top:1px;">{{$t(scope.row.type.split('_')[1])}}</span>
           </template>
         </el-table-column>
         <el-table-column
@@ -953,6 +953,10 @@ export default class IndexList extends Vue {
   .cell {
     height: 28px;
     line-height: 28px;
+    span:first-child {
+      line-height: 28px;
+      vertical-align: revert;
+    }
     .el-table__expand-icon {
       >.el-icon {
         margin-top: -2px;

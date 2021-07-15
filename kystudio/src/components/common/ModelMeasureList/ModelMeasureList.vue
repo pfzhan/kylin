@@ -112,6 +112,9 @@ export default class ModelMeasureList extends Vue {
   //   line-height: 18px;
   // }
   .model-measure-table {
+    .parameter {
+      display: flex;
+    }
     .text {
       white-space: pre-wrap;
     }

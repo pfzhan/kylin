@@ -80,12 +80,7 @@
           trigger="click"
           hideArrow
           :value="filterArgs.model_attributes"
-          :options="[
-            { renderLabel: renderModelTypeLabel, value: 'SECOND_STORAGE' },
-            { renderLabel: renderModelTypeLabel, value: 'HYBRID' },
-            { renderLabel: renderModelTypeLabel, value: 'STREAMING' },
-            { renderLabel: renderModelTypeLabel, value: 'BATCH' }
-          ]"
+          :options="modelAttributesOptions"
           @input="v => filterContent(v, 'model_attributes')">
           <el-button text type="primary" iconr="el-ksd-icon-arrow_down_22">{{$t('modelType_c')}}{{selectedModelAttributes}}</el-button>
         </DropdownFilter>
@@ -1039,6 +1034,25 @@ export default class ModelList extends Vue {
     return [
       <span>{this.$t(value)}</span>
     ]
+  }
+
+  get modelAttributesOptions () {
+    let options = []
+    if (this.$store.state.config.platform === 'iframe') { // 云上暂不支持实时融合模型
+      options = [
+        { renderLabel: this.renderModelTypeLabel, value: 'BATCH' }
+      ]
+    } else {
+      options = [
+        { renderLabel: this.renderModelTypeLabel, value: 'HYBRID' },
+        { renderLabel: this.renderModelTypeLabel, value: 'STREAMING' },
+        { renderLabel: this.renderModelTypeLabel, value: 'BATCH' }
+      ]
+    }
+    if (this.$store.state.project.second_storage_enabled) { // 项目开启CK时，显示过滤选项
+      options.push({ renderLabel: this.renderModelTypeLabel, value: 'SECOND_STORAGE' })
+    }
+    return options
   }
 
   // 模型展开自动滚动到可视区域

@@ -300,8 +300,8 @@ exports.default = {
     authorityDetail: '权限详情',
     authorityMsg: '您无法访问模型 {modelName}，因为缺少访问以下表和列的数据权限。',
     parameters: '参数',
-    type_c: 'Type:',
-    value_c: 'Value:',
+    type_c: 'Type: ',
+    value_c: 'Value: ',
     orderBy_c: 'Order/SUM by:',
     groupBy_c: 'Group By:',
     returnType: '返回类型'

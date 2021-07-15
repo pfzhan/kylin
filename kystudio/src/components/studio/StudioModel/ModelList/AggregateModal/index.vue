@@ -95,22 +95,28 @@
                         <div class="ksd-mb-10">
                           <span class="title font-medium include-title"><span class="is-required">*</span> {{$t('include')}}</span>
                           <div class="row ksd-fright ky-no-br-space">
-                            <el-button
-                              plain
-                              class="ksd-ml-10"
-                              size="mini"
-                              :disabled="!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range)"
-                              @click="handleRemoveAllIncludes(aggregateIdx, aggregateIdx + 1, aggregate.id)"
-                            >{{$t('clearAll')}}</el-button>
-                            <el-button
-                              plain
-                              size="mini"
-                              icon="el-ksd-icon-edit_22"
-                              class="add-all-item"
-                              type="primary"
-                              :disabled="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))"
-                              v-guide.selectAllIncludesBtn
-                              @click="handleEditIncludes(aggregateIdx, aggregate.id)">{{$t('edit')}}</el-button>
+                            <common-tip placement="top" :content="$t('refuseAddIndexTip')"
+                              :disabled="!(!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))">
+                              <el-button
+                                plain
+                                class="ksd-ml-10"
+                                size="mini"
+                                :disabled="!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range)"
+                                @click="handleRemoveAllIncludes(aggregateIdx, aggregateIdx + 1, aggregate.id)"
+                              >{{$t('clearAll')}}</el-button>
+                            </common-tip>
+                            <common-tip placement="top" :content="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) ? $t('disableAddDim') : $t('refuseAddIndexTip')"
+                              :disabled="!(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))">
+                              <el-button
+                                plain
+                                size="mini"
+                                icon="el-ksd-icon-edit_22"
+                                class="add-all-item"
+                                type="primary"
+                                :disabled="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))"
+                                v-guide.selectAllIncludesBtn
+                                @click="handleEditIncludes(aggregateIdx, aggregate.id)">{{$t('edit')}}</el-button>
+                            </common-tip>
                           </div>
                         </div>
                         <!-- <el-select
@@ -138,10 +144,12 @@
                           </template>
                           <div class="no-includes" v-else>
                             <span>{{$t('noIncludesTip')}}</span>
-                            <span
-                              class="add-includes-btn"
-                              :class="{'disabled': model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range}"
-                              @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-table_add_old ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
+                            <common-tip placement="top" :content="$t('disableAddDim')" :disabled="!(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range)">
+                              <span
+                                class="add-includes-btn"
+                                :class="{'disabled': model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range}"
+                                @click="handleEditIncludes(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-table_add_old ksd-mr-2"></i>{{$t('kylinLang.common.add')}}</span>
+                            </common-tip>
                           </div>
                         </div>
                       </div>
@@ -260,12 +268,18 @@
                           <span class="title font-medium measure-title">{{$t('includeMeasure')}}</span>
                           <div class="row ksd-mb-10 ksd-fright ky-no-br-space">
                             <!-- <el-button plain size="mini" class="add-all-item" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button> -->
-                            <el-button plain size="mini" class="ksd-ml-10"
-                              :disabled="!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range)"
-                              @click="handleRemoveAllMeasure(aggregateIdx, aggregateIdx+1, aggregate.id)">{{$t('clearAll')}}</el-button>
-                            <el-button plain size="mini" class="add-all-item" type="primary"
-                              :disabled="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))"
-                              @click="handleEditMeasures(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-edit_16 ksd-mr-5"></i>{{$t('edit')}}</el-button>
+                            <common-tip placement="top" :content="$t('refuseAddIndexTip')"
+                              :disabled="!(!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))">
+                              <el-button plain size="mini" class="ksd-ml-10"
+                                :disabled="!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range)"
+                                @click="handleRemoveAllMeasure(aggregateIdx, aggregateIdx+1, aggregate.id)">{{$t('clearAll')}}</el-button>
+                            </common-tip>
+                            <common-tip placement="top" :content="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) ? $t('disableAddDim') : $t('refuseAddIndexTip')"
+                              :disabled="!(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))">
+                              <el-button plain size="mini" class="add-all-item" type="primary"
+                                :disabled="(model.model_type === 'HYBRID' && !form.aggregateArray[aggregateIdx].index_range) || (!indexUpdateEnabled && ['HYBRID', 'STREAMING'].includes(aggregate.index_range))"
+                                @click="handleEditMeasures(aggregateIdx, aggregate.id)"><i class="el-ksd-icon-edit_16 ksd-mr-5"></i>{{$t('edit')}}</el-button>
+                            </common-tip>
                           </div>
                         </div>
                         <!-- <el-select
@@ -579,10 +593,12 @@ import store, { types, initialAggregateData } from './store'
 import { titleMaps, getPlaintDimensions, findIncludeDimension } from './handler'
 import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone, ArrayFlat } from 'util'
 import { handleSuccess, postCloudUrlMessage } from 'util/business'
+import common_tip from '../../../../common/common_tip.vue'
 
 vuex.registerModule(['modals', 'AggregateModal'], store)
 
 @Component({
+  components: { common_tip },
   computed: {
     ...mapState('AggregateModal', {
       form: state => state.form,

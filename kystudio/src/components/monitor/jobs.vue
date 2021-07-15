@@ -947,6 +947,9 @@ export default class JobsList extends Vue {
       let jobBtn = document.getElementById('jobDetailBtn')
       if (jobBtn) {
         jobBtn.style.left = (screenW + 158 - 345) + 'px'
+        if (this.$store.state.config.platform === 'iframe') {
+          jobBtn.style.left = (screenW - 30 - 345) + 'px'
+        }
       }
     })
   }

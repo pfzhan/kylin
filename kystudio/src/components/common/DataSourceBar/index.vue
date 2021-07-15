@@ -12,7 +12,7 @@
           </el-tooltip>
         </div>
         <div class="add-source-table-icon" v-if="isShowLoadTable">
-          <el-tooltip :content="$t('loadTables')" effect="dark" placement="top">
+          <el-tooltip :content="$t('addDatasource')" effect="dark" placement="top">
             <i class="ksd-fs-14 el-icon-ksd-project_add"  @click="importDataSource('selectSource', currentProjectData)"></i>
           </el-tooltip>
         </div>
@@ -21,13 +21,13 @@
     <section class="body">
       <div v-if="isShowLoadTable" class="btn-group">
         <el-button plain size="medium" v-if="!isLoadingTreeData && showAddDatasourceBtn" type="primary" v-guide.addDatasource icon="el-ksd-icon-add_data_source_old" @click="importDataSource('selectSource', currentProjectData)">
-          {{$t('loadTables')}}
+          {{$t('addDatasource')}}
         </el-button>
       </div>
       <div v-if="showTreeFilter" class="ksd-mb-16 dispaly-flex">
         <el-input v-model="filterText" :placeholder="$t('searchTable')"  prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
         <div class="add-source-table-icon" v-if="isShowLoadTableInnerBtn">
-          <el-tooltip :content="$t('loadTables')" effect="dark" placement="top">
+          <el-tooltip :content="$t('addDatasource')" effect="dark" placement="top">
             <i class="ksd-fs-14 el-icon-ksd-project_add"  @click="importDataSource('selectSource', currentProjectData)"></i>
           </el-tooltip>
         </div>
@@ -270,8 +270,9 @@ export default class DataSourceBar extends Vue {
   }
   get showAddDatasourceBtn () {
     // 嵌套在lightning 中的4x，会有内置数据源的情况，只支持单数据源，这时候，不该放出添加数据源，所以只要判断datasources的length是否大于0 即可
+    // 云上环境直接屏蔽KE数据源入口
     if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
-      return this.datasources.length <= 0
+      return false
     } else { // 4x 本身保持原来逻辑: 有库表后，才隐藏添加数据源按钮（搜索时会有可能导致databaseArray数组为空，所以要判断是否是搜索后的空态）
       return this.filterText === '' && this.databaseArray.length <= 0
     }
