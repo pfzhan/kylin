@@ -168,6 +168,189 @@ public class RexToTblColRefTranslatorTest {
     }
 
     /**
+     * verify timestampdiff(second, col1, col2)
+     * RexNode is: /(Reinterpret(-($0, $1)), 1000)
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitSecond() {
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(second), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(1000))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(SECOND, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(minute, col1, col2)
+     * RexNode is: /(Reinterpret(-($0, $1)), '60000')
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitMinute() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(minute), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(60000))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(MINUTE, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(hour, col1, col2)
+     * RexNode is: /(Reinterpret(-($0, $1)), 3600000)
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitHour() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(hour), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(3600000))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(HOUR, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(day, col1, col2)
+     * RexNode is: /(Reinterpret(-($0, $1)), 86400000)
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitDay() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(day), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(86400000))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(DAY, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(week, col1, col2)
+     * RexNode is: /(/(Reinterpret(-($0, $1)), 1000), 604800)
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitWeek() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(second), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexNode medianNode = REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeLiteral("1000")));
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(medianNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(604800))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(WEEK, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(month, col1, col2)
+     * RexNode is: Reinterpret(-($0, $1))
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitMonth() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(month), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(MONTH, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(month, col1, col2)
+     * RexNode is: /(Reinterpret(-($0, $1)), 3)
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitQuarter() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(month), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(3))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(QUARTER, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
+     * verify timestampdiff(year, col1, col2)
+     * RexNode is: /(Reinterpret(-($0, $1)), 12)
+     */
+    @Test
+    public void testTimestampDiffWithTimeUnitYear() {
+
+        Map<RexNode, TblColRef> oriRexToTblColRefMap = Maps.newHashMap();
+        prepareRexToTblColRefOfTimestamp(oriRexToTblColRefMap);
+
+        final RexNode innerNode = REX_BUILDER.makeReinterpretCast(bingIntRelDataType,
+                REX_BUILDER.makeCall(TYPE_FACTORY.createSqlIntervalType(year), SqlStdOperatorTable.MINUS_DATE,
+                        createStableRexNodes(oriRexToTblColRefMap)),
+                x);
+        final RexCall rexNode = (RexCall) REX_BUILDER.makeCall(bingIntRelDataType, SqlStdOperatorTable.DIVIDE_DATE,
+                Lists.newArrayList(innerNode, REX_BUILDER.makeBigintLiteral(new BigDecimal(12))));
+        RexToSqlNodeConverter rexNodeToSqlConverter = new RexToTblColRefTranslator(
+                Sets.newHashSet(oriRexToTblColRefMap.values()), oriRexToTblColRefMap).new ExtendedRexToSqlNodeConverter(
+                        new RexToTblColRefTranslator.OLAPRexSqlStandardConvertletTable(rexNode, Maps.newHashMap()));
+        check("TIMESTAMPDIFF(YEAR, `T_1_CED5FEB`.`TIME1`, `T_1_CED5FEB`.`TIME0`)",
+                rexNodeToSqlConverter.convertCall(rexNode));
+    }
+
+    /**
      * verify timestampadd(second, 1, col2)
      * RexNode is: DATETIME_PLUS($0, 1000)
      */
