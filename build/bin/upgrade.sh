@@ -165,6 +165,14 @@ function upgrade() {
     done
     info "...................................................[DONE]"
 
+    # copy mysql connector jar to spark jars dir for apache hadoop platform
+    APACHE_HADOOP_CONF_DIR=`${NEW_KYLIN_HOME}/bin/get-properties.sh kylin.env.apache-hadoop-conf-dir`
+    if [ -n "${APACHE_HADOOP_CONF_DIR}" ]; then
+      logging "Copy mysql connector jar to spark jars dir for apache hadoop platform"
+      \cp -vf ${OLD_KYLIN_HOME}/lib/ext/mysql-connector-*.jar ${NEW_KYLIN_HOME}/spark/jars/ >> $upgrade_log || fail
+      info "...................................................[DONE]"
+    fi
+
     # copy the customize directory under old kylin home
     # such as hadoop_conf
     logging "Copy Customize Directory"
