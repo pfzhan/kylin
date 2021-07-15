@@ -424,7 +424,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     @Override
     public int hashCode() {
-        return getIdentity().hashCode();
+        return getTableAlias().hashCode();
     }
 
     @Override
@@ -536,5 +536,12 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public void setKafkaConfig(KafkaConfig kafkaConfig) {
         this.kafkaConfig = kafkaConfig;
+    }
+
+    public String getTableAlias() {
+        if (kafkaConfig != null && kafkaConfig.hasBatchTable()) {
+            return kafkaConfig.getBatchTable();
+        }
+        return getIdentity();
     }
 }

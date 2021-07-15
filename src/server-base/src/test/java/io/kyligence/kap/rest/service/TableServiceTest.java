@@ -1330,8 +1330,18 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testGetTableDescByType() {
         String project = "streaming_test";
         try {
-            List<TableDesc> tableDescs = tableService.getTableDescByType(project, true, "", "default", true, 1);
+            val tableDescs = tableService.getTableDescByType(project, true, "", "default", true, 1);
             Assert.assertNotNull(tableDescs);
+
+            val tableDescs1 = tableService.getTableDescByType(project, true, "P_LINEORDER_STREAMING", "ssb", true, 1);
+            Assert.assertEquals(1, tableDescs1.size());
+            val tableDesc1 = tableDescs1.get(0);
+            Assert.assertEquals(tableDesc1.getTableAlias(), tableDesc1.getKafkaConfig().getBatchTable());
+
+            val tableDescs2 = tableService.getTableDescByType(project, true, "LINEORDER_HIVE", "SSB", false, 9);
+            Assert.assertEquals(1, tableDescs2.size());
+            val tableDesc2 = tableDescs2.get(0);
+            Assert.assertEquals(tableDesc2.getTableAlias(), tableDesc2.getIdentity());
         } catch (Exception e) {
             Assert.fail();
         }
@@ -1349,6 +1359,5 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableService.unloadTable(project, "SSB.LINEORDER_HIVE", true);
         val table1 = tableMgr.getTableDesc("SSB.P_LINEORDER_STREAMING");
         Assert.assertNull(table1);
-
     }
 }

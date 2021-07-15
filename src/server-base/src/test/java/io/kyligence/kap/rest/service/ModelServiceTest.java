@@ -6052,6 +6052,22 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCheckAllNamedColumns() {
+        String project = "streaming_test";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel okModel = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        ModelRequest okModelRequest = new ModelRequest(okModel);
+        okModelRequest.setProject(project);
+        val model = semanticService.convertToDataModel(okModelRequest);
+        Assert.assertEquals(19, model.getAllNamedColumns().size());
+        NDataModel batchModel = modelManager.getDataModelDesc("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
+        ModelRequest batchModelRequest = new ModelRequest(batchModel);
+        batchModelRequest.setProject(project);
+        val model1 = semanticService.convertToDataModel(batchModelRequest);
+        Assert.assertEquals(model.getAllNamedColumns().get(4).getName(), model1.getAllNamedColumns().get(4).getName());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testListNodesByProject() throws IOException {
         val project = "default";

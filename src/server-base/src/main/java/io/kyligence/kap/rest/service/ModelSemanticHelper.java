@@ -29,7 +29,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JO
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -307,9 +306,7 @@ public class ModelSemanticHelper extends BasicService {
             val tableDesc = tableManager.getTableDesc(joinTable.getTable());
             boolean isFact = joinTable.getKind() == NDataModel.TableKind.FACT;
             val alias = StringUtils.isEmpty(joinTable.getAlias()) ? tableDesc.getName() : joinTable.getAlias();
-            List<ColumnDesc> columnsDesc = modelRequest.getColumnsFetcher().apply(tableDesc, !isFact).stream()
-                    .sorted(Comparator.comparing(ColumnDesc::getId)).collect(Collectors.toList());
-            for (ColumnDesc column : columnsDesc) {
+            for (ColumnDesc column : modelRequest.getColumnsFetcher().apply(tableDesc, !isFact)) {
                 val namedColumn = new NDataModel.NamedColumn();
                 namedColumn.setId(id++);
                 namedColumn.setName(column.getName());
