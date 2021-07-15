@@ -149,10 +149,18 @@ function upgrade() {
     info "...................................................[DONE]"
 
     # copy ext jars
+    # copy ext/mysql*.jar to spark/jars
     logging "Copy Ext Jars"
     for jar_file in $(ls $OLD_KYLIN_HOME/lib/ext); do
         if prompt "'${OLD_KYLIN_HOME}/lib/ext/${jar_file}' -> '${NEW_KYLIN_HOME}/lib/ext/'"; then
             \cp -vf ${OLD_KYLIN_HOME}/lib/ext/${jar_file} ${NEW_KYLIN_HOME}/lib/ext/ >> $upgrade_log || fail
+        fi
+
+        if [[ ${jar_file}} == mysql* ]];
+        then
+          if prompt "'${OLD_KYLIN_HOME}/lib/ext/${jar_file}' -> '${NEW_KYLIN_HOME}/spark/jars/'"; then
+            \cp -vf ${OLD_KYLIN_HOME}/lib/ext/${jar_file} ${NEW_KYLIN_HOME}/spark/jars/ >> $upgrade_log || fail
+          fi
         fi
     done
     info "...................................................[DONE]"
