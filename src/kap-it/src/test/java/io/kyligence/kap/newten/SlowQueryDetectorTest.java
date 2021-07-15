@@ -40,18 +40,19 @@ import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import io.kyligence.kap.query.runtime.plan.ResultPlan;
 import lombok.val;
 
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
@@ -98,19 +99,19 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         slowQueryDetector.queryEnd();
     }
 
-    @Ignore("not timeout, need another sql")
     @Test
     public void testSparderTimeoutCancelJob() throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("073198da-ce0e-4a0c-af38-cc27ae31cc0e", getProject());
-        SparkSession ss = SparderEnv.getSparkSession();
-        populateSSWithCSVData(config, getProject(), ss);
-
-        overwriteSystemProp("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
+        val df = SparderEnv.getSparkSession().emptyDataFrame();
+        val mockDf = Mockito.spy(df);
+        Mockito.doAnswer((p) -> {
+            Thread.sleep(TIMEOUT_MS * 3);
+            return null;
+        }).when(mockDf).collect();
         slowQueryDetector.queryStart("");
         try {
             SparderEnv.cleanCompute();
             long t = System.currentTimeMillis();
+            ResultPlan.getResult(mockDf, null);
             NExecAndComp.queryCube(getProject(), "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME");
             String error = "TestSparderTimeoutCancelJob fail, query cost:" + (System.currentTimeMillis() - t)
                     + " ms, need compute:" + SparderEnv.needCompute();
@@ -118,49 +119,41 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Assert.fail(error);
         } catch (Exception e) {
             Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
-            Throwable cause = e.getCause();
-            Assert.assertTrue(cause instanceof KylinTimeoutException);
-            Assert.assertTrue(
-                    ("Error while executing SQL \"select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME\": "
-                            + "The query exceeds the set time limit of 300s. "
-                            + "Current step: Collecting dataset for sparder. ").equals(e.getMessage()));
-
+            Assert.assertTrue(e instanceof KylinTimeoutException);
+            Assert.assertEquals(
+                    "The query exceeds the set time limit of 300s. Current step: Collecting dataset for sparder. ",
+                    e.getMessage());
             // reset query thread's interrupt state.
             Thread.interrupted();
         }
         slowQueryDetector.queryEnd();
     }
 
-    @Ignore("not timeout, need another sql")
     @Test
     public void testPushdownTimeoutCancelJob() throws InterruptedException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val df = SparderEnv.getSparkSession().emptyDataFrame();
+        val mockDf = Mockito.spy(df);
+        Mockito.doAnswer((p) -> {
+            Thread.sleep(TIMEOUT_MS * 3);
+            return null;
+        }).when(mockDf).collect();
+        slowQueryDetector.queryStart("");
         try {
-            SparkSession ss = SparderEnv.getSparkSession();
-            ss.sessionState().conf().setLocalProperty("spark.sql.shuffle.partitions", "10000");
-            KylinConfig conf = KylinConfig.getInstanceFromEnv();
-            conf.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "false");
-            populateSSWithCSVData(config, getProject(), ss);
-
-            slowQueryDetector.queryStart("");
-            try {
-                String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
-                SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject());
-                Assert.fail();
-            } catch (Exception e) {
-                Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
-                Assert.assertTrue(e instanceof KylinTimeoutException);
-                Assert.assertTrue(
-                        "The query exceeds the set time limit of 300s. Current step: Collecting dataset for push-down. "
-                                .equals(e.getMessage()));
-
-                // reset query thread's interrupt state.
-                Thread.interrupted();
-            }
-            slowQueryDetector.queryEnd();
-        } finally {
-            config.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "true");
+            String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
+            SparkSqlClient.dfToList(ss, "", mockDf);
+            SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject());
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());
+            Assert.assertTrue(e instanceof KylinTimeoutException);
+            Assert.assertEquals(
+                    "The query exceeds the set time limit of 300s. Current step: Collecting dataset for push-down. ",
+                    e.getMessage()
+            );
+            // reset query thread's interrupt state.
+            Thread.interrupted();
         }
+        slowQueryDetector.queryEnd();
     }
 
     @Ignore("not timeout, need another sql")

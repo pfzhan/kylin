@@ -44,9 +44,11 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv, SparkSession}
 import org.slf4j.{Logger, LoggerFactory}
-
 import java.sql.Timestamp
 import java.util.{UUID, List => JList}
+
+import com.google.common.annotations.VisibleForTesting
+
 import scala.collection.JavaConverters._
 import scala.collection.{immutable, mutable}
 
@@ -101,7 +103,8 @@ object SparkSqlClient {
     }
   }
 
-  private def dfToList(ss: SparkSession, sql: String, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
+  @VisibleForTesting
+  def dfToList(ss: SparkSession, sql: String, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
     val config = KapConfig.getInstanceFromEnv
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
