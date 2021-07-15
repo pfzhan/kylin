@@ -38,6 +38,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
@@ -122,6 +123,8 @@ public class SecondStorageJavaTest implements JobWaiter {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val segmentResponse = new NDataSegmentResponse(dataflow, dataflow.getFirstSegment());
+        Assert.assertTrue(segmentResponse.isHasBaseTableIndexData());
         val request = new StorageRequest();
         request.setProject(project);
         request.setModel(modelId);
@@ -185,6 +188,11 @@ public class SecondStorageJavaTest implements JobWaiter {
             manager.updateIndexPlan(modelId, copy -> copy.removeLayouts(Sets.newHashSet(copy.getBaseTableLayout().getId()), true, true));
             return null;
         }, project);
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val segmentResponse = new NDataSegmentResponse(dataflow, dataflow.getFirstSegment());
+        Assert.assertFalse(segmentResponse.isHasBaseTableIndexData());
         secondStorageService.onUpdate(project, modelId);
 
         secondStorageService.disableModelSecondStorage(project, modelId);

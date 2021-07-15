@@ -30,12 +30,6 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-second-storage-ui</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.kyligence.ke</groupId>
-                    <artifactId>kap-server-base</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>

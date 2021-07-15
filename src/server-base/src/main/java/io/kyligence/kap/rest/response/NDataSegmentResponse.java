@@ -34,7 +34,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.Getter;
@@ -102,6 +102,9 @@ public class NDataSegmentResponse extends NDataSegment {
     @JsonProperty("has_base_agg_index")
     private boolean hasBaseAggIndex;
 
+    @JsonProperty("has_base_table_index_data")
+    private boolean hasBaseTableIndexData;
+
     public NDataSegmentResponse() {
         super();
     }
@@ -121,6 +124,13 @@ public class NDataSegmentResponse extends NDataSegment {
         multiPartitionCount = segment.getMultiPartitions().size();
         hasBaseAggIndex = segment.getIndexPlan().containBaseAggLayout();
         hasBaseTableIndex = segment.getIndexPlan().containBaseTableLayout();
+        if (segment.getIndexPlan().getBaseTableLayout() != null) {
+            NDataLayout baseTableIndexData = segment.getSegDetails()
+                    .getLayoutById(segment.getIndexPlan().getBaseTableLayout().getId());
+            hasBaseTableIndexData = baseTableIndexData != null && baseTableIndexData.getFileCount() > 0;
+        } else {
+            hasBaseTableIndexData = false;
+        }
         lockedIndexCount = segment.getLayoutsMap().values().stream()
                 .filter(nDataLayout -> nDataLayout.getLayout().isToBeDeleted()).count();
         if (dataflow.getModel().getMultiPartitionDesc() != null) {
