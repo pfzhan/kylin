@@ -26,7 +26,7 @@
       </div>
       <div v-if="showTreeFilter" class="ksd-mb-16 dispaly-flex">
         <el-input v-model="filterText" :placeholder="$t('searchTable')"  prefix-icon="el-ksd-icon-search_22" v-global-key-event.enter.debounce="handleFilter" @clear="handleClear()"></el-input>
-        <div class="add-source-table-icon" v-if="isShowLoadTableInnerBtn">
+        <div class="add-source-table-icon" v-if="isShowLoadTableInnerBtn&&showAddDatasourceBtn">
           <el-tooltip :content="$t('addDatasource')" effect="dark" placement="top">
             <i class="ksd-fs-14 el-icon-ksd-project_add"  @click="importDataSource('selectSource', currentProjectData)"></i>
           </el-tooltip>

@@ -130,36 +130,39 @@
       </kap-pager>
     </div>
     <el-dialog :title="$t('segmentDetail')" append-to-body limited-area :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="isShowDetail" width="720px">
-      <table class="ksd-table segment-detail" v-if="detailSegment">
-        <tr class="ksd-tr">
-          <th>{{$t('segmentID')}}</th>
-          <td>{{detailSegment.id}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('segmentName')}}</th>
-          <td>{{detailSegment.name}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('segmentPath')}}</th>
-          <td class="segment-path">{{detailSegment.segmentPath}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('fileNumber')}}</th>
-          <td>{{detailSegment.fileNumber}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('storageSize1')}}</th>
-          <td>{{detailSegment.bytes_size | dataSize}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('startTime')}}</th>
-          <td>{{segmentTime(detailSegment, detailSegment.startTime) | toServerGMTDate}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('endTime')}}</th>
-          <td>{{segmentTime(detailSegment, detailSegment.endTime) | toServerGMTDate}}</td>
-        </tr>
-      </table>
+      <div class="ksd-list segment-detail" v-if="detailSegment">
+        <p class="list">
+          <span class="label">{{$t('segmentID')}}</span>
+          <span class="text">{{detailSegment.id}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('segmentName')}}</span>
+          <span class="text">{{detailSegment.name}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('segmentPath')}}</span>
+          <span class="text segment-path">{{detailSegment.segmentPath}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('fileNumber')}}</span>
+          <span class="text">{{detailSegment.fileNumber}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('storageSize1')}}</span>
+          <span class="text">{{detailSegment.bytes_size | dataSize}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('startTime')}}</span>
+          <span class="text">{{segmentTime(detailSegment, detailSegment.startTime) | toServerGMTDate}}</span>
+        </p>
+        <p class="list">
+          <span class="label">{{$t('endTime')}}</span>
+          <span class="text">{{segmentTime(detailSegment, detailSegment.endTime) | toServerGMTDate}}</span>
+        </p>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="isShowDetail = false">{{$t('kylinLang.common.close')}}</el-button>
+      </div>
     </el-dialog>
     <el-dialog
       :title="$t('refreshSegmentsTitle')"
