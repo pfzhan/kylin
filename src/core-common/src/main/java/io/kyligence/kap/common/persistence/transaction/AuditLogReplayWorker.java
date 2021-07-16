@@ -66,6 +66,7 @@ public class AuditLogReplayWorker {
 
     private final ScheduledExecutorService consumeExecutor = Executors.newScheduledThreadPool(1,
             new NamedThreadFactory("ReplayWorker"));
+
     private final AtomicBoolean isStopped = new AtomicBoolean(false);
 
     @Getter
@@ -114,6 +115,10 @@ public class AuditLogReplayWorker {
 
     public synchronized void updateOffset(long expected) {
         logOffset = Math.max(logOffset, expected);
+    }
+
+    public void forceUpdateOffset(long expected) {
+        logOffset = expected;
     }
 
     class CatchupEventHandler {

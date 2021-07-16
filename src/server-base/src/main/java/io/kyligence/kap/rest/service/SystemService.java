@@ -39,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.validation.constraints.NotNull;
 
+import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
+import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -265,5 +267,16 @@ public class SystemService extends BasicService {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(uuid));
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public void reloadMetadata() {
+        try {
+            EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.StartReloadEvent());
+            MessageSynchronization messageSynchronization = MessageSynchronization.getInstance(KylinConfig.getInstanceFromEnv());
+            messageSynchronization.replayAllMetadata();
+        } finally {
+            EventBusFactory.getInstance().postSync(new AuditLogReplayWorker.EndReloadEvent());
+        }
     }
 }

@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -72,5 +73,9 @@ public class TransactionLock {
         } else {
             return rootLock.getWriteHoldCount() > 0;
         }
+    }
+
+    public static Map<String, ReentrantReadWriteLock> getProjectLocksForRead() {
+        return Collections.unmodifiableMap(projectLocks);
     }
 }

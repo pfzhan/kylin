@@ -488,4 +488,12 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse<String> getHostname() {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AddressUtil.getLocalInstance(), "");
     }
+
+    @ApiOperation(value = "reload metadata", tags = { "MID" })
+    @PostMapping(value = "/metadata/reload")
+    @ResponseBody
+    public EnvelopeResponse<String> reloadMetadata() {
+        systemService.reloadMetadata();
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
 }

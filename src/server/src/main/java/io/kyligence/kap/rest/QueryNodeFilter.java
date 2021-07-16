@@ -143,6 +143,9 @@ public class QueryNodeFilter implements Filter {
         //epoch
         notRoutePostApiSet.add("/kylin/api/epoch");
         notRoutePostApiSet.add("/kylin/api/epoch/all");
+
+        //reload metadata
+        notRoutePostApiSet.add("/kylin/api/system/metadata/reload");
     }
 
     @Autowired

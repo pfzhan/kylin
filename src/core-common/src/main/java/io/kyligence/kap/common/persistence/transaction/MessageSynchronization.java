@@ -23,8 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import java.util.Collections;
+import java.util.Comparator;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
@@ -105,6 +110,34 @@ public class MessageSynchronization {
         } else {
             resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
                     raw.getMvcc() - 1);
+        }
+    }
+
+    public void replayAllMetadata() {
+        val lockKeys = Lists.newArrayList(TransactionLock.getProjectLocksForRead().keySet());
+        lockKeys.sort(Comparator.naturalOrder());
+        try {
+            for (String lockKey : lockKeys) {
+                TransactionLock.getLock(lockKey, false).lock();
+            }
+            log.info("Acquired all locks, start to copy");
+            UnitOfWork.replaying.set(true);
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            val fixerKylinConfig = KylinConfig.createKylinConfig(kylinConfig);
+            val fixerResourceStore = ResourceStore.getKylinMetaStore(fixerKylinConfig);
+            log.info("Finish read all metadata from store, start to reload");
+            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+            resourceStore.deleteResourceRecursively("/");
+            fixerResourceStore.copy("/", resourceStore);
+            resourceStore.setOffset(fixerResourceStore.getOffset());
+            resourceStore.forceCatchup();
+            UnitOfWork.replaying.remove();
+            log.info("Reload finished");
+        } finally {
+            Collections.reverse(lockKeys);
+            for (String lockKey : lockKeys) {
+                TransactionLock.getLock(lockKey, false).unlock();
+            }
         }
     }
 

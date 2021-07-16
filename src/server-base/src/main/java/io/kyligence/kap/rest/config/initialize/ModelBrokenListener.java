@@ -37,9 +37,6 @@ import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -114,9 +111,6 @@ public class ModelBrokenListener {
 
             OptRecManagerV2 optRecManagerV2 = OptRecManagerV2.getInstance(project);
             optRecManagerV2.discardAll(model.getId());
-
-            UnitOfWork.get()
-                    .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));
             return null;
         }, project);
     }
@@ -175,9 +169,6 @@ public class ModelBrokenListener {
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
-
-            UnitOfWork.get()
-                    .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));
 
             return null;
         }, project);

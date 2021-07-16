@@ -247,6 +247,13 @@ public class JdbcAuditLogStore implements AuditLogStore {
     }
 
     @Override
+    public void forceCatchup() {
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayWorker.forceUpdateOffset(store.getOffset());
+        replayWorker.catchup();
+    }
+
+    @Override
     public void setInstance(String instance) {
         this.instance = instance;
     }

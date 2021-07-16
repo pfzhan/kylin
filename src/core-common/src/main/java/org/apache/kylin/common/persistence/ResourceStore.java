@@ -421,6 +421,11 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
         }
     }
 
+    public void forceCatchup() {
+        val auditLogStore = getAuditLogStore();
+        auditLogStore.forceCatchup();
+    }
+
     public void leaderCatchup() {
         val auditLogStore = getAuditLogStore();
         try {

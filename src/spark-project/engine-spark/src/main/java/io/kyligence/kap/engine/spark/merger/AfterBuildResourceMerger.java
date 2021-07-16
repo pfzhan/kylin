@@ -38,9 +38,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -89,13 +86,6 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
             mergeTableExtMeta(dataflow, buildResourceStore);
             recordDownJobStats(abstractExecutable, nDataLayouts);
             abstractExecutable.notifyUserIfNecessary(nDataLayouts);
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            if (config.isUTEnv()) {
-                EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
-            } else {
-                UnitOfWork.get()
-                        .doAfterUnit(() -> EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier()));
-            }
         }
     }
 

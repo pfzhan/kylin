@@ -71,8 +71,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -753,16 +751,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
             newSegs.forEach(this::updateSegmentStatus);
-            if (needUpdateSourceUsage(update)) {
-                if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier());
-                } else {
-                    if (UnitOfWork.isAlreadyInTransaction()) {
-                        UnitOfWork.get().doAfterUnit(
-                                () -> EventBusFactory.getInstance().postWithLimit(new SourceUsageUpdateNotifier()));
-                    }
-                }
-            }
         });
         if (ArrayUtils.isNotEmpty(update.getToRemoveSegs())) {
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
