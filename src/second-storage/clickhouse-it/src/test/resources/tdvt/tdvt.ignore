@@ -25,6 +25,7 @@ sql825:CalciteContextException
 sql826:CalciteContextException
 sql827:CalciteContextException
 sql029:java.sql.SQLException
+sql182:java.sql.SQLException
 sql168:java.lang.ArrayIndexOutOfBoundsException
 sql650:java.lang.ArrayIndexOutOfBoundsException
 sql653:java.lang.ArrayIndexOutOfBoundsException
@@ -81,3 +82,12 @@ sql148:KE-29251,不支持的日期类型
 sql191:KE-29251,不支持的日期类型
 sql041:KE-29248, timezone
 sql044:KE-29248, timezone
+sql005:ignore
+sql180:ignore
+sql233:ignore
+sql234:ignore
+sql252:ignore
+sql253:ignore
+sql267:ignore
+sql268:ignore
+sql269:ignore
