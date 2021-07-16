@@ -307,6 +307,7 @@ export default {
           this.$refs.select.$refs.input.value = ''
           this.$refs.select.$refs.input.click()
           setTimeout(() => {
+            this.query = ''
             this.$refs.select.$refs.input.focus()
           }, 0)
         }

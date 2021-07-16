@@ -268,6 +268,7 @@ export default class SourceKafka extends Vue {
     this.kafkaMeta.subscribe = ''
     this.isShowErrorBrokers = false
     this.errorCode = ''
+    this.failed_servers = []
   }
   kafkaData (kafkaMeta) {
     const kafkaMetaObj = objectClone(kafkaMeta)

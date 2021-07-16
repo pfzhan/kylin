@@ -10,6 +10,7 @@ const initialState = JSON.stringify({
   isShow: false,
   isShowDimAndMeasGuide: false,
   isShowBuildGuide: false,
+  isStreamingModel: false,
   callback: null
 })
 export default {
@@ -28,15 +29,16 @@ export default {
       state.callback = payload.callback
       state.isShowDimAndMeasGuide = payload.isShowDimAndMeasGuide
       state.isShowBuildGuide = payload.isShowBuildGuide
+      state.isStreamingModel = payload.isStreamingModel
     },
     [types.RESET_MODAL_FORM]: state => {
       state.form = JSON.parse(initialState).form
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { isShowDimAndMeasGuide, isShowBuildGuide }) {
+    [types.CALL_MODAL] ({ commit }, { isShowDimAndMeasGuide, isShowBuildGuide, isStreamingModel }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL_FORM, { isShowDimAndMeasGuide, isShowBuildGuide, callback: resolve })
+        commit(types.SET_MODAL_FORM, { isShowDimAndMeasGuide, isShowBuildGuide, isStreamingModel, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

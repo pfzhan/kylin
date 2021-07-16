@@ -1,5 +1,5 @@
 <template>
-  <div class="mode-edit-tabs ksd-mt-20">
+  <div class="mode-edit-tabs">
     <kap-tab class="studio-top-tab" type="card" v-on:addtab="addTab" v-on:reload="reloadTab" v-on:removetab="delTab" :tabslist="modelEditPanels"  :active="activeName" v-on:clicktab="checkTab">
     </kap-tab>
     <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:saveRequestEnd="requestEnd" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetab="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>
@@ -162,7 +162,7 @@ export default class ModelTabs extends Vue {
       margin-bottom: 0;
     }
   }
-  height: calc(~'100% - 52px');
+  height: calc(~'100% - 38px');
   .footer {
     height:60px;
     background:transparent;

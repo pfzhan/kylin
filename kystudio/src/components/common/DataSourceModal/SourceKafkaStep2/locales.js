@@ -17,7 +17,7 @@ export default {
     cancelSelected: 'Uncheck',
     columns: 'Columns',
     attachHiveToggle: 'Attach a Hive Table',
-    attachHiveTips: 'Kafka table with an attached Hive table can be used for fusion model, while Kafka table without an attached table can be used for streaming model. When attaching, please ensure that the data type of the columns of the two tables are identical.'
+    attachHiveTips: 'Kafka table with an attached Hive table can be used for fusion model, while Kafka table without an attached table can be used for streaming model. When attaching, please ensure that the data type of the columns of the two tables are identical, and the data types of the Kafka table’s columns can\'t be modified.'
   },
   'zh-cn': {
     tableName: '填写数据库和表名',
@@ -37,6 +37,6 @@ export default {
     cancelSelected: '取消选中',
     columns: '列信息',
     attachHiveToggle: '关联 Hive 表',
-    attachHiveTips: '关联了 Hive 表的 Kafka 表可用于融合模型，未进行关联的 Kafka 表可用于实时模型。进行关联时，Kafka 表中列的数据类型必须与 Hive 表中的列保持一致。'
+    attachHiveTips: '关联了 Hive 表的 Kafka 表可用于融合模型，未进行关联的 Kafka 表可用于实时模型。进行关联时，Kafka 表中列的数据类型必须与 Hive 表中的列保持一致，且无法修改列的数据类型。'
   }
 }

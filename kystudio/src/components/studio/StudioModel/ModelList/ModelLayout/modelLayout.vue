@@ -488,7 +488,7 @@ export default class ModelLayout extends Vue {
 
   // 首次创建模型引导
   async showGuide () {
-    await this.callGuideModal({ isShowBuildGuide: true })
+    await this.callGuideModal({ isShowBuildGuide: true, isStreamingModel: this.currentModelRow.model_type === 'STREAMING' })
     localStorage.setItem('isFirstSaveModel', 'false')
   }
 

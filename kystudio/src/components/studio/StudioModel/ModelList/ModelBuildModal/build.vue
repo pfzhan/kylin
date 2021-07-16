@@ -2,7 +2,7 @@
   <!-- 模型构建 -->
     <el-dialog class="model-build" :title="title" width="560px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" :append-to-body="true" @close="isShow && closeModal(false)">
       <div>
-        <p class="habird-tips ksd-mb-16">{{$t('habirdModelBuildTips')}}</p>
+        <p class="habird-tips ksd-mb-16" v-if="isHybridModel">{{$t('habirdModelBuildTips')}}</p>
         <el-alert
           :title="$t('changeBuildTypeTips')"
           type="warning"

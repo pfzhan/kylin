@@ -1,7 +1,7 @@
 <template>
   <div class="model-guide-mask" v-if="isShow">
     <div class="background"></div>
-    <div class="dim-meas-block" :class="{'is-show-global-alter': $store.state.system.isShowGlobalAlter}" v-if="isShowDimAndMeasGuide">
+    <div class="dim-meas-block" :class="{'is-show-global-alter': $store.state.system.isShowGlobalAlter, 'is-iframe': $store.state.config.platform === 'iframe'}" v-if="isShowDimAndMeasGuide">
       <div class="tool-icon-group ksd-fright">
         <div class="tool-icon">D</div>
         <div class="tool-icon">M</div>
@@ -35,7 +35,7 @@
           <span>{{$t('tableIndex')}}</span>
         </div>
         <div class="index-desc arrow-top">
-          <div class="ksd-title-label ksd-mb-10">{{$t('indexTitle')}}</div>
+          <div class="ksd-title-label ksd-mb-10">{{$t('indexTitle')}}<span v-if="!isStreamingModel">1/3</span></div>
           <div>{{$t('indexSubTitle')}}</div>
           <div class="ksd-center">
             <img src="../../../../../assets/img/image-index-en.png" v-if="$lang === 'en'" width="400px" alt="">
@@ -43,7 +43,8 @@
           </div>
           <div class="btn-group clearfix">
             <el-button class="ksd-fleft" type="info" text @click="closeModal">{{$t('ignore')}}</el-button>
-            <el-button class="ksd-fright" type="primary" text @click="next('step3')">{{$t('next')}}</el-button>
+            <el-button class="ksd-fright" type="primary" v-if="isStreamingModel" text @click="closeModal">{{$t('iKnow')}}</el-button>
+            <el-button class="ksd-fright" type="primary" v-else text @click="next('step3')">{{$t('next')}}</el-button>
           </div>
         </div>
       </div>
@@ -82,6 +83,7 @@ vuex.registerModule(['modals', 'GuideModal'], store)
       isShow: state => state.isShow,
       isShowDimAndMeasGuide: state => state.isShowDimAndMeasGuide,
       isShowBuildGuide: state => state.isShowBuildGuide,
+      isStreamingModel: state => state.isStreamingModel,
       callback: state => state.callback
     }),
     ...mapGetters([
@@ -120,7 +122,7 @@ export default class GuideModal extends Vue {
   top: 0;
   right: 0;
   bottom: 0;
-  left: 0;
+  left: -5px;
   z-index: 999999;
   .background {
     width: 100%;
@@ -130,8 +132,11 @@ export default class GuideModal extends Vue {
   }
   .dim-meas-block {
     position: absolute;
-    top:102px;
+    top:86px;
     right: 0px;
+    &.is-iframe {
+      top: 46px;
+    }
     &.is-show-global-alter {
       top:142px;
     }

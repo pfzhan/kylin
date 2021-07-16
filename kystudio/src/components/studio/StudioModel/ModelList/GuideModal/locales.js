@@ -11,7 +11,7 @@ export default {
     indexOverview: 'Index Overview',
     aggregateGroup: 'Aggregate Group',
     tableIndex: 'Table Index',
-    indexTitle: 'Add indexes to improve query performance 1/3',
+    indexTitle: 'Add indexes to improve query performance ',
     indexSubTitle: 'Set dimensions and measures in aggregate groups and table indexes according to query requirements.',
     buildTitle: 'Indexes could be used for queries after being built 2/3',
     buildSubTitle: 'Build indexes according to the desired segments. For those segments without indexes, queries would be answered by push down.'
@@ -28,7 +28,7 @@ export default {
     indexOverview: '索引总览',
     aggregateGroup: '聚合组',
     tableIndex: '明细索引',
-    indexTitle: '添加索引提高查询效率 1/3',
+    indexTitle: '添加索引提高查询效率 ',
     indexSubTitle: '按照查询特征，将维度和度量设置在聚合组和明细索引中。',
     buildTitle: '构建后索引可用于查询 2/3',
     buildSubTitle: '你需要将索引按照数据范围（Segment）进行构建，构建完成后索引可回答查询。对于没有索引的 Segments, 查询将通过下压回答。'
