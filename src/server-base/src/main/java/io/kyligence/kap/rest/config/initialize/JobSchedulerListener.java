@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.config.initialize;
 import java.util.Map;
 
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 
 import com.google.common.collect.Maps;
 
@@ -37,10 +36,8 @@ import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.scheduler.JobAddedNotifier;
 import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
-import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,17 +48,7 @@ public class JobSchedulerListener {
         NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 
-    @Subscribe
-    public void onBuildJobFinished(JobFinishedNotifier notifier) {
-        try {
-            if (notifier.getJobClass().equals(NSparkCubingJob.class.getName()) && notifier.isSucceed()) {
-                SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getSubject(),
-                        notifier.getOwner());
-            }
-        } catch (Throwable e) {
-            log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getSubject(), e);
-        }
-    }
+
 
     @Subscribe
     public void onJobAdded(JobAddedNotifier notifier) {

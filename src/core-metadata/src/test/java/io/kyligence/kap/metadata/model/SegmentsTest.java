@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.metadata.model;
 
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
@@ -40,10 +43,6 @@ import org.junit.runner.RunWith;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import lombok.val;
 
 @RunWith(TimeZoneTestRunner.class)
@@ -284,5 +283,203 @@ public class SegmentsTest {
         volatileRangeMonth.setVolatileRangeType(AutoMergeTimeEnum.MONTH);
         val resultMonth = Segments.splitVolatileRanges(segment.getSegRange(), volatileRangeMonth);
         Assert.assertEquals(6, resultMonth.getSecond().size());
+    }
+
+    @Test
+    public void testMergeWeek() {
+        Segments segments = new Segments();
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:00:00"),
+                DateFormat.stringToMillis("1995-01-08 00:00:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-09 00:00:00"),
+                DateFormat.stringToMillis("1995-01-12 00:00:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-01-12 00:00:00"),
+                DateFormat.stringToMillis("1995-01-13 00:00:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-01-13 00:00:00"),
+                DateFormat.stringToMillis("1995-01-16 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-01-16 00:00:00"),
+                DateFormat.stringToMillis("1995-01-17 00:00:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.WEEK);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-01-09 00:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1995-01-16 00:00:00"));
+    }
+
+    @Test
+    public void testMergeHour() {
+        Segments segments = new Segments();
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-01-07 00:56:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-07 01:00:00"),
+                DateFormat.stringToMillis("1995-01-07 01:04:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-01-07 01:04:00"),
+                DateFormat.stringToMillis("1995-01-07 01:13:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-01-07 01:13:00"),
+                DateFormat.stringToMillis("1995-01-07 02:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-01-07 02:00:00"),
+                DateFormat.stringToMillis("1995-01-07 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.HOUR);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-01-07 01:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1995-01-07 02:00:00"));
+    }
+
+    @Test
+    public void testMergeDay() {
+        Segments segments = new Segments();
+        SimpleDateFormat sdf = new SimpleDateFormat(" yyyy-MM-dd HH:mm:ss ");
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-01-08 00:00:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-08 00:00:00"),
+                DateFormat.stringToMillis("1995-01-08 01:04:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-01-08 01:04:00"),
+                DateFormat.stringToMillis("1995-01-08 09:13:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-01-08 09:13:00"),
+                DateFormat.stringToMillis("1995-01-09 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-01-09 00:00:00"),
+                DateFormat.stringToMillis("1995-01-09 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.DAY);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-01-08 00:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1995-01-09 00:00:00"));
+    }
+
+    @Test
+    public void testMergeDayStartCase() {
+        Segments segments = new Segments();
+        SimpleDateFormat sdf = new SimpleDateFormat(" yyyy-MM-dd HH:mm:ss ");
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-01-07 23:00:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-08 01:00:00"),
+                DateFormat.stringToMillis("1995-01-08 01:04:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-01-08 01:04:00"),
+                DateFormat.stringToMillis("1995-01-08 09:13:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-01-08 09:13:00"),
+                DateFormat.stringToMillis("1995-01-09 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-01-09 00:00:00"),
+                DateFormat.stringToMillis("1995-01-09 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.DAY);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-01-08 01:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1995-01-09 00:00:00"));
+
+    }
+
+    @Test
+    public void testNotMergeDayMiddleError() {
+        Segments segments = new Segments();
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-01-08 01:00:00"));
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-08 00:01:00"),
+                DateFormat.stringToMillis("1995-01-08 03:04:00"));
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-01-08 10:13:00"),
+                DateFormat.stringToMillis("1995-01-09 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-01-09 00:00:00"),
+                DateFormat.stringToMillis("1995-01-09 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.DAY);
+        assert segmentRange == null;
+
+    }
+
+    @Test
+    public void testMergeMonth() {
+        Segments segments = new Segments();
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-01-07 00:56:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-08 00:00:00"),
+                DateFormat.stringToMillis("1995-01-08 01:04:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-01-08 01:04:00"),
+                DateFormat.stringToMillis("1995-01-08 09:13:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-01-08 09:13:00"),
+                DateFormat.stringToMillis("1995-01-09 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-01-09 00:00:00"),
+                DateFormat.stringToMillis("1995-01-09 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.DAY);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-01-08 00:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1995-01-09 00:00:00"));
+    }
+
+    @Test
+    public void testMergeYear() {
+        Segments segments = new Segments();
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1994-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-02-07 00:56:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-01-01 00:00:00"),
+                DateFormat.stringToMillis("1995-05-06 01:04:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-05-06 01:04:00"),
+                DateFormat.stringToMillis("1995-06-08 09:13:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-06-08 09:13:00"),
+                DateFormat.stringToMillis("1996-01-01 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1996-07-09 00:00:00"),
+                DateFormat.stringToMillis("1996-07-09 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.YEAR);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-01-01 00:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1996-01-01 00:00:00"));
+    }
+
+    @Test
+    public void testMergeQuarter() {
+        Segments segments = new Segments();
+        NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
+                DateFormat.stringToMillis("1995-02-07 00:56:00"));
+
+        NDataSegment segment2 = newReadySegment(DateFormat.stringToMillis("1995-04-01 00:00:00"),
+                DateFormat.stringToMillis("1995-05-06 01:04:00"));
+        NDataSegment segment3 = newReadySegment(DateFormat.stringToMillis("1995-05-06 01:04:00"),
+                DateFormat.stringToMillis("1995-06-08 09:13:00"));
+
+        NDataSegment segment4 = newReadySegment(DateFormat.stringToMillis("1995-06-08 09:13:00"),
+                DateFormat.stringToMillis("1995-07-01 00:00:00"));
+        NDataSegment segment5 = newReadySegment(DateFormat.stringToMillis("1995-07-09 00:00:00"),
+                DateFormat.stringToMillis("1995-07-09 02:24:00"));
+        segments.add(segment1);
+        segments.add(segment2);
+        segments.add(segment3);
+        segments.add(segment4);
+        segments.add(segment5);
+        SegmentRange segmentRange = segments.findMergeSegmentsRange(AutoMergeTimeEnum.QUARTER);
+        Assert.assertEquals(segmentRange.getStart(), DateFormat.stringToMillis("1995-04-01 00:00:00"));
+        Assert.assertEquals(segmentRange.getEnd(), DateFormat.stringToMillis("1995-07-01 00:00:00"));
     }
 }

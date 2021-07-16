@@ -44,6 +44,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.TimeRange;
 
 import com.clearspring.analytics.util.Lists;
@@ -58,6 +59,7 @@ import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -78,6 +80,17 @@ public class JobSyncListener {
             postJobInfo(extractJobInfo(notifier));
         } finally {
             updateMetrics(notifier);
+        }
+    }
+    @Subscribe
+    public void onBuildJobFinished(JobFinishedNotifier notifier) {
+        try {
+            if (notifier.getJobClass().equals(NSparkCubingJob.class.getName()) && notifier.isSucceed()) {
+                SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getSubject(),
+                        notifier.getOwner());
+            }
+        } catch (Throwable e) {
+            log.error("Auto merge failed on project {} model {}", notifier.getProject(), notifier.getSubject(), e);
         }
     }
 

@@ -493,45 +493,36 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public SegmentRange findMergeSegmentsRange(AutoMergeTimeEnum autoMergeTimeEnum) {
-        long mergeStart = Long.parseLong(this.getFirst().getSegRange().start.toString());
-        SegmentRange rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeStart,
-                getMergeEnd(mergeStart, autoMergeTimeEnum));
-
+        SegmentRange rangeToMerge = null;
         Segments segmentsToMerge = new Segments();
         for (ISegment seg : this) {
+            var segmentRange = seg.getSegRange();
+            if (rangeToMerge != null) {
+                if (segmentRange.getEnd().compareTo(rangeToMerge.getEnd()) > 0) {
+                    if (segmentsToMerge.size() > 1
+                            && (segmentsToMerge.getLast().getSegRange().connects(segmentRange) || segmentsToMerge
+                                    .getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) == 0)) {
+                        break;
+                    } else {
+                        rangeToMerge = null;
+                        segmentsToMerge.clear();
+                    }
+                }
+            }
+            if (rangeToMerge == null) {
+                long mergeStart = Long.parseLong(segmentRange.start.toString());
+                rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeStart,
+                        getMergeEnd(mergeStart, autoMergeTimeEnum));
+            }
             if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
                 return null;
             }
-            long mergeEnd = Long.parseLong(rangeToMerge.getEnd().toString());
-            SegmentRange segmentRange = seg.getSegRange();
-            // include if segment range contained
-            if (rangeToMerge.getStart().compareTo(segmentRange.getStart()) <= 0
-                    && segmentRange.getEnd().compareTo(rangeToMerge.getEnd()) <= 0) {
-                // segment has gap, compute next section
-                if (segmentsToMerge.size() > 0 && !segmentsToMerge.getLast().getSegRange().connects(segmentRange)) {
-                    rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
-                            getMergeEnd(mergeEnd, autoMergeTimeEnum));
-                    segmentsToMerge.clear();
-                    continue;
-                } else {
-                    segmentsToMerge.add(seg);
-                }
-            }
-
-            if (seg.getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) >= 0) {
-                long end = Long.parseLong(seg.getSegRange().getEnd().toString());
-                if (segmentsToMerge.size() > 1 && (segmentsToMerge.getLast().equals(seg)
-                        || segmentsToMerge.getLast().getSegRange().connects(segmentRange))) {
-                    break;
-                } else {
-                    //this section can not merge,but has next section data,compute next section
-                    rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(end,
-                            getMergeEnd(end, autoMergeTimeEnum));
-                    segmentsToMerge.clear();
-
-                    continue;
-                }
-
+            if (segmentRange.getEnd().compareTo(rangeToMerge.getEnd()) <= 0
+                    && (segmentsToMerge.isEmpty() || segmentsToMerge.getLast().getSegRange().connects(segmentRange))) {
+                segmentsToMerge.add(seg);
+            } else {
+                rangeToMerge = null;
+                segmentsToMerge.clear();
             }
         }
         if (segmentsToMerge.size() < 2) {
@@ -879,4 +870,5 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         }
         return result;
     }
+
 }
