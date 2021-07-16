@@ -200,7 +200,7 @@ public class PrometheusMetricsGroup {
         val builder = DistributionSummary.builder(metric.getValue()).tags(tags)
                 .distributionStatisticExpiry(Duration.ofDays(1));
         if (ArrayUtils.isNotEmpty(percentiles)) {
-            builder.publishPercentileHistogram(true).publishPercentiles(percentiles);
+            builder.publishPercentiles(percentiles);
         }
         builder.register(meterRegistry).record(amount);
     }

@@ -425,9 +425,6 @@ public class MetricsRegistry {
         PrometheusMetricsGroup.newGaugeIfAbsent(PrometheusMetrics.SPARK_TASKS, LoadCounter.getInstance(),
                 LoadCounter::getRunningTaskCount, //
                 Tags.of("state", "running", "instance", AddressUtil.getZkLocalInstance()));
-        PrometheusMetricsGroup.newGaugeIfAbsent(PrometheusMetrics.SPARK_TASKS, LoadCounter.getInstance(),
-                LoadCounter::getFinishedTaskCount, //
-                Tags.of("state", "finished", "instance", AddressUtil.getZkLocalInstance()));
         PrometheusMetricsGroup.newGaugeIfAbsent(PrometheusMetrics.SPARK_TASK_UTILIZATION, LoadCounter.getInstance(),
                 load -> load.getRunningTaskCount() * 1.0 / load.getSlotCount(), //
                 Tags.of("instance", AddressUtil.getZkLocalInstance()));

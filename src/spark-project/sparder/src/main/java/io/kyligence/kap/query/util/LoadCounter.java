@@ -82,12 +82,6 @@ public class LoadCounter {
 
     }
 
-    public int getFinishedTaskCount() {
-        val activeStage = SparderEnv.getSparkSession().sparkContext().statusStore().activeStages();
-        return JavaConverters.seqAsJavaList(activeStage).stream().filter(stage -> StageStatus.ACTIVE == stage.status())
-                .map(StageData::numCompleteTasks).mapToInt(i -> i).sum();
-    }
-
     public LoadDesc getLoadDesc() {
         val points = new ArrayList<>(pendingQueue);
         logger.trace("Points is {}", points);
