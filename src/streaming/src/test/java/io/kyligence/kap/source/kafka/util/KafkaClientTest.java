@@ -23,9 +23,11 @@
  */
 package io.kyligence.kap.source.kafka.util;
 
-import io.kyligence.kap.streaming.util.ReflectionUtils;
-import lombok.val;
+import java.util.List;
+import java.util.Properties;
+
 import org.apache.kafka.clients.Metadata;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.internals.AdminMetadataManager;
 import org.apache.kafka.clients.consumer.internals.ConsumerCoordinator;
 import org.apache.kafka.common.Cluster;
@@ -33,9 +35,11 @@ import org.apache.kafka.common.Node;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Properties;
+import io.kyligence.kap.streaming.util.ReflectionUtils;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class KafkaClientTest {
 
     @Test
@@ -67,14 +71,16 @@ public class KafkaClientTest {
 
     @Test
     public void testKafkaAdminClient() {
-        val client = KafkaClient.getKafkaAdminClient("localhost:9092", "group1", new Properties());
-
-        AdminMetadataManager metadataManager = (AdminMetadataManager) ReflectionUtils.getField(client,
-                "metadataManager");
-        Cluster cluster = (Cluster) ReflectionUtils.getField(metadataManager, "cluster");
-        List<Node> nodes = cluster.nodes();
-        Assert.assertEquals("localhost", nodes.get(0).host());
-        Assert.assertEquals(9092, nodes.get(0).port());
+        try (AdminClient client = KafkaClient.getKafkaAdminClient("localhost:9092", "group1", new Properties())) {
+            AdminMetadataManager metadataManager = (AdminMetadataManager) ReflectionUtils.getField(client,
+                    "metadataManager");
+            Cluster cluster = (Cluster) ReflectionUtils.getField(metadataManager, "cluster");
+            List<Node> nodes = cluster.nodes();
+            Assert.assertEquals("localhost", nodes.get(0).host());
+            Assert.assertEquals(9092, nodes.get(0).port());
+        } catch (Exception e) {
+            log.error("failed to close AdminClient.", e);
+        }
     }
 
     @Test
