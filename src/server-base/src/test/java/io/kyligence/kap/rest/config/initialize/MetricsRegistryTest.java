@@ -131,7 +131,7 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         MetricsRegistry.registerProjectMetrics(getTestConfig(), project, "localhost");
         MetricsRegistry.registerMicrometerProjectMetrics(getTestConfig(), project, "localhost");
         List<Meter> meters = meterRegistry.getMeters();
-        Assert.assertEquals(269, meters.size());
+        Assert.assertEquals(268, meters.size());
     }
 
     @Test
