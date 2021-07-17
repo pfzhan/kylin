@@ -343,7 +343,11 @@ export default class StreamingJobsList extends Vue {
     } else {
       try {
         this.startLoading = true
-        const res = await this.updateStreamingJobs({project: this.currentSelectedProject, action: 'START', job_ids: this.idsArr})
+        const data = {project: this.currentSelectedProject, action: 'START', job_ids: this.idsArr}
+        if (this.$store.state.project.isAllProject) {
+          delete data.project
+        }
+        const res = await this.updateStreamingJobs(data)
         await handleSuccessAsync(res)
         this.startLoading = false
         this.$message({
@@ -364,7 +368,11 @@ export default class StreamingJobsList extends Vue {
     } else {
       try {
         this.restartLoading = true
-        const res = await this.updateStreamingJobs({project: this.currentSelectedProject, action: 'RESTART', job_ids: this.idsArr})
+        const data = {project: this.currentSelectedProject, action: 'RESTART', job_ids: this.idsArr}
+        if (this.$store.state.project.isAllProject) {
+          delete data.project
+        }
+        const res = await this.updateStreamingJobs(data)
         await handleSuccessAsync(res)
         this.restartLoading = false
         this.$message({
@@ -411,6 +419,9 @@ export default class StreamingJobsList extends Vue {
         submitText: this.$t('stopJobImme')
       })
       data.action = isSubmit.isOnlySave ? 'STOP' : 'FORCE_STOP'
+      if (this.$store.state.project.isAllProject) {
+        delete data.project
+      }
       this.stopJob(data)
     }
   }

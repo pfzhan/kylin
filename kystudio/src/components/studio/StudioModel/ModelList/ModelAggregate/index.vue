@@ -116,7 +116,10 @@
                 <!-- <common-tip :content="!indexUpdateEnabled ? $t('refuseRemoveIndexTip') : $t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)">
                   <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" class="ksd-fleft" text>{{$t('kylinLang.common.delete')}}</el-button>
                 </common-tip> -->
-                <el-button v-if="datasourceActions.includes('delAggIdx') && indexUpdateEnabled" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" class="ksd-fleft" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                <common-tip :content="$t('refuseRemoveIndexTip')" v-if="datasourceActions.includes('delAggIdx') && !indexUpdateEnabled&&checkedList.length>0">
+                  <el-button v-if="datasourceActions.includes('delAggIdx') && !indexUpdateEnabled" :disabled="!indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" class="ksd-fleft" text>{{$t('kylinLang.common.delete')}}</el-button>
+                </common-tip>
+                <el-button v-if="datasourceActions.includes('delAggIdx') && indexUpdateEnabled || !checkedList.length" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" class="ksd-fleft" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
               </template>
               <template v-else>
                 <!-- <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
