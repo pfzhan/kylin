@@ -788,6 +788,15 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testRemoveIndexe() throws Exception {
+        val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
+        fusionIndexService.removeIndex("streaming_test", modelId, 20000040001L, Range.HYBRID);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
+        val saved = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertEquals(4, saved.getAllLayouts().size());
+    }
+
+    @Test
     public void testCheckStreamingJobAndSegments() throws Exception {
         val modelId = "b05034a8-c037-416b-aa26-9e6b4a41ee40";
         NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");

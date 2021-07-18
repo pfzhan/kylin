@@ -263,7 +263,7 @@ public class FusionIndexService extends BasicService {
                 indexPlanService.removeIndex(project, batchId, id);
                 return;
             } else if (IndexEntity.Range.HYBRID == indexRange) {
-                indexPlanService.removeIndex(project, batchId, id);
+                removeHybridIndex(project, batchId, id);
             }
         }
         indexPlanService.removeIndex(project, model, id);
@@ -278,6 +278,13 @@ public class FusionIndexService extends BasicService {
 
         }
         indexPlanService.removeIndexes(project, modelId, ids);
+    }
+
+    private void removeHybridIndex(String project, String model, final long id) {
+        val indexPlan = getIndexPlanManager(project).getIndexPlan(model);
+        if (indexPlan.getLayoutEntity(id) != null) {
+            indexPlanService.removeIndex(project, model, id);
+        }
     }
 
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
