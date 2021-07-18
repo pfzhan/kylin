@@ -2073,9 +2073,9 @@ public class ModelService extends BasicService {
         val indexPlan = new IndexPlan();
         indexPlan.setUuid(model.getUuid());
         indexPlan.setLastModified(System.currentTimeMillis());
-        if (modelRequest.isWithBaseIndex()) {
+        if (NDataModel.ModelType.BATCH == model.getModelType() && modelRequest.isWithBaseIndex()) {
             indexPlan.createAndAddBaseIndex(model);
-        } else if (modelRequest.isWithSecondStorage() && !modelRequest.isWithBaseIndex()) {
+        } else if (modelRequest.isWithSecondStorage()) {
             indexPlan.createAndAddBaseIndex(Collections.singletonList(indexPlan.createBaseTableIndex(model)));
         }
         indexPlanManager.createIndexPlan(indexPlan);
@@ -2095,15 +2095,18 @@ public class ModelService extends BasicService {
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
+    // for streaming & fusion model
     private void createStreamingJob(String project, NDataModel model, ModelRequest request) {
         if (NDataModel.ModelType.BATCH != model.getModelType()) {
             val jobManager = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
             jobManager.createStreamingJob(model);
-            createStreamingModel(project, model, request);
+            createBatchModelInFusion(project, model, request);
         }
     }
 
-    private void createStreamingModel(String project, NDataModel model, ModelRequest request) {
+    // only for fusion model
+    // create batch side model
+    private void createBatchModelInFusion(String project, NDataModel model, ModelRequest request) {
         KafkaConfig kafkaConfig = model.getRootFactTableRef().getTableDesc().getKafkaConfig();
         if (kafkaConfig.hasBatchTable()) {
             String tableName = kafkaConfig.getBatchTable();
