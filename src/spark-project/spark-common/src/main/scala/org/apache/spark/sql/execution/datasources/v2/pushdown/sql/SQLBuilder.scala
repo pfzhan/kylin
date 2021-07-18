@@ -165,16 +165,32 @@ object SQLBuilder {
         formatAttributeWithQualifiers(name.reverse.tail.reverse, name.last)
       case _: analysis.Star => "*"
       case BinarySymbolExpression(left, symbol, right) =>
-        s"(${expressionToSql(left)} $symbol ${expressionToSql(right)})"
+        if (symbol == BinarySymbolExpression.divideSymbol && left.dataType.isInstanceOf[DecimalType]) {
+          val leftExpr = castLiteralForDivide(left)
+          val rightExpr = castLiteralForDivide(right)
+          s"($leftExpr $symbol $rightExpr)"
+        } else {
+          s"(${expressionToSql(left)} $symbol ${expressionToSql(right)})"
+        }
       case CheckOverflow(child, _, _) => expressionToSql(child)
       case PromotePrecision(child) => expressionToSql(child)
       case x =>
         generalExpressionToSql(x)
     }
+
+  private def castLiteralForDivide(left: Expression): String = {
+    if (left.isInstanceOf[Literal]) {
+      s"CAST(${literalToSql(left)} AS ${typeToSql(left.dataType)})"
+    } else {
+      expressionToSql(left)
+    }
+  }
 }
 
 // TODO optimize this. maybe we can substitute it completely with its logic.
 object BinarySymbolExpression {
+
+  val divideSymbol: String = "/"
   def isBinaryExpressionWithSymbol(be: BinaryExpression): Boolean =
     be.isInstanceOf[BinaryArithmetic] || be.isInstanceOf[BinaryComparison]
 

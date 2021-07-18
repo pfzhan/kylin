@@ -51,7 +51,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -189,9 +188,7 @@ public class TDVTTest {
         else
             return FileUtils.readFileToString(new File(inputSqlPath), "UTF-8").trim();
     }
-
     @Test
-    @Ignore
     public void testRunSql() throws Exception {
         String sqlStatement = readSQL();
         String resultPush = runWithAggPushDown(sqlStatement);

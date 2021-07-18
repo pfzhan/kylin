@@ -25,8 +25,8 @@ sql825:CalciteContextException
 sql826:CalciteContextException
 sql827:CalciteContextException
 sql029:java.sql.SQLException
-sql182:java.sql.SQLException
 sql168:java.lang.ArrayIndexOutOfBoundsException
+sql182:java.lang.ArrayIndexOutOfBoundsException
 sql650:java.lang.ArrayIndexOutOfBoundsException
 sql653:java.lang.ArrayIndexOutOfBoundsException
 sql662:java.lang.ArrayIndexOutOfBoundsException
@@ -66,28 +66,23 @@ sql695:KE-29253, 浮点数不准确
 sql696:KE-29253, 浮点数不准确
 sql721:KE-29253, 浮点数不准确
 sql730:KE-29253, 浮点数不准确
-sql009:KE-29251,不支持的日期类型
-sql036:KE-29251,不支持的日期类型
-sql039:KE-29251,不支持的日期类型
-sql042:KE-29251,不支持的日期类型
-sql045:KE-29251,不支持的日期类型
-sql046:KE-29251,不支持的日期类型
-sql047:KE-29251,不支持的日期类型
-sql077:KE-29251,不支持的日期类型
-sql079:KE-29251,不支持的日期类型
-sql083:KE-29251,不支持的日期类型
-sql085:KE-29251,不支持的日期类型
-sql093:KE-29251,不支持的日期类型
-sql148:KE-29251,不支持的日期类型
-sql191:KE-29251,不支持的日期类型
+sql009:KE-29251,不支持的日期范围
+sql036:KE-29251,不支持的日期范围
+sql039:KE-29251,不支持的日期范围
+sql042:KE-29251,不支持的日期范围
+sql045:KE-29251,不支持的日期范围
+sql046:KE-29251,不支持的日期范围
+sql047:KE-29251,不支持的日期范围
+sql077:KE-29251,不支持的日期范围
+sql079:KE-29251,不支持的日期范围
+sql083:KE-29251,不支持的日期范围
+sql085:KE-29251,不支持的日期范围
+sql093:KE-29251,不支持的日期范围
+sql148:KE-29251,不支持的日期范围
+sql180:KE-29251,不支持的日期范围
+sql191:KE-29251,不支持的日期范围
 sql041:KE-29248, timezone
 sql044:KE-29248, timezone
-sql005:ignore
-sql180:ignore
-sql233:ignore
-sql234:ignore
-sql252:ignore
-sql253:ignore
-sql267:ignore
-sql268:ignore
-sql269:ignore
+sql618:divide float,e.g. x /24.0, x is integer, related with PromotePrecision
+sql745:divide float,e.g. x /24.0, x is integer, related with PromotePrecision
+sql746:divide float,e.g. x /24.0, x is integer, related with PromotePrecision

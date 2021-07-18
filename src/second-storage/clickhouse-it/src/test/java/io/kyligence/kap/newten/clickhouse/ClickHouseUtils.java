@@ -165,9 +165,9 @@ public class ClickHouseUtils {
             if (setupDataByDefault) {
                 setupData(connection, (data) -> {
                     data.createTable();
-                    data.insertData(1, 1L, "2");
-                    data.insertData(2, 2L, "2");
-                    data.insertData(3, 3L, "3");
+                    data.insertData(1, 1L, "2", "not date");
+                    data.insertData(2, 2L, "2", "not date");
+                    data.insertData(3, 3L, "3", "not date");
                     return true;
                 });
             }
@@ -187,17 +187,17 @@ public class ClickHouseUtils {
             if (setupDataByDefault) {
                 setupData(connection1, (data) -> {
                     data.createTable();
-                    data.insertData(1, 2L, "2");
-                    data.insertData(2, 3L, "3");
-                    data.insertData(3, 4L, "3");
-                    data.insertData(7, 3L, "4");
+                    data.insertData(1, 2L, "2", "2021-01-01");
+                    data.insertData(2, 3L, "3", "2021-01-01");
+                    data.insertData(3, 4L, "3", "2021-01-02");
+                    data.insertData(7, 3L, "4", "2021-01-04");
                     return true;
                 });
                 setupData(connection2, (data) -> {
                     data.createTable();
-                    data.insertData(4, 5L, "3");
-                    data.insertData(5, 6L, "2");
-                    data.insertData(6, 7L, "2");
+                    data.insertData(4, 5L, "3", "2021-01-06");
+                    data.insertData(5, 6L, "2", "2021-01-31");
+                    data.insertData(6, 7L, "2", "2021-01-11");
                     return true;
                 });
             }
@@ -229,17 +229,20 @@ public class ClickHouseUtils {
                             .columns(new ColumnWithType("i2", "Nullable(Int64)"))
                             .columns(new ColumnWithType("s2", "String"))
                             .columns(new ColumnWithType("n3", "Decimal(19,4)"))
+                            .columns(new ColumnWithType("d4", "Nullable(Date)"))
+                            .columns(new ColumnWithType("str_date4", "Nullable(String)"))
                             .engine("MergeTree()");
             singleQuery(connection, create.toSql(render));
         }
 
-        public void insertData(int i1, Long i2, String s2) throws SQLException {
+        public void insertData(int i1, Long i2, String s2, String date0) throws SQLException {
             final InsertInto insertInto =
                     InsertInto.insertInto(db, table)
                             .set("i1", i1)
                             .set("i2", i2)
                             .set("s2", s2)
-                            .set("n3", -18.22);
+                            .set("n3", -18.22)
+                            .set("str_date4", date0);
             singleQuery(connection, insertInto.toSql(render));
         }
     }

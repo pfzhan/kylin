@@ -35,6 +35,7 @@ import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.test.ClickHouseClassRule;
 import io.kyligence.kap.secondstorage.test.EnableClickHouseJob;
 import io.kyligence.kap.secondstorage.test.EnableTestUser;
+import io.kyligence.kap.secondstorage.test.SetTimeZone;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -102,12 +103,13 @@ public class TDVTHiveTest {
             new EnableClickHouseJob(clickHouse.getClickhouse(),
                     1, clickHouse.getExposePort(),
                     project, modelList, "src/test/resources/ut_meta");
-
+    public static SetTimeZone timeZone = new SetTimeZone("UTC"); // default timezone of clickhouse docker is UTC
     @ClassRule
     public static TestRule rule = RuleChain
             .outerRule(enableTestUser)
             .around(clickHouse)
-            .around(test);
+            .around(test)
+            .around(timeZone);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<String[]> testSQLs() {

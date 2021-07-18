@@ -96,7 +96,8 @@ case class KapAddMonths(startDate: Expression, numMonths: Expression)
 // scalastyle:on line.size.limit
 case class KapSubtractMonths(a: Expression, b: Expression)
   extends BinaryExpression
-    with ImplicitCastInputTypes {
+    with ImplicitCastInputTypes
+    with NotSupportPushDown {
 
   override def left: Expression = a
 

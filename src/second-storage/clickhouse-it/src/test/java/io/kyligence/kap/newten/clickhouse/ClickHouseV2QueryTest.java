@@ -171,15 +171,28 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             CheckSQL(sql5_2, expectedRow, expectedGroup, 2);
 
             //
-            List<Row> expectedRowAscByAvg =
-                    ImmutableList.of(
-                            RowFactory.create("4", 7, 3.0),
-                            RowFactory.create("3", 9, 4.0),
-                            RowFactory.create("2", 12, 5.0));
-            String sql6 = String.format(Locale.ROOT,
-                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 3", catalogName, table);
-            CheckSQL(sql6, expectedRowAscByAvg, expectedGroup, 2);
-
+//            List<Row> expectedRowAscByAvg =
+//                    ImmutableList.of(
+//                            RowFactory.create("4", 7, 3.0),
+//                            RowFactory.create("3", 9, 4.0),
+//                            RowFactory.create("2", 12, 5.0));
+//            String sql6 = String.format(Locale.ROOT,
+//                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 3", catalogName, table);
+//            CheckSQL(sql6, expectedRowAscByAvg, expectedGroup, 2);
+//
+//            // KE-25952
+//            String sql7 = String.format(Locale.ROOT,
+//                    "select str_date4, count(1), sum(i2) from %s.%s "
+//                            + "where str_date4 >= date'2021-01-01' and str_date4 <= date'2021-01-06' "
+//                            + "group by str_date4 order by 1", catalogName, table);
+//            List<String> expectedGroupDateColumns = ImmutableList.of("str_date4");
+//            List<Row> expectedGroupByDate =
+//                    ImmutableList.of(
+//                            RowFactory.create("2021-01-01", 2, 5),
+//                            RowFactory.create("2021-01-02", 1, 4),
+//                            RowFactory.create("2021-01-04", 1, 3),
+//                            RowFactory.create("2021-01-06", 1, 5));
+//            CheckSQL(sql7, expectedGroupByDate, expectedGroupDateColumns, 2);
             return true;
         });
     }
