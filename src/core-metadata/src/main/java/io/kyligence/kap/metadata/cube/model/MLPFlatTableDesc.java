@@ -72,7 +72,11 @@ public class MLPFlatTableDesc extends SegmentFlatTableDesc {
         // Ensure the partition columns were included.
         addPartitionColumns();
         // By design, only indexPlan columns would be included.
-        addIndexPlanColumns();
+        if (isPartialBuild()) {
+            addIndexPartialBuildColumns();
+        } else {
+            addIndexPlanColumns();
+        }
     }
 
     private void addPartitionColumns() {

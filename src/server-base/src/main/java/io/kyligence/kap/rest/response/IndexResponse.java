@@ -70,6 +70,9 @@ public class IndexResponse {
     @JsonProperty("last_modified")
     private long lastModified;
 
+    @JsonProperty("related_tables")
+    private List<String> relatedTables;
+
     @JsonIgnore
     private boolean isManual;
 

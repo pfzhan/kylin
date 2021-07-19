@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
-import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
-import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR;
+
+import java.util.Locale;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -39,20 +38,21 @@ import org.apache.kylin.rest.service.BasicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Locale;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_UNSUPPORTED_OPERATOR;
 
 @Slf4j
 @Service("fusionModelService")
@@ -199,7 +199,8 @@ public class FusionModelService extends BasicService {
 
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 targetModelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
-                buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority());
+                buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority(),
+                buildSegmentsRequest.isPartialBuild());
         return response;
     }
 

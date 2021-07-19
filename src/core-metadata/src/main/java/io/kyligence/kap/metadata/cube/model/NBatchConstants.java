@@ -50,6 +50,7 @@ public interface NBatchConstants {
 
     String P_INCREMENTAL_BUILD = "incrementalBuild";
     String P_SELECTED_PARTITION_COL = "selectedPartitionCol";
+    String P_PARTIAL_BUILD = "partialBuild";
 
     String P_QUERY_ID = "queryId";
     String P_QUERY_PARAMS = "queryParams";

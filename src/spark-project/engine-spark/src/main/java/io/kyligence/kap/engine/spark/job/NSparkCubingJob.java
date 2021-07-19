@@ -30,6 +30,7 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -47,6 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -97,7 +99,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
         NSparkCubingJob sparkCubingJob = create(jobBuildParams.getSegments(), jobBuildParams.getLayouts(),
                 jobBuildParams.getSubmitter(), jobBuildParams.getJobType(), jobBuildParams.getJobId(),
-                jobBuildParams.getIgnoredSnapshotTables(), jobBuildParams.getPartitions(), jobBuildParams.getBuckets());
+                jobBuildParams.getIgnoredSnapshotTables(), jobBuildParams.getPartitions(), jobBuildParams.getBuckets(),
+                jobBuildParams.getExtParams());
         if (CollectionUtils.isNotEmpty(jobBuildParams.getToBeDeletedLayouts())) {
             sparkCubingJob.setParam(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS,
                     NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(jobBuildParams.getToBeDeletedLayouts())));
@@ -108,6 +111,13 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
             JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables, Set<Long> partitions,
             Set<JobBucket> buckets) {
+        return create(segments, layouts, submitter, jobType, jobId, ignoredSnapshotTables, partitions, buckets,
+                Maps.newHashMap());
+    }
+
+    private static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
+            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables, Set<Long> partitions,
+            Set<JobBucket> buckets, Map<String, String> params) {
         Preconditions.checkArgument(!segments.isEmpty());
         Preconditions.checkArgument(submitter != null);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -116,6 +126,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         }
         NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
+
         long startTime = Long.MAX_VALUE - 1;
         long endTime = 0L;
         for (NDataSegment segment : segments) {
@@ -123,6 +134,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
         }
+        job.setParams(params);
         job.setId(jobId);
         job.setName(jobType.toString());
         job.setJobType(jobType);
@@ -167,9 +179,9 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
             } else if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH) && hasBaseIndex) {
                 val oldSegs = job.getTargetSegments().stream().map(segId -> {
                     val curSeg = df.getSegment(segId);
-                    return Objects.requireNonNull(df.getSegments().stream().filter(seg ->
-                            seg.getSegRange().equals(curSeg.getSegRange())
-                            && !seg.getId().equals(segId)).findFirst().orElse(null)).getId();
+                    return Objects.requireNonNull(df.getSegments().stream()
+                            .filter(seg -> seg.getSegRange().equals(curSeg.getSegRange()) && !seg.getId().equals(segId))
+                            .findFirst().orElse(null)).getId();
                 }).collect(Collectors.toList());
                 job.setParam(SecondStorageConstants.P_OLD_SEGMENT_IDS, String.join(",", oldSegs));
                 JobStepType.SECOND_STORAGE_REFRESH.createStep(job, config);

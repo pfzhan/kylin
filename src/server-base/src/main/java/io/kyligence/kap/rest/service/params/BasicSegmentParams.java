@@ -23,13 +23,17 @@
  */
 package io.kyligence.kap.rest.service.params;
 
+import java.util.List;
 import java.util.Set;
+
+import org.apache.kylin.job.dao.ExecutablePO;
+
+import com.clearspring.analytics.util.Lists;
 
 import io.kyligence.kap.rest.aspect.TransactionProjectUnit;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.apache.kylin.job.dao.ExecutablePO;
 
 @NoArgsConstructor
 @Getter
@@ -39,6 +43,9 @@ public class BasicSegmentParams implements TransactionProjectUnit {
     protected String modelId;
     protected Set<String> ignoredSnapshotTables;
     protected int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    protected boolean partialBuild = false;
+    protected List<Long> batchIndexIds = Lists.newArrayList();
 
     BasicSegmentParams(String project, String modelId) {
         this.project = project;

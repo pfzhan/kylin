@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service.params;
 
+import java.util.List;
 import java.util.Set;
 
 import lombok.Getter;
@@ -51,6 +52,16 @@ public class FullBuildSegmentParams extends BasicSegmentParams {
 
     public FullBuildSegmentParams withPriority(int priority) {
         this.priority = priority;
+        return this;
+    }
+
+    public FullBuildSegmentParams withPartialBuild(boolean partialBuild) {
+        this.partialBuild = partialBuild;
+        return this;
+    }
+
+    public FullBuildSegmentParams withBatchIndexIds(List<Long> batchIndexIds) {
+        this.batchIndexIds = batchIndexIds;
         return this;
     }
 }

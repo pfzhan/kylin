@@ -80,6 +80,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
@@ -554,6 +555,20 @@ public class IndexPlanService extends BasicService {
             }
         }
         return result;
+    }
+
+    public List<IndexResponse> getIndexesWithRelatedTables(String project, String modelId, String key,
+            List<IndexEntity.Status> status, String orderBy, Boolean desc, List<IndexEntity.Source> sources,
+            List<Long> ids) {
+        List<IndexResponse> indexes = getIndexes(project, modelId, key, status, orderBy, desc, sources, ids);
+        IndexPlan indexPlan = getIndexPlan(project, modelId);
+        NDataModel model = indexPlan.getModel();
+        IndexDependencyParser parser = new IndexDependencyParser(model);
+        indexes.forEach(indexResponse -> {
+            LayoutEntity layout = indexPlan.getLayoutEntity(indexResponse.getId());
+            indexResponse.setRelatedTables(parser.getRelatedTables(layout));
+        });
+        return indexes;
     }
 
     public List<IndexResponse> getIndexes(String project, String modelId, String key, List<IndexEntity.Status> status,

@@ -57,7 +57,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -86,16 +85,25 @@ public class RefreshJobUtil extends ExecutableUtil {
         if (segments.size() != 1) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
         }
+        val indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
+                .getIndexPlan(jobParam.getModel());
+        val targetLayouts = jobParam.getTargetLayouts();
         HashSet<LayoutEntity> layouts = Sets.newHashSet();
-        val refreshAll = (Boolean) jobParam.getCondition().get(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS);
-        if (refreshAll) {
-            IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
-                    .getIndexPlan(jobParam.getModel());
-            layouts.addAll(indexPlan.getAllLayouts());
-        } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
+        if (targetLayouts.isEmpty()) {
+            val refreshAll = (Boolean) jobParam.getCondition().get(JobParam.ConditionConstant.REFRESH_ALL_LAYOUTS);
+            if (refreshAll) {
+                layouts.addAll(indexPlan.getAllLayouts());
+            } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
+            } else {
+                segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
+            }
         } else {
-            segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
+            indexPlan.getAllLayouts().forEach(layout -> {
+                if (targetLayouts.contains(layout.getId())) {
+                    layouts.add(layout);
+                }
+            });
         }
         jobParam.setProcessLayouts(filterTobeDelete(layouts));
         checkLayoutsNotEmpty(jobParam);

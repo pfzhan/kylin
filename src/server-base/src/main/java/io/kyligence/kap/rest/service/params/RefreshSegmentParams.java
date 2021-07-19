@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service.params;
 
+import java.util.List;
 import java.util.Set;
 
 import lombok.Getter;
@@ -46,7 +47,8 @@ public class RefreshSegmentParams extends BasicSegmentParams {
         this(project, modelId, segmentIds, refreshAllLayouts, null);
     }
 
-    public RefreshSegmentParams(String project, String modelId, String[] segmentIds, boolean refreshAllLayouts, Set<Long> partitions) {
+    public RefreshSegmentParams(String project, String modelId, String[] segmentIds, boolean refreshAllLayouts,
+            Set<Long> partitions) {
         this(project, modelId, segmentIds);
         this.refreshAllLayouts = refreshAllLayouts;
         this.partitions = partitions;
@@ -59,6 +61,16 @@ public class RefreshSegmentParams extends BasicSegmentParams {
 
     public RefreshSegmentParams withPriority(int priority) {
         this.priority = priority;
+        return this;
+    }
+
+    public RefreshSegmentParams withPartialBuild(boolean partialBuild) {
+        this.partialBuild = partialBuild;
+        return this;
+    }
+
+    public RefreshSegmentParams withBatchIndexIds(List<Long> batchIndexIds) {
+        this.batchIndexIds = batchIndexIds;
         return this;
     }
 }

@@ -37,8 +37,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -52,7 +52,7 @@ public class RefreshSegmentHandler extends AbstractJobHandler {
         NDataflowManager dfm = NDataflowManager.getInstance(kylinConfig, jobParam.getProject());
         NDataflow dataflow = dfm.getDataflow(jobParam.getModel()).copy();
 
-        if(jobParam.isMultiPartitionJob()){
+        if (jobParam.isMultiPartitionJob()) {
             // update partition status to refresh
             val segment = dataflow.getSegment(jobParam.getSegment());
             segment.getMultiPartitions().forEach(partition -> {
@@ -68,7 +68,7 @@ public class RefreshSegmentHandler extends AbstractJobHandler {
         return JobFactory.createJob(CUBE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(Sets.newHashSet(dataflow.getSegment(jobParam.getSegment())),
                         jobParam.getProcessLayouts(), jobParam.getOwner(), jobParam.getJobTypeEnum(),
-                        jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables(),
-                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets()));
+                        jobParam.getJobId(), null, jobParam.getIgnoredSnapshotTables(), jobParam.getTargetPartitions(),
+                        jobParam.getTargetBuckets(), jobParam.getExtParams()));
     }
 }

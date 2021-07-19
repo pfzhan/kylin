@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -91,6 +90,9 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import io.kyligence.kap.rest.service.FusionIndexService;
+import io.kyligence.kap.rest.service.FusionModelService;
+import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
@@ -105,6 +107,12 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private NModelController nModelController;
+
+    @Mock
+    private IndexPlanService indexPlanService;
+
+    @Mock
+    private FusionIndexService fusionIndexService;
 
     @Mock
     private ModelService modelService;
@@ -184,8 +192,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
         Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
-                "last_modify", false, null, null, null, null, true))
-                .thenReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
+                "last_modify", false, null, null, null, null, true)).thenReturn(
+                        new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("page_offset", "1").param("project", "default").param("model_name", "model1")
                 .param("page_size", "5").param("exact", "true").param("table", "").param("owner", "ADMIN")
@@ -205,7 +213,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false,
                 "end_time", true)).thenReturn(
-                new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
+                        new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).param("page_offset", "1").param("project", project)
                 .param("page_size", "5").param("start", "432").param("end", "2234").param("sort_by", "end_time")
@@ -213,6 +221,24 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(openModelController).getSegments(modelName, project, "", 1, 5, "432", "2234", "end_time", true);
+    }
+
+    @Test
+    public void testGetIndexes() throws Exception {
+        List<Long> ids = Lists.newArrayList(1L, 20000020001L);
+        String project = "default";
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String modelName = "default_model_name";
+        mockGetModelName(modelName, project, modelId);
+        val indexResponses = fusionIndexService.getIndexesWithRelatedTables(project, modelId, "", Lists.newArrayList(),
+                "last_modified", true, null, ids);
+        Mockito.when(fusionIndexService.getIndexesWithRelatedTables(modelId, project, "", Lists.newArrayList(),
+                "last_modified", true, null, ids)).thenReturn(indexResponses);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/indexes", modelName)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project) //
+                .param("batch_index_ids", "1,20000020001")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
     @Test
@@ -246,7 +272,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = new SegmentsRequest();
         request.setProject(project);
         request.setType(SegmentsRequest.SegmentsRequestType.REFRESH);
-        request.setIds(new String[]{"1", "2"});
+        request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .refreshOrMergeSegments(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments", modelName)
@@ -261,7 +287,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelName = "default_model_name";
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String project = "default";
-        String[] ids = {"ef5e0663-feba-4ed2-b71c-21958122bbff"};
+        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
         req.setProject(project);
         req.setParallelBuildBySegment(false);
@@ -278,7 +304,35 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("names", (String) null) //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null);
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false);
+    }
+
+    @Test
+    public void testCompleteSegmentsPartialBuild() throws Exception {
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String project = "default";
+        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        Pair pair = new Pair<>(modelId, ids);
+        List<Long> batchIndexIds = Lists.newArrayList(1L, 2L);
+        IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
+        req.setProject(project);
+        req.setParallelBuildBySegment(false);
+        req.setSegmentIds(Lists.newArrayList(ids));
+        mockGetModelName(modelName, project, modelId);
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
+                .addIndexesToSegments(modelId, req);
+        Mockito.doReturn(pair).when(fusionModelService).convertSegmentIdWithName(modelId, project, ids, null);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
+                .param("project", "default") //
+                .param("parallel", "false") //
+                .param("ids", ids) //
+                .param("names", (String) null) //
+                .param("partial_build", "true") //
+                .param("batch_index_ids", "1,2") //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, batchIndexIds, true);
     }
 
     @Test
@@ -307,8 +361,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelName = "default_model_name";
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String project = "default";
-        String[] ids = {"ef5e0663-feba-4ed2-b71c-21958122bbff"};
-        String[] names = {"ef5e0663-feba-4ed2-b71c-21958122bbff"};
+        String[] ids = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
+        String[] names = { "ef5e0663-feba-4ed2-b71c-21958122bbff" };
         IndexesToSegmentsRequest req = new IndexesToSegmentsRequest();
         req.setProject(project);
         req.setParallelBuildBySegment(false);
@@ -351,7 +405,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
 
         SegmentsRequest request = new SegmentsRequest();
-        request.setIds(new String[]{"1", "2"});
+        request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, false, false, request.getIds(), null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)

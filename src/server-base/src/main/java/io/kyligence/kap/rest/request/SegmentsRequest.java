@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -51,4 +52,10 @@ public class SegmentsRequest implements ProjectInsensitiveRequest {
     public enum SegmentsRequestType {
         REFRESH, MERGE
     }
+
+    @JsonProperty("partial_build")
+    private boolean partialBuild=false;
+
+    @JsonProperty("batch_index_ids")
+    private List<Long> batchIndexIds;
 }

@@ -394,6 +394,26 @@ public class FusionIndexService extends BasicService {
         return indexPlanService.getIndexes(project, modelId, key, status, orderBy, desc, sources);
     }
 
+    public List<IndexResponse> getIndexesWithRelatedTables(String project, String modelId, String key,
+            List<IndexEntity.Status> status, String orderBy, Boolean desc, List<IndexEntity.Source> sources,
+            List<Long> batchIndexIds) {
+        if (isFusionModel(project, modelId)) {
+            val batchId = getBatchModel(project, modelId);
+            List<IndexResponse> response = new ArrayList<>();
+            List<IndexResponse> batchResponse = indexPlanService.getIndexesWithRelatedTables(project, batchId, key,
+                    status, orderBy, desc, sources, batchIndexIds);
+            batchResponse.forEach(index -> index.setIndexRange(Range.BATCH));
+            response.addAll(batchResponse);
+
+            List<IndexResponse> streamingResponse = indexPlanService.getIndexes(project, modelId, key, status, orderBy,
+                    desc, sources);
+            streamingResponse.forEach(index -> index.setIndexRange(Range.STREAMING));
+            response.addAll(streamingResponse);
+            return response;
+        }
+        return indexPlanService.getIndexesWithRelatedTables(project, modelId, key, status, orderBy, desc, sources, batchIndexIds);
+    }
+
     private String getBatchModel(String project, String modelId) {
         FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
         return fusionModel.getBatchModel().getId();

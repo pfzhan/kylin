@@ -73,7 +73,7 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
       (head.getParentId, execution)
     } ++ ftSources.groupBy(_.getParentId).values.map { grouped =>
       val head = grouped.head
-      val execution = flatTable.getFlatTablePartDS().queryExecution
+      val execution = flatTable.getFlatTablePartDS.queryExecution
       (head.getParentId, execution)
     }).foreach { case (parentId, execution) =>
       val sourceName = String.valueOf(parentId)

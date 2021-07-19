@@ -100,6 +100,17 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams implemen
         return this;
     }
 
+    @Override
+    public IncrementBuildSegmentParams withPartialBuild(boolean partialBuild) {
+        this.partialBuild = partialBuild;
+        return this;
+    }
+    @Override
+    public IncrementBuildSegmentParams withBatchIndexIds(List<Long> batchIndexIds) {
+        this.batchIndexIds = batchIndexIds;
+        return this;
+    }
+
     public IncrementBuildSegmentParams withBuildAllSubPartitions(boolean buildAllSubPartitions) {
         this.buildAllSubPartitions = buildAllSubPartitions;
         return this;

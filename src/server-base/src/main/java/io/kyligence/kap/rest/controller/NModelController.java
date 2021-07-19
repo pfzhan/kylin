@@ -851,8 +851,10 @@ public class NModelController extends NBasicController {
             }
             jobInfos = modelService.refreshSegmentById(
                     new RefreshSegmentParams(request.getProject(), modelId, segIds, request.isRefreshAllIndexes())
-                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables())
-                            .withPriority(request.getPriority()));
+                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()) //
+                            .withPriority(request.getPriority()) //
+                            .withPartialBuild(request.isPartialBuild()) //
+                            .withBatchIndexIds(request.getBatchIndexIds()));
         } else {
             if (ArrayUtils.isEmpty(segIds) || segIds.length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
@@ -897,7 +899,9 @@ public class NModelController extends NBasicController {
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
                 buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority(),
-                buildSegmentsRequest.isBuildAllSubPartitions());
+                buildSegmentsRequest.isBuildAllSubPartitions(), //
+                buildSegmentsRequest.getBatchIndexIds(), //
+                buildSegmentsRequest.isPartialBuild());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 

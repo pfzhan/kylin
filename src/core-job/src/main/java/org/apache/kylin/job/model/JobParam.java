@@ -90,10 +90,23 @@ public class JobParam {
 
     private Set<LayoutEntity> deleteLayouts;
 
+    public JobParam addExtParams(String key, String value) {
+        Map<String, String> params = getExtParams();
+        params.put(key, value);
+        getCondition().putIfAbsent(ConditionConstant.EXT_PARAMS_JOB, params);
+        return this;
+    }
+
+    public Map<String, String> getExtParams() {
+        return (Map<String, String>) getCondition().getOrDefault(ConditionConstant.EXT_PARAMS_JOB, Maps.newHashMap());
+    }
+
     public static class ConditionConstant {
         public static final String REFRESH_ALL_LAYOUTS = "REFRESH_ALL_LAYOUTS";
 
         public static final String MULTI_PARTITION_JOB = "MULTI_PARTITION_JOB";
+
+        public static final String EXT_PARAMS_JOB = "EXT_PARAMS_JOB";
 
         private ConditionConstant() {
         }
@@ -147,7 +160,7 @@ public class JobParam {
         this.priority = priority;
         return this;
     }
-    
+
     public JobParam withTargetSegments(Set<String> targetSegments) {
         if (Objects.nonNull(targetSegments)) {
             this.targetSegments = targetSegments;

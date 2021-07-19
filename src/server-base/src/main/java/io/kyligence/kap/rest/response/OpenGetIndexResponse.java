@@ -55,6 +55,8 @@ public class OpenGetIndexResponse implements Serializable {
     private String owner;
     @JsonProperty("indexes")
     private List<IndexDetail> indexDetailList;
+    @JsonProperty("absent_batch_index_ids")
+    private List<Long> absentBatchIndexIds;
 
     @Getter
     @Setter
@@ -81,6 +83,8 @@ public class OpenGetIndexResponse implements Serializable {
         private long lastModified;
         @JsonProperty("storage_type")
         private int storageType;
+        @JsonProperty("related_tables")
+        private List<String> relatedTables;
 
         public static IndexDetail newIndexDetail(IndexResponse indexResponse) {
             IndexDetail detail = new IndexDetail();
@@ -94,6 +98,7 @@ public class OpenGetIndexResponse implements Serializable {
             detail.setUsage(indexResponse.getUsage());
             detail.setLastModified(indexResponse.getLastModified());
             detail.setStorageType(indexResponse.getStorageType());
+            detail.setRelatedTables(indexResponse.getRelatedTables());
             return detail;
         }
     }

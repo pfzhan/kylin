@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.engine.spark.job
 
+import java.util.Objects
+
 import com.google.common.collect.Lists
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
@@ -31,7 +33,6 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
 
-import java.util.Objects
 import scala.collection.JavaConverters._
 
 class MLPMergeExec(private val jobContext: SegmentMergeJob,
@@ -42,7 +43,7 @@ class MLPMergeExec(private val jobContext: SegmentMergeJob,
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
 
   // Multi level partition FLAT-TABLE is not reusable.
-  override protected def getUnmergedFTPaths(): Seq[Path] = Seq.empty[Path]
+  override protected def getUnmergedFTPaths: Seq[Path] = Seq.empty[Path]
 
   override protected def mergeIndices(): Unit = {
     val sources = unmerged.flatMap(segment =>
@@ -113,7 +114,9 @@ class MLPMergeExec(private val jobContext: SegmentMergeJob,
           val totalCount = grouped.map(_.getSourceCount).sum
           val evaluated = grouped.flatMap(_.getColumnSourceBytes.asScala) //
             .groupBy(_._1) //
-            .mapValues(_.map(_._2).reduce(_ + _)).asJava
+            .mapValues(_.map(_._2).reduce(_ + _))
+            .map { case (k, v) => k -> long2Long(v) }
+            .asJava
 
           val segmentPartition = newSegmentPartition(copiedSegment, partitionId, newAdds)
           segmentPartition.setSourceCount(totalCount)

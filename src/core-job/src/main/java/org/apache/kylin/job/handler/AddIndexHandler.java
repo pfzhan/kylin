@@ -27,7 +27,6 @@ import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.HashSet;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -38,11 +37,12 @@ import org.apache.kylin.metadata.model.Segments;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
@@ -61,8 +61,7 @@ public class AddIndexHandler extends AbstractJobHandler {
         var readySegs = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         val targetSegments = new HashSet<>(jobParam.getTargetSegments());
         final Segments<NDataSegment> toDealSeg = new Segments<>();
-        readySegs.stream().filter(segment -> targetSegments.contains(segment.getId() + ""))
-                .forEach(toDealSeg::add);
+        readySegs.stream().filter(segment -> targetSegments.contains(segment.getId() + "")).forEach(toDealSeg::add);
         readySegs = toDealSeg;
 
         if (CollectionUtils.isEmpty(jobParam.getProcessLayouts())
@@ -70,14 +69,14 @@ public class AddIndexHandler extends AbstractJobHandler {
             log.info("Event {} is no longer valid because no layout awaits process", jobParam);
             return null;
         }
-        if(readySegs.isEmpty()){
+        if (readySegs.isEmpty()) {
             throw new IllegalArgumentException("No segment is ready in this job.");
         }
         return JobFactory.createJob(CUBE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(Sets.newLinkedHashSet(readySegs), jobParam.getProcessLayouts(),
                         jobParam.getOwner(), jobParam.getJobTypeEnum(), jobParam.getJobId(),
                         jobParam.getDeleteLayouts(), jobParam.getIgnoredSnapshotTables(),
-                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets()));
+                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets(), jobParam.getExtParams()));
     }
 
 }

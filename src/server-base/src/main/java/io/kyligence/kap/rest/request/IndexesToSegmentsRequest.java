@@ -46,4 +46,7 @@ public class IndexesToSegmentsRequest implements ProjectInsensitiveRequest {
     private boolean parallelBuildBySegment;
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    @JsonProperty("partial_build")
+    private boolean partialBuild;
 }

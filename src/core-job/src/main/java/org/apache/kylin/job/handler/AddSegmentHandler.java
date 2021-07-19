@@ -51,8 +51,8 @@ public class AddSegmentHandler extends AbstractJobHandler {
         return JobFactory.createJob(CUBE_JOB_FACTORY,
                 new JobFactory.JobBuildParams(Sets.newHashSet(df.getSegment(jobParam.getSegment())),
                         jobParam.getProcessLayouts(), jobParam.getOwner(), JobTypeEnum.INC_BUILD, jobParam.getJobId(),
-                        null, jobParam.getIgnoredSnapshotTables(),
-                        jobParam.getTargetPartitions(), jobParam.getTargetBuckets()));
+                        null, jobParam.getIgnoredSnapshotTables(), jobParam.getTargetPartitions(),
+                        jobParam.getTargetBuckets(), jobParam.getExtParams()));
     }
 
 }

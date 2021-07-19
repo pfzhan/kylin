@@ -77,7 +77,7 @@ class RDMLPBuildExec(private val jobContext: RDSegmentBuildJob, //
       (head.getParentId, executions)
     } ++ ftSources.groupBy(_.getParentId).values.map { grouped =>
       val head = grouped.head
-      val executions = Seq(flatTable.getFlatTablePartDS().queryExecution)
+      val executions = Seq(flatTable.getFlatTablePartDS.queryExecution)
       (head.getParentId, executions)
     }).foreach { case (parentId, executions) =>
       val sourceName = String.valueOf(parentId)

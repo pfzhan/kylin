@@ -32,6 +32,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{SegmentBuildSource, SegmentFlatTable}
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.metadata.model.TblColRef
@@ -48,7 +49,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected final val dataflowId = jobContext.getDataflowId
   protected final val sparkSession = jobContext.getSparkSession
   protected final val spanningTree = jobContext.getSpanningTree
-  protected final val runtime = jobContext.runtime;
+  protected final val runtime = jobContext.runtime
 
   // Needed variables from data segment.
   protected final val segmentId = dataSegment.getId
@@ -59,7 +60,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
 
   private final val sanityCheckHandler = new SanityCheckIndexHandler(spanningTree)
 
-  protected lazy val flatTableDesc = new SegmentFlatTableDesc(config, dataSegment, spanningTree)
+  protected lazy val flatTableDesc: SegmentFlatTableDesc = getSegmentFlatTableDesc
 
   protected lazy val flatTable: SegmentFlatTable = //
     SegmentSourceUtils.newFlatTable(flatTableDesc, sparkSession)
@@ -69,6 +70,17 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected lazy val layer1Sources: Seq[SegmentBuildSource] = get1stLayerSources()
 
   private lazy val needFlatTable = layer1Sources.exists(_.isFlatTable)
+
+  def getSegmentFlatTableDesc: SegmentFlatTableDesc = {
+    if (jobContext.isPartialBuild) {
+      val parser = new IndexDependencyParser(dataModel)
+      val relatedTableAlias =
+        parser.getRelatedTablesAlias(jobContext.getReadOnlyLayouts)
+      new SegmentFlatTableDesc(config, dataSegment, spanningTree, relatedTableAlias)
+    } else {
+      new SegmentFlatTableDesc(config, dataSegment, spanningTree)
+    }
+  }
 
   @throws(classOf[IOException])
   final def buildSegment(): Unit = {
@@ -142,9 +154,10 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected def buildFromFlatTable(sources: Seq[SegmentBuildSource]): Unit = {
     // By design, only index in the first layer may should build from flat table.
     if (sources.nonEmpty) {
-      val parentDS = flatTable.getFlatTableDS()
+      val parentDS = flatTable.getFlatTableDS
       sources.foreach(source => {
-        KylinBuildEnv.get().buildJobInfos.recordParent2Children(source.getDataSegment.getLayout(source.getParentId),
+        KylinBuildEnv.get().buildJobInfos.recordParent2Children(
+          source.getDataSegment.getLayout(source.getParentId),
           sources.filter(_.isFlatTable).map(_.getLayoutId).toList.asJava)
         val sanityCheckCount = sanityCheckHandler.getOrComputeFromFlatTable(source, () => flatTableStatistics.totalCount)
 
@@ -157,14 +170,18 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     SegmentSourceUtils.get1stLayerSources(spanningTree, dataSegment)
   }
 
-  protected def getNextLayerSources(indices: Seq[IndexEntity], newestSegment: NDataSegment): Seq[SegmentBuildSource] = {
+  protected def getNextLayerSources(indices: Seq[IndexEntity],
+                                    newestSegment: NDataSegment): Seq[SegmentBuildSource] = {
     SegmentSourceUtils.getNextLayerSources(indices, spanningTree, newestSegment)
   }
 
   private def indicesOfSources(sources: Seq[SegmentBuildSource]): Seq[IndexEntity] = {
     // index => [layout]
-    sources.map(_.getLayout.getIndex) // duplicated
-      .groupBy(_.getId).map(_._2.head).toSeq // distinct
+    sources
+      .map(_.getLayout.getIndex) // duplicated
+      .groupBy(_.getId)
+      .map(_._2.head)
+      .toSeq // distinct
   }
 
   protected def gatherFlatTableStats(): Unit = {
@@ -175,7 +192,6 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     flatTableStatistics = flatTable.gatherStatistics()
   }
 
-
   protected def tryRefreshColumnBytes(): Unit = {
     if (flatTableStatistics == null) {
       logInfo(s"Skip COLUMN-BYTES segment $segmentId")
@@ -184,13 +200,17 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     val stats = flatTableStatistics
     UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
       override def process(): Unit = {
-        val dataflowManager = NDataflowManager.getInstance(config, project);
+        val dataflowManager = NDataflowManager.getInstance(config, project)
         val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
         val copiedSegment = copiedDataflow.getSegment(segmentId)
         val dataflowUpdate = new NDataflowUpdate(dataflowId)
         copiedSegment.setSourceCount(stats.totalCount)
         // Cal segment dimension range
-        copiedSegment.setDimensionRangeInfoMap(calDimRange(dataSegment, flatTable.getFlatTableDS()))
+        if (!jobContext.isPartialBuild) {
+          copiedSegment.setDimensionRangeInfoMap(
+            calDimRange(dataSegment, flatTable.getFlatTableDS)
+          )
+        }
         // By design, no fencing.
         val columnBytes = copiedSegment.getColumnSourceBytes
         stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))
@@ -204,7 +224,9 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     }, project)
   }
 
-  protected def buildDataLayout(source: SegmentBuildSource, parentDS: Dataset[Row], sanityCheckCount: Long): Unit = {
+  protected def buildDataLayout(source: SegmentBuildSource,
+                                parentDS: Dataset[Row],
+                                sanityCheckCount: Long): Unit = {
     val originThreadName = Thread.currentThread.getName
     try {
       if (needSkipLayout(source.getLayout.getId)) {
@@ -241,7 +263,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
       override def process(): Unit = {
         val indexPlan = sources.head.getLayout.getIndex.getIndexPlan
-        val manager = NIndexPlanManager.getInstance(config, project);
+        val manager = NIndexPlanManager.getInstance(config, project)
         val mapping = indexPlan.getLayoutBucketNumMapping
         class UpdateBucketMapping extends NIndexPlanUpdater {
           override def modify(copied: IndexPlan): Unit = {

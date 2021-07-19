@@ -55,4 +55,10 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
     private boolean buildAllSubPartitions = false;
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    @JsonProperty("partial_build")
+    private boolean partialBuild=false;
+
+    @JsonProperty("batch_index_ids")
+    private List<Long> batchIndexIds;
 }

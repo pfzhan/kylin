@@ -179,7 +179,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "sources", required = false) List<String> sources,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "key", required = false, defaultValue = "") String key,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse,
+            @RequestParam(value = "batch_index_ids", required = false) List<Long> batchIndexIds) {
         String projectName = checkProjectName(project);
         NDataModel model = getModel(modelAlias, projectName);
         checkNonNegativeIntegerArg("page_offset", offset);
@@ -187,8 +188,8 @@ public class OpenModelController extends NBasicController {
         List<IndexEntity.Status> statuses = checkIndexStatus(status);
         String modifiedSortBy = checkIndexSortBy(sortBy);
         List<IndexEntity.Source> modifiedSources = checkSources(sources);
-        List<IndexResponse> indexes = fusionIndexService.getAllIndexes(projectName, model.getUuid(), key, statuses,
-                modifiedSortBy, reverse, modifiedSources);
+        List<IndexResponse> indexes = fusionIndexService.getIndexesWithRelatedTables(projectName, model.getUuid(), key,
+                statuses, modifiedSortBy, reverse, modifiedSources, batchIndexIds);
         List<IndexResponse> listDataResult = DataResult.get(indexes, offset, limit).getValue();
 
         OpenGetIndexResponse response = new OpenGetIndexResponse();
@@ -202,6 +203,15 @@ public class OpenModelController extends NBasicController {
         List<IndexDetail> detailList = Lists.newArrayList();
         listDataResult.forEach(indexResponse -> detailList.add(IndexDetail.newIndexDetail(indexResponse)));
         response.setIndexDetailList(detailList);
+        if (CollectionUtils.isNotEmpty(batchIndexIds)) {
+            Set<Long> batchIndexIdsSet = indexes.stream() //
+                    .filter(index -> index.getIndexRange() == IndexEntity.Range.BATCH) //
+                    .map(IndexResponse::getId).collect(Collectors.toSet()); //
+            List<Long> absentBatchIndexIds = batchIndexIds.stream() //
+                    .filter(id -> !batchIndexIdsSet.contains(id)) //
+                    .collect(Collectors.toList());
+            response.setAbsentBatchIndexIds(absentBatchIndexIds);
+        }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -357,7 +367,9 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "project") String project,
             @RequestParam(value = "parallel", required = false, defaultValue = "false") boolean parallel,
             @RequestParam(value = "ids", required = false) String[] ids,
-            @RequestParam(value = "names", required = false) String[] names) {
+            @RequestParam(value = "names", required = false) String[] names,
+            @RequestParam(value = "batch_index_ids", required = false) List<Long> batchIndexIds,
+            @RequestParam(value = "partial_build", required = false, defaultValue = "false") boolean partialBuild) {
         String projectName = checkProjectName(project);
         checkSegmentParms(ids, names);
         String modelId = getModel(modelAlias, projectName).getUuid();
@@ -366,6 +378,8 @@ public class OpenModelController extends NBasicController {
         req.setProject(projectName);
         req.setParallelBuildBySegment(parallel);
         req.setSegmentIds(Lists.newArrayList(pair.getSecond()));
+        req.setPartialBuild(partialBuild);
+        req.setIndexIds(batchIndexIds);
         return modelController.addIndexesToSegments(pair.getFirst(), req);
     }
 

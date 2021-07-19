@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -73,7 +74,9 @@ public class ExecutableParams {
     }
 
     public final void setParams(Map<String, String> params) {
-        this.params.putAll(params);
+        if (MapUtils.isNotEmpty(params)) {
+            this.params.putAll(params);
+        }
     }
 
     public final void setParentId(String parentId) {

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -45,6 +46,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
 
 public class SegmentFlatTableDesc {
     protected final KylinConfig config;
@@ -64,7 +66,19 @@ public class SegmentFlatTableDesc {
     private final List<Integer> columnIds = Lists.newArrayList();
     private final Map<Integer, String> columnId2Canonical = Maps.newHashMap();
 
+    @Getter
+    private final List<String> relatedTables = Lists.newArrayList();
+
+    public boolean isPartialBuild() {
+        return !relatedTables.isEmpty();
+    }
+
     public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree) {
+        this(config, dataSegment, spanningTree, Lists.newArrayList());
+    }
+
+    public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree,
+            List<String> relatedTables) {
         this.config = config;
         this.dataSegment = dataSegment;
         this.spanningTree = spanningTree;
@@ -74,6 +88,7 @@ public class SegmentFlatTableDesc {
         this.dataflowId = dataSegment.getDataflow().getId();
         this.dataModel = dataSegment.getModel();
         this.indexPlan = dataSegment.getIndexPlan();
+        this.relatedTables.addAll(relatedTables);
 
         // Initialize flat table columns.
         initColumns();
@@ -122,7 +137,7 @@ public class SegmentFlatTableDesc {
 
     // Flat table
     public boolean shouldPersistFlatTable() {
-        return config.isPersistFlatTableEnabled();
+        return !isPartialBuild() && config.isPersistFlatTableEnabled();
     }
 
     // Fact table view
@@ -183,6 +198,8 @@ public class SegmentFlatTableDesc {
     protected void initColumns() {
         if (shouldPersistFlatTable()) {
             addModelColumns();
+        } else if (isPartialBuild()) {
+            addIndexPartialBuildColumns();
         } else {
             addIndexPlanColumns();
         }
@@ -196,6 +213,29 @@ public class SegmentFlatTableDesc {
         // Add measure columns
         dataModel.getEffectiveMeasures().values().stream() //
                 .filter(Objects::nonNull) //
+                .filter(measure -> Objects.nonNull(measure.getFunction())) //
+                .filter(measure -> Objects.nonNull(measure.getFunction().getColRefs())) //
+                .flatMap(measure -> measure.getFunction().getColRefs().stream()) //
+                .forEach(this::addColumn);
+    }
+
+    protected void addIndexPartialBuildColumns() {
+        Set<Integer> dimSet = spanningTree.getAllIndexEntities().stream() //
+                .flatMap(layout -> layout.getDimensions().stream()) //
+                .collect(Collectors.toSet());
+        indexPlan.getEffectiveDimCols().entrySet().stream() //
+                .filter(dimEntry -> dimSet.contains(dimEntry.getKey())) //
+                .map(Map.Entry::getValue) //
+                .filter(Objects::nonNull) //
+                .forEach(this::addColumn);
+
+        Set<Integer> measureSet = spanningTree.getAllIndexEntities().stream() //
+                .flatMap(layout -> layout.getMeasures().stream()) //
+                .collect(Collectors.toSet());
+
+        indexPlan.getEffectiveMeasures().entrySet().stream() //
+                .filter(measureEntry -> measureSet.contains(measureEntry.getKey())) //
+                .map(Map.Entry::getValue) //
                 .filter(measure -> Objects.nonNull(measure.getFunction())) //
                 .filter(measure -> Objects.nonNull(measure.getFunction().getColRefs())) //
                 .flatMap(measure -> measure.getFunction().getColRefs().stream()) //

@@ -211,7 +211,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         val layouts = dataflow.getIndexPlan().getAllLayouts();
         val oneSeg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(start, end));
         NSparkCubingJob job = NSparkCubingJob.create(new JobFactory.JobBuildParams(Sets.newHashSet(oneSeg),
-                Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null));
+                Sets.newLinkedHashSet(layouts), "ADMIN", JobTypeEnum.INDEX_BUILD, jobId, null, null, null, null, null));
         NExecutableManager.getInstance(getTestConfig(), "default").addJob(job);
         return NExecutableManager.getInstance(getTestConfig(), "default").getJob(jobId);
     }

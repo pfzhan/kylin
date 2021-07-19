@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
-
 import java.io.IOException
 import java.lang
 import java.util.Objects
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager
@@ -49,7 +49,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
   protected final val config = jobContext.getConfig
   protected final val dataflowId = jobContext.getDataflowId
   protected final val sparkSession = jobContext.getSparkSession
-  protected final val runtime = jobContext.runtime;
+  protected final val runtime = jobContext.runtime
 
   protected final val project = dataSegment.getProject
   protected final val segmentId = dataSegment.getId
@@ -146,7 +146,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
       return
     }
     // Check flat table paths
-    val unmergedFTPaths = getUnmergedFTPaths()
+    val unmergedFTPaths = getUnmergedFTPaths
     if (unmergedFTPaths.isEmpty) {
       return
     }
@@ -177,7 +177,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
 
     logInfo(s"Persist merged FLAT-TABLE $newPath with schema $schema")
 
-    val dataflowManager = NDataflowManager.getInstance(config, project);
+    val dataflowManager = NDataflowManager.getInstance(config, project)
     val copiedDataflow = dataflowManager.getDataflow(dataflowId).copy()
     val copiedSegment = copiedDataflow.getSegment(segmentId)
     copiedSegment.setFlatTableReady(true)
@@ -186,7 +186,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
     dataflowManager.updateDataflow(update)
   }
 
-  protected def getUnmergedFTPaths(): Seq[Path] = { // check flat table ready
+  protected def getUnmergedFTPaths: Seq[Path] = { // check flat table ready
     val notReadies = unmerged.filterNot(_.isFlatTableReady).map(_.getId)
     if (notReadies.nonEmpty) {
       logWarning(s"[UNEXPECTED_THINGS_HAPPENED] Merging FLAT-TABLE, " +

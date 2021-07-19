@@ -69,7 +69,7 @@ class TestInferFilters extends SparderBaseFunSuite with AdaptiveSparkPlanHelper 
     val flatTableDesc = new SegmentFlatTableDesc(getTestConfig, seg, toBuildTree)
     val flatTable = new SegmentFlatTable(spark, flatTableDesc)
 
-    val filters = getFilterPlan(flatTable.getFlatTableDS().queryExecution.executedPlan)
+    val filters = getFilterPlan(flatTable.getFlatTableDS.queryExecution.executedPlan)
 
     Assert.assertTrue(Set("EDW.TEST_CAL_DT.CAL_DT", "DEFAULT.TEST_KYLIN_FACT.CAL_DT",
       "DEFAULT.TEST_ORDER.TEST_DATE_ENC").subsetOf(FiltersUtil.getAllEqualColSets))

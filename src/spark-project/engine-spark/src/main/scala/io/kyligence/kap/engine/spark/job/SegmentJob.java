@@ -77,8 +77,19 @@ public abstract class SegmentJob extends SparkApplication {
 
     protected JobRuntime runtime;
 
+    private boolean partialBuild = false;
+
+    public boolean isPartialBuild() {
+        return partialBuild;
+    }
+
+    public Set<LayoutEntity> getReadOnlyLayouts() {
+        return readOnlyLayouts;
+    }
+
     @Override
     protected final void extraInit() {
+        partialBuild = Boolean.parseBoolean(getParam(NBatchConstants.P_PARTIAL_BUILD));
         Set<String> segmentIDs = Arrays.stream(getParam(NBatchConstants.P_SEGMENT_IDS).split(COMMA))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);

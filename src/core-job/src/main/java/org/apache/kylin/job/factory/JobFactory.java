@@ -36,6 +36,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.job.JobBucket;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -51,6 +52,7 @@ public abstract class JobFactory {
     }
 
     @AllArgsConstructor
+    @RequiredArgsConstructor
     @Getter
     public static class JobBuildParams {
         private final Set<NDataSegment> segments;
@@ -62,6 +64,7 @@ public abstract class JobFactory {
         private final Set<String> ignoredSnapshotTables;
         private final Set<Long> partitions;
         private final Set<JobBucket> buckets;
+        private Map<String, String> extParams;
     }
 
     public static AbstractExecutable createJob(String factory, JobBuildParams jobBuildParams) {

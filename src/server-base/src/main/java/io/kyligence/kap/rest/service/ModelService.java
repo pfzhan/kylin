@@ -190,6 +190,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -263,6 +264,7 @@ import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SegmentRangeResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.service.params.BasicSegmentParams;
 import io.kyligence.kap.rest.service.params.FullBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
@@ -2410,6 +2412,13 @@ public class ModelService extends BasicService {
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
             boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues, int priority,
             boolean buildAllSubPartitions) throws Exception {
+        return buildSegmentsManually(project, modelId, start, end, needBuild, ignoredSnapshotTables,
+                multiPartitionValues, priority, buildAllSubPartitions, null, false);
+    }
+
+    public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
+            boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues, int priority,
+            boolean buildAllSubPartitions, List<Long> batchIndexIds, boolean partialBuild) throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
             throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
@@ -2418,13 +2427,17 @@ public class ModelService extends BasicService {
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
-                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority));
+                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority)
+                    .withPartialBuild(partialBuild) //
+                    .withBatchIndexIds(batchIndexIds));
         } else {
             return incrementBuildSegmentsManually(
                     new IncrementBuildSegmentParams(project, modelId, start, end, modelDesc.getPartitionDesc(),
                             modelDesc.getMultiPartitionDesc(), Lists.newArrayList(), needBuild, multiPartitionValues)
                                     .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority)
-                                    .withBuildAllSubPartitions(buildAllSubPartitions));
+                                    .withBuildAllSubPartitions(buildAllSubPartitions) //
+                                    .withPartialBuild(partialBuild) //
+                                    .withBatchIndexIds(batchIndexIds));
         }
     }
 
@@ -2461,11 +2474,12 @@ public class ModelService extends BasicService {
             if (!needBuild) {
                 return new LinkedList<>();
             }
-            return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
-                    getSourceUsageManager().licenseCheckWrap(project,
-                            () -> getJobManager(project).addSegmentJob(new JobParam(newSegment, modelId, getUsername())
-                                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                                    .withPriority(params.getPriority())))));
+            JobParam jobParam = new JobParam(newSegment, modelId, getUsername())
+                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority());
+            addJobParamExtParams(jobParam, params);
+            return Lists
+                    .newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getSourceUsageManager()
+                            .licenseCheckWrap(project, () -> getJobManager(project).addSegmentJob(jobParam))));
         }
         if (!needBuild) {
             return new LinkedList<>();
@@ -2475,9 +2489,21 @@ public class ModelService extends BasicService {
         RefreshSegmentParams refreshSegmentParams = new RefreshSegmentParams(project, modelId,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
                         .toArray(new String[0]),
-                true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority());
+                true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
+                        .withPriority(params.getPriority()) //
+                        .withPartialBuild(params.isPartialBuild()) //
+                        .withBatchIndexIds(params.getBatchIndexIds());
         res.addAll(refreshSegmentById(refreshSegmentParams));
         return res;
+    }
+
+    private void addJobParamExtParams(JobParam jobParam, BasicSegmentParams params) {
+        if (params.isPartialBuild()) {
+            jobParam.addExtParams(NBatchConstants.P_PARTIAL_BUILD, String.valueOf(params.isPartialBuild()));
+        }
+        if (CollectionUtils.isNotEmpty(params.getBatchIndexIds())) {
+            jobParam.setTargetLayouts(Sets.newHashSet(params.getBatchIndexIds()));
+        }
     }
 
     private JobInfoResponse.JobInfo constructIncrementBuild(IncrementBuildSegmentParams params) {
@@ -2506,6 +2532,7 @@ public class ModelService extends BasicService {
         }
         JobParam jobParam = new JobParam(newSegment, modelId, getUsername())
                 .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority());
+        addJobParamExtParams(jobParam, params);
         if (modelDescInTransaction.isMultiPartitionModel()) {
             val model = getDataModelManager(project).getDataModelDesc(modelId);
             jobParam.setTargetPartitions(
@@ -2540,9 +2567,14 @@ public class ModelService extends BasicService {
                 partitionDesc, null, segmentHoles, true, null));
     }
 
-    @Transaction(project = 0)
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds, boolean parallelBuildBySegment, int priority) {
+        return addIndexesToSegments(project, modelId, segmentIds, indexIds, parallelBuildBySegment, priority, false);
+    }
+
+    @Transaction(project = 0)
+    public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
+            List<Long> indexIds, boolean parallelBuildBySegment, int priority, boolean partialBuild) {
         aclEvaluate.checkProjectOperationPermission(project);
         checkModelPermission(project, modelId);
         val dfManger = getDataflowManager(project);
@@ -2555,11 +2587,15 @@ public class ModelService extends BasicService {
             JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
             List<JobInfoResponse.JobInfo> jobs = new LinkedList<>();
             try {
+                Set<Long> targetLayouts = indexIds == null ? null : Sets.newHashSet(indexIds);
+                JobParam jobParam = new JobParam(Sets.newHashSet(segmentIds), targetLayouts, modelId, getUsername())
+                        .withPriority(priority);
+                if (partialBuild) {
+                    jobParam.addExtParams(NBatchConstants.P_PARTIAL_BUILD, String.valueOf(true));
+                }
                 JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                         getSourceUsageManager().licenseCheckWrap(project,
-                                () -> jobManager.addRelatedIndexJob(new JobParam(Sets.newHashSet(segmentIds),
-                                        indexIds == null ? null : new HashSet<>(indexIds), modelId, getUsername())
-                                                .withPriority(priority))));
+                                () -> jobManager.addRelatedIndexJob(jobParam)));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
                 result.addFailedSeg(dataflow, e);
@@ -2631,14 +2667,18 @@ public class ModelService extends BasicService {
                 project);
         String format = probeDateFormatIfNotExist(project, copyModel);
 
-        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                () -> innerIncrementBuild(new IncrementBuildSegmentParams(project, params.getModelId(), startFormat,
-                        endFormat, params.getPartitionDesc(), params.getMultiPartitionDesc(), format,
-                        params.getSegmentHoles(), params.isNeedBuild(), params.getMultiPartitionValues())
-                                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                                .withPriority(params.getPriority())
-                                .withBuildAllSubPartitions(params.isBuildAllSubPartitions())),
-                project);
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            IncrementBuildSegmentParams buildSegmentParams = new IncrementBuildSegmentParams(project,
+                    params.getModelId(), startFormat, endFormat, params.getPartitionDesc(),
+                    params.getMultiPartitionDesc(), format, params.getSegmentHoles(), params.isNeedBuild(),
+                    params.getMultiPartitionValues()) //
+                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
+                            .withPriority(params.getPriority())
+                            .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
+                            .withPartialBuild(params.isPartialBuild()) //
+                            .withBatchIndexIds(params.getBatchIndexIds());
+            return innerIncrementBuild(buildSegmentParams);
+        }, project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
@@ -2674,13 +2714,17 @@ public class ModelService extends BasicService {
                     hole.getStart(), hole.getEnd(), params.getPartitionColFormat(), true, allPartitions)
                             .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
                             .withPriority(params.getPriority())
-                            .withBuildAllSubPartitions(params.isBuildAllSubPartitions())));
+                            .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
+                            .withPartialBuild(params.isPartialBuild()) //
+                            .withBatchIndexIds(params.getBatchIndexIds())));
         }
         res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
-                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                        .withPriority(params.getPriority())
-                        .withBuildAllSubPartitions(params.isBuildAllSubPartitions())));
+                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
+                        .withPriority(params.getPriority()) //
+                        .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
+                        .withPartialBuild(params.isPartialBuild()) //
+                        .withBatchIndexIds(params.getBatchIndexIds())));
         return res;
     }
 
@@ -3266,10 +3310,12 @@ public class ModelService extends BasicService {
 
             NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
 
+            JobParam jobParam = new JobParam(newSeg, params.getModelId(), getUsername())
+                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
+                    .withPriority(params.getPriority());
+            addJobParamExtParams(jobParam, params);
             String jobId = getSourceUsageManager().licenseCheckWrap(params.getProject(),
-                    () -> jobManager.refreshSegmentJob(new JobParam(newSeg, params.getModelId(), getUsername())
-                            .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                            .withPriority(params.getPriority()), params.isRefreshAllLayouts()));
+                    () -> jobManager.refreshSegmentJob(jobParam, params.isRefreshAllLayouts()));
 
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), jobId));
         }
@@ -4285,18 +4331,18 @@ public class ModelService extends BasicService {
         Comparator<SegmentPartitionResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(sortBy) ? "last_modified_time" : sortBy, !reverse);
 
-        List<SegmentPartitionResponse> responses = segment.getMultiPartitions().stream().map(partition -> {
-            val partitionInfo = partitionDesc.getPartitionInfo(partition.getPartitionId());
-            val lastModifiedTime = partition.getLastBuildTime() != 0 ? partition.getLastBuildTime()
-                    : partition.getCreateTimeUTC();
-            return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(), partition.getStatus(),
-                    lastModifiedTime, partition.getSourceCount(), partition.getStorageSize());
-        }).filter(partitionResponse -> {
-            if (CollectionUtils.isEmpty(status) || status.contains(partitionResponse.getStatus().name())) {
-                return true;
-            }
-            return false;
-        }).sorted(comparator).collect(Collectors.toList());
+        List<SegmentPartitionResponse> responses = segment.getMultiPartitions().stream() //
+                .map(partition -> {
+                    val partitionInfo = partitionDesc.getPartitionInfo(partition.getPartitionId());
+                    val lastModifiedTime = partition.getLastBuildTime() != 0 ? partition.getLastBuildTime()
+                            : partition.getCreateTimeUTC();
+                    return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(),
+                            partition.getStatus(), lastModifiedTime, partition.getSourceCount(),
+                            partition.getStorageSize());
+                })
+                .filter(partitionResponse -> CollectionUtils.isEmpty(status)
+                        || status.contains(partitionResponse.getStatus().name()))
+                .sorted(comparator).collect(Collectors.toList());
 
         return responses;
     }
