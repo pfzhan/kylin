@@ -1376,7 +1376,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, models.size());
         Assert.assertFalse(models.get(0).isHasSegments());
         Assert.assertTrue(models.get(0) instanceof FusionModelResponse);
-        Assert.assertTrue(((FusionModelResponse)models.get(0)).getBatchSegments().isEmpty());
+        Assert.assertTrue(((FusionModelResponse) models.get(0)).getBatchSegments().isEmpty());
         Assert.assertEquals(ModelStatusToDisplayEnum.OFFLINE, models.get(0).getStatus());
     }
 
@@ -1398,7 +1398,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, models.size());
         Assert.assertTrue(models.get(0).isHasSegments());
         Assert.assertTrue(models.get(0) instanceof FusionModelResponse);
-        Assert.assertNotNull(((FusionModelResponse)models.get(0)).getBatchSegments());
+        Assert.assertNotNull(((FusionModelResponse) models.get(0)).getBatchSegments());
         Assert.assertEquals(ModelStatusToDisplayEnum.ONLINE, models.get(0).getStatus());
 
         modelService.updateDataModelStatus("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, "OFFLINE");
@@ -6069,6 +6069,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
         batchModelRequest.setProject(project);
         val model1 = semanticService.convertToDataModel(batchModelRequest);
         Assert.assertEquals(model.getAllNamedColumns().get(4).getName(), model1.getAllNamedColumns().get(4).getName());
+    }
+
+    @Test
+    public void testUpdateModelColumns() {
+        String project = "streaming_test";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel okModel = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        ModelRequest okModelRequest = new ModelRequest(okModel);
+        okModelRequest.setProject(project);
+        semanticService.updateModelColumns(okModel, okModelRequest);
+        Assert.assertEquals("SUM_L", okModel.getAllMeasures().get(1).getName());
     }
 
     @Test

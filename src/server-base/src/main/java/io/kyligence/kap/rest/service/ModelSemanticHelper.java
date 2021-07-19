@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JO
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -533,6 +534,7 @@ public class ModelSemanticHelper extends BasicService {
     private void updateMeasureStatus(List<Measure> newMeasures, NDataModel originModel, UpdateImpact updateImpact) {
         int maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1);
+        newMeasures.sort(Comparator.comparing(Measure::getId));
         for (NDataModel.Measure measure : newMeasures) {
             Integer modifiedMeasureId = updateImpact.getInvalidMeasures().stream() //
                     .filter(measureId -> equalsIgnoreReturnType(originModel.getTombMeasureById(measureId), measure))
