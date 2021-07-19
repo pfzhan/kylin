@@ -87,7 +87,7 @@ public class FusionModelService extends BasicService {
 
     void dropModel(String modelId, String project, boolean ignoreType) {
         val model = getDataModelManager(project).getDataModelDesc(modelId);
-        if (model.skipFusionModel()) {
+        if (model.fusionModelBatchPart()) {
             modelId = model.getFusionId();
         }
         modelService.dropModel(modelId, project, ignoreType);

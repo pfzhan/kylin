@@ -175,10 +175,8 @@ public abstract class AbstractExecutable implements Executable {
         if (dataModelDesc != null) {
             if (modelManager.isModelBroken(targetSubject)) { 
                 return modelManager.getDataModelDescWithoutInit(targetSubject).getAlias();
-            } else if (dataModelDesc.skipFusionModel()) {
-                return dataModelDesc.getFusionModelAlias();
             } else {
-                return dataModelDesc.getAlias();
+                return dataModelDesc.getFusionModelAlias();
             }
         }
 

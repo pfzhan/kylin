@@ -162,7 +162,7 @@ public class QueryHistoryService extends BasicService {
         realizations.forEach(realization -> {
             NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
             if (noBrokenModels.containsValue(realization.getModelId())) {
-                realization.setModelAlias(nDataModel.getAlias());
+                realization.setModelAlias(nDataModel.getFusionModelAlias());
             } else {
                 val modelAlias = nDataModel == null ? DELETED_MODEL
                         : String.format(Locale.ROOT, "%s broken", nDataModel.getAlias());
@@ -236,7 +236,7 @@ public class QueryHistoryService extends BasicService {
             if (noBrokenModels.containsValue(realization.getModelId())) {
                 NDataModelResponse model = (NDataModelResponse) modelService
                         .updateReponseAcl(new NDataModelResponse(nDataModel), project);
-                realization.setModelAlias(model.getAlias());
+                realization.setModelAlias(model.getFusionModelAlias());
                 realization.setAclParams(model.getAclParams());
                 realization.setLayoutExist(
                         isLayoutExist(indexPlanManager, realization.getModelId(), realization.getLayoutId()));

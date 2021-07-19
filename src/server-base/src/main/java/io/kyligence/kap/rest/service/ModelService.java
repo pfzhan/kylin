@@ -790,7 +790,7 @@ public class ModelService extends BasicService {
                         && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
                                 || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
                         && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
-                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()) && !p.getValue().skipFusionModel())
+                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()) && !p.getValue().fusionModelBatchPart())
                 .collect(Collectors.toList());
     }
 
@@ -1638,7 +1638,7 @@ public class ModelService extends BasicService {
             }
             // create DataFlow
             val df = dataflowManager.createDataflow(emptyIndex, model.getOwner());
-            if (modelRequest.isWithEmptySegment()) {
+            if (modelRequest.isWithEmptySegment() && !modelRequest.isStreaming()) {
                 dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
                         SegmentStatusEnum.READY);
             }

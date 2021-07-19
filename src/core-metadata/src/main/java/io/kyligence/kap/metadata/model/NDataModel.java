@@ -419,6 +419,7 @@ public class NDataModel extends RootPersistentEntity {
         this.multiPartitionKeyMapping = other.multiPartitionKeyMapping;
         this.recommendationsCount = other.recommendationsCount;
         this.modelType = other.modelType;
+        this.fusionId = other.fusionId;
     }
 
     public KylinConfig getConfig() {
@@ -1462,15 +1463,18 @@ public class NDataModel extends RootPersistentEntity {
         return Lists.newArrayList(colIds);
     }
 
-    public boolean skipFusionModel() {
+    public boolean fusionModelBatchPart() {
         return StringUtils.isNotEmpty(fusionId) && ModelType.BATCH == getModelType();
     }
 
     public String getFusionModelAlias() {
-        return this.alias.substring(0, this.alias.length() - 9);
+        if (fusionModelBatchPart()) {
+            return getAlias().substring(0, this.alias.length() - 9);
+        }
+        return getAlias();
     }
 
-    public boolean showFusionModel() {
+    public boolean fusionModelStreamingPart() {
         return StringUtils.isNotEmpty(fusionId) && ModelType.HYBRID == getModelType();
     }
 

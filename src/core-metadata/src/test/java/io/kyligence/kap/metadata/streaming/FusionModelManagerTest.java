@@ -106,9 +106,9 @@ public class FusionModelManagerTest extends NLocalFileMetadataTestCase {
         val batchModel = modelManager.getDataModelDesc("334671fd-e383-4fc9-b5c2-94fce832f77a");
         val streamingModel = modelManager.getDataModelDesc("b05034a8-c037-416b-aa26-9e6b4a41ee40");
 
-        Assert.assertTrue(batchModel.skipFusionModel());
+        Assert.assertTrue(batchModel.fusionModelBatchPart());
         Assert.assertTrue(batchModel.isFusionModel());
-        Assert.assertTrue(streamingModel.showFusionModel());
+        Assert.assertTrue(streamingModel.fusionModelStreamingPart());
     }
 
 }

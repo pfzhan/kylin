@@ -882,4 +882,53 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
                         + "select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500;\n",
                 baos2.toString(StandardCharsets.UTF_8.name()));
     }
+
+    @Test
+    public void testGetFusionModelQueryHistories() {
+        // when there is no filter conditions
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject("streaming_test");
+        // set default values
+        request.setStartTimeFrom("0");
+        request.setStartTimeTo(String.valueOf(Long.MAX_VALUE));
+        request.setLatencyFrom("0");
+        request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
+
+        // mock query histories
+
+        QueryHistory query1 = new QueryHistory();
+        query1.setSql("select * from test_table_1");
+
+        QueryHistory query2 = new QueryHistory();
+        query2.setSql("select * from test_table_2");
+
+
+        QueryMetrics.RealizationMetrics metrics1 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
+                "b05034a8-c037-416b-aa26-9e6b4a41ee40", Lists.newArrayList(new String[]{}));
+        QueryMetrics.RealizationMetrics metrics2 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
+                "334671fd-e383-4fc9-b5c2-94fce832f77a", Lists.newArrayList(new String[]{}));
+        QueryMetrics.RealizationMetrics metrics3 = new QueryMetrics.RealizationMetrics("1", "Agg Index",
+                "554671fd-e383-4fc9-b5c2-94fce832f77a", Lists.newArrayList(new String[]{}));
+
+        QueryHistoryInfo queryHistoryInfo1 = new QueryHistoryInfo();
+        queryHistoryInfo1.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{metrics1, metrics2}));
+        query1.setQueryHistoryInfo(queryHistoryInfo1);
+
+        QueryHistoryInfo queryHistoryInfo2 = new QueryHistoryInfo();
+        queryHistoryInfo2.setRealizationMetrics(
+                Lists.newArrayList(new QueryMetrics.RealizationMetrics[]{metrics3}));
+        query2.setQueryHistoryInfo(queryHistoryInfo2);
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(query1, query2)).when(queryHistoryDAO)
+                .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt());
+        Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
+
+        Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+        Assert.assertEquals("streaming_test", queryHistories.get(0).getNativeQueryRealizations().get(0).getModelAlias());
+        Assert.assertEquals("streaming_test", queryHistories.get(0).getNativeQueryRealizations().get(1).getModelAlias());
+        Assert.assertEquals("batch", queryHistories.get(1).getNativeQueryRealizations().get(0).getModelAlias());
+    }
 }

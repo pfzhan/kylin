@@ -416,7 +416,7 @@ public class ProjectService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
 
         List<NDataModel> dataModels = getDataModelManager(project).listAllModels().stream()
-                .filter(model -> model.isBroken() || !model.skipFusionModel()).collect(Collectors.toList());
+                .filter(model -> model.isBroken() || !model.fusionModelBatchPart()).collect(Collectors.toList());
         Map<String, Set<Integer>> map = Maps.newHashMap();
         dataModels.forEach(model -> map.putIfAbsent(model.getId(), Sets.newHashSet()));
         if (getProjectManager().getProject(project).isSemiAutoMode()) {

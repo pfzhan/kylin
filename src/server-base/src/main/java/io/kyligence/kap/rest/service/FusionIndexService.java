@@ -79,7 +79,7 @@ public class FusionIndexService extends BasicService {
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
         val model = getDataModelManager(project).getDataModelDesc(request.getModelId());
-        if (model.showFusionModel()) {
+        if (model.fusionModelStreamingPart()) {
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(request.getModelId());
             String batchId = fusionModel.getBatchModel().getUuid();
             UpdateRuleBasedCuboidRequest batchCopy = JsonUtil.deepCopyQuietly(request,
@@ -108,7 +108,7 @@ public class FusionIndexService extends BasicService {
             newRuleBasedIndex.getAggregationGroups().addAll(modelRule.getAggregationGroups());
         }
 
-        if (model.showFusionModel()) {
+        if (model.fusionModelStreamingPart()) {
             FusionModel fusionModel = getFusionModelManager(project).getFusionModel(modelId);
             String batchId = fusionModel.getBatchModel().getUuid();
             val batchRule = indexPlanService.getRule(project, batchId);
@@ -125,7 +125,7 @@ public class FusionIndexService extends BasicService {
         NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
         checkStreamingIndexEnabled(project, model);
 
-        if (model.showFusionModel()) {
+        if (model.fusionModelStreamingPart()) {
             if (!indexChangeEnable(project, request.getModelId(), request.getIndexRange(),
                     Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING))) {
                 throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
@@ -182,7 +182,7 @@ public class FusionIndexService extends BasicService {
         NDataModel model = getDataModelManager(project).getDataModelDesc(request.getModelId());
         checkStreamingIndexEnabled(project, model);
 
-        if (model.showFusionModel()) {
+        if (model.fusionModelStreamingPart()) {
             if (!indexChangeEnable(project, request.getModelId(), request.getIndexRange(),
                     Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING))) {
                 throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
@@ -251,7 +251,7 @@ public class FusionIndexService extends BasicService {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
         checkStreamingIndexEnabled(project, modelDesc);
 
-        if (modelDesc.showFusionModel()) {
+        if (modelDesc.fusionModelStreamingPart()) {
             if (!indexChangeEnable(project, model, indexRange,
                     Lists.newArrayList(IndexEntity.Range.HYBRID, Range.STREAMING, Range.EMPTY))) {
                 throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
@@ -350,7 +350,7 @@ public class FusionIndexService extends BasicService {
     }
 
     private boolean isFusionModel(String project, String modelId) {
-        return getDataModelManager(project).getDataModelDesc(modelId).showFusionModel();
+        return getDataModelManager(project).getDataModelDesc(modelId).fusionModelStreamingPart();
     }
 
     private List<NAggregationGroup> getStreamingAggGroup(List<NAggregationGroup> aggregationGroups) {

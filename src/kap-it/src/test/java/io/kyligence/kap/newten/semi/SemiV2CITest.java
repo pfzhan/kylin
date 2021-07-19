@@ -701,6 +701,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
             modelRequest.setRootFactTableName(model.getRootFactTableName());
             modelRequest.setRootFactTableAlias(model.getRootFactTableAlias());
             modelRequest.setRootFactTableRef(model.getRootFactTableRef());
+            modelRequest.setModelType(model.getModelType());
 
             modelRequest.setIndexPlan(model.getIndexPlan());
             modelRequest.setAllNamedColumns(model.getAllNamedColumns());
@@ -834,5 +835,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val jobManager = StreamingJobManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val job = jobManager.getStreamingJobByUuid(modelID + "_build");
         Assert.assertNotNull(job);
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelID);
+        Assert.assertEquals(0, dataflow.getSegments().size());
     }
 }
