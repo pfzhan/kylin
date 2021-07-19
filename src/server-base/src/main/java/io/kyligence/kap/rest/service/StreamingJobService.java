@@ -142,25 +142,32 @@ public class StreamingJobService extends BasicService {
     }
 
     public void updateStreamingJobStatus(String project, List<String> jobIds, String action) {
-        aclEvaluate.checkProjectOperationPermission(project);
         StreamingJobActionEnum.validate(action);
-        for (int i = 0; i < jobIds.size(); i++) {
-            val jobId = jobIds.get(i).split("\\_");
-            String modelId = jobId[0];
-            String jobType = "STREAMING_" + jobId[1].toUpperCase(Locale.ROOT);
+        String jobProject = project;
+        Map<String, StreamingJobMeta> jobMap = getAllStreamingJobs(project).stream()
+                .collect(Collectors.toMap(StreamingJobMeta::getUuid, meta -> meta));
+        for (String jobId : jobIds) {
+            if (jobMap.containsKey(jobId)) {
+                jobProject = jobMap.get(jobId).getProject();
+            }
+            aclEvaluate.checkProjectOperationPermission(jobProject);
+            val jobIdPair = jobId.split("\\_");
+            String modelId = jobIdPair[0];
+            String jobType = "STREAMING_" + jobIdPair[1].toUpperCase(Locale.ROOT);
+
             switch (StreamingJobActionEnum.valueOf(action)) {
             case START:
-                launchStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                launchStreamingJob(jobProject, modelId, JobTypeEnum.valueOf(jobType));
                 break;
             case STOP:
-                stopStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                stopStreamingJob(jobProject, modelId, JobTypeEnum.valueOf(jobType));
                 break;
             case FORCE_STOP:
-                forceStopStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                forceStopStreamingJob(jobProject, modelId, JobTypeEnum.valueOf(jobType));
                 break;
             case RESTART:
-                forceStopStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
-                launchStreamingJob(project, modelId, JobTypeEnum.valueOf(jobType));
+                forceStopStreamingJob(jobProject, modelId, JobTypeEnum.valueOf(jobType));
+                launchStreamingJob(jobProject, modelId, JobTypeEnum.valueOf(jobType));
                 break;
             default:
                 throw new IllegalStateException("This streaming job can not do this action: " + action);
@@ -309,28 +316,8 @@ public class StreamingJobService extends BasicService {
 
     public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
             int limit) {
-        val config = KylinConfig.getInstanceFromEnv();
-        List<StreamingJobMeta> list;
-        List<NDataModel> modelList = null;
-        if (StringUtils.isEmpty(jobFilter.getProject())) {
-            val prjMgr = NProjectManager.getInstance(config);
-            val prjList = prjMgr.listAllProjects();
-            list = new ArrayList<>();
-            modelList = new ArrayList<>();
-            for (ProjectInstance instance : prjList) {
-                val mgr = StreamingJobManager.getInstance(config, instance.getName());
-                list.addAll(mgr.listAllStreamingJobMeta());
-                val modelMgr = NDataModelManager.getInstance(config, instance.getName());
-                modelList.addAll(modelMgr.listAllModels());
+        List<StreamingJobMeta> list = getAllStreamingJobs(jobFilter.getProject());
 
-            }
-        } else {
-            StreamingJobManager mgr = StreamingJobManager.getInstance(config, jobFilter.getProject());
-            list = mgr.listAllStreamingJobMeta();
-            val modelMgr = NDataModelManager.getInstance(config, jobFilter.getProject());
-            modelList = modelMgr.listAllModels();
-
-        }
         List<String> jobIdList = list.stream().filter(item -> JobTypeEnum.STREAMING_BUILD == item.getJobType())
                 .map(item -> StreamingUtils.getJobId(item.getModelId(), item.getJobType().name()))
                 .collect(Collectors.toList());
@@ -377,30 +364,56 @@ public class StreamingJobService extends BasicService {
         }).sorted(comparator).collect(Collectors.toList());
         List<StreamingJobResponse> targetList = PagingUtil.cutPage(filterList, offset, limit).stream()
                 .collect(Collectors.toList());
-        val modelMap = new HashMap<String, NDataModel>();
-        if (modelList != null) {
-            modelList.stream().forEach(item -> {
-                modelMap.put(item.getUuid(), item);
-            });
-            if (targetList != null) {
-                val iter = targetList.iterator();
-                while (iter.hasNext()) {
-                    val entry = (StreamingJobResponse) iter.next();
-                    val id = entry.getId();
-                    val uuid = id.substring(0, id.lastIndexOf("_"));
-                    val dataModel = modelMap.get(uuid);
-                    if (dataModel != null) {
-                        if (dataModel.isBroken()) {
-                            entry.setModelIndexes(0);
-                        } else {
-                            val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
-                            entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
-                        }
+        if (targetList != null) {
+            Map<String, NDataModel> modelMap = getAllDataModels(jobFilter.getProject());
+            targetList.stream().forEach(entry -> {
+                val id = entry.getId();
+                val uuid = id.substring(0, id.lastIndexOf("_"));
+                val dataModel = modelMap.get(uuid);
+                if (dataModel != null) {
+                    if (dataModel.isBroken()) {
+                        entry.setModelIndexes(0);
+                    } else {
+                        val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
+                        entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
                     }
                 }
-            }
+            });
         }
         return new DataResult<>(targetList, filterList.size(), offset, limit);
+    }
+
+    private List<ProjectInstance> getAllProjects(String project) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val prjMgr = NProjectManager.getInstance(config);
+        if (!StringUtils.isEmpty(project)) {
+            return Arrays.asList(prjMgr.getProject(project));
+        } else {
+            return prjMgr.listAllProjects();
+        }
+    }
+
+    private Map<String, NDataModel> getAllDataModels(String project) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val modelMap = new HashMap<String, NDataModel>();
+        getAllProjects(project).stream().forEach(instance -> {
+            val modelMgr = NDataModelManager.getInstance(config, instance.getName());
+            val modelList = modelMgr.listAllModels();
+            if (CollectionUtils.isNotEmpty(modelList)) {
+                modelList.stream().forEach(model -> modelMap.put(model.getUuid(), model));
+            }
+        });
+        return modelMap;
+    }
+
+    private List<StreamingJobMeta> getAllStreamingJobs(String project) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val jobList = new ArrayList<StreamingJobMeta>();
+        getAllProjects(project).stream().forEach(instance -> {
+            val mgr = StreamingJobManager.getInstance(config, instance.getName());
+            jobList.addAll(mgr.listAllStreamingJobMeta());
+        });
+        return jobList;
     }
 
     public StreamingJobDataStatsResponse getStreamingJobDataStats(String jobId, String project, Integer timeFilter) {

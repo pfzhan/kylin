@@ -276,7 +276,37 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testUpdateStreamingJobStatusToStop() throws Exception {
+    public void testUpdateStatusOfNullPrj() throws Exception {
+        streamingJobService.updateStreamingJobStatus(null, MODEL_ID, "START");
+        KylinConfig testConfig = getTestConfig();
+        StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
+        String buildJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val buildMeta = streamingJobManager.getStreamingJobByUuid(buildJobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, buildMeta.getCurrentStatus());
+
+        String mergeJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name());
+        val mergeMeta = streamingJobManager.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, mergeMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testUpdateStatusOfEmptyProject() throws Exception {
+        streamingJobService.updateStreamingJobStatus(StringUtils.EMPTY, MODEL_ID, "START");
+        streamingJobService.updateStreamingJobStatus(StringUtils.EMPTY, MODEL_ID, "STOP");
+        KylinConfig testConfig = getTestConfig();
+
+        StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
+        String buildJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val buildMeta = streamingJobManager.getStreamingJobByUuid(buildJobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, buildMeta.getCurrentStatus());
+
+        String mergeJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name());
+        val mergeMeta = streamingJobManager.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, mergeMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testUpdateStreamingJobStatusToStopOfEmptyProject() throws Exception {
         streamingJobService.updateStreamingJobStatus(PROJECT, MODEL_ID, "START");
         streamingJobService.updateStreamingJobStatus(PROJECT, MODEL_ID, "STOP");
         KylinConfig testConfig = getTestConfig();

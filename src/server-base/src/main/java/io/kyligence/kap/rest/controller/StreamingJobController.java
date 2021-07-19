@@ -114,7 +114,6 @@ public class StreamingJobController extends NBasicController {
     public EnvelopeResponse<String> updateStreamingJobStatus(
             @RequestBody StreamingJobExecuteRequest streamingJobExecuteRequest) {
         checkRequiredArg("action", streamingJobExecuteRequest.getAction());
-        checkProjectName(streamingJobExecuteRequest.getProject());
         streamingJobService.updateStreamingJobStatus(streamingJobExecuteRequest.getProject(),
                 streamingJobExecuteRequest.getJobIds(), streamingJobExecuteRequest.getAction());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
