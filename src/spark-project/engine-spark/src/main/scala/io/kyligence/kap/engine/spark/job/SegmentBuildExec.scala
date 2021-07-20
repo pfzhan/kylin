@@ -142,7 +142,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected def buildFromFlatTable(sources: Seq[SegmentBuildSource]): Unit = {
     // By design, only index in the first layer may should build from flat table.
     if (sources.nonEmpty) {
-      val parentDS = flatTable.getDS()
+      val parentDS = flatTable.getFlatTableDS()
       sources.foreach(source => {
         KylinBuildEnv.get().buildJobInfos.recordParent2Children(source.getDataSegment.getLayout(source.getParentId),
           sources.filter(_.isFlatTable).map(_.getLayoutId).toList.asJava)
@@ -190,7 +190,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
         val dataflowUpdate = new NDataflowUpdate(dataflowId)
         copiedSegment.setSourceCount(stats.totalCount)
         // Cal segment dimension range
-        copiedSegment.setDimensionRangeInfoMap(calDimRange(dataSegment, flatTable.getDS()))
+        copiedSegment.setDimensionRangeInfoMap(calDimRange(dataSegment, flatTable.getFlatTableDS()))
         // By design, no fencing.
         val columnBytes = copiedSegment.getColumnSourceBytes
         stats.columnBytes.foreach(kv => columnBytes.put(kv._1, kv._2))

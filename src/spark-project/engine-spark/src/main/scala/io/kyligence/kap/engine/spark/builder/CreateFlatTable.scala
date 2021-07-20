@@ -129,7 +129,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   }
 
   private def withColumn(ds: Dataset[Row], withCols: Set[TblColRef]): Dataset[Row] = {
-    val matchedCols = filterCols(ds, withCols)
+    val matchedCols = selectColumnsInTable(ds, withCols)
     var withDs = ds
     matchedCols.foreach(m => withDs = withDs.withColumn(convertFromDot(m.getIdentity),
       expr(convertFromDot(m.getExpressionInSourceDB))))
@@ -140,14 +140,14 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
     val matchedCols = if (seg.getIndexPlan.isSkipEncodeIntegerFamilyEnabled) {
       filterOutIntegerFamilyType(ds, dictCols)
     } else {
-      filterCols(ds, dictCols)
+      selectColumnsInTable(ds, dictCols)
     }
     val builder = new DFDictionaryBuilder(ds, seg, ss, Sets.newHashSet(matchedCols.asJavaCollection))
     builder.buildDictSet()
   }
 
   private def encodeColumn(ds: Dataset[Row], encodeCols: Set[TblColRef]): Dataset[Row] = {
-    val matchedCols = filterCols(ds, encodeCols)
+    val matchedCols = selectColumnsInTable(ds, encodeCols)
     var encodeDs = ds
     if (matchedCols.nonEmpty) {
       encodeDs = DFTableEncoder.encodeTable(ds, seg, matchedCols.asJava)

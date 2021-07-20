@@ -68,7 +68,7 @@ class MLPFlatTable(private val sparkSession: SparkSession, //
     }.mkString(" and ")
 
     logInfo(s"Single PARTITION-CONDITION: $converted")
-    fullDS.where(converted)
+    FLAT_TABLE.where(converted)
   }
 
   def gatherPartitionStatistics(partitionId: Long, tableDS: Dataset[Row]): Statistics = {

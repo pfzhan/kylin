@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
@@ -59,6 +60,7 @@ public class QueryHistoryTaskSchedulerRunnerTest extends NLocalFileMetadataTestC
     }
 
     @Test
+    @Ignore
     public void testQueryHistoryAccelerateRunner() {
 
         getTestConfig().setProperty("kylin.favorite.query-history-accelerate-interval", "1m");

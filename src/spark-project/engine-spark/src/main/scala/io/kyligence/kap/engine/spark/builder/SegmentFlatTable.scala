@@ -22,6 +22,8 @@
 
 package io.kyligence.kap.engine.spark.builder
 
+import java.util.{Locale, Objects}
+
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
@@ -40,7 +42,6 @@ import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.util.SparderTypeUtil
 
-import java.util.{Locale, Objects}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -65,8 +66,9 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   protected final val segmentId = dataSegment.getId
 
-  protected lazy final val fullDS = newDS()
-  private lazy final val fastDS = newFastDS()
+  protected lazy final val FLAT_TABLE = generateFlatTable()
+  // flat-table without dict columns
+  private lazy final val FLAT_TABLE_PART = generateFlatTablePart()
 
   protected val rootFactTable = dataModel.getRootFactTable
 
@@ -78,9 +80,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   private lazy val isFTV = rootFactTable.getTableDesc.isView
   private lazy val shouldPersistFTV = tableDesc.shouldPersistView()
   private lazy val isFTVReady = dataSegment.isFactViewReady && HadoopUtil.getWorkingFileSystem.exists(factTableViewPath)
-
-  // Global dictionary.
-  private lazy val isGDReady = dataSegment.isDictReady
 
   private lazy val needJoin = {
     val join = tableDesc.shouldJoinLookupTables
@@ -94,35 +93,34 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   // By design, COMPUTED-COLUMN could only be defined on fact table.
   protected lazy val factTableCCs = rootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
 
-  def getFastDS(): Dataset[Row] = {
-    fastDS
+  def getFlatTablePartDS(): Dataset[Row] = {
+    FLAT_TABLE_PART
   }
 
-  def getDS(): Dataset[Row] = {
-    fullDS
+  def getFlatTableDS(): Dataset[Row] = {
+    FLAT_TABLE
   }
 
   def gatherStatistics(): Statistics = {
     logInfo(s"Segment $segmentId gather statistics FLAT-TABLE")
     sparkSession.sparkContext.setJobDescription(s"Segment ${segmentId} gather statistics FLAT-TABLE.")
-    val statistics = gatherStatistics(fullDS)
+    val statistics = gatherStatistics(FLAT_TABLE)
     sparkSession.sparkContext.setJobDescription(null)
     statistics
   }
 
-  protected def newFastDS(): Dataset[Row] = {
+  protected def generateFlatTablePart(): Dataset[Row] = {
     val recoveredDS = tryRecoverFTDS()
     if (recoveredDS.nonEmpty) {
       return recoveredDS.get
     }
     var flatTableDS = if (needJoin) {
-      val lookupTableCCs = cleanComputedColumns(factTableCCs, fastFactTableDS.columns.toSet)
-      val lookupTableDSMap = newLookupTableDS(lookupTableCCs)
+      val lookupTableDSMap = generateLookupTables()
       if (inferFiltersEnabled) {
         FiltersUtil.initFilters(tableDesc, lookupTableDSMap)
       }
       val jointDS = joinFactTableWithLookupTables(fastFactTableDS, lookupTableDSMap, dataModel, sparkSession)
-      withColumn(jointDS, factTableCCs)
+      concatCCs(jointDS, factTableCCs)
     } else {
       fastFactTableDS
     }
@@ -130,44 +128,56 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     changeSchemeToColumnId(flatTableDS, tableDesc)
   }
 
-  protected def newDS(): Dataset[Row] = {
+  protected def generateFlatTable(): Dataset[Row] = {
     val recoveredDS = tryRecoverFTDS()
     if (recoveredDS.nonEmpty) {
       return recoveredDS.get
     }
 
-    val encodeCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(dataSegment, spanningTree).asScala.toSet
-    val dictCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(dataSegment, spanningTree).asScala.toSet
-    val encodedFactTableDS = encodeWithCols(factTableDS, factTableCCs, dictCols, encodeCols)
+    /**
+      * If need to build and encode dict columns, then
+      * 1. try best to build in fact-table.
+      * 2. try best to build in lookup-tables (without cc dict).
+      * 3. try to build in fact-table.
+      *
+      * CC in lookup-tables MUST be built in flat-table.
+      */
+    val (dictCols, encodeCols, dictColsWithoutCc, encodeColsWithoutCc) = prepareForDict()
+    val factTable = buildDictIfNeed(factTableDS, dictCols, encodeCols)
 
-    var flatTableDS = if (needJoin) {
-      val lookupTableCCs = cleanComputedColumns(factTableCCs, encodedFactTableDS.columns.toSet)
-      val encodedLookupTableDSMap = newLookupTableDS(lookupTableCCs)
-        .map(lp => (lp._1, encodeWithCols(lp._2, lookupTableCCs, dictCols, encodeCols)))
+    var flatTable = if (needJoin) {
 
-      if (encodedLookupTableDSMap.nonEmpty) {
-        generateDimensionTableMeta(encodedLookupTableDSMap)
+      val lookupTables = generateLookupTables()
+                         .map(lookupTableMap =>
+                          (lookupTableMap._1, buildDictIfNeed(lookupTableMap._2, dictColsWithoutCc, encodeColsWithoutCc)))
+      if (lookupTables.nonEmpty) {
+        generateDimensionTableMeta(lookupTables)
       }
-      val allTableDS = Seq(encodedFactTableDS) ++ encodedLookupTableDSMap.values
-
       if (inferFiltersEnabled) {
-        FiltersUtil.initFilters(tableDesc, encodedLookupTableDSMap)
+        FiltersUtil.initFilters(tableDesc, lookupTables)
       }
 
-      val jointDS = joinFactTableWithLookupTables(encodedFactTableDS, encodedLookupTableDSMap, dataModel, sparkSession)
-      encodeWithCols(jointDS,
-        filterCols(allTableDS, factTableCCs),
-        filterCols(allTableDS, dictCols),
-        filterCols(allTableDS, encodeCols))
+      val jointTable = joinFactTableWithLookupTables(factTable, lookupTables, dataModel, sparkSession)
+      buildDictIfNeed(concatCCs(jointTable, factTableCCs),
+                      selectColumnsNotInTables(factTable, lookupTables.values.toSeq, dictCols),
+                      selectColumnsNotInTables(factTable, lookupTables.values.toSeq, encodeCols))
     } else {
-      encodedFactTableDS
+      factTable
     }
 
     DFBuilderHelper.checkPointSegment(dataSegment, (copied: NDataSegment) => copied.setDictReady(true))
 
-    flatTableDS = applyFilterCondition(flatTableDS)
-    flatTableDS = changeSchemeToColumnId(flatTableDS, tableDesc)
-    tryPersistFTDS(flatTableDS)
+    flatTable = applyFilterCondition(flatTable)
+    flatTable = changeSchemeToColumnId(flatTable, tableDesc)
+    tryPersistFTDS(flatTable)
+  }
+
+  private def prepareForDict(): (Set[TblColRef], Set[TblColRef], Set[TblColRef], Set[TblColRef]) = {
+    val dictCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(dataSegment, spanningTree).asScala.toSet
+    val encodeCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(dataSegment, spanningTree).asScala.toSet
+    val dictColsWithoutCc = dictCols.filter(!_.getColumnDesc.isComputedColumn)
+    val encodeColsWithoutCc = encodeCols.filter(!_.getColumnDesc.isComputedColumn)
+    (dictCols, encodeCols, dictColsWithoutCc, encodeColsWithoutCc)
   }
 
   private def newFastFactTableDS(): Dataset[Row] = {
@@ -193,7 +203,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     tryPersistFTVDS(partDS)
   }
 
-  protected def newLookupTableDS(cols: Set[TblColRef]): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
+  protected def generateLookupTables(): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
     val ret = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
     val normalizedTableSet = mutable.Set[String]()
     dataModel.getJoinTables.asScala
@@ -212,7 +222,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
           && !normalizedTableSet.contains(joinDesc.getTable)) {
           val tableRef = joinDesc.getTableRef
           val tableDS = newTableDS(tableRef)
-          ret.put(joinDesc, fulfillDS(tableDS, cols, tableRef))
+          ret.put(joinDesc, fulfillDS(tableDS, Set.empty, tableRef))
         }
       }
     ret
@@ -401,39 +411,39 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   // Historical debt.
   // Waiting for reconstruction.
 
-  protected def encodeWithCols(ds: Dataset[Row],
-                               ccCols: Set[TblColRef],
-                               dictCols: Set[TblColRef],
-                               encodeCols: Set[TblColRef]): Dataset[Row] = {
-    val ccDataset = withColumn(ds, ccCols)
-    if (isGDReady) {
+  protected def buildDictIfNeed(table: Dataset[Row],
+                                dictCols: Set[TblColRef],
+                                encodeCols: Set[TblColRef]): Dataset[Row] = {
+    if (dictCols.isEmpty && encodeCols.isEmpty) {
+      return table
+    }
+    if (dataSegment.isDictReady) {
       logInfo(s"Skip DICTIONARY segment $segmentId")
     } else {
-      buildDict(ccDataset, dictCols)
+      buildDict(table, dictCols)
     }
-    encodeColumn(ccDataset, encodeCols)
+    encodeColumn(table, encodeCols)
   }
 
-  private def withColumn(ds: Dataset[Row], withCols: Set[TblColRef]): Dataset[Row] = {
-    val matchedCols = filterCols(ds, withCols)
-    var withDs = ds
-    matchedCols.foreach(m => withDs = withDs.withColumn(convertFromDot(m.getIdentity),
-      expr(convertFromDot(m.getExpressionInSourceDB))))
-    withDs
+  private def concatCCs(table: Dataset[Row], computColumns: Set[TblColRef]): Dataset[Row] = {
+    val matchedCols = selectColumnsInTable(table, computColumns)
+    var tableWithCcs = table
+    matchedCols.foreach(m =>
+      tableWithCcs = tableWithCcs.withColumn(convertFromDot(m.getIdentity), expr(convertFromDot(m.getExpressionInSourceDB))))
+    tableWithCcs
   }
 
   private def buildDict(ds: Dataset[Row], dictCols: Set[TblColRef]): Unit = {
-    val matchedCols = if (dataSegment.getIndexPlan.isSkipEncodeIntegerFamilyEnabled) {
-      filterOutIntegerFamilyType(ds, dictCols)
-    } else {
-      filterCols(ds, dictCols)
+    var matchedCols = selectColumnsInTable(ds, dictCols)
+    if(dataSegment.getIndexPlan.isSkipEncodeIntegerFamilyEnabled) {
+      matchedCols = matchedCols.filterNot(_.getType.isIntegerFamily)
     }
     val builder = new DFDictionaryBuilder(ds, dataSegment, sparkSession, Sets.newHashSet(matchedCols.asJavaCollection))
     builder.buildDictSet()
   }
 
   private def encodeColumn(ds: Dataset[Row], encodeCols: Set[TblColRef]): Dataset[Row] = {
-    val matchedCols = filterCols(ds, encodeCols)
+    val matchedCols = selectColumnsInTable(ds, encodeCols)
     var encodeDs = ds
     if (matchedCols.nonEmpty) {
       encodeDs = DFTableEncoder.encodeTable(ds, dataSegment, matchedCols.asJava)
@@ -441,14 +451,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     encodeDs
   }
 
-  // For lookup table, CC column may be duplicate of the flat table when it doesn't belong to one specific table like '1+2'
-  protected def cleanComputedColumns(cc: Set[TblColRef], flatCols: Set[String]): Set[TblColRef] = {
-    var cleanCols = cc
-    if (flatCols != null) {
-      cleanCols = cc.filter(col => !flatCols.contains(convertFromDot(col.getIdentity)))
-    }
-    cleanCols
-  }
 }
 
 object SegmentFlatTable extends LogEx {

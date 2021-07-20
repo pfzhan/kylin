@@ -26,7 +26,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.{TblColRef}
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.{Column, Dataset, Row}
@@ -37,22 +37,41 @@ object DFBuilderHelper extends Logging {
 
   val ENCODE_SUFFIX = "_KE_ENCODE"
 
+  /**
+    * select columns to build
+    * 1. exclude columns on the fact table
+    * 2. exclude columns (without CC) on the lookup tables
+    */
+  def selectColumnsNotInTables(factTable: Dataset[Row], lookupTables: Seq[Dataset[Row]], cols: Set[TblColRef]): Set[TblColRef] = {
+
+    var remainedCols = cols
+    remainedCols = remainedCols -- selectColumnsInTable(factTable, cols)
+
+    val colsWithoutCc = cols.filter(!_.getColumnDesc.isComputedColumn)
+    remainedCols = remainedCols -- lookupTables.flatMap(ds => selectColumnsInTable(ds, colsWithoutCc))
+
+    remainedCols
+  }
+
+  def selectColumnsInTable(table: Dataset[Row], columns: Set[TblColRef]): Set[TblColRef] = {
+    columns.filter(col =>
+      isColumnInTable(convertFromDot(col.getExpressionInSourceDB), table))
+  }
+
+  // ============================= Used by {@link DFBuildJob}.Functions are deprecated. ========================= //
+  @deprecated
   def filterCols(dsSeq: Seq[Dataset[Row]], needCheckCols: Set[TblColRef]): Set[TblColRef] = {
-    needCheckCols -- dsSeq.flatMap(ds => filterCols(ds, needCheckCols))
+    needCheckCols -- dsSeq.flatMap(ds => selectColumnsInTable(ds, needCheckCols))
   }
 
-  def filterCols(ds: Dataset[Row], needCheckCols: Set[TblColRef]): Set[TblColRef] = {
-    needCheckCols.filter(cc =>
-      isValidExpr(convertFromDot(cc.getExpressionInSourceDB), ds))
+  @deprecated
+  def filterOutIntegerFamilyType(table: Dataset[Row], columns: Set[TblColRef]): Set[TblColRef] = {
+    columns.filterNot(_.getType.isIntegerFamily).filter(cc =>
+      isColumnInTable(convertFromDot(cc.getExpressionInSourceDB), table))
   }
 
-  def filterOutIntegerFamilyType(ds: Dataset[Row], needCheckCols: Set[TblColRef]): Set[TblColRef] = {
-    needCheckCols.filterNot(_.getType.isIntegerFamily).filter(cc =>
-      isValidExpr(convertFromDot(cc.getExpressionInSourceDB), ds))
-  }
-
-  def isValidExpr(colExpr: String, ds: Dataset[Row]): Boolean = {
-    Try(ds.select(expr(colExpr))) match {
+  def isColumnInTable(colExpr: String, table: Dataset[Row]): Boolean = {
+    Try(table.select(expr(colExpr))) match {
       case Success(_) =>
         true
       case Failure(_) =>
@@ -62,7 +81,7 @@ object DFBuilderHelper extends Logging {
 
   def chooseSuitableCols(ds: Dataset[Row], needCheckCols: Iterable[TblColRef]): Seq[Column] = {
     needCheckCols
-      .filter(ref => isValidExpr(ref.getExpressionInSourceDB, ds))
+      .filter(ref => isColumnInTable(ref.getExpressionInSourceDB, ds))
       .map(ref => expr(convertFromDot(ref.getExpressionInSourceDB)).alias(convertFromDot(ref.getIdentity)))
       .toSeq
   }
