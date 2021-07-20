@@ -116,6 +116,11 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             if (model.isBroken()) {
                 return;
             }
+
+            if (model.isFusionModel()) {
+                return;
+            }
+
             resources.add(model.getResourcePath());
             resources.add(IndexPlan.concatResourcePath(model.getId(), project));
             if (df.getStatus() == RealizationStatusEnum.ONLINE) {
