@@ -122,12 +122,12 @@ import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.MergeSegmentCheckResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
-import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.MultiPartitionValueResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
@@ -184,9 +184,9 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         status = formatStatus(status, ModelStatusToDisplayEnum.class);
 
-        DataResult<List<NDataModel>> filterModels = modelService.getModels(modelAlias, exactMatch, project,
-                owner, status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes,
-                lastModifyFrom, lastModifyTo, onlyNormalDim);
+        DataResult<List<NDataModel>> filterModels = modelService.getModels(modelAlias, exactMatch, project, owner,
+                status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes, lastModifyFrom,
+                lastModifyTo, onlyNormalDim);
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, filterModels, "");
     }
@@ -249,7 +249,7 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "suggestModel", tags = { "AI" }, notes = "")
     @PostMapping(value = "/suggest_model")
     @ResponseBody
-    public EnvelopeResponse<ModelSuggestionResponse> suggestModel(@RequestBody SqlAccelerateRequest request) {
+    public EnvelopeResponse<SuggestionResponse> suggestModel(@RequestBody SqlAccelerateRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
         AbstractContext proposeContext = modelService.suggestModel(request.getProject(), request.getSqls(),
@@ -1072,8 +1072,8 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<List<MultiPartitionValueResponse>> getMultiPartitionValues(
             @PathVariable("model") String modelId, @RequestParam("project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.getMultiPartitionValues(project, modelId),
-                "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
+                modelService.getMultiPartitionValues(project, modelId), "");
     }
 
     @ApiOperation(value = "addMultiPartitionValues", tags = { "DW" }, notes = "Add URL: {model}")

@@ -97,11 +97,11 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse.IndexDetail;
-import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.OpenOptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
+import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
@@ -529,7 +529,7 @@ public class OpenModelController extends NBasicController {
     @ApiOperation(value = "suggestModels", tags = { "AI" })
     @PostMapping(value = "/model_suggestion")
     @ResponseBody
-    public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
+    public EnvelopeResponse<OpenSuggestionResponse> suggestModels(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
@@ -541,7 +541,7 @@ public class OpenModelController extends NBasicController {
     @ApiOperation(value = "optimizeModels", tags = { "AI" })
     @PostMapping(value = "/model_optimization")
     @ResponseBody
-    public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
+    public EnvelopeResponse<OpenSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccelerateRequest request) {
         String projectName = checkProjectName(request.getProject());
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);

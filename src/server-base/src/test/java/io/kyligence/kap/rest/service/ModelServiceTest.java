@@ -218,17 +218,17 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.FusionModelResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
-import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
+import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
@@ -1707,7 +1707,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, indexRexItemMap.size()); // if no merge, the result will be 3.
 
         // apply recommendations
-        ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
         modelService.saveRecResult(modelSuggestionResponse, project);
 
         // assert result after apply recommendations
@@ -1741,7 +1741,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<String> sqlList = Lists.newArrayList();
         sqlList.add("select floor(date'2020-11-17' TO day), ceil(date'2020-11-17' TO day) from test_kylin_fact");
         AbstractContext proposeContext = modelService.suggestModel(project, sqlList, false, true);
-        ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
         modelService.saveRecResult(modelSuggestionResponse, project);
 
         List<AbstractContext.ModelContext> modelContexts = proposeContext.getModelContexts();
@@ -1778,7 +1778,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<String> sqlList = Lists.newArrayList();
         sqlList.add("select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name");
         AbstractContext proposeContext = modelService.suggestModel(project, sqlList, true, true);
-        ModelSuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse modelSuggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
         modelService.saveRecResult(modelSuggestionResponse, project);
 
         NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
@@ -2478,8 +2478,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
-        OpenModelSuggestionResponse normalResponse = modelService
-                .suggestOrOptimizeModels(smartRequest(project, normSql));
+        OpenSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
 
         normSql = "select test_order.order_id,sum(price) from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "

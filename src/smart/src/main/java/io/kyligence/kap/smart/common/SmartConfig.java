@@ -28,7 +28,6 @@ import java.io.Serializable;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -57,7 +56,7 @@ public class SmartConfig implements Serializable, IKeep {
         if (val == null) {
             return defaultValue;
         } else {
-            return val;
+            return val.trim();
         }
     }
 
@@ -65,28 +64,12 @@ public class SmartConfig implements Serializable, IKeep {
         return Long.parseLong(getOptional(name, Long.toString(defaultValue)));
     }
 
-    private int getOptional(String name, int defaultValue) {
-        return Integer.parseInt(getOptional(name, Integer.toString(defaultValue)));
-    }
-
     private boolean getOptional(String name, boolean defaultValue) {
         return Boolean.parseBoolean(getOptional(name, Boolean.toString(defaultValue)));
     }
 
-    public int getRowkeyDictEncCardinalityMax() {
-        return getOptional("rowkey.dict-encoding.max-cardinality", 1000000);
-    }
-
-    public int getRowkeyFixLenLengthMax() {
-        return getOptional("rowkey.fixlen-encoding.max-length", 1000);
-    }
-
     public long getRowkeyUHCCardinalityMin() {
         return getOptional("rowkey.uhc.min-cardinality", 1000000L);
-    }
-
-    public String getRowkeyDefaultEnc() {
-        return getOptional("rowkey.default-encoding", DictionaryDimEnc.ENCODING_NAME);
     }
 
     public String getMeasureCountDistinctType() {
@@ -111,6 +94,10 @@ public class SmartConfig implements Serializable, IKeep {
 
     public boolean startMemoryTuning() {
         return getOptional("memory-tuning", true);
+    }
+
+    public String getModelOptRule() {
+        return getOptional("model-opt-rule", "");
     }
 
     public String getProposeRunnerImpl() {

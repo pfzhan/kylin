@@ -37,8 +37,8 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
-import lombok.val;
 
 public class JoinProposer extends AbstractModelProposer {
 
@@ -53,9 +53,9 @@ public class JoinProposer extends AbstractModelProposer {
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
 
         // step 1. produce unique aliasMap
-        final TableAliasGenerator.TableAliasDict dict = TableAliasGenerator
+        TableAliasGenerator.TableAliasDict dict = TableAliasGenerator
                 .generateCommonDictForSpecificModel(KylinConfig.getInstanceFromEnv(), project);
-        val uniqueTblAliasMap = GreedyModelTreesBuilder.TreeBuilder
+        Map<TableRef, String> uniqueTblAliasMap = GreedyModelTreesBuilder.TreeBuilder
                 .getUniqueTblAliasBasedOnPosInGraph(modelDesc.getJoinsGraph(), dict);
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             if (ctx == null || ctx.joins.isEmpty() || !isValidOlapContext(ctx)) {
@@ -95,7 +95,7 @@ public class JoinProposer extends AbstractModelProposer {
                 });
                 joinTables.putAll(tmpJoinTablesMap);
             } catch (Exception e) {
-                val accelerateInfoMap = modelContext.getProposeContext().getAccelerateInfoMap();
+                Map<String, AccelerateInfo> accelerateInfoMap = modelContext.getProposeContext().getAccelerateInfoMap();
                 accelerateInfoMap.get(ctx.sql).setFailedCause(e);
             }
         }

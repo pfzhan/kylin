@@ -109,6 +109,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         List<String> resources = Lists.newArrayList();
         Set<String> onlineModelIdSet = Sets.newHashSet();
         Set<String> allModelNames = Sets.newHashSet();
+        String modelOptRule = context.getSmartConfig().getModelOptRule();
 
         NDataflowManager.getInstance(config, project).listAllDataflows(true).forEach(df -> {
             NDataModel model = df.getModel();
@@ -145,7 +146,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
 
             val contextParamsFile = jobTmpDir + "/context_params.json";
             JsonUtil.writeValue(new File(contextParamsFile), new ContextParams(project, context.isCanCreateNewModel(),
-                    Lists.newArrayList(sqls), allModelNames, excludedTableSet, onlineModelIdSet));
+                    modelOptRule, Lists.newArrayList(sqls), allModelNames, excludedTableSet, onlineModelIdSet));
             params.put("contextParams", contextParamsFile);
 
             val contextOutputFile = jobTmpDir + "/context_output.json";
@@ -252,6 +253,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             context.getExtraMeta().setAllModels(contextParams.getAllModels());
             context.getExtraMeta().setExcludedTables(contextParams.getExcludedTables());
             context.getExtraMeta().setOnlineModelIds(contextParams.getOnlineModelIds());
+            context.getExtraMeta().setModelOptRule(contextParams.getModelOptRule());
             context.setCanCreateNewModel(contextParams.isCanCreateNewModel());
             new SmartMaster(context).runWithContext(null);
             val output = ContextOutput.from(context);
@@ -267,6 +269,8 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         private String project;
 
         private boolean canCreateNewModel;
+
+        private String modelOptRule;
 
         private List<String> sqls = Lists.newArrayList();
 

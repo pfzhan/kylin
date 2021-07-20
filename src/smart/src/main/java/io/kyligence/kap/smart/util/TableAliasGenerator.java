@@ -40,6 +40,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 // Utility to generate shortest readable table alias
@@ -50,7 +52,7 @@ public class TableAliasGenerator {
     private static final String TO = "__TO__";
 
     public static TableAliasDict generateNewDict(String[] tableNames) {
-        String[] sortedNames = new HashSet<String>(Arrays.asList(tableNames)).toArray(new String[0]);
+        String[] sortedNames = new HashSet<>(Arrays.asList(tableNames)).toArray(new String[0]);
         Arrays.sort(sortedNames);
         Map<String, List<String>> schemaMap = new HashMap<>();
         for (String tableIdentity : sortedNames) {
@@ -66,7 +68,7 @@ public class TableAliasGenerator {
             String table = tableIdentity.substring(spliterIndex + 1);
 
             if (!schemaMap.containsKey(schema)) {
-                schemaMap.put(schema, new ArrayList<String>());
+                schemaMap.put(schema, new ArrayList<>());
             }
             schemaMap.get(schema).add(table);
         }
@@ -104,9 +106,7 @@ public class TableAliasGenerator {
             for (int i = 1; i <= name.length(); i++) {
                 // TODO refine logic later
                 String aliasCandidate = name.substring(0, i);
-                if (dict.containsValue(aliasCandidate)) {
-                    continue;
-                } else {
+                if (!dict.containsValue(aliasCandidate)) {
                     dict.put(name, aliasCandidate);
                     break;
                 }
@@ -116,16 +116,10 @@ public class TableAliasGenerator {
     }
 
     public static class TableAliasDict {
-        private Map<String, String> alias2TblName;
-        private Map<String, String> tblName2Alias;
-
-        public TableAliasDict() {
-            this.alias2TblName = new HashMap<>();
-            this.tblName2Alias = new HashMap<>();
-        }
+        private final Map<String, String> alias2TblName = Maps.newHashMap();
+        private final Map<String, String> tblName2Alias = Maps.newHashMap();
 
         public TableAliasDict(Map<String, String> dict) {
-            this();
             for (Entry<String, String> pair : dict.entrySet()) {
                 addPair(pair.getKey(), pair.getValue());
             }
@@ -157,17 +151,6 @@ public class TableAliasGenerator {
             return alias2TblName.get(alias);
         }
 
-        public String getHierachyAlias(String[] tables) {
-            if (tables.length == 0) {
-                return "";
-            }
-            StringBuilder hAlias = new StringBuilder(getAlias(tables[0]));
-            for (int i = 1; i < tables.length; i++) {
-                hAlias.append("_").append(getAlias(tables[i]));
-            }
-            return hAlias.toString();
-        }
-
         public String getHierachyAliasFromJoins(JoinDesc[] joinDescs) {
             if (joinDescs == null || joinDescs.length == 0)
                 return "";
@@ -178,15 +161,14 @@ public class TableAliasGenerator {
                         || joinDesc.getPrimaryKeyColumns().length == 0 && joinDesc.getNonEquiJoinCondition() == null) {
                     break;
                 } else if (joinDesc.getNonEquiJoinCondition() != null) {
-                    alias.append(KEY + joinDesc.getNonEquiJoinCondition().toString());
-                    alias.append(
-                            TO + getAlias(joinDesc.getPKSide().getTableIdentity()));
+                    alias.append(KEY).append(joinDesc.getNonEquiJoinCondition().toString());
+                    alias.append(TO).append(getAlias(joinDesc.getPKSide().getTableIdentity()));
                 } else {
-                    alias.append(KEY + Arrays.toString(
+                    alias.append(KEY).append(Arrays.toString(
                             Arrays.stream(joinDesc.getForeignKeyColumns()).map(TblColRef::getName).toArray()));
-                    alias.append(
-                            TO + getAlias(joinDesc.getPrimaryKeyColumns()[0].getTableRef().getTableIdentity()));
-                    alias.append(KEY + Arrays.toString(
+                    alias.append(TO)
+                            .append(getAlias(joinDesc.getPrimaryKeyColumns()[0].getTableRef().getTableIdentity()));
+                    alias.append(KEY).append(Arrays.toString(
                             Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
                 }
             }

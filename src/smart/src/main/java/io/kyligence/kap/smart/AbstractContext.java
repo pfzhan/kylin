@@ -229,6 +229,7 @@ public abstract class AbstractContext implements IKeep {
     @Setter
     public static class ExtraMetaInfo {
 
+        private String modelOptRule;
         private Set<String> excludedTables = Sets.newHashSet();
         private Set<String> allModels = Sets.newHashSet();
         private Set<String> onlineModelIds = Sets.newHashSet();

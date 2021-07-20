@@ -21,47 +21,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.clearspring.analytics.util.Lists;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter
-public class ModelSuggestionResponse {
-    @JsonProperty("reused_models")
-    List<NRecommendedModelResponse> reusedModels;
-    @JsonProperty("new_models")
-    List<NRecommendedModelResponse> newModels;
+public class OpenSuggestionResponse implements Serializable {
 
-    public ModelSuggestionResponse(List<NRecommendedModelResponse> reusedModels,
-            List<NRecommendedModelResponse> newModels) {
-        this.reusedModels = reusedModels;
-        this.newModels = newModels;
+    @JsonProperty("models")
+    private List<OpenModelRecResponse> models = Lists.newArrayList();
+
+    @JsonProperty("error_sqls")
+    private List<String> errorSqlList = Lists.newArrayList();
+
+    public static List<OpenModelRecResponse> convert(List<SuggestionResponse.ModelRecResponse> response) {
+        return response.stream().map(OpenModelRecResponse::convert).collect(Collectors.toList());
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @EqualsAndHashCode(callSuper = false)
-    public static class NRecommendedModelResponse extends NDataModel {
-        @JsonProperty("rec_items")
-        private List<LayoutRecDetailResponse> indexes = Lists.newArrayList();
-        @JsonProperty("index_plan")
-        private IndexPlan indexPlan;
+    public void fillErrorSqlList(List<String> inputSqlList) {
+        Set<String> normalRecommendedSqlSet = Sets.newHashSet();
+        for (OpenModelRecResponse modelResponse : getModels()) {
+            modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
+                List<String> sqlList = layoutRecDetailResponse.getSqlList();
+                normalRecommendedSqlSet.addAll(sqlList);
+            });
+        }
 
-        public NRecommendedModelResponse(NDataModel dataModel) {
-            super(dataModel);
+        for (String sql : inputSqlList) {
+            if (!normalRecommendedSqlSet.contains(sql)) {
+                getErrorSqlList().add(sql);
+            }
         }
     }
 }

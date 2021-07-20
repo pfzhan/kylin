@@ -85,11 +85,11 @@ import io.kyligence.kap.rest.request.PartitionsBuildRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
-import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.IndexPlanService;
@@ -543,7 +543,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         // reuse existed model
         AbstractContext context = new ModelCreateContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
-        val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
+        val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, false, false);
         Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_suggestion")
@@ -562,7 +562,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         // reuse existed model
         AbstractContext context = new ModelReuseContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
                 sqls.toArray(new String[0]));
-        val result = new ModelSuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
+        val result = new SuggestionResponse(Lists.newArrayList(), Lists.newArrayList());
         Mockito.doReturn(context).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true, false);
         Mockito.doReturn(result).when(modelService).buildModelSuggestionResponse(context);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_optimization")

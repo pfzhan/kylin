@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -47,6 +45,8 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -72,7 +72,6 @@ public class GreedyModelTreesBuilder {
         this.proposeContext = proposeContext;
     }
 
-    @SuppressWarnings("unchecked")
     public List<ModelTree> build(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
             TableDesc expectedFactTable) {
         // 1. group OLAPContexts by fact_table
@@ -121,18 +120,17 @@ public class GreedyModelTreesBuilder {
                 && results.stream().noneMatch(tree -> tree.getRootFactTable() == expectedFactTable)) {
             log.debug("There is no modelTree relies on fact table({}), add a new one.",
                     expectedFactTable.getIdentity());
-            results.add(new ModelTree(expectedFactTable, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
-                    MapUtils.EMPTY_MAP));
+            results.add(new ModelTree(expectedFactTable, ImmutableList.of(), ImmutableMap.of(), ImmutableMap.of()));
         }
         return results;
     }
 
     public static class TreeBuilder {
-        private TableDesc rootFact;
-        private TableAliasGenerator.TableAliasDict dict;
-        private AbstractContext proposeContext;
+        private final TableDesc rootFact;
+        private final TableAliasGenerator.TableAliasDict dict;
+        private final AbstractContext proposeContext;
 
-        private Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
+        private final Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
 
         public TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, AbstractContext proposeContext) {
             this.rootFact = rootFact;
@@ -144,9 +142,9 @@ public class GreedyModelTreesBuilder {
          * based on the path to root node in JoinGraph to produce table alias, so that it can be unique in different ctx
          * but same position, even if the alias is not equaled in query.
          *
-         * @param ctx
-         * @param dict
-         * @return
+         * @param ctx OLAPContext
+         * @param dict dict
+         * @return map from TableRef to alias
          */
         static Map<TableRef, String> getUniqueTblAliasBasedOnPosInGraph(OLAPContext ctx,
                 TableAliasGenerator.TableAliasDict dict) {
@@ -305,10 +303,10 @@ public class GreedyModelTreesBuilder {
         }
 
         /**
-         * @param ctx
+         * @param ctx OLAPContext
          * @param alias2JoinTables unique alias name, usually depend on io.kyligence.kap.smart.util.TableAliasGenerator
-         * @param tableRef2Alias
-         * @param aliasRefMap
+         * @param tableRef2Alias map of TableRef to alias
+         * @param aliasRefMap map of alias to TableRef
          */
         static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
                 Map<TableRef, String> tableRef2Alias, Map<String, TableRef> aliasRefMap) {
@@ -370,19 +368,6 @@ public class GreedyModelTreesBuilder {
             tableRef2Alias.putAll(tableRef2AliasUpdates);
         }
 
-        private static TableRef[] getJoinHierarchy(JoinsGraph joinsTree, TableRef leaf) {
-            if (leaf == null) {
-                return new TableRef[0];
-            }
-
-            JoinDesc join = joinsTree.getJoinByPKSide(leaf);
-            if (join == null) {
-                return new TableRef[] { leaf };
-            }
-
-            return (TableRef[]) ArrayUtils.add(getJoinHierarchy(joinsTree, join.getFKSide()), leaf);
-        }
-
         private static JoinDesc[] getJoinDescHierarchy(JoinsGraph joinsTree, TableRef leaf) {
             if (leaf == null) {
                 throw new IllegalStateException("The TableRef cannot be NULL !");
@@ -400,24 +385,20 @@ public class GreedyModelTreesBuilder {
          * get new alias by original table name, for table 'foo'
          * foo -> foo_1
          * foo_1 -> foo_2
-         *
-         * @param orginalName
-         * @param oldAlias
-         * @return
          */
-        private static String getNewAlias(String orginalName, String oldAlias) {
-            if (oldAlias.equals(orginalName)) {
-                return orginalName + "_1";
-            } else if (!oldAlias.startsWith(orginalName + "_")) {
-                return orginalName;
+        private static String getNewAlias(String originalName, String oldAlias) {
+            if (oldAlias.equals(originalName)) {
+                return originalName + "_1";
+            } else if (!oldAlias.startsWith(originalName + "_")) {
+                return originalName;
             }
 
-            String number = oldAlias.substring(orginalName.length() + 1);
+            String number = oldAlias.substring(originalName.length() + 1);
             try {
                 int i = Integer.parseInt(number);
-                return orginalName + "_" + (i + 1);
+                return originalName + "_" + (i + 1);
             } catch (Exception e) {
-                return orginalName + "_1";
+                return originalName + "_1";
             }
         }
     }

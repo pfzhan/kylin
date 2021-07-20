@@ -93,7 +93,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -105,6 +104,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -219,6 +219,7 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.aspect.Transaction;
@@ -248,15 +249,13 @@ import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelSaveCheckResponse;
-import io.kyligence.kap.rest.response.ModelSuggestionResponse;
-import io.kyligence.kap.rest.response.ModelSuggestionResponse.NRecommendedModelResponse;
 import io.kyligence.kap.rest.response.MultiPartitionValueResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
+import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -264,11 +263,14 @@ import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SegmentRangeResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.response.SuggestionResponse;
+import io.kyligence.kap.rest.response.SuggestionResponse.ModelRecResponse;
 import io.kyligence.kap.rest.service.params.BasicSegmentParams;
 import io.kyligence.kap.rest.service.params.FullBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
@@ -279,6 +281,8 @@ import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.common.SmartConfig;
+import io.kyligence.kap.smart.model.AbstractJoinRule;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
 import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
@@ -1790,14 +1794,15 @@ public class ModelService extends BasicService {
     }
 
     @VisibleForTesting
-    void saveRecResult(ModelSuggestionResponse modelSuggestionResponse, String project) {
+    void saveRecResult(SuggestionResponse modelSuggestionResponse, String project) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            for (NRecommendedModelResponse response : modelSuggestionResponse.getReusedModels()) {
+            for (SuggestionResponse.ModelRecResponse response : modelSuggestionResponse.getReusedModels()) {
 
                 NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
                         modelMgr.getDataModelDesc(response.getId()), false);
                 modelMgr.updateDataModel(response.getId(), copyForWrite -> {
+                    copyForWrite.setJoinTables(response.getJoinTables());
                     copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
                     copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
                     copyForWrite.setAllMeasures(response.getAllMeasures());
@@ -1813,58 +1818,57 @@ public class ModelService extends BasicService {
         }, project);
     }
 
-    public OpenModelSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
+    public OpenSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
         AbstractContext proposeContext = suggestModel(request.getProject(), request.getSqls(),
                 !request.getForce2CreateNewModel(), false);
-        ModelSuggestionResponse modelSuggestionResponse = buildModelSuggestionResponse(proposeContext);
+        SuggestionResponse innerResponse = buildModelSuggestionResponse(proposeContext);
 
-        OpenModelSuggestionResponse result;
-        if (request.getForce2CreateNewModel()) {
-            List<ModelRequest> modelRequests = modelSuggestionResponse.getNewModels().stream().map(modelResponse -> {
-                ModelRequest modelRequest = new ModelRequest(modelResponse);
-                modelRequest.setIndexPlan(modelResponse.getIndexPlan());
-                modelRequest.setWithEmptySegment(request.isWithEmptySegment());
-                modelRequest.setWithModelOnline(request.isWithModelOnline());
-                modelRequest.setWithBaseIndex(request.isWithBaseIndex());
-                return modelRequest;
-            }).collect(Collectors.toList());
-            if (CollectionUtils.isNotEmpty(modelRequests)) {
-                batchCreateModel(request.getProject(), modelRequests, Lists.newArrayList());
+        OpenSuggestionResponse result = new OpenSuggestionResponse();
+        SmartConfig config = proposeContext.getSmartConfig();
+        if (config.getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
+            saveNewModel(request.getProject(), innerResponse.getNewModels(), request.isWithEmptySegment(),
+                    request.isWithModelOnline(), request.isWithBaseIndex());
+            saveRecResult(innerResponse, request.getProject());
+            result.getModels().addAll(OpenSuggestionResponse.convert(innerResponse.getNewModels()));
+            result.getModels().addAll(OpenSuggestionResponse.convert(innerResponse.getReusedModels()));
+        } else {
+            if (request.getForce2CreateNewModel()) {
+                saveNewModel(request.getProject(), innerResponse.getNewModels(), request.isWithEmptySegment(),
+                        request.isWithModelOnline(), request.isWithBaseIndex());
+                result.getModels().addAll(OpenSuggestionResponse.convert(innerResponse.getNewModels()));
+            } else {
+                result.getModels().addAll(OpenSuggestionResponse.convert(innerResponse.getReusedModels()));
             }
-
-            result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getNewModels());
-        } else {
-            result = OpenModelSuggestionResponse.convert(modelSuggestionResponse.getReusedModels());
-        }
-
-        if (request.isAcceptRecommendation()) {
-            saveRecResult(modelSuggestionResponse, request.getProject());
-        } else {
-            rawRecService.transferAndSaveRecommendations(proposeContext);
-        }
-
-        Set<String> normalRecommendedSqlSet = Sets.newHashSet();
-        for (OpenModelSuggestionResponse.RecommendationsResponse modelResponse : result.getModels()) {
-            modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
-                List<String> sqlList = layoutRecDetailResponse.getSqlList();
-                normalRecommendedSqlSet.addAll(sqlList);
-            });
-        }
-
-        result.setErrorSqlList(Lists.newArrayList());
-        for (String sql : request.getSqls()) {
-            if (!normalRecommendedSqlSet.contains(sql)) {
-                result.getErrorSqlList().add(sql);
+            if (request.isAcceptRecommendation()) {
+                saveRecResult(innerResponse, request.getProject());
+            } else {
+                rawRecService.transferAndSaveRecommendations(proposeContext);
             }
         }
 
+        result.fillErrorSqlList(request.getSqls());
         return result;
+    }
+
+    private void saveNewModel(String project, List<ModelRecResponse> newModels, boolean withEmptySegment,
+            boolean onlineNewModel, boolean withBaseIndex) {
+        List<ModelRequest> modelRequests = newModels.stream().map(modelResponse -> {
+            ModelRequest modelRequest = new ModelRequest(modelResponse);
+            modelRequest.setIndexPlan(modelResponse.getIndexPlan());
+            modelRequest.setWithEmptySegment(withEmptySegment);
+            modelRequest.setWithModelOnline(onlineNewModel);
+            modelRequest.setWithBaseIndex(withBaseIndex);
+            return modelRequest;
+        }).collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(modelRequests)) {
+            batchCreateModel(project, modelRequests, Lists.newArrayList());
+        }
     }
 
     public NDataModel createModel(String project, ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         validatePartitionDateColumn(modelRequest);
-        // for probing date-format is a time-costly action, it cannot be call in a transaction
+        // for probing date-format is a time-costly action, it cannot be called in a transaction
         doCheckBeforeModelSave(project, modelRequest);
 
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -1939,17 +1943,26 @@ public class ModelService extends BasicService {
             return null;
         }
         checkBatchSqlSize(sqls);
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        AbstractContext proposeContext = reuseExistedModel
-                ? new ModelReuseContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]), createNewModel)
-                : new ModelCreateContextOfSemiV2(kylinConfig, project, sqls.toArray(new String[0]));
+        KylinConfig originConfig = KylinConfig.getInstanceFromEnv();
+        KylinConfigExt kylinConfigExt = NProjectManager.getInstance(originConfig).getProject(project).getConfig();
+        KylinConfig kylinConfig = KylinConfigExt.createInstance(originConfig, kylinConfigExt.getExtendedOverrides());
+        SmartConfig smartConfig = SmartConfig.wrap(kylinConfig);
+        AbstractContext proposeContext;
+        String[] sqlArray = sqls.toArray(new String[0]);
+        if (reuseExistedModel) {
+            proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, createNewModel);
+        } else if (smartConfig.getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
+            proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, true);
+        } else {
+            proposeContext = new ModelCreateContextOfSemiV2(kylinConfig, project, sqlArray);
+        }
         return ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
     }
 
-    public ModelSuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
-        List<NRecommendedModelResponse> responseOfNewModels = Lists.newArrayList();
-        List<NRecommendedModelResponse> responseOfReusedModels = Lists.newArrayList();
+    public SuggestionResponse buildModelSuggestionResponse(AbstractContext context) {
+        List<ModelRecResponse> responseOfNewModels = Lists.newArrayList();
+        List<ModelRecResponse> responseOfReusedModels = Lists.newArrayList();
 
         for (ModelContext modelContext : context.getModelContexts()) {
             if (modelContext.isTargetModelMissing()) {
@@ -1962,11 +1975,11 @@ public class ModelService extends BasicService {
                 collectResponseOfNewModels(context, modelContext, responseOfNewModels);
             }
         }
-        return new ModelSuggestionResponse(responseOfReusedModels, responseOfNewModels);
+        return new SuggestionResponse(responseOfReusedModels, responseOfNewModels);
     }
 
     private void collectResponseOfReusedModels(ModelContext modelContext,
-            List<NRecommendedModelResponse> responseOfReusedModels) {
+            List<ModelRecResponse> responseOfReusedModels) {
         Map<Long, Set<String>> layoutToSqlSet = mapLayoutToSqlSet(modelContext);
         Map<String, ComputedColumnDesc> oriCCMap = Maps.newHashMap();
         List<ComputedColumnDesc> oriCCList = modelContext.getOriginModel().getComputedColumnDescs();
@@ -2024,7 +2037,7 @@ public class ModelService extends BasicService {
             indexRecItems.add(response);
         });
 
-        NRecommendedModelResponse response = new NRecommendedModelResponse(targetModel);
+        ModelRecResponse response = new ModelRecResponse(targetModel);
         response.setIndexPlan(modelContext.getTargetIndexPlan());
         response.setIndexes(indexRecItems);
         responseOfReusedModels.add(response);
@@ -2049,7 +2062,7 @@ public class ModelService extends BasicService {
     }
 
     private void collectResponseOfNewModels(AbstractContext context, ModelContext modelContext,
-            List<NRecommendedModelResponse> responseOfNewModels) {
+            List<ModelRecResponse> responseOfNewModels) {
         val sqlList = context.getAccelerateInfoMap().entrySet().stream()//
                 .filter(entry -> entry.getValue().getRelatedLayouts().stream()//
                         .anyMatch(relation -> relation.getModelId().equals(modelContext.getTargetModel().getId())))
@@ -2077,7 +2090,7 @@ public class ModelService extends BasicService {
         virtualResponse.setComputedColumns(recCCList);
         virtualResponse.setSqlList(sqlList);
 
-        NRecommendedModelResponse response = new NRecommendedModelResponse(model);
+        ModelRecResponse response = new ModelRecResponse(model);
         response.setIndexPlan(indexPlan);
         response.setIndexes(Lists.newArrayList(virtualResponse));
         responseOfNewModels.add(response);

@@ -92,7 +92,7 @@ public class JoinTableDesc implements Serializable {
         return isFlattenable() && isToManyJoinRelation();
     }
 
-    private boolean isToManyJoinRelation() {
+    public boolean isToManyJoinRelation() {
         return this.joinRelationTypeEnum == ModelJoinRelationTypeEnum.MANY_TO_MANY
                 || this.joinRelationTypeEnum == ModelJoinRelationTypeEnum.ONE_TO_MANY;
     }

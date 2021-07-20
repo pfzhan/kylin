@@ -22,22 +22,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.util;
+package io.kyligence.kap.smart.model;
 
-public class DimEncodingUtil {
-    public static int getIntEncodingLength(long val) {
-        if (val == 0) {
-            return 1;
+import java.util.Locale;
+
+import org.apache.kylin.common.KylinConfig;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.common.SmartConfig;
+
+public abstract class AbstractJoinRule {
+    public static final String EMPTY = "";
+    public static final String APPEND = "append";
+
+    public static AbstractJoinRule getInstance() {
+        SmartConfig smartConfig = SmartConfig.wrap(KylinConfig.getInstanceFromEnv());
+        switch (smartConfig.getModelOptRule().toLowerCase(Locale.ROOT)) {
+        case APPEND:
+            return new AppendJoinRule();
+        case EMPTY:
+        default:
+            return new EmptyJoinRule();
         }
-
-        val = Math.abs(val);
-        long highOneBit = Long.highestOneBit(val);
-        double result = Long.numberOfTrailingZeros(highOneBit);
-        if (highOneBit != val) {
-            result++;
-        }
-
-        result = (result + 1D) / 8D;
-        return Math.max(1, (int) Math.ceil(result));
     }
+
+    public abstract boolean isCompatible(NDataModel model, ModelTree modelTree);
+
 }

@@ -27,6 +27,7 @@ package io.kyligence.kap.smart;
 import static java.util.stream.Collectors.groupingBy;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,12 +38,14 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -50,6 +53,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.model.AbstractJoinRule;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.val;
@@ -61,10 +65,12 @@ public class ModelSelectProposer extends AbstractProposer {
     public static final String NO_MODEL_MATCH_PENDING_MSG = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
     public static final String CC_ACROSS_MODELS_PENDING_MSG = "No model matches the SQL. Please add a model that contains all the computed columns used in the query.";
     private final NDataModelManager dataModelManager;
+    private final AbstractJoinRule joinSelectOptRule;
 
     public ModelSelectProposer(AbstractContext proposeContext) {
         super(proposeContext);
         dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        joinSelectOptRule = AbstractJoinRule.getInstance();
     }
 
     @Override
@@ -211,8 +217,19 @@ public class ModelSelectProposer extends AbstractProposer {
         modelDesc.init(KylinConfig.getInstanceFromEnv(), manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
+    private Comparator<NDataModel> modelSorter() {
+        Comparator<NDataModel> joinSorter = (m1, m2) -> {
+            List<JoinTableDesc> joinTables2 = m2.getJoinTables() == null ? Lists.newArrayList() : m2.getJoinTables();
+            List<JoinTableDesc> joinTables1 = m1.getJoinTables() == null ? Lists.newArrayList() : m1.getJoinTables();
+            return Integer.compare(joinTables2.size(), joinTables1.size());
+        };
+        Comparator<NDataModel> modifiedSorter = Comparator.comparing(NDataModel::getLastModified).reversed();
+        return Ordering.from(joinSorter).compound(modifiedSorter);
+    }
+
     private NDataModel selectExistedModel(ModelTree modelTree, AbstractContext.ModelContext modelContext) {
         List<NDataModel> originModels = proposeContext.getOriginModels();
+        originModels.sort(modelSorter());
         for (NDataModel model : originModels) {
             List<OLAPContext> retainedOLAPContexts = retainCapableOLAPContexts(model,
                     Lists.newArrayList(modelTree.getOlapContexts()));
@@ -235,6 +252,8 @@ public class ModelSelectProposer extends AbstractProposer {
                 modelTree.getOlapContexts().clear();
                 modelTree.getOlapContexts().addAll(retainedOLAPContexts);
                 modelContext.setSnapshotSelected(false);
+                return model;
+            } else if (joinSelectOptRule.isCompatible(model, modelTree)) {
                 return model;
             }
 
@@ -266,8 +285,9 @@ public class ModelSelectProposer extends AbstractProposer {
     private Set<ColumnDesc> filterTblColRefOfCC(Set<TblColRef> tableColRefSet) {
         Preconditions.checkArgument(tableColRefSet != null);
         return tableColRefSet.stream() //
-                .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()) //
-                .map(TblColRef::getColumnDesc).collect(Collectors.toSet());
+                .map(TblColRef::getColumnDesc) //
+                .filter(ColumnDesc::isComputedColumn) //
+                .collect(Collectors.toSet());
     }
 
     public static boolean matchSnapshot(KylinConfig config, String project, ModelTree modelTree) {

@@ -63,7 +63,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.open.OpenModelController;
 import io.kyligence.kap.rest.request.ModelSuggestionRequest;
-import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
+import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 import lombok.var;
@@ -147,7 +147,7 @@ public class ModelControllerWithServiceTest extends ServiceTestBase {
         changeProjectToSemiAutoMode("default");
 
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        TypeReference<EnvelopeResponse<OpenModelSuggestionResponse>> ref = new TypeReference<EnvelopeResponse<OpenModelSuggestionResponse>>() {
+        TypeReference<EnvelopeResponse<OpenSuggestionResponse>> ref = new TypeReference<EnvelopeResponse<OpenSuggestionResponse>>() {
         };
 
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact group by price limit 1");

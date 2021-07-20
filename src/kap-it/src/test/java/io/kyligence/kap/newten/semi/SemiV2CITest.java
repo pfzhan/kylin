@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -75,11 +74,11 @@ import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
-import io.kyligence.kap.rest.response.ModelSuggestionResponse;
 import io.kyligence.kap.rest.response.OptRecDepResponse;
 import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.NUserGroupService;
@@ -93,6 +92,7 @@ import io.kyligence.kap.smart.ModelSelectProposer;
 import io.kyligence.kap.smart.ProposerJob;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 
@@ -417,9 +417,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
 
         List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextList.size());
-        ModelSuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
-        List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResponse.getReusedModels();
-        List<ModelSuggestionResponse.NRecommendedModelResponse> newModels = suggestionResponse.getNewModels();
+        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
+        List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
         List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
         List<ModelRequest> newModelRequests = mockModelRequest(newModels);
         changeTheIndexRecOrder(reusedModelRequests);
@@ -637,10 +637,10 @@ public class SemiV2CITest extends SemiAutoTestBase {
                 "select lstg_format_name, item_count, sum(price+1), sum(price+2) "
                         + "from test_kylin_fact group by lstg_format_name, item_count");
         AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, true);
-        ModelSuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
-        List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResp.getReusedModels();
+        SuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
+        List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResp.getReusedModels();
         Assert.assertEquals(1, reusedModels.size());
-        ModelSuggestionResponse.NRecommendedModelResponse recommendedModelResponse = reusedModels.get(0);
+        SuggestionResponse.ModelRecResponse recommendedModelResponse = reusedModels.get(0);
         List<LayoutRecDetailResponse> indexes = recommendedModelResponse.getIndexes();
         Assert.assertEquals(1, indexes.size());
         LayoutRecDetailResponse layoutRecResp1 = indexes.get(0);
@@ -649,9 +649,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(2, layoutRecResp1.getDimensions().size());
         Assert.assertEquals(3, layoutRecResp1.getMeasures().size());
         Assert.assertEquals(1, layoutRecResp1.getComputedColumns().size());
-        List<ModelSuggestionResponse.NRecommendedModelResponse> newModels = suggestionResp.getNewModels();
+        List<SuggestionResponse.ModelRecResponse> newModels = suggestionResp.getNewModels();
         Assert.assertEquals(1, newModels.size());
-        ModelSuggestionResponse.NRecommendedModelResponse newModelResponse = newModels.get(0);
+        SuggestionResponse.ModelRecResponse newModelResponse = newModels.get(0);
         List<LayoutRecDetailResponse> newModelIndexes = newModelResponse.getIndexes();
         Assert.assertEquals(1, newModelIndexes.size());
         LayoutRecDetailResponse layoutRecResp2 = newModelIndexes.get(0);
@@ -686,8 +686,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(1, newIndexPlan.getAllLayouts().size());
     }
 
-    private List<ModelRequest> mockModelRequest(
-            List<ModelSuggestionResponse.NRecommendedModelResponse> modelResponses) {
+    private List<ModelRequest> mockModelRequest(List<SuggestionResponse.ModelRecResponse> modelResponses) {
         List<ModelRequest> modelRequestList = Lists.newArrayList();
         modelResponses.forEach(model -> {
             ModelRequest modelRequest = new ModelRequest();
@@ -825,9 +824,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(NDataModel.ModelType.STREAMING, modelContextList.get(0).getTargetModel().getModelType());
 
         String modelID = modelContextList.get(0).getTargetModel().getUuid();
-        ModelSuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
-        List<ModelSuggestionResponse.NRecommendedModelResponse> reusedModels = suggestionResponse.getReusedModels();
-        List<ModelSuggestionResponse.NRecommendedModelResponse> newModels = suggestionResponse.getNewModels();
+        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
+        List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
         List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
         List<ModelRequest> newModelRequests = mockModelRequest(newModels);
         modelService.batchCreateModel(project, newModelRequests, reusedModelRequests);

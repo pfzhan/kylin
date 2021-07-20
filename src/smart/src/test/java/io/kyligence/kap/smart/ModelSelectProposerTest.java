@@ -26,10 +26,16 @@ package io.kyligence.kap.smart;
 
 import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHook;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.ModelJoinRelationTypeEnum;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.Assert;
 import org.junit.Test;
@@ -39,6 +45,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.QueryAliasMatcher;
 import io.kyligence.kap.smart.model.ModelTree;
@@ -380,9 +387,9 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
                 new String[] { originSql2 });
         runSuggestModelAndSave(smartContext2);
 
-        String sql1 = originSql1;
+        String sql1 = originSql1 + " limit 1";
         String sql2 = originSql1 + " limit 100";
-        String sql3 = originSql2;
+        String sql3 = originSql2 + " limit 1";
         val smartContext3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten",
                 new String[] { sql1, sql2, sql3 });
         runSuggestModelAndSave(smartContext3);
@@ -427,6 +434,339 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         val layout2 = modelContext1.getTargetIndexPlan().getLayoutEntity(layouts1.iterator().next().getLayoutId());
         Assert.assertEquals("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", layout2.getColumns().get(0).getAliasDotName());
 
+    }
+
+    @Test
+    public void testModelOptRule() {
+        String originSql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt)";
+        String originSql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN test_account ON (seller_id = account_id)";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten",
+                new String[] { originSql1 });
+        runSuggestModelAndSave(context1);
+
+        // propose join
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten",
+                new String[] { originSql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+    }
+
+    @Test
+    public void testModelOptRuleWorksOnLastModifiedModel() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt)";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN test_account ON (seller_id = account_id)";
+        String sql3 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT)"
+                + "LEFT JOIN TEST_ACCOUNT ON (SELLER_ID = ACCOUNT_ID)";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        Assert.assertEquals(1, context1.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        AbstractContext context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql2 });
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        // propose with model-opt-rule on new modified model
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        String uuidModel1 = context1.getModelContexts().get(0).getTargetModel().getUuid();
+        String uuidModel2 = context2.getModelContexts().get(0).getTargetModel().getUuid();
+        modelManager.updateDataModel(uuidModel1, copyForWrite -> copyForWrite.setLastModified(10000));
+        modelManager.updateDataModel(uuidModel2, copyForWrite -> copyForWrite.setLastModified(20000));
+
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql3 });
+        context3.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context3);
+        Assert.assertEquals(1, context3.getModelContexts().size());
+        AbstractContext.ModelContext modelContext3 = context3.getModelContexts().get(0);
+        Assert.assertEquals(uuidModel2, modelContext3.getTargetModel().getUuid());
+        Assert.assertEquals(2, modelContext3.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testModelOptRuleWorksOnLargeModel() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+        String sql3 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        Assert.assertEquals(2, context1.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        AbstractContext context2 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql2 });
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        // propose with model-opt-rule on last-modified model
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        String uuidModel1 = context1.getModelContexts().get(0).getTargetModel().getUuid();
+        String uuidModel2 = context2.getModelContexts().get(0).getTargetModel().getUuid();
+        modelManager.updateDataModel(uuidModel1, copyForWrite -> copyForWrite.setLastModified(10000));
+        modelManager.updateDataModel(uuidModel2, copyForWrite -> copyForWrite.setLastModified(20000));
+
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql3 });
+        context3.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context3);
+        Assert.assertEquals(1, context3.getModelContexts().size());
+        AbstractContext.ModelContext modelContext3 = context3.getModelContexts().get(0);
+        Assert.assertEquals(uuidModel1, modelContext3.getTargetModel().getUuid());
+        Assert.assertEquals(3, modelContext3.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testModelOptRuleWorksOnSnowModelWithSecondHierarchyIsInnerJoin() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                + "INNER JOIN EDW.TEST_SITES ON EDW.TEST_SITES.SITE_ID = TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        Assert.assertEquals(3, context1.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+        AbstractContext.ModelContext modelContext2 = context2.getModelContexts().get(0);
+        Assert.assertEquals(4, modelContext2.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testModelOptRuleWorksOnSnowModelWithSecondHierarchyIsLeftJoin() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES ON EDW.TEST_SITES.SITE_ID = TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        Assert.assertEquals(3, context1.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+        AbstractContext.ModelContext modelContext2 = context2.getModelContexts().get(0);
+        Assert.assertEquals(4, modelContext2.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testModelOptRuleWillNotWorkOnNonLeftJoin() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES ON EDW.TEST_SITES.SITE_ID = TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "INNER JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        Assert.assertEquals(3, context1.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+        AbstractContext.ModelContext modelContext2 = context2.getModelContexts().get(0);
+        Assert.assertEquals(1, modelContext2.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testModelOptRuleWillNotWorkOnNonEquivJoin() throws IOException {
+        String originSql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { originSql1 });
+        runSuggestModelAndSave(context1);
+        NDataModel model = context1.getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getJoinTables().size());
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        String path = "src/test/resources/data/join.json";
+        JoinDesc joinDesc = JsonUtil.readValue(new File(path), JoinDesc.class);
+        modelManager.updateDataModel(model.getUuid(), copyForWrite -> {
+            List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            JoinTableDesc joinTable = joinTables.get(0);
+            joinTable.setJoin(joinDesc);
+            copyForWrite.setJoinTables(joinTables);
+        });
+        Assert.assertFalse(modelManager.getDataModelDesc(model.getUuid()).isBroken());
+
+        // propose join
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+    }
+
+    @Test
+    public void testModelOptRuleWillNotWorkOnToManyLeftJoinModel() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES ON EDW.TEST_SITES.SITE_ID = TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        NDataModel model = context1.getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(3, model.getJoinTables().size());
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        modelManager.updateDataModel(model.getUuid(), copyForWrite -> {
+            List<JoinTableDesc> joinTables = copyForWrite.getJoinTables();
+            joinTables.get(0).setJoinRelationTypeEnum(ModelJoinRelationTypeEnum.MANY_TO_MANY);
+            copyForWrite.setJoinTables(joinTables);
+        });
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+        AbstractContext.ModelContext modelContext2 = context2.getModelContexts().get(0);
+        Assert.assertEquals(1, modelContext2.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testModelOptRuleWillNotWorkIfJoinsFromFactTableAreNotAlwaysLeft() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "INNER JOIN EDW.TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES ON EDW.TEST_SITES.SITE_ID = TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL";
+        String sql2 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM test_kylin_fact\n" //
+                + "LEFT JOIN TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID ";
+
+        String project = "newten";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), project,
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+        Assert.assertEquals(3, context1.getModelContexts().get(0).getTargetModel().getJoinTables().size());
+
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), project,
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+        AbstractContext.ModelContext modelContext2 = context2.getModelContexts().get(0);
+        Assert.assertEquals(1, modelContext2.getTargetModel().getJoinTables().size());
+    }
+
+    @Test
+    public void testExactlyMatchWillNotApplyModelOptRule() {
+        String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT)"
+                + "LEFT JOIN TEST_ACCOUNT ON (SELLER_ID = ACCOUNT_ID)";
+        String sql2 = "SELECT LSTG_FORMAT_NAME, SUM(PRICE)\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN TEST_ACCOUNT ON (SELLER_ID = ACCOUNT_ID)\n" //
+                + "GROUP BY LSTG_FORMAT_NAME";
+        String sql3 = "SELECT LSTG_FORMAT_NAME\n" //
+                + "FROM TEST_KYLIN_FACT\n" //
+                + "LEFT JOIN EDW.TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = EDW.TEST_CAL_DT.CAL_DT)\n"
+                + "GROUP BY LSTG_FORMAT_NAME";
+        AbstractContext context1 = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten",
+                new String[] { sql1 });
+        runSuggestModelAndSave(context1);
+
+        // propose without model-opt-rule 
+        AbstractContext context2 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten",
+                new String[] { sql2 });
+        context2.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context2);
+        Assert.assertEquals(1, context2.getModelContexts().size());
+        AbstractContext.ModelContext modelContext2 = context2.getModelContexts().get(0);
+        Assert.assertEquals(1, modelContext2.getIndexRexItemMap().size());
+        Assert.assertEquals(1, modelContext2.getMeasureRecItemMap().size());
+        Assert.assertTrue(modelContext2.getDimensionRecItemMap().isEmpty());
+
+        // propose with model-opt-rule
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        AbstractContext context3 = AccelerationContextUtil.newModelReuseContext(getTestConfig(), "newten",
+                new String[] { sql3 });
+        context3.setCanCreateNewModel(true);
+        runSuggestModelAndSave(context3);
+        Assert.assertEquals(1, context3.getModelContexts().size());
+        AbstractContext.ModelContext modelContext3 = context3.getModelContexts().get(0);
+        Assert.assertEquals(1, modelContext3.getIndexRexItemMap().size());
+        Assert.assertTrue(modelContext3.getMeasureRecItemMap().isEmpty());
+        Assert.assertTrue(modelContext3.getDimensionRecItemMap().isEmpty());
     }
 
     private void runSuggestModelAndSave(AbstractContext smartContext) {
