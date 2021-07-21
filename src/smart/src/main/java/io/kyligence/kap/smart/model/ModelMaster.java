@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -40,6 +41,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
@@ -119,6 +121,12 @@ public class ModelMaster {
         boolean isComputedColumnEnabled = kapConfig.isImplicitComputedColumnConvertEnabled();
         if (!isComputedColumnEnabled) {
             log.warn("The feature of proposing computed column in Kyligence Enterprise has been turned off.");
+            if (modelContext.getChecker() == null) {
+                Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
+                ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, dataModel.getJoinTables(),
+                        dataModel);
+                modelContext.setChecker(checker);
+            }
             return dataModel;
         }
 
