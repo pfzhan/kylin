@@ -58,6 +58,7 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -72,6 +73,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -326,6 +328,11 @@ public class StreamingJobService extends BasicService {
         val dataLatenciesMap = statsMgr.queryDataLatenciesByJobIds(jobIdList);
         List<StreamingJobResponse> respList = list.stream().map(item -> {
             val resp = new StreamingJobResponse(item);
+            // If the job status is LAUNCHING_ERROR, it is converted to ERROR
+            if (JobStatusEnum.LAUNCHING_ERROR == resp.getCurrentStatus()) {
+                resp.setLaunchingError(true);
+                resp.setCurrentStatus(JobStatusEnum.ERROR);
+            }
             val jobId = StreamingUtils.getJobId(resp.getModelId(), resp.getJobType().name());
             if (dataLatenciesMap != null && dataLatenciesMap.containsKey(jobId)) {
                 resp.setDataLatency(dataLatenciesMap.get(jobId));
@@ -470,6 +477,24 @@ public class StreamingJobService extends BasicService {
             resp.setLastStatusDuration(System.currentTimeMillis() - record.getCreateTime());
         }
         return resp;
+    }
+
+    /**
+     * Gets the driver log InputStream of the stream Job ID
+     */
+    public InputStream getStreamingJobAllLog(String project, String jobId) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        NExecutableManager executableManager = getExecutableManager(project);
+        return executableManager.getStreamingOutputFromHDFS(jobId, Integer.MAX_VALUE).getVerboseMsgStream();
+    }
+
+    /**
+     * Gets the driver simple log string of the stream Job ID
+     */
+    public String getStreamingJobSimpleLog(String project, String jobId) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        NExecutableManager executableManager = getExecutableManager(project);
+        return executableManager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
     }
 
 }

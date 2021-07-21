@@ -23,32 +23,29 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.junit.rule.TransactionExceptedException;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.UUID;
 
-import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
-import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
-import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
-import io.kyligence.kap.metadata.streaming.StreamingJobStats;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import io.kyligence.kap.rest.request.StreamingJobFilter;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
-import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
-import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
-import lombok.val;
-import lombok.var;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -69,15 +66,32 @@ import org.mockito.Mockito;
 import org.springframework.beans.BeanUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.UUID;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.junit.rule.TransactionExceptedException;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
+import io.kyligence.kap.metadata.streaming.StreamingJobStats;
+import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.request.StreamingJobFilter;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
+import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import lombok.val;
+import lombok.var;
 
 public class StreamingJobServiceTest extends CSVSourceTestCase {
     @Rule
@@ -218,6 +232,18 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 2);
         Assert.assertEquals(2, list.getValue().size());
         streamingJobsStatsManager.deleteAllStreamingJobStats();
+
+        jobMgr.updateStreamingJob(MODEL_ID + "_build", copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.LAUNCHING_ERROR);
+        });
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Arrays.asList("ERROR"),
+                PROJECT, "last_modified", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals(1, list.getTotalSize());
+        Assert.assertTrue(list.getValue().get(0).isLaunchingError());
+
+        StreamingJobMeta streamingJobMeta = jobMgr.getStreamingJobByUuid(MODEL_ID + "_build");
+        Assert.assertEquals(JobStatusEnum.LAUNCHING_ERROR, streamingJobMeta.getCurrentStatus());
     }
 
     @Test
@@ -603,4 +629,64 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(JobStatusEnum.STOPPED, mergeJobMeta.getCurrentStatus());
     }
 
+    @Test
+    public void testGetStreamingJobSimpleLog() throws IOException {
+        String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de_build";
+        String project = "default";
+
+        String[] exceptLines = createStreamingLogTmpFile(project, jobId);
+
+        String verboseMsg = streamingJobService.getStreamingJobSimpleLog(project, jobId);
+        String[] actualVerboseMsgLines = org.apache.commons.lang.StringUtils
+                .splitByWholeSeparatorPreserveAllTokens(verboseMsg, "\n");
+        ArrayList<String> exceptLinesL = Lists.newArrayList(exceptLines);
+        exceptLinesL.add("================================================================");
+        Assert.assertTrue(Sets.newHashSet(exceptLinesL).containsAll(Sets.newHashSet(actualVerboseMsgLines)));
+    }
+
+    @Test
+    public void testGetStreamingJobAllLog() throws IOException {
+        String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de_build";
+        String project = "default";
+
+        String[] exceptLines = createStreamingLogTmpFile(project, jobId);
+
+        String sampleLog = "";
+        try (InputStream inputStream = streamingJobService.getStreamingJobAllLog(project, jobId);
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(inputStream, Charset.defaultCharset()))) {
+            String line;
+            StringBuilder sampleData = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                if (sampleData.length() > 0) {
+                    sampleData.append('\n');
+                }
+                sampleData.append(line);
+            }
+
+            sampleLog = sampleData.toString();
+        }
+        String[] actualLines = org.apache.commons.lang.StringUtils.splitByWholeSeparatorPreserveAllTokens(sampleLog,
+                "\n");
+        Assert.assertTrue(Arrays.deepEquals(exceptLines, actualLines));
+    }
+
+    public String[] createStreamingLogTmpFile(String project, String jobId) throws IOException {
+
+        File file = temporaryFolder.newFile("driver." + System.currentTimeMillis() + ".log");
+        for (int i = 0; i < 200; i++) {
+            Files.write(file.toPath(), String.format(Locale.ROOT, "lines: %s\n", i).getBytes(Charset.defaultCharset()),
+                    StandardOpenOption.APPEND);
+        }
+
+        String[] exceptLines = Files.readAllLines(file.toPath()).toArray(new String[0]);
+        String jobLogDir = KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath(project, jobId);
+
+        Path jobLogDirPath = new Path(jobLogDir);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        fs.mkdirs(jobLogDirPath);
+        fs.copyFromLocalFile(new Path(file.getAbsolutePath()), jobLogDirPath);
+
+        return exceptLines;
+    }
 }

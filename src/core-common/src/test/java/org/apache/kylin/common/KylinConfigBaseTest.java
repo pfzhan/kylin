@@ -872,7 +872,26 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(486, methodsCount);
+        Assert.assertEquals(488, methodsCount);
+    }
+
+    @Test
+    public void testGetStreamingJobTmpOutputStorePath() {
+        String project = "default";
+        String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de_build";
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String jobOutPutDir = config.getStreamingJobTmpOutputStorePath(project, jobId);
+        String expectOutputDir = config.getStreamingJobTmpDir(project) + jobId + "/";
+        Assert.assertEquals(expectOutputDir, jobOutPutDir);
+    }
+
+    @Test
+    public void testGetStreamingJobTmpDir() {
+        String project = "default";
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String jobTmpDir = config.getStreamingJobTmpDir(project);
+        String expectDir = config.getHdfsWorkingDirectoryWithoutScheme() + "streaming/jobs/" + project + "/";
+        Assert.assertEquals(expectDir, jobTmpDir);
     }
 
     @Test

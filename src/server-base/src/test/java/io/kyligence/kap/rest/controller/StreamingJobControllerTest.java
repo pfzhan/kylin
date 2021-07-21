@@ -306,4 +306,15 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(streamingJobController).updateLayout(Mockito.any(LayoutUpdateRequest.class));
 
     }
+
+    @Test
+    public void testGetStreamingJobDriverLogSimple() throws Exception {
+        String job_id = "f6ca1ce7-43fc-4c42-a057-1e95dfb75d92_build";
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/streaming_jobs/{job_id}/simple_log", job_id)
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(streamingJobController).getStreamingJobDriverLogSimple(job_id, "default");
+    }
 }

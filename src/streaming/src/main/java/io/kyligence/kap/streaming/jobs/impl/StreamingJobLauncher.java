@@ -278,7 +278,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
 
         } catch (Exception e) {
             logger.error("launch streaming application failed: " + e.getMessage(), e);
-            MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
+            MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.LAUNCHING_ERROR);
             throw new KylinException(ServerErrorCode.JOB_START_FAILURE, e.getMessage());
         }
         logger.info("Streaming job create success on model {}", modelId);

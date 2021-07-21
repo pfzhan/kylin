@@ -31,17 +31,29 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -742,6 +754,80 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         job.setTargetSubject("554671fd-e383-4fc9-b5c2-94fce832f77b");
         Assert.assertEquals(null, job.getTargetModelAlias());
+
+    }
+
+    @Test
+    public void testGetStreamingOutputFromHDFSByJobId() throws IOException {
+        String jobId = "e1ad7bb0-522e-456a-859d-2eab1df448de_build";
+
+        File emptyFile = temporaryFolder.newFile("driver.0000000000000.log");
+        File file = temporaryFolder.newFile("driver." + System.currentTimeMillis() + ".log");
+        for (int i = 0; i < 200; i++) {
+            Files.write(file.toPath(), String.format(Locale.ROOT, "lines: %s\n", i).getBytes(Charset.defaultCharset()),
+                    StandardOpenOption.APPEND);
+        }
+
+        String[] exceptLines = Files.readAllLines(file.toPath()).toArray(new String[0]);
+        String jobLogDir = KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath("default", jobId);
+
+        // The test log directory does not exist
+        assertEquals("", manager.getStreamingOutputFromHDFS(jobId).getVerboseMsg());
+        try {
+            manager.getFilePathsFromHDFSDir(jobLogDir, false);
+            Assert.fail();
+        } catch (Exception e) {
+            assertTrue(e instanceof KylinException);
+        }
+
+        // The test log directory exists but there are no log files
+        Path jobLogDirPath = new Path(jobLogDir);
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        fs.mkdirs(jobLogDirPath);
+        try {
+            manager.getStreamingOutputFromHDFS(jobId);
+            Assert.fail();
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+            assertEquals("There is no file in the current job HDFS directory: " + jobLogDir, e.getMessage());
+        }
+        assertTrue(CollectionUtils.isEmpty(manager.getFilePathsFromHDFSDir(jobLogDir, false)));
+
+        // There are multiple log files in the test
+        fs.copyFromLocalFile(new Path(file.getAbsolutePath()), jobLogDirPath);
+        fs.copyFromLocalFile(new Path(emptyFile.getAbsolutePath()), jobLogDirPath);
+
+        List<String> logFilePathList = manager.getFilePathsFromHDFSDir(jobLogDir, false);
+        assertEquals(2, logFilePathList.size());
+        assertEquals("driver.0000000000000.log", new Path(logFilePathList.get(0)).getName());
+
+        // Test log file sampling
+        String verboseMsg = manager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
+        String[] actualVerboseMsgLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(verboseMsg, "\n");
+        ArrayList<String> exceptLinesL = com.google.common.collect.Lists.newArrayList(exceptLines);
+        exceptLinesL.add("================================================================");
+        assertTrue(Sets.newHashSet(exceptLinesL).containsAll(Sets.newHashSet(actualVerboseMsgLines)));
+
+        // Test log file InputStream
+        String sampleLog = "";
+        try (InputStream verboseMsgStream = manager.getStreamingOutputFromHDFS(jobId, Integer.MAX_VALUE)
+                .getVerboseMsgStream();
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
+
+            String line;
+            StringBuilder sampleData = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                if (sampleData.length() > 0) {
+                    sampleData.append('\n');
+                }
+                sampleData.append(line);
+            }
+
+            sampleLog = sampleData.toString();
+        }
+        String[] actualLines = StringUtils.splitByWholeSeparatorPreserveAllTokens(sampleLog, "\n");
+        assertTrue(Arrays.deepEquals(exceptLines, actualLines));
 
     }
 }

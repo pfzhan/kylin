@@ -111,6 +111,13 @@ public enum JobStatusEnum {
         public boolean checkAction(JobActionEnum actionEnum) {
             return false;
         }
+    },
+    LAUNCHING_ERROR(512) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return actionEnum == JobActionEnum.DISCARD || actionEnum == JobActionEnum.RESUME
+                    || actionEnum == JobActionEnum.RESTART;
+        }
     };
 
     public abstract boolean checkAction(JobActionEnum actionEnum);

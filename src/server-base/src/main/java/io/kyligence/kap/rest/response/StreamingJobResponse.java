@@ -58,4 +58,7 @@ public class StreamingJobResponse extends StreamingJobMeta{
 
     @JsonProperty("model_indexes")
     private Integer modelIndexes;
+
+    @JsonProperty("launching_error")
+    private boolean launchingError = false;
 }

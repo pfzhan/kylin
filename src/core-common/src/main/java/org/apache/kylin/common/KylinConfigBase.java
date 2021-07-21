@@ -753,6 +753,15 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
     // JOB
     // ============================================================================
+
+    public String getStreamingJobTmpDir(String project) {
+        return getHdfsWorkingDirectoryWithoutScheme() + "streaming/jobs/" + project + "/";
+    }
+
+    public String getStreamingJobTmpOutputStorePath(String project, String jobId) {
+        return getStreamingJobTmpDir(project) + jobId + "/";
+    }
+
     public String getJobTmpDir(String project, boolean withScheme) {
         if (!withScheme) {
             return getHdfsWorkingDirectoryWithoutScheme() + project + "/job_tmp/";

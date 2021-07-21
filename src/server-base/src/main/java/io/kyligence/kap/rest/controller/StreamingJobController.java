@@ -46,6 +46,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,10 +57,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
@@ -215,6 +221,29 @@ public class StreamingJobController extends NBasicController {
         streamingJobService.updateLayout(project, dataflowId, layouts);
 
         return RestResponse.ok();
+    }
+
+    @GetMapping(value = "/{job_id:.+}/simple_log")
+    @ResponseBody
+    public EnvelopeResponse<Map<String, String>> getStreamingJobDriverLogSimple(@PathVariable("job_id") String jobId,
+            @RequestParam("project") String project) {
+        String projectName = checkProjectName(project);
+
+        Map<String, String> result = new HashMap<>();
+        result.put("cmd_output", streamingJobService.getStreamingJobSimpleLog(projectName, jobId));
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
+    @GetMapping(value = "/{job_id:.+}/download_log")
+    @ResponseBody
+    public EnvelopeResponse<String> downloadStreamingJobDriverLog(@PathVariable("job_id") String jobId,
+            @RequestParam("project") String project, HttpServletResponse response) {
+        String projectName = checkProjectName(project);
+
+        String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", projectName, jobId);
+        InputStream inputStream = streamingJobService.getStreamingJobAllLog(projectName, jobId);
+        setDownloadResponse(inputStream, downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
 }

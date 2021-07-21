@@ -26,6 +26,7 @@ package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATE_TRANSFER;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_IDS_DELIMITER;
@@ -42,6 +43,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
@@ -61,7 +63,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -312,6 +316,73 @@ public class NExecutableManager {
         }
 
         return parseOutput(jobOutput);
+    }
+
+    public Output getStreamingOutputFromHDFS(String jobId) {
+        return getStreamingOutputFromHDFS(jobId, LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE);
+    }
+
+    /**
+     * get job output from hdfs log file
+     * If the input value is 100, sample data will be returned
+     * If the input value is not 100, the log InputStream will be returned
+     *
+     * @param jobId Current Job ID
+     * @param nLines return msg line
+     * @return job output
+     */
+    public Output getStreamingOutputFromHDFS(String jobId, int nLines) {
+
+        Preconditions.checkArgument(StringUtils.isNotEmpty(jobId), "The jobId is empty");
+
+        ExecutableOutputPO jobOutput = new ExecutableOutputPO();
+
+        // streaming job driver log in hdfs directory
+        String outputStoreDirPath = KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath(project, jobId);
+        if (!isHdfsPathExists(outputStoreDirPath)) {
+            logger.warn("The job log file on HDFS has not been generated yet, jobId: {}, filePath: {}", jobId,
+                    outputStoreDirPath);
+            jobOutput.setContent("");
+            return parseOutput(jobOutput);
+        }
+
+        List<String> logFilePathList = getFilePathsFromHDFSDir(outputStoreDirPath, false);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(logFilePathList),
+                "There is no file in the current job HDFS directory: " + outputStoreDirPath);
+
+        // get latest driver.{timestamp}.log
+        String latestLogFilePath = logFilePathList.get(logFilePathList.size() - 1);
+        if (nLines == LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE) {
+            jobOutput.setContent(getSampleDataFromHDFS(latestLogFilePath, LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE));
+        } else {
+            jobOutput.setContentStream(getLogStream(latestLogFilePath));
+        }
+        return parseOutput(jobOutput);
+    }
+
+    /**
+     * List File Paths(order by filePath asc) From HDFS DIR resPath
+     * If recursion is required, recursion the path
+     *
+     * @param resPath HDFS DIR PATH
+     * @param recursive Recursive or not
+     * @return List File Paths From HDFS DIR
+     */
+    public List<String> getFilePathsFromHDFSDir(String resPath, boolean recursive) {
+        try {
+            List<String> fileList = Lists.newArrayList();
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            Path path = new Path(resPath);
+            RemoteIterator<LocatedFileStatus> files = fs.listFiles(path, recursive);
+            while (files.hasNext()) {
+                fileList.add(files.next().getPath().toString());
+            }
+            Collections.sort(fileList);
+            return fileList;
+        } catch (IOException e) {
+            logger.error("get file paths from hdfs [{}] failed!", resPath, e);
+            throw new KylinException(FILE_NOT_EXIST, e);
+        }
     }
 
     //for ut
