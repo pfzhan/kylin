@@ -493,6 +493,7 @@ public class JobService extends BasicService {
         if (task instanceof ShellExecutable) {
             result.setExecCmd(((ShellExecutable) task).getCmd());
         }
+        result.setShortErrMsg(stepOutput.getShortErrMsg());
         return result;
     }
 

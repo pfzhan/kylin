@@ -347,6 +347,7 @@ public class NExecutableManager {
         result.setWaitTime(jobOutput.getWaitTime());
         result.setCreateTime(jobOutput.getCreateTime());
         result.setByteSize(jobOutput.getByteSize());
+        result.setShortErrMsg(jobOutput.getErrMsg());
         return result;
     }
 
@@ -743,6 +744,11 @@ public class NExecutableManager {
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
             Set<String> removeInfo, String output, long byteSize) {
+        updateJobOutput(taskOrJobId, newStatus, updateInfo, removeInfo, output, byteSize, null);
+    }
+
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
+            Set<String> removeInfo, String output, long byteSize, String errMsg) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
@@ -790,6 +796,8 @@ public class NExecutableManager {
             if (byteSize > 0) {
                 jobOutput.setByteSize(byteSize);
             }
+
+            jobOutput.setErrMsg(errMsg);
 
             if (needDestroyProcess(oldStatus, newStatus)) {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);

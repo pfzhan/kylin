@@ -24,33 +24,9 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
-import org.apache.kylin.metadata.model.TimeRange;
-
 import com.clearspring.analytics.util.Lists;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
-
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
@@ -58,6 +34,7 @@ import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
+import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
@@ -67,11 +44,78 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpRequestRetryHandler;
+import org.apache.http.client.ServiceUnavailableRetryStrategy;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
+import org.apache.kylin.metadata.model.TimeRange;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class JobSyncListener {
+    private static final long RETRY_INTERVAL = 5000L;
+    private static final int MAX_RETRY_COUNT = 5;
+
+    private static class SimpleHttpRequestRetryHandler implements HttpRequestRetryHandler {
+
+        @Override
+        public boolean retryRequest(IOException exception, int retryTimes, HttpContext httpContext) {
+            if (exception == null) {
+                return false;
+            }
+            log.info("Trigger SimpleHttpRequestRetryHandler, exception : " + exception.getClass().getName() + ", retryTimes : " + retryTimes);
+            return retryTimes < MAX_RETRY_COUNT;
+        }
+    }
+
+    private static class SimpleServiceUnavailableRetryStrategy implements ServiceUnavailableRetryStrategy {
+
+        @Override
+        public boolean retryRequest(HttpResponse httpResponse, int executionCount, HttpContext httpContext) {
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            log.info("status code: {}, execution count: {}", statusCode, executionCount);
+            return executionCount < MAX_RETRY_COUNT && statusCode != HttpStatus.SC_OK;
+        }
+
+        @Override
+        public long getRetryInterval() {
+            return RETRY_INTERVAL;
+        }
+    }
+
+    // only for test usage
+    @Getter
+    @Setter
+    private boolean jobReadyNotified = false;
+    @Getter
+    @Setter
+    private boolean jobFinishedNotified = false;
+
+    @Subscribe
+    public void onJobIsReady(JobReadyNotifier notifier) {
+        jobReadyNotified = true;
+        NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+    }
 
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
@@ -82,6 +126,7 @@ public class JobSyncListener {
             updateMetrics(notifier);
         }
     }
+
     @Subscribe
     public void onBuildJobFinished(JobFinishedNotifier notifier) {
         try {
@@ -101,7 +146,7 @@ public class JobSyncListener {
         NDataflowManager manager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataflow dataflow = manager.getDataflow(dfID);
         List<SegRange> segRangeList = Lists.newArrayList();
-        List<SegmentPartitionsInfo> segmentPartitionsInfoList = new ArrayList();
+        List<SegmentPartitionsInfo> segmentPartitionsInfoList = Lists.newArrayList();
         if (dataflow != null) {
             val model = dataflow.getModel();
             val partitionDesc = model.getMultiPartitionDesc();
@@ -126,7 +171,7 @@ public class JobSyncListener {
         }
         return new JobInfo(notifier.getJobId(), notifier.getProject(), notifier.getSubject(), notifier.getSegmentIds(),
                 notifier.getLayoutIds(), notifier.getDuration(), notifier.getJobState(), notifier.getJobType(),
-                segRangeList, segmentPartitionsInfoList);
+                segRangeList, segmentPartitionsInfoList, notifier.getStartTime(), notifier.getEndTime());
     }
 
     @Getter
@@ -163,9 +208,15 @@ public class JobSyncListener {
         @JsonProperty("segment_partition_info")
         private List<SegmentPartitionsInfo> segmentPartitionInfoList;
 
+        @JsonProperty("start_time")
+        private long startTime;
+
+        @JsonProperty("end_time")
+        private long endTime;
+
         public JobInfo(String jobId, String project, String subject, Set<String> segmentIds, Set<Long> layoutIds,
-                long duration, String jobState, String jobType, List<SegRange> segRanges,
-                List<SegmentPartitionsInfo> segmentPartitionInfoList) {
+                       long duration, String jobState, String jobType, List<SegRange> segRanges,
+                       List<SegmentPartitionsInfo> segmentPartitionInfoList, long startTime, long endTime) {
             this.jobId = jobId;
             this.project = project;
             this.modelId = subject;
@@ -180,7 +231,10 @@ public class JobSyncListener {
             this.jobType = jobType;
             this.segRanges = segRanges;
             this.segmentPartitionInfoList = segmentPartitionInfoList;
+            this.startTime = startTime;
+            this.endTime = endTime;
         }
+
     }
 
     @Setter
@@ -224,7 +278,9 @@ public class JobSyncListener {
         }
 
         RequestConfig config = RequestConfig.custom().setSocketTimeout(3000).build();
-        try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config).build()) {
+        try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
+                .setRetryHandler(new SimpleHttpRequestRetryHandler())
+                .setServiceUnavailableRetryStrategy(new SimpleServiceUnavailableRetryStrategy()).build()) {
             HttpPost httpPost = new HttpPost(url);
             httpPost.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
             httpPost.setEntity(new StringEntity(JsonUtil.writeValueAsString(info), StandardCharsets.UTF_8));
@@ -270,7 +326,7 @@ public class JobSyncListener {
                             project, tags, duration);
 
                     PrometheusMetricsGroup.summaryRecord((duration + notifier.getWaitTime()) / 1000.0,
-                            PrometheusMetrics.MODEL_BUILD_DURATION, new double[] { 0.8, 0.9 }, //
+                            PrometheusMetrics.MODEL_BUILD_DURATION, new double[]{0.8, 0.9}, //
                             "project", project, "model", modelAlias);
                 }
 

@@ -27,10 +27,11 @@ package io.kyligence.kap.rest.config.initialize;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -56,6 +57,13 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.var;
 
 public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
+    static CountDownLatch latch;
+    static JobSyncListener.JobInfo modelInfo = new JobSyncListener.JobInfo(
+            "f26641d7-2094-473b-972a-4e1cebe55091", "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
+            Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"), Sets.newHashSet(1L), 1000L, "SUCCEED",
+            "INDEX_BUILD", new ArrayList<>(), new ArrayList<>(), 1626135824000L, 1626144908000L);
+    static boolean assertMeet = false;
+
     @Before
     public void setUp() {
         this.createTestMetadata();
@@ -65,15 +73,6 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
     public void tearDown() {
         this.cleanupTestMetadata();
     }
-
-    static CountDownLatch latch;
-
-    static JobSyncListener.JobInfo modelInfo = new JobSyncListener.JobInfo("f26641d7-2094-473b-972a-4e1cebe55091",
-            "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
-            Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"), Sets.newHashSet(1L), 1000L, "SUCCEED",
-            "INDEX_BUILD", new ArrayList<>(), new ArrayList<>());
-
-    static boolean assertMeet = false;
 
     @Test
     public void testPostJobInfoSucceed() {
@@ -143,32 +142,6 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    static class ModelHandler implements HttpHandler {
-
-        @Override
-        public void handle(HttpExchange httpExchange) throws IOException {
-            try {
-                InputStream in = httpExchange.getRequestBody();
-                String s = IOUtils.toString(in);
-                if (s.equals(JsonUtil.writeValueAsString(modelInfo))) {
-                    assertMeet = true;
-                }
-            } finally {
-                httpExchange.sendResponseHeaders(HttpStatus.SC_OK, 0L);
-                httpExchange.close();
-                latch.countDown();
-            }
-        }
-    }
-
-    static class TimeoutHandler implements HttpHandler {
-
-        @Override
-        public void handle(HttpExchange httpExchange) {
-            latch.countDown();
-        }
-    }
-
     @Test
     public void testExtractInfo() {
         String jobId = "test_job_id";
@@ -183,10 +156,11 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         Set<Long> layoutIds = new HashSet<>();
         layoutIds.add(1L);
         Set<Long> partitionIds = null;
+        long startTime = 1626135824000L;
+        long endTime = 1626144908000L;
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, waitTime, "");
+                segIds, layoutIds, Collections.emptySet(), waitTime, "", "", true, startTime, endTime);
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
-
         Assert.assertEquals(jobId, jobInfo.getJobId());
         Assert.assertEquals(project, jobInfo.getProject());
         Assert.assertEquals(subject, jobInfo.getModelId());
@@ -219,8 +193,10 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         Set<Long> partitionIds = new HashSet<>();
         partitionIds.add(7L);
         partitionIds.add(8L);
+        long startTime = 1626135824000L;
+        long endTime = 1626144908000L;
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, 0L, null, "", true, partitionIds);
+                segIds, layoutIds, partitionIds, 0L, null, "", true, startTime, endTime);
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
         Assert.assertTrue(jobInfo.getSegmentIds().containsAll(segIds));
         Assert.assertEquals(segIds.size(), jobInfo.getSegmentIds().size());
@@ -233,5 +209,31 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(jobInfo.getSegmentPartitionInfoList().get(1).getSegmentId(),
                 "ff839b0b-2c23-4420-b332-0df70e36c343");
+    }
+
+    static class ModelHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange httpExchange) throws IOException {
+            try {
+                InputStream in = httpExchange.getRequestBody();
+                String s = IOUtils.toString(in);
+                if (s.equals(JsonUtil.writeValueAsString(modelInfo))) {
+                    assertMeet = true;
+                }
+            } finally {
+                httpExchange.sendResponseHeaders(HttpStatus.SC_OK, 0L);
+                httpExchange.close();
+                latch.countDown();
+            }
+        }
+    }
+
+    static class TimeoutHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange httpExchange) {
+            latch.countDown();
+        }
     }
 }

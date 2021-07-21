@@ -100,6 +100,9 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("byte_size")
     private long byteSize;
 
+    @JsonProperty("err_msg")
+    private String errMsg;
+
     public void addStartTime(long time) {
         //when ready -> suicidal/discarded, the start time is 0
         if (startTime == 0) {

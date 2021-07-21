@@ -273,7 +273,7 @@ public abstract class AbstractExecutable implements Executable {
                     retry);
             wrapWithCheckQuit(() -> {
                 updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
-                        this::onExecuteErrorHook);
+                        result.getShortErrMsg(), this::onExecuteErrorHook);
             });
             throw new ExecuteException(result.getThrowable());
         }
@@ -293,11 +293,16 @@ public abstract class AbstractExecutable implements Executable {
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, Consumer<String> hook) {
-        updateJobOutput(project, jobId, newStatus, info, output, this.getLogPath(), hook);
+        updateJobOutput(project, jobId, newStatus, info, output, null, hook);
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
-            String output, String logPath, Consumer<String> hook) {
+            String output, String errMsg, Consumer<String> hook) {
+        updateJobOutput(project, jobId, newStatus, info, output, this.getLogPath(), errMsg, hook);
+    }
+
+    public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
+            String output, String logPath, String errMsg, Consumer<String> hook) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -306,7 +311,7 @@ public abstract class AbstractExecutable implements Executable {
             }
 
             //The output will be stored in HDFS,not in RS
-            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null);
+            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, errMsg);
             if (hook != null) {
                 hook.accept(jobId);
             }

@@ -128,4 +128,19 @@ public final class ExecuteResult {
             return "error";
         }
     }
+
+    public String getShortErrMsg() {
+        if (succeed()) {
+            return null;
+        }
+        if (throwable != null) {
+            String msg = Throwables.getRootCause(throwable).getMessage();
+            if (msg != null && msg.length() > 1000) {
+                return msg.substring(0, 997) + "...";
+            }
+            return msg;
+        } else {
+            return null;
+        }
+    }
 }

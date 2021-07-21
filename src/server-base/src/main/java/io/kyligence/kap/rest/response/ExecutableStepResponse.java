@@ -72,6 +72,9 @@ public class ExecutableStepResponse {
     @JsonProperty("info")
     private ConcurrentHashMap<String, String> info = new ConcurrentHashMap<String, String>();
 
+    @JsonProperty("err_msg")
+    private String shortErrMsg;
+
     public void putInfo(String key, String value) {
         getInfo().put(key, value);
     }

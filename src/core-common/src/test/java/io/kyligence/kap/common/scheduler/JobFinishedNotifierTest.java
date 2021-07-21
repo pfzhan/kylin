@@ -47,9 +47,11 @@ public class JobFinishedNotifierTest {
         layoutIds.add(1L);
         layoutIds.add(2L);
         Set<Long> partitionIds = new HashSet<>();
+        long startTime = 1626135824000L;
+        long endTime = 1626144908000L;
 
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, waitTime, "", "", true, partitionIds);
+                segIds, layoutIds, partitionIds, waitTime, "", "", true, startTime, endTime);
         Assert.assertEquals(jobId, notifier.getJobId());
         Assert.assertEquals(project, notifier.getProject());
         Assert.assertEquals(subject, notifier.getSubject());
@@ -58,5 +60,7 @@ public class JobFinishedNotifierTest {
         Assert.assertEquals(jobType, notifier.getJobType());
         Assert.assertEquals(segIds, notifier.getSegmentIds());
         Assert.assertEquals(layoutIds, notifier.getLayoutIds());
+        Assert.assertEquals(startTime, notifier.getStartTime());
+        Assert.assertEquals(endTime, notifier.getEndTime());
     }
 }

@@ -24,14 +24,12 @@
 
 package io.kyligence.kap.common.scheduler;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import com.google.common.collect.Sets;
-
+import com.google.common.collect.Maps;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Map;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -47,16 +45,14 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
     private String jobClass;
     private String owner;
     private boolean isSucceed;
+    private long startTime;
+    private long endTime;
+
 
     public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
-            String jobType, Set<String> segmentIds, Set<Long> layoutIds, long waitTime, String jobClass) {
-        this(jobId, project, subject, duration, jobState, jobType, segmentIds, layoutIds, waitTime, jobClass, "", true,
-                Sets.newHashSet());
-    }
-
-    public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
-            String jobType, Set<String> segmentIds, Set<Long> layoutIds, long waitTime, String jobClass, String owner,
-            boolean result, Set<Long> partitionIds) {
+                               String jobType, Set<String> segmentIds, Set<Long> layoutIds, Set<Long> partitionIds,
+                               long waitTime, String jobClass, String owner, boolean result, long startTime,
+                               long endTime) {
         setProject(project);
         setSubject(subject);
         this.jobId = jobId;
@@ -67,7 +63,7 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.layoutIds = layoutIds;
         this.waitTime = waitTime;
         if (partitionIds != null) {
-            this.segmentPartitionsMap = new HashMap<>();
+            this.segmentPartitionsMap = Maps.newHashMapWithExpectedSize(segmentIds.size());
             for (String segmentId : segmentIds) {
                 segmentPartitionsMap.put(segmentId, partitionIds);
             }
@@ -75,5 +71,8 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.jobClass = jobClass;
         this.owner = owner;
         this.isSucceed = result;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
+
 }
