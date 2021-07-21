@@ -651,6 +651,10 @@ public class KapConfig {
         return config.getOptional("kylin.canary.sqlcontext-type", "file");
     }
 
+    public Boolean getSparkCanaryEnable() {
+        return Boolean.parseBoolean(config.getOptional("kylin.canary.sqlcontext-enabled", FALSE));
+    }
+
     public double getJoinMemoryFraction() {
         // driver memory that can be used by join(mostly BHJ)
         return Double.parseDouble(config.getOptional("kylin.query.join-memory-fraction", "0.3"));
