@@ -66,7 +66,6 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -163,6 +162,8 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.constant.JobInfoEnum;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -183,7 +184,6 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
-import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 import lombok.var;
 
@@ -1255,7 +1255,7 @@ public class TableService extends BasicService {
         result.setUpdateBaseIndexCount(context.getChangeTypeAffectedModels().values().stream().mapToInt(m -> {
             IndexPlan indexPlan = NIndexPlanManager.getInstance(getConfig(), m.getProject())
                     .getIndexPlan(m.getModelId());
-            if (!indexPlan.getConfig().isUpdateBaseIndexAutoMode()) {
+            if (!indexPlan.getConfig().isBaseIndexAutoUpdate()) {
                 return 0;
             }
             Set<Long> updateLayouts = Sets.newHashSet();

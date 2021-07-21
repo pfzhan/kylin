@@ -96,6 +96,10 @@ public class BuildBaseIndexResponse extends BasicResponse {
         }
     }
 
+    public boolean hasIndexChange() {
+        return tableIndex != null || aggIndex != null;
+    }
+
     @Data
     private static class IndexInfo {
 

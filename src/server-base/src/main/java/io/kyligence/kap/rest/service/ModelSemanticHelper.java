@@ -683,11 +683,19 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end) {
-        handleSemanticUpdate(project, model, originModel, start, end, false, false);
+        handleSemanticUpdate(project, model, originModel, start, end, false);
     }
 
     public void handleSemanticUpdate(String project, String model, NDataModel originModel, String start, String end,
-            boolean saveOnly, boolean layoutRebuilt) {
+            boolean saveOnly) {
+        val needBuild = doHandleSemanticUpdate(project, model, originModel, start, end);
+        if (!saveOnly && needBuild) {
+            buildForModel(project, model);
+        }
+    }
+
+    public boolean doHandleSemanticUpdate(String project, String model, NDataModel originModel, String start,
+            String end) {
         val config = KylinConfig.getInstanceFromEnv();
         val indePlanManager = NIndexPlanManager.getInstance(config, project);
         val modelMgr = NDataModelManager.getInstance(config, project);
@@ -697,38 +705,38 @@ public class ModelSemanticHelper extends BasicService {
         val newModel = modelMgr.getDataModelDesc(model);
 
         if (isSignificantChange(originModel, newModel)) {
-            log.info("model { " + originModel.getAlias() + " } reload data from datasource");
+            log.info("model {} reload data from datasource", originModel.getAlias());
             val savedIndexPlan = handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasures().keySet(),
                     indePlanManager);
             removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimensions().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
-            handleReloadData(newModel, originModel, project, start, end, saveOnly);
+            handleReloadData(newModel, originModel, project, start, end);
             optRecManagerV2.discardAll(model);
-            return;
+            return true;
         }
-        val dimensionsOnlyAdded = newModel.getEffectiveDimensions().keySet()
-                .containsAll(originModel.getEffectiveDimensions().keySet());
-        val measuresNotChanged = CollectionUtils.isEqualCollection(newModel.getEffectiveMeasures().keySet(),
-                originModel.getEffectiveMeasures().keySet());
-        if (dimensionsOnlyAdded && measuresNotChanged && !layoutRebuilt) {
-            return;
-        }
+
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
-        if (!measuresNotChanged || layoutRebuilt) {
-            val oldRule = indexPlan.getRuleBasedIndex();
+        if (isMeasureChange(originModel, newModel)) {
             handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasures().keySet(), indePlanManager);
-            val newIndexPlan = indePlanManager.getIndexPlan(indexPlan.getId());
-            if (newIndexPlan.getRuleBasedIndex() != null) {
-                handleIndexPlanUpdateRule(project, model, oldRule, newIndexPlan.getRuleBasedIndex(),
-                        layoutRebuilt && !saveOnly);
-            }
         }
         // dimension deleted: previous step is remove dimensions in rule,
         //   so we only remove the auto created cuboids
-        if (!dimensionsOnlyAdded) {
+        if (isDimNotOnlyAdd(originModel, newModel)) {
             removeUselessDimensions(indexPlan, newModel.getEffectiveDimensions().keySet(), true, config);
         }
+
+        return hasRulebaseLayoutChange(indexPlan.getRuleBasedIndex(),
+                indePlanManager.getIndexPlan(indexPlan.getId()).getRuleBasedIndex());
+    }
+
+    public boolean isDimNotOnlyAdd(NDataModel originModel, NDataModel newModel) {
+        return !newModel.getEffectiveDimensions().keySet().containsAll(originModel.getEffectiveDimensions().keySet());
+    }
+
+    public boolean isMeasureChange(NDataModel originModel, NDataModel newModel) {
+        return !CollectionUtils.isEqualCollection(newModel.getEffectiveMeasures().keySet(),
+                originModel.getEffectiveMeasures().keySet());
     }
 
     public boolean isFilterConditonNotChange(String oldFilterCondition, String newFilterCondition) {
@@ -830,8 +838,7 @@ public class ModelSemanticHelper extends BasicService {
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 
-    private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end,
-            boolean saveOnly) {
+    private void handleReloadData(NDataModel newModel, NDataModel oriModel, String project, String start, String end) {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, project);
         var df = dataflowManager.getDataflow(newModel.getUuid());
@@ -871,11 +878,6 @@ public class ModelSemanticHelper extends BasicService {
                 dataflowManager.fillDfManually(df, segmentRanges);
             }
         }
-
-        if (saveOnly)
-            return;
-
-        JobManager.getInstance(config, project).addIndexJob(new JobParam(modelId, getUsername()));
     }
 
     public BuildIndexResponse handleIndexPlanUpdateRule(String project, String model, RuleBasedIndex oldRule,
@@ -889,13 +891,8 @@ public class ModelSemanticHelper extends BasicService {
         }
         val jobManager = JobManager.getInstance(kylinConfig, project);
 
-        val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
-        val targetLayouts = newRule.genCuboidLayouts();
-
-        val difference = Sets.difference(targetLayouts, originLayouts);
-
         // new cuboid
-        if (difference.size() > 0 || forceFireEvent) {
+        if (hasRulebaseLayoutChange(oldRule, newRule) || forceFireEvent) {
             String jobId = jobManager.addIndexJob(new JobParam(model, getUsername()));
 
             val buildIndexResponse = new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
@@ -911,10 +908,27 @@ public class ModelSemanticHelper extends BasicService {
 
     }
 
+    private boolean hasRulebaseLayoutChange(RuleBasedIndex oldRule, RuleBasedIndex newRule) {
+        val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
+        val targetLayouts = newRule == null ? Sets.<LayoutEntity> newHashSet() : newRule.genCuboidLayouts();
+        val difference = Sets.difference(targetLayouts, originLayouts);
+        return difference.size() > 0;
+    }
+
     public IndexPlan addRuleBasedIndexBlackListLayouts(IndexPlan indexPlan, Collection<Long> blackListLayoutIds) {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), indexPlan.getProject());
         return indexPlanManager.updateIndexPlan(indexPlan.getId(), indexPlanCopy -> {
             indexPlanCopy.addRuleBasedBlackList(blackListLayoutIds);
         });
     }
+
+    public void buildForModel(String project, String modelId) {
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getIndexPlan(modelId);
+        if (CollectionUtils.isNotEmpty(indexPlan.getAllLayoutIds(false))) {
+            JobManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .addIndexJob(new JobParam(modelId, getUsername()));
+        }
+    }
+
 }

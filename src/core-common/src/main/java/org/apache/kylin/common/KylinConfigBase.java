@@ -746,8 +746,8 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.cube.aggrgroup.is-base-cuboid-always-valid", TRUE));
     }
 
-    public boolean isUpdateBaseIndexAutoMode() {
-        return Boolean.parseBoolean(this.getOptional("kylin.cube.agggroup.is-update-base-index-auto-mode", TRUE));
+    public boolean isBaseIndexAutoUpdate() {
+        return Boolean.parseBoolean(this.getOptional("kylin.index.base-index-auto-update", TRUE));
     }
 
     // ============================================================================

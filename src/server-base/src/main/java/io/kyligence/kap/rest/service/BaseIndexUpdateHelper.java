@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.util.SpringContext;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.CreateBaseIndexRequest;
 import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-import org.apache.kylin.rest.util.SpringContext;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 
 /**
  * due to complex model semantic update and table reload,
@@ -53,10 +53,8 @@ public class BaseIndexUpdateHelper {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 model.getProject());
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(model.getId());
-        if (indexPlan.isBroken()) {
-            needUpdate = false;
-        } else {
-            needUpdate = indexPlan.getConfig().isUpdateBaseIndexAutoMode();
+        if (!indexPlan.isBroken()) {
+            needUpdate = indexPlan.getConfig().isBaseIndexAutoUpdate();
         }
 
         if (needUpdate) {

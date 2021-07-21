@@ -3289,11 +3289,13 @@ public class ModelService extends BasicService {
         checkIndexColumnExist(project, modelId, originModel);
 
         checkFlatTableSql(newModel);
-        boolean layoutRebuild = affectedLayoutSet.size() > 0;
-        semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd(),
-                request.isSaveOnly(), layoutRebuild);
+        val needBuild = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
+                request.getEnd());
         updateExcludedCheckerResult(project, request);
         BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
+        if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
+            semanticUpdater.buildForModel(project, modelId);
+        }
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
         changeSecondStorageIfNeeded(project, request);
         return baseIndexResponse;
@@ -3945,7 +3947,7 @@ public class ModelService extends BasicService {
         getDataModelManager(project).updateDataModel(oldDataModel.getUuid(),
                 copyForWrite -> copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc()));
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
-                modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+                modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(), false);
     }
 
     @Transaction(project = 0)

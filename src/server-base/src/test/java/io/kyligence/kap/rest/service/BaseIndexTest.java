@@ -27,13 +27,16 @@ import static io.kyligence.kap.metadata.cube.model.IndexEntity.isAggIndex;
 import static io.kyligence.kap.metadata.cube.model.IndexEntity.isTableIndex;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -53,6 +56,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Source;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -290,6 +294,40 @@ public class BaseIndexTest extends CSVSourceTestCase {
         LayoutEntity baseAggLayout = LayoutBuilder.builder().colOrder(0, 1, 2, 3, 5, 6, 100000, 100001).build();
         LayoutEntity baseTableLayout = LayoutBuilder.builder().colOrder(0, 1, 2, 3, 5, 6).build();
         compareBaseIndex(getModelIdFrom(modelRequest.getAlias()), baseTableLayout, baseAggLayout);
+    }
+
+
+    @Test
+    public void testUpdateAndBuildBaseIndex() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        ModelRequest modelRequest = FormModel(modelManager.getDataModelDesc(COMMON_MODEL_ID));
+        //just for create segment when creating modeling
+        modelRequest.setPartitionDesc(null);
+        modelRequest.setMultiPartitionDesc(null);
+        modelRequest.setMultiPartitionKeyMapping(null);
+        String modelId = modelService.createModel(modelRequest.getProject(), modelRequest).getId();
+
+        Assert.assertThat(needUpdateBaseIndex(getProject(), modelId), is(false));
+        addDimension(modelRequest, Lists.newArrayList(5, 6));
+        BuildBaseIndexResponse response = modelService.updateDataModelSemantic(getProject(), modelRequest);
+
+        Assert.assertThat(needUpdateBaseIndex(getProject(), modelId), is(false));
+
+        CreateBaseIndexRequest request = new CreateBaseIndexRequest();
+        request.setModelId(modelId);
+        Assert.assertThat(getBaseAggIndex(modelId), notNullValue());
+        Assert.assertThat(getBaseTableIndex(modelId), notNullValue());
+        List<AbstractExecutable> executables = getRunningExecutables(getProject(), modelId);
+        Assert.assertThat(executables.size(), is(1));
+        Assert.assertThat(getProcessLayout(executables.get(0)), is(2));
+    }
+
+    private int getProcessLayout(AbstractExecutable executable) {
+        String layouts = executable.getParam(NBatchConstants.P_LAYOUT_IDS);
+        if (StringUtils.isBlank(layouts)) {
+            return 0;
+        }
+        return layouts.split(",").length;
     }
 
     @Test
