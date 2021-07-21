@@ -1797,6 +1797,16 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getNO_STREAMING_MODEL_FOUND() {
+        return "无法查询。由于实时数据必须通过索引查询，请确保有相应的索引。";
+    }
+
+    @Override
+    public String getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING() {
+        return "不支持实时表进行自动建模。";
+    }
+
+    @Override
     public String getSPARK_FAILURE() {
         return "无法完成操作，请检查 Spark 环境后重试。";
     }

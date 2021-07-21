@@ -1597,6 +1597,14 @@ public class Message {
         return "Can’t fix segment in streaming model.";
     }
 
+    public String getNO_STREAMING_MODEL_FOUND() {
+        return "Can't be queried. As streaming data must be queried through indexes, please ensure there is an index for the query. ";
+    }
+
+    public String getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING() {
+        return "No support streaming table for auto modeling.";
+    }
+
     public String getSPARK_FAILURE() {
         return "Can't complete the operation. Please check the Spark environment and try again. ";
     }

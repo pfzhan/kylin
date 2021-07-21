@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.query.util;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING;
+
 import java.util.List;
+import java.util.Locale;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -69,6 +73,8 @@ public class QueryContextCutter {
             } catch (NoStreamingRealizationFoundException e) {
                 if (isForAutoModeling) {
                     checkStreamingSqlWithAutoModeling();
+                } else {
+                    throw e;
                 }
             } catch (NoRealizationFoundException e) {
                 if (isForAutoModeling) {
@@ -150,7 +156,8 @@ public class QueryContextCutter {
                 TableDesc tableDesc = tableScan.getTableRef().getTableDesc();
                 if (ISourceAware.ID_STREAMING == tableDesc.getSourceType()
                         && tableDesc.getKafkaConfig().hasBatchTable()) {
-                    throw new NoStreamingRealizationFoundException("No support streaming table for auto modeling.");
+                    throw new NoStreamingRealizationFoundException(STREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING()));
                 }
             }
         }

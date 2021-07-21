@@ -42,11 +42,14 @@
 
 package org.apache.kylin.query.routing;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_MODEL_NOT_FOUND;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -63,6 +66,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -274,8 +278,8 @@ public class RealizationChooser {
         for (OLAPTableScan tableScan : context.allTableScans) {
             TableDesc tableDesc = tableManager.getTableDesc(tableScan.getTableName());
             if (tableDesc.getSourceType() == ISourceAware.ID_STREAMING) {
-                throw new NoStreamingRealizationFoundException(
-                        "No fusion model found for " + toErrorMsg(context));
+                throw new NoStreamingRealizationFoundException(STREAMING_MODEL_NOT_FOUND,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
             }
         }
     }
@@ -461,7 +465,8 @@ public class RealizationChooser {
         val prunedPartitions = candidate.getPrunedPartitions();
         if ((layoutCandidate == null && layoutStreamingCandidate == NLayoutCandidate.EMPTY)
                 || (layoutStreamingCandidate == null && layoutCandidate == NLayoutCandidate.EMPTY)) {
-            throw new NoStreamingRealizationFoundException("There are no fusion model to answer this query.");
+            throw new NoStreamingRealizationFoundException(STREAMING_MODEL_NOT_FOUND,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
         }
 
         if (layoutCandidate == NLayoutCandidate.EMPTY && layoutStreamingCandidate == NLayoutCandidate.EMPTY) {
@@ -478,7 +483,8 @@ public class RealizationChooser {
             context.setStreamingLayoutId(null);
             context.setEmptyLayout(true);
             logger.error("The case when the type of stream and batch index different is not supported yet.");
-            throw new NoStreamingRealizationFoundException("There's no appropriate agg index to answer this query.");
+            throw new NoStreamingRealizationFoundException(STREAMING_MODEL_NOT_FOUND,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
         }
 
         NDataModel model = candidate.getRealization().getModel();

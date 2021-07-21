@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.query;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_MODEL_NOT_FOUND;
+
 import com.google.common.collect.Lists;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -38,9 +40,12 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.utils.AccelerationContextUtil;
+import java.util.Locale;
+
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -253,6 +258,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(), STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
+            Assert.assertEquals(e.getMessage(), String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
             Assert.assertTrue(context.storageContext.isBatchCandidateEmpty());
             Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
         }
@@ -314,6 +321,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(), STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
+            Assert.assertEquals(e.getMessage(), String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
         }
         Assert.assertTrue(context.storageContext.isStreamCandidateEmpty());
 
@@ -330,6 +339,8 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
             RealizationChooser.attemptSelectCandidate(context2);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof NoStreamingRealizationFoundException);
+            Assert.assertEquals(((NoStreamingRealizationFoundException) e).getErrorCode().getCodeString(), STREAMING_MODEL_NOT_FOUND.toErrorCode().getCodeString());
+            Assert.assertEquals(e.getMessage(), String.format(Locale.ROOT, MsgPicker.getMsg().getNO_STREAMING_MODEL_FOUND()));
         }
         Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
     }

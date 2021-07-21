@@ -24,8 +24,24 @@
 
 package org.apache.kylin.metadata.realization;
 
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ErrorCodeSupplier;
+
+import lombok.Getter;
+
 public class NoStreamingRealizationFoundException extends RuntimeException {
+
+    @Getter
+    private ErrorCode errorCode;
+
     public NoStreamingRealizationFoundException(String message) {
         super(message);
     }
+
+    public NoStreamingRealizationFoundException(ErrorCodeSupplier errorCodeSupplier, String message) {
+        super(message);
+        this.errorCode = errorCodeSupplier.toErrorCode();
+    }
+
+
 }
