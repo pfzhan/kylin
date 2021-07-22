@@ -31,20 +31,22 @@ import io.kyligence.kap.engine.spark.job.{FiltersUtil, TableMetaManager}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
-import io.kyligence.kap.metadata.model.NDataModel
+import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.commons.lang3.StringUtils
-import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model._
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.utils.ProxyThreadUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.duration.{Duration, MILLISECONDS}
 import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.{Failure, Success, Try}
 
@@ -153,7 +155,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
         .map(lookupTableMap =>
           (lookupTableMap._1, buildDictIfNeed(lookupTableMap._2, dictColsWithoutCc, encodeColsWithoutCc)))
       if (lookupTables.nonEmpty) {
-        generateDimensionTableMeta(lookupTables)
+        generateLookupTableMeta(project, lookupTables)
       }
       if (inferFiltersEnabled) {
         FiltersUtil.initFilters(tableDesc, lookupTables)
@@ -561,16 +563,46 @@ object SegmentFlatTable extends LogEx {
     ds.select(selectedColumns: _*)
   }
 
-  private def generateDimensionTableMeta(lookupTables: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]): Unit = {
-    val lookupTablePar = lookupTables.par
-    lookupTablePar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(lookupTablePar.size))
-    lookupTablePar.foreach { case (joinTableDesc, dataset) =>
-      val tableIdentity = joinTableDesc.getTable
-      logTime(s"count $tableIdentity") {
-        val rowCount = dataset.count()
-        TableMetaManager.putTableMeta(tableIdentity, 0L, rowCount)
-        logInfo(s"put meta table: $tableIdentity , count: $rowCount")
+  private def generateLookupTableMeta(project: String,
+                                      lookupTables: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]): Unit = {
+    val config = KapConfig.getInstanceFromEnv
+    if (config.isRecordSourceUsage) {
+      lookupTables.keySet.foreach { joinTable =>
+        val tableManager = NTableMetadataManager.getInstance(config.getKylinConfig, project)
+        val table = tableManager.getOrCreateTableExt(joinTable.getTable)
+        if (table.getTotalRows > 0) {
+          TableMetaManager.putTableMeta(joinTable.getTable, 0, table.getTotalRows)
+          logInfo(s"put meta table: ${joinTable.getTable}, count: ${table.getTotalRows}")
+        }
       }
+    }
+    val noStatLookupTables = lookupTables.filterKeys(table => TableMetaManager.getTableMeta(table.getTable).isEmpty)
+    if (config.getKylinConfig.isNeedCollectLookupTableInfo && noStatLookupTables.nonEmpty) {
+      val lookupTablePar = noStatLookupTables.par
+      lookupTablePar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(lookupTablePar.size))
+      lookupTablePar.foreach { case (joinTableDesc, dataset) =>
+        val tableIdentity = joinTableDesc.getTable
+        logTime(s"count $tableIdentity") {
+          val maxTime = Duration(config.getKylinConfig.getCountLookupTableMaxTime, MILLISECONDS)
+          val defaultCount = config.getKylinConfig.getLookupTableCountDefaultValue
+          val rowCount = countTableInFiniteTimeOrDefault(dataset, tableIdentity, maxTime, defaultCount)
+          TableMetaManager.putTableMeta(tableIdentity, 0L, rowCount)
+          logInfo(s"put meta table: $tableIdentity , count: $rowCount")
+        }
+      }
+    }
+  }
+
+  def countTableInFiniteTimeOrDefault(dataset: Dataset[Row], tableName: String,
+                                      duration: Duration, defaultCount: Long): Long = {
+    val countTask = dataset.rdd.countAsync()
+    try {
+      ProxyThreadUtils.awaitResult(countTask, duration)
+    } catch {
+      case e: Exception =>
+        countTask.cancel()
+        logInfo(s"$tableName count fail, and return defaultCount $defaultCount", e)
+        defaultCount
     }
   }
 

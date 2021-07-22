@@ -2107,6 +2107,18 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metadata.broken-model-deleted-on-smart-mode", FALSE));
     }
 
+    public boolean isNeedCollectLookupTableInfo() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.need-collect-lookup-table-info", TRUE));
+    }
+
+    public long getCountLookupTableMaxTime() {
+        return Long.parseLong(getOptional("kylin.engine.count.lookup-table-max-time", "600000"));
+    }
+
+    public long getLookupTableCountDefaultValue() {
+        return Long.parseLong(getOptional("kylin.engine.lookup-table-default-count-value", "1000000000"));
+    }
+
     public int getPersistFlatTableThreshold() {
         return Integer.parseInt(getOptional("kylin.engine.persist-flattable-threshold", "1"));
     }
