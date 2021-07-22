@@ -1,3 +1,4 @@
+import { objectArraySort } from 'util'
 export const validate = {
   'positiveNumber' (rule, value, callback) {
     if (value === '' || value === undefined || value <= 0) {
@@ -67,7 +68,7 @@ export function _getSecStorageSetting (data) {
   return {
     project: data.project,
     second_storage_enabled: data.second_storage_enabled,
-    second_storage_nodes: data.second_storage_nodes
+    second_storage_nodes: objectArraySort(data.second_storage_nodes, true, 'name')
   }
 }
 

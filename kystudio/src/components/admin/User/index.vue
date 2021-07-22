@@ -79,7 +79,7 @@
           </span><common-tip :content="$t('kylinLang.common.moreActions')"><el-dropdown trigger="click">
             <i class="el-icon-ksd-table_others" v-show="isMoreActionShow"></i>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item v-if="userActions.includes('editUser')" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
+              <el-dropdown-item v-if="userActions.includes('editUser')&&scope.row.uuid !== currentUser.uuid" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
               <el-dropdown-item v-if="userActions.includes('deleteUser')" @click.native="dropUser(scope.row)">{{$t('drop')}}</el-dropdown-item>
               <el-dropdown-item v-if="userActions.includes('disableUser') && scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('enable')}}</el-dropdown-item>
               <el-dropdown-item v-if="userActions.includes('disableUser') && !scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('disable')}}</el-dropdown-item>

@@ -282,6 +282,9 @@ export default class GroupEditModal extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .group-edit-modal {
+  .el-form-item__content {
+    line-height: 1;
+  }
   .el-transfer-panel {
     width: 250px;
   }

@@ -338,7 +338,7 @@ import locales from './locales'
 import { mapActions, mapGetters, mapState, mapMutations } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
-import { handleError, handleSuccessAsync } from '../../../util'
+import { handleError, handleSuccessAsync, objectArraySort } from '../../../util'
 import { kapConfirm } from 'util/business'
 import { apiUrl } from '../../../config'
 import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getSecStorageSetting, _getExposeCCSetting, _getSnapshotSetting, _getKerberosSettings } from './handler'
@@ -517,7 +517,7 @@ export default class SettingAdvanced extends Vue {
   async loadAvailableNodes () {
     const res = await this.fetchAvailableNodes()
     const data = await handleSuccessAsync(res)
-    this.nodes = data
+    this.nodes = objectArraySort(data, true, 'name')
   }
   initForm () {
     // this.handleInit('accelerate-settings')
@@ -670,7 +670,7 @@ export default class SettingAdvanced extends Vue {
                 await this.updateSecStorageSettings({project: this.currentSelectedProject, new_nodes: this.new_nodes.map(n => n.name), enabled: this.form.second_storage_enabled})
                 successCallback()
                 this.$emit('reload-setting')
-                this.form.second_storage_nodes = [...this.form.second_storage_nodes, ...this.new_nodes]
+                this.form.second_storage_nodes = objectArraySort([...this.form.second_storage_nodes, ...this.new_nodes], true, 'name')
                 this.new_nodes = []
                 this.loadAvailableNodes()
                 this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })

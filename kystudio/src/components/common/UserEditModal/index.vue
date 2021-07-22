@@ -396,6 +396,9 @@ export default class UserEditModal extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .user-edit-modal {
+  .el-form-item__content {
+    line-height: 1;
+  }
   .el-transfer-panel {
     width: 250px;
   }

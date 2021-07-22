@@ -75,15 +75,18 @@ export function getTableTree (database, res, isTableReset, selectTablesNames) {
     isSelected: table.loaded || database.isSelected || table.table_name && selectTablesNames && selectTablesNames.includes(`${database.id}.${table.table_name}`),
     clickable: !table.loaded && !database.isSelected,
     isLoaded: table.loaded,
+    isExistedName: table.existed,
     render: (h, { node, data, store }) => {
-      const isChecked = !data.isLoaded && data.isSelected
+      const isChecked = !data.isLoaded && data.isSelected && !table.existed
       const isLoaded = data.isLoaded
+      const isExistedName = data.isExistedName
       const isAllTableSelected = database.children.filter(item => item.type !== 'isMore').every(item => item.isLoaded)
       const tableClassNames = [
         'table',
         ...(database.isSelected && !isAllTableSelected ? ['parent-selected'] : []),
         ...(!data.clickable ? ['disabled'] : []),
-        ...(isLoaded ? ['synced'] : [])
+        ...(isLoaded ? ['synced'] : []),
+        ...(isExistedName ? ['existedName'] : [])
       ]
       const currentId = `table-load-${data.id}`
       setTimeout(() => {
@@ -94,7 +97,7 @@ export function getTableTree (database, res, isTableReset, selectTablesNames) {
           parentEl.style.cursor = !data.clickable ? 'not-allowed' : null
         }
       })
-      const itemClassName = isLoaded ? 'is-synced' : ''
+      const itemClassName = isLoaded || isExistedName ? 'is-synced' : ''
       return (
         <div class={itemClassName}>
           <div class={tableClassNames} id={currentId}>
@@ -105,6 +108,9 @@ export function getTableTree (database, res, isTableReset, selectTablesNames) {
           </div>
           { isLoaded ? (
             <span class="label-synced">{this.$t('synced')}</span>
+          ) : null }
+          { isExistedName ? (
+            <span class="label-synced">{this.$t('existedName')}</span>
           ) : null }
         </div>
       )

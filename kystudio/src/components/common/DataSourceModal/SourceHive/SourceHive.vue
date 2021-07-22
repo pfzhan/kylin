@@ -1031,7 +1031,7 @@ export default class SourceHive extends Vue {
       &>div {
         margin-right:34px;
         &.is-synced {
-          margin-right:90px;
+          margin-right:108px;
         }
         &.database {
           margin-right:0;
