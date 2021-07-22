@@ -248,8 +248,8 @@ public class NQueryLayoutChooser {
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {
-            applyAdvanceMeasureStrategy(layoutEntity.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics, result);
-            applyDimAsMeasureStrategy(layoutEntity.getIndex(), sqlDigest, model, unmatchedMetrics, needDerive, result);
+            applyAdvanceMeasureStrategy(layoutEntity, sqlDigest, unmatchedCols, unmatchedMetrics, result, isBatchFusionModel);
+            applyDimAsMeasureStrategy(layoutEntity, sqlDigest, model, unmatchedMetrics, needDerive, result, isBatchFusionModel);
         }
 
         boolean matched = unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
@@ -291,9 +291,10 @@ public class NQueryLayoutChooser {
                 .removeIf(functionDesc -> FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(functionDesc.getExpression()));
     }
 
-    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, SQLDigest sqlDigest, NDataModel model,
+    private static void applyDimAsMeasureStrategy(LayoutEntity layoutEntity, SQLDigest sqlDigest, NDataModel model,
             Collection<FunctionDesc> unmatchedAggs, Map<TblColRef, DeriveInfo> needDeriveCollector,
-            CapabilityResult result) {
+            CapabilityResult result, boolean isBatchFusionModel) {
+        IndexEntity indexEntity = layoutEntity.getIndex();
         Iterator<FunctionDesc> it = unmatchedAggs.iterator();
         while (it.hasNext()) {
             FunctionDesc functionDesc = it.next();
@@ -305,8 +306,12 @@ public class NQueryLayoutChooser {
             // calcite can do aggregation from columns on-the-fly
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
+            Set<TblColRef> dimensionsSet = Sets.newHashSet(indexEntity.getDimensionSet());
+            if (isBatchFusionModel) {
+                dimensionsSet.addAll(layoutEntity.getStreamingColumns());
+            }
             val leftUnmatchedCols = Sets.newHashSet(
-                    CollectionUtils.subtract(functionDesc.getSourceColRefs(), indexEntity.getDimensionSet()));
+                    CollectionUtils.subtract(functionDesc.getSourceColRefs(), dimensionsSet));
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
                 goThruDerivedDims(indexEntity, model, needDeriveCollector, leftUnmatchedCols, sqlDigest);
             }
@@ -321,10 +326,15 @@ public class NQueryLayoutChooser {
         }
     }
 
-    private static void applyAdvanceMeasureStrategy(IndexEntity indexEntity, SQLDigest digest,
-            Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
+    private static void applyAdvanceMeasureStrategy(LayoutEntity layoutEntity, SQLDigest digest,
+            Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result, boolean isBatchFusionModel) {
+        IndexEntity indexEntity = layoutEntity.getIndex();
         List<String> influencingMeasures = Lists.newArrayList();
-        for (MeasureDesc measure : indexEntity.getMeasureSet()) {
+        Set<NDataModel.Measure> measureSet = Sets.newHashSet(indexEntity.getMeasureSet());
+        if (isBatchFusionModel) {
+            measureSet.addAll(layoutEntity.getStreamingMeasures());
+        }
+        for (MeasureDesc measure : measureSet) {
             MeasureType measureType = measure.getFunction().getMeasureType();
             if (measureType instanceof BasicMeasureType)
                 continue;

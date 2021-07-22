@@ -344,4 +344,23 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         }
         Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
     }
+
+    @Test
+    public void testHybridDimensionAsMetrics() {
+        String project = "streaming_test";
+        String sql = "select min(LO_CUSTKEY) from SSB_STREAMING";
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
+        val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
+        SmartMaster smartMaster = new SmartMaster(proposeContext);
+        smartMaster.runUtWithContext(null);
+        proposeContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(proposeContext);
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertEquals(30001L, context.storageContext.getCuboidLayoutId().longValue());
+        Assert.assertEquals(30001L, context.storageContext.getCuboidLayoutId().longValue());
+    }
 }

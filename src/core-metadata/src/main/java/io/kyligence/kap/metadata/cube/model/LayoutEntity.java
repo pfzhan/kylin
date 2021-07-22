@@ -29,6 +29,7 @@ import static io.kyligence.kap.metadata.cube.model.IndexEntity.TABLE_INDEX_START
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -187,7 +188,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         }
     }
 
-    public List<TblColRef> getStreamingColumns() {
+    public Set<TblColRef> getStreamingColumns() {
         NDataModel model = getModel();
         if (model.isFusionModel()) {
             NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataModelDesc(model.getFusionId());
@@ -198,9 +199,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
                     dimsBuilder.put(colId, streamingEffectiveCols.get(colId));
             }
 
-            return Lists.newArrayList(dimsBuilder.build().values());
+            return dimsBuilder.build().values();
         } else {
-            return Lists.newArrayList();
+            return Collections.emptySet();
         }
     }
 
@@ -224,7 +225,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         }
     }
 
-    public List<Measure> getStreamingMeasures() {
+    public Set<Measure> getStreamingMeasures() {
         NDataModel model = getModel();
         if (model.isFusionModel()) {
             NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataModelDesc(model.getFusionId());
@@ -235,9 +236,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
                     measuresBuilder.put(colId, streamingEffectiveMeasures.get(colId));
             }
 
-            return Lists.newArrayList(measuresBuilder.build().values());
+            return measuresBuilder.build().values();
         } else {
-            return Lists.newArrayList();
+            return Collections.emptySet();
         }
     }
 
