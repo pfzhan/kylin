@@ -105,12 +105,14 @@ public class NGlobalDictionaryV2 implements Serializable {
         NGlobalDictStore globalDictStore = getResourceStore(baseDir);
         NGlobalDictMetaInfo metadata;
         Long[] versions = globalDictStore.listAllVersions();
+        logger.info("getMetaInfo versions.length is {}", versions.length);
 
         if (versions.length == 0) {
             return null;
         } else {
             metadata = globalDictStore.getMetaInfo(versions[versions.length - 1]);
         }
+        logger.info("getMetaInfo metadata is null : [{}]", metadata == null);
         return metadata;
     }
 

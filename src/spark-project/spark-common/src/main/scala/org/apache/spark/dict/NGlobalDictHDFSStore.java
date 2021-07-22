@@ -125,13 +125,16 @@ public class NGlobalDictHDFSStore implements NGlobalDictStore {
                 path -> path.getName().startsWith(DICT_METADATA_NAME));
 
         if (metaFiles.length == 0) {
+            logger.info("because metaFiles.length is 0, metaInfo is null");
             return null;
         }
 
         String metaFile = metaFiles[0].getPath().getName();
         Path metaPath = new Path(versionDir, metaFile);
-        if (!fileSystem.exists(metaPath))
+        if (!fileSystem.exists(metaPath)) {
+            logger.info("because metaPath[{}] is not exists, metaInfo is null", metaPath);
             return null;
+        }
 
         NGlobalDictMetaInfo metaInfo;
 
