@@ -24,12 +24,14 @@
 package io.kyligence.kap.common.persistence.metadata;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isIndexExists;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -77,6 +79,9 @@ public class JdbcAuditLogStore implements AuditLogStore {
     static final String AUDIT_LOG_TABLE_UNIT = "unit_id";
     static final String AUDIT_LOG_TABLE_OPERATOR = "operator";
     static final String AUDIT_LOG_TABLE_INSTANCE = "instance";
+    static final String CREATE_TABLE = "create.auditlog.store.table";
+    static final String META_KEY_META_MVCC_INDEX = "%s_meta_key_meta_mvcc_index";
+    static final String META_KEY_META_MVCC_INDEX_KEY = "create.auditlog.store.tableindex.meta_key_meta_mvcc_index";
 
     static final String INSERT_SQL = "insert into %s ("
             + Joiner.on(",").join(AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
@@ -319,10 +324,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         }
     }
 
-    void createIfNotExist() throws Exception {
-        if (isTableExists(jdbcTemplate.getDataSource().getConnection(), table)) {
-            return;
-        }
+    private Properties loadMedataProperties() throws IOException {
         String fileName = "metadata-jdbc-default.properties";
         if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
             fileName = "metadata-jdbc-postgresql.properties";
@@ -333,11 +335,40 @@ public class JdbcAuditLogStore implements AuditLogStore {
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
         Properties properties = new Properties();
         properties.load(is);
-        var sql = properties.getProperty("create.auditlog.store.table");
+        return properties;
+    }
+
+    void createTableIfNotExist() throws SQLException, IOException {
+        if (isTableExists(jdbcTemplate.getDataSource().getConnection(), table)) {
+            return;
+        }
+        Properties properties = loadMedataProperties();
+        var sql = properties.getProperty(CREATE_TABLE);
 
         jdbcTemplate.execute(String.format(Locale.ROOT, sql, table, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT,
                 AUDIT_LOG_TABLE_TS, AUDIT_LOG_TABLE_MVCC));
         log.info("Succeed to create table: {}", table);
+    }
+
+    void createIndexIfNotExist() {
+        try {
+            String indexName = String.format(Locale.ROOT, META_KEY_META_MVCC_INDEX, table);
+            if (isIndexExists(jdbcTemplate.getDataSource().getConnection(), table, indexName)) {
+                return;
+            }
+            Properties properties = loadMedataProperties();
+            var sql = properties.getProperty(META_KEY_META_MVCC_INDEX_KEY);
+
+            jdbcTemplate.execute(String.format(Locale.ROOT, sql, indexName, table));
+            log.info("Succeed to create table {} index: {}", table, indexName);
+        } catch (Exception e) {
+            log.warn("Failed create index on table {}", table, e);
+        }
+    }
+
+    void createIfNotExist() throws Exception {
+       createTableIfNotExist();
+       createIndexIfNotExist();
     }
 
     @Override

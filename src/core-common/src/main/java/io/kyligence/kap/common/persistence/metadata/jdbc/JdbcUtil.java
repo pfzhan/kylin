@@ -105,6 +105,30 @@ public class JdbcUtil implements IKeep {
         return false;
     }
 
+    public static boolean isIndexExists(Connection conn, String table, String index) throws SQLException {
+        return isIndexExists(conn, index, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean isIndexExists(Connection conn, String index, String... tables) throws SQLException {
+        try {
+            for (String table : tables) {
+                val resultSet = conn.getMetaData().getIndexInfo(null, null, table, false, false);
+                while (resultSet.next()) {
+                    String indexName = resultSet.getString("INDEX_NAME");
+                    if (Objects.equals(indexName, index)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Fail to know if table {} index {} exists", tables, index, e);
+        } finally {
+            if (!conn.isClosed())
+                conn.close();
+        }
+        return false;
+    }
+
     public static Properties datasourceParameters(StorageURL url) {
         return KylinConfig.getInstanceFromEnv().isUTEnv() //
                 ? datasourceParametersForUT(url) //
