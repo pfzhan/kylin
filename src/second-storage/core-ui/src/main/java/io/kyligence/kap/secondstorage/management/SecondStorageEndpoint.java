@@ -247,6 +247,11 @@ public class SecondStorageEndpoint extends NBasicController {
         secondStorageService.refreshConf();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
+    @PostMapping(value = "/reset")
+    public EnvelopeResponse resetStorage() {
+        secondStorageService.resetStorage();
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
 
     private void checkModel(String project, String modelName) {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

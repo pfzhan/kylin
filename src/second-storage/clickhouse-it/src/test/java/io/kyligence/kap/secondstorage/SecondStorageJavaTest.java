@@ -214,6 +214,13 @@ public class SecondStorageJavaTest implements JobWaiter {
     }
 
     @Test
+    public void testResetStorage() {
+        Assert.assertTrue(SecondStorageUtil.isProjectEnable(project));
+        secondStorageEndpoint.resetStorage();
+        Assert.assertFalse(SecondStorageUtil.isProjectEnable(project));
+    }
+
+    @Test
     public void testQueryWithClickHouseSuccess() throws Exception {
         final String queryCatalog = "testQueryWithClickHouseSuccess";
         Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);

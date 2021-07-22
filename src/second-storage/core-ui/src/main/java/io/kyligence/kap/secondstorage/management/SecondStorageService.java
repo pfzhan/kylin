@@ -271,6 +271,12 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }
     }
 
+    public void isGlobalAdmin() {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            aclEvaluate.checkIsGlobalAdmin();
+        }
+    }
+
     @Override
     @Transaction(project = 0)
     public void onUpdate(final String project, final String modelId) {
@@ -299,6 +305,13 @@ public class SecondStorageService extends BasicService implements SecondStorageU
                 return tp;
             });
         }
+    }
+
+    public void resetStorage() {
+        isGlobalAdmin();
+        val projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        val projects = projectManager.listAllProjects();
+        projects.forEach(project -> SecondStorageUtil.disableProject(project.getName()));
     }
 
     public void refreshConf() {
