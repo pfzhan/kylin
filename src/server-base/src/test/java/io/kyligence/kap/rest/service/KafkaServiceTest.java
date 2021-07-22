@@ -29,6 +29,7 @@ import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.metadata.streaming.ReflectionUtils;
 import lombok.val;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -103,7 +104,7 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetTopics() {
         expectedException.expect(KylinException.class);
-        expectedException.expectMessage("Can’t get cluster information. Please check and try again.");
+        expectedException.expectMessage(Message.getInstance().getBROKER_TIMEOUT_MESSAGE());
         kafkaService.getTopics(kafkaConfig, PROJECT, "test");
     }
 

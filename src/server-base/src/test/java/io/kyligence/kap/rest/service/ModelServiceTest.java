@@ -79,6 +79,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
@@ -5954,7 +5955,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
-            Assert.assertTrue(e.getMessage().contains("Data model with id 'abc' not found."));
+            Assert.assertEquals(ServerErrorCode.MODEL_NOT_EXIST.toErrorCode(), ((KylinException) e).getErrorCode());
         }
     }
 

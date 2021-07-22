@@ -1181,7 +1181,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testACLTCRInvalidDataTypeLikeCondition() throws IOException {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("The like operator could only be used for char or varchar data type. Please reset.");
+        thrown.expectMessage(Message.getInstance().getROW_ACL_NOT_STRING_TYPE());
         AclTCRRequest request = new AclTCRRequest();
         request.setDatabaseName("DEFAULT");
         AclTCRRequest.Table u1t1 = new AclTCRRequest.Table();
