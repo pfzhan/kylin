@@ -399,7 +399,8 @@ public class TableService extends BasicService {
         for (String tableName : tables) {
             TableNameResponse tableNameResponse = new TableNameResponse();
             tableNameResponse.setTableName(tableName);
-            tableNameResponse.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
+            String tableNameWithDB = String.format(Locale.ROOT, "%s.%s", database, tableName);
+            checkTableExistOrLoad(tableNameResponse, tableManager.getTableDesc(tableNameWithDB));
             tableNameResponses.add(tableNameResponse);
         }
         return tableNameResponses;
@@ -1895,12 +1896,27 @@ public class TableService extends BasicService {
             if (StringUtils.isEmpty(table)
                     || tableName.toUpperCase(Locale.ROOT).contains(table.toUpperCase(Locale.ROOT))) {
                 TableNameResponse response = new TableNameResponse();
-                response.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
+                String tableNameWithDB = String.format(Locale.ROOT, "%s.%s", database, tableName);
+                checkTableExistOrLoad(response, tableManager.getTableDesc(tableNameWithDB));
                 response.setTableName(tableName);
                 responses.add(response);
             }
         }
         return responses;
+    }
+
+    public void checkTableExistOrLoad(TableNameResponse response, TableDesc tableDesc) {
+        if (Objects.isNull(tableDesc)) {
+            return;
+        }
+        // Table name already exists
+        if (Objects.nonNull(tableDesc.getKafkaConfig())) {
+            // The Kafka table has the same table name, A table with the same name already exists
+            response.setExisted(true);
+        } else {
+            // The Hive table has the same table name, A table with the same name has been loaded
+            response.setLoaded(true);
+        }
     }
 
     public void loadHiveTableNameToCache() throws Exception {

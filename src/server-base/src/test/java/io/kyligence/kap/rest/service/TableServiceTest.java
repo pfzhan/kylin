@@ -1184,6 +1184,24 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCheckTableExistOrLoad() {
+        TableDesc tableDesc = new TableDesc();
+        tableDesc.setKafkaConfig(new KafkaConfig());
+        TableNameResponse response = new TableNameResponse();
+        tableService.checkTableExistOrLoad(response, tableDesc);
+        Assert.assertTrue(response.isExisted());
+
+        TableNameResponse response2 = new TableNameResponse();
+        tableService.checkTableExistOrLoad(response2, null);
+        Assert.assertFalse(response2.isExisted());
+
+        TableNameResponse response3 = new TableNameResponse();
+        tableService.checkTableExistOrLoad(response3, new TableDesc());
+        Assert.assertTrue(response3.isLoaded());
+    }
+
+
+    @Test
     public void testIsSqlContainsColumns() {
         Assert.assertFalse(tableService.isSqlContainsColumns("a > 10", "DB.A", Sets.newHashSet("b")));
         Assert.assertTrue(tableService.isSqlContainsColumns("a > 10 AND b < 1", "DB.A", Sets.newHashSet("a", "b")));

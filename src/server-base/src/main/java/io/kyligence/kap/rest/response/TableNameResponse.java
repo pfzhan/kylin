@@ -39,4 +39,11 @@ public class TableNameResponse {
     private String tableName;
     @JsonProperty("loaded")
     private boolean loaded;
+    @JsonProperty("existed")
+    private boolean existed;
+
+    public TableNameResponse(String tableName, boolean loaded) {
+        this.tableName = tableName;
+        this.loaded = loaded;
+    }
 }
