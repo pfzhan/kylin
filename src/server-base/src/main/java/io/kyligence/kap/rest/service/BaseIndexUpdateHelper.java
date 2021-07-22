@@ -47,6 +47,7 @@ public class BaseIndexUpdateHelper {
     private String modelId;
     private boolean createIfNotExist;
     private boolean needUpdate;
+    private boolean secondStorageEnabled = false;
 
     public BaseIndexUpdateHelper(NDataModel model, boolean createIfNotExist) {
 
@@ -64,6 +65,11 @@ public class BaseIndexUpdateHelper {
             preExistBaseAggLayout = existBaseAggLayout();
             preExistBaseTableLayout = existTableLayout();
         }
+    }
+
+    public BaseIndexUpdateHelper setSecondStorageEnabled(final boolean secondStorageEnabled) {
+        this.secondStorageEnabled = secondStorageEnabled;
+        return this;
     }
 
     public BuildBaseIndexResponse update(IndexPlanService service) {
@@ -84,6 +90,9 @@ public class BaseIndexUpdateHelper {
         boolean needCreateBaseAgg = createIfNotExist;
         if (preExistBaseAggLayout && !curExistBaseAgg) {
             needCreateBaseAgg = true;
+        }
+        if (secondStorageEnabled) {
+            needCreateBaseAgg = false;
         }
 
         CreateBaseIndexRequest indexRequest = new CreateBaseIndexRequest();

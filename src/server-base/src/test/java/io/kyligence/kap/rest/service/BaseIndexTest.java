@@ -142,6 +142,22 @@ public class BaseIndexTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCreateEmptyBaseTableLayoutWithSecondStorage() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        ModelRequest modelRequest = FormModel(modelManager.getDataModelDesc(COMMON_MODEL_ID));
+        modelRequest.setDimensions(Lists.newArrayList());
+        modelRequest.setMeasures(modelRequest.getAllMeasures().subList(0, 0));
+        String modelId = modelService.createModel(modelRequest.getProject(), modelRequest).getId();
+        modelRequest.setWithSecondStorage(true);
+        BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(modelRequest, true);
+        baseIndexUpdater.setSecondStorageEnabled(true);
+        BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
+        LayoutEntity baseAggLayout = LayoutBuilder.builder().colOrder(10000).build();
+        LayoutEntity baseTableLayout = null;
+        compareBaseIndex(getModelIdFrom(modelRequest.getAlias()), baseTableLayout, baseAggLayout);
+    }
+
+    @Test
     public void testCreateBaseLayoutWithProperties() {
         // create base index is same with index in rulebaseindex or indexes
         CreateBaseIndexRequest request = new CreateBaseIndexRequest();

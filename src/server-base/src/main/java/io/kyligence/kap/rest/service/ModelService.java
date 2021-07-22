@@ -2073,11 +2073,7 @@ public class ModelService extends BasicService {
         val indexPlan = new IndexPlan();
         indexPlan.setUuid(model.getUuid());
         indexPlan.setLastModified(System.currentTimeMillis());
-        if (NDataModel.ModelType.BATCH == model.getModelType() && modelRequest.isWithBaseIndex()) {
-            indexPlan.createAndAddBaseIndex(model);
-        } else if (modelRequest.isWithSecondStorage()) {
-            indexPlan.createAndAddBaseIndex(Collections.singletonList(indexPlan.createBaseTableIndex(model)));
-        }
+        addBaseIndex(modelRequest, model, indexPlan);
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner(), RealizationStatusEnum.OFFLINE);
         SegmentRange range = null;
@@ -2093,6 +2089,14 @@ public class ModelService extends BasicService {
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
+    }
+
+    public void addBaseIndex(ModelRequest modelRequest, NDataModel model, IndexPlan indexPlan) {
+        if (!modelRequest.isWithSecondStorage() && NDataModel.ModelType.BATCH == model.getModelType() && modelRequest.isWithBaseIndex()) {
+            indexPlan.createAndAddBaseIndex(model);
+        } else if (modelRequest.isWithSecondStorage()) {
+            indexPlan.createAndAddBaseIndex(Collections.singletonList(indexPlan.createBaseTableIndex(model)));
+        }
     }
 
     // for streaming & fusion model
@@ -3292,6 +3296,7 @@ public class ModelService extends BasicService {
         val needBuild = semanticUpdater.doHandleSemanticUpdate(project, modelId, originModel, request.getStart(),
                 request.getEnd());
         updateExcludedCheckerResult(project, request);
+        baseIndexUpdater.setSecondStorageEnabled(request.isWithSecondStorage());
         BuildBaseIndexResponse baseIndexResponse = baseIndexUpdater.update(indexPlanService);
         if (!request.isSaveOnly() && (needBuild || baseIndexResponse.hasIndexChange())) {
             semanticUpdater.buildForModel(project, modelId);

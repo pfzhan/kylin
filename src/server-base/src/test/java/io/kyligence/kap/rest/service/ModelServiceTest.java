@@ -28,6 +28,7 @@ import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.Mapping
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -6120,5 +6121,22 @@ public class ModelServiceTest extends CSVSourceTestCase {
         mockNodeMap.put("node02", new Node().setName("node02").setIp("127.0.0.2").setPort(9000));
         mockNodeMap.put("node03", new Node().setName("node03").setIp("127.0.0.3").setPort(9000));
         Assert.assertEquals(3, SecondStorageNodeHelper.getALlNodes().size());
+    }
+
+    @Test
+    public void testAddBaseIndex() {
+        val modelRequest = Mockito.mock(ModelRequest.class);
+        val model = Mockito.mock(NDataModel.class);
+        val indexPlan = Mockito.mock(IndexPlan.class);
+
+        Mockito.when(modelRequest.isWithSecondStorage()).thenReturn(false);
+        Mockito.when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
+        Mockito.when(modelRequest.isWithBaseIndex()).thenReturn(true);
+        modelService.addBaseIndex(modelRequest, model, indexPlan);
+        Mockito.verify(indexPlan).createAndAddBaseIndex(model);
+        Mockito.when(modelRequest.isWithSecondStorage()).thenReturn(true);
+        Mockito.when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
+        modelService.addBaseIndex(modelRequest, model, indexPlan);
+        Mockito.verify(indexPlan).createAndAddBaseIndex(anyList());
     }
 }
