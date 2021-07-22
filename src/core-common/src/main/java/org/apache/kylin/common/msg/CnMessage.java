@@ -323,7 +323,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_ALREADY_EXIST() {
-        return "该项目名 \"%s\" 已存在。请重新命名。";
+        return "项目名 \"%s\" 已存在。请重新命名。";
     }
 
     @Override
