@@ -24,30 +24,30 @@
 
 package io.kyligence.kap.streaming.jobs;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.streaming.request.SegmentMergeRequest;
-import io.kyligence.kap.streaming.rest.RestSupport;
-import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.kafka010.OffsetRangeManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
+import io.kyligence.kap.streaming.rest.RestSupport;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class StreamingSegmentManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(StreamingSegmentManager.class);
+    private static final String SEGMENT_POST_URL = "/streaming_jobs/dataflow/segment";
 
     public static NDataSegment allocateSegment(SparkSession ss, String dataflowId, String project, Long batchMinTime,
             Long batchMaxTime) {
@@ -61,9 +61,8 @@ public class StreamingSegmentManager {
             sr = new SegmentRange.KafkaOffsetPartitionedSegmentRange(batchMinTime, batchMaxTime,
                     OffsetRangeManager.partitionOffsets(offsetRange._1),
                     OffsetRangeManager.partitionOffsets(offsetRange._2));
-
         }
-        NDataSegment newSegment = null;
+        NDataSegment newSegment;
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         if (config.isUTEnv()) {
             val segRange = sr;
@@ -74,24 +73,22 @@ public class StreamingSegmentManager {
             return newSegment;
         } else {
             RestSupport rest = new RestSupport(config);
-
-            String url = "/streaming_jobs/dataflow/segment";
-            SegmentMergeRequest req = new SegmentMergeRequest(project, dataflowId);
+            StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
             req.setSegmentRange(sr);
             req.setNewSegId(UUID.randomUUID().toString());
             try {
-                RestResponse<String> restResponse = rest.execute(rest.createHttpPost(url), req);
+                RestResponse<String> restResponse = rest.execute(rest.createHttpPost(SEGMENT_POST_URL), req);
                 String newSegId = restResponse.getData();
                 StreamingUtils.replayAuditlog();
                 if (!StringUtils.isEmpty(newSegId)) {
                     NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
-                    final NDataSegment newSeg = dfMgr.getDataflow(dataflowId).getSegment(newSegId);
-                    for (LayoutEntity layout : newSeg.getIndexPlan().getAllLayouts()) {
-                        NDataLayout ly = NDataLayout.newDataLayout(newSeg.getDataflow(), newSeg.getId(),
+                    newSegment = dfMgr.getDataflow(dataflowId).getSegment(newSegId);
+                    for (LayoutEntity layout : newSegment.getIndexPlan().getAllLayouts()) {
+                        NDataLayout ly = NDataLayout.newDataLayout(newSegment.getDataflow(), newSegment.getId(),
                                 layout.getId());
-                        newSeg.getLayoutsMap().put(ly.getLayoutId(), ly);
+                        newSegment.getLayoutsMap().put(ly.getLayoutId(), ly);
                     }
-                    return newSeg;
+                    return newSegment;
                 } else {
                     val empSeg = new NDataSegment();
                     empSeg.setId(StringUtils.EMPTY);
@@ -101,7 +98,6 @@ public class StreamingSegmentManager {
                 rest.close();
             }
         }
-        //    retainSegments.add(newSegment);
     }
 
 }

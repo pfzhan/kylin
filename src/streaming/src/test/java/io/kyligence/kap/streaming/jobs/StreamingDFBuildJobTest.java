@@ -109,7 +109,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
         val builder = new StreamingDFBuildJob(PROJECT);
         val streamingEntry = new StreamingEntry(new String[] { PROJECT, DATAFLOW_ID, "3000", "", "-1" });
         val ss = createSparkSession();
-        val tuple3 = streamingEntry.generateStreamQueryForOneModel(ss, PROJECT, DATAFLOW_ID, 5, -1, null);
+        val tuple3 = streamingEntry.generateStreamQueryForOneModel(ss, PROJECT, DATAFLOW_ID, null);
         val batchDF = tuple3._1();
         val streamFlatTable = tuple3._3();
 

@@ -25,23 +25,22 @@
 package io.kyligence.kap.streaming.app
 
 import java.text.SimpleDateFormat
-import java.util
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 import java.util.{Locale, TimeZone}
-import java.util.concurrent.atomic.AtomicBoolean
 
 import com.google.common.base.Preconditions
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil, UdfManager}
 import io.kyligence.kap.engine.spark.utils.HDFSUtils
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
-import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflowManager}
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework
 import io.kyligence.kap.streaming.CreateStreamingFlatTable
 import io.kyligence.kap.streaming.common.{BuildJobEntry, MicroBatchEntry}
 import io.kyligence.kap.streaming.constants.StreamingConstants
-import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingSegmentManager}
+import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingJobUtils, StreamingSegmentManager}
 import io.kyligence.kap.streaming.manager.StreamingJobManager
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest
@@ -82,14 +81,14 @@ object StreamingEntry
 }
 
 class StreamingEntry(args: Array[String]) extends StreamingApplication with Logging {
-  val (prj, dataflowId, duration, watermark, maxRatePerPartition) = (args(0), args(1), args(2).toInt * 1000, args(3), args(4))
+  val (prj, dataflowId, duration, watermark) = (args(0), args(1), args(2).toInt * 1000, args(3))
   val gracefulStop = new AtomicBoolean(false)
   // for Non Cluster Env exit
   val forceStop = new AtomicBoolean(false)
   val forceStopLatch = new CountDownLatch(1)
 
   def execute(): Unit = {
-    log.info("StreamingBuildEntry:" + prj + "," + dataflowId + "," + duration / 1000 + "," + maxRatePerPartition)
+    log.info("StreamingBuildEntry:" + prj + "," + dataflowId + "," + duration / 1000)
     val config = KylinConfig.getInstanceFromEnv
     TimeZoneUtils.setDefaultTimeZone(config)
     val jobId = StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name)
@@ -118,8 +117,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val trigger = if (triggerOnce) Trigger.Once() else Trigger.ProcessingTime(duration)
     Preconditions.checkState(prjMgr.getProject(prj) != null, "metastore can not find this project %s", prj)
 
-    val (query, timeColumn, streamFlatTable) = generateStreamQueryForOneModel(ss, prj, dataflowId, duration,
-      maxRatePerPartition.toInt, watermark)
+    val (query, timeColumn, streamFlatTable) = generateStreamQueryForOneModel(ss, prj, dataflowId, watermark)
     Preconditions.checkState(query != null, "generate query for one model failed for project:  %s dataflowId: $s", prj, dataflowId)
     Preconditions.checkState(timeColumn != null,
       "streaming query must have time partition column for project:  %s dataflowId: $s", prj, dataflowId)
@@ -205,12 +203,12 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     batchDF.unpersist(true)
   }
 
-  def generateStreamQueryForOneModel(ss: SparkSession, project: String, dataflowId: String,
-                                     duration: Int, maxRatePerPartition: Int, watermark: String):
+  def generateStreamQueryForOneModel(ss: SparkSession, project: String, dataflowId: String, watermark: String):
   (Dataset[Row], String, CreateStreamingFlatTable) = {
-    val config = KylinConfig.getInstanceFromEnv
-    val dfMgr: NDataflowManager = NDataflowManager.getInstance(config, project)
-    var df: NDataflow = dfMgr.getDataflow(dataflowId)
+    val originConfig = KylinConfig.getInstanceFromEnv
+
+    val dfMgr: NDataflowManager = NDataflowManager.getInstance(originConfig, project)
+    val df = dfMgr.getDataflow(dataflowId)
 
     val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan)
     val layouts = StreamingUtils.getToBuildLayouts(df)
@@ -219,11 +217,11 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val partitionColumn = NSparkCubingUtil.convertFromDot(df.getModel.getPartitionDesc.getPartitionDateColumn)
     val flatTable = CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, partitionColumn, watermark)
 
-    val streamingJobMgr = StreamingJobManager.getInstance(config, project)
+    val streamingJobMgr = StreamingJobManager.getInstance(originConfig, project)
     val jobId = StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name)
     val jobMeta: StreamingJobMeta = streamingJobMgr.getStreamingJobByUuid(jobId)
-
-    val flatDataset = flatTable.generateStreamingDataset(true, duration, maxRatePerPartition, getJobParams(jobMeta))
+    val config = StreamingJobUtils.getStreamingKylinConfig(originConfig, getJobParams(jobMeta), dataflowId, project)
+    val flatDataset = flatTable.generateStreamingDataset(config)
     (flatDataset, partitionColumn, flatTable)
   }
 

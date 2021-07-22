@@ -45,10 +45,8 @@ import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_STRE
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_STREAMING_MERGE_ENTRY;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_YARN_DIST_JARS;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_YARN_TIMELINE_SERVICE;
-import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_CONFIG_PREFIX;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_DURATION;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_DURATION_DEFAULT;
-import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_SEGMENT_MAX_SIZE;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_SEGMENT_MAX_SIZE_DEFAULT;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_SEGMENT_MERGE_THRESHOLD;
@@ -60,38 +58,32 @@ import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkLauncher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.utils.HDFSUtils;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import io.kyligence.kap.streaming.jobs.AbstractSparkJobLauncher;
+import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.val;
-import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class StreamingJobLauncher extends AbstractSparkJobLauncher {
 
-    private static final Logger logger = LoggerFactory.getLogger(StreamingJobLauncher.class);
     private Map<String, String> jobParams;
     private String mainClazz;
     private String[] appArgs;
@@ -105,19 +97,16 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         jobParams = strmJob.getParams();
 
         //reload configuration from job params
-        this.config = getJobKylinConfig(this.config);
+        this.config = StreamingJobUtils.getStreamingKylinConfig(this.config, jobParams, modelId, project);
 
         switch (jobType) {
             case STREAMING_BUILD: {
                 this.mainClazz = SPARK_STREAMING_ENTRY;
-                var maxRatePerPartition = jobParams.getOrDefault(STREAMING_MAX_RATE_PER_PARTITION,
-                        config.getKafkaRatePerPartition());
                 this.appArgs = new String[]{project, modelId,
                         jobParams.getOrDefault(STREAMING_DURATION,
                                 STREAMING_DURATION_DEFAULT),
                         jobParams.getOrDefault(STREAMING_WATERMARK,
-                                STREAMING_WATERMARK_DEFAULT),
-                        maxRatePerPartition};
+                                STREAMING_WATERMARK_DEFAULT) };
                 break;
             }
             case STREAMING_MERGE: {
@@ -133,45 +122,6 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                 throw new IllegalArgumentException("The streaming job Type " + jobType.name() + " is not supported...");
 
         }
-    }
-
-    /**
-     * kylin.properties config -> model config -> job config
-     *
-     * @return
-     */
-    private KylinConfig getJobKylinConfig(final KylinConfig originalConfig) {
-        KylinConfigExt kylinConfigExt;
-        val dataflowId = modelId;
-        if (StringUtils.isNotBlank(dataflowId)) {
-            val dataflowManager = NDataflowManager.getInstance(originalConfig, project);
-            kylinConfigExt = dataflowManager.getDataflow(dataflowId).getConfig();
-        } else {
-            val projectInstance = NProjectManager.getInstance(originalConfig).getProject(project);
-            kylinConfigExt = projectInstance.getConfig();
-        }
-
-        Map<String, String> streamingJobOverrides = Maps.newHashMap();
-
-        if (MapUtils.isNotEmpty(kylinConfigExt.getExtendedOverrides())) {
-            streamingJobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
-        }
-
-        //load kylin.streaming.spark-conf.*
-        jobParams.entrySet().stream().filter(entry ->
-                entry.getKey().startsWith(STREAMING_CONFIG_PREFIX)
-        ).forEach(entry -> {
-            streamingJobOverrides.put(entry.getKey(), entry.getValue());
-        });
-
-        //load spark.*
-        jobParams.entrySet().stream().filter(entry ->
-                !entry.getKey().startsWith(STREAMING_CONFIG_PREFIX)
-        ).forEach(entry -> {
-            streamingJobOverrides.put(STREAMING_CONFIG_PREFIX + entry.getKey(), entry.getValue());
-        });
-
-        return KylinConfigExt.createInstance(kylinConfigExt, streamingJobOverrides);
     }
 
     private String getDriverHDFSLogPath() {
@@ -232,14 +182,16 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         try {
 
             if (config.isUTEnv()) {
-                logger.info("{} -- {} {} job begins to launch", project, modelId, jobType.name());
+                log.info("{} -- {} {} streaming job starts to launch", project, modelId, jobType.name());
                 return;
             }
 
             if (StreamingUtils.isLocalMode()) {
                 if (JobTypeEnum.STREAMING_BUILD == jobType) {
+                    log.info("Starting streaming build job in local mode...");
                     StreamingEntry.main(appArgs);
                 } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
+                    log.info("Starting streaming merge job in local mode...");
                     StreamingMergeEntry.main(appArgs);
                 }
                 return;
@@ -277,44 +229,27 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                     .setMainClass(mainClazz).addAppArgs(appArgs).startApplication(listener);
 
         } catch (Exception e) {
-            logger.error("launch streaming application failed: " + e.getMessage(), e);
+            log.error("launch streaming application failed: " + e.getMessage(), e);
             MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.LAUNCHING_ERROR);
             throw new KylinException(ServerErrorCode.JOB_START_FAILURE, e.getMessage());
         }
-        logger.info("Streaming job create success on model {}", modelId);
+        log.info("Streaming job create success on model {}", modelId);
     }
 
-
+    /**
+     * Stop streaming job gracefully by generate a mark file
+     */
     @Override
     public void stop() {
         String model = NDataModelManager.getInstance(config, project)
                 .getDataModelDesc(modelId).getAlias();
-
-        switch (jobType) {
-            case STREAMING_BUILD: {
-                val buildMarkFile = config.getStreamingBaseJobsLocation()
-                        + String.format(Locale.ROOT, JOB_SHUTDOWN_FILE_PATH, project,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
-                if (!HDFSUtils.touchzMarkFile(buildMarkFile)) {
-                    throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
-                }
-                break;
-            }
-            case STREAMING_MERGE: {
-                val mergeMarkFile = config.getStreamingBaseJobsLocation()
-                        + String.format(Locale.ROOT, JOB_SHUTDOWN_FILE_PATH, project,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-                if (!HDFSUtils.touchzMarkFile(mergeMarkFile)) {
-                    throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
-                }
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("The streaming job Type " + jobType.name() + " is not supported...");
+        val markFile = config.getStreamingBaseJobsLocation() + String.format(Locale.ROOT, JOB_SHUTDOWN_FILE_PATH,
+                project, StreamingUtils.getJobId(modelId, jobType.name()));
+        if (!HDFSUtils.touchzMarkFile(markFile)) {
+            log.error("touch markfile failed...");
+            throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
         }
-
     }
 
     private String calcMaxCores(String executors, String cores) {

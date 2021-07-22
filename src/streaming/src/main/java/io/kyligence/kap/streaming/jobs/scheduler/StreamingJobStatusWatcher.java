@@ -23,21 +23,6 @@
  */
 package io.kyligence.kap.streaming.jobs.scheduler;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.cluster.ClusterManagerFactory;
-import io.kyligence.kap.cluster.IClusterManager;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
-import io.kyligence.kap.streaming.util.JobKiller;
-import io.kyligence.kap.streaming.util.MetaInfoUpdater;
-import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,8 +34,24 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobStatusEnum;
+
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.cluster.ClusterManagerFactory;
+import io.kyligence.kap.cluster.IClusterManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.util.JobKiller;
+import io.kyligence.kap.streaming.util.MetaInfoUpdater;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class StreamingJobStatusWatcher {
-    private static final Logger logger = LoggerFactory.getLogger(StreamingJobStatusWatcher.class);
 
     /**
      * hold the jobs whose status is starting
@@ -65,9 +66,9 @@ public class StreamingJobStatusWatcher {
      */
     private Map<String, AtomicInteger> jobMap = Maps.newHashMap();
     /**
-     * keep the jobs whose process is killed
+     * hold the jobs whose process is killed
      */
-    private Map<String, Long> jobKeepMap = Maps.newHashMap();
+    private Map<String, Long> killedJobMap = Maps.newHashMap();
 
     private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
     private boolean init = false;
@@ -80,7 +81,7 @@ public class StreamingJobStatusWatcher {
     public synchronized void schedule() {
         if (!init) {
             val config = KylinConfig.getInstanceFromEnv();
-            if (StreamingUtils.isJobOnCluster() && "true".equals(config.getStreamingJobStatusWatchEnabled())) {
+            if (StreamingUtils.isJobOnCluster(config) && "true".equals(config.getStreamingJobStatusWatchEnabled())) {
                 scheduledExecutorService.scheduleWithFixedDelay(() -> {
                     val runningJobs = getRunningJobs();
                     execute(runningJobs);
@@ -107,11 +108,11 @@ public class StreamingJobStatusWatcher {
             List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
             for (StreamingJobMeta meta : jobMetaList) {
                 val jobId = StreamingUtils.getJobId(meta.getModelId(), meta.getJobType().name());
-                if (jobKeepMap.containsKey(jobId)) {
-                    val keepTime = System.currentTimeMillis() - jobKeepMap.get(jobId);
+                if (killedJobMap.containsKey(jobId)) {
+                    val keepTime = System.currentTimeMillis() - killedJobMap.get(jobId);
                     if (keepTime > JOB_KEEP_TIMEOUT * 60 * 1000) {
                         jobMap.remove(jobId);
-                        jobKeepMap.remove(jobId);
+                        killedJobMap.remove(jobId);
                         continue;
                     }
                 } else if (STATUS_LIST.contains(meta.getCurrentStatus())) {
@@ -132,7 +133,7 @@ public class StreamingJobStatusWatcher {
     private void processMissingJobsFromYarn(StreamingJobMeta meta, String jobId) {
         String project = meta.getProject();
         if (jobMap.containsKey(jobId)) {
-            killProcess(jobId, project, meta);
+            killStreamingDriverProcess(jobId, project, meta);
         } else {
             if (meta.getCurrentStatus() == JobStatusEnum.STARTING) {
                 moveJobId(startingJobMap, jobId);
@@ -153,24 +154,24 @@ public class StreamingJobStatusWatcher {
                         }
                     }
                 } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
+                    log.error(e.getMessage(), e);
                 }
             }
         }
     }
 
-    private void killProcess(String jobId, String project, StreamingJobMeta meta) {
+    private void killStreamingDriverProcess(String jobId, String project, StreamingJobMeta meta) {
         val cnt = jobMap.get(jobId);
         if (cnt.get() < 3) {
             cnt.getAndIncrement();
         } else {
-            logger.info("begin to find & kill jobId:" + jobId);
+            log.info("Begin to find & kill streaming job:" + jobId);
             val statusCode = JobKiller.killProcess(meta);
-            logger.info(jobId + " statusCode=" + statusCode);
+            log.info(jobId + " statusCode=" + statusCode);
             if (meta.getCurrentStatus() != JobStatusEnum.ERROR) {
                 MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
             }
-            jobKeepMap.put(jobId, System.currentTimeMillis());
+            killedJobMap.put(jobId, System.currentTimeMillis());
         }
     }
 

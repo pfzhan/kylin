@@ -32,10 +32,9 @@ import io.kyligence.kap.engine.spark.job.{FlatTableHelper, NSparkCubingUtil}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
-import io.kyligence.kap.source.kafka.NSparkKafkaSource
-import io.kyligence.kap.streaming.constants.StreamingConstants
 import org.apache.commons.lang.time.DateUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
@@ -59,23 +58,24 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
 
-  def generateStreamingDataset(needJoin: Boolean = true, duration: Int, maxRatePerPartition: Int,
-                               jobParams: java.util.Map[String, String]): Dataset[Row] = {
+  private val MAX_OFFSETS_PER_TRIGGER = "maxOffsetsPerTrigger"
+  private val STARTING_OFFSETS = "startingOffsets"
+
+  def generateStreamingDataset(config: KylinConfig): Dataset[Row] = {
     val model = flatTable.getDataModel
     val tableDesc = model.getRootFactTable.getTableDesc
     val kafkaParam = tableDesc.getKafkaConfig.getKafkaParam
-
-    if (maxRatePerPartition > 0) {
-      val source = SourceFactory.getSource(1).asInstanceOf[NSparkKafkaSource]
-      val maxOffsetsPerTrigger = duration / 1000 * maxRatePerPartition * source.getPartitions(kafkaParam)
-
-      kafkaParam.put("maxOffsetsPerTrigger", String.valueOf(maxOffsetsPerTrigger))
-    }
-
-    if (jobParams.containsKey(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS)) {
-      val startingOffsets = jobParams.get(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS)
-      if (!StringUtils.isEmpty(startingOffsets)) {
-        kafkaParam.put("startingOffsets", startingOffsets)
+    val kafkaJobParams = config.getStreamingKafkaConfigOverride.asScala
+    kafkaJobParams.foreach { param =>
+      param._1 match {
+        case MAX_OFFSETS_PER_TRIGGER => if (param._2.toInt > 0) {
+          val maxOffsetsPerTrigger = param._2.toInt
+          kafkaParam.put("maxOffsetsPerTrigger", String.valueOf(maxOffsetsPerTrigger))
+        }
+        case STARTING_OFFSETS => if (!StringUtils.isEmpty(param._2)) {
+          kafkaParam.put("startingOffsets", param._2)
+        }
+        case _ => kafkaParam.put(param._1, param._2)
       }
     }
 
@@ -187,7 +187,7 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
     val jsonMap = new mutable.HashMap[String, String]()
     val jsonObj = parser.parse(jsonStr).getAsJsonObject
     val entries = jsonObj.entrySet().asScala
-    entries.foreach{ entry =>
+    entries.foreach { entry =>
       jsonMap.put(entry.getKey.toLowerCase(Locale.ROOT), entry.getValue.getAsString)
     }
     Row((0 to parsedSchema.fields.length - 1).map { index =>
@@ -195,7 +195,7 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
       if (!jsonMap.contains(colName)) { // key not exist
         null
       } else {
-        val value = jsonMap.get(colName).getOrElse(null)  // value not exist
+        val value = jsonMap.get(colName).getOrElse(null) // value not exist
         parsedSchema.fields(index).dataType match {
           case ShortType => if (value == null || value.equals("")) null else value.toShort
           case IntegerType => if (value == null || value.equals("")) null else value.toInt
@@ -204,9 +204,9 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
           case FloatType => if (value == null || value.equals("")) null else value.toFloat
           case BooleanType => if (value == null || value.equals("")) null else value.toBoolean
           case TimestampType => if (value == null || value.equals("")) null
-                                else new Timestamp(DateUtils.parseDate(value, DATE_PATTERN).getTime)
+          else new Timestamp(DateUtils.parseDate(value, DATE_PATTERN).getTime)
           case DateType => if (value == null || value.equals("")) null
-                           else new Date(DateUtils.parseDate(value, DATE_PATTERN).getTime)
+          else new Date(DateUtils.parseDate(value, DATE_PATTERN).getTime)
           case _ => value
         }
       }

@@ -844,8 +844,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.streaming.job-retry-max-interval", "30m", 30));
         map.put("getStreamingJobWatermark",
                 new PropertiesEntity("kylin.streaming.watermark", "1 minutes", "1 minutes"));
-        map.put("getKafkaRatePerPartition",
-                new PropertiesEntity("kylin.streaming.kafka.max-rate-per-partition", "-1", "-1"));
+        map.put("getKafkaMaxOffsetsPerTrigger",
+                new PropertiesEntity("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "-1", "-1"));
         map.put("getServerIpAddress", new PropertiesEntity("kylin.env.ip-address", "127.0.0.1", "127.0.0.1"));
         map.put("getSystemProfileExtractor",
                 new PropertiesEntity("kylin.tool.system-profile-extractor",
@@ -872,7 +872,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(488, methodsCount);
+        Assert.assertEquals(486, methodsCount);
     }
 
     @Test

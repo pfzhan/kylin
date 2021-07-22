@@ -24,6 +24,34 @@
 
 package io.kyligence.kap.streaming.app;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.response.RestResponse;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.TimeZoneUtils;
+import org.apache.kylin.common.util.ZKUtil;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
@@ -42,40 +70,13 @@ import io.kyligence.kap.streaming.merge.CatchupMergePolicy;
 import io.kyligence.kap.streaming.merge.MergePolicy;
 import io.kyligence.kap.streaming.merge.NormalMergePolicy;
 import io.kyligence.kap.streaming.merge.PeakMergePolicy;
-import io.kyligence.kap.streaming.request.SegmentMergeRequest;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
 import io.kyligence.kap.streaming.util.JobKiller;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.response.RestResponse;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.TimeZoneUtils;
-import org.apache.kylin.common.util.ZKUtil;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class StreamingMergeEntry extends StreamingApplication {
     private static final Logger logger = LoggerFactory.getLogger(StreamingMergeEntry.class);
@@ -237,7 +238,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             if (seg != null && !config.isUTEnv()) {
                 RestSupport rest = new RestSupport(config);
                 String url = "/streaming_jobs/dataflow/segment/deletion";
-                SegmentMergeRequest req = new SegmentMergeRequest(project, dataflowId);
+                StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
                 req.setRemoveSegment(Arrays.asList(seg));
                 try {
                     rest.execute(rest.createHttpPost(url), req);
@@ -299,7 +300,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             }, project);
         } else {
             String url = "/streaming_jobs/dataflow/segment";
-            SegmentMergeRequest req = new SegmentMergeRequest(project, dataflowId);
+            StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
             req.setSegmentRange(rangeToMerge);
             req.setLayer(String.valueOf(currLayer));
             req.setNewSegId(UUID.randomUUID().toString());

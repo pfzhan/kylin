@@ -24,16 +24,9 @@
 
 package io.kyligence.kap.streaming.util;
 
-import com.google.common.base.Predicate;
-import io.kyligence.kap.cluster.ClusterManagerFactory;
-import io.kyligence.kap.cluster.IClusterManager;
-import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.app.StreamingEntry;
-import io.kyligence.kap.streaming.app.StreamingMergeEntry;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
-import lombok.val;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -43,8 +36,17 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.base.Predicate;
+
+import io.kyligence.kap.cluster.ClusterManagerFactory;
+import io.kyligence.kap.cluster.IClusterManager;
+import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.app.StreamingEntry;
+import io.kyligence.kap.streaming.app.StreamingMergeEntry;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import lombok.val;
 
 public class JobKiller {
     private static final Logger logger = LoggerFactory.getLogger(JobKiller.class);
@@ -82,7 +84,7 @@ public class JobKiller {
      * @param jobMeta
      * @return statusCode value
      *     2: called from none cluster
-     *     0: process is kill successfully
+     *     0: process is killed successfully
      *     1: process is not existed
      *     negative number: process is kill unsuccessfully
      */
@@ -91,7 +93,7 @@ public class JobKiller {
         String pid = jobMeta.getProcessId();
 
         int statusCode = 2;
-        if (!StreamingUtils.isJobOnCluster()) {
+        if (!StreamingUtils.isJobOnCluster(config)) {
             if (jobMeta.getJobType() == JobTypeEnum.STREAMING_BUILD) {
                 StreamingEntry.stop();
             } else if (jobMeta.getJobType() == JobTypeEnum.STREAMING_MERGE) {

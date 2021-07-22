@@ -330,9 +330,9 @@ export default class StreamingJobsList extends Vue {
   modelFilteArr = []
   jobTypeFilteArr = ['STREAMING_BUILD', 'STREAMING_MERGE']
   allStatus = ['STARTING', 'RUNNING', 'STOPPING', 'ERROR', 'STOPPED']
-  buildDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.duration', 'kylin.streaming.job-retry-enabled', 'kylin.streaming.kafka.max-rate-per-partition']
+  buildDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.duration', 'kylin.streaming.job-retry-enabled', 'kylin.streaming.kafka-conf.maxOffsetsPerTrigger']
   mergeDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.segment-max-size', 'kylin.streaming.segment-merge-threshold', 'kylin.streaming.job-retry-enabled']
-  numberParams = ['spark.executor.cores', 'kylin.streaming.duration', 'spark.executor.instances', 'kylin.streaming.segment-merge-threshold', 'kylin.streaming.kafka.max-rate-per-partition']
+  numberParams = ['spark.executor.cores', 'kylin.streaming.duration', 'spark.executor.instances', 'kylin.streaming.segment-merge-threshold', 'kylin.streaming.kafka-conf.maxOffsetsPerTrigger']
   showConfigurations = false
   loadingSetting = false
   consumpChart = null

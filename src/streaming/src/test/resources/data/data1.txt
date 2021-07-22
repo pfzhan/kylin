@@ -1,0 +1,4 @@
+{"cust_no":"343242","windowDate":"2021-06-01 00:00:00","windowDateLong":"1625037465002","msg_type":"single","msg_type1":"old","msg_type2":"jily","msg_type3":"pandora","age":"32","bal1":21,"bal2":12,"bal3":13,"bal4":15,"bal5":22}
+{"cust_no":"343223","windowDate":"2021-06-01 01:00:00","windowDateLong":"1625037465003","msg_type":"single","msg_type1":"old","msg_type2":"jily","msg_type3":"pandora","age":"32","bal1":21,"bal2":12,"bal3":13,"bal4":15,"bal5":22}
+{"cust_no":"343234","windowDate":"2021-06-01 02:00:00","windowDateLong":"1625037465004","msg_type":"single","msg_type1":"old","msg_type2":"jily","msg_type3":"pandora","age":"32","bal1":21,"bal2":12,"bal3":13,"bal4":15,"bal5":22}
+{"cust_no":"343255","windowDate":"2021-06-01 03:00:00","windowDateLong":"1625037465005","msg_type":"single","msg_type1":"old","msg_type2":"jily","msg_type3":"pandora","age":"32","bal1":21,"bal2":12,"bal3":13,"bal4":15,"bal5":22}

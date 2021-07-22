@@ -24,16 +24,8 @@
 
 package io.kyligence.kap.streaming.jobs;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.streaming.common.MergeJobEntry;
-import io.kyligence.kap.streaming.request.SegmentMergeRequest;
-import io.kyligence.kap.streaming.rest.RestSupport;
-import lombok.val;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -41,7 +33,16 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.streaming.common.MergeJobEntry;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
+import io.kyligence.kap.streaming.rest.RestSupport;
+import lombok.val;
 
 public class SyncMerger{
     private static final Logger logger = LoggerFactory
@@ -82,7 +83,8 @@ public class SyncMerger{
             } else {
                 RestSupport rest = new RestSupport(config);
                 String url = "/streaming_jobs/dataflow/segment";
-                SegmentMergeRequest req = new SegmentMergeRequest(mergeJobEntry.project(), mergeJobEntry.dataflowId());
+                StreamingSegmentRequest req = new StreamingSegmentRequest(mergeJobEntry.project(),
+                        mergeJobEntry.dataflowId());
                 req.setRemoveSegment(mergeJobEntry.unMergedSegments());
                 req.setNewSegId(mergeJobEntry.afterMergeSegment().getId());
                 try{
@@ -98,7 +100,8 @@ public class SyncMerger{
             if(!config.isUTEnv()) {
                 RestSupport rest = new RestSupport(config);
                 String url = "/streaming_jobs/dataflow/segment/deletion";
-                SegmentMergeRequest req = new SegmentMergeRequest(mergeJobEntry.project(), mergeJobEntry.dataflowId());
+                StreamingSegmentRequest req = new StreamingSegmentRequest(mergeJobEntry.project(),
+                        mergeJobEntry.dataflowId());
                 req.setRemoveSegment(mergeJobEntry.unMergedSegments());
                 try {
                     rest.execute(rest.createHttpPost(url), req);

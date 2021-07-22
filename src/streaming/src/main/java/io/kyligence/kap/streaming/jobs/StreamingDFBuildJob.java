@@ -24,15 +24,26 @@
 
 package io.kyligence.kap.streaming.jobs;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.DFBuildJob;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.StreamingCommitter;
-import io.kyligence.kap.streaming.common.BuildJobEntry;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -42,23 +53,14 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
-
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.streaming.StreamingCommitter;
+import io.kyligence.kap.streaming.common.BuildJobEntry;
 import io.kyligence.kap.streaming.metadata.BuildLayoutWithRestUpdate;
-import io.kyligence.kap.streaming.request.SegmentMergeRequest;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 
 public class StreamingDFBuildJob extends DFBuildJob {
 
@@ -118,7 +120,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
     } else {
       RestSupport rest = new RestSupport(config);
       String url = "/streaming_jobs/dataflow/segment";
-      SegmentMergeRequest req = new SegmentMergeRequest(project, buildJobEntry.dataflowId());
+      StreamingSegmentRequest req = new StreamingSegmentRequest(project, buildJobEntry.dataflowId());
       req.setNewSegId(buildJobEntry.batchSegment().getId());
       req.setStatus("ONLINE");
       try{

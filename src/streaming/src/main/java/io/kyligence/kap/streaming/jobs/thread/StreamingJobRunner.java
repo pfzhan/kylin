@@ -24,17 +24,16 @@
 
 package io.kyligence.kap.streaming.jobs.thread;
 
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.jobs.impl.StreamingJobLauncher;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Objects;
 
-public class StreamingJobRunner implements Runnable {
+import org.apache.kylin.job.execution.JobTypeEnum;
 
-    private static final Logger logger = LoggerFactory.getLogger(StreamingJobRunner.class);
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.jobs.impl.StreamingJobLauncher;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class StreamingJobRunner implements Runnable {
 
     private String project;
     private String modelId;
@@ -75,7 +74,7 @@ public class StreamingJobRunner implements Runnable {
 
     private void stopJob() {
         if (Objects.isNull(jobLauncher)) {
-            logger.warn("Streaming job launcher {} not exists...", StreamingUtils.getJobId(modelId, jobType.name()));
+            log.warn("Streaming job launcher {} not exists...", StreamingUtils.getJobId(modelId, jobType.name()));
             return;
         }
         jobLauncher.stop();

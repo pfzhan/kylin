@@ -24,11 +24,46 @@
 
 package io.kyligence.kap.streaming.jobs.scheduler;
 
+import java.text.SimpleDateFormat;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.common.util.ZKUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
-
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -49,46 +84,10 @@ import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.ExecutorServiceUtil;
-import org.apache.kylin.common.util.ZKUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-import java.text.SimpleDateFormat;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
+@Slf4j
 public class StreamingScheduler {
-
-    private static final Logger logger = LoggerFactory.getLogger(StreamingScheduler.class);
 
     @Getter
     private String project;
@@ -118,7 +117,7 @@ public class StreamingScheduler {
             throw new IllegalStateException(
                     "StreamingScheduler for project " + project + " has been initiated. Use getInstance() instead.");
         init();
-        logger.debug("New StreamingScheduler created by project '{}': {}", project,
+        log.debug("New StreamingScheduler created by project '{}': {}", project,
                 System.identityHashCode(StreamingScheduler.this));
         scheduledExecutorService.scheduleWithFixedDelay(this::retryJob, 5, 1, TimeUnit.MINUTES);
         jobStatusUpdater.schedule();
@@ -132,11 +131,11 @@ public class StreamingScheduler {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
         if (!config.isJobNode()) {
-            logger.info("server mode: {}, no need to run job scheduler", config.getServerMode());
+            log.info("server mode: {}, no need to run job scheduler", config.getServerMode());
             return;
         }
         if (!UnitOfWork.isAlreadyInTransaction())
-            logger.info("Initializing Job Engine ....");
+            log.info("Initializing Job Engine ....");
 
         if (!initialized.compareAndSet(false, true)) {
             return;
@@ -145,7 +144,7 @@ public class StreamingScheduler {
         int maxPoolSize = config.getMaxStreamingConcurrentJobLimit();
         ThreadFactory executorThreadFactory = new BasicThreadFactory.Builder()
                 .namingPattern("StreamingJobWorker(project:" + project + ")").uncaughtExceptionHandler((t, e) -> {
-                    logger.error(e.getMessage(), e);
+                    log.error(e.getMessage(), e);
                     throw new RuntimeException(e);
                 }).build();
 
@@ -181,7 +180,7 @@ public class StreamingScheduler {
         StreamingJobRunner jobRunner = new StreamingJobRunner(project, modelId, jobType);
         runnerMap.put(jobId, jobRunner);
         jobPool.execute(jobRunner);
-        if (!StreamingUtils.isJobOnCluster()) {
+        if (!StreamingUtils.isJobOnCluster(config)) {
             MetaInfoUpdater.updateJobState(project, jobId, Sets.newHashSet(JobStatusEnum.RUNNING, JobStatusEnum.ERROR),
                     JobStatusEnum.RUNNING);
         }
@@ -190,10 +189,10 @@ public class StreamingScheduler {
     public synchronized void stopJob(String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
 
-        KylinConfig conf = KylinConfig.getInstanceFromEnv();
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         boolean existed = applicationExisted(jobId);
         if (existed) {
-            StreamingJobManager jobMgr = StreamingJobManager.getInstance(conf, project);
+            StreamingJobManager jobMgr = StreamingJobManager.getInstance(config, project);
             JobStatusEnum status = jobMgr.getStreamingJobByUuid(jobId).getCurrentStatus();
             if (isFailed(status) || isFinished(status)) {
                 return;
@@ -202,7 +201,7 @@ public class StreamingScheduler {
             doStop(modelId, jobType);
         } else {
             doStop(modelId, jobType);
-            if (StreamingUtils.isJobOnCluster()) {
+            if (StreamingUtils.isJobOnCluster(config)) {
                 MetaInfoUpdater.updateJobState(project, jobId,
                         Sets.newHashSet(JobStatusEnum.STOPPED, JobStatusEnum.ERROR), JobStatusEnum.ERROR);
             } else {
@@ -238,7 +237,7 @@ public class StreamingScheduler {
     }
 
     public void forceShutdown() {
-        logger.info("Shutting down DefaultScheduler ....");
+        log.info("Shutting down DefaultScheduler ....");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
         List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
@@ -256,7 +255,7 @@ public class StreamingScheduler {
         // kill job for wait too long time
         jobMap.entrySet().stream().forEach(entry -> {
             if (!entry.getValue().get()) {
-                logger.info("begin to kill job:" + entry.getKey());
+                log.info("Starts to kill streaming job:" + entry.getKey());
                 killJob(entry.getKey(), JobStatusEnum.ERROR);
             }
         });
@@ -295,15 +294,15 @@ public class StreamingScheduler {
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
+                log.error(e.getMessage(), e);
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                logger.error(e.getMessage(), e);
+                log.error(e.getMessage(), e);
             }
-            jobMap.forEach((jobId, done) -> {
+            jobMap.forEach((jobId, isDone) -> {
                 StreamingJobMeta meta = mgr.getStreamingJobByUuid(jobId);
                 if (predicate.apply(meta.getCurrentStatus())) {
-                    done.set(true);
+                    isDone.set(true);
                 }
             });
             if (jobMap.size() == jobMap.values().stream().filter(item -> item.get()).count()) {
@@ -361,12 +360,12 @@ public class StreamingScheduler {
                     } else {
                         int targetCnt = retryMap.get(jobId).getKey().get();
                         int currCnt = retryMap.get(jobId).getValue().get();
-                        logger.debug("targetCnt=" + targetCnt + ",currCnt=" + currCnt + " jobId=" + jobId);
+                        log.debug("targetCnt=" + targetCnt + ",currCnt=" + currCnt + " jobId=" + jobId);
 
                         if (targetCnt <= config.getStreamingJobMaxRetryInterval()) {
                             retryMap.get(jobId).getValue().incrementAndGet();
                             if (targetCnt == currCnt && status == JobStatusEnum.ERROR) {
-                                logger.info("begin to restart job:" + modelId + "_" + meta.getJobType());
+                                log.info("begin to restart job:" + modelId + "_" + meta.getJobType());
                                 restartJob(config, meta, jobId, targetCnt);
                             }
                         }
@@ -374,7 +373,7 @@ public class StreamingScheduler {
                     }
                 } else {
                     if (status == JobStatusEnum.RUNNING && retryMap.containsKey(jobId)) {
-                        logger.debug("remove jobId=" + jobId);
+                        log.debug("remove jobId=" + jobId);
                         retryMap.remove(jobId);
                     }
                 }
@@ -405,7 +404,7 @@ public class StreamingScheduler {
                 }
             }
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            log.error(e.getMessage(), e);
         }
     }
 
@@ -436,7 +435,7 @@ public class StreamingScheduler {
                     existed = cm.applicationExisted(jobId);
                     return existed;
                 } catch (UncheckedTimeoutException e) {
-                    logger.warn(e.getMessage());
+                    log.warn(e.getMessage());
                     existed = false;
                 }
             }

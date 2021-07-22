@@ -23,22 +23,20 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
-import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
-import io.kyligence.kap.rest.request.StreamingJobFilter;
-import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
-import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
-import io.kyligence.kap.rest.response.StreamingJobResponse;
-import io.kyligence.kap.rest.service.StreamingJobService;
-import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
-import io.kyligence.kap.streaming.request.SegmentMergeRequest;
-import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
-import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
-import io.swagger.annotations.ApiOperation;
-import lombok.val;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -57,18 +55,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
+import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
+import io.kyligence.kap.rest.request.StreamingJobFilter;
+import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
+import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
+import io.kyligence.kap.rest.response.StreamingJobResponse;
+import io.kyligence.kap.rest.service.StreamingJobService;
+import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
+import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
+import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
+import io.swagger.annotations.ApiOperation;
+import lombok.val;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/streaming_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -173,7 +176,7 @@ public class StreamingJobController extends NBasicController {
 
     @PostMapping(value = "/dataflow/segment")
     @ResponseBody
-    public RestResponse addSegment(@RequestBody SegmentMergeRequest request) {
+    public RestResponse addSegment(@RequestBody StreamingSegmentRequest request) {
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         SegmentRange segRange = request.getSegmentRange();
@@ -185,7 +188,7 @@ public class StreamingJobController extends NBasicController {
 
     @PutMapping(value = "/dataflow/segment")
     @ResponseBody
-    public RestResponse updateSegment(@RequestBody SegmentMergeRequest request) {
+    public RestResponse updateSegment(@RequestBody StreamingSegmentRequest request) {
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         String segId = request.getNewSegId();
@@ -198,7 +201,7 @@ public class StreamingJobController extends NBasicController {
 
     @PostMapping(value = "/dataflow/segment/deletion")
     @ResponseBody
-    public RestResponse deleteSegment(@RequestBody SegmentMergeRequest request) {
+    public RestResponse deleteSegment(@RequestBody StreamingSegmentRequest request) {
         String project = request.getProject();
         String dataflowId = request.getDataflowId();
         List<NDataSegment> removeSegmentList = request.getRemoveSegment();

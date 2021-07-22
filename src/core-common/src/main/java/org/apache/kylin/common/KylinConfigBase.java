@@ -1082,25 +1082,12 @@ public abstract class KylinConfigBase implements Serializable {
     // SOURCE.KAFKA
     // ============================================================================
 
-    public Map<String, String> getKafkaConfigOverride() {
-        return getPropertiesByPrefix("kylin.source.kafka.config-override.");
-    }
-
-    public Map<String, String> getKafkaAdminConfigOverride() {
-        return getPropertiesByPrefix("kylin.source.kafka.admin.config-override.");
-    }
-
-    public long getKafkaConnectTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.source.kafka.connect-timeout-ms", "3000ms"),
-                TimeUnit.MILLISECONDS);
-    }
-
     public long getKafkaPollMessageTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.source.kafka.poll-message-timeout-ms", "3000ms"), TimeUnit.MILLISECONDS);
     }
 
-    public String getKafkaRatePerPartition() {
-        return getOptional("kylin.streaming.kafka.max-rate-per-partition", "-1");
+    public String getKafkaMaxOffsetsPerTrigger() {
+        return getOptional("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "-1");
     }
 
     // ============================================================================
@@ -1358,6 +1345,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Map<String, String> getStreamingSparkConfigOverride() {
         return getPropertiesByPrefix("kylin.streaming.spark-conf.");
+    }
+
+    public Map<String, String> getStreamingKafkaConfigOverride() {
+        return getPropertiesByPrefix("kylin.streaming.kafka-conf.");
     }
 
     public long getStreamingJobShutdownTimeout() {

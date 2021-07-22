@@ -24,24 +24,26 @@
 
 package io.kyligence.kap.streaming.metadata;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.JobTypeEnum;
-
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import lombok.Getter;
+import lombok.Setter;
 
 @Setter
 @Getter
@@ -80,8 +82,8 @@ public class StreamingJobMeta extends RootPersistentEntity {
 
         if (JobTypeEnum.STREAMING_BUILD == jobType) {
             jobMeta.params.put(StreamingConstants.STREAMING_DURATION, StreamingConstants.STREAMING_DURATION_DEFAULT);
-            jobMeta.params.put(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION,
-                    StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION_DEFAULT);
+            jobMeta.params.put(StreamingConstants.STREAMING_MAX_OFFSETS_PER_TRIGGER,
+                    StreamingConstants.STREAMING_MAX_OFFSETS_PER_TRIGGER_DEFAULT);
         } else if (JobTypeEnum.STREAMING_MERGE == jobType) {
             jobMeta.params.put(StreamingConstants.STREAMING_SEGMENT_MAX_SIZE,
                     StreamingConstants.STREAMING_SEGMENT_MAX_SIZE_DEFAULT);

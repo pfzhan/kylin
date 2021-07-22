@@ -20,7 +20,7 @@
   "yarn_app_url" : null,
   "params" : {
     "spark.executor.memory" : "1g",
-    "kylin.streaming.kafka.max-rate-per-partition" : "-1",
+    "kylin.streaming.kafka-conf.maxOffsetsPerTrigger" : "-1",
     "spark.master" : "yarn-client",
     "spark.driver.memory" : "512m",
     "kylin.streaming.duration" : "30",

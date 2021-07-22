@@ -45,13 +45,12 @@ object OffsetRangeManager extends Logging {
   def currentOffsetRange(ss: SparkSession): (String, String) = {
     assert(ss.sessionState.streamingQueryManager.active.length == 1, "support only one active streaming query")
     val activeQuery = ss.sessionState.streamingQueryManager.active(0).asInstanceOf[StreamingQueryWrapper].streamingQuery
-    val committedOffsets =
-      if (activeQuery.committedOffsets.isEmpty) {
-        "{}"
-      } else {
-        activeQuery.committedOffsets.values.head.json()
-      }
     val availableOffsets = activeQuery.availableOffsets.values.head.json()
+    val committedOffsets = if (!activeQuery.committedOffsets.isEmpty) {
+      activeQuery.committedOffsets.values.head.json()
+    } else {
+      availableOffsets.replaceAll("\\:\\d+", "\\:0")
+    }
     (committedOffsets, availableOffsets)
   }
 

@@ -24,19 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
-import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
-import io.kyligence.kap.rest.service.StreamingJobService;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
-import io.kyligence.kap.streaming.request.SegmentMergeRequest;
-import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
-import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
-import lombok.val;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -65,11 +58,19 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
+import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
+import io.kyligence.kap.rest.service.StreamingJobService;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
+import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
+import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
+import lombok.val;
 
 public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
 
@@ -228,7 +229,7 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAddSegment() throws Exception {
-        val request = new SegmentMergeRequest();
+        val request = new StreamingSegmentRequest();
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
         request.setSegmentRange(new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
@@ -239,12 +240,12 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(streamingJobController).addSegment(Mockito.any(SegmentMergeRequest.class));
+        Mockito.verify(streamingJobController).addSegment(Mockito.any(StreamingSegmentRequest.class));
     }
 
     @Test
     public void testUpdateSegment() throws Exception {
-        val request = new SegmentMergeRequest();
+        val request = new StreamingSegmentRequest();
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
         request.setNewSegId("c380dd2a-43b8-4268-b73d-2a5f76236638");
@@ -258,12 +259,12 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(streamingJobController).updateSegment(Mockito.any(SegmentMergeRequest.class));
+        Mockito.verify(streamingJobController).updateSegment(Mockito.any(StreamingSegmentRequest.class));
     }
 
     @Test
     public void testDeleteSegment() throws Exception {
-        val request = new SegmentMergeRequest();
+        val request = new StreamingSegmentRequest();
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
         KylinConfig testConfig = getTestConfig();
@@ -279,7 +280,7 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(streamingJobController).deleteSegment(Mockito.any(SegmentMergeRequest.class));
+        Mockito.verify(streamingJobController).deleteSegment(Mockito.any(StreamingSegmentRequest.class));
     }
 
     @Test

@@ -23,12 +23,8 @@
  */
 package io.kyligence.kap.streaming.metadata;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import lombok.val;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -39,7 +35,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Map;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import lombok.val;
 
 public class StreamingJobMetaTest extends NLocalFileMetadataTestCase {
 
@@ -73,8 +74,8 @@ public class StreamingJobMetaTest extends NLocalFileMetadataTestCase {
         assertCommonParams(params);
         Assert.assertEquals(StreamingConstants.STREAMING_DURATION_DEFAULT,
                 params.get(StreamingConstants.STREAMING_DURATION));
-        Assert.assertEquals(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION_DEFAULT,
-                params.get(StreamingConstants.STREAMING_MAX_RATE_PER_PARTITION));
+        Assert.assertEquals(StreamingConstants.STREAMING_MAX_OFFSETS_PER_TRIGGER_DEFAULT,
+                params.get(StreamingConstants.STREAMING_MAX_OFFSETS_PER_TRIGGER));
     }
 
     @Test

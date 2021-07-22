@@ -23,23 +23,8 @@
  */
 package io.kyligence.kap.streaming.app;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.source.kafka.NSparkKafkaSource;
-import io.kyligence.kap.source.kafka.util.KafkaClient;
-import io.kyligence.kap.streaming.CreateStreamingFlatTable;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import io.kyligence.kap.streaming.jobs.StreamingDFMergeJobTest;
-import io.kyligence.kap.streaming.jobs.impl.StreamingJobLauncher;
-import io.kyligence.kap.streaming.jobs.thread.StreamingJobRunner;
-import io.kyligence.kap.streaming.util.AwaitUtils;
-import io.kyligence.kap.streaming.util.StreamingTestCase;
-import lombok.val;
-import lombok.var;
+import java.util.HashMap;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ZKUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -54,14 +39,28 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.HashMap;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.source.kafka.NSparkKafkaSource;
+import io.kyligence.kap.source.kafka.util.KafkaClient;
+import io.kyligence.kap.streaming.CreateStreamingFlatTable;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
+import io.kyligence.kap.streaming.jobs.impl.StreamingJobLauncher;
+import io.kyligence.kap.streaming.jobs.thread.StreamingJobRunner;
+import io.kyligence.kap.streaming.util.AwaitUtils;
+import io.kyligence.kap.streaming.util.StreamingTestCase;
+import lombok.val;
+import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class TestStreaming extends StreamingTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(StreamingDFMergeJobTest.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -143,18 +142,18 @@ public class TestStreaming extends StreamingTestCase {
         val ss = createSparkSession();
         val flatTable = CreateStreamingFlatTable.apply(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
-        flatTable.generateStreamingDataset(true, 5000, 100, Collections.EMPTY_MAP);
+        flatTable.generateStreamingDataset(config);
         var model = flatTableDesc.getDataModel();
         var tableDesc = model.getRootFactTable().getTableDesc();
         var kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();
         Assert.assertEquals(3, KafkaClient.getPartitions(kafkaParam));
         Assert.assertEquals(3, source.getPartitions(kafkaParam));
-        Assert.assertEquals("1500", kafkaParam.get("maxOffsetsPerTrigger"));
         Assert.assertEquals("earliest", kafkaParam.get("startingOffsets"));
 
         val jobParams = new HashMap<String, String>();
         jobParams.put(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS, "latest");
-        flatTable.generateStreamingDataset(true, 5000, 100, jobParams);
+        val newConfig = StreamingJobUtils.getStreamingKylinConfig(config, jobParams, model.getId(), PROJECT);
+        flatTable.generateStreamingDataset(newConfig);
         model = flatTableDesc.getDataModel();
         tableDesc = model.getRootFactTable().getTableDesc();
         kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();

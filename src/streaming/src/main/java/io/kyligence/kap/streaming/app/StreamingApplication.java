@@ -24,19 +24,14 @@
 
 package io.kyligence.kap.streaming.app;
 
-import io.kyligence.kap.cluster.IClusterManager;
-import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
-import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
-import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
-import io.kyligence.kap.streaming.rest.RestSupport;
-import lombok.val;
-import lombok.var;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -54,16 +49,22 @@ import org.apache.spark.sql.catalyst.rules.Rule;
 import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.cluster.IClusterManager;
+import io.kyligence.kap.common.util.AddressUtil;
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import io.kyligence.kap.streaming.rest.RestSupport;
+import lombok.val;
+import lombok.var;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 abstract public class StreamingApplication {
     private static final Logger logger = LoggerFactory.getLogger(StreamingApplication.class);

@@ -23,8 +23,30 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
-import avro.shaded.com.google.common.base.Preconditions;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.source.SourceFactory;
+import org.apache.spark.sql.SparkSession;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Lists;
+
+import avro.shaded.com.google.common.base.Preconditions;
 import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -44,29 +66,8 @@ import io.kyligence.kap.streaming.common.MicroBatchEntry;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.var;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.ISourceAware;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.source.SourceFactory;
-import org.apache.spark.sql.SparkSession;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import scala.Tuple2;
 import scala.collection.mutable.ArrayBuffer;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class StreamingDFMergeJobTest extends StreamingTestCase {
     private static final Logger logger = LoggerFactory.getLogger(StreamingDFMergeJobTest.class);
@@ -126,10 +127,10 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         val ss = SparkSession.builder().master("local").appName("test").getOrCreate();
         val flatTable = new CreateStreamingFlatTable(flatTableDesc, null, nSpanningTree, ss, null, null, null);
 
-        val dataset = flatTable.generateStreamingDataset(true, 5000, 100, Collections.EMPTY_MAP);
+        val dataset = flatTable.generateStreamingDataset(config);
         val builder = new StreamingDFBuildJob(PROJECT);
 
-        val streamingEntry = new StreamingEntry(new String[]{PROJECT, DATAFLOW_ID, "1000", "", "-1"});
+        val streamingEntry = new StreamingEntry(new String[] { PROJECT, DATAFLOW_ID, "1000", "" });
         streamingEntry.setSparkSession(ss);
         val sr1 = createSegmentRange(0L, 10L, 3, 100L, 200);
         val microBatchEntry = new MicroBatchEntry(dataset, 0, "SSB_TOPIC_0_DOT_0_LO_PARTITIONCOLUMN", flatTable,

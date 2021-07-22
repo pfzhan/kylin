@@ -23,15 +23,17 @@
  */
 package io.kyligence.kap.metadata.cube;
 
+import org.apache.kylin.common.KylinConfig;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import lombok.val;
 import lombok.var;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
     public static final String PROJECT = "streaming_test";
@@ -110,7 +112,8 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testIsJobOnCluster() {
-        val config = StreamingUtils.isJobOnCluster();
-        Assert.assertEquals(false, config);
+        val config = KylinConfig.getInstanceFromEnv();
+        val result = StreamingUtils.isJobOnCluster(config);
+        Assert.assertEquals(false, result);
     }
 }

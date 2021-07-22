@@ -32,7 +32,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @Data
-public class SegmentMergeRequest implements Serializable, IKeep {
+public class StreamingSegmentRequest implements Serializable, IKeep {
     private String project;
 
     private String dataflowId;
@@ -47,11 +47,11 @@ public class SegmentMergeRequest implements Serializable, IKeep {
 
     private String status;
 
-    public SegmentMergeRequest() {
+    public StreamingSegmentRequest() {
 
     }
 
-    public SegmentMergeRequest(String project, String dataflowId) {
+    public StreamingSegmentRequest(String project, String dataflowId) {
         this.project = project;
         this.dataflowId = dataflowId;
     }

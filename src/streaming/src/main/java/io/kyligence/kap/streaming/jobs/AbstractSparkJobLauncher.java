@@ -37,8 +37,6 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
 import org.apache.spark.launcher.SparkLauncher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -47,9 +45,10 @@ import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractSparkJobLauncher.class);
 
     protected KylinConfig config;
 
@@ -84,7 +83,7 @@ public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
             throw new IllegalArgumentException("Missing kylin job jar");
         }
         this.launcher = new SparkLauncher(env);
-        logger.info("The streaming job {} initialized successfully...", jobId);
+        log.info("The {} - {} initialized successfully...", jobType, jobId);
     }
 
     public abstract void launch();
@@ -97,8 +96,13 @@ public abstract class AbstractSparkJobLauncher implements SparkJobLauncher {
     }
 
     protected static Map<String, String> getStreamingSparkConfig(KylinConfig config) {
-        return config.getStreamingSparkConfigOverride().entrySet().stream().filter(entry -> entry.getKey().startsWith("spark."))
+        return config.getStreamingSparkConfigOverride().entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("spark."))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    protected static Map<String, String> getStreamingKafkaConfig(KylinConfig config) {
+        return config.getStreamingKafkaConfigOverride();
     }
 
 }

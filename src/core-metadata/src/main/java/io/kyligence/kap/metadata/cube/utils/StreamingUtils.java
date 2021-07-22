@@ -24,7 +24,19 @@
 
 package io.kyligence.kap.metadata.cube.utils;
 
+import java.lang.management.ManagementFactory;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -33,21 +45,10 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.val;
 import lombok.var;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-import java.lang.management.ManagementFactory;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
+@Slf4j
 public class StreamingUtils {
-    private static final Logger logger = LoggerFactory.getLogger(StreamingUtils.class);
 
     private static int MAX_RETRY = 3;
 
@@ -59,14 +60,14 @@ public class StreamingUtils {
             if (CollectionUtils.isNotEmpty(df.getIndexPlan().getAllIndexes())) {
                 layouts.addAll(df.getIndexPlan().getAllLayouts());
             }
-            logger.trace("added {} layouts according to model {}'s index plan", layouts.size(),
+            log.trace("added {} layouts according to model {}'s index plan", layouts.size(),
                     df.getIndexPlan().getModel().getAlias());
         } else {
             NDataSegment latestReadySegment = readySegments.getLatestReadySegment();
             for (Map.Entry<Long, NDataLayout> cuboid : latestReadySegment.getLayoutsMap().entrySet()) {
                 layouts.add(cuboid.getValue().getLayout());
             }
-            logger.trace("added {} layouts according to model {}'s latest ready segment {}", layouts.size(),
+            log.trace("added {} layouts according to model {}'s latest ready segment {}", layouts.size(),
                     df.getIndexPlan().getModel().getAlias(), latestReadySegment.getName());
         }
         return layouts;
@@ -127,7 +128,7 @@ public class StreamingUtils {
                 return;
             } catch (Exception e) {
                 err = e;
-                logger.warn("catch error, begin to retry");
+                log.warn("catch error, begin to retry");
             }
         }
         throw new PersistException(err.getMessage(), err);
@@ -138,8 +139,7 @@ public class StreamingUtils {
         return name.split("@")[0];
     }
 
-    public static boolean isJobOnCluster() {
-        val config = KylinConfig.getInstanceFromEnv();
+    public static boolean isJobOnCluster(KylinConfig config) {
         return !StreamingUtils.isLocalMode() && !config.isUTEnv();
     }
 }

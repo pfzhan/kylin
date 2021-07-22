@@ -24,22 +24,21 @@
 
 package io.kyligence.kap.streaming.manager;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import java.util.List;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class StreamingJobManager {
-
-    private static final Logger logger = LoggerFactory.getLogger(StreamingJobManager.class);
 
     private String project;
 
@@ -103,10 +102,10 @@ public class StreamingJobManager {
     public void deleteStreamingJob(String uuid) {
         StreamingJobMeta job = getStreamingJobByUuid(uuid);
         if (job == null) {
-            logger.warn("Dropping streaming job {} doesn't exists", uuid);
+            log.warn("Dropping streaming job {} doesn't exists", uuid);
             return;
         }
-        logger.info("deleteStreamingJob:" + uuid);
+        log.info("deleteStreamingJob:" + uuid);
         crud.delete(uuid);
     }
 
