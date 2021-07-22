@@ -983,6 +983,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSELF_EDIT_FORBIDDEN() {
+        return "无效的操作对象，请检查后重试。";
+    }
+
+    @Override
     public String getOLD_PASSWORD_WRONG() {
         return "原密码不正确";
     }
