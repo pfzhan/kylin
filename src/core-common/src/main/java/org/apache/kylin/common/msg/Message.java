@@ -218,15 +218,15 @@ public class Message {
 
     // index
     public String getINDEX_STATUS_TYPE_ERROR() {
-        return "Parameter \"status\" only support NO_BUILD, ONLINE, LOCKED, BUILDING.";
+        return "The parameter \"status\" only supports “NO_BUILD”, “ONLINE”, “LOCKED”, “BUILDING”.";
     }
 
     public String getINDEX_SOURCE_TYPE_ERROR() {
-        return "Parameter \"sources\" only support RECOMMENDED_AGG_INDEX, RECOMMENDED_TABLE_INDEX, CUSTOM_AGG_INDEX, CUSTOM_TABLE_INDEX.";
+        return "The parameter \"sources\" only supports “RECOMMENDED_AGG_INDEX”, “RECOMMENDED_TABLE_INDEX”, “CUSTOM_AGG_INDEX”, “CUSTOM_TABLE_INDEX”.";
     }
 
     public String getINDEX_SORT_BY_ERROR() {
-        return "Parameter \"sort_by\" only support last_modified, usage, data_size.";
+        return "The parameter \"sort_by\" only supports “last_modified”, “usage”, “data_size”.";
     }
 
     // Job
@@ -434,7 +434,7 @@ public class Message {
     }
 
     public String getPROJECT_DISABLE_MLP() {
-        return "This project don't support multilevel partitioning, and multilevel partitioning can’t be used. Please turn it on in project setting and try again.";
+        return "The multilevel partitioning is not enabled for this project. Please enable it in the project setting and try again.";
     }
 
     public String getTABLE_PARAM_EMPTY() {
@@ -507,11 +507,11 @@ public class Message {
     }
 
     public String getJOB_START_FAILURE() {
-        return "Can’t start the streaming job of Model \"%s\". Please check and try again.";
+        return "Can’t start the streaming job of model “%s“, as it has an ongoing one at the moment. Please check and try again.";
     }
 
     public String getJOB_STOP_FAILURE() {
-        return "Can’t stop the streaming job of Model \"%s\". Please check and try again.";
+        return "Can’t stop the streaming job of model \"%s\" at the moment. Please check the log or try again later.";
     }
 
     // Access
@@ -561,7 +561,7 @@ public class Message {
     }
 
     public String getASYNC_QUERY_TIME_FORMAT_ERROR() {
-        return "The time format is invalid. Please enter enter the date in the format yyyy-MM-dd HH:mm:ss.";
+        return "The time format is invalid. Please enter the date in the format “yyyy-MM-dd HH:mm:ss”.";
     }
 
     public String getASYNC_QUERY_PROJECT_NAME_EMPTY() {
@@ -603,7 +603,7 @@ public class Message {
     }
 
     public String getSQL_LIST_IS_EMPTY() {
-        return "Please enter the array parameter \"sqls\".";
+        return "Please enter the parameter “sqls“.";
     }
 
     public String getSQL_FILE_TYPE_MISMATCH() {
@@ -611,15 +611,15 @@ public class Message {
     }
 
     public String getConfigNotSupportDelete() {
-        return "The configuration does not support deletion.";
+        return "Can’t delete this configuration. ";
     }
 
     public String getConfigNotSupportEdit() {
-        return "The configuration does not support editing.";
+        return "Can’t edit this configuration. ";
     }
 
     public String getConfigMapEmpty() {
-        return "The configuration map cannot be empty.";
+        return "The configuration list can’t be empty. Please check and try again.";
     }
 
     // Query statistics
@@ -735,11 +735,11 @@ public class Message {
     }
 
     public String getCC_ON_ANTI_FLATTEN_LOOKUP() {
-        return "Unable to use columns from dimension table \"%s\" for computed columns. Because the join relationship of this table won’t be precomputed.";
+        return "Can’t use the columns from dimension table “%s“ for computed columns, as the join relationships of this table won’t be precomputed.";
     }
 
     public String getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP() {
-        return "Unable to use columns from dimension table \"%s\" for data filter condition. Because the join relationship of this table won’t be precomputed.";
+        return "Can’t use the columns from dimension table “%s“ for data filter condition, as the join relationships of this table won’t be precomputed.";
     }
 
     public String getCHANGE_GLOBALADMIN() {
@@ -1030,7 +1030,7 @@ public class Message {
     }
 
     public String getINVALID_NAME_LEGTHN() {
-        return "Username length should be less than 180 length, please check and resubmit.";
+        return "The username should contain less than 180 characters. Please check and try again.";
     }
 
     public String getINVALID_NAME_CONTAINS_OTHER_CHARACTER() {
@@ -1281,11 +1281,11 @@ public class Message {
     }
 
     public String getADD_EXPORT_JOB_FAIL() {
-        return "Can’t submit the job. The model has ongoing load data job for tiered storage for the same segment(s). Please try again later. ";
+        return "Can’t submit the job at the moment. There is an ongoing load data job of tiered storage for the same segment(s). Please try again later.";
     }
 
     public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
-        return "Can’t submit the job at the moment, segment [%s] hasn't base index. Please refresh this segment.";
+        return "Can’t submit the job at the moment. The segment “%s” doesn’t have base index. Please refresh this segment.";
     }
 
     public String getADD_JOB_EXCEPTION() {
@@ -1384,7 +1384,7 @@ public class Message {
     }
 
     public String getInvalidRowACLUpdate() {
-        return "The parameter “rows” or “like_rows” is invalid. Please use the parameter “row_filter” to update the Row ACL.";
+        return "The parameter “rows” or “like_rows” is invalid. Please use the parameter “row_filter” to update the row ACL.";
     }
 
     // Snapshots
@@ -1496,25 +1496,23 @@ public class Message {
     }
 
     public String getMODEL_ID_NOT_EXIST() {
-        return "Data model with id '%s' not found.";
+        return "The model with ID “%s” is not found.";
     }
 
     public String getNot_IN_EFFECTIVE_COLLECTION() {
-        return "%s not in effective collection : %s.";
+        return "“%s“ is not a valid value. This parameter only supports “ONLINE”, “OFFLINE”, “WARNING”, “BROKEN“.";
     }
 
     public String getROW_ACL_NOT_STRING_TYPE() {
-        return "The like operator could only be used for char or varchar data type. Please reset.";
+        return "The LIKE operator could only be used for the char or varchar data type. Please check and try again.";
     }
 
     public String getRowFilterExceedLimit() {
-        return "The number of filters exceeds the upper limit."
-                + " Please modify. Details: total number of filters (%s/%s)";
+        return "The number of filters exceeds the upper limit (%s/%s). Please check and try again.";
     }
 
     public String getRowFilterItemExceedLimit() {
-        return "The number of the included values of a single filter exceeds the upper limit."
-                + " Please modify. Details: %s (%s/%s)";
+        return "The number of the included values of a single filter exceeds the upper limit (%s/%s). Please check and try again.";
     }
 
     public String getSTOP_BY_USER_ERROR_MESSAGE() {
@@ -1530,19 +1528,19 @@ public class Message {
     }
 
     public String getSECOND_STORAGE_JOB_EXISTS() {
-        return "Can’t turn off tiered storage. Model %s has ongoing loading data job for tiered storage at the moment. Please try again later.\n";
+        return "Can’t turn off the tiered storage at the moment. Model “%s” an ongoing load data job of tiered storage. Please try again later.\n";
     }
 
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
-        return "Can’t turn off tiered storage. The project %s has ongoing load data job for tiered storage at the moment. Please try again later.\n";
+        return "Can’t turn off the tiered storage at the moment. Project “%s” an ongoing load data job of tiered storage. Please try again later.\n";
     }
 
     public String getINVALID_BROKER_DEFINITION() {
-        return "Invalid input.";
+        return "The broker filed can’t be empty. Please check and try again.";
     }
 
     public String getBROKER_TIMEOUT_MESSAGE() {
-        return "Can’t get cluster information. Please check and try again.";
+        return "Can’t get the cluster information. Please check whether the broker information is correct, or confirm whether the Kafka server status is normal.";
     }
 
     public String getSTREAMING_TIMEOUT_MESSAGE() {
@@ -1550,11 +1548,11 @@ public class Message {
     }
 
     public String getEMPTY_STREAMING_MESSAGE() {
-        return "This topic is empty. Please check and try again.";
+        return "This topic has no sample data. Please select another one.";
     }
 
     public String getINVALID_STREAMING_MESSAGE_TYPE() {
-        return "The streaming message type is invalid.";
+        return "The format is invalid. Only support json or binary at the moment. Please check and try again.";
     }
 
     public String getPARSE_STREAMING_MESSAGE_ERROR() {
@@ -1562,35 +1560,35 @@ public class Message {
     }
 
     public String getBATCH_STREAM_TABLE_NOT_MATCH() {
-        return "Table %s’s columns are different from the Kafka table’s. Please check and try again.";
+        return "The columns from table “%s“ and the Kafka table are not identical. Please check and try again.";
     }
 
     public String getSTREAMING_INDEXES_DELETE() {
-        return "Can’t delete streaming indexes. Please stop the streaming job and then delete all the streaming segments. ";
+        return "Can’t delete the streaming indexes. Please stop the streaming job and then delete all the streaming segments.";
     }
 
     public String getSTREAMING_INDEXES_EDIT() {
-        return "Can’t edit streaming indexes. Please stop the streaming job and then delete all the streaming segments. ";
+        return "Can’t edit the streaming indexes. Please stop the streaming job and then delete all the streaming segments.";
     }
 
     public String getSTREAMING_INDEXES_ADD() {
-        return "Can’t add streaming indexes. Please stop the streaming job and then delete all the streaming segments. ";
+        return "Can’t add the streaming indexes. Please stop the streaming job and then delete all the streaming segments.";
     }
 
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
-        return "Cannot force the query to pushdown and index at the same time. Please check the forcedToPushDown and forced_to_index parameters";
+        return "Cannot force the query to pushdown and index at the same time. Only one of the parameter “forcedToPushDown“ and “forced_to_index” could be used. Please check and try again.";
     }
 
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
-        return "Can’t turn on tiered storage. The nodes are unavailable. Please refresh and try again.";
+        return "Can’t turn on the tiered storage, as the nodes are unavailable. Please refresh the page and try again.";
     }
 
     public String getBASE_TABLE_INDEX_NOT_AVAILABLE() {
-        return "Can’t turn on tiered storage. Please create base table index first. ";
+        return "Can’t turn on the tiered storage at the moment. Please add base table index first.";
     }
 
     public String getPARTITION_COLUMN_NOT_AVAILABLE() {
-        return "Can’t turn on tiered storage. Please add time partition column to the base table index first.";
+        return "Can’t turn on the tiered storage at the moment. Please add the time partition column as dimension, and update the base table index.";
     }
 
     public String getFIX_STREAMING_SEGMENT() {

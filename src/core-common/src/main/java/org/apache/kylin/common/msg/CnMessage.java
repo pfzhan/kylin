@@ -265,17 +265,17 @@ public class CnMessage extends Message {
     // index
     @Override
     public String getINDEX_STATUS_TYPE_ERROR() {
-        return "参数“status”仅支持传入 NO_BUILD，ONLINE，LOCKED，BUILDING。";
+        return "参数 “status” 仅支持 “NO_BUILD”, “ONLINE”, “LOCKED”, “BUILDING”";
     }
 
     @Override
     public String getINDEX_SOURCE_TYPE_ERROR() {
-        return "参数“sources”仅支持传入 RECOMMENDED_AGG_INDEX，RECOMMENDED_TABLE_INDEX，CUSTOM_AGG_INDEX，CUSTOM_TABLE_INDEX。";
+        return "参数 “sources” 仅支持 “RECOMMENDED_AGG_INDEX”, “RECOMMENDED_TABLE_INDEX”, “CUSTOM_AGG_INDEX”, “CUSTOM_TABLE_INDEX”.";
     }
 
     @Override
     public String getINDEX_SORT_BY_ERROR() {
-        return "参数“sort_by”仅支持传入 last_modified，usage，data_size。";
+        return "参数 “sort_by” 仅支持 “last_modified”, “usage”, “data_size”.";
     }
 
     // Job
@@ -333,7 +333,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getSQL_LIST_IS_EMPTY() {
-        return "请输入数组参数 “sqls”。";
+        return "请输入参数 “sqls“。";
     }
 
     @Override
@@ -419,12 +419,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getJOB_START_FAILURE() {
-        return "无法启动模型\"%s\"的实时任务。请检查后重试。";
+        return "模型 \"%s\" 当前已有运行中的实时任务，无法重复启动。请检查后重试。";
     }
 
     @Override
     public String getJOB_STOP_FAILURE() {
-        return "无法停止模型\"%s\"的实时任务。请检查后重试。";
+        return "当前无法停止模型 \"%s\" 的实时任务。请查看日志，或稍后重试。";
     }
 
     // Access
@@ -518,7 +518,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getASYNC_QUERY_TIME_FORMAT_ERROR() {
-        return "无效的时间格式。请按 yyyy-MM-dd HH:mm:ss 格式填写。";
+        return "无效的时间格式。请按 “yyyy-MM-dd HH:mm:ss” 格式填写。";
     }
 
     public String getASYNC_QUERY_PROJECT_NAME_EMPTY() {
@@ -640,17 +640,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getConfigNotSupportDelete() {
-        return "该配置不支持删除。";
+        return "无法删除该配置。";
     }
 
     @Override
     public String getConfigNotSupportEdit() {
-        return "该配置不支持编辑。";
+        return "无法编辑该配置。";
     }
 
     @Override
     public String getConfigMapEmpty() {
-        return "配置列表不能为空。";
+        return "配置列表不能为空。请检查后重试。";
     }
 
     // Query statistics
@@ -1195,7 +1195,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_NAME_LEGTHN() {
-        return "用户名长度需要小于180字符，请检查后重新提交。";
+        return "用户名需要小于180字符，请检查后重试。";
     }
 
     @Override
@@ -1425,7 +1425,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getADD_JOB_CHECK_FAIL_WITHOUT_BASE_INDEX() {
-        return "当前无法提交任务, Segment [%s] 不包含基础索引。请刷新此Segment。";
+        return "当前无法提交任务，Segment “%s” 不包含基础索引。请刷新此 Segment。";
     }
 
     @Override
@@ -1564,7 +1564,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getInvalidRowACLUpdate() {
-        return "请求中包含无效的 “rows” 或 “like_rows” 参数。请使用新参数 “row_filter” 进行行级权限的更新。";
+        return "请求中包含无效的 “rows” 或 “like_rows” 参数。请使用参数 “row_filter” 进行行级权限的更新。";
     }
 
     // Snapshots
@@ -1661,7 +1661,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getINVALID_PARTITION_VALUE() {
-        return "子分区值 “%s” 不存在，请确认后重试。";
+        return "子分区值 “%s” 不存在，请检查后重试。";
     }
 
     @Override
@@ -1681,17 +1681,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getMODEL_ID_NOT_EXIST() {
-        return "模型ID '%s' 不存在。";
+        return "模型 ID “%s“ 不存在。";
     }
 
     @Override
     public String getNot_IN_EFFECTIVE_COLLECTION() {
-        return "%s 不在有效的集合中 : %s。";
+        return "“%s“ 不是有效的值。该参数仅支持 “ONLINE”, “OFFLINE”, “WARNING”, “BROKEN”。";
     }
 
     @Override
     public String getROW_ACL_NOT_STRING_TYPE() {
-        return "like 行级权限仅支持 char 或 varchar 类型维度，请重新设置。";
+        return "LIKE 行级权限仅支持 char 或 varchar 类型维度，请检查后重试。";
     }
 
     @Override
@@ -1701,12 +1701,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getRowFilterExceedLimit() {
-        return "过滤器总数超过上限，请修改。超额详情：过滤器总数 (%s/%s)。";
+        return "过滤器总数超过上限 (%s/%s)，请检查后重试。";
     }
 
     @Override
     public String getRowFilterItemExceedLimit() {
-        return "过滤器包含的值超过上限，请修改。超额详情：%s (%s/%s)。";
+        return "过滤器包含的值超过上限 (%s/%s)，请检查后重试。";
     }
 
     @Override
@@ -1716,22 +1716,22 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_JOB_EXISTS() {
-        return "无法关闭。模型 %s 有加载数据到分层存储的任务正在进行，请稍后重试。\n";
+        return "当前无法关闭分层存储。模型 “%s” 正在进行加载数据到分层存储的任务，请稍后重试。\n";
     }
 
     @Override
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
-        return "无法关闭。项目 %s 有加载数据到分层存储的任务正在进行，请稍后重试。\n";
+        return "当前无法关闭分层存储。项目 “%s” 正在进行加载数据到分层存储的任务，请稍后重试。\n";
     }
 
     @Override
     public String getINVALID_BROKER_DEFINITION() {
-        return "无效输入。";
+        return "Broker 信息不可为空，请检查后重试。";
     }
 
     @Override
     public String getBROKER_TIMEOUT_MESSAGE() {
-        return "无法获取集群信息，请检查后重试";
+        return "无法获取集群信息，请检查 Broker 信息是否正确，或确认 Kafka 服务器状态是否正常。";
     }
 
     @Override
@@ -1741,12 +1741,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getEMPTY_STREAMING_MESSAGE() {
-        return "该 Topic 为空。请检查后重试。";
+        return "该 Topic 无可展示的样例数据，请尝试换一个。";
     }
 
     @Override
     public String getINVALID_STREAMING_MESSAGE_TYPE() {
-        return "非法流式消息类型。";
+        return "无效的消息类型，当前仅支持 Json 或 Binary 格式的消息。请检查后重试。";
     }
 
     @Override
@@ -1756,7 +1756,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getBATCH_STREAM_TABLE_NOT_MATCH() {
-        return "表 %s 与 Kafka 表的列不一致，请确认两者的列完全一致后重试。";
+        return "表 “%s” 与 Kafka 表的列不一致，请确认两者的列完全一致后重试。";
     }
 
     public String getSTREAMING_INDEXES_DELETE() {
@@ -1773,22 +1773,22 @@ public class CnMessage extends Message {
 
     @Override
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
-        return "不能同时强制下推和击中模型。请检查传入的 forcedToPushDown 和 forced_to_index 参数";
+        return "不能同时强制下推和击中模型，参数 “forcedToPushDown” 和 “forced_to_index” 不能同时使用。请检查后重试。";
     }
 
     @Override
     public String getSECOND_STORAGE_NODE_NOT_AVAILABLE() {
-        return "无法开启。节点已被使用，请刷新后重试。";
+        return "当前无法开启分层存储，节点已被使用。请刷新页面后重试。";
     }
 
     @Override
     public String getBASE_TABLE_INDEX_NOT_AVAILABLE() {
-        return "无法开启。请先创建基础明细索引。";
+        return "当前无法开启分层存储。请先创建基础所明细索引。";
     }
 
     @Override
     public String getPARTITION_COLUMN_NOT_AVAILABLE() {
-        return "无法开启。请先将时间分区列添加到基础明细索引。";
+        return "当前无法开启分层存储。请将时间分区列添加到维度，并更新基础明细索引。";
     }
 
     @Override
