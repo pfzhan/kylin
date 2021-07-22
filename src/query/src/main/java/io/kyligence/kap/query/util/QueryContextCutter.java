@@ -72,7 +72,7 @@ public class QueryContextCutter {
                 return collectContextInfoAndSelectRealization(root);
             } catch (NoStreamingRealizationFoundException e) {
                 if (isForAutoModeling) {
-                    checkStreamingSqlWithAutoModeling();
+                    checkStreamingTableWithAutoModeling();
                 } else {
                     throw e;
                 }
@@ -150,7 +150,7 @@ public class QueryContextCutter {
         }
     }
 
-    private static void checkStreamingSqlWithAutoModeling() {
+    private static void checkStreamingTableWithAutoModeling() {
         for (OLAPContext context : ContextUtil.listContextsHavingScan()) {
             for (OLAPTableScan tableScan : context.allTableScans) {
                 TableDesc tableDesc = tableScan.getTableRef().getTableDesc();
@@ -161,6 +161,6 @@ public class QueryContextCutter {
                 }
             }
         }
+        throw new NoRealizationFoundException("No realization found for auto modeling.");
     }
-
 }

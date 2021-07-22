@@ -818,7 +818,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
 
         // optimize with a batch of sql list
         List<String> li = Lists.newArrayList();
-        li.add("SELECT LO_CUSTKEY from SSB.P_LINEORDER_STR group by LO_CUSTKEY");
+        li.add("SELECT sum(LO_CUSTKEY) from SSB.P_LINEORDER_STR group by LO_CUSTKEY");
         AbstractContext proposeContext = modelService.suggestModel(project, li, false, true);
         List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
         Assert.assertEquals(1, modelContextList.size());
@@ -839,5 +839,11 @@ public class SemiV2CITest extends SemiAutoTestBase {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelID);
         Assert.assertEquals(0, dataflow.getSegments().size());
+
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val model = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(2, model.getAllMeasures().size());
+        Assert.assertEquals(19, model.getAllNamedColumns().size());
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(1).getStatus());
     }
 }
