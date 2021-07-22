@@ -34,6 +34,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPUnionRel;
 
@@ -72,6 +73,9 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
      */
     @Override
     public void setContext(OLAPContext context) {
+        if (QueryContext.current().getQueryTagInfo().isConstantQuery()) {
+            return;
+        }
         throw new RuntimeException("Union should not be set context from outside");
     }
 

@@ -162,12 +162,13 @@ public class NKapQueryTest extends KylinTestBase {
     }
 
     @Test
-    public void testFloorConstantQuery() throws Exception {
+    public void testConstantQuery() throws Exception {
         val query0 = "select {FN WEEK(CEIL( FLOOR(date'2020-11-10' TO week  ) TO DAY    )) }";
         val query1 = "select floor(date'2020-11-10' to week)";
         val query2 = "select ceil(date'2020-11-10' to month)";
-        val queries = Lists.newArrayList(query0, query1, query2);
-        val expectedAnswers = Lists.newArrayList("46", "2020-11-09 00:00:00", "2020-12-01 00:00:00");
+        val query3 = "select 1 union select 4";
+        val queries = Lists.newArrayList(query0, query1, query2, query3);
+        val expectedAnswers = Lists.newArrayList("46", "2020-11-09 00:00:00", "2020-12-01 00:00:00", "1");
 
         for (int i = 0; i < queries.size(); i++) {
             val query = queries.get(i);
