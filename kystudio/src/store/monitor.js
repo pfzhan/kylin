@@ -64,6 +64,9 @@ export default {
     },
     [types.GET_MODEL_OBJECT_LIST]: function ({ commit }, para) {
       return api.monitor.getModelObjectList(para)
+    },
+    [types.GET_JOB_SIMPLE_LOG]: function ({ commit }, para) {
+      return api.monitor.getJobSimpleLog(para)
     }
   },
   getters: {

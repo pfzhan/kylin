@@ -4,14 +4,14 @@
     <!-- 新建/过滤用户 -->
     <el-row class="ksd-mt-10 ksd-mb-10">
       <el-col :span="24">
-        <el-button plain type="primary"
+        <el-button type="primary"
           size="medium"
           icon="el-ksd-icon-back_old"
           v-if="currentGroup"
           @click="$router.push('/admin/group')">
           {{$t('back')}}
         </el-button><el-button
-          plain type="primary"
+          type="primary"
           size="medium"
           icon="el-ksd-icon-add_22"
           v-if="userActions.includes('addUser')"

@@ -1,9 +1,9 @@
 <template>
-  <div class="setting">
+  <div class="setting" v-loading="isLoading">
     <header class="setting-header">
       <h1 class="ksd-title-label" v-if="projectSettings">{{projectSettings.alias || projectSettings.project}}</h1>
     </header>
-    <section class="setting-body" v-loading="isLoading" v-if="projectSettings">
+    <section class="setting-body" v-if="projectSettings">
       <el-tabs v-model="viewType">
         <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
           <SettingBasic :project="projectSettings" @reload-setting="getCurrentSettings" @form-changed="handleFormChanged"></SettingBasic>
@@ -167,6 +167,7 @@ export default class Setting extends Vue {
 }
 
 .setting {
+  height: 100%;
   padding: 20px;
   .setting-header {
     margin-bottom: 20px;

@@ -480,6 +480,7 @@ export default class ModelAggregate extends Vue {
     // 切换tab 时需要重刷列表
     this.filterArgs.page_offset = 0
     this.filterArgs.page_size = +localStorage.getItem(this.pageRefTags.indexPager) || 10
+    this.filterArgs.key = ''
     this.indexLoading = true
     await this.freshIndexGraph()
     await this.loadAggIndices()

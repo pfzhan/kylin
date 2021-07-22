@@ -274,7 +274,7 @@
                       </a>
                     </common-tip>
                     <common-tip :content="$t('logInfoTip')">
-                      <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-details ksd-ml-4" @click="clickFile(step)"></i>
+                      <i name="file" v-if="step.step_status!='PENDING'" class="el-ksd-icon-log_16 ksd-fs-16 ksd-ml-4 ksd-mb-2" @click="clickFile(step)"></i>
                     </common-tip>
                   </p>
                 </div>
@@ -315,7 +315,7 @@
                     </a>
                   </common-tip>
                   <common-tip :content="$t('logInfoTip')">
-                    <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-details ksd-ml-4" @click="clickFile(step)"></i>
+                    <i name="file" v-if="step.step_status!='PENDING'" class="el-ksd-icon-log_22 ksd-ml-4" @click="clickFile(step)"></i>
                   </common-tip>
                 </div> -->
               </div>

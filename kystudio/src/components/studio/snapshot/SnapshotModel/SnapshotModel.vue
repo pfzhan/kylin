@@ -151,9 +151,9 @@
         </template>
       </div>
       <span slot="footer" class="dialog-footer ky-no-br-space ke-it-btns">
-        <el-button plain size="medium" v-if="step === 'one'" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" v-if="step === 'one'" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" size="medium" :disabled="!selectedTables.length && !selectedDatabases.length" :loading="submitLoading" v-if="step === 'one'" @click="submit">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button plain size="medium" v-if="step === 'two' && type === 'new'" @click="handlerPrevStep">{{$t('preStep')}}</el-button>
+        <el-button size="medium" v-if="step === 'two' && type === 'new'" @click="handlerPrevStep">{{$t('preStep')}}</el-button>
         <el-button type="primary" size="medium" :loading="submitLoading" v-if="step === 'two'" :disabled="!partitionColumnData.list.length" @click="submitPartition">{{$t('kylinLang.common.add')}}</el-button>
       </span>
     </el-dialog>
@@ -722,7 +722,7 @@ export default class SnapshotModel extends Vue {
     width: 400px;
     float: left;
     position: relative;
-    border: 1px solid #ccc;
+    border: 1px solid @ke-border-divider-color;
     margin: 10px 0 20px 20px;
     .filter-tree{
       border: none;
@@ -739,7 +739,7 @@ export default class SnapshotModel extends Vue {
       z-index: 2;
       width: 100%;
       text-align: center!important;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid @ke-border-divider-color;
       height: 24px;
       line-height: 24px;
       font-size: 12px;
@@ -789,11 +789,11 @@ export default class SnapshotModel extends Vue {
   .filter-tree {
     height: 430px;
     overflow: auto;
-    border: 1px solid @line-border-color;
+    border: 1px solid @ke-border-divider-color;
   }
   .content {
     margin-left: calc(400px + 25px + 10px);
-    padding: 60px 20px 0 0;
+    padding: 65px 20px 0 0;
     position: relative;
     // height: 453px;
   }
@@ -818,7 +818,7 @@ export default class SnapshotModel extends Vue {
   .content-body {
     position: relative;
     height: 430px;
-    // border: 1px solid @line-border-color;
+    // border: 1px solid @ke-border-divider-color;
     transition: height .2s .2s;
     overflow: auto;
     &.has-error-msg {
@@ -889,7 +889,7 @@ export default class SnapshotModel extends Vue {
     }
   }
   .category {
-    border: 1px solid @line-border-color;
+    border: 1px solid @ke-border-divider-color;
     min-height: 120px;
     &:first-child {
       border-bottom: 0;
@@ -975,7 +975,7 @@ export default class SnapshotModel extends Vue {
       position: relative;
     }
     .el-tree > .el-tree-node {
-      border-bottom: 1px solid @line-border-color;
+      border-bottom: 1px solid @ke-border-divider-color;
     }
     .el-tree > .el-tree-node > .el-tree-node__content > .tree-item {
       position: static;

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-alert show-icon :show-background="false" type="info" class="download-tips">
+    <el-alert show-icon :closable="false" :show-background="false" type="info" class="download-tips">
       <span slot="title">{{$t('outputTips')}}<el-button size="mini" nobg-text @click="downloadLogs">{{$t('download')}}</el-button><span v-if="$store.state.config.platform === 'iframe'">{{$t('or')}}<el-button type="primary" size="mini" text @click="goSystemLog">{{$t('gotoSystemLog')}}</el-button></span>{{$t('end')}}</span>
       <!-- 只在 KC 中使用 -->
     </el-alert>
@@ -14,7 +14,7 @@
     v-model="stepDetail">
     </el-input>
     <form name="download" class="downloadLogs" :action="actionUrl" target="_blank" method="get">
-      <input type="hidden" name="project" :value="targetProject"/>
+      <input type="hidden" name="project" :value="downlodaProject"/>
     </form>
   </div>
 </template>
@@ -25,7 +25,7 @@ import { mapActions } from 'vuex'
 import { postCloudUrlMessage } from '../../util/business'
 export default {
   name: 'jobDialog',
-  props: ['stepDetail', 'stepId', 'jobId', 'targetProject'],
+  props: ['stepDetail', 'stepId', 'jobId', 'targetProject', 'showOutputJob'],
   locales: {
     'en': {
       outputTips: 'The output log shows the first and last 100 lines by default. To view all the output, please click to ',
@@ -51,8 +51,19 @@ export default {
     }
   },
   computed: {
+    downlodaProject () {
+      if (this.showOutputJob) { // 下载实时任务日志
+        return this.showOutputJob.project
+      } else {
+        return this.targetProject
+      }
+    },
     actionUrl () {
-      return apiUrl + 'jobs/' + this.jobId + '/steps/' + this.stepId + '/log'
+      if (this.showOutputJob) { // 下载实时任务日志
+        return `${apiUrl}streaming_jobs/${this.showOutputJob.uuid}/download_log`
+      } else {
+        return apiUrl + 'jobs/' + this.jobId + '/steps/' + this.stepId + '/log'
+      }
     }
   },
   methods: {
@@ -71,7 +82,7 @@ export default {
       if (this.hasClickDownloadLogBtn) {
         return false
       }
-      if (this.$store.state.config.platform === 'iframe') {
+      if (this.$store.state.config.platform === 'iframe') { // 云上暂不支持实时，暂不处理
         try {
           this.hasClickDownloadLogBtn = true
           this.downloadLog(params).then(res => {

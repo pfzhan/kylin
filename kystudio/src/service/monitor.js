@@ -70,5 +70,8 @@ export default {
   },
   getModelObjectList: (para) => {
     return Vue.resource(apiUrl + 'streaming_jobs/model_name').get(para)
+  },
+  getJobSimpleLog: (para) => {
+    return Vue.resource(apiUrl + `streaming_jobs/${para.job_id}/simple_log`).get({project: para.project})
   }
 }

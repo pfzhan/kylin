@@ -156,8 +156,8 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button plain @click="editModelSetting = false" v-if="step=='stepOne' || (step=='stepTwo' && isEdit)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button plain @click="preStep" icon="el-ksd-icon-arrow_left_22" size="medium" v-if="step=='stepTwo' && !isEdit">{{$t('kylinLang.common.prev')}}</el-button>
+        <el-button @click="editModelSetting = false" v-if="step=='stepOne' || (step=='stepTwo' && isEdit)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="preStep" icon="el-ksd-icon-arrow_left_22" size="medium" v-if="step=='stepTwo' && !isEdit">{{$t('kylinLang.common.prev')}}</el-button>
         <el-button type="primary" @click="nextStep" size="medium" iconr="el-ksd-icon-arrow_right_22" v-if="step=='stepOne'" :disabled="modelSettingForm.settingItem==''">{{$t('kylinLang.common.next')}}</el-button>
         <el-button
           type="primary"

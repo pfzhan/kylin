@@ -1,6 +1,7 @@
 <template>
-  <div id="queryHistory" v-loading="isLoadingHistory">
+  <div id="queryHistory">
     <query_history_table
+      :isLoadingHistory="isLoadingHistory"
       :queryHistoryData="queryHistoryData.query_histories"
       :queryHistoryTotalSize="queryHistoryData.size"
       :filterDirectData="filterDirectData"

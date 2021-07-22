@@ -34,6 +34,7 @@
       :data="queryHistoryData"
       v-scroll-shadow
       class="history-table"
+      v-loading="isLoadingHistory"
       :empty-text="emptyText"
       :expand-row-keys="toggleExpandId"
       @expand-change="expandChange"
@@ -166,7 +167,7 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.query_id')" prop="query_id" width="120" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit" min-width="120">
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit" min-width="125">
         <template slot-scope="props">
           <el-popover
             ref="sql-popover"
@@ -257,7 +258,7 @@ import sqlFormatter from 'sql-formatter'
 import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDetails'
 @Component({
   name: 'QueryHistoryTable',
-  props: ['queryHistoryData', 'queryHistoryTotalSize', 'queryNodes', 'filterDirectData'],
+  props: ['queryHistoryData', 'queryHistoryTotalSize', 'queryNodes', 'filterDirectData', 'isLoadingHistory'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({

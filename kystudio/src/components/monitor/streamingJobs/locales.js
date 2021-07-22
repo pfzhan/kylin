@@ -54,7 +54,10 @@ export default {
     stopJobImme: 'Stop Immediately',
     mulParamsKeyTips: 'This key already exists.',
     errorStautsTips: 'An unknown error occurred. Please contact the admin.',
-    disableStartJobTips: 'Can\'t be used. Please add streaming indexes first. '
+    errorStautsTips2: 'An unknown error occurred. Please download system diagnostic package to view the log or contact the admin.',
+    disableStartJobTips: 'Can\'t be used. Please add streaming indexes first.',
+    logInfoTip: 'Log Output',
+    output: 'Output'
   },
   'zh-cn': {
     adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
@@ -111,6 +114,9 @@ export default {
     stopJobImme: '立即停止',
     mulParamsKeyTips: '该参数已存在',
     errorStautsTips: '出现未知错误，请联系管理员查看。',
-    disableStartJobTips: '无法使用，请先添加实时索引'
+    errorStautsTips2: '出现未知错误，请下载系统诊断包查看日志或联系管理员。',
+    disableStartJobTips: '无法使用，请先添加实时索引',
+    logInfoTip: '日志详情',
+    output: '输出'
   }
 }

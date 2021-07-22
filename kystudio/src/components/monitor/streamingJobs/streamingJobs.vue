@@ -99,7 +99,7 @@
               :show-multiple-footer="false"
               :filter-change="(v) => filterContent(v, 'status')">
               <template slot-scope="scope">
-                <common-tip :content="$t('errorStautsTips')" :disabled="scope.row.job_status!=='ERROR'">
+                <common-tip :content="scope.row.launching_error?$t('errorStautsTips2'):$t('errorStautsTips')" :disabled="scope.row.job_status!=='ERROR'">
                 <el-tag :type="jobStatus(scope.row.job_status)" size="small">{{$t(scope.row.job_status)}}</el-tag>
                 </common-tip>
               </template>
@@ -141,6 +141,9 @@
               <template slot-scope="scope">
                 <common-tip :content="$t('configurations')">
                   <i class="el-ksd-icon-controller_22 ksd-fs-22" @click.stop="configJob(scope.row)"></i>
+                </common-tip>
+                <common-tip :content="$t('logInfoTip')" v-if="!scope.row.launching_error&&scope.row.job_status!=='STARTING'">
+                  <i name="file" class="el-ksd-icon-log_22 ksd-fs-22 ksd-ml-4" @click="clickFile(scope.row)"></i>
                 </common-tip>
               </template>
             </el-table-column>
@@ -228,7 +231,20 @@
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="handleConfigurationsClose">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" :loading="loadingSetting" @click="saveSettings">{{$t('kylinLang.common.save')}}</el-button>
-    </div>
+      </div>
+    </el-dialog>
+    <el-dialog
+      id="show-diagnos"
+      limited-area
+      :title="$t('output')"
+      :visible.sync="dialogVisible"
+      @close="handleCloseOutputDialog"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false">
+      <job_dialog :stepDetail="outputDetail" :showOutputJob="showOutputJob"></job_dialog>
+      <span slot="footer" class="dialog-footer">
+        <el-button plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>
+      </span>
     </el-dialog>
   </div>
 </template>
@@ -245,6 +261,7 @@ import locales from './locales'
 import { handleSuccessAsync } from 'util'
 import charts from 'util/charts'
 import echarts from 'echarts'
+import jobDialog from '../job_dialog'
 @Component({
   methods: {
     ...mapActions({
@@ -253,7 +270,8 @@ import echarts from 'echarts'
       updateStreamingConfig: 'UPDATE_STREAMING_CONFIGURATIONS',
       updateStreamingJobs: 'UPDATE_STREAMING_JOBS',
       getStreamingChartData: 'GET_STREAMING_CHART_DATA',
-      getModelObjectList: 'GET_MODEL_OBJECT_LIST'
+      getModelObjectList: 'GET_MODEL_OBJECT_LIST',
+      getJobSimpleLog: 'GET_JOB_SIMPLE_LOG'
     }),
     ...mapMutations({
       setProject: 'SET_PROJECT'
@@ -261,6 +279,9 @@ import echarts from 'echarts'
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
     })
+  },
+  components: {
+    'job_dialog': jobDialog
   },
   computed: {
     ...mapGetters([
@@ -320,6 +341,9 @@ export default class StreamingJobsList extends Vue {
   time_filter = 7
   isShowBtn = true
   isMulParamsKey = false
+  dialogVisible = false
+  showOutputJob = null
+  outputDetail = ''
   get isShowAdminTips () {
     return this.$store.state.user.isShowAdminTips && this.isAdminRole && this.$store.state.config.platform !== 'iframe' && !this.$store.state.system.isShowGlobalAlter
   }
@@ -448,6 +472,22 @@ export default class StreamingJobsList extends Vue {
     if (isSubmit) {
       this.loadList()
     }
+  }
+  async clickFile (row) {
+    try {
+      const res = await this.getJobSimpleLog({ project: row.project, job_id: row.uuid })
+      const data = await handleSuccessAsync(res)
+      this.outputDetail = data.cmd_output
+      this.showOutputJob = row
+      this.dialogVisible = true
+    } catch (e) {
+      handleError(e)
+      this.dialogVisible = false
+      this.showOutputJob = null
+    }
+  }
+  handleCloseOutputDialog () {
+    this.showOutputJob = null
   }
   currentChange (size, count) {
     this.filter.page_offset = size
@@ -891,7 +931,8 @@ export default class StreamingJobsList extends Vue {
         text-decoration: underline;
         color:@base-color;
       }
-      .el-ksd-icon-controller_22 {
+      .el-ksd-icon-controller_22,
+      .el-ksd-icon-log_22 {
         cursor: pointer;
       }
     }

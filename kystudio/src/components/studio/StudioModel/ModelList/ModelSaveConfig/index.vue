@@ -213,7 +213,7 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && !isStreamModel && ((modelInstance.mode === 'new' && (modelDesc.simplified_dimensions.length || modelDesc.simplified_measures.length)) || (modelInstance.mode === 'edit' && (!modelInstance.has_base_table_index || !modelInstance.has_base_agg_index)))">
+      <div class="ksd-fleft" style="display: flex;" v-if="modelInstance && !isStreamModel && !modelDesc.with_second_storage && !this.isHaveNoDimMeas && !(modelInstance.has_base_table_index && modelInstance.has_base_agg_index)">
         <el-checkbox v-model="addBaseIndex">
           <span>{{$t('addBaseIndexCheckBox')}}</span>
         </el-checkbox>
@@ -323,7 +323,7 @@ export default class ModelPartitionModal extends Vue {
   importantChange = false
   isExpand = false
   defaultBuildType = 'incremental'
-  addBaseIndex = true
+  addBaseIndex = false
   isShowSecStorageTips = false
   isShowSecStorageTips2 = false
   isShowSecondStoragePartitionTips = false
@@ -556,6 +556,7 @@ export default class ModelPartitionModal extends Vue {
       // })
       const partition_desc = this.modelDesc.partition_desc
       this.isExpand = !this.modelDesc.uuid && !this.isNotBatchModel
+      this.addBaseIndex = this.modelInstance && !(this.isStreamModel || this.modelDesc.with_second_storage || this.isHaveNoDimMeas || (this.modelInstance.has_base_table_index && this.modelInstance.has_base_agg_index))
       if (this.modelDesc.uuid && !(partition_desc && partition_desc.partition_date_column) && !this.isNotBatchModel) {
         this.buildType = 'fullLoad'
         this.defaultBuildType = 'fullLoad'
@@ -770,7 +771,7 @@ export default class ModelPartitionModal extends Vue {
         isSubmit: isSubmit,
         isPurgeSegment: this.isChangePartition,
         data: temp,
-        with_base_index: this.isStreamModel ? false : this.addBaseIndex
+        with_base_index: this.modelDesc.with_second_storage ? false : this.addBaseIndex
       })
       this.hideModal()
       this.resetModalForm()

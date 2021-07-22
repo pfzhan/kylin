@@ -2,7 +2,7 @@
   <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
     <div class="ksd-title-page ksd-mt-32" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-page ksd-mt-32" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
-    <div class="model-list-contain ksd-mt-16" v-loading="loadingModels">
+    <div class="model-list-contain ksd-mt-16">
       <!-- <div class="layout-mask" v-if="loadingModels"></div> -->
       <div class="clearfix">
         <div class="ksd-fright">
@@ -108,6 +108,7 @@
         :data="modelArray"
         :empty-text="emptyText"
         tooltip-effect="dark"
+        v-loading="loadingModels"
         @row-click="modelRowClickEvent"
         :row-class-name="setRowClass"
         @sort-change="onSortChange"

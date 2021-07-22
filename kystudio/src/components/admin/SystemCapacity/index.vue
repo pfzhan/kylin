@@ -205,8 +205,8 @@
         </el-form>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button plain @click="showAlert = false">{{$t('know')}}</el-button>
-        <el-button type="primary" plain @click="submitEmailNotice" :disabled="!isChangeValue">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button @click="showAlert = false">{{$t('know')}}</el-button>
+        <el-button type="primary" @click="submitEmailNotice" :disabled="!isChangeValue">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
     <!-- project占比详情 -->

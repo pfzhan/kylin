@@ -185,7 +185,7 @@
       <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
       <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
       <span slot="footer" class="dialog-footer">
-        <el-button plain @click="concatSales">{{$t('applayLisence')}}</el-button>
+        <el-button @click="concatSales">{{$t('applayLisence')}}</el-button>
         <el-button type="primary" @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
       </span>
     </el-dialog>
@@ -200,7 +200,7 @@
       <p><span>{{$t('serviceEndDate')}}</span>{{KESeriveDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
       <p class="ksd-pt-10">{{$t('serviceOvertip1')}}<span class="hastime">{{lastServiceEndTime}} </span>{{$t('serviceOvertip2')}}</p>
       <span slot="footer" class="dialog-footer">
-        <el-button plain @click="concatSales">{{$t('contactSales')}}</el-button>
+        <el-button @click="concatSales">{{$t('contactSales')}}</el-button>
         <el-button type="primary" @click="licenseServiceDialogVisible = false">{{$t('gotit')}}</el-button>
       </span>
     </el-dialog>

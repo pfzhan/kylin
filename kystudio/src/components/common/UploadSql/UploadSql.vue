@@ -172,7 +172,7 @@
           </span> -->
         </div>
         <div class="ky-no-br-space">
-          <el-button plain size="medium" @click="handleCancel" v-if="!isShowOriginModels">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button size="medium" @click="handleCancel" v-if="!isShowOriginModels">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||checkedUploadRules"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
           <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
@@ -192,7 +192,7 @@
       <span slot="title" class="ky-list-title">{{$t('kylinLang.common.tip')}}</span>
       <div>{{$t('existedAnsweredModels')}}</div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button plain @click="convertSqlsSubmit(false)" :loading="cancelConvertLoading" size="medium">{{$t('noConvert')}}</el-button>
+        <el-button @click="convertSqlsSubmit(false)" :loading="cancelConvertLoading" size="medium">{{$t('noConvert')}}</el-button>
         <el-button type="primary" @click="convertSqlsSubmit(true)" :loading="convertLoading" size="medium">{{$t('convert')}}</el-button>
       </span>
     </el-dialog>
