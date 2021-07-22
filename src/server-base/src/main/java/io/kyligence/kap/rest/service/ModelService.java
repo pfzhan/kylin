@@ -399,10 +399,13 @@ public class ModelService extends BasicService {
 
         if (model instanceof FusionModelResponse) {
             FusionModel fusionModel = getFusionModelManager(model.getProject()).getFusionModel(model.getId());
-            List<NDataSegmentResponse> batchSegments = getSegmentsResponse(fusionModel.getBatchModel().getUuid(),
-                    model.getProject(), "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
-            calculateRecordSizeAndCount(batchSegments, oldParams);
-            ((FusionModelResponse) model).setBatchSegments(batchSegments);
+            NDataModel batchModel = fusionModel.getBatchModel();
+            if (!batchModel.isBroken()) {
+                List<NDataSegmentResponse> batchSegments = getSegmentsResponse(batchModel.getUuid(),
+                        model.getProject(), "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
+                calculateRecordSizeAndCount(batchSegments, oldParams);
+                ((FusionModelResponse) model).setBatchSegments(batchSegments);
+            }
         }
     }
 
