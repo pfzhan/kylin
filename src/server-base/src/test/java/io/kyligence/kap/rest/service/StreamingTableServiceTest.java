@@ -23,16 +23,13 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.junit.rule.TransactionExceptedException;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import lombok.val;
+import java.util.Arrays;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -46,6 +43,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.junit.rule.TransactionExceptedException;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.request.StreamingRequest;
+import lombok.val;
 
 public class StreamingTableServiceTest extends CSVSourceTestCase {
     @Rule
@@ -173,6 +181,21 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
         streamingTableService.updateKafkaConfig(PROJECT, kafkaConfig);
         val kafkaConf = KafkaConfigManager.getInstance(getTestConfig(), PROJECT).getKafkaConfig("DEFAULT.SSB_TOPIC");
         Assert.assertEquals("10.1.2.210:9093", kafkaConf.getKafkaBootstrapServers());
+    }
+
+    @Test
+    public void testDecimalConvertToDouble() {
+        StreamingRequest streamingRequest = new StreamingRequest();
+        TableDesc tableDesc = new TableDesc();
+        tableDesc.setColumns(new ColumnDesc[] { new ColumnDesc("1", "name1", "DECIMAL", "", "", "", ""),
+                new ColumnDesc("2", "name2", "double", "", "", "", ""),
+                new ColumnDesc("3", "name3", "int", "", "", "", "") });
+        streamingRequest.setTableDesc(tableDesc);
+
+        streamingTableService.decimalConvertToDouble(PROJECT, streamingRequest);
+
+        Assert.assertEquals(2L, Arrays.stream(streamingRequest.getTableDesc().getColumns())
+                .filter(column -> StringUtils.equalsIgnoreCase(column.getDatatype(), DataType.DOUBLE)).count());
     }
 
 }

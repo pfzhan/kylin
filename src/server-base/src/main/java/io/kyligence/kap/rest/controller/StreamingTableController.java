@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.request.StreamingRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.service.StreamingTableService;
-import io.kyligence.kap.rest.service.TableExtService;
-import io.swagger.annotations.ApiOperation;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -50,14 +52,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
-import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.request.StreamingRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.service.StreamingTableService;
+import io.kyligence.kap.rest.service.TableExtService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/streaming_tables", produces = { HTTP_VND_APACHE_KYLIN_JSON,
@@ -81,6 +81,8 @@ public class StreamingTableController extends NBasicController {
         TableExtDesc tableExt = streamingTableService.getOrCreateTableExt(project, streamingRequest.getTableDesc());
         try {
             String batchTableName = streamingRequest.getKafkaConfig().getBatchTable();
+            // If the Streaming Table does not have a BatchTable, convert decimal to double
+            streamingTableService.decimalConvertToDouble(project, streamingRequest);
             if (!StringUtils.isEmpty(batchTableName)) {
                 TableDesc batchTableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getTableDesc(batchTableName);
                 if (!checkColumnsMatch(batchTableDesc.getColumns(), streamingRequest.getTableDesc().getColumns())) {

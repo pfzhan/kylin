@@ -207,6 +207,7 @@ class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extend
           else new Timestamp(DateUtils.parseDate(value, DATE_PATTERN).getTime)
           case DateType => if (value == null || value.equals("")) null
           else new Date(DateUtils.parseDate(value, DATE_PATTERN).getTime)
+          case DecimalType() => if (StringUtils.isEmpty(value)) null else BigDecimal(value)
           case _ => value
         }
       }

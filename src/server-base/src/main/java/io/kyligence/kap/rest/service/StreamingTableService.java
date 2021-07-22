@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.rest.aspect.Transaction;
-import lombok.val;
+import static org.apache.kylin.metadata.datatype.DataType.DECIMAL;
+import static org.apache.kylin.metadata.datatype.DataType.DOUBLE;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -39,8 +40,15 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Locale;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.request.StreamingRequest;
+import lombok.val;
 
 @Component("streamingTableService")
 public class StreamingTableService extends TableService {
@@ -82,6 +90,19 @@ public class StreamingTableService extends TableService {
         aclEvaluate.checkProjectWritePermission(project);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         KafkaConfigManager.getInstance(kylinConfig, project).updateKafkaConfig(kafkaConfig);
+    }
+
+    /**
+     * StreamingTable decimal convert to double in StreamingRequest
+     */
+    @Transaction(project = 0)
+    public void decimalConvertToDouble(String project, StreamingRequest streamingRequest) {
+        aclEvaluate.checkProjectWritePermission(project);
+        Arrays.stream(streamingRequest.getTableDesc().getColumns()).forEach(column -> {
+            if (StringUtils.equalsIgnoreCase(DECIMAL, column.getDatatype())) {
+                column.setDatatype(DOUBLE);
+            }
+        });
     }
 
 }
