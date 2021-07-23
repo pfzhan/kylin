@@ -105,7 +105,7 @@ public class IndexBuildJobUtil extends ExecutableUtil {
                 }
             });
         }
-        jobParam.setProcessLayouts(toBeProcessedLayouts);
+        jobParam.setProcessLayouts(filterTobeDelete(toBeProcessedLayouts));
         jobParam.setDeleteLayouts(toBeDeletedLayouts);
     }
 

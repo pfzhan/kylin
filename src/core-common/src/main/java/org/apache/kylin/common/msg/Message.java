@@ -1316,6 +1316,10 @@ public class Message {
         return "Can’t submit the job, as no index is included in the segment. Please check and try again.";
     }
 
+    public String getREFRESH_JOB_CHECK_INDEX_FAIL() {
+        return "No index is available to be refreshed. Please check and try again.";
+    }
+
     public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
         return "Can’t add the job. Please ensure that the operation is valid for the current object.";
     }

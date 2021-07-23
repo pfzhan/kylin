@@ -2059,7 +2059,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         //remove tobedelete layout from seg1
         val newDf = dfManager.getDataflow(modelId);
-        dfManager.updateDataflowDetailsLayouts(newDf.getSegments().get(0), layouts.stream()
+        dfManager.updateDataflowDetailsLayouts(newDf.getSegments().get(0),
+                newDf.getSegments().get(0).getLayoutsMap().values().stream()
                 .filter(layout -> layout.getLayoutId() != tobeDeleteLayoutId).collect(Collectors.toList()));
 
         // remove seg2 and tobedelete layout should be cleared from indexplan
@@ -2196,8 +2197,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testRefreshSegmentById_SegmentToRefreshIsLocked_Exception() {
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val df = dataflowManager.getDataflow(modelId);
         // remove the existed seg
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -2206,7 +2208,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         long end = SegmentRange.dateToLong("2010-01-02");
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         Segments<NDataSegment> segments = new Segments<>();
-        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.NEW);
         dataSegment.setSegmentRange(segmentRange);
@@ -2215,12 +2216,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         start = SegmentRange.dateToLong("2010-01-02");
         end = SegmentRange.dateToLong("2010-01-03");
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val dataSegment2 = dataflowManager.appendSegment(df, segmentRange);
         dataSegment2.setStatus(SegmentStatusEnum.READY);
         dataSegment2.setSegmentRange(segmentRange);
         segments.add(dataSegment2);
         update = new NDataflowUpdate(df.getUuid());
+        update.setToAddOrUpdateLayouts(
+                generateAllDataLayout(getProject(), modelId, Arrays.asList(dataSegment, dataSegment2)));
+
         update.setToUpdateSegs(segments.toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         //refresh normally
@@ -2232,6 +2235,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh exception
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
                 new String[] { dataSegment2.getId() }));
+    }
+
+    private NDataLayout[] generateAllDataLayout(String project, String modelId, List<NDataSegment> segments) {
+        List<NDataLayout> layouts = Lists.newArrayList();
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
+        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
+            for (NDataSegment segment : segments) {
+                layouts.add(NDataLayout.newDataLayout(df, segment.getId(), layout.getId()));
+            }
+        });
+        return layouts.toArray(new NDataLayout[0]);
     }
 
     @Test
@@ -4432,6 +4447,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfMgr.appendSegment(df_basic, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
         update1 = new NDataflowUpdate(df_basic.getUuid());
         firstSegment.setStatus(SegmentStatusEnum.READY);
+        update1.setToAddOrUpdateLayouts(
+                generateAllDataLayout(getProject(), df_basic.getUuid(), Arrays.asList(firstSegment)));
         update1.setToUpdateSegs(firstSegment);
         dfMgr.updateDataflow(update1);
 
@@ -4444,6 +4461,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update2 = new NDataflowUpdate(df_basic_inner.getUuid());
         firstSegment.setStatus(SegmentStatusEnum.READY);
         update2.setToUpdateSegs(firstSegment);
+        update2.setToAddOrUpdateLayouts(
+                generateAllDataLayout(getProject(), df_basic_inner.getUuid(), Arrays.asList(firstSegment)));
         dfMgr.updateDataflow(update2);
 
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");
@@ -4475,6 +4494,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update1 = new NDataflowUpdate(df_basic.getUuid());
         firstSegment.setStatus(SegmentStatusEnum.READY);
         update1.setToUpdateSegs(firstSegment);
+        update1.setToAddOrUpdateLayouts(
+                generateAllDataLayout(getProject(), df_basic.getUuid(), Arrays.asList(firstSegment)));
         dfMgr.updateDataflow(update1);
 
         NDataflowUpdate update2 = new NDataflowUpdate(df_basic_inner.getUuid());
@@ -4487,6 +4508,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         firstSegment.setStatus(SegmentStatusEnum.READY);
         secondSeg.setStatus(SegmentStatusEnum.READY);
         update2.setToUpdateSegs(firstSegment, secondSeg);
+        update2.setToAddOrUpdateLayouts(
+                generateAllDataLayout(getProject(), df_basic_inner.getUuid(), Arrays.asList(firstSegment, secondSeg)));
         dfMgr.updateDataflow(update2);
 
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "20", "0", "20");

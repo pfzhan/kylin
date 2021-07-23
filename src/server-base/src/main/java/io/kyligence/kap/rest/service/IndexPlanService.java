@@ -646,8 +646,11 @@ public class IndexPlanService extends BasicService {
         indexGraphResponse.setEndTime(endTime);
 
         long segmentToComplementCount = 0;
+        long allIndexCountWithoutTobeDel = indexPlan.getAllLayoutsSize(false);
         for (NDataSegment seg : readySegments) {
-            if (seg.getSegDetails().getLayouts().size() != indexPlan.getAllLayouts().size()) {
+            val lockedIndexCountInSeg = seg.getLayoutsMap().values().stream()
+                    .filter(nDataLayout -> nDataLayout.getLayout().isToBeDeleted()).count();
+            if ((seg.getSegDetails().getLayouts().size() - lockedIndexCountInSeg) != allIndexCountWithoutTobeDel) {
                 segmentToComplementCount += 1;
             }
         }

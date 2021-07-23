@@ -1030,16 +1030,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return baseTableLayout != null ? baseTableLayout.getId() : null;
     }
 
-    public Set<Long> getAllLayoutIds(boolean withTobeDel) {
-        return getIdMapping().getAllLayoutIds(withTobeDel);
+    public Set<Long> getAllLayoutIds(boolean includeTobeDeleted) {
+        return getIdMapping().getAllLayoutIds(includeTobeDeleted);
     }
 
     public Set<Long> getAllToBeDeleteLayoutId() {
         return getIdMapping().getAllToBeDelete();
     }
 
-    public long getAllLayoutsSize() {
-        return getIdMapping().getAllLayoutsSize();
+    public long getAllLayoutsSize(boolean includeTobeDeleted) {
+        return getIdMapping().getAllLayoutsSize(includeTobeDeleted);
     }
 
     public class IndexPlanUpdateHandler {
@@ -1205,16 +1205,19 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             return allLayoutMapping.get(layoutId);
         }
 
-        public Set<Long> getAllLayoutIds(boolean withTobeDel) {
-            if (withTobeDel) {
+        public Set<Long> getAllLayoutIds(boolean includeTobeDeleted) {
+            if (includeTobeDeleted) {
                 return allLayoutMapping.keySet();
             }
             return allLayoutMapping.values().stream().filter(layout -> !layout.isToBeDeleted()).map(LayoutEntity::getId)
                     .collect(Collectors.toSet());
         }
 
-        public long getAllLayoutsSize() {
-            return allLayoutMapping.size();
+        public long getAllLayoutsSize(boolean includeTobeDeleted) {
+            if (includeTobeDeleted) {
+                return allLayoutMapping.size();
+            }
+            return allLayoutMapping.values().stream().filter(layout -> !layout.isToBeDeleted()).count();
         }
 
         public Set<Long> getAllToBeDelete() {

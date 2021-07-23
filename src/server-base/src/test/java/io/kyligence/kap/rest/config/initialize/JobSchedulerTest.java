@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.config.initialize;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -152,6 +153,32 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testAddIndex_ExcludeLockedIndex() {
+        val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        var df = dfm.getDataflow(MODEL_ID);
+
+        val update = new NDataflowUpdate(df.getUuid());
+        val seg = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-05-01"), SegmentRange.dateToLong("" + "2012-06-01")));
+        seg.setStatus(SegmentStatusEnum.READY);
+        update.setToUpdateSegs(seg);
+        update.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df, seg.getId(), 1L),
+                NDataLayout.newDataLayout(df, seg.getId(), 10001L), NDataLayout.newDataLayout(df, seg.getId(), 10002L));
+        dfm.updateDataflow(update);
+
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        UnitOfWork.doInTransactionWithRetry(() -> indexManager.updateIndexPlan(MODEL_ID, copyForWrite -> {
+            copyForWrite.markWhiteIndexToBeDelete(MODEL_ID, Sets.newHashSet(20000000001L));
+        }), MODEL_ID);
+
+        jobManager.addIndexJob(new JobParam(MODEL_ID, "ADMIN"));
+        List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
+        Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);
+        Assert.assertEquals(15, getProcessLayout(executables.get(0)));
+    }
+
+    @Test
     public void testAddIndex_timeException() {
         val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -193,6 +220,23 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         jobManager.refreshSegmentJob(new JobParam(df.getSegments().get(0), MODEL_ID, "ADMIN"));
         List<AbstractExecutable> executables = getRunningExecutables(DEFAULT_PROJECT, MODEL_ID);
         Assert.assertEquals(18, getProcessLayout(executables.get(0)));
+    }
+
+    @Test
+    public void testRefreshSegmentOnlyLockedIndex() {
+        val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        var df = dfm.getDataflow(MODEL_ID);
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        UnitOfWork.doInTransactionWithRetry(() -> indexManager.updateIndexPlan(MODEL_ID, copyForWrite -> {
+            Set<Long> layouts = copyForWrite.getAllLayoutIds(false);
+            layouts.remove(20000000001L);
+            copyForWrite.removeLayouts(layouts, true, true);
+            copyForWrite.markWhiteIndexToBeDelete(MODEL_ID, Sets.newHashSet(20000000001L));
+        }), MODEL_ID);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getREFRESH_JOB_CHECK_INDEX_FAIL());
+        jobManager.refreshSegmentJob(new JobParam(df.getSegments().get(0), MODEL_ID, "ADMIN"));
     }
 
     @Test
@@ -377,6 +421,27 @@ public class JobSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, getProcessLayout(executables.get(0)));
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddSegmentHandler);
         Assert.assertEquals(2, getProcessLayout(executables.get(0)));
+    }
+
+    @Test
+    public void testAddSegmentJob_onlyIncludeLockedIndex() {
+        val jobManager = JobManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dfm = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        var df = dfm.getDataflow(MODEL_ID);
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        UnitOfWork.doInTransactionWithRetry(() -> indexManager.updateIndexPlan(MODEL_ID, copyForWrite -> {
+            Set<Long> layouts = copyForWrite.getAllLayoutIds(false);
+            layouts.remove(20000000001L);
+            copyForWrite.removeLayouts(layouts, true, true);
+            copyForWrite.markWhiteIndexToBeDelete(MODEL_ID, Sets.newHashSet(20000000001L));
+        }), MODEL_ID);
+
+        val seg1 = dfm.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-05-01"), SegmentRange.dateToLong("" + "2012-06-01")));
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
+        jobManager.addSegmentJob(new JobParam(seg1, MODEL_ID, "ADMIN"));
     }
 
     @Test

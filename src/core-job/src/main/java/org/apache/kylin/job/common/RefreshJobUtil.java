@@ -91,21 +91,19 @@ public class RefreshJobUtil extends ExecutableUtil {
         if (refreshAll) {
             IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
                     .getIndexPlan(jobParam.getModel());
-            indexPlan.getAllLayouts().forEach(layout -> {
-                if (!layout.isToBeDeleted()) {
-                    layouts.add(layout);
-                }
-            });
+            layouts.addAll(indexPlan.getAllLayouts());
         } else if (segments.get(0).getLayoutsMap().isEmpty() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
         } else {
-            segments.get(0).getLayoutsMap().values().forEach(layout -> {
-                if (!layout.getLayout().isToBeDeleted()) {
-                    layouts.add(layout.getLayout());
-                }
-            });
+            segments.get(0).getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
         }
-        jobParam.setProcessLayouts(layouts);
+        jobParam.setProcessLayouts(filterTobeDelete(layouts));
+        checkLayoutsNotEmpty(jobParam);
+    }
+
+    @Override
+    public String getCheckIndexFailedMessage() {
+        return MsgPicker.getMsg().getREFRESH_JOB_CHECK_INDEX_FAIL();
     }
 
     @Override

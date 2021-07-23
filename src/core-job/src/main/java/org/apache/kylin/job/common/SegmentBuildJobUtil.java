@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,15 +42,9 @@
 
 package org.apache.kylin.job.common;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
-
 import java.util.HashSet;
-import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.model.JobParam;
 
 import com.google.common.collect.Sets;
@@ -71,26 +64,23 @@ public class SegmentBuildJobUtil extends ExecutableUtil {
     public void computeLayout(JobParam jobParam) {
         IndexPlan indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), jobParam.getProject())
                 .getIndexPlan(jobParam.getModel());
+
         final HashSet<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
         val targetLayouts = jobParam.getTargetLayouts();
 
         if (targetLayouts.isEmpty()) {
+            toBeProcessedLayouts.addAll(indexPlan.getAllLayouts());
+        } else {
+            HashSet<Long> target = new HashSet(jobParam.getTargetLayouts());
             indexPlan.getAllLayouts().forEach(layout -> {
-                if (!layout.isToBeDeleted()) {
+                if (target.contains(layout.getId())) {
                     toBeProcessedLayouts.add(layout);
                 }
             });
-            jobParam.setProcessLayouts(toBeProcessedLayouts);
-        } else {
-            toBeProcessedLayouts.addAll(indexPlan.getAllLayouts());
-            HashSet target = new HashSet(jobParam.getTargetLayouts());
-            jobParam.setProcessLayouts(new HashSet<>(toBeProcessedLayouts.stream()
-                    .filter(layout -> target.contains(layout.getId())).collect(Collectors.toSet())));
         }
-        if (CollectionUtils.isEmpty(jobParam.getProcessLayouts()) && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
-            throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_EXCEPTION());
-        }
+
+        jobParam.setProcessLayouts(filterTobeDelete(toBeProcessedLayouts));
+        checkLayoutsNotEmpty(jobParam);
     }
 
     @Override

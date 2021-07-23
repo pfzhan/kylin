@@ -1478,6 +1478,11 @@ public class CnMessage extends Message {
         return "无法添加任务，Segment 索引为空。请稍后重试。";
     }
 
+    @Override
+    public String getREFRESH_JOB_CHECK_INDEX_FAIL() {
+        return "当前没有可刷新索引。请检查后重试。";
+    }
+
     public String getADD_JOB_CHECK_MULTI_PARTITION_ABANDON() {
         return "无法添加任务。请确保该操作对当前对象有效。";
     }

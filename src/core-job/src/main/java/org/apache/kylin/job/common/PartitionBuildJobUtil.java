@@ -94,16 +94,13 @@ public class PartitionBuildJobUtil extends ExecutableUtil {
                     }
                 });
             } else {
-                indexPlan.getAllLayouts().forEach(layout -> {
-                    if (!layout.isToBeDeleted()) {
-                        layouts.add(layout);
-                    }
-                });
+                layouts.addAll(indexPlan.getAllLayouts());
             }
         } else {
             segment.getLayoutsMap().values().forEach(layout -> layouts.add(layout.getLayout()));
         }
-        jobParam.setProcessLayouts(layouts);
+        jobParam.setProcessLayouts(filterTobeDelete(layouts));
+        checkLayoutsNotEmpty(jobParam);
     }
 
     @Override

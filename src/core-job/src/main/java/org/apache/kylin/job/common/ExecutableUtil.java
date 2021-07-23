@@ -44,9 +44,11 @@ package org.apache.kylin.job.common;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -58,6 +60,7 @@ import org.apache.kylin.job.model.JobParam;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -127,6 +130,21 @@ public abstract class ExecutableUtil {
                     copyForWrite -> copyForWrite.getSegment(targetSegment).setMaxBucketId(bucketStart.get()));
         }
         jobParam.setTargetBuckets(buckets);
+    }
+
+    public void checkLayoutsNotEmpty(JobParam jobParam) {
+        if (CollectionUtils.isEmpty(jobParam.getProcessLayouts())) {
+            log.warn("JobParam {} is no longer valid because no layout awaits building", jobParam);
+            throw new KylinException(FAILED_CREATE_JOB, getCheckIndexFailedMessage());
+        }
+    }
+
+    protected Set<LayoutEntity> filterTobeDelete(HashSet<LayoutEntity> layouts) {
+        return layouts.stream().filter(layout -> !layout.isToBeDeleted()).collect(Collectors.toSet());
+    }
+
+    public String getCheckIndexFailedMessage() {
+        return MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL();
     }
 
     public void computeLayout(JobParam jobParam) {

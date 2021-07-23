@@ -73,6 +73,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -1150,6 +1151,60 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(Long.MAX_VALUE, response.getEndTime());
         Assert.assertTrue(response.isFullLoaded());
 
+    }
+
+    @Test
+    public void testSegmentComplementCount() {
+        String project = "default";
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        val df = dfManager.getDataflow(modelId);
+
+        //clear segment from df
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        long tobeDeleteLayoutId = 20000000001L;
+        //add two segment(include full layout)
+        val update2 = new NDataflowUpdate(df.getUuid());
+        val seg1 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
+        val seg2 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(seg1, seg2);
+
+        List<NDataLayout> layouts1 = Lists.newArrayList();
+        List<NDataLayout> layouts2 = Lists.newArrayList();
+        indexManager.getIndexPlan(modelId).getAllLayouts().forEach(layout -> {
+            layouts1.add(NDataLayout.newDataLayout(df, seg1.getId(), layout.getId()));
+            if (layout.getId() != 1) {
+                layouts2.add(NDataLayout.newDataLayout(df, seg2.getId(), layout.getId()));
+            }
+        });
+
+        List<NDataLayout> layouts = Lists.newArrayList();
+        layouts.addAll(layouts1);
+        layouts.addAll(layouts2);
+        update2.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+        dfManager.updateDataflow(update2);
+        Assert.assertEquals(1,
+                indexPlanService.getIndexGraph(getProject(), modelId, 100).getSegmentToComplementCount());
+
+        // mark a layout tobedelete
+        indexManager.updateIndexPlan(modelId,
+                copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId, Sets.newHashSet(tobeDeleteLayoutId)));
+
+        //remove tobedelete layout from seg1
+        val newDf = dfManager.getDataflow(modelId);
+        dfManager.updateDataflowDetailsLayouts(newDf.getSegment(seg1.getId()), layouts1.stream()
+                .filter(layout -> layout.getLayoutId() != tobeDeleteLayoutId).collect(Collectors.toList()));
+        //segment1
+        Assert.assertEquals(1,
+                indexPlanService.getIndexGraph(getProject(), modelId, 100).getSegmentToComplementCount());
     }
 
     @Test

@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableParams;
@@ -51,6 +52,7 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -193,6 +195,31 @@ public class JobManagerTest extends NLocalFileMetadataTestCase {
         // ====================== check layouts end ==================================
 
         checkConcurrent(param3);
+    }
+
+    @Test
+    public void testPartitionJobNoIndex() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+        val segmentId = "73570f31-05a5-448f-973c-44209830dd01";
+        val dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        val df = dfm.getDataflow(modelId);
+        JobParam param = new JobParam();
+        param.withTargetSegments(Sets.newHashSet(segmentId));
+        param.setModel(modelId);
+        param.setOwner("ADMIN");
+        param.setProject(PROJECT);
+        val indexManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        UnitOfWork.doInTransactionWithRetry(() -> indexManager.updateIndexPlan(modelId, copyForWrite -> {
+            Set<Long> layouts = copyForWrite.getAllLayoutIds(false);
+            copyForWrite.removeLayouts(layouts, true, true);
+        }), modelId);
+
+        assertExeption(() -> {
+            // build none partition
+            param.setTargetPartitions(Sets.newHashSet(9L));
+            jobManager.buildPartitionJob(param);
+        }, MsgPicker.getMsg().getADD_JOB_CHECK_INDEX_FAIL());
     }
 
     @Test
