@@ -198,18 +198,25 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 "select META_TABLE_CONTENT from " + tableName + " where META_TABLE_KEY = '/p1/test'",
                 (rs, rowNum) -> rs.getBytes(1));
 
-        Assert.assertFalse(CompressionUtils.isCompressed(contents));
+        Assert.assertTrue(CompressionUtils.isCompressed(contents));
+        byte[] gzip = "GZIP".getBytes(StandardCharsets.UTF_8);
+        Assert.assertArrayEquals(gzip, Arrays.copyOf(contents, gzip.length));
+        Assert.assertArrayEquals("test content".getBytes(StandardCharsets.UTF_8),
+                CompressionUtils.decompress(contents));
 
         byte[] auditLogContents = jdbcTemplate.queryForObject(
                 "select meta_content from " + tableName + "_audit_log where meta_key = '/p1/test'",
                 (rs, rowNum) -> rs.getBytes(1));
 
-        Assert.assertFalse(CompressionUtils.isCompressed(auditLogContents));
+        Assert.assertTrue(CompressionUtils.isCompressed(auditLogContents));
+        Assert.assertArrayEquals(gzip, Arrays.copyOf(auditLogContents, gzip.length));
+        Assert.assertArrayEquals("test content".getBytes(StandardCharsets.UTF_8),
+                CompressionUtils.decompress(auditLogContents));
     }
 
     @Test
-    public void testBatchUpdateWithMetadataCompressEnable() throws Exception {
-        overwriteSystemProp("kylin.metadata.compress.enabled", "true");
+    public void testBatchUpdateWithMetadataCompressDisable() throws Exception {
+        overwriteSystemProp("kylin.metadata.compress.enabled", "false");
         val metadataStore = MetadataStore.createMetadataStore(getTestConfig());
         List<Event> events = Collections.singletonList(new ResourceCreateOrUpdateEvent(
                 new RawResource("/p1/test", ByteSource.wrap("test content".getBytes(StandardCharsets.UTF_8)),
@@ -236,20 +243,13 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
                 "select META_TABLE_CONTENT from " + tableName + " where META_TABLE_KEY = '/p1/test'",
                 (rs, rowNum) -> rs.getBytes(1));
 
-        Assert.assertTrue(CompressionUtils.isCompressed(contents));
-        byte[] gzip = "GZIP".getBytes(StandardCharsets.UTF_8);
-        Assert.assertArrayEquals(gzip, Arrays.copyOf(contents, gzip.length));
-        Assert.assertArrayEquals("test content".getBytes(StandardCharsets.UTF_8),
-                CompressionUtils.decompress(contents));
+        Assert.assertFalse(CompressionUtils.isCompressed(contents));
 
         byte[] auditLogContents = jdbcTemplate.queryForObject(
                 "select meta_content from " + tableName + "_audit_log where meta_key = '/p1/test'",
                 (rs, rowNum) -> rs.getBytes(1));
 
-        Assert.assertTrue(CompressionUtils.isCompressed(auditLogContents));
-        Assert.assertArrayEquals(gzip, Arrays.copyOf(auditLogContents, gzip.length));
-        Assert.assertArrayEquals("test content".getBytes(StandardCharsets.UTF_8),
-                CompressionUtils.decompress(auditLogContents));
+        Assert.assertFalse(CompressionUtils.isCompressed(auditLogContents));
     }
 
 }
