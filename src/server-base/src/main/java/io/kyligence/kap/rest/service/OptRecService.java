@@ -135,6 +135,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 if (isAdd) {
                     rewriteModel(rawRecItems);
                     List<Long> addedLayouts = rewriteIndexPlan(rawRecItems);
+                    checkAndRemoveDirtyLayouts(addedLayouts);
                     addedLayoutIdList.addAll(addedLayouts);
                 } else {
                     shiftLayoutHitCount(recommendation.getProject(), recommendation.getUuid(), rawRecItems);
@@ -144,6 +145,26 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 return null;
             }, project);
             return rawRecItems;
+        }
+
+        private void checkAndRemoveDirtyLayouts(List<Long> addedLayouts) {
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
+            NDataModel model = modelManager.getDataModelDesc(recommendation.getUuid());
+            Set<Integer> queryScopes = Sets.newHashSet();
+            model.getEffectiveDimensions().forEach((id, col) -> queryScopes.add(id));
+            model.getEffectiveMeasures().forEach((id, col) -> queryScopes.add(id));
+
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+            IndexPlan indexPlan = indexPlanManager.getIndexPlan(recommendation.getUuid());
+            Map<Long, LayoutEntity> allLayoutsMap = indexPlan.getAllLayoutsMap();
+
+            addedLayouts.removeIf(layoutId -> {
+                if (!allLayoutsMap.containsKey(layoutId)) {
+                    return true;
+                }
+                return !queryScopes.containsAll(allLayoutsMap.get(layoutId).getColOrder());
+            });
         }
 
         public List<RawRecItem> getAllRelatedRecItems(List<Integer> layoutIds, boolean isAdd) {
