@@ -33,7 +33,7 @@ class TestDataSourceParser extends AnyFunSuite {
 //  |343232 |2021-06-01 00:00:00|1625037465002 |single  |old      |jily     |pandora  |32 |21  |12  |13  |15  |22  |
 //  |343252 |2021-06-01 00:00:00|1625037465002 |single  |old      |jily     |pandora  |32 |21  |12  |13  |15  |22  |
 //  +-------+-------------------+--------------+--------+---------+---------+---------+---+----+----+----+----+----+
-  test("test json parser") {
+  ignore("test json parser") {
     val spark = SparkSession.builder().master("local[*]").getOrCreate()
     spark.conf.set("spark.sql.shuffle.partitions", 1)
 
