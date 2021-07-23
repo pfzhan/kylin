@@ -23,13 +23,16 @@
  */
 package io.kyligence.kap.source.kafka;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.streaming.util.ReflectionUtils;
-import io.kyligence.kap.streaming.util.StreamingTestCase;
-import lombok.val;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.Message;
 import org.apache.spark.utils.EmbededServer;
 import org.junit.After;
 import org.junit.Assert;
@@ -38,11 +41,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.streaming.util.ReflectionUtils;
+import io.kyligence.kap.streaming.util.StreamingTestCase;
+import lombok.val;
 
 public class KafkaTableUtilTest extends StreamingTestCase {
 
@@ -197,7 +199,7 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         }
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can’t get cluster information. Please check and try again.");
+        thrown.expectMessage(Message.getInstance().getBROKER_TIMEOUT_MESSAGE());
         kafkaConfig.setKafkaBootstrapServers(brokenBrokerServer);
         CollectKafkaStats.getTopics(kafkaConfig, "ssb");
 
