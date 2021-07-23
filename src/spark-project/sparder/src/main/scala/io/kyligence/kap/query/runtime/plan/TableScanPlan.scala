@@ -128,6 +128,7 @@ object TableScanPlan extends LogEx {
               .cuboidTable(dataflow, cuboidLayout, pruningInfo)
               .toDF(columnNames: _*)
       logInfo(s"Cache df: ${cuboidLayout.getId}")
+      cacheDf.get().put(path, newDf)
       newDf
     }
 
