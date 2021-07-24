@@ -238,14 +238,18 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     if (sources.isEmpty) {
       return
     }
-    val indexPlan = sources.head.getLayout.getIndex.getIndexPlan
-    val manager = NIndexPlanManager.getInstance(config, project);
-    val mapping = indexPlan.getLayoutBucketNumMapping
-    class UpdateBucketMapping extends NIndexPlanUpdater {
-      override def modify(copied: IndexPlan): Unit = {
-        copied.setLayoutBucketNumMapping(mapping)
+    UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
+      override def process(): Unit = {
+        val indexPlan = sources.head.getLayout.getIndex.getIndexPlan
+        val manager = NIndexPlanManager.getInstance(config, project);
+        val mapping = indexPlan.getLayoutBucketNumMapping
+        class UpdateBucketMapping extends NIndexPlanUpdater {
+          override def modify(copied: IndexPlan): Unit = {
+            copied.setLayoutBucketNumMapping(mapping)
+          }
+        }
+        manager.updateIndexPlan(dataflowId, new UpdateBucketMapping)
       }
-    }
-    manager.updateIndexPlan(dataflowId, new UpdateBucketMapping)
+    }, project)
   }
 }
