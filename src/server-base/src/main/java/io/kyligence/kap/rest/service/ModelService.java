@@ -2976,7 +2976,7 @@ public class ModelService extends BasicService {
             return;
         }
 
-        for (TableRef table : model.getAllTables()) {
+        for (TableRef table : model.getFactTables()) {
             for (TblColRef tblColRef : table.getColumns()) {
                 if (tblColRef.getColumnDesc().isComputedColumn()) {
                     continue;
