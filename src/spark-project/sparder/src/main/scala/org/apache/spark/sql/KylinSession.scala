@@ -289,11 +289,10 @@ object KylinSession extends Logging {
           // TODO Less elegant implementation.
           val applicationJar = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
           val yarnDistJarsConf = "spark.yarn.dist.jars"
-          val distJars0 = sparkConf.get(yarnDistJarsConf)
-          val distJars = if (distJars0 == null) {
-            applicationJar
+          val distJars = if (sparkConf.contains(yarnDistJarsConf)) {
+            s"${sparkConf.get(yarnDistJarsConf)},$applicationJar"
           } else {
-            s"$distJars0,$applicationJar"
+            applicationJar
           }
           sparkConf.set(yarnDistJarsConf, distJars)
           sparkConf.set("spark.yarn.dist.files", kapConfig.sparderFiles())
