@@ -195,6 +195,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
 
+    @Ignore
     @Test
     public void testCreateUserWithEmptyUsername() throws IOException {
         val user = new ManagedUser();

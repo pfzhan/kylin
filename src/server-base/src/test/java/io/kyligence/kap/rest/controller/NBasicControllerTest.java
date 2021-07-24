@@ -39,6 +39,7 @@ import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -200,6 +201,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         nBasicController.validateDataRange(start, end, "yyyy-MM-dd");
     }
 
+    @Ignore
     @Test
     public void testFormatStatus() {
         List<String> status = Lists.newArrayList("OFFLINE", null, "broken");
