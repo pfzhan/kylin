@@ -922,7 +922,7 @@ export default class ModelSegment extends Vue {
       const refresh_all_indexes = this.refreshType === 'refreshAll'
       const lockedIndexSegmentList = this.selectedSegments.filter(it => it.index_count === it.locked_index_count)
       const lockedIndexSegmentIds = lockedIndexSegmentList.map(it => it.id)
-      if (lockedIndexSegmentList.length === segmentIds.length) {
+      if (lockedIndexSegmentList.length === segmentIds.length && !refresh_all_indexes) {
         this.showRefreshErrorTip = true
         return
       }
