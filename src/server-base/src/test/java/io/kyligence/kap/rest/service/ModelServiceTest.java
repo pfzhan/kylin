@@ -43,6 +43,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -3431,6 +3432,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         modelService.checkComputedColumn(deserialized, "default", null);
 
+    }
+
+    @Test
+    public void testValidateCCType() {
+        String project = "cc_test";
+        String modelId = "4a45dc4d-937e-43cc-8faa-34d59d4e11d3";
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        modelManager.updateDataModel(modelId,
+                copyForWrite -> copyForWrite.getComputedColumnDescs().get(0).setDatatype("date"));
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                new MessageFormat(MsgPicker.getMsg().getCheckCCType(), Locale.ROOT)
+                        .format(new String[] { "LINEORDER.CC_CNAME", "DOUBLE", "date" }));
+        modelService.validateCCType(modelId, project);
     }
 
     /*

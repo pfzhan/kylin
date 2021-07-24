@@ -148,7 +148,7 @@ public class Message {
     }
 
     public String getCheckCCType() {
-        return "The actual data type \"%s\" of computed column \"%s\" is inconsistent with the defined type \"%s\". Please modify it.";
+        return "The actual data type \"{1}\" of computed column \"{0}\" is inconsistent with the defined type \"{2}\". Please modify it.";
     }
 
     public String getCheckCCExpression() {

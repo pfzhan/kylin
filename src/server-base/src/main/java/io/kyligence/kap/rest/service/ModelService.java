@@ -71,6 +71,7 @@ import static org.apache.kylin.job.execution.JobTypeEnum.SUB_PARTITION_BUILD;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -4127,8 +4128,8 @@ public class ModelService extends BasicService {
                 ComputedColumnDesc ccCopy = ccListCopy.get(n);
 
                 if (!matchCCDataType(cc.getDatatype(), ccCopy.getDatatype())) {
-                    errorSb.append(String.format(Locale.ROOT, MsgPicker.getMsg().getCheckCCType(), cc.getFullName(),
-                            ccCopy.getDatatype(), cc.getDatatype()));
+                    errorSb.append(new MessageFormat(MsgPicker.getMsg().getCheckCCType(), Locale.ROOT)
+                            .format(new String[] { cc.getFullName(), ccCopy.getDatatype(), cc.getDatatype() }));
                 }
             }
 
