@@ -661,6 +661,15 @@ public class CnMessage extends Message {
     }
 
     //license
+    @Override
+    public String getLICENSE_ERROR_PRE() {
+        return "无法更新许可证：\n";
+    }
+
+    @Override
+    public String getLICENSE_ERROR_SUFF() {
+        return "\n请重新上传新的许可证或联系 Kyligence 销售人员。";
+    }
 
     @Override
     public String getLICENSE_OVERDUE_TRIAL() {
