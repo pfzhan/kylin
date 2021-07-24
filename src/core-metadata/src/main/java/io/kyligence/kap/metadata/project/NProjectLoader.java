@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -108,8 +109,12 @@ public class NProjectLoader {
 
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String table, boolean onlyRewriteMeasure) {
         Set<IRealization> realizations = getRealizationsByTable(project, table);
+        Set<String> modelIds = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .listAllModelIds();
         List<MeasureDesc> result = Lists.newArrayList();
-        for (IRealization r : realizations) {
+        List<IRealization> existingRealizations = realizations.stream().filter(r -> modelIds.contains(r.getUuid()))
+                .collect(Collectors.toList());
+        for (IRealization r : existingRealizations) {
             if (!r.isReady())
                 continue;
             NDataModel model = r.getModel();
