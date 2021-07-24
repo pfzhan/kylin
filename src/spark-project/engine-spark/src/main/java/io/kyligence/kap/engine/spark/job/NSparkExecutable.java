@@ -26,6 +26,8 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +42,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
@@ -171,6 +174,8 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
         }
+        checkApplicationJar(config, kylinJobJar);
+
         String hadoopConf = HadoopUtil.getHadoopConfDir();
 
         File hiveConfFile = new File(hadoopConf, "hive-site.xml");
@@ -478,15 +483,7 @@ public class NSparkExecutable extends AbstractExecutable {
         wrapClasspathConf(sb, kylinJobJar);
 
         // hive metastore jars
-        String hiveMetastoreJars = sparkConf.get(HIVE_METASTORE_JARS);
-        logger.info("hive metastore jars: {}", hiveMetastoreJars);
-        if (!(Objects.isNull(hiveMetastoreJars) //
-                || "builtin".equals(hiveMetastoreJars) //
-                || "maven".equals(hiveMetastoreJars) //
-                || "path".equals(hiveMetastoreJars))) {
-            // before spark3
-            jars = jars + COMMA + hiveMetastoreJars;
-        }
+        logger.info("Hive metastore jars: {}", sparkConf.get(HIVE_METASTORE_JARS));
 
         // extra jars
         final KylinConfig config = getConfig();
@@ -523,9 +520,13 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append("--jars %s %s %s ");
 
         // Three parameters at most per line.
+        // kylinJobJar is the application-jar (of spark-submit),
+        // path to a bundled jar including your application and all dependencies,
+        // The URL must be globally visible inside of your cluster,
+        // for instance, an hdfs:// path or a file:// path that is present on all nodes.
         String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, // 
                 KylinConfigBase.getSparkHome(), getId(), jars + getExtJar(), //
-                kylinJobJar + getExtJar(), appArgs);
+                kylinJobJar, appArgs);
         logger.info("spark submit cmd: {}", cmd);
         return cmd;
     }
@@ -663,6 +664,30 @@ public class NSparkExecutable extends AbstractExecutable {
             HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), path);
         } catch (Exception e) {
             logger.error("delete job tmp in path {} failed.", taskPath, e);
+        }
+    }
+
+    private void checkApplicationJar(KylinConfig config, String path) throws ExecuteException {
+        if (config.isUTEnv()) {
+            return;
+        }
+        // Application-jar:
+        // Path to a bundled jar including your application and all dependencies.
+        // The URL must be globally visible inside of your cluster,
+        // for instance, an hdfs:// path or a file:// path that is present on all nodes.
+        try {
+            final String failedMsg = "Application jar should be only one bundled jar.";
+            URI uri = new URI(path);
+            if (Objects.isNull(uri.getScheme()) || uri.getScheme().startsWith("file:/")) {
+                Preconditions.checkState(new File(path).exists(), failedMsg);
+                return;
+            }
+
+            Path path0 = new Path(path);
+            FileSystem fs = HadoopUtil.getFileSystem(path0);
+            Preconditions.checkState(fs.exists(path0), failedMsg);
+        } catch (URISyntaxException | IOException e) {
+            throw new ExecuteException("Failed to check application jar.", e);
         }
     }
 

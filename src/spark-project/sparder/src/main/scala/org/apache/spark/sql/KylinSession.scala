@@ -26,6 +26,7 @@ import java.io.File
 import java.net.URI
 import java.nio.file.Paths
 import java.sql.SQLException
+
 import io.kyligence.kap.common.util.Unsafe
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
@@ -285,8 +286,16 @@ object KylinSession extends Logging {
 
       if (!"true".equalsIgnoreCase(System.getProperty("spark.local"))) {
         if (sparkConf.get("spark.master").startsWith("yarn")) {
-          sparkConf.set("spark.yarn.dist.jars",
-            KylinConfig.getInstanceFromEnv.getKylinJobJarPath)
+          // TODO Less elegant implementation.
+          val applicationJar = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
+          val yarnDistJarsConf = "spark.yarn.dist.jars"
+          val distJars0 = sparkConf.get(yarnDistJarsConf)
+          val distJars = if (distJars0 == null) {
+            applicationJar
+          } else {
+            s"$distJars0,$applicationJar"
+          }
+          sparkConf.set(yarnDistJarsConf, distJars)
           sparkConf.set("spark.yarn.dist.files", kapConfig.sparderFiles())
         } else {
           sparkConf.set("spark.jars", kapConfig.sparderJars)
@@ -301,7 +310,7 @@ object KylinSession extends Logging {
           sparkConf.get("spark.executor.extraJavaOptions", "")
         var executorKerberosConf = ""
         if (kapConfig.isKerberosEnabled && (kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)
-            || kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.TDH_PLATFORM))) {
+          || kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.TDH_PLATFORM))) {
           executorKerberosConf = krb5conf
         }
         sparkConf.set("spark.executor.extraJavaOptions",
@@ -344,14 +353,14 @@ object KylinSession extends Logging {
   }
 
   /**
-   * Copied from SparkSession.applyExtensions. So that KylinSession can load extensions through SparkConf.
-   * <p/>
-   * Initialize extensions for given extension classnames. The classes will be applied to the
-   * extensions passed into this function.
-   */
+    * Copied from SparkSession.applyExtensions. So that KylinSession can load extensions through SparkConf.
+    * <p/>
+    * Initialize extensions for given extension classnames. The classes will be applied to the
+    * extensions passed into this function.
+    */
   private def applyExtensions(
-    extensionConfClassNames: Seq[String],
-    extensions: SparkSessionExtensions): SparkSessionExtensions = {
+                               extensionConfClassNames: Seq[String],
+                               extensions: SparkSessionExtensions): SparkSessionExtensions = {
     extensionConfClassNames.foreach { extensionConfClassName =>
       try {
         val extensionConfClass = Utils.classForName(extensionConfClassName)
