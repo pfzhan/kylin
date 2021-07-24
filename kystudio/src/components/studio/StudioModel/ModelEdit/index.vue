@@ -138,10 +138,10 @@
                 transform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
                 width: panelAppear.dimension.width-2+'px'
               }">
-                <span class="action_btn" @click="toggleCheckAllDimension">
-                  <i class="el-icon-ksd-batch_uncheck" v-if="dimensionSelectedList.length==allDimension.length"></i>
+                <span class="action_btn" :class="{'disabled': isDisableBatchCheck}" @click="toggleCheckAllDimension">
+                  <i class="el-icon-ksd-batch_uncheck" v-if="dimensionSelectedList.length==allDimension.length || (modelInstance.second_storage_enabled||isHybridModel)&&dimensionSelectedList.length+1==allDimension.length&&!isDisableBatchCheck"></i>
                   <i class="el-icon-ksd-batch" v-else></i>
-                  <span v-if="dimensionSelectedList.length==allDimension.length">{{$t('unCheckAll')}}</span>
+                  <span v-if="dimensionSelectedList.length==allDimension.length || (modelInstance.second_storage_enabled||isHybridModel)&&dimensionSelectedList.length+1==allDimension.length&&!isDisableBatchCheck">{{$t('unCheckAll')}}</span>
                   <span v-else>{{$t('checkAll')}}</span>
                 </span>
                 <span class="action_btn" :class="{'disabled': dimensionSelectedList.length==0}" @click="deleteDimenisons">
@@ -1045,11 +1045,20 @@ export default class ModelEdit extends Vue {
     }
     this.modelInstance.delDimension(d.name)
   }
+  get isDisableBatchCheck () {
+    if (this.allDimension.length === 1 && (this.modelInstance.second_storage_enabled || this.isHybridModel) && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === this.allDimension[0].column) {
+      return true
+    } else {
+      return false
+    }
+  }
   toggleCheckAllDimension () {
-    if (this.dimensionSelectedList.length === this.allDimension.length) {
+    if (this.dimensionSelectedList.length === this.allDimension.length || (this.modelInstance.second_storage_enabled || this.isHybridModel) && this.dimensionSelectedList.length + 1 === this.allDimension.length) {
       this.dimensionSelectedList = []
     } else {
-      this.dimensionSelectedList = this.allDimension.map((item, i) => {
+      this.dimensionSelectedList = this.allDimension.filter(d => {
+        return !((this.modelInstance.second_storage_enabled || this.isHybridModel) && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === d.column)
+      }).map((item, i) => {
         return item.name
       })
     }

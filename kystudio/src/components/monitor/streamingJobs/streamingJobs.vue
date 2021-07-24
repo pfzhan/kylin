@@ -8,7 +8,8 @@
           <div class="action_groups ksd-btn-group-minwidth ksd-fleft" v-if="monitorActions.includes('jobActions')">
             <el-button type="primary" text size="medium" icon="el-ksd-icon-play_with_border_22" :disabled="!batchBtnsEnabled.start" :loading="startLoading" @click="batchStart">{{$t('jobStart')}}</el-button>
             <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" :loading="restartLoading" @click="batchRestart">{{$t('jobRestart')}}</el-button>
-            <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stop" :loading="stopLoading" @click="batchStop">{{$t('jobStop')}}</el-button>
+            <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stop" :loading="stopLoading" @click="batchStop(false)">{{$t('jobStop')}}</el-button>
+            <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stopImme" :loading="stopLoading" @click="batchStop(true)">{{$t('stopJobImme')}}</el-button>
           </div>
         </el-col>
         <el-col :span="8">
@@ -254,7 +255,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
 import { cacheLocalStorage, getQueryString, objectClone, indexOfObjWithSomeKey, countObjWithSomeKey } from 'util/index'
-import { handleError, handleSuccess, postCloudUrlMessage, transToGmtTime } from 'util/business'
+import { handleError, handleSuccess, postCloudUrlMessage, transToGmtTime, kapConfirm } from 'util/business'
 import { pageRefTags } from 'config'
 import $ from 'jquery'
 import locales from './locales'
@@ -312,7 +313,8 @@ export default class StreamingJobsList extends Vue {
   batchBtnsEnabled = {
     start: false,
     restart: false,
-    stop: false
+    stop: false,
+    stopImme: false
   }
   stCycle = null
   showStep = false
@@ -426,23 +428,27 @@ export default class StreamingJobsList extends Vue {
       this.stopLoading = false
     }
   }
-  async batchStop () {
-    if (!this.batchBtnsEnabled.stop) return
+  async batchStop (isStopImme) {
+    if (!isStopImme && !this.batchBtnsEnabled.stop) return
+    if (isStopImme && !this.batchBtnsEnabled.stopImme) return
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      const data = {project: this.currentSelectedProject, action: 'STOP', job_ids: this.idsArr}
-      const isSubmit = await this.callGlobalDetailDialog({
-        msg: this.$t('stopStreamingJobTips'),
-        title: this.$t('stopJob'),
-        dialogType: '',
-        wid: '600px',
-        showDetailBtn: false,
-        isSubSubmit: true,
-        submitSubText: this.$t('stopJob'),
-        submitText: this.$t('stopJobImme')
-      })
-      data.action = isSubmit.isOnlySave ? 'STOP' : 'FORCE_STOP'
+      const msg = isStopImme ? this.$t('stopStreamingJobImmeTips') : this.$t('stopStreamingJobTips')
+      const stopJobType = isStopImme ? this.$t('stopJobImme') : this.$t('stopJob')
+      await kapConfirm(msg, {confirmButtonText: stopJobType}, stopJobType)
+      const data = {project: this.currentSelectedProject, action: isStopImme ? 'FORCE_STOP' : 'STOP', job_ids: this.idsArr}
+      // const isSubmit = await this.callGlobalDetailDialog({
+      //   msg: this.$t('stopStreamingJobTips'),
+      //   title: this.$t('stopJob'),
+      //   dialogType: '',
+      //   wid: '600px',
+      //   showDetailBtn: false,
+      //   isSubSubmit: true,
+      //   submitSubText: this.$t('stopJob'),
+      //   submitText: this.$t('stopJobImme')
+      // })
+      // data.action = isSubmit.isOnlySave ? 'STOP' : 'FORCE_STOP'
       if (this.$store.state.project.isAllProject) {
         delete data.project
       }
@@ -593,7 +599,8 @@ export default class StreamingJobsList extends Vue {
       this.batchBtnsEnabled = {
         start: false,
         restart: false,
-        stop: false
+        stop: false,
+        stopImme: false
       }
       this.idsArr = []
     }
@@ -610,8 +617,9 @@ export default class StreamingJobsList extends Vue {
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
       start: ['ERROR', 'STOPPED'],
-      restart: ['STARTING', 'RUNNING'],
-      stop: ['STARTING', 'RUNNING']
+      restart: ['RUNNING'],
+      stop: ['RUNNING'],
+      stopImme: ['STARTING', 'STOPPING']
     }
     $.each(batchBtns, (key, item) => {
       this.batchBtnsEnabled[key] = this.isContain(item, statusArr)
