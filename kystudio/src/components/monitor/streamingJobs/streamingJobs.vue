@@ -619,7 +619,7 @@ export default class StreamingJobsList extends Vue {
       start: ['ERROR', 'STOPPED'],
       restart: ['RUNNING'],
       stop: ['RUNNING'],
-      stopImme: ['STARTING', 'STOPPING']
+      stopImme: ['STARTING', 'RUNNING', 'STOPPING']
     }
     $.each(batchBtns, (key, item) => {
       this.batchBtnsEnabled[key] = this.isContain(item, statusArr)
