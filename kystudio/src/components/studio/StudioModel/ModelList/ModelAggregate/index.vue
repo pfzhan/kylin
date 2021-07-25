@@ -108,39 +108,43 @@
                 </el-dropdown-menu>
               </el-dropdown>
               <!-- <el-tooltip :content="$t('disabledBuildIndexTips')" :disabled="checkedList.length==0 || (checkedList.length>0&&!isHaveLockedIndex)">
-                <div class="ksd-left"> -->
+                <div class="ksd-fleft"> -->
                 <el-button icon="el-ksd-icon-build_index_22" :disabled="!checkedList.length || isHaveLockedIndex" text type="primary" class="ksd-ml-2 ksd-fleft" v-if="datasourceActions.includes('buildIndex') && !isRealTimeMode" @click="complementedIndexes('batchIndexes')">{{$t('buildIndex')}}</el-button>
                 <!-- </div>
               </el-tooltip> -->
               <template v-if="isRealTimeMode">
-                <!-- <common-tip :content="!indexUpdateEnabled ? $t('refuseRemoveIndexTip') : $t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)">
-                  <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" class="ksd-fleft" text>{{$t('kylinLang.common.delete')}}</el-button>
-                </common-tip> -->
-                <common-tip :content="$t('refuseRemoveIndexTip')" v-if="datasourceActions.includes('delAggIdx') && !indexUpdateEnabled&&checkedList.length>0">
+                <el-tooltip placement="top" :content="!indexUpdateEnabled ? $t('refuseRemoveIndexTip') : $t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)">
+                  <div class="ksd-fleft">
+                    <el-button v-if="datasourceActions.includes('delAggIdx') && (isDisableDelBaseIndex || !indexUpdateEnabled)" :disabled="isDisableDelBaseIndex || !indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                  </div>
+                </el-tooltip>
+                <!-- <common-tip :content="$t('refuseRemoveIndexTip')" v-if="datasourceActions.includes('delAggIdx') && !indexUpdateEnabled&&checkedList.length>0">
                   <el-button v-if="datasourceActions.includes('delAggIdx') && !indexUpdateEnabled" :disabled="!indexUpdateEnabled" type="primary" icon="el-ksd-icon-table_delete_22" @click="removeIndexes" class="ksd-fleft" text>{{$t('kylinLang.common.delete')}}</el-button>
-                </common-tip>
-                <el-button v-if="datasourceActions.includes('delAggIdx') && indexUpdateEnabled || !checkedList.length" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" class="ksd-fleft" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
+                </common-tip> -->
+                <el-button v-if="datasourceActions.includes('delAggIdx') && !isDisableDelBaseIndex &&  indexUpdateEnabled" :disabled="!checkedList.length" type="primary" icon="el-ksd-icon-table_delete_22" class="ksd-fleft" @click="removeIndexes" text>{{$t('kylinLang.common.delete')}}</el-button>
               </template>
               <template v-else>
-                <!-- <common-tip :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
-                  <el-dropdown
-                    split-button
-                    type="primary"
-                    text
-                    btn-icon="el-ksd-icon-table_delete_22"
-                    class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
-                    :class="{'is-disabled': isDisableDelBaseIndex}"
-                    placement="bottom-start"
-                    :loading="removeLoading"
-                    v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
-                    <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
-                      <el-dropdown-item
-                        :disabled="isDisableDelBaseIndex">
-                        {{$t('deletePart')}}
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </el-dropdown>
-                </common-tip> -->
+                <el-tooltip placement="top" :content="$t('disabledDelBaseIndexTips')" v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">
+                  <div class="ksd-fleft">
+                    <el-dropdown
+                      split-button
+                      type="primary"
+                      text
+                      btn-icon="el-ksd-icon-table_delete_22"
+                      class="split-button ksd-mb-10 ksd-ml-2 ksd-fleft"
+                      :class="{'is-disabled': isDisableDelBaseIndex}"
+                      placement="bottom-start"
+                      :loading="removeLoading"
+                      v-if="datasourceActions.includes('delAggIdx')&&isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
+                      <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+                        <el-dropdown-item
+                          :disabled="isDisableDelBaseIndex">
+                          {{$t('deletePart')}}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </el-dropdown>
+                  </div>
+                </el-tooltip>
                 <el-dropdown
                   split-button
                   type="primary"
@@ -151,7 +155,7 @@
                   placement="bottom-start"
                   :loading="removeLoading"
                   @click="removeIndexes"
-                  v-if="datasourceActions.includes('delAggIdx')">{{$t('kylinLang.common.delete')}}
+                  v-if="datasourceActions.includes('delAggIdx')&&!isDisableDelBaseIndex">{{$t('kylinLang.common.delete')}}
                   <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
                     <el-dropdown-item
                       :disabled="!checkedList.length"
