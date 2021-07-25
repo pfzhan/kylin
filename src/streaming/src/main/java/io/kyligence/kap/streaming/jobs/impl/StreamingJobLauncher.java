@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.streaming.jobs.impl;
 
-import static io.kyligence.kap.streaming.constants.StreamingConstants.JOB_SHUTDOWN_FILE_PATH;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.REST_SERVER_IP;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_CORES_MAX;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_DRIVER_MEM;
@@ -58,11 +57,11 @@ import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
 
+import lombok.Getter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkLauncher;
@@ -70,9 +69,7 @@ import org.apache.spark.launcher.SparkLauncher;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.util.AddressUtil;
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import io.kyligence.kap.streaming.jobs.AbstractSparkJobLauncher;
@@ -90,6 +87,8 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
 
     // TODO: support yarn cluster
     private boolean isYarnCluster = false;
+    @Getter
+    private boolean initialized = false;
 
     @Override
     public void init(String project, String modelId, JobTypeEnum jobType) {
@@ -122,6 +121,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                 throw new IllegalArgumentException("The streaming job Type " + jobType.name() + " is not supported...");
 
         }
+        initialized = true;
     }
 
     private String getDriverHDFSLogPath() {
@@ -177,16 +177,35 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         return executorJavaOptionsSB.toString();
     }
 
+    public void startYarnJob() throws Exception {
+        Map<String, String> sparkConf = getStreamingSparkConfig(config);
+        sparkConf.forEach((key, value) -> launcher.setConf(key, value));
+
+        val numberOfExecutor = sparkConf.getOrDefault(SPARK_EXECUTOR_INSTANCES, SPARK_EXECUTOR_INSTANCES_DEFAULT);
+        val numberOfCore = sparkConf.getOrDefault(SPARK_EXECUTOR_CORES, SPARK_EXECUTOR_CORES_DEFAULT);
+        handler = launcher.setAppName(jobId).setSparkHome(KylinConfig.getSparkHome())
+                .setMaster(sparkConf.getOrDefault(SPARK_MASTER, SPARK_MASTER_DEFAULT))
+                .setConf(SPARK_DRIVER_MEM, sparkConf.getOrDefault(SPARK_DRIVER_MEM, SPARK_DRIVER_MEM_DEFAULT))
+                .setConf(SPARK_EXECUTOR_INSTANCES, numberOfExecutor).setConf(SPARK_EXECUTOR_CORES, numberOfCore)
+                .setConf(SPARK_CORES_MAX, calcMaxCores(numberOfExecutor, numberOfCore))
+                .setConf(SPARK_EXECUTOR_MEM, sparkConf.getOrDefault(SPARK_EXECUTOR_MEM, SPARK_EXECUTOR_MEM_DEFAULT))
+                .setConf(SPARK_SHUFFLE_PARTITIONS,
+                        sparkConf.getOrDefault(SPARK_SHUFFLE_PARTITIONS, SPARK_SHUFFLE_PARTITIONS_DEFAULT))
+                .setConf(SPARK_YARN_DIST_JARS, kylinJobJar).setConf(SPARK_YARN_TIMELINE_SERVICE, "false")
+                .setConf(SparkLauncher.DRIVER_EXTRA_CLASSPATH, kylinJobJar)
+                .setConf(SparkLauncher.EXECUTOR_EXTRA_CLASSPATH, Paths.get(kylinJobJar).getFileName().toString())
+                .setConf(SPARK_DRIVER_OPTS, wrapDriverJavaOptions(sparkConf))
+                .setConf(SPARK_EXECUTOR_OPTS, wrapExecutorJavaOptions(sparkConf))
+                .addFile(config.getLogSparkStreamingExecutorPropertiesFile()).setAppResource(kylinJobJar)
+                .setMainClass(mainClazz).addAppArgs(appArgs).startApplication(listener);
+    }
+
     @Override
     public void launch() {
         try {
-
             if (config.isUTEnv()) {
                 log.info("{} -- {} {} streaming job starts to launch", project, modelId, jobType.name());
-                return;
-            }
-
-            if (StreamingUtils.isLocalMode()) {
+            } else if (StreamingUtils.isLocalMode()) {
                 if (JobTypeEnum.STREAMING_BUILD == jobType) {
                     log.info("Starting streaming build job in local mode...");
                     StreamingEntry.main(appArgs);
@@ -194,40 +213,9 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                     log.info("Starting streaming merge job in local mode...");
                     StreamingMergeEntry.main(appArgs);
                 }
-                return;
+            } else {
+                startYarnJob();
             }
-
-            Map<String, String> sparkConf = getStreamingSparkConfig(config);
-            sparkConf.forEach((key, value) -> launcher.setConf(key, value));
-
-            val numberOfExecutor = sparkConf.getOrDefault(SPARK_EXECUTOR_INSTANCES,
-                    SPARK_EXECUTOR_INSTANCES_DEFAULT);
-            val numberOfCore = sparkConf.getOrDefault(SPARK_EXECUTOR_CORES,
-                    SPARK_EXECUTOR_CORES_DEFAULT);
-            handler = launcher.setAppName(jobId).setSparkHome(KylinConfig.getSparkHome())
-                    .setMaster(sparkConf.getOrDefault(SPARK_MASTER,
-                            SPARK_MASTER_DEFAULT))
-                    .setConf(SPARK_DRIVER_MEM,
-                            sparkConf.getOrDefault(SPARK_DRIVER_MEM,
-                                    SPARK_DRIVER_MEM_DEFAULT))
-                    .setConf(SPARK_EXECUTOR_INSTANCES, numberOfExecutor)
-                    .setConf(SPARK_EXECUTOR_CORES, numberOfCore)
-                    .setConf(SPARK_CORES_MAX, calcMaxCores(numberOfExecutor, numberOfCore))
-                    .setConf(SPARK_EXECUTOR_MEM,
-                            sparkConf.getOrDefault(SPARK_EXECUTOR_MEM,
-                                    SPARK_EXECUTOR_MEM_DEFAULT))
-                    .setConf(SPARK_SHUFFLE_PARTITIONS,
-                            sparkConf.getOrDefault(SPARK_SHUFFLE_PARTITIONS,
-                                    SPARK_SHUFFLE_PARTITIONS_DEFAULT))
-                    .setConf(SPARK_YARN_DIST_JARS, kylinJobJar)
-                    .setConf(SPARK_YARN_TIMELINE_SERVICE, "false")
-                    .setConf(SparkLauncher.DRIVER_EXTRA_CLASSPATH, kylinJobJar)
-                    .setConf(SparkLauncher.EXECUTOR_EXTRA_CLASSPATH, Paths.get(kylinJobJar).getFileName().toString())
-                    .setConf(SPARK_DRIVER_OPTS, wrapDriverJavaOptions(sparkConf))
-                    .setConf(SPARK_EXECUTOR_OPTS, wrapExecutorJavaOptions(sparkConf))
-                    .addFile(config.getLogSparkStreamingExecutorPropertiesFile()).setAppResource(kylinJobJar)
-                    .setMainClass(mainClazz).addAppArgs(appArgs).startApplication(listener);
-
         } catch (Exception e) {
             log.error("launch streaming application failed: " + e.getMessage(), e);
             MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.LAUNCHING_ERROR);
@@ -237,19 +225,11 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
     }
 
     /**
-     * Stop streaming job gracefully by generate a mark file
+     * Stop streaming job gracefully
      */
     @Override
     public void stop() {
-        String model = NDataModelManager.getInstance(config, project)
-                .getDataModelDesc(modelId).getAlias();
-        val markFile = config.getStreamingBaseJobsLocation() + String.format(Locale.ROOT, JOB_SHUTDOWN_FILE_PATH,
-                project, StreamingUtils.getJobId(modelId, jobType.name()));
-        if (!HDFSUtils.touchzMarkFile(markFile)) {
-            log.error("touch markfile failed...");
-            throw new KylinException(ServerErrorCode.JOB_STOP_FAILURE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_STOP_FAILURE(), model));
-        }
+        MetaInfoUpdater.markGracefulShutdown(project, StreamingUtils.getJobId(modelId, jobType.name()));
     }
 
     private String calcMaxCores(String executors, String cores) {

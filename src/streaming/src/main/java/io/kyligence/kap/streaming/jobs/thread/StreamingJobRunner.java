@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.streaming.jobs.thread;
 
-import java.util.Objects;
-
 import org.apache.kylin.job.execution.JobTypeEnum;
 
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
@@ -39,11 +37,11 @@ public class StreamingJobRunner implements Runnable {
     private String modelId;
     private JobTypeEnum jobType;
 
-
     public StreamingJobRunner(String project, String modelId, JobTypeEnum jobType) {
         this.project = project;
         this.modelId = modelId;
         this.jobType = jobType;
+        jobLauncher = new StreamingJobLauncher();
     }
 
     private StreamingJobLauncher jobLauncher;
@@ -58,22 +56,16 @@ public class StreamingJobRunner implements Runnable {
     }
 
     public void init() {
-        if (jobLauncher == null) {
-            jobLauncher = new StreamingJobLauncher();
-            jobLauncher.init(project, modelId, jobType);
-        }
+        jobLauncher.init(project, modelId, jobType);
     }
 
     private void launchJob() {
-        if (jobLauncher == null) {
-            jobLauncher = new StreamingJobLauncher();
-        }
         jobLauncher.init(project, modelId, jobType);
         jobLauncher.launch();
     }
 
     private void stopJob() {
-        if (Objects.isNull(jobLauncher)) {
+        if (!jobLauncher.isInitialized()) {
             log.warn("Streaming job launcher {} not exists...", StreamingUtils.getJobId(modelId, jobType.name()));
             return;
         }

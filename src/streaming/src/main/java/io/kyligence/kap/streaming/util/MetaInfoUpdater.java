@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
@@ -76,6 +77,7 @@ public class MetaInfoUpdater {
                     case RUNNING:
                         copyForWrite.setLastStartTime(format.format(date));
                         copyForWrite.setSkipListener(false);
+                        copyForWrite.setAction(StreamingConstants.ACTION_START);
                         record.setAction("START");
                         recordMgr.insert(record);
                         break;
@@ -91,6 +93,19 @@ public class MetaInfoUpdater {
                         break;
                     default:
                     }
+                }
+            });
+            return null;
+        }, project);
+    }
+
+    public static void markGracefulShutdown(String project, String uuid) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val config = KylinConfig.getInstanceFromEnv();
+            val mgr = StreamingJobManager.getInstance(config, project);
+            mgr.updateStreamingJob(uuid, copyForWrite -> {
+                if (copyForWrite != null) {
+                    copyForWrite.setAction(StreamingConstants.ACTION_GRACEFUL_SHUTDOWN);
                 }
             });
             return null;

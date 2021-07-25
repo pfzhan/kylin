@@ -52,7 +52,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,25 +204,6 @@ public class ZKUtil {
         int sessionTimeout = geZKClientSessionTimeoutMs();
         int connectionTimeout = geZKClientConnectionTimeoutMs();
         return CuratorFrameworkFactory.newClient(zkString, sessionTimeout, connectionTimeout, retryPolicy);
-    }
-
-    public static CuratorFramework createEphemeralPath(String path, KylinConfig kylinConfig) throws Exception {
-        try {
-            CuratorFramework zkClient = getZookeeperClient(kylinConfig);
-            int retry = 0;
-            while (retry++ <= (kylinConfig.getZKMaxRetries() * 3)) {
-                if (zkClient.checkExists().forPath(path) != null) {
-                    Thread.sleep((long) 10000 * retry);
-                } else {
-                    break;
-                }
-            }
-            zkClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
-            return zkClient;
-        } catch (Exception e) {
-            logger.error("Failed to create path: {}", path);
-            throw e;
-        }
     }
 
     public static boolean pathExisted(String path, KylinConfig kylinConfig) throws Exception {

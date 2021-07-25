@@ -23,8 +23,7 @@
  */
 package io.kyligence.kap.streaming.jobs.thread;
 
-import java.util.Locale;
-
+import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -33,9 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 
@@ -58,24 +55,22 @@ public class StreamingJobRunnerTest extends StreamingTestCase {
 
     @Test
     public void testStop() {
-        val config = getTestConfig();
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
-        runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
-        runner.init();
-        runner.stop();
-        val buildMarkFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
-        Assert.assertTrue(!HDFSUtils.isExistsMarkFile(buildMarkFile));
-        val mergeMarkFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-        Assert.assertTrue(HDFSUtils.isExistsMarkFile(mergeMarkFile));
+
+        val app = new StreamingMergeEntry();
+        val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
+        Assert.assertFalse(app.isGracefulShutdown(PROJECT, buildJobId));
+        val mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name());
+        Assert.assertFalse(app.isGracefulShutdown(PROJECT, mergeJobId));
 
         runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
         runner.init();
         runner.stop();
-        Assert.assertTrue(HDFSUtils.isExistsMarkFile(buildMarkFile));
+        Assert.assertTrue(app.isGracefulShutdown(PROJECT, buildJobId));
+        runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
+        runner.init();
+        runner.stop();
+        Assert.assertTrue(app.isGracefulShutdown(PROJECT, mergeJobId));
     }
 
     @Test
@@ -84,13 +79,10 @@ public class StreamingJobRunnerTest extends StreamingTestCase {
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
         runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
         runner.stop();
-        val buildMarkFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()));
-        Assert.assertFalse(HDFSUtils.isExistsMarkFile(buildMarkFile));
-        val mergeMarkFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, PROJECT,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-        Assert.assertFalse(HDFSUtils.isExistsMarkFile(mergeMarkFile));
+        val app = new StreamingMergeEntry();
+        val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
+        Assert.assertFalse(app.isGracefulShutdown(PROJECT, buildJobId));
+        val mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name());
+        Assert.assertFalse(app.isGracefulShutdown(PROJECT, mergeJobId));
     }
 }

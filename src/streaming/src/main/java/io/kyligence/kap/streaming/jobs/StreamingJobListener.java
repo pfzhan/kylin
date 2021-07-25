@@ -25,15 +25,13 @@
 package io.kyligence.kap.streaming.jobs;
 
 import com.google.common.collect.Sets;
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
 import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.util.JobKiller;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
@@ -42,9 +40,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.text.SimpleDateFormat;
-import java.util.Locale;
 
 public class StreamingJobListener implements SparkAppHandle.Listener {
     private static final Logger logger = LoggerFactory.getLogger(StreamingJobListener.class);
@@ -66,43 +61,27 @@ public class StreamingJobListener implements SparkAppHandle.Listener {
     public void stateChanged(SparkAppHandle handler) {
         if (handler.getState().isFinal()) {
             runnable = null;
-            if(isFailed(handler.getState())) {
-                KylinConfig config = KylinConfig.getInstanceFromEnv();
-                val mgr = StreamingJobManager.getInstance(config, project);
-                val jobMeta = mgr.getStreamingJobByUuid(jobId);
-                if (!skipListener(jobMeta)) {
-                    logger.warn("The streaming job {} has terminated unexpectedly…", jobId);
-                    MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
-                    HDFSUtils.touchzMarkFile(config.getStreamingBaseJobsLocation()
-                            + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project, jobId));
-                    handler.kill();
-                }
-            } else if(isFinished(handler.getState())) {
-                MetaInfoUpdater.updateJobState(project, jobId, Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED),
-                        JobStatusEnum.STOPPED);
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            val mgr = StreamingJobManager.getInstance(config, project);
+            val jobMeta = mgr.getStreamingJobByUuid(jobId);
+            if (isFailed(handler.getState()) && !jobMeta.isSkipListener()) {
+                logger.warn("The streaming job {} has terminated unexpectedly…", jobId);
+                handler.kill();
+                JobKiller.killProcess(jobMeta);
+                JobKiller.killApplication(jobId);
+                MetaInfoUpdater.updateJobState(project, jobId,
+                        Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED), JobStatusEnum.ERROR);
+            } else if (isFinished(handler.getState())) {
+                handler.stop();
+                JobKiller.killProcess(jobMeta);
+                JobKiller.killApplication(jobId);
+                MetaInfoUpdater.updateJobState(project, jobId,
+                        Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED), JobStatusEnum.STOPPED);
             }
         } else if (runnable == null && SparkAppHandle.State.RUNNING == handler.getState()) {
             runnable = "true";
             MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.RUNNING);
         }
-    }
-
-    private boolean skipListener(StreamingJobMeta jobMeta) {
-        SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
-                Locale.getDefault(Locale.Category.FORMAT));
-        String lastUpdateTime = jobMeta.getLastUpdateTime();
-        try {
-            if (jobMeta.isSkipListener() && lastUpdateTime != null) {
-                val lastDateTime = simpleFormat.parse(lastUpdateTime);
-                val diff = (System.currentTimeMillis() - lastDateTime.getTime()) / (60 * 1000);
-                if (diff <= 2) {
-                    return true;
-                }
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-        return false;
     }
 
     private boolean isFailed(SparkAppHandle.State state) {

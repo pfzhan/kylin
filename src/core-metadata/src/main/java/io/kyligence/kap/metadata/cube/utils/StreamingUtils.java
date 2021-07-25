@@ -142,4 +142,13 @@ public class StreamingUtils {
     public static boolean isJobOnCluster(KylinConfig config) {
         return !StreamingUtils.isLocalMode() && !config.isUTEnv();
     }
+
+    public static void sleep(long times) {
+        try {
+            Thread.sleep(times);
+        } catch (InterruptedException e) {
+            log.error("Thread is interrupted while sleeping");
+            Thread.currentThread().interrupt();
+        }
+    }
 }

@@ -23,7 +23,10 @@
  */
 package io.kyligence.kap.metadata.cube;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,8 +58,15 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
         val config = getTestConfig();
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);
         var df = dfMgr.getDataflow(DATAFLOW_ID);
-        val layoutSet = StreamingUtils.getToBuildLayouts(df);
-        Assert.assertNotNull(layoutSet);
+        var layoutSet = StreamingUtils.getToBuildLayouts(df);
+        Assert.assertTrue(!layoutSet.isEmpty());
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments(SegmentStatusEnum.READY).toArray(new NDataSegment[0]));
+        dfMgr.updateDataflow(update);
+        df = dfMgr.getDataflow(DATAFLOW_ID);
+        layoutSet = StreamingUtils.getToBuildLayouts(df);
+        Assert.assertTrue(!layoutSet.isEmpty());
     }
 
     @Test
@@ -79,6 +89,10 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testParseSize() {
+        Assert.assertEquals(32 * 1024 * 1024L, StreamingUtils.parseSize(null).longValue());
+
+        Assert.assertEquals(32 * 1024 * 1024L, StreamingUtils.parseSize("").longValue());
+
         val ten_k = StreamingUtils.parseSize("10k").longValue();
         Assert.assertEquals(10240L, ten_k);
         val ten_kb = StreamingUtils.parseSize("10kb").longValue();
@@ -93,6 +107,15 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(10 * 1024 * 1024 * 1024L, ten_g);
         val ten_gb = StreamingUtils.parseSize("10gb").longValue();
         Assert.assertEquals(10 * 1024 * 1024 * 1024L, ten_gb);
+    }
+
+    @Test
+    public void testParseException() {
+        try {
+            StreamingUtils.parseSize("10z");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalArgumentException);
+        }
     }
 
     @Test
@@ -115,5 +138,26 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
         val config = KylinConfig.getInstanceFromEnv();
         val result = StreamingUtils.isJobOnCluster(config);
         Assert.assertEquals(false, result);
+    }
+
+    @Test
+    public void testSleep() {
+        val start = System.currentTimeMillis();
+        StreamingUtils.sleep(1000);
+        Assert.assertTrue((System.currentTimeMillis() - start) >= 1000);
+    }
+
+    @Test
+    public void testSleepException() {
+        val start = System.currentTimeMillis();
+        val t = new Thread(() -> {
+            StreamingUtils.sleep(10000);
+        });
+        try {
+            t.join(1000);
+            t.interrupt();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof InterruptedException);
+        }
     }
 }

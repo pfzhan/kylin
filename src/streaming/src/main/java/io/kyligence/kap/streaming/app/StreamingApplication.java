@@ -57,10 +57,12 @@ import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
+
 import lombok.val;
 import lombok.var;
 import scala.runtime.AbstractFunction1;
@@ -205,16 +207,6 @@ abstract public class StreamingApplication {
         }
     }
 
-    public void closeZkClient(CuratorFramework zkClient) {
-        if (zkClient != null) {
-            try {
-                zkClient.close();
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        }
-    }
-
     public void systemExit(int code) {
         val config = KylinConfig.getInstanceFromEnv();
         if (!config.isUTEnv() && !StreamingUtils.isLocalMode()) {
@@ -243,5 +235,12 @@ abstract public class StreamingApplication {
 
     public Map<String, String> getJobParams(StreamingJobMeta jobMeta) {
         return jobMeta.getParams();
+    }
+
+    public boolean isGracefulShutdown(String project, String uuid) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val mgr = StreamingJobManager.getInstance(config, project);
+        val meta = mgr.getStreamingJobByUuid(uuid);
+        return StreamingConstants.ACTION_GRACEFUL_SHUTDOWN.equals(meta.getAction());
     }
 }

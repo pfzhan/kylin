@@ -31,15 +31,12 @@ import java.util.{Locale, TimeZone}
 
 import com.google.common.base.Preconditions
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil, UdfManager}
-import io.kyligence.kap.engine.spark.utils.HDFSUtils
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataflowManager}
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils
 import io.kyligence.kap.metadata.project.NProjectManager
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework
 import io.kyligence.kap.streaming.CreateStreamingFlatTable
 import io.kyligence.kap.streaming.common.{BuildJobEntry, MicroBatchEntry}
-import io.kyligence.kap.streaming.constants.StreamingConstants
 import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingJobUtils, StreamingSegmentManager}
 import io.kyligence.kap.streaming.manager.StreamingJobManager
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta
@@ -49,7 +46,7 @@ import io.kyligence.kap.streaming.util.JobKiller
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.util.{TimeZoneUtils, ZKUtil}
+import org.apache.kylin.common.util.TimeZoneUtils
 import org.apache.kylin.job.execution.JobTypeEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.streaming.StreamingQueryListener.{QueryProgressEvent, QueryStartedEvent, QueryTerminatedEvent}
@@ -92,11 +89,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val config = KylinConfig.getInstanceFromEnv
     TimeZoneUtils.setDefaultTimeZone(config)
     val jobId = StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name)
-    var zkClient: CuratorFramework = null
-    if (!config.isUTEnv && !StreamingUtils.isLocalMode) {
-      zkClient = ZKUtil.createEphemeralPath(StreamingConstants.ZK_EPHEMERAL_ROOT_PATH + prj + "_"
-        + StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name), config)
-    }
 
     val buildEnv = KylinBuildEnv.getOrCreate(config)
     val sparkConf = buildEnv.sparkConf
@@ -127,15 +119,9 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val layouts = StreamingUtils.getToBuildLayouts(df)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(layouts, dataflowId)
     val model = df.getModel
-    val partitionColumn = model.getPartitionDesc.getPartitionDateColumn
 
     logInfo(s"start query for model : ${model.toString}")
     val builder = new StreamingDFBuildJob(prj)
-
-    val markFile = config.getStreamingBaseJobsLocation +
-      String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, prj,
-        StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
-    if (!config.isUTEnv) HDFSUtils.deleteMarkFile(markFile)
 
     query
       .writeStream
@@ -149,11 +135,10 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
       }
       .trigger(trigger)
       .start()
-    addShutdownListener(markFile, gracefulStop, StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
+    addShutdownListener(gracefulStop, prj, StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
     while (!forceStop.get() && !ss.sparkContext.isStopped) {
       if (gracefulStop.get()) {
         ss.streams.active.foreach(_.stop())
-        HDFSUtils.deleteMarkFile(markFile)
         builder.shutdown()
         gracefulStop.set(false)
         closeSparkSession()
@@ -165,7 +150,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
       forceStopLatch.countDown();
     }
     closeAuditLogStore(ss)
-    closeZkClient(zkClient)
     systemExit(0)
   }
 
@@ -249,7 +233,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
         val progress = queryProgress.progress
         val batchRows = progress.numInputRows
         val time = getTime(progress.timestamp)
-        import scala.collection.JavaConverters._
         val now = System.currentTimeMillis()
         var minDataLatency = 0L
         var maxDataLatency = 0L
@@ -258,7 +241,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
           maxDataLatency = (now - minMaxBuffer(0)._1) + windowSize * 1000
           minMaxBuffer.clear()
         }
-        val durationMs = progress.durationMs.asScala.foldLeft(0L)(_ + _._2)
+        val durationMs = progress.durationMs.get("triggerExecution").longValue()
         val request = new StreamingJobStatsRequest(jobId, projectId, batchRows, batchRows / windowSize, durationMs,
           time, minDataLatency, maxDataLatency)
         val rest = new RestSupport(config)
@@ -273,7 +256,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     })
   }
 
-  def addShutdownListener(markFile: String, stop: AtomicBoolean, jobId: String): Unit = {
+  def addShutdownListener(stop: AtomicBoolean, project: String, jobId: String): Unit = {
     ss.streams.addListener(new StreamingQueryListener() {
       override def onQueryStarted(event: QueryStartedEvent): Unit = {
 
@@ -281,8 +264,8 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
 
       override def onQueryProgress(event: QueryProgressEvent): Unit = {
         val config = KylinConfig.getInstanceFromEnv
-
-        if (!config.isUTEnv && HDFSUtils.isExistsMarkFile(markFile)) {
+        StreamingUtils.replayAuditlog()
+        if (!config.isUTEnv && isGracefulShutdown(project, jobId)) {
           log.info("onQueryProgress begin to shutdown streaming build job (" + event + ")")
           stop.set(true)
         }

@@ -87,7 +87,7 @@ public class StreamingConstants {
     // retry
     public static final String STREAMING_RETRY_ENABLE = "kylin.streaming.job-retry-enabled";
 
-    // zk Ephemeral root Path
-    public static final String ZK_EPHEMERAL_ROOT_PATH = "/kylin/streaming/jobs/";
+    public static final String ACTION_START = "START";
+    public static final String ACTION_GRACEFUL_SHUTDOWN = "GRACEFUL_SHUTDOWN";
 
 }

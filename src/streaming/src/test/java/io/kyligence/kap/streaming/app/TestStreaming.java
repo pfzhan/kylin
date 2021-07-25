@@ -26,13 +26,11 @@ package io.kyligence.kap.streaming.app;
 import java.util.HashMap;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ZKUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.utils.EmbededServer;
-import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -82,27 +80,6 @@ public class TestStreaming extends StreamingTestCase {
     public void tearDown() {
         this.cleanupTestMetadata();
         server.teardown();
-    }
-
-    @Test
-    public void testCreateRepeatEphemeralPath() {
-        val config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.env.zookeeper-connect-string", server.zkAddress());
-        config.setProperty("kylin.env.zookeeper-max-retries", "1");
-
-        try {
-            ZKUtil.createEphemeralPath(
-                    "/kylin/streaming/jobs/test_query" + "_" + StreamingUtils
-                            .getJobId("e78a89dd-847f-4574-8afa-8768b4228b72", JobTypeEnum.STREAMING_BUILD.name()),
-                    config);
-
-            ZKUtil.createEphemeralPath(
-                    "/kylin/streaming/jobs/test_query" + "_" + StreamingUtils
-                            .getJobId("e78a89dd-847f-4574-8afa-8768b4228b72", JobTypeEnum.STREAMING_BUILD.name()),
-                    config);
-        } catch (Exception e) {
-            assert (e instanceof KeeperException.NodeExistsException);
-        }
     }
 
     @Test

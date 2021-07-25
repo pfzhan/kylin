@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.streaming.jobs.scheduler;
 
-import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,14 +44,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
-import org.apache.kylin.common.util.ZKUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -85,6 +81,7 @@ import lombok.Getter;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class StreamingScheduler {
@@ -157,15 +154,15 @@ public class StreamingScheduler {
 
     public synchronized void submitJob(String project, String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
-        boolean applicationExisted = applicationExisted(jobId);
-        throwExceptionIfAppExists(applicationExisted, modelId);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
 
         checkJobStartStatus(jobMeta, jobId);
-        if (!StringUtils.isEmpty(jobMeta.getProcessId())) {
-            JobKiller.killProcess(jobMeta);
+        int code = JobKiller.killProcess(jobMeta);
+        if (code != 1) {
+            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, jobId);
         }
+        killYarnApplication(jobId, modelId);
 
         Predicate<NDataSegment> predicate = item -> (item.getStatus() == SegmentStatusEnum.NEW
                 || item.getStorageBytesSize() == 0) && item.getAdditionalInfo() != null;
@@ -269,17 +266,6 @@ public class StreamingScheduler {
         INSTANCE_MAP.remove(project);
     }
 
-    private boolean waitJob(String modelId, Predicate<JobStatusEnum> predicate, long timeout) {
-        val config = KylinConfig.getInstanceFromEnv();
-        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-
-        String buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
-        String mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.toString());
-        val sets = Sets.newHashSet(mgr.getStreamingJobByUuid(buildJobId), mgr.getStreamingJobByUuid(mergeJobId));
-        val jobMap = waitJob(sets, predicate, timeout);
-        return jobMap.size() != jobMap.values().stream().filter(item -> item.get()).count();
-    }
-
     private Map<String, AtomicBoolean> waitJob(Set<StreamingJobMeta> modelIds, Predicate<JobStatusEnum> predicate,
             long timeout) {
         val config = KylinConfig.getInstanceFromEnv();
@@ -381,28 +367,13 @@ public class StreamingScheduler {
         });
     }
 
-    private boolean zkPathExisted(String path, KylinConfig kylinConfig) throws Exception {
-        if (kylinConfig.isUTEnv()) {
-            return false;
-        } else {
-            return ZKUtil.pathExisted(path, kylinConfig);
-        }
-    }
-
     private void restartJob(KylinConfig config, StreamingJobMeta meta, String jobId, int targetCnt) {
         try {
-            val path = StreamingConstants.ZK_EPHEMERAL_ROOT_PATH + project + "_" + jobId;
-            if (!zkPathExisted(path, config)) {
-                submitJob(meta.getProject(), meta.getModelId(), meta.getJobType());
-                if (targetCnt < config.getStreamingJobMaxRetryInterval()) {
-                    retryMap.get(jobId).getKey().addAndGet(config.getStreamingJobRetryInterval());
-                }
-                retryMap.get(jobId).getValue().set(0);
-            } else {
-                if (!applicationExisted(jobId)) {
-                    JobKiller.killProcess(meta);
-                }
+            submitJob(meta.getProject(), meta.getModelId(), meta.getJobType());
+            if (targetCnt < config.getStreamingJobMaxRetryInterval()) {
+                retryMap.get(jobId).getKey().addAndGet(config.getStreamingJobRetryInterval());
             }
+            retryMap.get(jobId).getValue().set(0);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -424,7 +395,7 @@ public class StreamingScheduler {
         }, project);
     }
 
-    private boolean applicationExisted(String jobId) {
+    public static boolean applicationExisted(String jobId) {
         boolean existed = false;
         val config = KylinConfig.getInstanceFromEnv();
         if (!config.isUTEnv() && !StreamingUtils.isLocalMode()) {
@@ -443,12 +414,17 @@ public class StreamingScheduler {
         return existed;
     }
 
-    private void throwExceptionIfAppExists(Boolean isExists, String modelId) {
+    private void killYarnApplication(String jobId, String modelId) {
+        boolean isExists = applicationExisted(jobId);
         if (isExists) {
-            String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                    .getDataModelDesc(modelId).getAlias();
-            throw new KylinException(ServerErrorCode.REPEATED_START_ERROR,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_START_FAILURE(), model));
+            JobKiller.killApplication(jobId);
+            isExists = applicationExisted(jobId);
+            if (isExists) {
+                String model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .getDataModelDesc(modelId).getAlias();
+                throw new KylinException(ServerErrorCode.REPEATED_START_ERROR,
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getJOB_START_FAILURE(), model));
+            }
         }
     }
 
@@ -473,7 +449,7 @@ public class StreamingScheduler {
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
         List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
 
-        if (jobMetaList == null || jobMetaList.isEmpty()) {
+        if (CollectionUtils.isEmpty(jobMetaList)) {
             return;
         }
         List<StreamingJobMeta> retryJobMetaList = jobMetaList.stream()
@@ -504,10 +480,6 @@ public class StreamingScheduler {
             mgr.updateStreamingJob(uuid, copyForWrite -> {
                 if (copyForWrite != null) {
                     copyForWrite.setSkipListener(skip);
-                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
-                            Locale.getDefault(Locale.Category.FORMAT));
-                    Date date = new Date(System.currentTimeMillis());
-                    copyForWrite.setLastUpdateTime(format.format(date));
                 }
             });
             return null;

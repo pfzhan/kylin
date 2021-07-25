@@ -27,7 +27,6 @@ package io.kyligence.kap.streaming.app;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -43,7 +42,6 @@ import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeZoneUtils;
-import org.apache.kylin.common.util.ZKUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -55,13 +53,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
-import io.kyligence.kap.engine.spark.utils.HDFSUtils;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.jobs.StreamingDFMergeJob;
@@ -110,17 +106,7 @@ public class StreamingMergeEntry extends StreamingApplication {
 
         val modelId = dataflowId;
         // step1. write markfile for stop job graceful
-        String markFile = config.getStreamingBaseJobsLocation()
-                + String.format(Locale.ROOT, StreamingConstants.JOB_SHUTDOWN_FILE_PATH, project,
-                        StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-        CuratorFramework zkClient = null;
-        if (!config.isUTEnv()) {
-            if (!StreamingUtils.isLocalMode()) {
-                zkClient = ZKUtil.createEphemeralPath(StreamingConstants.ZK_EPHEMERAL_ROOT_PATH + project + "_"
-                        + StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()), config);
-            }
-            HDFSUtils.deleteMarkFile(markFile);
-        }
+        String jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name());
         TimeZoneUtils.setDefaultTimeZone(config);
         var isError = false;
         try {
@@ -132,11 +118,10 @@ public class StreamingMergeEntry extends StreamingApplication {
             reportApplicationInfo(config, project, dataflowId, JobTypeEnum.STREAMING_MERGE.name(), pid);
             while (!shutdown.get() && !ss.sparkContext().isStopped()) {
                 process(project, dataflowId);
-                if (!HDFSUtils.isExistsMarkFile(markFile)) {
-                    sleep(config.getStreamingSegmentMergeInterval() * 1000);
+                if (!isGracefulShutdown(project, jobId)) {
+                    StreamingUtils.sleep(config.getStreamingSegmentMergeInterval() * 1000);
                 } else if (!config.isUTEnv()) {
                     shutdown.set(true);
-                    HDFSUtils.deleteMarkFile(markFile);
                     logger.info("begin to shutdown streaming merge job (" + (project + ":" + dataflowId + ")"));
                 }
             }
@@ -151,7 +136,6 @@ public class StreamingMergeEntry extends StreamingApplication {
             merger.shutdown();
             latch.countDown();
             closeAuditLogStore(ss);
-            closeZkClient(zkClient);
             if (!isError) {
                 systemExit(0);
             }
@@ -211,19 +195,10 @@ public class StreamingMergeEntry extends StreamingApplication {
                 return allocateSegment(project, dataflowId, retainSegments, currLayer);
             } catch (KylinException e) {
                 logger.error(e.getMessage(), e);
-                sleep(config.getStreamingSegmentMergeInterval() * 1000 * retry);
+                StreamingUtils.sleep(config.getStreamingSegmentMergeInterval() * 1000 * retry);
             }
         }
         throw new KylinException(ServerErrorCode.SEGMENT_MERGE_FAILURE, project + "/" + dataflowId);
-    }
-
-    private void sleep(long times) {
-        try {
-            Thread.sleep(times);
-        } catch (InterruptedException e) {
-            logger.error(e.getMessage(), e);
-            Thread.currentThread().interrupt();
-        }
     }
 
     private NDataSegment getSegment(Segments<NDataSegment> segments, NDataSegment afterMergeSeg, String project,

@@ -89,10 +89,13 @@ public class StreamingJobListenerTest extends StreamingTestCase {
     @Test
     public void testStateChangedToFailure() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.toString());
-        val listener = new StreamingJobListener(PROJECT, jobId);
-        listener.stateChanged(mockFailedState());
         val testConfig = getTestConfig();
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        val listener = new StreamingJobListener(PROJECT, jobId);
+        listener.stateChanged(mockFailedState());
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.ERROR, jobMeta.getCurrentStatus());
 
@@ -119,9 +122,12 @@ public class StreamingJobListenerTest extends StreamingTestCase {
     @Test
     public void testStateChangedToKilled() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.toString());
-        val listener = new StreamingJobListener(PROJECT, jobId);
         val testConfig = getTestConfig();
         var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        val listener = new StreamingJobListener(PROJECT, jobId);
         listener.stateChanged(mockKilledState());
         var jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.ERROR, jobMeta.getCurrentStatus());
@@ -134,16 +140,9 @@ public class StreamingJobListenerTest extends StreamingTestCase {
         jobMeta = mgr.getStreamingJobByUuid(jobId);
         Assert.assertEquals(JobStatusEnum.RUNNING, jobMeta.getCurrentStatus());
 
-        mgr.updateStreamingJob(jobId, copyForWrite -> {
-            SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
-                    Locale.getDefault(Locale.Category.FORMAT));
-            Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(System.currentTimeMillis() - 3 * 60 * 1000);
-            copyForWrite.setLastUpdateTime(simpleFormat.format(cal.getTime()));
-        });
         listener.stateChanged(mockKilledState());
         jobMeta = mgr.getStreamingJobByUuid(jobId);
-        Assert.assertEquals(JobStatusEnum.ERROR, jobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.RUNNING, jobMeta.getCurrentStatus());
     }
 
     @Test

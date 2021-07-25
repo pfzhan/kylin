@@ -26,17 +26,15 @@ package io.kyligence.kap.streaming.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
@@ -44,26 +42,18 @@ import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutEx
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
 
 public class JobKiller {
     private static final Logger logger = LoggerFactory.getLogger(JobKiller.class);
+    private static final String GREP_CMD = "ps -ef|grep '%s' | grep -v grep|awk '{print $2}'";
 
-    public static void killJob(String project, String jobId, Predicate<StreamingJobMeta> predicate) {
-        val config = KylinConfig.getInstanceFromEnv();
-        val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
-        if (predicate.apply(jobMeta)) {
-            killProcess(jobMeta);
-            killApplication(jobId);
-            MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.ERROR);
-        }
-    }
+    private static boolean isYarnEnv = StreamingUtils.isJobOnCluster(KylinConfig.getInstanceFromEnv());
 
     public static synchronized void killApplication(String jobId) {
         val config = KylinConfig.getInstanceFromEnv();
-        if (!config.isUTEnv() && !StreamingUtils.isLocalMode()) {
+        if (isYarnEnv) {
             int errCnt = 0;
             while (errCnt++ < 3) {
                 try {
@@ -83,40 +73,48 @@ public class JobKiller {
     /**
      * @param jobMeta
      * @return statusCode value
-     *     2: called from none cluster
      *     0: process is killed successfully
-     *     1: process is not existed
+     *     1: process is not existed or called from none cluster
      *     negative number: process is kill unsuccessfully
      */
     public static synchronized int killProcess(StreamingJobMeta jobMeta) {
         val config = KylinConfig.getInstanceFromEnv();
         String pid = jobMeta.getProcessId();
 
-        int statusCode = 2;
-        if (!StreamingUtils.isJobOnCluster(config)) {
+        if (!isYarnEnv) {
             if (jobMeta.getJobType() == JobTypeEnum.STREAMING_BUILD) {
                 StreamingEntry.stop();
             } else if (jobMeta.getJobType() == JobTypeEnum.STREAMING_MERGE) {
                 StreamingMergeEntry.shutdown();
             }
-            return statusCode;
+            return 1;
         }
         String nodeInfo = jobMeta.getNodeInfo();
         CliCommandExecutor exec = config.getCliCommandExecutor();
+        int statusCode = -1;
+
         try {
             String jobId = StreamingUtils.getJobId(jobMeta.getModelId(), jobMeta.getJobType().name());
-            val cmd = "ps -ef|grep '" + jobId + "' | grep -v grep|awk '{print $2}'";
             val strLogger = new StringLogger();
-            val result = exec.execute(cmd, strLogger);
+            int retryCnt = 0;
 
-            int errCode = result.getCode();
-            if (errCode == 0) {
-                if (!strLogger.getContents().isEmpty()) {
-                    statusCode = exec.execute(cmd + "|xargs kill ", null).getCode();
-                } else {
-                    statusCode = 1;
+            boolean forced = false;
+            while (retryCnt++ < 6) {
+                int errCode = grepProcess(exec, strLogger, jobId);
+                if (errCode == 0) {
+                    if (!strLogger.getContents().isEmpty()) {
+                        if (retryCnt >= 3) {
+                            forced = true;
+                        }
+                        statusCode = doKillProcess(exec, jobId, forced);
+                    } else {
+                        statusCode = 1;
+                        break;
+                    }
                 }
+                StreamingUtils.sleep(1000L * retryCnt);
             }
+
         } catch (ShellException e) {
             logger.warn("failed to kill driver {} on {}", nodeInfo, pid);
         }
@@ -136,5 +134,21 @@ public class JobKiller {
         public List<String> getContents() {
             return contents;
         }
+    }
+
+    public static int grepProcess(CliCommandExecutor exec, StringLogger strLogger, String jobId)
+            throws ShellException {
+        String cmd = String.format(Locale.getDefault(), GREP_CMD, jobId);
+        val result = exec.execute(cmd, strLogger).getCode();
+        logger.info("grep process cmd=" + cmd + ", result = " + result);
+        return result;
+    }
+
+    public static int doKillProcess(CliCommandExecutor exec, String jobId, boolean forced) throws ShellException {
+        String cmd = String.format(Locale.getDefault(), GREP_CMD, jobId);
+        val force = forced ? " -9" : StringUtils.EMPTY;
+        val result = exec.execute(cmd + "|xargs kill" + force, null).getCode();
+        logger.info("kill process cmd=" + cmd + ", result = " + result);
+        return result;
     }
 }
