@@ -37,11 +37,9 @@ import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.{CollectExecutionMemoryUsage, SparderTypeUtil}
 import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparderEnv}
 import org.apache.spark.util.SizeEstimator
+
 import java.util
 import java.util.UUID
-
-import io.kyligence.kap.query.engine.exec.ExecuteResult
-
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
@@ -54,7 +52,7 @@ object ResultType extends Enumeration {
 object ResultPlan extends LogEx {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
-  private def collectInternal(df: DataFrame, rowType: RelDataType): (java.lang.Iterable[util.List[String]], Int) = logTime("collectInternal", info = true) {
+  private def collectInternal(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = logTime("collectInternal", info = true) {
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
@@ -97,9 +95,7 @@ object ResultPlan extends LogEx {
       QueryContext.current.record("executed_plan")
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
-      val results = df.toIterator()
-      val resultRows = results._1
-      val resultSize = results._2
+      val rows = df.collect()
       if (kapConfig.isQuerySparkJobTraceEnabled) jobTrace.jobFinished()
       QueryContext.current.record("collect_result")
 
@@ -108,20 +104,17 @@ object ResultPlan extends LogEx {
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
 
       val resultTypes = rowType.getFieldList.asScala
-      (() => new util.Iterator[util.List[String]] {
-
-        override def hasNext: Boolean = resultRows.hasNext
-
-        override def next(): util.List[String] = {
-          val row = resultRows.next()
-          if (Thread.interrupted()) {
-            throw new InterruptedException
-          }
-          row.toSeq.zip(resultTypes).map {
-            case (value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
-          }.asJava
+      val dt = convertResultWithMemLimit(rows) { row =>
+        if (Thread.interrupted()) {
+          throw new InterruptedException
         }
-      }, resultSize)
+        row.toSeq.zip(resultTypes).map {
+          case (value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
+        }.asJava
+      }.toSeq.asJava
+      jobTrace.resultConverted()
+      QueryContext.current.record("transform_result")
+      dt
     } catch {
       case e: InterruptedException =>
         Thread.currentThread.interrupt()
@@ -135,6 +128,30 @@ object ResultPlan extends LogEx {
           + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Collecting dataset for sparder. ")
     } finally {
       QueryContext.current().setExecutionID(QueryToExecutionIDCache.getQueryExecutionID(queryId))
+    }
+  }
+
+  def convertResultWithMemLimit[C: ClassTag](rows: Array[Row])(convertRow: Row => C): Array[C] = {
+    if (KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect < 0 || CollectExecutionMemoryUsage.current == null) {
+      rows.map(convertRow)
+    } else {
+      var checkedFirst = false
+      var memoryUsed = CollectExecutionMemoryUsage.current.estimatedMemoryUsage()
+      val allowMemUsage =
+        KylinConfig.getInstanceFromEnv.getQueryMemoryLimitDuringCollect * 1024 * 1024
+
+      rows.map(row => {
+        val converted = convertRow(row)
+        if (!checkedFirst) {
+          memoryUsed += SizeEstimator.estimate(converted.asInstanceOf[AnyRef]) * rows.length
+          if (memoryUsed > allowMemUsage) {
+            throw new SparkException(s"estimate memory usage ${memoryUsed} " +
+              s"> allowd maximum memory usage ${allowMemUsage}")
+          }
+          checkedFirst = true
+        }
+        converted
+      })
     }
   }
 
@@ -159,7 +176,7 @@ object ResultPlan extends LogEx {
     }
   }
 
-  def getResult(df: DataFrame, rowType: RelDataType): ExecuteResult = withScope(df) {
+  def getResult(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = withScope(df) {
     val queryTagInfo = QueryContext.current().getQueryTagInfo
     if (queryTagInfo.isAsyncQuery) {
       saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode)
@@ -167,9 +184,9 @@ object ResultPlan extends LogEx {
     val result = if (SparderEnv.needCompute() && !QueryContext.current().getQueryTagInfo.isAsyncQuery) {
       collectInternal(df, rowType)
     } else {
-      (new util.LinkedList[util.List[String]], 0)
+      new util.LinkedList[util.List[String]]
     }
-    new ExecuteResult(result._1, result._2)
+    result
   }
 
   def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {

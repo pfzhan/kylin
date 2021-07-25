@@ -31,11 +31,9 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.calcite.avatica.ColumnMetaData;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.kylin.common.KapConfig;
@@ -45,13 +43,13 @@ import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.DBUtils;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoStreamingRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +72,8 @@ public class QueryRoutingEngine {
     // reference org.apache.spark.deploy.yarn.YarnAllocator.memLimitExceededLogMessage
     public static final String SPARK_MEM_LIMIT_EXCEEDED = "Container killed by YARN for exceeding memory limits";
 
-    public QueryResult queryWithSqlMassage(QueryParams queryParams) throws Exception {
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> queryWithSqlMassage(QueryParams queryParams)
+            throws Exception {
         QueryContext.current().setAclInfo(queryParams.getAclInfo());
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(queryParams.getProject()).getConfig();
@@ -165,8 +164,7 @@ public class QueryRoutingEngine {
         }
     }
 
-    @VisibleForTesting
-    public QueryResult execute(String correctedSql, QueryExec queryExec)
+    protected Pair<List<List<String>>, List<SelectedColumnMeta>> execute(String correctedSql, QueryExec queryExec)
             throws Exception {
         QueryResult queryResult = queryExec.executeQuery(correctedSql);
 
@@ -178,16 +176,17 @@ public class QueryRoutingEngine {
         }
         QueryContext.current().setNativeQueryRealizationList(nativeQueryRealizationList);
 
-        return queryResult;
+        return Pair.newPair(Lists.newArrayList(queryResult.getRows()),
+                Lists.newArrayList(queryResult.getColumnMetas()));
     }
 
-    private QueryResult pushDownQuery(SQLException sqlException, QueryParams queryParams)
-            throws SQLException {
+    private Pair<List<List<String>>, List<SelectedColumnMeta>> pushDownQuery(SQLException sqlException,
+            QueryParams queryParams) throws SQLException {
         QueryContext.current().getMetrics().setOlapCause(sqlException);
         QueryContext.current().getQueryTagInfo().setPushdown(true);
-        PushdownResult result = null;
+        Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
         try {
-            result = tryPushDownSelectQuery(queryParams, sqlException, BackdoorToggles.getPrepareOnly());
+            r = tryPushDownSelectQuery(queryParams, sqlException, BackdoorToggles.getPrepareOnly());
         } catch (KylinException e) {
             logger.error("pushdown failed with kylin exception ", e);
             throw e;
@@ -198,13 +197,14 @@ public class QueryRoutingEngine {
                     "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
         }
 
-        if (result == null)
+        if (r == null)
             throw sqlException;
 
-        return new QueryResult(result.getRows(), result.getSize(), null, result.getColumnMetas());
+        return r;
     }
 
-    public PushdownResult tryPushDownSelectQuery(QueryParams queryParams, SQLException sqlException, boolean isPrepare) throws Exception {
+    public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(QueryParams queryParams,
+            SQLException sqlException, boolean isPrepare) throws Exception {
         QueryContext.currentTrace().startSpan(QueryTrace.SQL_PUSHDOWN_TRANSFORMATION);
         String sqlString = queryParams.getSql();
         if (isPrepareStatementWithParams(queryParams)) {
@@ -223,7 +223,7 @@ public class QueryRoutingEngine {
         queryParams.setSql(massagedSql);
         queryParams.setSqlException(sqlException);
         queryParams.setPrepare(isPrepare);
-        return PushDownUtil.tryPushDownQueryToIterator(queryParams);
+        return PushDownUtil.tryPushDownQuery(queryParams);
     }
 
     private boolean isPrepareStatementWithParams(QueryParams queryParams) {
@@ -232,7 +232,7 @@ public class QueryRoutingEngine {
                 && queryParams.isPrepareStatementWithParams();
     }
 
-    private QueryResult prepareOnly(String correctedSql, QueryExec queryExec,
+    private Pair<List<List<String>>, List<SelectedColumnMeta>> prepareOnly(String correctedSql, QueryExec queryExec,
             List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
 
         CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
@@ -254,11 +254,12 @@ public class QueryRoutingEngine {
                         Math.max(field.getScale(), 0), field.getDataType(), field.getDataTypeName(), true, false,
                         false));
             }
-            return new QueryResult(new LinkedList<>(), 0, fields, columnMetas);
         } finally {
             CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(false);
             DBUtils.closeQuietly(preparedStatement);
         }
+
+        return Pair.newPair(results, columnMetas);
     }
 
     /**

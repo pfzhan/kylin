@@ -342,6 +342,13 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
         return PushDownUtil.tryPushDownQuery(queryParams);
     }
 
+    protected Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String sql,
+            boolean isPrepare) throws Exception {
+        QueryParams queryParams = new QueryParams(ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", isPrepare,
+                false, false);
+        return PushDownUtil.tryPushDownQuery(queryParams);
+    }
+
     protected ITable executeDynamicQuery(IDatabaseConnection dbConn, String queryName, String sql,
             List<String> parameters, boolean needSort) throws Exception {
 

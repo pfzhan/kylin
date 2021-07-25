@@ -27,29 +27,16 @@
 package io.kyligence.kap.query.pushdown;
 
 import io.kyligence.kap.metadata.query.StructField;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
+@Getter
+@Setter
+@AllArgsConstructor
 public class PushdownResponse {
-    private final List<StructField> columns;
-    private final Iterable<List<String>> rows;
-    private final int size;
-
-    public PushdownResponse(List<StructField> columns, Iterable<List<String>> rows, int size) {
-        this.columns = columns;
-        this.rows = rows;
-        this.size = size;
-    }
-
-    public List<StructField> getColumns() {
-        return columns;
-    }
-
-    public Iterable<List<String>> getRows() {
-        return rows;
-    }
-
-    public int getSize() {
-        return size;
-    }
+    private List<StructField> columns;
+    private List<List<String>> rows;
 }

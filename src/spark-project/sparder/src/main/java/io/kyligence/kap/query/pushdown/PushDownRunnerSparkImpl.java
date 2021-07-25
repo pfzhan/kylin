@@ -31,11 +31,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
-import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
 import java.util.List;
 
 public class PushDownRunnerSparkImpl implements IPushDownRunner {
@@ -49,17 +47,14 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
     @Override
     public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas,
             String project) {
-        PushdownResult response = executeQueryToIterator(query, project);
-        response.getRows().forEach(results::add);
-        columnMetas.addAll(response.getColumnMetas());
-    }
 
-    @Override
-    public PushdownResult executeQueryToIterator(String query, String project) {
         PushdownResponse response = queryWithPushDown(query, project);
+
         int columnCount = response.getColumns().size();
         List<StructField> fieldList = response.getColumns();
-        List<SelectedColumnMeta> columnMetas = new LinkedList<>();
+
+        results.addAll(response.getRows());
+
         // fill in selected column meta
         for (int i = 0; i < columnCount; ++i) {
             int nullable = fieldList.get(i).isNullable() ? 1 : 0;
@@ -68,8 +63,6 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
                     null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
                     fieldList.get(i).getDataTypeName(), false, false, false));
         }
-
-        return new PushdownResult(response.getRows(), response.getSize(), columnMetas);
     }
 
     @Override

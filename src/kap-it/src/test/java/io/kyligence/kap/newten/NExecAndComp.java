@@ -702,6 +702,7 @@ public class NExecAndComp {
     }
 
     public static List<List<String>> queryCubeWithJDBC(String prj, String sql) throws Exception {
+        //      SparderEnv.skipCompute();
         return new QueryExec(prj, KylinConfig.getInstanceFromEnv(), true).executeQuery(sql).getRows();
     }
 }

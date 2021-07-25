@@ -424,8 +424,8 @@ public class NQueryController extends NBasicController {
             String[] headers = new String[headerList.size()];
             csvWriter.writeHeader(headerList.toArray(headers));
 
-            for (List<String> strings : result.getResults()) {
-                csvWriter.write(strings);
+            for (List<String> row : result.getResults()) {
+                csvWriter.write(row);
             }
         } catch (IOException e) {
             logger.error("Download query result failed...", e);

@@ -44,7 +44,6 @@ package org.apache.kylin.source.adhocquery;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 
@@ -61,16 +60,8 @@ public interface IPushDownRunner {
      * @param project               the project name
      * @throws Exception if running pushdown query fails
      */
-    @Deprecated
     void executeQuery(String query, List<List<String>> returnRows, List<SelectedColumnMeta> returnColumnMeta,
             String project) throws Exception;
-
-    default PushdownResult executeQueryToIterator(String query, String project) throws Exception {
-        List<List<String>> returnRows = Lists.newArrayList();
-        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
-        executeQuery(query, returnRows, returnColumnMeta, project);
-        return new PushdownResult(returnRows, returnRows.size(), returnColumnMeta);
-    }
 
     /**
      * Run an pushdown non-query sql

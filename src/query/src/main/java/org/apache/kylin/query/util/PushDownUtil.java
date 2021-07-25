@@ -55,7 +55,6 @@ import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.BadRequestException;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -78,7 +77,6 @@ import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.query.udf.CalciteNotSupportException;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
-import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.codehaus.commons.compiler.CompileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +96,7 @@ public class PushDownUtil {
     private PushDownUtil() {
     }
 
-    public static PushdownResult tryPushDownQueryToIterator(QueryParams queryParams)
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams)
             throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -142,27 +140,29 @@ public class PushDownUtil {
         }
         QueryContext.current().setPushdownEngine(pushdownEngine);
 
+        List<List<String>> returnRows = Lists.newArrayList();
+        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
         queryParams.setKylinConfig(kylinConfig);
         queryParams.setSql(sql);
         try {
             sql = QueryUtil.massagePushDownSql(queryParams);
         } catch (NoAuthorizedColsError e) {
             // on no authorized cols found, return empty result
-            return PushdownResult.emptyResult();
+            return Pair.newPair(returnRows, returnColumnMeta);
         }
 
         QueryContext.currentTrace().startSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB);
         if (queryParams.isSelect()) {
-            PushdownResult result = runner.executeQueryToIterator(sql, project);
-            if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
-                AsyncQueryUtil.saveMetaDataAndFileInfo(QueryContext.current(), result.getColumnMetas());
-            }
-            return result;
+            runner.executeQuery(sql, returnRows, returnColumnMeta, project);
         }
         if (!queryParams.isSelect() && !queryParams.isPrepare() && kylinConfig.isPushDownUpdateEnabled()) {
             runner.executeUpdate(sql, project);
         }
-        return PushdownResult.emptyResult();
+        if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            AsyncQueryUtil.saveMetaDataAndFileInfo(QueryContext.current(), returnColumnMeta);
+        }
+        return Pair.newPair(returnRows, returnColumnMeta);
     }
 
     public static Pair<String, String> getMaxAndMinTimeWithTimeOut(String partitionColumn, String table, String project)
@@ -297,14 +297,5 @@ public class PushDownUtil {
             start = coveredRange.getEnd().toString();
         }
         return start;
-    }
-
-    @Deprecated
-    public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(QueryParams queryParams) throws Exception {
-        val results = tryPushDownQueryToIterator(queryParams);
-        if (results == null) {
-            return null;
-        }
-        return new Pair<>(ImmutableList.copyOf(results.getRows()), results.getColumnMetas());
     }
 }

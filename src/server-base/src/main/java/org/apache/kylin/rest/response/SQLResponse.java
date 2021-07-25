@@ -43,11 +43,8 @@
 package org.apache.kylin.rest.response;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -73,7 +70,7 @@ public class SQLResponse implements Serializable {
     private List<SelectedColumnMeta> columnMetas;
 
     // the results rows, each row contains several columns
-    private Iterable<List<String>> results;
+    private List<List<String>> results;
 
     // if not select query, only return affected row count
     protected int affectedRowCount;
@@ -145,7 +142,6 @@ public class SQLResponse implements Serializable {
     private List<SQLResponseTrace> traces;
 
     public SQLResponse() {
-        this(new LinkedList<>(), new LinkedList<>(), 0, false, null);
     }
 
     public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results, int affectedRowCount,
@@ -160,9 +156,8 @@ public class SQLResponse implements Serializable {
         }
     }
 
-    public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results,
-                       int affectedRowCount, boolean isException, String exceptionMessage,
-                       boolean isPartial, boolean isPushDown) {
+    public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results, int affectedRowCount,
+            boolean isException, String exceptionMessage, boolean isPartial, boolean isPushDown) {
         this.columnMetas = columnMetas;
         this.results = results;
         this.affectedRowCount = affectedRowCount;
@@ -173,22 +168,6 @@ public class SQLResponse implements Serializable {
         this.isPrepare = BackdoorToggles.getPrepareOnly();
         if (results != null) {
             this.resultRowCount = results.size();
-        }
-    }
-
-    public SQLResponse(List<SelectedColumnMeta> columnMetas, Iterable<List<String>> results, int resultSize,
-                       int affectedRowCount, boolean isException, String exceptionMessage,
-                       boolean isPartial, boolean isPushDown) {
-        this.columnMetas = columnMetas;
-        this.results = results;
-        this.affectedRowCount = affectedRowCount;
-        this.isException = isException;
-        this.exceptionMessage = exceptionMessage;
-        this.isPartial = isPartial;
-        this.queryPushDown = isPushDown;
-        this.isPrepare = BackdoorToggles.getPrepareOnly();
-        if (results != null) {
-            this.resultRowCount = resultSize;
         }
     }
 
@@ -214,15 +193,5 @@ public class SQLResponse implements Serializable {
 
     public long getTotalScanBytes() {
         return QueryContext.calValueWithDefault(scanBytes);
-    }
-
-    /**
-     * read all rows from results iterator and replace results iterable with all rows read
-     * this is needed when the result needs to be both saved in cache and returned to user
-     */
-    public void readAllRows() {
-        if (!(results instanceof Collection)) {
-            results = ImmutableList.copyOf(results);
-        }
     }
 }

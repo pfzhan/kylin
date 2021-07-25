@@ -29,8 +29,9 @@ import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.engine.mask.QueryResultMasks
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
-import io.kyligence.kap.query.runtime.plan.ResultPlan.saveAsyncQueryResult
+import io.kyligence.kap.query.runtime.plan.ResultPlan.{convertResultWithMemLimit, saveAsyncQueryResult}
 import io.kyligence.kap.query.util.SparkJobTrace
+import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
@@ -46,7 +47,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.sql.Timestamp
 import java.util.{UUID, List => JList}
 
-import com.google.common.collect.ImmutableList
+import com.google.common.annotations.VisibleForTesting
 
 import scala.collection.JavaConverters._
 import scala.collection.{immutable, mutable}
@@ -56,14 +57,7 @@ object SparkSqlClient {
 
   val logger: Logger = LoggerFactory.getLogger(classOf[SparkSqlClient])
 
-  @deprecated
   def executeSql(ss: SparkSession, sql: String, uuid: UUID, project: String): Pair[JList[JList[String]], JList[StructField]] = {
-    val results = executeSqlToIterable(ss, sql, uuid, project)
-    Pair.newPair(ImmutableList.copyOf(results._1), results._3)
-  }
-
-  def executeSqlToIterable(ss: SparkSession, sql: String, uuid: UUID, project: String):
-  (java.lang.Iterable[JList[String]], Int, JList[StructField]) = {
     ss.sparkContext.setLocalProperty("spark.scheduler.pool", "query_pushdown")
     HadoopUtil.setCurrentConfiguration(ss.sparkContext.hadoopConfiguration)
     val s = "Start to run sql with SparkSQL..."
@@ -109,8 +103,8 @@ object SparkSqlClient {
     }
   }
 
-  /* VisibleForTesting */
-  def dfToList(ss: SparkSession, sql: String, df: DataFrame): (java.lang.Iterable[JList[String]], Int, JList[StructField]) = {
+  @VisibleForTesting
+  def dfToList(ss: SparkSession, sql: String, df: DataFrame): Pair[JList[JList[String]], JList[StructField]] = {
     val config = KapConfig.getInstanceFromEnv
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
@@ -119,31 +113,20 @@ object SparkSqlClient {
       if (queryTagInfo.isAsyncQuery) {
         saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode)
         val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
-        return (Lists.newArrayList(), 0, fieldList)
+        return Pair.newPair(Lists.newArrayList(), fieldList)
       }
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), SparderEnv.getSparkSession.sparkContext)
-      val results = df.toIterator()
-      val resultRows = results._1
-      val resultSize = results._2
+      val rawList = df.collect()
 
       if (config.isQuerySparkJobTraceEnabled) jobTrace.jobFinished()
+      val rowList = convertResultWithMemLimit(rawList)(_.toSeq.map(v => rawValueToString(v)).asJava).toSeq.asJava
+      jobTrace.resultConverted()
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().getMetrics.setScanRows(scanRows)
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
-
-      (
-        () => new java.util.Iterator[JList[String]] {
-          override def hasNext: Boolean = resultRows.hasNext
-
-          override def next(): JList[String] = {
-            resultRows.next().toSeq.map(rawValueToString(_)).asJava
-          }
-        },
-        resultSize,
-        fieldList
-      )
+      Pair.newPair(rowList, fieldList)
     } catch {
       case e: Throwable =>
         if (e.isInstanceOf[InterruptedException]) {
