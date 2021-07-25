@@ -6018,8 +6018,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid(model);
         BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
         BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
-        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
         Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), any(BuildBaseIndexResponse.class));
+
+        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
         modelService.changeSecondStorageIfNeeded("default", request, changedResponse);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
 

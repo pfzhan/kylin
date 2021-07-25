@@ -3311,9 +3311,7 @@ public class ModelService extends BasicService {
     }
 
     public void changeSecondStorageIfNeeded(String project, ModelRequest request, BuildBaseIndexResponse baseIndexResponse) {
-        if (!baseIndexResponse.hasTableIndexChange()) {
-            return;
-        }
+
         // disable second storage
         if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
                 && !request.isWithSecondStorage()) {

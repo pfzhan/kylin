@@ -102,7 +102,7 @@ public class BaseIndexUpdateHelper {
                 needCreateBaseTable, true);
         response.judgeIndexOperateType(preExistBaseAggLayout, true);
         response.judgeIndexOperateType(preExistBaseTableLayout, false);
-        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+        if (SecondStorageUtil.isModelEnable(project, modelId) && response.hasTableIndexChange()) {
             SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
             updater.onUpdate(project, modelId);
         }
