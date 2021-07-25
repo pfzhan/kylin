@@ -113,7 +113,7 @@
     <el-dialog
       class="layout-details"
       :title="indexDetailTitle"
-      width="480px"
+      width="880px"
       :append-to-body="true"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
@@ -149,7 +149,7 @@
           </template>
         </el-table-column>
         <el-table-column type="index" :label="$t('order')" width="50"></el-table-column>
-        <el-table-column :label="$t('th_name')" width="260">
+        <el-table-column :label="$t('th_name')" width="670">
           <template slot-scope="scope">
             <span class="column-name" :title="scope.row.name" :style="{width: scope.row.add ? 'calc(100% - 50px)' : '100%'}">{{scope.row.name}}</span>
             <el-tag class="add-tag" size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
@@ -725,6 +725,7 @@ export default class IndexList extends Vue {
       this.sameNameErrorIds = []
       this.isLoading = false
       this.showValidate = false
+      this.$emit('refreshModel')
     }).catch(e => {
       this.isLoading = false
     })

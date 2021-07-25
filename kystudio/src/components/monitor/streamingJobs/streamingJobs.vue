@@ -9,7 +9,7 @@
             <el-button type="primary" text size="medium" icon="el-ksd-icon-play_with_border_22" :disabled="!batchBtnsEnabled.start" :loading="startLoading" @click="batchStart">{{$t('jobStart')}}</el-button>
             <el-button type="primary" text size="medium" icon="el-ksd-icon-resure_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.restart" :loading="restartLoading" @click="batchRestart">{{$t('jobRestart')}}</el-button>
             <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stop" :loading="stopLoading" @click="batchStop(false)">{{$t('jobStop')}}</el-button>
-            <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stopImme" :loading="stopLoading" @click="batchStop(true)">{{$t('stopJobImme')}}</el-button>
+            <el-button type="primary" text size="medium" icon="el-ksd-icon-stop_with_border_22" class="ksd-ml-2" :disabled="!batchBtnsEnabled.stopImme" :loading="stopImmeLoading" @click="batchStop(true)">{{$t('stopJobImme')}}</el-button>
           </div>
         </el-col>
         <el-col :span="8">
@@ -310,6 +310,7 @@ export default class StreamingJobsList extends Vue {
   startLoading = false
   restartLoading = false
   stopLoading = false
+  stopImmeLoading = false
   batchBtnsEnabled = {
     start: false,
     restart: false,
@@ -412,12 +413,13 @@ export default class StreamingJobsList extends Vue {
       }
     }
   }
-  async stopJob (data) {
+  async stopJob (data, isStopImme) {
+    const loadingType = isStopImme ? 'stopImmeLoading' : 'stopLoading'
     try {
-      this.stopLoading = true
+      this[loadingType] = true
       const res = await this.updateStreamingJobs(data)
       await handleSuccessAsync(res)
-      this.stopLoading = false
+      this[loadingType] = false
       this.$message({
         type: 'success',
         message: this.$t('kylinLang.common.actionSuccess')
@@ -425,7 +427,7 @@ export default class StreamingJobsList extends Vue {
       this.manualRefreshJobs()
     } catch (e) {
       handleError(e)
-      this.stopLoading = false
+      this[loadingType] = false
     }
   }
   async batchStop (isStopImme) {
@@ -452,7 +454,7 @@ export default class StreamingJobsList extends Vue {
       if (this.$store.state.project.isAllProject) {
         delete data.project
       }
-      this.stopJob(data)
+      this.stopJob(data, isStopImme)
     }
   }
   filterChange (val) {

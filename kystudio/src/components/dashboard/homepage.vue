@@ -649,8 +649,9 @@ export default class Homepage extends Vue {
             right: 1em;
             font-size: 0.012em;
             height: 1.5em;
-            line-height: 1.5em;
             padding: 0 0.5em;
+            display: flex;
+            align-items: center;
           }
         }
       }

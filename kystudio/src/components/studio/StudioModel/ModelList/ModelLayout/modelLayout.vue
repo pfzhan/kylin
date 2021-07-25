@@ -89,7 +89,7 @@
               v-if="currentIndexTab === 'indexOverview'" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" :label="$t('recommendationsBtn')" name="recommendations" v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions') && currentModelRow.model_type !== 'HYBRID'">
-            <recommendations v-if="currentIndexTab==='recommendations'" :modelDesc="currentModelRow" @accept="acceptRecommend" />
+            <recommendations v-if="currentIndexTab==='recommendations'" @refreshModel="refreshModelData" :modelDesc="currentModelRow" @accept="acceptRecommend" />
           </el-tab-pane>
           <el-tab-pane class="tab-pane-item" v-if="datasourceActions.includes('editAggGroup')" :label="$t('aggregateGroup')" name="aggGroup">
             <ModelAggregateView

@@ -55,8 +55,8 @@
       <el-form-item :label="$t('partitionDateTable')" class="clearfix">
         <el-row :gutter="5">
           <el-col :span="24">
-            <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!(isNotBatchModel&&!!modelDesc.uuid)" placement="bottom">
-              <el-select :disabled="isLoadingNewRange||(isNotBatchModel&&!!modelDesc.uuid)" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
+            <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!(isNotBatchModel&&!!modelDesc.uuid&&isAlreadyHavePartition)" placement="bottom">
+              <el-select :disabled="isLoadingNewRange||(isNotBatchModel&&!!modelDesc.uuid&&isAlreadyHavePartition)" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
                 <!-- <el-option :label="$t('noPartition')" value=""></el-option> -->
                 <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
               </el-select>
@@ -69,9 +69,9 @@
         <el-row :gutter="5">
           <el-col :span="partitionMeta.column && $store.state.project.projectPushdownConfig && factTableType !== 1 ? 11 : 12" v-if="partitionMeta.table">
             <el-form-item prop="column">
-              <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!(isNotBatchModel&&!!modelDesc.uuid)" placement="bottom">
+              <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!(isNotBatchModel&&!!modelDesc.uuid&&isAlreadyHavePartition)" placement="bottom">
                 <el-select
-                  :disabled="isLoadingNewRange || (isNotBatchModel&&!!modelDesc.uuid)"
+                  :disabled="isLoadingNewRange || (isNotBatchModel&&!!modelDesc.uuid&&isAlreadyHavePartition)"
                   v-guide.partitionColumn
                   v-model="partitionMeta.column"
                   :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
@@ -90,9 +90,9 @@
             </el-form-item>
           </el-col>
           <el-col :span="partitionMeta.column && $store.state.project.projectPushdownConfig && factTableType !== 1 ? 11 : 12">
-            <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!(isNotBatchModel&&!!modelDesc.uuid)" placement="bottom">
+            <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!(isNotBatchModel&&!!modelDesc.uuid&&isAlreadyHavePartition)" placement="bottom">
               <el-select
-                :disabled="isLoadingFormat || (isNotBatchModel&&!!modelDesc.uuid)"
+                :disabled="isLoadingFormat || (isNotBatchModel&&!!modelDesc.uuid&&isAlreadyHavePartition)"
                 v-guide.partitionColumnFormat
                 style="width:100%"
                 v-model="partitionMeta.format"
@@ -343,6 +343,7 @@ export default class ModelPartitionModal extends Vue {
   isShowSecStorageTips = false
   isShowSecStorageTips2 = false
   isShowSecondStoragePartitionTips = false
+  isAlreadyHavePartition = false
   filterCondition = ''
   originFilterCondition = ''
   dateFormats = dateFormats
@@ -578,6 +579,7 @@ export default class ModelPartitionModal extends Vue {
         this.defaultBuildType = 'fullLoad'
       }
       if (this.modelDesc && partition_desc && partition_desc.partition_date_column) {
+        this.isAlreadyHavePartition = true
         let named = partition_desc.partition_date_column.split('.')
         this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
         this.partitionMeta.column = this.prevPartitionMeta.column = named[1]

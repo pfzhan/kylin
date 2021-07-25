@@ -72,11 +72,11 @@
             </el-dropdown-item>
             <el-dropdown-item
               command="dataLoad"
-              :class="{'disabled-action': currentModel.model_type !== 'BATCH'}"
+              :class="{'disabled-action': currentModel.model_type !== 'BATCH'&&isHavePartitionColumn}"
               v-if="currentModel.status !== 'BROKEN' && modelActions.includes('dataLoad')">
               <common-tip
                 :content="$t('disableActionTips4')"
-                :disabled="currentModel.model_type === 'BATCH'">
+                :disabled="!(currentModel.model_type !== 'BATCH'&&isHavePartitionColumn)">
                 {{$t('modelPartitionSet')}}
               </common-tip>
             </el-dropdown-item>
@@ -617,7 +617,7 @@ export default class ModelActions extends Vue {
       modelDesc.tabTypes = 'second'
       this.$emit('jump:recommendation', modelDesc)
     } else if (command === 'dataLoad') {
-      if (modelDesc.model_type !== 'BATCH') {
+      if (modelDesc.model_type !== 'BATCH' && this.isHavePartitionColumn) {
         return false
       }
       this.getModelByModelName({model_name: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
@@ -701,6 +701,10 @@ export default class ModelActions extends Vue {
 
   get isHaveNoDimMeas () {
     return this.currentModel.simplified_dimensions.length === 0 && this.currentModel.simplified_measures.length === 1 && this.currentModel.simplified_measures[0].name === 'COUNT_ALL' // 没有设置维度，只有默认度量
+  }
+
+  get isHavePartitionColumn () {
+    return this.currentModel.partition_desc && !!this.currentModel.partition_desc.partition_date_column
   }
 
   openSecStorageDialog () {

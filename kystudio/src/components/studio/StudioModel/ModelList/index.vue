@@ -224,6 +224,7 @@
           prop="model_type"
           show-overflow-tooltip
           width="150px"
+          v-if="$store.state.config.platform !== 'iframe'"
           :label="$t('modelType')">
           <template slot-scope="scope">
             <span>{{$t(scope.row.model_type)}}</span>
