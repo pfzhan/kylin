@@ -62,6 +62,7 @@ export default {
     disableActionTips: 'Unavailable for Streaming model',
     disableActionTips2: 'Unavailable for Fusion model and Streaming model',
     disableActionTips3: 'Unavailable for Fusion model',
+    disableActionTips4: 'The time partition settings can\'t be modified for fusion model and streaming model. ',
     disableSecStorageActionTips: 'The tiered storage can\'t be used for fusion or streaming models at the moment.'
   },
   'zh-cn': {
@@ -127,6 +128,7 @@ export default {
     disableActionTips: '实时模型暂无法使用此功能',
     disableActionTips2: '融合模型和实时模型暂无法使用此功能',
     disableActionTips3: '融合模型暂无法使用此功能',
+    disableActionTips4: '融合模型和实时模型无法修改时间分区设置。',
     disableSecStorageActionTips: '融合模型或实时模型暂无法使用分层存储'
   }
 }

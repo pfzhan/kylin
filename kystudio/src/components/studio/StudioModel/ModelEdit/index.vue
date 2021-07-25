@@ -1040,7 +1040,7 @@ export default class ModelEdit extends Vue {
     })
   }
   deleteDimenison (d) {
-    if (this.modelInstance.second_storage_enabled && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === d.column) {
+    if ((this.modelInstance.second_storage_enabled || this.isHybridModel) && this.modelInstance.partition_desc && this.modelInstance.partition_desc.partition_date_column === d.column) {
       return
     }
     this.modelInstance.delDimension(d.name)

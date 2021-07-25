@@ -55,7 +55,9 @@ export default {
     disableSecStorageActionTips2: 'The tiered storage can\'t be used because no dimension or measure has been added and the base table index can\'t be added.',
     secondStoragePartitionTips: 'Can\'t save the model. When the model uses incremental load method and the tiered storage is ON, the time partition column must be added as a dimension.',
     streamSecStoragePartitionTips: 'Can\'t save the model. For fusion model, the time partition column must be added as a dimension.',
-    baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default.'
+    baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default.',
+    notBatchModelPartitionTips: 'The time partition settings can\'t be modified after the fusion model or streaming model is saved.',
+    disableChangePartitionTips: 'The time partition settings can\'t be modified for fusion model and streaming model.'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -113,6 +115,8 @@ export default {
     disableSecStorageActionTips2: '模型未定义维度/度量，无法生成基础明细索引和使用分层缓存。',
     secondStoragePartitionTips: '无法保存模型。当增量加载的模型开启分层存储时，必须将时间分区列加入维度。',
     streamSecStoragePartitionTips: '无法保存模型。融合模型必须将时间分区列加入模型维度。',
-    baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。'
+    baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。',
+    notBatchModelPartitionTips: '保存后，融合模型和实时模型将无法修改时间分区设置。',
+    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。'
   }
 }

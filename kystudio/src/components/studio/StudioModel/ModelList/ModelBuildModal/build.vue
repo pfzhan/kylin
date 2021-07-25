@@ -44,21 +44,25 @@
           <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
             <el-row :gutter="5">
               <el-col :span="12">
-                <el-select :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
-                  <!-- <el-option :label="$t('noPartition')" value=""></el-option> -->
-                  <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
-                </el-select>
+                <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!isNotBatchModel" placement="bottom">
+                  <el-select :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition') || isNotBatchModel" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" style="width:100%">
+                    <!-- <el-option :label="$t('noPartition')" value=""></el-option> -->
+                    <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
+                  </el-select>
+                </el-tooltip>
               </el-col>
               <el-col :span="12" v-if="partitionMeta.table">
                 <el-form-item prop="column">
-                  <el-select :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
-                  v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
-                  <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!partitionMeta.column.length"></i>
-                    <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
-                      <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
-                      <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
-                    </el-option>
-                  </el-select>
+                  <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!isNotBatchModel" placement="bottom">
+                    <el-select :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')||isNotBatchModel"
+                    v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
+                    <i slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!partitionMeta.column.length"></i>
+                      <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                        <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
+                        <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
+                      </el-option>
+                    </el-select>
+                  </el-tooltip>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -66,10 +70,12 @@
           <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
             <el-row :gutter="5">
               <el-col :span="12">
-                <el-select :disabled="isLoadingNewRange || isLoadingFormat || !datasourceActions.includes('changePartition')" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
-                  <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
-                  <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
-                </el-select>
+                <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!isNotBatchModel" placement="bottom">
+                  <el-select :disabled="isLoadingNewRange || isLoadingFormat || !datasourceActions.includes('changePartition') || isNotBatchModel" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
+                    <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
+                    <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+                  </el-select>
+                </el-tooltip>
               </el-col>
               <el-col :span="12">
                 <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
@@ -80,7 +86,7 @@
                       :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
                       icon="el-ksd-icon-data_range_search_old"
                       v-guide.getPartitionColumnFormat
-                      v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
+                      v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig&&!isNotBatchModel"
                       @click="handleLoadFormat">
                     </el-button>
                   </div>

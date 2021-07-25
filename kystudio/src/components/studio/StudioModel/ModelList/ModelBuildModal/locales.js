@@ -62,7 +62,8 @@ export default {
     multilevelPartition: 'Subpartition Column',
     multilevelPartitionDesc: 'A column from the selected table could be chosen. The models under this project could be partitioned by this column in addition to time partitioning. ',
     selectAllSubPartitions: 'All Subpartition Values',
-    habirdModelBuildTips: 'Only batch index(es) will be built right now. Streaming index(es) will be built when streaming job is started again.'
+    habirdModelBuildTips: 'Only batch index(es) will be built right now. Streaming index(es) will be built when streaming job is started again.',
+    disableChangePartitionTips: 'The time partition settings can\'t be modified for fusion model and streaming model.'
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
@@ -127,6 +128,7 @@ export default {
     multilevelPartition: '子分区列',
     multilevelPartitionDesc: '可选择表上的一列作为子分区，对模型进行分区管理。',
     selectAllSubPartitions: '全部子分区值',
-    habirdModelBuildTips: '仅构建离线索引，实时索引的构建将在实时任务重新启动时进行。'
+    habirdModelBuildTips: '仅构建离线索引，实时索引的构建将在实时任务重新启动时进行。',
+    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。'
   }
 }
