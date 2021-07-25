@@ -149,13 +149,13 @@
           </template>
         </el-table-column>
         <el-table-column type="index" :label="$t('order')" width="50"></el-table-column>
-        <el-table-column :label="$t('th_name')" width="670">
+        <el-table-column :label="$t('th_name')" width="600">
           <template slot-scope="scope">
             <span class="column-name" :title="scope.row.name" :style="{width: scope.row.add ? 'calc(100% - 50px)' : '100%'}">{{scope.row.name}}</span>
             <el-tag class="add-tag" size="mini" type="success" v-if="scope.row.add">{{$t('newAdd')}}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="type" :label="$t('th_type')" width="95" show-overflow-tooltip>
+        <el-table-column prop="type" :label="$t('th_type')" width="150" show-overflow-tooltip>
           <template slot-scope="scope">
             {{$t(scope.row.type)}}
           </template>

@@ -1024,6 +1024,7 @@ export default class ModelSegment extends Vue {
       // 合并segment
       const isSubmit = await this.mergeSegments({ projectName, modelId, segmentIds })
       if (isSubmit) {
+        this.resetSelectedSegments()
         await this.loadSegments()
         this.mergeLoading = false
         // this.$emit('loadModels')
@@ -1133,6 +1134,7 @@ export default class ModelSegment extends Vue {
             </div>
           )
         })
+        this.resetSelectedSegments()
         await this.loadSegments()
         // this.$emit('loadModels')
       }
@@ -1177,6 +1179,7 @@ export default class ModelSegment extends Vue {
         })
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
+        this.resetSelectedSegments()
         await this.loadSegments()
         this.$emit('refreshModel')
       }
@@ -1188,6 +1191,9 @@ export default class ModelSegment extends Vue {
   handleShowDetail (segment) {
     this.detailSegment = segment
     this.isShowDetail = true
+  }
+  resetSelectedSegments () {
+    this.selectedSegmentIds = []
   }
   handleSelectSegments (selectedSegments) {
     this.selectedSegmentIds = selectedSegments.map(segment => segment.id)
