@@ -173,7 +173,7 @@ public class IndexPlanService extends BasicService {
                     throw new KylinException(DUPLICATE_INDEX, MsgPicker.getMsg().getDUPLICATE_LAYOUT());
                 }
             }
-            if (IndexEntity.isTableIndex(request.getId())) {
+            if (indexPlan.getLayoutEntity(request.getId()) != null && IndexEntity.isTableIndex(request.getId())) {
                 deleteOrMarkTobeDelete(project, request.getModelId(), Sets.newHashSet(request.getId()));
             }
             return createTableIndex(project, request);
