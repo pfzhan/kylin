@@ -29,6 +29,7 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class JobKillerTest extends StreamingTestCase {
@@ -51,6 +52,7 @@ public class JobKillerTest extends StreamingTestCase {
     }
 
     @Test
+    @Ignore
     public void testKillYarnApplication() {
         ReflectionUtils.setField(JobKiller.class, "isYarnEnv", true);
         val id = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
