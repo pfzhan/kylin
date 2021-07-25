@@ -311,6 +311,10 @@ public class Message {
         return "Cannot disable yourself!";
     }
 
+    public String getSELF_EDIT_FORBIDDEN() {
+        return "The object is invalid. Please check and try again.";
+    }
+
     public String getUSER_EDIT_NOT_ALLOWED() {
         return "User editing operations under the LDAP authentication mechanism are not supported at this time";
     }

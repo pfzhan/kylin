@@ -34,6 +34,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -508,6 +509,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
 
         Mockito.doReturn(true).when(userGroupService).exists("ALL_USERS");
+        Mockito.doReturn(new HashSet<String>(){{add(Constant.GROUP_ALL_USERS);}}).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
@@ -526,10 +528,28 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS),
                 new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        Mockito.doReturn(new HashSet<String>(){{add(Constant.GROUP_ALL_USERS);}}).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
         user.setGrantedAuthorities(groups);
         thrown.expect(KylinException.class);
         thrown.expectMessage("Values in authorities can't be duplicated.");
         nUserController.updateUser(user);
+    }
+    @Test
+    public void testUpdateOwnUserType() throws Exception {
+        val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
+        HashSet<String> groups = new HashSet<String>() {{
+            add(Constant.GROUP_ALL_USERS);
+            add(Constant.ROLE_ADMIN);
+        }};
+        Mockito.doReturn(groups).when(userGroupService).listUserGroups(user.getUsername());
+        Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
+        Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
+        Mockito.doReturn(true).when(userGroupService).exists(Constant.ROLE_ADMIN);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(user))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));
     }
 }

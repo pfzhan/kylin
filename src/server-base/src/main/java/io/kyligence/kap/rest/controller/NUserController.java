@@ -42,6 +42,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -201,6 +202,16 @@ public class NUserController extends NBasicController {
         if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
             throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DISABLE_FORBIDDEN());
         }
+
+        if (StringUtils.equals(getPrincipal(), user.getUsername())) {
+            Set<String> userGroupSet = user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toSet());
+            Set<String> currentUserGroupSet = userGroupService.listUserGroups(user.getUsername());
+            boolean roleChange = !(userGroupSet.size() == currentUserGroupSet.size()) || !(userGroupSet.containsAll(currentUserGroupSet));
+            if (roleChange) {
+                throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_EDIT_FORBIDDEN());
+            }
+        }
+
         val username = user.getUsername();
         checkUsername(username);
 
