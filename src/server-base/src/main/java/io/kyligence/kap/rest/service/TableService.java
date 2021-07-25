@@ -962,6 +962,8 @@ public class TableService extends BasicService {
                 fusionModelService.dropModel(tableRelatedModel.getId(), project, true);
             }
             unloadKafkaTableUsingTable(project, tableDesc);
+        } else {
+            stopStreamingJobByTable(project, tableDesc);
         }
 
         unloadTable(project, table);
@@ -985,13 +987,19 @@ public class TableService extends BasicService {
         }
     }
 
-    public void unloadKafkaTableUsingTable(String project, TableDesc tableDesc) {
+    private void unloadKafkaTableUsingTable(String project, TableDesc tableDesc) {
         if (tableDesc.getSourceType() != ISourceAware.ID_SPARK)
             return;
 
         val kafkaConfigManger = getKafkaConfigManager(project);
         for (KafkaConfig kafkaConfig : kafkaConfigManger.getKafkaTablesUsingTable(tableDesc.getIdentity())) {
             unloadTable(project, kafkaConfig.getIdentity());
+        }
+    }
+
+    private void stopStreamingJobByTable(String project, TableDesc tableDesc) {
+        for (NDataModel tableRelatedModel : getDataflowManager(project).getModelsUsingTable(tableDesc)) {
+            fusionModelService.stopStreamingJob(tableRelatedModel.getId(), project);
         }
     }
 

@@ -96,6 +96,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private final TableService tableService = Mockito.spy(new TableService());
 
+    @InjectMocks
+    private FusionModelService fusionModelService = Mockito.spy(new FusionModelService());
+
     @Mock
     private final AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
@@ -114,6 +117,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
+        ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(queryHistoryService, "modelService", modelService);

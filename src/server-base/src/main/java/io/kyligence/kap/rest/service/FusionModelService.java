@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -191,5 +193,16 @@ public class FusionModelService extends BasicService {
         val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val fusionModel = fusionModelManager.getFusionModel(fusionModelId);
         return fusionModel.getBatchModel();
+    }
+
+    public void stopStreamingJob(String modelId, String project) {
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        if (model.fusionModelBatchPart()) {
+            val streamingId = model.getFusionId();
+            EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, streamingId));
+        }
+        if (model.isStreaming()) {
+            EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
+        }
     }
 }

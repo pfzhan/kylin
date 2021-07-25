@@ -62,6 +62,7 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -1377,5 +1378,36 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableService.unloadTable(project, "SSB.LINEORDER_HIVE", true);
         val table1 = tableMgr.getTableDesc("SSB.P_LINEORDER_STREAMING");
         Assert.assertNull(table1);
+    }
+
+    @Test
+    public void testStopStreamingJobByTables1() {
+        String project = "streaming_test";
+
+        val streamingJobMgr = StreamingJobManager.getInstance(getTestConfig(), project);
+        val jobId = "4965c827-fbb4-4ea1-a744-3f341a3b030d_merge";
+        Assert.assertEquals(streamingJobMgr.getStreamingJobByUuid(jobId).getCurrentStatus(), JobStatusEnum.RUNNING);
+
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), project);
+        tableService.unloadTable(project, "DEFAULT.SSB_STREAMING", false);
+        val table = tableMgr.getTableDesc("DEFAULT.SSB_STREAMING");
+        Assert.assertNull(table);
+        Assert.assertEquals(streamingJobMgr.getStreamingJobByUuid(jobId).getCurrentStatus(), JobStatusEnum.STOPPED);
+    }
+
+    @Test
+    public void testStopStreamingJobByTables2() {
+        String project = "streaming_test";
+
+        val streamingJobMgr = StreamingJobManager.getInstance(getTestConfig(), project);
+        val jobId = "4965c827-fbb4-4ea1-a744-3f341a3b030d_merge";
+        Assert.assertEquals(streamingJobMgr.getStreamingJobByUuid(jobId).getCurrentStatus(), JobStatusEnum.RUNNING);
+
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), project);
+        tableService.unloadTable(project, "SSB.LINEORDER_HIVE", false);
+        val table = tableMgr.getTableDesc("SSB.P_LINEORDER_STREAMING");
+        Assert.assertNotNull(table);
+        Assert.assertEquals(streamingJobMgr.getStreamingJobByUuid(jobId).getCurrentStatus(), JobStatusEnum.STOPPED);
+
     }
 }
