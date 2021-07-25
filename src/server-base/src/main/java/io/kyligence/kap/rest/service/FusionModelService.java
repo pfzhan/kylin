@@ -77,7 +77,7 @@ public class FusionModelService extends BasicService {
     @Transaction(project = 1)
     public void dropModel(String modelId, String project) {
         val model = getDataModelManager(project).getDataModelDesc(modelId);
-        if (model.isFusionModel()) {
+        if (model.fusionModelStreamingPart()) {
             val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val fusionModel = fusionModelManager.getFusionModel(modelId);
             String batchId = fusionModel.getBatchModel().getUuid();
@@ -87,10 +87,24 @@ public class FusionModelService extends BasicService {
         modelService.dropModel(modelId, project);
     }
 
-    void dropModel(String modelId, String project, boolean ignoreType) {
+    public void dropModel(String modelId, String project, boolean ignoreType) {
         val model = getDataModelManager(project).getDataModelDesc(modelId);
-        if (model.fusionModelBatchPart()) {
-            modelId = model.getFusionId();
+        if (model == null) {
+            return;
+        }
+
+        if (model.isFusionModel()) {
+            val fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val fusionModel = fusionModelManager.getFusionModel(modelId);
+            if (model.fusionModelBatchPart()) {
+                String streamingId = model.getFusionId();
+                fusionModelManager.dropModel(streamingId);
+                modelService.dropModel(streamingId, project, ignoreType);
+            } else {
+                String batchId = fusionModel.getBatchModel().getUuid();
+                fusionModelManager.dropModel(modelId);
+                modelService.dropModel(batchId, project, ignoreType);
+            }
         }
         modelService.dropModel(modelId, project, ignoreType);
     }

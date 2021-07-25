@@ -427,9 +427,18 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         fusionModelService.dropModel("334671fd-e383-4fc9-b5c2-94fce832f77a", project, true);
         val dataModel = modelManager.getDataModelDesc("b05034a8-c037-416b-aa26-9e6b4a41ee40");
         Assert.assertNull(dataModel);
+        val dataModel1 = modelManager.getDataModelDesc("334671fd-e383-4fc9-b5c2-94fce832f77a");
+        Assert.assertNull(dataModel1);
+
 
         fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, true);
-        val dataModel1 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
-        Assert.assertNull(dataModel1);
+        val dataModel2 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        Assert.assertNull(dataModel2);
+        val dataModel3 = modelManager.getDataModelDesc("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
+        Assert.assertNull(dataModel3);
+
+        fusionModelService.dropModel("4965c827-fbb4-4ea1-a744-3f341a3b030d", project, true);
+        val dataModel4 = modelManager.getDataModelDesc("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        Assert.assertNull(dataModel4);
     }
 }
