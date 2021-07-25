@@ -25,7 +25,6 @@ package io.kyligence.kap.rest;
 
 import java.util.concurrent.Executors;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.context.annotation.Configuration;
@@ -62,11 +61,9 @@ public class SparderConfiguration {
         }
 
         // monitor Spark
-        if (KapConfig.getInstanceFromEnv().getSparkCanaryEnable()) {
-            val service = Executors.newSingleThreadScheduledExecutor();
-            SparkContextCanary.getInstance().init(service);
-            LoadCounter.getInstance().init(service);
-        }
+        val service = Executors.newSingleThreadScheduledExecutor();
+        SparkContextCanary.getInstance().init(service);
+        LoadCounter.getInstance().init(service);
     }
 
 }
