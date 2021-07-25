@@ -106,7 +106,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         Mockito.doAnswer((p) -> {
             Thread.sleep(TIMEOUT_MS * 3);
             return null;
-        }).when(mockDf).collect();
+        }).when(mockDf).toIterator();
         slowQueryDetector.queryStart("");
         try {
             SparderEnv.cleanCompute();
@@ -136,7 +136,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         Mockito.doAnswer((p) -> {
             Thread.sleep(TIMEOUT_MS * 3);
             return null;
-        }).when(mockDf).collect();
+        }).when(mockDf).toIterator();
         slowQueryDetector.queryStart("");
         try {
             String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";

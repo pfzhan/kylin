@@ -53,7 +53,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +79,6 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -96,6 +94,7 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -106,8 +105,6 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -229,7 +226,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
         Mockito.when(queryService.queryRoutingEngine.queryWithSqlMassage(Mockito.any()))
-                .thenReturn(new Pair<>(Lists.newArrayList(), Lists.newArrayList()));
+                .thenReturn(new QueryResult());
     }
 
     private void stubQueryConnectionException() throws Exception {
@@ -259,8 +256,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
-        Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine)
+        Mockito.doAnswer(invocation -> PushdownResult.emptyResult()).when(queryService.queryRoutingEngine)
                 .tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         final SQLResponse response = queryService.doQueryWithCache(sqlRequest);
@@ -290,8 +286,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
 
-        Mockito.doAnswer(invocation -> new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                Collections.EMPTY_LIST)).when(queryService.queryRoutingEngine)
+        Mockito.doAnswer(invocation -> PushdownResult.emptyResult()).when(queryService.queryRoutingEngine)
                 .tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         final SQLResponse response = queryService.doQueryWithCache(sqlRequest);
@@ -522,12 +517,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void mockQueryWithSqlMassage() throws Exception {
-        Mockito.doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                return new Pair<>(Lists.newArrayList(), Lists.newArrayList());
-            }
-        }).when(queryService.queryRoutingEngine).queryWithSqlMassage(Mockito.any());
+        Mockito.doAnswer(invocation -> new QueryResult())
+                .when(queryService.queryRoutingEngine).queryWithSqlMassage(Mockito.any());
     }
 
     private void mockOLAPContextWithOneModelInfo(String modelId, String modelAlias, long layoutId) throws Exception {
@@ -1492,7 +1483,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             request.setQueryId(UUID.randomUUID().toString());
 
             final SQLResponse response = queryService.doQueryWithCache(request);
-            Assert.assertEquals(0, response.getResults().size());
+            Assert.assertEquals(0, response.getResultRowCount());
         }
     }
 

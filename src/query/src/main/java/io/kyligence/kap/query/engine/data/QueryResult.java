@@ -27,26 +27,61 @@ package io.kyligence.kap.query.engine.data;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 
 public class QueryResult {
 
-    private List<List<String>> rows;
+    private Iterable<List<String>> rows;
+    private List<List<String>> rowsList; // save the rows iteratored
+    private int size;
+
     private List<StructField> columns;
+    private List<SelectedColumnMeta> columnMetas;
 
     public QueryResult() {
-        this(new LinkedList<>(), new LinkedList<>());
+        this(new LinkedList<>(), 0, new LinkedList<>());
     }
 
-    public QueryResult(List<List<String>> rows, List<StructField> columns) {
-        this.rows = rows;
+    public QueryResult(ExecuteResult result, List<StructField> columns) {
+        this.rows = result.getRows();
+        this.size = result.getSize();
         this.columns = columns;
     }
 
+    public QueryResult(Iterable<List<String>> rows, int size, List<StructField> columns) {
+        this.rows = rows;
+        this.columns = columns;
+        this.size = size;
+    }
+
+    public QueryResult(Iterable<List<String>> rows, int size, List<StructField> columns, List<SelectedColumnMeta> columnMetas) {
+        this.rows = rows;
+        this.size = size;
+        this.columns = columns;
+        this.columnMetas = columnMetas;
+    }
+
+    /**
+     * This method is generally supposed to be used for testing only
+     * @return
+     */
+    @Deprecated
     public List<List<String>> getRows() {
+        if (rowsList == null) {
+            rowsList = ImmutableList.copyOf(rows);
+        }
+        return rowsList;
+    }
+
+    public Iterable<List<String>> getRowsIterable() {
         return rows;
+    }
+
+    public int getSize() {
+        return size;
     }
 
     public List<StructField> getColumns() {
@@ -54,7 +89,10 @@ public class QueryResult {
     }
 
     public List<SelectedColumnMeta> getColumnMetas() {
-        List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
+        if (columnMetas != null) {
+            return columnMetas;
+        }
+        columnMetas = new LinkedList<>();
         int columnCount = this.columns.size();
         List<StructField> fieldList = this.columns;
 

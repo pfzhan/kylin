@@ -22,30 +22,37 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine.exec.sparder;
+package org.apache.kylin.source.adhocquery;
 
+import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+
+import java.util.LinkedList;
 import java.util.List;
 
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
-import org.apache.calcite.DataContext;
-import org.apache.calcite.rel.RelNode;
-import org.apache.commons.lang3.NotImplementedException;
+public class PushdownResult {
+    private final Iterable<List<String>> rows;
+    private final int size;
+    private final List<SelectedColumnMeta> columnMetas;
 
-public interface QueryEngine {
-
-    /**
-     * execute and return rows in string
-     * @param dataContext
-     * @param relNode
-     * @return
-     */
-    @Deprecated
-    default List<List<String>> compute(DataContext dataContext, RelNode relNode) {
-        throw new NotImplementedException();
+    public PushdownResult(Iterable<List<String>> rows, int size, List<SelectedColumnMeta> columnMetas) {
+        this.rows = rows;
+        this.size = size;
+        this.columnMetas = columnMetas;
     }
 
-    default ExecuteResult computeToIterable(DataContext dataContext, RelNode relNode) {
-        List<List<String>> rows = compute(dataContext, relNode);
-        return new ExecuteResult(rows, rows == null ? 0 : rows.size());
+    public static PushdownResult emptyResult() {
+        return new PushdownResult(new LinkedList<>(), 0, new LinkedList<>());
+    }
+
+    public Iterable<List<String>> getRows() {
+        return rows;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public List<SelectedColumnMeta> getColumnMetas() {
+        return columnMetas;
     }
 }
