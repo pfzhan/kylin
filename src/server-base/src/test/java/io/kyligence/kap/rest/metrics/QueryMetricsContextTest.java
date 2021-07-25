@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.metrics;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -450,6 +452,22 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
         Assert.assertEquals(startTime, metricsContext.getQueryTime());
+    }
+
+    @Test
+    public void testUpdateSecondStorageStatus() {
+
+        final QueryContext queryContext = Mockito.mock(QueryContext.class);
+        Mockito.when(queryContext.getSecondStorageUsageMap()).thenReturn(Collections.emptyMap());
+        List<QueryMetrics.RealizationMetrics> realizationMetrics = new ArrayList<>();
+        val metric = new QueryMetrics.RealizationMetrics();
+        realizationMetrics.add(metric);
+        metric.setLayoutId("200001");
+        QueryMetricsContext.updateSecondStorageStatus(queryContext, realizationMetrics);
+        Assert.assertFalse(metric.isSecondStorage());
+        metric.setLayoutId(null);
+        QueryMetricsContext.updateSecondStorageStatus(queryContext, realizationMetrics);
+        Assert.assertFalse(metric.isSecondStorage());
     }
 
     public Map<String, String> getInfluxdbTags(QueryMetrics queryMetrics) {

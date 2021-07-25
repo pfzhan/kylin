@@ -3306,11 +3306,14 @@ public class ModelService extends BasicService {
             semanticUpdater.buildForModel(project, modelId);
         }
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
-        changeSecondStorageIfNeeded(project, request);
+        changeSecondStorageIfNeeded(project, request, baseIndexResponse);
         return baseIndexResponse;
     }
 
-    public void changeSecondStorageIfNeeded(String project, ModelRequest request) {
+    public void changeSecondStorageIfNeeded(String project, ModelRequest request, BuildBaseIndexResponse baseIndexResponse) {
+        if (!baseIndexResponse.hasTableIndexChange()) {
+            return;
+        }
         // disable second storage
         if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
                 && !request.isWithSecondStorage()) {

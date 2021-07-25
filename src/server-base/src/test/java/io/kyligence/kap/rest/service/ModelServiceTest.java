@@ -25,11 +25,13 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
@@ -6014,14 +6016,23 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ModelRequest request = new ModelRequest();
         request.setWithSecondStorage(false);
         request.setUuid(model);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request);
-        modelService.changeSecondStorageIfNeeded("default", request);
+        BuildBaseIndexResponse emptyResponse = new BuildBaseIndexResponse();
+        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request), any(BuildBaseIndexResponse.class));
+        modelService.changeSecondStorageIfNeeded("default", request, changedResponse);
         Assert.assertFalse(SecondStorageUtil.isModelEnable("default", model));
 
         ModelRequest request2 = new ModelRequest();
         request2.setWithSecondStorage(true);
         request2.setUuid(model);
-        modelService.changeSecondStorageIfNeeded("default", request2);
+        modelService.changeSecondStorageIfNeeded("default", request2, changedResponse);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
+
+        ModelRequest request3 = new ModelRequest();
+        request3.setWithSecondStorage(true);
+        request3.setUuid(model);
+        modelService.changeSecondStorageIfNeeded("default", request3, emptyResponse);
         Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
     }
 
