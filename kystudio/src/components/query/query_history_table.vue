@@ -520,7 +520,8 @@ export default class QueryHistoryTable extends Vue {
     const progressWidth = (popoverWidth - 30) * 0.25 // 减去padding宽度, span为6
     const miniWidthRat = 0.5 / progressWidth
     const dur = Math.round(duration / 1000 * 100) / 100 // 根据精确度保留两位来计算比例
-    const stepRat = Math.round(dur / (totalDuration / 1000) * 100) / 100
+    let stepRat = Math.round(dur / (totalDuration / 1000) * 100) / 100
+    stepRat = stepRat > 1 ? 1 : stepRat // 精度问题导致有大于1的情况
     if (stepRat < miniWidthRat) {
       return miniWidthRat * 100
     } else {

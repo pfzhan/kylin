@@ -42,7 +42,7 @@
             <el-table-column
               class-name="icon-column"
               :selectable="setJobSelectable"
-              :checkbox-disable-tooltip="$t('disableStartJobTips')"
+              :checkbox-disable-tooltip="(row) => disableStartJobTips(row)"
               checkbox-disable-tooltip-placement="top"
               type="selection" align="center" width="32"></el-table-column>
             <el-table-column class-name="icon-column" align="center" width="32" prop="icon" v-if="monitorActions.includes('jobActions')">
@@ -356,7 +356,15 @@ export default class StreamingJobsList extends Vue {
 
   // 模型无索引时不让启动任务
   setJobSelectable (row) {
-    return row.model_indexes > 0
+    return row.model_indexes && row.model_indexes > 0 && !row.model_broken
+  }
+
+  disableStartJobTips (row) {
+    if (row.model_broken) {
+      return this.$t('borkenModelDisableStartJobTips', {modelName: row.model_alias})
+    } else {
+      return this.$t('disableStartJobTips')
+    }
   }
 
   closeTips () {
