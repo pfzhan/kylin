@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.UUID;
 
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -164,6 +165,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(8, list.getTotalSize());
+        Assert.assertTrue(!list.getValue().get(0).isModelBroken());
 
         // modelName filter
         jobFilter = new StreamingJobFilter("stream_merge", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
@@ -688,5 +690,22 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         fs.copyFromLocalFile(new Path(file.getAbsolutePath()), jobLogDirPath);
 
         return exceptLines;
+    }
+
+    @Test
+    public void testCheckModelStatus() {
+        String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        val config = getTestConfig();
+
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+
+        val buildJobId = modelId + "_build";
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+
+        try {
+            streamingJobService.checkModelStatus(PROJECT, modelId, buildJobMeta.getJobType());
+        } catch (Exception e) {
+            Assert.fail();
+        }
     }
 }

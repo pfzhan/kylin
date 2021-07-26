@@ -40,6 +40,7 @@ public class StreamingJobResponse extends StreamingJobMeta{
         setFactTableName(jobMeta.getFactTableName());
         setProject(jobMeta.getProject());
         setBroken(jobMeta.isBroken());
+        setModelBroken(jobMeta.isBroken());
         setSkipListener(jobMeta.isSkipListener());
         setParams(jobMeta.getParams());
         setYarnAppId(jobMeta.getYarnAppId());
@@ -49,6 +50,9 @@ public class StreamingJobResponse extends StreamingJobMeta{
         setLastModified(jobMeta.getLastModified());
         setLastUpdateTime(jobMeta.getLastUpdateTime());
     }
+
+    @JsonProperty("model_broken")
+    private boolean isModelBroken;
 
     @JsonProperty("data_latency")
     private Long dataLatency;

@@ -24,12 +24,53 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PagingUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
@@ -50,44 +91,6 @@ import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.val;
 import lombok.var;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.apache.kylin.rest.util.PagingUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
-
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.stream.Collectors;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 
 @Component("streamingJobService")
 public class StreamingJobService extends BasicService {
@@ -102,8 +105,22 @@ public class StreamingJobService extends BasicService {
     IndexPlanService indexPlanService;
 
     public void launchStreamingJob(String project, String modelId, JobTypeEnum jobType) {
+        checkModelStatus(project, modelId, jobType);
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
         scheduler.submitJob(project, modelId, jobType);
+    }
+
+    public void checkModelStatus(String project, String modelId, JobTypeEnum jobType) {
+        String jobId = StreamingUtils.getJobId(modelId, jobType.name());
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
+
+        val modelMgr = NDataModelManager.getInstance(config, jobMeta.getProject());
+        val model = modelMgr.getDataModelDesc(jobMeta.getModelId());
+        if (model.isBroken() || isBatchModelBroken(model)) {
+            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getJOB_BROKEN_MODEL_START_FAILURE(), model.getAlias()));
+        }
     }
 
     public void stopStreamingJob(String project, String modelId, JobTypeEnum jobType) {
@@ -379,10 +396,14 @@ public class StreamingJobService extends BasicService {
                 val dataModel = modelMap.get(uuid);
                 if (dataModel != null) {
                     if (dataModel.isBroken()) {
-                        entry.setModelIndexes(0);
+                        entry.setModelBroken(true);
                     } else {
-                        val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
-                        entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
+                        if (isBatchModelBroken(dataModel)) {
+                            entry.setModelBroken(true);
+                        } else {
+                            val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
+                            entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
+                        }
                     }
                 }
             });
@@ -421,6 +442,20 @@ public class StreamingJobService extends BasicService {
             jobList.addAll(mgr.listAllStreamingJobMeta());
         });
         return jobList;
+    }
+
+    private boolean isBatchModelBroken(NDataModel dataModel) {
+        try {
+            if (dataModel.isFusionModel()) {
+                val fmMgr = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), dataModel.getProject());
+                val batchModel = fmMgr.getFusionModel(dataModel.getFusionId()).getBatchModel();
+                return batchModel.isBroken();
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public StreamingJobDataStatsResponse getStreamingJobDataStats(String jobId, String project, Integer timeFilter) {

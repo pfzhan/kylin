@@ -511,7 +511,11 @@ public class Message {
     }
 
     public String getJOB_START_FAILURE() {
-        return "Can’t start the streaming job of model “%s“, as it has an ongoing one at the moment. Please check and try again.";
+        return "Can’t start the streaming job of model \"%s\", as it has an ongoing one at the moment. Please check and try again.";
+    }
+
+    public String getJOB_BROKEN_MODEL_START_FAILURE() {
+        return "Can’t start. Model \"%s\" is currently broken. ";
     }
 
     public String getJOB_STOP_FAILURE() {

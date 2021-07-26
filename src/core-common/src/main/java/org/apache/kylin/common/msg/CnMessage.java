@@ -423,6 +423,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getJOB_BROKEN_MODEL_START_FAILURE() {
+        return "无法启动，模型 \"%s\" 当前为 Broken 状态。";
+    }
+
+    @Override
     public String getJOB_STOP_FAILURE() {
         return "当前无法停止模型 \"%s\" 的实时任务。请查看日志，或稍后重试。";
     }
