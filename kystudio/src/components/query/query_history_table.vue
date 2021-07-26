@@ -435,7 +435,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   getRealizations2 (row) {
-    return row.filter(item => item.layoutId !== 0 && item.layoutId !== -1)
+    return row.filter(item => !((item.layoutId === 0 || item.layoutId === -1 || item.layoutId === null) && item.indexType !== null))
   }
 
   dateRangeChange () {

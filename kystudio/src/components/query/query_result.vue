@@ -26,13 +26,13 @@
             <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
               <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
               <span class="text">
-                <span v-if="realizations && realizations.length" class="realization-tags">
-                  <span v-for="(item, index) in realizations" :key="item.modelId">
+                <span v-if="realizations2 && realizations2.length" class="realization-tags">
+                  <span v-for="(item, index) in realizations2" :key="item.modelId">
                     <template v-if="'visible' in item && !item.visible">
-                      <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                      <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== realizations2.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                     </template>
                     <template v-else>
-                      <span @click="openIndexDialog(item, realizations)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== realizations.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                      <span @click="openIndexDialog(item, realizations2)" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== realizations2.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                     </template>
                   </span>
                 </span>
@@ -85,7 +85,7 @@
                       <span class="step-duration ksd-fright" v-show="step.group !== 'PREPARATION'" :class="{'font-medium': index === 0}">{{Math.round(step.duration / 1000 * 100) / 100}}s</span>
                     </el-col>
                     <el-col :span="6" v-if="querySteps&&querySteps[0].duration>0">
-                      <el-progress v-show="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
+                      <el-progress v-if="step.group !== 'PREPARATION' && index !== 0" :stroke-width="6" :percentage="getProgress(step.duration, querySteps[0].duration)" color="#A6D6F6" :show-text="false"></el-progress>
                     </el-col>
                   </el-row>
                   <span slot="reference" class="duration">{{Math.round(extraoption.duration / 1000 * 100)/100||0.00}}s</span>
@@ -580,6 +580,21 @@ export default class queryResult extends Vue {
   //     return this.extraoption.engineType
   //   }
   // }
+
+  // 查询对象显示跟索引ID显示的逻辑不一样
+  get realizations2 () {
+    if (this.extraoption.realizations && this.extraoption.realizations.length) {
+      let realizations = []
+      for (let i of this.extraoption.realizations) {
+        if (!((i.layoutId === -1 || i.layoutId === null || i.layoutId === 0) && i.indexType !== null)) {
+          realizations.push(i)
+        }
+      }
+      return realizations
+    } else {
+      return []
+    }
+  }
   get realizations () {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
       let realizations = []
@@ -699,7 +714,7 @@ export default class queryResult extends Vue {
       this.pageSizeChange(0)
     }, 500)
   }
-  getProgress (duration, totalDuration) {
+  getProgress (duration, totalDuration, isShow) {
     const popoverWidth = this.$lang === 'en' ? 340 : 320
     const progressWidth = (popoverWidth - 30) * 0.25 // 减去padding宽度, span为6
     const miniWidthRat = 0.5 / progressWidth
