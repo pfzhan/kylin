@@ -231,8 +231,10 @@ public class SourceUsageManager {
             TableExtDesc tableExtDesc = tableManager.getOrCreateTableExt(tableDesc);
             long originalSize = tableExtDesc.getOriginalSize();
             if (originalSize == -1) {
-                logger.warn("Original size of table:{} is -1, set table status to TENTATIVE", tableName);
-                table.setStatus(CapacityStatus.TENTATIVE);
+                // for 4.1 upgrade to 4.2
+                return 0;
+                //logger.warn("Original size of table:{} is -1, set table status to TENTATIVE", tableName);
+                //table.setStatus(CapacityStatus.TENTATIVE);
             }
             return originalSize;
         } else {
