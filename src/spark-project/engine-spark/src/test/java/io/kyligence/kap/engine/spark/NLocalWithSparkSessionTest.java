@@ -23,13 +23,8 @@
  */
 package io.kyligence.kap.engine.spark;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -47,6 +42,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -332,30 +328,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         execMgr.addJob(job);
 
         if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            val firstErrorMsg = job.getTasks().stream()
-                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
-                    .map(task -> {
-                        try (InputStream verboseMsgStream = execMgr
-                                .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
-                                .getVerboseMsgStream();
-                                BufferedReader reader = new BufferedReader(
-                                        new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
-
-                            String line;
-                            StringBuilder sampleData = new StringBuilder();
-                            while ((line = reader.readLine()) != null) {
-                                if (sampleData.length() > 0) {
-                                    sampleData.append('\n');
-                                }
-                                sampleData.append(line);
-                            }
-
-                            return sampleData.toString();
-                        } catch (IOException e) {
-                            return null;
-                        }
-                    }).orElse("Unknown Error");
-            throw new IllegalStateException(firstErrorMsg);
+            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, job));
         }
 
         val merger = new AfterBuildResourceMerger(config, prj);
@@ -366,6 +339,14 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(segment.getId()),
                     ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep), null);
         }
+    }
+
+    public static String firstFailedJobErrorMessage(NExecutableManager execMgr, ChainedExecutable job) {
+        return job.getTasks().stream()
+                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
+                .findFirst()
+                .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
+                .orElse("Unknown Error");
     }
 
     public void buildMultiSegs(String dfName, long... layoutID) throws Exception {
@@ -425,30 +406,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         execMgr.addJob(job);
 
         if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-            val firstErrorMsg = job.getTasks().stream()
-                    .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
-                    .map(task -> {
-                        try (InputStream verboseMsgStream = execMgr
-                                .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
-                                .getVerboseMsgStream();
-                             BufferedReader reader = new BufferedReader(
-                                     new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
-
-                            String line;
-                            StringBuilder sampleData = new StringBuilder();
-                            while ((line = reader.readLine()) != null) {
-                                if (sampleData.length() > 0) {
-                                    sampleData.append('\n');
-                                }
-                                sampleData.append(line);
-                            }
-
-                            return sampleData.toString();
-                        } catch (IOException e) {
-                            return null;
-                        }
-                    }).orElse("Unknown Error");
-            throw new IllegalStateException(firstErrorMsg);
+            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, job));
         }
 
         Assert.assertTrue(job instanceof NSparkMergingJob);

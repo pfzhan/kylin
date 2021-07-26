@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.secondstorage.test.utils;
 
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.ExecutableUtil;
@@ -37,14 +36,11 @@ import org.apache.kylin.job.handler.SecondStorageSegmentLoadJobHandler;
 import org.apache.kylin.job.model.JobParam;
 import org.junit.Assert;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest.firstFailedJobErrorMessage;
 import static org.awaitility.Awaitility.await;
 
 public interface JobWaiter {
@@ -54,30 +50,9 @@ public interface JobWaiter {
         DefaultChainedExecutable job = (DefaultChainedExecutable) executableManager.getJob(jobId);
         await().atMost(300, TimeUnit.SECONDS).until(() -> !job.getStatus().isProgressing());
         Assert.assertFalse(job.getStatus().isProgressing());
-        val firstErrorMsg = job.getTasks().stream()
-                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
-                .map(task -> {
-                    try (InputStream verboseMsgStream = executableManager
-                            .getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
-                            .getVerboseMsgStream();
-                            BufferedReader reader = new BufferedReader(
-                                    new InputStreamReader(verboseMsgStream, Charset.defaultCharset()))) {
-
-                        String line;
-                        StringBuilder sampleData = new StringBuilder();
-                        while ((line = reader.readLine()) != null) {
-                            if (sampleData.length() > 0) {
-                                sampleData.append('\n');
-                            }
-                            sampleData.append(line);
-                        }
-
-                        return sampleData.toString();
-                    } catch (IOException e) {
-                        return null;
-                    }
-                }).orElse("Unknown Error");
-        Assert.assertEquals(firstErrorMsg, ExecutableState.SUCCEED, executableManager.getJob(jobId).getStatus());
+        if (!Objects.equals(job.getStatus(), ExecutableState.SUCCEED)) {
+            Assert.fail(firstFailedJobErrorMessage(executableManager, job));
+        }
     }
 
     default String triggerClickHouseLoadJob(String project, String modelId, String userName, List<String> segIds) {

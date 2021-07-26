@@ -52,6 +52,7 @@ import org.hamcrest.Description;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -97,6 +98,7 @@ public class QueryRouteTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    @Ignore("It is conflict with EnableClickHouseJob, see https://olapio.atlassian.net/browse/KE-29578 for more info.")
     @Test
     public void testWhenCannotAccessClickHouse() throws Exception {
         final String queryCatalog = "testWhenCannotAccessClickHouse";

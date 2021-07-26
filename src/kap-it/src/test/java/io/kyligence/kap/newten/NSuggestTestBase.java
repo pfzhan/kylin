@@ -295,7 +295,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
                     ExecutableState status = job.getStatus();
                     if (!status.isProgressing()) {
                         if (status == ExecutableState.ERROR) {
-                            throw new IllegalStateException("Failed to execute job. " + job);
+                            throw new IllegalStateException(firstFailedJobErrorMessage(execMgr, job));
                         } else
                             break;
                     }

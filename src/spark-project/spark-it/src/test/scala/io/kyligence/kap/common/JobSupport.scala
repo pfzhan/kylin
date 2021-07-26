@@ -177,7 +177,11 @@ trait JobSupport
     // launch the job
     execMgr.addJob(job)
     if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
-      throw new IllegalStateException
+      val message = job.getTasks.asScala
+        .find(executable => Objects.equals(executable.getStatus, ExecutableState.ERROR))
+        .map(task => execMgr.getOutputFromHDFSByJobId(job.getId, task.getId, Integer.MAX_VALUE).getVerboseMsg)
+        .getOrElse("Unknown Error")
+      throw new IllegalStateException(message);
     }
 
     val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
