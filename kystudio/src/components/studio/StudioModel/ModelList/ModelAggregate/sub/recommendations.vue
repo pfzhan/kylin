@@ -790,7 +790,7 @@ export default class IndexList extends Vue {
   // 是否需要展示构建索引内容
   canBuildIndex (acceptIndexs, result) {
     const {createBaseIndexNum, updateBaseIndexNum} = this.getBaseIndexCount(result.base_index_info)
-    return (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0 || createBaseIndexNum > 0 || updateBaseIndexNum > 0) && this.modelDesc.segments.length
+    return (acceptIndexs().add > 0 && acceptIndexs().del > 0 || acceptIndexs().add > 0 || createBaseIndexNum > 0 || updateBaseIndexNum > 0) && this.modelDesc.segments.length && this.modelDesc.model_type !== 'STREAMING'
   }
 
   // 获取 base index layoutId
