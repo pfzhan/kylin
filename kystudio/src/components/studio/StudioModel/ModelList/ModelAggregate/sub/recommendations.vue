@@ -725,7 +725,6 @@ export default class IndexList extends Vue {
       this.sameNameErrorIds = []
       this.isLoading = false
       this.showValidate = false
-      this.$emit('refreshModel')
     }).catch(e => {
       this.isLoading = false
     })
@@ -763,6 +762,7 @@ export default class IndexList extends Vue {
             this.recommendationsList.page_offset = 0
             this.getRecommendations('refreshCount')
             this.$emit('accept')
+            this.$emit('refreshModel')
             resolve()
           } catch (e) {
             reject()
