@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAP
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -176,14 +178,17 @@ public class SourceUsageManager {
         Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
         List<NDataSegment> oldSegments = Lists.newArrayList();
         for (NDataSegment segment : segments) {
+            Set<String> usedColumns = getSegmentUsedColumns(segment).stream().map(TblColRef::getCanonicalName).collect(Collectors.toSet());
             Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
             if (MapUtils.isEmpty(columnSourceBytesMap)) {
                 oldSegments.add(segment);
             } else {
                 for (Map.Entry<String, Long> sourceMap : columnSourceBytesMap.entrySet()) {
                     String column = sourceMap.getKey();
-                    long value = dataflowSourceMap.getOrDefault(column, 0L);
-                    dataflowSourceMap.put(column, sourceMap.getValue() + value);
+                    if (usedColumns.contains(column)) {
+                        long value = dataflowSourceMap.getOrDefault(column, 0L);
+                        dataflowSourceMap.put(column, sourceMap.getValue() + value);
+                    }
                 }
             }
         }
@@ -255,7 +260,7 @@ public class SourceUsageManager {
                 long recordCount = 0;
                 long columnBytes = 0;
                 for (String dataflow : column.getSourceBytesMap().keySet()) {
-                    val sourceCount = dataflowManager.getDataflow(dataflow).getLastSegment().getSourceCount();
+                    val sourceCount = dataflowManager.getDataflow(dataflow).getSourceCount();
                     if (sourceCount == -1)
                         continue;
 
@@ -361,12 +366,13 @@ public class SourceUsageManager {
         // source usage is first captured by column, then sum up to table and project
         Map<String, Long> dataflowColumnsBytes = sumDataflowColumnSourceMap(dataflow);
 
-        NDataSegment dataSegment = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).get(0);
         Set<TblColRef> allColumns = Sets.newHashSet();
         try {
-            allColumns = new NCubeJoinedFlatTableDesc(dataSegment).getUsedColumns();
+            allColumns = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).stream()
+                    .map(SourceUsageManager::getSegmentUsedColumns)
+                    .flatMap(Collection::stream).collect(Collectors.toSet());
         } catch (Exception e) {
-            logger.error("Failed to get all columns' TblColRef for segment: {}", dataSegment, e);
+            logger.error("Failed to get all columns' TblColRef for dataflow: {}", dataflow.getId(), e);
             projectDetail.setStatus(CapacityStatus.ERROR);
         }
         for (TblColRef column : allColumns) {
@@ -784,5 +790,19 @@ public class SourceUsageManager {
             return ((double) Math.round(((double) amount) / totalAmount * 100d)) / 100d;
         }
         return 0d;
+    }
+
+    // for ut
+    public static Set<TblColRef> getSegmentUsedColumns(NDataSegment segment) {
+        return segment.getLayoutsMap().values().stream().map(layout -> layout.getLayout().getColumns())
+                .flatMap(Collection::stream)
+                .map(tblColRef -> {
+                    if (tblColRef.getColumnDesc().isComputedColumn() && KapConfig.getInstanceFromEnv().isSourceUsageUnwrapComputedColumn()) {
+                        return ComputedColumnDesc.unwrap(segment.getModel(), tblColRef.getExpressionInSourceDB());
+                    }
+                    return Collections.singletonList(tblColRef);
+                })
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 }

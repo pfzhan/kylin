@@ -24,10 +24,18 @@
 
 package io.kyligence.kap.metadata.model;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
+import lombok.val;
+import lombok.var;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -171,6 +179,79 @@ public class ComputedColumnDescTest extends NLocalFileMetadataTestCase {
         ComputedColumnDesc cc = new ComputedColumnDesc();
         Set<String> aliasSet = Sets.newHashSet("A", "B");
         cc.simpleParserCheck("count(distinct a.x)", aliasSet);
+    }
+
+    @Test
+    public void testUnwrap() {
+        val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "cc_test");
+        var dataModelDesc = dataModelManager.getDataModelDesc("4a45dc4d-937e-43cc-8faa-34d59d4e11d3");
+        var computedColumn = dataModelDesc.getEffectiveCols().values().stream()
+                .filter(tblColRef -> tblColRef.getColumnDesc().getName().equals("CC_NUM"))
+                .findAny().get();
+
+        Assert.assertNotNull(computedColumn);
+        Assert.assertTrue(computedColumn.getColumnDesc().isComputedColumn());
+        // 1+2
+        List<TblColRef> tblColRefList = ComputedColumnDesc.unwrap(dataModelDesc,
+                computedColumn.getExpressionInSourceDB());
+        Assert.assertEquals(0, tblColRefList.size());
+
+
+        computedColumn = dataModelDesc.getEffectiveCols().values().stream()
+                .filter(tblColRef -> tblColRef.getColumnDesc().getName().equals("CC_LTAX"))
+                .findAny().get();
+
+        // LINEORDER`.`LO_TAX` +1
+        tblColRefList = ComputedColumnDesc.unwrap(dataModelDesc,
+                computedColumn.getExpressionInSourceDB());
+        Assert.assertEquals(1, tblColRefList.size());
+        Assert.assertEquals("LINEORDER.LO_TAX", tblColRefList.get(0).getIdentity());
+
+        dataModelDesc = dataModelManager.getDataModelDesc("0d146f1a-bdd3-4548-87ac-21c2c6f9a0da");
+
+        computedColumn = dataModelDesc.getEffectiveCols().values().stream()
+                .filter(tblColRef -> tblColRef.getColumnDesc().getName().equals("CC_TOTAL_TAX"))
+                .findAny().get();
+
+        Assert.assertTrue(computedColumn.getColumnDesc().isComputedColumn());
+        // LINEORDER.LO_QUANTITY*LINEORDER.LO_TAX
+        tblColRefList = ComputedColumnDesc.unwrap(dataModelDesc,
+                computedColumn.getExpressionInSourceDB());
+        Assert.assertEquals(2, tblColRefList.size());
+
+        Assert.assertTrue(tblColRefList.stream().anyMatch(tblColRef -> tblColRef.getIdentity().equals("LINEORDER.LO_QUANTITY")));
+        Assert.assertTrue(tblColRefList.stream().anyMatch(tblColRef -> tblColRef.getIdentity().equals("LINEORDER.LO_TAX")));
+
+        computedColumn = dataModelDesc.getAllTableRefs()
+                        .stream().filter(tableRef -> tableRef.getTableIdentity().equals("SSB.LINEORDER"))
+                        .map(TableRef::getColumns)
+                                .flatMap(Collection::stream)
+                .filter(tblColRef -> tblColRef.getColumnDesc().getName().equals("CC_EXTRACT"))
+                        .findAny().get();
+
+        Assert.assertTrue(computedColumn.getColumnDesc().isComputedColumn());
+        // MINUTE(`LINEORDER`.`LO_ORDERDATE`)
+        tblColRefList = ComputedColumnDesc.unwrap(dataModelDesc,
+                computedColumn.getExpressionInSourceDB());
+        Assert.assertEquals(1, tblColRefList.size());
+
+        Assert.assertTrue(tblColRefList.stream().anyMatch(tblColRef -> tblColRef.getIdentity().equals("LINEORDER.LO_ORDERDATE")));
+
+        computedColumn = dataModelDesc.getAllTableRefs()
+                .stream().filter(tableRef -> tableRef.getTableIdentity().equals("SSB.LINEORDER"))
+                .map(TableRef::getColumns)
+                .flatMap(Collection::stream)
+                .filter(tblColRef -> tblColRef.getColumnDesc().getName().equals("CC_CAST_LO_ORDERKEY"))
+                .findAny().get();
+
+        Assert.assertTrue(computedColumn.getColumnDesc().isComputedColumn());
+        // cast(`lineorder`.`lo_orderkey` as double)
+        tblColRefList = ComputedColumnDesc.unwrap(dataModelDesc,
+                computedColumn.getExpressionInSourceDB());
+        Assert.assertEquals(1, tblColRefList.size());
+
+        Assert.assertTrue(tblColRefList.stream().anyMatch(tblColRef -> tblColRef.getIdentity().equals("LINEORDER.LO_ORDERKEY")));
+
     }
 
 }

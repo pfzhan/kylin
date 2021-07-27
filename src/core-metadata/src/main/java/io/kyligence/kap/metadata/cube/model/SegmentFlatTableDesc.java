@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -271,5 +272,9 @@ public class SegmentFlatTableDesc {
                 "Column: " + colRef.getIdentity() + " is not in model: " + dataModel.getUuid());
         columnIds.add(id);
         columnId2Canonical.put(id, colRef.getCanonicalName());
+
+        if (colRef.getColumnDesc().isComputedColumn()) {
+            ComputedColumnDesc.unwrap(this.dataModel, colRef.getExpressionInSourceDB()).forEach(this::addColumn);
+        }
     }
 }

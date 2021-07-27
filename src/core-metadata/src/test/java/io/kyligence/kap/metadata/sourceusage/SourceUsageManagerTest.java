@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -42,7 +43,6 @@ import org.junit.rules.ExpectedException;
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -74,7 +74,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(1466132L, usage.getCurrentCapacity());
+            Assert.assertEquals(1264957L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -95,6 +95,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCCIncludedInSourceUsage() {
+        overwriteSystemProp("kylin.metadata.history-source-usage-unwrap-computed-column", "false");
         String project = "cc_test";
         SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
         SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
@@ -108,11 +109,12 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Map<String, Long> columnSourceBytesMap = dataSegment.getColumnSourceBytes();
             Assert.assertEquals(7, columnSourceBytesMap.size());
 
-            Set<TblColRef> usedColumns = new NCubeJoinedFlatTableDesc(dataSegment).getUsedColumns();
+            Set<TblColRef> usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment);
             Assert.assertEquals(7, usedColumns.size());
-            TblColRef tblColRef = (TblColRef) usedColumns.toArray()[6];
-            Assert.assertTrue(tblColRef.getColumnDesc().isComputedColumn());
             String ccName = "SSB.LINEORDER.CC_TOTAL_TAX";
+            TblColRef tblColRef = usedColumns.stream().filter(colRef -> colRef.getCanonicalName().equals(ccName)).findAny().get();
+            Assert.assertNotNull(tblColRef);
+            Assert.assertTrue(tblColRef.getColumnDesc().isComputedColumn());
             Assert.assertEquals(ccName, tblColRef.getCanonicalName());
 
             SourceUsageRecord sourceUsageRecord = sourceUsageManager.getLatestRecord();
@@ -133,6 +135,66 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
                     .getColumnByName("EDW.TEST_SITES.SITE_NAME");
             // assert will remove TOMB column (197-> 196) in `nmodel_basic_inner` model when comput column size.
             Assert.assertEquals(510L, columnCapacityDetail.getMaxSourceBytes());
+            return null;
+        }, UnitOfWork.GLOBAL_UNIT);
+    }
+
+
+    @Test
+    public void testCCNotIncludedInSourceUsage() {
+        String project = "cc_test";
+        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
+        SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            KylinConfig testConfig = getTestConfig();
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(testConfig);
+            sourceUsageManager.updateSourceUsage(record);
+            NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+            NDataflow dataflow = dfManager.getDataflow("0d146f1a-bdd3-4548-87ac-21c2c6f9a0da");
+            NDataSegment dataSegment = dataflow.getLastSegment();
+            Map<String, Long> columnSourceBytesMap = dataSegment.getColumnSourceBytes();
+            Assert.assertEquals(7, columnSourceBytesMap.size());
+
+            Set<TblColRef> usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment);
+            Assert.assertEquals(8, usedColumns.size());
+            String ccName = "SSB.LINEORDER.CC_TOTAL_TAX";
+            TblColRef tblColRef = dataflow.getAllColumns().stream().filter(colRef -> colRef.getCanonicalName().equals(ccName)).findAny().get();
+            Assert.assertNotNull(tblColRef);
+            Assert.assertEquals(ccName, tblColRef.getCanonicalName());
+
+            SourceUsageRecord sourceUsageRecord = sourceUsageManager.getLatestRecord();
+            SourceUsageRecord.ProjectCapacityDetail projectCapacityDetail = sourceUsageRecord
+                    .getProjectCapacity(project);
+            Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, projectCapacityDetail.getStatus());
+            SourceUsageRecord.TableCapacityDetail tableCapacityDetail = projectCapacityDetail
+                    .getTableByName("SSB.LINEORDER");
+            SourceUsageRecord.TableCapacityDetail tableCapacityDetail1 = projectCapacityDetail
+                    .getTableByName("SSB.CUSTOMER");
+            // assert all used columns is calculated
+            Assert.assertEquals(8, tableCapacityDetail.getColumns().length + tableCapacityDetail1.getColumns().length);
+            // assert CC is not calculated
+            SourceUsageRecord.ColumnCapacityDetail ccColumnCapacityDetail = tableCapacityDetail.getColumnByName(ccName);
+            Assert.assertNull(ccColumnCapacityDetail);
+            // assert CC is unwrapped
+            List<TblColRef> unwrappedTblColRefs = ComputedColumnDesc.unwrap(dataflow.getModel(), tblColRef.getExpressionInSourceDB());
+            Assert.assertEquals(2, unwrappedTblColRefs.size());
+            Assert.assertTrue(unwrappedTblColRefs.stream().anyMatch(colRef ->
+                    colRef.getColumnDesc().getIdentity().equals("LINEORDER.LO_QUANTITY")));
+            SourceUsageRecord.ColumnCapacityDetail columnCapacityDetail = tableCapacityDetail.getColumnByName("SSB.LINEORDER.LO_QUANTITY");
+            Assert.assertNotNull(columnCapacityDetail);
+            Assert.assertEquals(0L, columnCapacityDetail.getMaxSourceBytes());
+
+            Assert.assertTrue(unwrappedTblColRefs.stream().anyMatch(colRef ->
+                    colRef.getColumnDesc().getIdentity().equals("LINEORDER.LO_TAX")));
+            columnCapacityDetail = tableCapacityDetail.getColumnByName("SSB.LINEORDER.LO_TAX");
+            Assert.assertNotNull(columnCapacityDetail);
+            Assert.assertEquals(0L, columnCapacityDetail.getMaxSourceBytes());
+
+            projectCapacityDetail = sourceUsageRecord.getProjectCapacity("default");
+            ccColumnCapacityDetail = projectCapacityDetail.getTableByName("EDW.TEST_SITES")
+                    .getColumnByName("EDW.TEST_SITES.SITE_NAME");
+            // assert will remove TOMB column (197-> 196) in `nmodel_basic_inner` model when comput column size.
+            Assert.assertEquals(510L, ccColumnCapacityDetail.getMaxSourceBytes());
             return null;
         }, UnitOfWork.GLOBAL_UNIT);
     }

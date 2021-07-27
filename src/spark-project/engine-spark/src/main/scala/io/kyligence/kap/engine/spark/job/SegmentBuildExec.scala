@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.job
 
 import java.io.IOException
 import java.util.Objects
-
 import com.google.common.collect.Lists
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
@@ -35,6 +34,7 @@ import io.kyligence.kap.engine.spark.builder.{SegmentBuildSource, SegmentFlatTab
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
+import org.apache.kylin.common.KapConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
@@ -87,8 +87,12 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     logInfo(s"Build SEGMENT $segmentId")
     // Checkpoint results.
     checkpoint()
-    // Gather statistics of flat table
-    gatherFlatTableStats()
+    // Gather statistics of tables
+    if (KapConfig.getInstanceFromEnv.isCalculateStatisticsFromFlatTable) {
+      gatherFlatTableStats()
+    } else {
+      gatherTableStatsFromJoinTables()
+    }
     // Build layers.
     buildByLayer()
     // Drain results immediately after building.
@@ -191,6 +195,15 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     }
     flatTableStatistics = flatTable.gatherStatistics()
   }
+
+  protected def gatherTableStatsFromJoinTables(): Unit = {
+    if (!needFlatTable) {
+      logInfo(s"Skip gather all joined table stats $segmentId")
+      return
+    }
+    flatTableStatistics = flatTable.gatherStatisticsFromJoinTables()
+  }
+
 
   protected def tryRefreshColumnBytes(): Unit = {
     if (flatTableStatistics == null) {

@@ -299,6 +299,10 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.influxdb.https.unsafe-ssl.enabled", "true", true));
         map.put("isOnlyPlanInSparkEngine",
                 new PropertiesEntity("kylin.query.only-plan-with-spark-engine", "false", false));
+        map.put("isSourceUsageUnwrapComputedColumn",
+                new PropertiesEntity("kylin.metadata.history-source-usage-unwrap-computed-column", "true", true));
+        map.put("isCalculateStatisticsFromFlatTable",
+                new PropertiesEntity("kylin.storage.calculate-source-usage-from-flat-table", "false", false));
     }
 
     @Before
@@ -317,7 +321,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(126, methodsCount);
+        Assert.assertEquals(128, methodsCount);
     }
 
     @Test

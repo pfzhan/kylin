@@ -22,7 +22,7 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
+import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.{Statistics, changeSchemeToColumnId}
 import io.kyligence.kap.metadata.cube.model.MLPFlatTableDesc
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
@@ -51,7 +51,7 @@ class MLPFlatTable(private val sparkSession: SparkSession, //
     originDS.where(condition)
   }
 
-  def getPartitionDS(partitionId: java.lang.Long): Dataset[Row] = {
+  def getPartitionDS(partitionId: java.lang.Long, tableDS: Dataset[Row]): Dataset[Row] = {
     val columnIds = tableDesc.getColumnIds.asScala
     val columnName2Id = tableDesc.getColumns //
       .asScala //
@@ -68,13 +68,29 @@ class MLPFlatTable(private val sparkSession: SparkSession, //
     }.mkString(" and ")
 
     logInfo(s"Single PARTITION-CONDITION: $converted")
-    FLAT_TABLE.where(converted)
+    tableDS.where(converted)
+  }
+
+  def getPartitionDS(partitionId: java.lang.Long): Dataset[Row] = {
+    getPartitionDS(partitionId, FLAT_TABLE)
+  }
+
+  def getFactTablePartitionDS(partitionId: java.lang.Long): Dataset[Row] = {
+    getPartitionDS(partitionId, changeSchemeToColumnId(fastFactTableWithFilterConditionTableDS, tableDesc))
   }
 
   def gatherPartitionStatistics(partitionId: Long, tableDS: Dataset[Row]): Statistics = {
     logInfo(s"Segment $segmentId gather statistics PARTITION-FLAT-TABLE $partitionId")
     sparkSession.sparkContext.setJobDescription(s"Segment $segmentId gather statistics PARTITION-FLAT-TABLE $partitionId")
     val statistics = gatherStatistics(tableDS)
+    sparkSession.sparkContext.setJobDescription(null)
+    statistics
+  }
+
+  def gatherPartitionColumnBytes(partitionId: Long, tableDS: Dataset[Row]): Map[String, Long] = {
+    logInfo(s"Segment $segmentId gather statistics PARTITION-FLAT-TABLE $partitionId")
+    sparkSession.sparkContext.setJobDescription(s"Segment $segmentId gather statistics PARTITION-FLAT-TABLE $partitionId")
+    val statistics = gatherColumnBytes(tableDS)
     sparkSession.sparkContext.setJobDescription(null)
     statistics
   }
