@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.rest.service.task;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
@@ -60,16 +62,13 @@ public class QueryHistoryTaskSchedulerRunnerTest extends NLocalFileMetadataTestC
     }
 
     @Test
-    @Ignore
     public void testQueryHistoryAccelerateRunner() {
-
-        getTestConfig().setProperty("kylin.favorite.query-history-accelerate-interval", "1m");
-        getTestConfig().setProperty("kylin.query.query-history-stat-interval", "1m");
 
         long startTime = System.currentTimeMillis();
         val internalExecute = Lists.<Long> newArrayList();
 
-        val mockSleepTimeSecs = 3;
+        val mockSleepTimeSecs = 1;
+        val mockSchedulerDelay = 2;
 
         val queryHistoryAccelerateRunnerMock = qhAccelerateScheduler.new QueryHistoryAccelerateRunner(false) {
             @Override
@@ -99,20 +98,26 @@ public class QueryHistoryTaskSchedulerRunnerTest extends NLocalFileMetadataTestC
 
         };
 
-        ReflectionTestUtils.setField(qhAccelerateScheduler, "queryHistoryAccelerateRunner",
-                queryHistoryAccelerateRunnerMock);
-        ReflectionTestUtils.setField(qhAccelerateScheduler, "queryHistoryMetaUpdateRunner",
-                queryHistoryMetaUpdateRunnerMock);
+        ReflectionTestUtils.setField(qhAccelerateScheduler, "taskScheduler", Executors.newScheduledThreadPool(1,
+                new NamedThreadFactory("QueryHistoryWorker(project:" + PROJECT + ")")));
 
         try {
-            qhAccelerateScheduler.init();
+            val schedulerService = (ScheduledExecutorService) ReflectionTestUtils.getField(qhAccelerateScheduler,
+                    "taskScheduler");
 
-            TimeUnit.MINUTES.sleep(3);
+            schedulerService.scheduleWithFixedDelay(queryHistoryAccelerateRunnerMock, 0, mockSchedulerDelay,
+                    TimeUnit.SECONDS);
+            schedulerService.scheduleWithFixedDelay(queryHistoryMetaUpdateRunnerMock, 0, mockSchedulerDelay,
+                    TimeUnit.SECONDS);
 
-            Assert.assertEquals(internalExecute.size(), 3);
+            val schedulerNum = 10;
+
+            TimeUnit.SECONDS.sleep(schedulerNum);
+
+            Assert.assertEquals(internalExecute.size(), schedulerNum / (mockSchedulerDelay + mockSleepTimeSecs));
 
             for (int i = 0; i < internalExecute.size(); i++) {
-                Assert.assertEquals(internalExecute.get(i).longValue(), i * 60 + mockSleepTimeSecs * (i + 1));
+                Assert.assertEquals(internalExecute.get(i), i * mockSchedulerDelay + mockSleepTimeSecs * (i + 1), 1);
             }
         } catch (Exception e) {
             log.error("test qhAccelerateScheduler error :", e);
