@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class TimeZoneTestRunner extends BlockJUnit4ClassRunner {
     private static final Logger logger = LoggerFactory.getLogger(KylinConfig.class);
 
-    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
+    private static String[] timeZones = { "UTC" };
 
     public TimeZoneTestRunner(Class<?> clazz) throws Exception {
         super(clazz);

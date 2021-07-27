@@ -73,6 +73,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_count_distinct_expr"));
     }
 
+    @Ignore("Let's run it per commit.")
     @Test
     public void testAdvanceDimAsMeasure() throws Exception {
         overwriteSystemProp("kylin.query.implicit-computed-column-convert", "FALSE");
