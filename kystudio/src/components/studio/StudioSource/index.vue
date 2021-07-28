@@ -90,10 +90,10 @@
           <span slot="title" class="ksd-fs-14" v-html="delTabelConfirmMessage"></span>
         </el-alert>
         <span slot="footer" class="dialog-footer ky-no-br-space">
-          <el-button plain size="medium" @click="isDelAllDepVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" text size="medium" @click="isDelAllDepVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button v-if="isOnlySnapshot" type="primary" size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('kylinLang.common.delete')}}</el-button>
           <template v-else>
-            <el-button plain size="medium" :loading="delAllLoading" @click="handelDeleteTable(true)">{{$t('deleteAll')}}</el-button>
+            <el-button size="medium" :loading="delAllLoading" @click="handelDeleteTable(true)">{{$t('deleteAll')}}</el-button>
             <el-button type="primary" size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('deleteTable')}}</el-button>
           </template>
         </span>
