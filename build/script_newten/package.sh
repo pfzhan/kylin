@@ -50,6 +50,184 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.0 release note
+In this new version, Kyligence Enterprise not only supports real-time data analysis, but also supports fusion analysis of historical data and real-time data under a unified model and query portal. Under the broadening of the analysis scenario, the simple architecture reduces the operation and maintenance cost. At the same time, the introduction of Smart Tiered Storage functions can support flexible ad hoc query scenarios with random combinations of multiple dimensions, bringing users more possibilities for analysis and exploration based on massive data. In addition, Spark, which is the core component of Kyligence Enterprise has been greatly upgraded, which greatly improves the stability of building and query; Kyligence Enterprise supports the automatic creation and maintenance of base indexes, which increases the model's coverage of queries. 
+**Smart Tiered Storage**
+Kyligence Enterprise provides HDFS/Object Storage and Clickhouse serve as two tiers of storage, significantly improving the performance of ad-hoc analytics and detailed query by providing the Smart Tiered Storage capability with ClickHouse. With pre-calculation and AI augmented engine, it can cover more analysis scenarios, and help Enterprise to operate in a refined approach and support business decision making.
+With Smart Tiered Storage, business users can still consume the Unified Semantic Layer using their preferred tool without the need of knowing the underlying computation and storage mechanism, which will significantly reduce the labor and time cost in the model, and obtain a unified analysis experience. 
+**Kyligence Real-time**
+The real-time nature of data analysis determines the timeliness of business decision-making. Taking immediate action at the first moment of an incident is a key factor in the success of business operations especially in use cases such as fraud detection, campaign monitoring. 
+Kyligence Enterprise 4.5 helps businesses such as marketing, risk management who want to do real-time data monitoring or hybrid analysis of historical data and nowadays data by offering a minute-level latency real-time query engine using Spark structured streaming under the same Unified Semantic Model and query entrance. 
+Unlike most of the alternative solutions available in the market, Kyligence provides one platform to serve online, offline, and hybrid analysis, so it hides the differences in the underlying data and achieves simplified and unified analysis for business. 
+In contrast to a separate architecture for batch and real-time data, a hybrid architecture means reduced complexity in architecture, shortened development cycle, and lower operation and maintenance cost for IT.
+**Upgrade of Spark version**
+In Kyligence Enterprise 4.5, the core component Spark is upgraded to Spark 3, which supports multiple important new features, and users can use upper-layer functions without paying attention to the underlying details. In data skewed scenarios, the existence of skewed partitions may cause performance bottlenecks in the building task. 
+Adaptive Query Execution (AQE) capability improves building stability and query efficiency by adaptively repartitioning skewed data. The dynamic partition pruning (DPP) capability can perform partition pruning based on the information obtained during query runtime to improve query performance. In addition, Spark 3 also fixes more than 3400 patches compared to the lower version of Spark, eliminating the manpower investment in developing a large number of patches. 
+Most importantly, Spark 3 will be a stepping stone for Kyligence to get Kubernized and provide a private-cloud deployment offering in the future. 
+**Base Index**
+If the query pushdown is not allowed in the enterprise, queries that cannot be answered by Kyligence Enterprise will fail. At this time, increasing the query response rate of the platform can ensure service stability to a greater extent. In Kyligence Enterprise 4.5, the base indexes are automatically generated when the model is generated, including all the dimensions and measures in the model. As long as the time range of queries match that of the built indexes, the query that hits the model can hit the basic indexes. And the base indexes support automatic update as the model changes, reducing manual maintenance costs. For more details, please refer to the user manual.
+
+
+#### Kyligence Enterprise 4.3.7 release note
+
+**Enhancement**
+
+- Cognos Data Module reports fails due to "defaultcatalog" string part in the query statement
+- Queries from Cognos with FETCH FIRST ROW clause failed
+- Support individual resource configuration for build/refresh snapshot jobs
+- Partial model matching parameters (kylin.query.match-partial-inner-join-model) support project-level configuration
+- Optimize the processing when data skew occurs in the detailed index shard by column
+
+**Bugfix**
+
+- There is an SQL parsing failure and a null pointer error
+- The maximum number of threads during partitioned snapshot building is incorrect
+- When there is a Broken model, API for returning the model list API will report an error
+- fix the alerts when pushdown called by sub query using quotes and brackets
+- After the segment is built, the last update time is displayed incorrectly
+- Check-env failed under yarn-cluster mode
+- The driver log of the building job is incomplete
+- The partition column format was not checked when building the index
+- In yarn-cluster mode, the dimension table is a view, and an error is reported when counting multiple dimension tables
+- When calling the pre-reload API, if there are duplicate columns in the dimension table, the result is not returned correctly
+- During the upgrade, spark/conf/spark-env.sh will be overwritten, resulting in the loss of yarn-cluster mode parameters
+- The build log is too large which leads to node Out-Of-Memory(OOM)
+- Agg Pushdown prevents Olapcontext from being further segmented
+- The Cross Join query resulted in the generation of more than 1 million Tasks
+- Spark's repeated refresh of the Driver-side token causes it to fail
+- The AppMaster log of the task submitted to Yarn is abnormal
+- In SQL modeling, when the expressions of the computed columns are the same, tables with different join relationships may be identified as the same model
+- If the query result set is too small, "the number of query scan records is 0" in the query history
+- When there are no locked indexes in Segments, the locked indexes still exist in the index list
+
+#### Kyligence Enterprise 4.3.6 release note
+
+**Enhancement**
+
+- Support to configure whether audit_log is included in the diagnostic package
+- Allow concurrent building jobs during multi-segment building
+- Optimize Percentile build and query performance
+- Increase the width of the index details pop-up window, so that the content can be displayed as fully as possible
+- Optimize memory consumption after enabling recommendation mode
+
+**Bugfix**
+
+- The current_epoch_owner field ip address of the metadata table is not accurate
+- If the Broken model and snapshot exist at the same time while reloading the table, the copywriting will not display correctly
+- The query history shows the step time, and the returned result is a negative value
+- After setting up Shardby, a single task may process a large number of files
+- The parameter spark.scheduler.pool setting is invalid
+
+#### Kyligence Enterprise 4.3.5 release note
+
+**Enhancement**
+
+- Add User-Agent information to the access_log file to help diagnose problems
+- Long parsing time when optimizing a large number of union queries
+- Canary restarts abnormal SparderContext
+- Open Download Query History API
+- After configuring read-write separation, add write_hadoop_conf information to the diagnostic package
+- Add result correctness check to build step
+- Supports setting partial tables without building flat tables, assisting many-to-many query scenario implementation
+- Support string function repeat (string STR, int n)
+- Supports parameter settings If the query cannot be answered by the index, it will fail directly without using the down function
+- kylin.query.use-tableindex-answer-non-raw-query parameters support project-level and model-level rewrites
+- When the table is overloaded, the table structure changes, and the corresponding snapshot will be displayed as a Broken state instead of being deleted directly
+- increased to check the existence of krb5 files
+- Enhance the implementation of priority when submitting tasks
+- Add logs related to optimization suggestions in the diagnostic package
+- Asynchronous queries use a separate spark queue to support project configuration, which supports specifying queues in request parameters
+- Support setting whether to level the dimension table
+- Asynchronous queries using separate Spark queues
+- Optimizing session-store using jdbc mode may cause QPS to drop
+- Supports pluggable SQL Transformer plug-in
+
+**Bugfix**
+
+- build global dictionary check turned off by default
+- Batch operation of the global task list may cause system jam
+- Chrome version 65 browser, the index operation bar may display misplaced
+- Capacity calculation is too small when the flat table is not persisted during construction
+- Recovery of backup metadata failed
+- When the number of indexes in a single model exceeds 10,000, the response time of related operations is too long
+- Abnormal behavior using both forcedToPushDown and forced_to_index
+- Using mySQL metadata, asynchronous query write query history failed
+- ${KYLIN_HOME}/conf does not place krb5.conf, check env kerberos check error is not clear
+- No realization found for OLAPContext
+- Loading flat table data exception
+- In addition to admin permissions, users with other permissions submit asynchronous queries, which must now fail
+- Send asynchronous query, no record in query history
+- KDU cannot be updated immediately, effective immediately
+- SparkJobTrace causes serious query performance degradation
+- Configure the project-level configuration to root.default, the actual asynchronous query is still the system-level configuration
+- After submitting the query API, the asynchronous query status is all failed
+- Execute a content query exception with 'Free Selection-Pepsi (' in SQL
+- Multi-level partition sub-score search function is invalid
+- Asynchronous query query time increases significantly compared to synchronous query time
+- The query history configuration was successful, but the wrong metadata path was written during execution
+- Recovery of backup metadata failed
+- The query history specified metadata url path switch is not configured to record the query history failure, resulting in the inevitable failure of the next query
+- Export query history data is too large, the export file is empty
+- hdfs stores the path of the query job, the log is the same level as the job_tmp directory, and it is not convenient to read the log
+- Union of column dimension columns and metric dependency columns that can be set as detail indexes
+- Fix return task list API status parameter does not take effect
+- Fix return task list API return non-project data
+- Union of column dimension columns and metric dependency columns that can be set as detail indexes
+- Create project error in FI-C90 environment "The system is trying to restore service. Please try again later"
+- When the number of indexes reaches 10,000, optimize the operation time to within 5s
+- When performing two consecutive filtering operations, if the response speed of the first operation is slow, the filtering results will lag
+- The Get Model Information API gets dimensions only from the aggregation group
+- Built indexes were not rebuilt after the model join relationship was changed to many-to-many
+- When the model goes offline, the computable columns of the same expression do not correctly reuse the existing computable columns, causing the recommendation to pass
+- PI operation error in query
+- does not support index building for a single COUNT_ALL metric
+- English interface selection dimension table does not play normally, pop-up window prompts Chinese
+- Using query API forced pushdown, it report an error
+- Model optimization suggestion sort only takes effect in the current pagination, not globally
+- There is a problem with the download link of the jar file package driven by the manual JDBC
+- Sort operations in model optimization recommendations only take effect for data within a page
+- build global dictionary check turned off by default
+- model segment list default sorting by chronological order
+- After capacity billing is turned off, irrelevant values are still counted during snapshot construction, resulting in too long build time
+- Inquiry Hit Index Turn Spark Failed to Error "Unsupported function name PERCENTILE_APPROX" When Executing Plan
+- Get task information API input error jobid parameter, can also return the last jobid execution status of the project execution
+- Capacity calculation is too small when the flat table is not persisted during construction
+- Asynchronous Query-The front end displays "Number of Query Result Records" always 0
+
+#### Kyligence Enterprise 4.3.3 release note
+
+**Enhancement**
+
+- Compatible with MapR 6.1.0 platform
+- Compatible with Apache Hadoop 2.7.2 platform
+- Support Count Distinct Case When Expression
+- Enhance RLS with more control over AND/OR pairing
+- Multi-level partitioning loading data API, supports specifying all sub-partitions
+- The query result memory protection parameter is enabled by default
+- Support zip compress storage for metadata
+- On query history page, support normal users to filter query objects
+- Print more cache-related information in the log to facilitate problem diagnosis
+
+**Bugfix**
+
+- In column-level permission interface, user name field is case-sensitive
+- Not include the column with invalid data type in col-level ACL configuration
+- Fix invalid data ACL after table reload
+- The index overview entry and the number of rows in the Segment list are inconsistent
+- Model import fails when there are many computed columns
+- When more than two subqueries participate in UNION, the query may fail if any of the subqueries filter is always false
+- System-level configuration of smart recommendation mode is ineffective
+- By setting "kap.metadata.semi-automatic-mode=true" in the custom project configuration, you can turn on the recommendation mode
+- When the column name contains double underscores, the query cannot hit indexes
+- When the Spark Context stops unexpectedly, the query cannot be cancelled in time
+- For the failed pushdown SQL, the query object is displayed as Hive in the query history
+- The query history is not displayed correctly which hit the cached
+- For unaccelerated SQL, the status returned by the query history interface is wrong
+- The deleted model can still be clicked in query history
+- When the query hits the snapshot, the index is still displayed as hit in the query history
+- In asynchronous query to get query status API, missing the required project parameter, unknown error code occured
+
+
 #### Kyligence Enterprise 4.3.2 release note
 
 **Enhancement**
