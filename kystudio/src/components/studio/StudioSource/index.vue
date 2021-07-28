@@ -291,7 +291,9 @@ export default class StudioSource extends Vue {
       const storageSize = Vue.filter('dataSize')(modelSize)
       const dropTabelDepenSub = this.selectedTable.datasource === 1 ? this.$t('dropTabelDepenSub') : ''
       const dropTabelDepenSub2 = this.selectedTable.datasource === 9 ? this.$t('dropTabelDepenSub2') : ''
-      const contentVal = { tableName, storageSize, dropTabelDepenSub, dropTabelDepenSub2 }
+      const dropTabelDepenSub3 = this.selectedTable.datasource === 9 ? this.$t('dropTabelDepenSub3') : ''
+      const dropTabelDepenSub4 = this.selectedTable.datasource === 1 ? this.$t('dropTabelDepenSub4') : ''
+      const contentVal = { tableName, storageSize, dropTabelDepenSub, dropTabelDepenSub2, dropTabelDepenSub3, dropTabelDepenSub4 }
       if (hasModel && !hasSnapshot) {
         this.delTabelConfirmMessage = this.$t('dropTabelDepen', contentVal)
       } else if (hasModel && hasSnapshot) {

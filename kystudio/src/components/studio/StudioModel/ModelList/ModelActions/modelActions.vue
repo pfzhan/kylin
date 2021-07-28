@@ -533,9 +533,6 @@ export default class ModelActions extends Vue {
   }
 
   async openChangeModelOwner (model, modelId) {
-    if (model.model_type === 'HYBRID') {
-      return false
-    }
     this.modelOwner.modelName = model.alias
     this.modelOwner.model = modelId
     this.ownerFilter.project = this.currentSelectedProject
