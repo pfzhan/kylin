@@ -761,9 +761,9 @@ export default class StreamingJobsList extends Vue {
       this.setProject(item.project)
     }
     if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
-      postCloudUrlMessage(this.$route, { name: 'ModelList', params: { modelAlias: item.target_subject } })
+      postCloudUrlMessage(this.$route, { name: 'ModelList', params: { modelAlias: item.model_alias } })
     } else {
-      this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
+      this.$router.push({name: 'ModelList', params: { modelAlias: item.model_alias }})
     }
   }
   // 查询状态过滤回调函数
