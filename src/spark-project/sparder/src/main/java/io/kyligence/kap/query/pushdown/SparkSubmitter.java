@@ -26,15 +26,13 @@ package io.kyligence.kap.query.pushdown;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.ClassLoaderUtils;
-import io.kyligence.kap.metadata.query.StructField;
+import lombok.val;
 import org.apache.kylin.common.Singletons;
-import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.UUID;
 
 public class SparkSubmitter {
@@ -65,8 +63,8 @@ public class SparkSubmitter {
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         SparkSession ss = getSparkSession();
-        Pair<List<List<String>>, List<StructField>> pair = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), project);
-        return new PushdownResponse(pair.getSecond(), pair.getFirst());
+        val results = SparkSqlClient.executeSqlToIterable(ss, sql, UUID.randomUUID(), project);
+        return new PushdownResponse(results._3(), results._1(), (int)results._2());
     }
 
     public class OverriddenSparkSession implements AutoCloseable {

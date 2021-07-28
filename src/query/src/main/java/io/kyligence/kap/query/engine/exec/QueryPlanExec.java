@@ -28,12 +28,21 @@ import java.util.List;
 
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import org.apache.calcite.rel.RelNode;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * implement and execute a physical plan
  */
 public interface QueryPlanExec {
 
-    List<List<String>> execute(RelNode rel, MutableDataContext dataContext);
+    @Deprecated
+    default List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+        throw new NotImplementedException();
+    }
+
+    default ExecuteResult executeToIterable(RelNode rel, MutableDataContext dataContext) {
+        List<List<String>> rows = execute(rel, dataContext);
+        return new ExecuteResult(rows, rows.size());
+    }
 
 }

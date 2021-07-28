@@ -26,16 +26,13 @@ package io.kyligence.kap.query.engine;
 
 import static io.kyligence.kap.query.engine.QueryRoutingEngine.SPARK_MEM_LIMIT_EXCEEDED;
 
-import java.util.Collections;
-import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.util.QueryParams;
+import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.apache.spark.SparkException;
 import org.junit.After;
 import org.junit.Assert;
@@ -80,8 +77,7 @@ public class QueryRoutingEngineTest extends NLocalFileMetadataTestCase {
             pushdownCount++;
             Assert.assertTrue(
                     ResourceStore.getKylinMetaStore(kylinconfig) instanceof InMemResourceStore);
-            return new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
-                    Collections.EMPTY_LIST);
+            return PushdownResult.emptyResult();
         }).when(queryRoutingEngine).tryPushDownSelectQuery(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
 
         queryRoutingEngine.queryWithSqlMassage(queryParams);

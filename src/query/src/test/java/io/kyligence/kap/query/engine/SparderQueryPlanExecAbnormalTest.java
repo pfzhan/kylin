@@ -24,6 +24,7 @@
 package io.kyligence.kap.query.engine;
 
 
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
@@ -39,7 +40,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import scala.runtime.AbstractFunction0;
 
-import java.util.List;
 
 public class SparderQueryPlanExecAbnormalTest {
 
@@ -77,7 +77,7 @@ public class SparderQueryPlanExecAbnormalTest {
         }
 
         @Override
-        public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+        public ExecuteResult executeToIterable(RelNode rel, MutableDataContext dataContext) {
             return internalCompute(engine, dataContext, rel);
         }
     }
@@ -93,7 +93,7 @@ public class SparderQueryPlanExecAbnormalTest {
         ThrownExceptionEngine engine = new ThrownExceptionEngine(throwExceptionAtFirstTime);
         TestSparderQueryPlanExec exec = new TestSparderQueryPlanExec(engine);
 
-        Assert.assertNull(exec.execute(null, null));
+        Assert.assertNull(exec.executeToIterable(null, null).getRows());
         Assert.assertEquals(2, throwExceptionAtFirstTime.callNumber);
         Assert.assertTrue(QueryContext.current().isForceTableIndex());
         Assert.assertTrue(QueryContext.current().getSecondStorageUsageMap().isEmpty());
@@ -105,7 +105,7 @@ public class SparderQueryPlanExecAbnormalTest {
 
         thrown.expect(SparkException.class);
         try {
-            exec.execute(null, null);
+            exec.executeToIterable(null, null);
         } finally {
             Assert.assertEquals(1, throwExceptionAtFirstTime2.callNumber);
             Assert.assertTrue(QueryContext.current().isForceTableIndex());
@@ -121,7 +121,7 @@ public class SparderQueryPlanExecAbnormalTest {
 
         thrown.expect(SparkException.class);
         try {
-            exec.execute(null, null);
+            exec.executeToIterable(null, null);
         } finally {
             Assert.assertEquals(1, throwExceptionAtFirstTime.callNumber);
             Assert.assertFalse(QueryContext.current().isForceTableIndex());

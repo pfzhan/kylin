@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.query.engine.exec.sparder;
 
-import java.util.List;
 import java.util.Objects;
 
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.KapConfig;
@@ -58,7 +58,7 @@ import org.apache.spark.SparkException;
 public class SparderQueryPlanExec implements QueryPlanExec {
 
     @Override
-    public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+    public ExecuteResult executeToIterable(RelNode rel, MutableDataContext dataContext) {
         QueryContext.currentTrace().startSpan(QueryTrace.MODEL_MATCHING);
         // select realizations
         selectRealization(rel);
@@ -72,7 +72,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
             for (OLAPContext context : contexts) {
                 if (context.olapSchema != null && context.storageContext.isEmptyLayout()) {
                     QueryContext.fillEmptyResultSetMetrics();
-                    return Lists.newArrayList();
+                    return new ExecuteResult(Lists.newArrayList(), 0);
                 }
             }
         }
@@ -88,7 +88,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
      * @param dataContext
      * @return
      */
-    private List<List<String>> doExecute(RelNode rel, DataContext dataContext) {
+    private ExecuteResult doExecute(RelNode rel, DataContext dataContext) {
         // create SparkEngine with reflection since kap-sparder is dependent on kap-query
         // so that kap-query cannot reference classes from kap-sparder normally
         // TODO refactor to remove cyclical dependency between kap-query and kap-sparder
@@ -108,9 +108,9 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 && !QueryContext.current().getSecondStorageUsageMap().isEmpty();
     }
 
-    protected List<List<String>> internalCompute(QueryEngine queryEngine, DataContext dataContext, RelNode rel) {
+    protected ExecuteResult internalCompute(QueryEngine queryEngine, DataContext dataContext, RelNode rel) {
         try {
-            return queryEngine.compute(dataContext, rel);
+            return queryEngine.computeToIterable(dataContext, rel);
         } catch (final Exception e) {
             if (forceTableIndexAtException(e)) {
                 if (log.isDebugEnabled()) {
@@ -122,7 +122,7 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 throw e;
             }
         }
-        return queryEngine.compute(dataContext, rel);
+        return queryEngine.computeToIterable(dataContext, rel);
     }
 
     /**

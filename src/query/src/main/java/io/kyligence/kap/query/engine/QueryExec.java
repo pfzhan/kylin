@@ -34,6 +34,7 @@ import java.util.Locale;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
 import io.kyligence.kap.query.util.HepUtils;
@@ -141,7 +142,7 @@ public class QueryExec {
 
             if (kylinConfig.getEmptyResultForSelectStar() && sql.toLowerCase(Locale.ROOT).matches("^select\\s+\\*\\p{all}*")
                     && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
-                return new QueryResult(Lists.newArrayList(), resultFields);
+                return new QueryResult(Lists.newArrayList(), 0, resultFields);
             }
 
             QueryResultMasks.setRootRelNode(node);
@@ -271,18 +272,18 @@ public class QueryExec {
      *             relNodes will be executed one by one and return on the first successful execution
      * @return
      */
-    private List<List<String>> executeQueryPlan(List<RelNode> rels) {
+    private ExecuteResult executeQueryPlan(List<RelNode> rels) {
         boolean routeToCalcite = routeToCalciteEngine(rels.get(0));
         dataContext.setContentQuery(routeToCalcite);
         if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()
                 && KapConfig.wrap(kylinConfig).runConstantQueryLocally() && routeToCalcite) {
             QueryContext.current().getQueryTagInfo().setConstantQuery(true);
-            return new CalciteQueryPlanExec().execute(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
+            return new CalciteQueryPlanExec().executeToIterable(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
             NoRealizationFoundException lastException = null;
             for (RelNode rel : rels) {
                 try {
-                    return new SparderQueryPlanExec().execute(rel, dataContext);
+                    return new SparderQueryPlanExec().executeToIterable(rel, dataContext);
                 } catch (NoRealizationFoundException e) {
                     lastException = e;
                 }

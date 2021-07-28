@@ -178,7 +178,7 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
         try (SparkSubmitter.OverriddenSparkSession ignored = SparkSubmitter.getInstance().overrideSparkSession(ss)) {
             PushdownResponse resp = SparkSubmitter.getInstance().submitPushDownTask("select order_id from test_kylin_fact limit 1", "tpch");
             Assert.assertEquals(1, resp.getColumns().size());
-            Assert.assertEquals(1, resp.getRows().size());
+            Assert.assertEquals(1, resp.getSize());
         }
     }
 }

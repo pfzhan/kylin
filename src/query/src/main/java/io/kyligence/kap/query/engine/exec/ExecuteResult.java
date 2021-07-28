@@ -22,30 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine.exec.sparder;
+package io.kyligence.kap.query.engine.exec;
 
 import java.util.List;
 
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
-import org.apache.calcite.DataContext;
-import org.apache.calcite.rel.RelNode;
-import org.apache.commons.lang3.NotImplementedException;
+public class ExecuteResult {
+    private final Iterable<List<String>> rows;
+    private final int size;
 
-public interface QueryEngine {
-
-    /**
-     * execute and return rows in string
-     * @param dataContext
-     * @param relNode
-     * @return
-     */
-    @Deprecated
-    default List<List<String>> compute(DataContext dataContext, RelNode relNode) {
-        throw new NotImplementedException();
+    public ExecuteResult(Iterable<List<String>> rows, int size) {
+        this.rows = rows;
+        this.size = size;
     }
 
-    default ExecuteResult computeToIterable(DataContext dataContext, RelNode relNode) {
-        List<List<String>> rows = compute(dataContext, relNode);
-        return new ExecuteResult(rows, rows == null ? 0 : rows.size());
+    public int getSize() {
+        return size;
+    }
+
+    public Iterable<List<String>> getRows() {
+        return rows;
     }
 }

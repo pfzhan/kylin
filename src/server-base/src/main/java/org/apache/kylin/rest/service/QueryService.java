@@ -76,6 +76,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.engine.data.QueryResult;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.commons.collections.CollectionUtils;
@@ -245,7 +246,7 @@ public class QueryService extends BasicService {
                 AsyncQueryJob asyncQueryJob = new AsyncQueryJob();
                 asyncQueryJob.setProject(queryParams.getProject());
                 asyncQueryJob.submit(queryParams);
-                return buildSqlResponse(false, Lists.newArrayList(), Lists.newArrayList(), sqlRequest.getProject());
+                return buildSqlResponse(false, Collections.emptyList(), 0, Lists.newArrayList(), sqlRequest.getProject());
             }
 
             SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(queryParams.getSql());
@@ -258,13 +259,13 @@ public class QueryService extends BasicService {
                 return fakeResponse;
             }
 
-            Pair<List<List<String>>, List<SelectedColumnMeta>> pair = queryRoutingEngine
-                    .queryWithSqlMassage(queryParams);
+            QueryResult result = queryRoutingEngine.queryWithSqlMassage(queryParams);
             if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
-                QueryContext.current().getMetrics().setResultRowCount(pair.getFirst().size());
+                QueryContext.current().getMetrics().setResultRowCount(result.getSize());
+                QueryContext.current().getMetrics().setResultRowCount(0);
             }
-            return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(), pair.getFirst(),
-                    pair.getSecond(), sqlRequest.getProject());
+            return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(),
+                    result.getRowsIterable(), result.getSize(), result.getColumnMetas(), sqlRequest.getProject());
         } finally {
             slowQueryDetector.queryEnd();
             Thread.interrupted(); //reset if interrupted
@@ -302,6 +303,7 @@ public class QueryService extends BasicService {
             queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownQuery(queryParams);
             if (r != null) {
+                QueryContext.current().getMetrics().setResultRowCount(0);
                 QueryContext.current().getMetrics().setResultRowCount(r.getFirst().size());
             }
 
@@ -374,7 +376,7 @@ public class QueryService extends BasicService {
 
         int resultRowCount = 0;
         if (!response.isException() && response.getResults() != null) {
-            resultRowCount = response.getResults().size();
+            resultRowCount = (int) response.getResultRowCount();
         }
         String sql = QueryContext.current().getUserSQL();
         if (StringUtils.isEmpty(sql))
@@ -1084,9 +1086,9 @@ public class QueryService extends BasicService {
         return false;
     }
 
-    private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
+    private SQLResponse buildSqlResponse(Boolean isPushDown, Iterable<List<String>> results, int resultSize,
             List<SelectedColumnMeta> columnMetas, String project) {
-        SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null,
+        SQLResponse response = new SQLResponse(columnMetas, results, resultSize, 0, false, null,
                 QueryContext.current().getQueryTagInfo().isPartial(), isPushDown);
         QueryContext queryContext = QueryContext.current();
 
