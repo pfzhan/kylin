@@ -1490,7 +1490,9 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getQueryTransformers() {
         String value = getOptional("kylin.query.transformers");
-        return value == null ? new String[]{"org.apache.kylin.query.util.PowerBIConverter",
+        return value == null ? new String[]{
+                "io.kyligence.kap.query.util.ReplaceStringWithVarchar",
+                "org.apache.kylin.query.util.PowerBIConverter",
                 "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
                 "io.kyligence.kap.query.util.ConvertToComputedColumn",
                 "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter"}
