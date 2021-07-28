@@ -35,9 +35,13 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
+
 import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
 import io.kyligence.kap.query.runtime.plan.ResultPlan;
 import io.kyligence.kap.query.engine.mask.QueryResultMasks;
+
+import java.util.List;
 
 public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);
@@ -56,6 +60,11 @@ public class SparkEngine implements QueryEngine {
         QueryContext.current().record("to_spark_plan");
         log.info("Plan take {} ms", takeTime);
         return calciteToSparkPlaner.getResult();
+    }
+
+    @Override
+    public List<List<String>> compute(DataContext dataContext, RelNode relNode) {
+        return ImmutableList.copyOf(computeToIterable(dataContext, relNode).getRows());
     }
 
     @Override

@@ -29,7 +29,6 @@ import java.util.List;
 import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
-import org.apache.commons.lang3.NotImplementedException;
 
 public interface QueryEngine {
 
@@ -40,9 +39,7 @@ public interface QueryEngine {
      * @return
      */
     @Deprecated
-    default List<List<String>> compute(DataContext dataContext, RelNode relNode) {
-        throw new NotImplementedException();
-    }
+    List<List<String>> compute(DataContext dataContext, RelNode relNode);
 
     default ExecuteResult computeToIterable(DataContext dataContext, RelNode relNode) {
         List<List<String>> rows = compute(dataContext, relNode);

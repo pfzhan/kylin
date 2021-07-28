@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.engine.exec.sparder;
 
+import java.util.List;
 import java.util.Objects;
 
 import io.kyligence.kap.query.engine.exec.ExecuteResult;
@@ -36,6 +37,7 @@ import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
@@ -56,6 +58,11 @@ import org.apache.spark.SparkException;
  */
 @Slf4j
 public class SparderQueryPlanExec implements QueryPlanExec {
+
+    @Override
+    public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+        return ImmutableList.copyOf(executeToIterable(rel, dataContext).getRows());
+    }
 
     @Override
     public ExecuteResult executeToIterable(RelNode rel, MutableDataContext dataContext) {
