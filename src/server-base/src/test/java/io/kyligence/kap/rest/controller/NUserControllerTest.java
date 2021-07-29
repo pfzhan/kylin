@@ -196,7 +196,6 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
     }
 
-    @Ignore
     @Test
     public void testCreateUserWithEmptyUsername() throws IOException {
         val user = new ManagedUser();
@@ -227,7 +226,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab");
         assertKylinExeption(() -> {
             nUserController.createUser(user);
-        }, "Username length should be less than 180 length, please check and resubmit.");
+        }, Message.getInstance().getINVALID_NAME_LEGTHN());
 
         user.setUsername("<1qaz>");
         assertKylinExeption(() -> {
