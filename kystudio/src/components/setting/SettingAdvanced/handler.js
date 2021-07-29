@@ -68,7 +68,7 @@ export function _getSecStorageSetting (data) {
   return {
     project: data.project,
     second_storage_enabled: data.second_storage_enabled,
-    second_storage_nodes: data.second_storage_nodes ? objectArraySort(data.second_storage_nodes, true, 'name') : null
+    second_storage_nodes: data.second_storage_nodes ? objectArraySort(data.second_storage_nodes, true, 'name') : []
   }
 }
 
