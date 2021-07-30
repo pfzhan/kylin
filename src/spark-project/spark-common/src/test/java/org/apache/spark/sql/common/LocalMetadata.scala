@@ -21,11 +21,11 @@
  */
 package org.apache.spark.sql.common
 
+import java.io.File
+
 import io.kyligence.kap.common.util.{NLocalFileMetadataTestCase, Unsafe}
 import org.apache.curator.test.TestingServer
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
-
-import java.io.File
 
 
 trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
@@ -46,8 +46,12 @@ trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
     Unsafe.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString)
   }
 
-  protected def overwriteSystemProp (key: String, value: String): Unit = {
+  protected def overwriteSystemProp(key: String, value: String): Unit = {
     metaStore.overwriteSystemProp(key, value)
+  }
+
+  override protected def afterEach(): scala.Unit = {
+    metaStore.restoreSystemProps()
   }
 
 

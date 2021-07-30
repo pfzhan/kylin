@@ -21,10 +21,9 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import java.util.concurrent.{ExecutorService, Executors, Future, TimeoutException}
+import java.util.concurrent.TimeoutException
 
-import com.google.common.collect.Lists
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
@@ -32,18 +31,12 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
 import org.junit.Assert
 
-import scala.collection.JavaConverters._
-
 class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
 
   private val DEFAULT_PROJECT = "default"
 
-  private val DF_NAME = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
-
-  private val DF_NAME_SEQ = Seq(
-    "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-    "741ca86a-1f13-46da-a59f-95fb68615e3a",
-    "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96")
+  // this model contain 7 dim table
+  private val MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
 
   override val master = "local[1]"
 
@@ -53,129 +46,62 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   test("snapshot -- check snapshot reuse") {
-    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val df: NDataflow = dsMgr.getDataflow(DF_NAME)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val fs = HadoopUtil.getWorkingFileSystem
-    fs.delete(new Path(snapPath), true)
-    df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "false"))
+    val dataModel = getModel(MODEL_ID)
 
-    buildSnapshot(df, isMock = false, 1, null)
-    buildSnapshot(df, isMock = false, 1, null)
-    buildSnapshot(df, isMock = true, 2, null)
-    buildSnapshot(df, isMock = true, 2, null)
-    df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
-  }
-
-  test("snapshot -- check snapshot concurrent construction") {
-    var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val fs = HadoopUtil.getWorkingFileSystem
-    fs.delete(new Path(snapPath), true)
-    roundTestBuildSnap()
+    overwriteSystemProp("kylin.snapshot.parallel-build-enabled", "false")
+    buildSnapshot(dataModel, isMock = false, 1, null)
+    buildSnapshot(dataModel, isMock = false, 1, null)
+    buildSnapshot(dataModel, isMock = true, 2, null)
+    buildSnapshot(dataModel, isMock = true, 2, null)
   }
 
   test("test concurrent snapshot success") {
-    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val df: NDataflow = dsMgr.getDataflow(DF_NAME)
-    val fs = HadoopUtil.getWorkingFileSystem
-    fs.delete(new Path(snapPath), true)
-    buildSnapshotParallel(df)
-    fs.delete(new Path(snapPath), true)
+    overwriteSystemProp("kylin.snapshot.parallel-build-enabled", "true")
+    buildSnapshot(getModel(MODEL_ID))
   }
 
-  test("test concurrent snapshot with build error") {
-    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val df: NDataflow = dsMgr.getDataflow(DF_NAME)
-    val fs = HadoopUtil.getWorkingFileSystem
-    fs.delete(new Path(snapPath), true)
-    spark.stop()
+  test("test concurrent snapshot with timeout") {
+    overwriteSystemProp("kylin.snapshot.parallel-build-timeout-seconds", "0")
     try {
-      buildSnapshotParallel(df)
-      Assert.fail("This test should throw SparkException")
-    } catch {
-      case _: SparkException =>
-      case e => Assert.fail(s"This test should throw SparkException, but it is ${e.getStackTrace.mkString("\n")}")
-    }
-    super.initSpark()
-    fs.delete(new Path(snapPath), true)
-  }
-
-  ignore("test concurrent snapshot with timeout") {
-    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val df: NDataflow = dsMgr.getDataflow(DF_NAME)
-    val fs = HadoopUtil.getWorkingFileSystem
-    fs.delete(new Path(snapPath), true)
-    df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-timeout-seconds", "1"))
-    try {
-      buildSnapshotParallel(df)
-      Assert.fail("This test should throw TimeoutException")
+      buildSnapshot(getModel(MODEL_ID))
+      Assert.fail("build successfully, but this test should throw TimeoutException")
     } catch {
       case _: TimeoutException =>
       case e =>
         e.printStackTrace()
         Assert.fail(s"This test should throw TimeoutException")
     }
-    df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-timeout-seconds", "3600"))
-    fs.delete(new Path(snapPath), true)
   }
 
-  private def roundTestBuildSnap(): Unit = {
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val fs = HadoopUtil.getWorkingFileSystem
-    val threadPool: ExecutorService = Executors.newFixedThreadPool(10)
+  test("test concurrent snapshot with build error") {
+    spark.stop()
     try {
-      val futureList = Lists.newArrayList[Future[_]]()
-      for (dfName <- DF_NAME_SEQ) {
-        futureList.add(threadPool.submit(new BuildSnapshotThread(dfName)))
-      }
-
-      var isBuilding = true
-      while (isBuilding) {
-        if (futureList.asScala.filter(!_.isDone).size == 0) {
-          isBuilding = false
-        }
-      }
-
-      val statuses = fs.listStatus(new Path(snapPath))
-
-      Assert.assertTrue((21 > statuses.size) && (statuses.size >= 7))
-
-    } finally {
-      threadPool.shutdown()
+      buildSnapshot(getModel(MODEL_ID))
+      Assert.fail("This test should throw SparkException")
+    } catch {
+      case _: SparkException =>
+      case e => Assert.fail(s"This test should throw SparkException, but it is ${e.getStackTrace.mkString("\n")}")
     }
+    super.beforeAll()
   }
 
-  class BuildSnapshotThread(dfName: String) extends Runnable {
-    override def run(): Unit = {
-      var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-      var df = dsMgr.getDataflow(dfName)
-      df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "false"))
-      val seg = df.getFirstSegment
-      val dfCopy = df.copy
-      val segCopy = dfCopy.getSegment(seg.getId)
-      new SnapshotBuilder().buildSnapshot(spark, df.getModel, null)
-      df.getSegments.asScala.foreach(_.getConfig.setProperty("kylin.snapshot.parallel-build-enabled", "true"))
-    }
+
+  private def buildSnapshot(dm: NDataModel): Unit = {
+    buildSnapshot(dm, false, 1, null)
   }
 
-  private def buildSnapshot(df: NDataflow, isMock: Boolean, expectedSize: Int, ignoredSnapshotTables: java.util.Set[String]): Unit = {
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
+  private def buildSnapshot(dm: NDataModel, isMock: Boolean, expectedSize: Int, ignoredSnapshotTables: java.util.Set[String]): Unit = {
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + dm.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
     val fs = HadoopUtil.getWorkingFileSystem
 
-    for (segment <- df.getSegments.asScala) {
-      val dfCopy = segment.getDataflow.copy
-      val segCopy = dfCopy.getSegment(segment.getId)
-      var snapshotBuilder = new SnapshotBuilder()
-      if (isMock) {
-        snapshotBuilder = new MockSnapshotBuilder()
-      }
-      snapshotBuilder.buildSnapshot(spark, dfCopy.getModel, ignoredSnapshotTables)
-      Assert.assertEquals(snapshotBuilder.distinctTableDesc(df.getModel, ignoredSnapshotTables).size, 7)
+    var snapshotBuilder = new SnapshotBuilder()
+    if (isMock) {
+      snapshotBuilder = new MockSnapshotBuilder()
     }
+
+    // using getModel not dm is due to snapshot building do metaupdate
+    snapshotBuilder.buildSnapshot(spark, getModel(dm.getId), ignoredSnapshotTables)
+    Assert.assertEquals(snapshotBuilder.distinctTableDesc(dm, ignoredSnapshotTables).size, 7)
 
     val statuses = fs.listStatus(new Path(snapPath))
     for (fst <- statuses) {
@@ -184,14 +110,20 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     }
   }
 
-  private def buildSnapshotParallel(df: NDataflow): Unit = {
-    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + HadoopUtil.SNAPSHOT_STORAGE_ROOT
-    val fs = HadoopUtil.getWorkingFileSystem
-    for (segment <- df.getSegments.asScala) {
-      val dfCopy = segment.getDataflow.copy
-      new SnapshotBuilder().buildSnapshot(spark, dfCopy.getModel, null);
-    }
-    val statuses = fs.listStatus(new Path(snapPath))
-    Assert.assertEquals(statuses.size, 7)
+
+  def getModel(modelId: String): NDataModel = {
+    NDataModelManager.getInstance(getTestConfig, DEFAULT_PROJECT).getDataModelDesc(modelId)
   }
+
+  def clearSnapshot(project: String) {
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + project + HadoopUtil.SNAPSHOT_STORAGE_ROOT
+    val fs = HadoopUtil.getWorkingFileSystem
+    fs.delete(new Path(snapPath), true)
+  }
+
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    clearSnapshot(DEFAULT_PROJECT)
+  }
+
 }
