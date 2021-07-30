@@ -21,8 +21,14 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import java.util
+import java.util.UUID
+
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
+import io.kyligence.kap.metadata.query.StructField
+import io.kyligence.kap.query.engine.RelColumnMetaDataExtractor
+import io.kyligence.kap.query.engine.exec.ExecuteResult
 import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exception.KylinTimeoutException
@@ -31,19 +37,13 @@ import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
 import org.apache.kylin.query.util.AsyncQueryUtil
-import org.apache.spark.SparkException
 import org.apache.spark.sql.execution.QueryExecution
 import org.apache.spark.sql.hive.QueryMetricUtils
-import org.apache.spark.sql.util.{CollectExecutionMemoryUsage, SparderTypeUtil}
-import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparderEnv}
-import org.apache.spark.util.SizeEstimator
-import java.util
-import java.util.UUID
-
-import io.kyligence.kap.query.engine.exec.ExecuteResult
+import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.{DataFrame, SaveMode, SparderEnv}
 
 import scala.collection.JavaConverters._
-import scala.reflect.ClassTag
+import scala.collection.mutable
 
 // scalastyle:off
 object ResultType extends Enumeration {
@@ -170,6 +170,14 @@ object ResultPlan extends LogEx {
       (new util.LinkedList[util.List[String]], 0)
     }
     new ExecuteResult(result._1, result._2)
+  }
+
+  // Only for MDX. Sparder won't actually calculate the data.
+  def completeResultForMdx(df: DataFrame, rowType: RelDataType): ExecuteResult = {
+    val fields: mutable.Buffer[StructField] = RelColumnMetaDataExtractor.getColumnMetadata(rowType).asScala
+    val fieldAlias: Seq[String] = fields.map(filed => filed.getName)
+    SparderEnv.setDF(df.toDF(fieldAlias: _*))
+    new ExecuteResult(new util.LinkedList[util.List[String]], 0)
   }
 
   def saveAsyncQueryResult(df: DataFrame, format: String, encode: String): Unit = {

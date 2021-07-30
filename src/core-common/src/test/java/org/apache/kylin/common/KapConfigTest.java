@@ -297,6 +297,8 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("isInfluxdbHttpsEnabled", new PropertiesEntity("kylin.influxdb.https.enabled", "false", false));
         map.put("isInfluxdbUnsafeSslEnabled",
                 new PropertiesEntity("kylin.influxdb.https.unsafe-ssl.enabled", "true", true));
+        map.put("isOnlyPlanInSparkEngine",
+                new PropertiesEntity("kylin.query.only-plan-with-spark-engine", "false", false));
     }
 
     @Before
@@ -315,7 +317,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(125, methodsCount);
+        Assert.assertEquals(126, methodsCount);
     }
 
     @Test

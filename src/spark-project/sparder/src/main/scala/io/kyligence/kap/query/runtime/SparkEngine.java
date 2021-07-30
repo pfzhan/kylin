@@ -28,6 +28,7 @@ package io.kyligence.kap.query.runtime;
 import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.spark.sql.Dataset;
@@ -71,6 +72,10 @@ public class SparkEngine implements QueryEngine {
     public ExecuteResult computeToIterable(DataContext dataContext, RelNode relNode) {
         Dataset<Row> sparkPlan = QueryResultMasks.maskResult(toSparkPlan(dataContext, relNode));
         log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
-        return ResultPlan.getResult(sparkPlan, relNode.getRowType());
+        if (KapConfig.getInstanceFromEnv().isOnlyPlanInSparkEngine()) {
+            return ResultPlan.completeResultForMdx(sparkPlan, relNode.getRowType());
+        } else {
+            return ResultPlan.getResult(sparkPlan, relNode.getRowType());
+        }
     }
 }

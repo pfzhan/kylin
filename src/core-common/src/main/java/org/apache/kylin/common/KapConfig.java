@@ -684,4 +684,8 @@ public class KapConfig {
     public boolean isQuerySparkJobTraceEnabled() {
         return Boolean.parseBoolean(config.getOptional("kylin.query.spark-job-trace-enabled", TRUE));
     }
+
+    public boolean isOnlyPlanInSparkEngine() {
+        return Boolean.parseBoolean(config.getOptional("kylin.query.only-plan-with-spark-engine", FALSE));
+    }
 }
