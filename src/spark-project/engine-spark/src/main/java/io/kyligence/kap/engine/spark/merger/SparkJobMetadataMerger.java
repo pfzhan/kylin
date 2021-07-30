@@ -109,10 +109,13 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         if (!isSnapshotManualManagementEnabled(remoteResourceStore)) {
             val remoteTblMgr = NTableMetadataManager.getInstance(remoteResourceStore.getConfig(), getProject());
             val localTblMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-            dataflow.getModel().getLookupTables().stream().forEach(remoteTableRef -> {
+            dataflow.getModel().getLookupTables().forEach(remoteTableRef -> {
                 val tableName = remoteTableRef.getTableIdentity();
                 val localTbDesc = localTblMgr.getTableDesc(tableName);
                 val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
+                if (remoteTbDesc == null) {
+                    return;
+                }
 
                 val copy = localTblMgr.copyForWrite(localTbDesc);
                 copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
@@ -128,6 +131,9 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             val tableName = remoteTableRef.getTableIdentity();
             val localTbDesc = localTblMgr.getTableDesc(tableName);
             val remoteTbDesc = remoteTblMgr.getTableDesc(tableName);
+            if (remoteTbDesc == null) {
+                return;
+            }
 
             val remoteTblExtDesc = remoteTblMgr.getOrCreateTableExt(remoteTbDesc);
             val copyExt = localTblMgr.copyForWrite(localTblMgr.getOrCreateTableExt(localTbDesc));

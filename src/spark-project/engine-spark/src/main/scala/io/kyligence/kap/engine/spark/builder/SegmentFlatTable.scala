@@ -213,12 +213,11 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     dataModel.getJoinTables.asScala
       .filter(isTableToBuild)
       .foreach { joinDesc =>
-        val fkCols = joinDesc.getJoin.getForeignKeyColumns
-        val fkTableRef = joinDesc.getJoin.getForeignTableRef
-        val fkTable = fkCols match {
-          case null => throw new IllegalArgumentException("foreign key is empty!")
-          case _ => if (fkCols.nonEmpty) fkCols(0).getTable else if (fkTableRef != null) fkTableRef.getTableDesc.getIdentity else null
+        val fkTableRef = joinDesc.getJoin.getFKSide
+        if (fkTableRef == null) {
+          throw new IllegalArgumentException("FK table cannot be null")
         }
+        val fkTable = fkTableRef.getTableDesc.getIdentity
         if (!joinDesc.isFlattenable || normalizedTableSet.contains(fkTable)) {
           normalizedTableSet.add(joinDesc.getTable)
         }
