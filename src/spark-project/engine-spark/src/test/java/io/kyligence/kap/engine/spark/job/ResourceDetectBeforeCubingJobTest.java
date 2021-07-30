@@ -97,8 +97,7 @@ public class ResourceDetectBeforeCubingJobTest extends NLocalWithSparkSessionTes
 
         // wait job done
         ExecutableState status = wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
-
+        Assert.assertEquals(firstFailedJobErrorMessage(execMgr, job), ExecutableState.SUCCEED, status);
     }
 
 }

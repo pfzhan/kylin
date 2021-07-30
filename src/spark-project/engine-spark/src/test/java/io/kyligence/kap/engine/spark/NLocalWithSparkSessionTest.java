@@ -136,7 +136,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.sql.legacy.timeParserPolicy", "LEGACY");
         sparkConf.set("spark.sql.parquet.mergeSchema", "true");
         sparkConf.set("spark.sql.legacy.allowNegativeScaleOfDecimal", "true");
-
+        sparkConf.set("spark.sql.broadcastTimeout", "900");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 

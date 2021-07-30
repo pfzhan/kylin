@@ -92,7 +92,7 @@
 
         <!-- Test Dependency versions -->
         <antlr.version>3.4</antlr.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>5.7.2</junit.version>
         <dbunit.version>2.5.2</dbunit.version>
         <h2.version>1.4.197</h2.version>
         <jetty.version>9.2.20.v20161216</jetty.version>
@@ -155,7 +155,7 @@
 
         <!-- container -->
         <jetty.toolchain.test-helper.version>3.1.1</jetty.toolchain.test-helper.version>
-        <test.container.version>1.15.0</test.container.version>
+        <test.container.version>1.15.3</test.container.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -1177,8 +1177,8 @@
 
             <!-- Test -->
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
+                <groupId>org.junit.vintage</groupId>
+                <artifactId>junit-vintage-engine</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -1186,6 +1186,12 @@
                 <groupId>org.dbunit</groupId>
                 <artifactId>dbunit</artifactId>
                 <version>${dbunit.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>junit</groupId>
+                        <artifactId>junit</artifactId>
+                    </exclusion>
+                </exclusions>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -1197,6 +1203,10 @@
                     <exclusion>
                         <groupId>org.javassist</groupId>
                         <artifactId>javassist</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>junit</groupId>
+                        <artifactId>junit</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -1916,12 +1926,18 @@
                 <groupId>org.eclipse.jetty.toolchain</groupId>
                 <artifactId>jetty-test-helper</artifactId>
                 <version>${jetty.toolchain.test-helper.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>junit</groupId>
+                        <artifactId>junit</artifactId>
+                    </exclusion>
+                </exclusions>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
+                <artifactId>junit-jupiter</artifactId>
                 <version>${test.container.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -1935,6 +1951,12 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>clickhouse</artifactId>
                 <version>${test.container.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>junit</groupId>
+                        <artifactId>junit</artifactId>
+                    </exclusion>
+                </exclusions>
                 <scope>test</scope>
             </dependency>
 
