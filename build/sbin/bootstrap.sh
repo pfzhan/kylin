@@ -34,6 +34,7 @@ fi
 
 KYLIN_ENV_CHANNEL=`$KYLIN_HOME/bin/get-properties.sh kylin.env.channel`
 SPARK_SCHEDULER_MODE=`$KYLIN_HOME/bin/get-properties.sh kylin.query.engine.spark-scheduler-mode`
+MAX_CONCURRENT_JOBS=`$KYLIN_HOME/bin/get-properties.sh kylin.job.max-concurrent-jobs`
 
 if [ "${SPARK_SCHEDULER_MODE}" == "" ] || [[ "${SPARK_SCHEDULER_MODE}" != "FAIR" && "${SPARK_SCHEDULER_MODE}" != "SJF" ]]; then
   SPARK_SCHEDULER_MODE="FAIR"
@@ -177,8 +178,10 @@ function runToolInternal() {
 function killChildProcess {
     if [ -f "${KYLIN_HOME}/child_process" ]
     then
+        count=0
         while childPid='' read -r line || [[ -n "$line" ]]; do
             # only kill orphan processes and spark-submit processes
+            ((count+=1))
             pid=$( cut -d ',' -f 1 <<< "$line" )
             jobId=$( cut -d ',' -f 2 <<< "$line" )
             rm -r ${KYLIN_HOME}/tmp/$jobId
@@ -198,6 +201,10 @@ function killChildProcess {
               fi
               break
             done
+            if [[ $count -ge ${MAX_CONCURRENT_JOBS} ]]
+            then
+                break
+            fi
         done < "${KYLIN_HOME}/child_process"
         rm -f ${KYLIN_HOME}/child_process
     fi

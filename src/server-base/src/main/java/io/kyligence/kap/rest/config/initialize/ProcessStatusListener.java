@@ -80,6 +80,10 @@ public class ProcessStatusListener {
     @Subscribe
     public void onProcessFinished(CliCommandExecutor.ProcessFinished processFinished) {
         int pid = processFinished.getPid();
+        removeProcessPidInChildProcess(pid);
+    }
+
+    private void removeProcessPidInChildProcess(int pid){
         if (!CHILD_PROCESS_FILE.exists())
             return;
 
@@ -143,8 +147,8 @@ public class ProcessStatusListener {
                 log.error("Destroy process of job {} FAILED.", jobId, e);
             }
         } else {
-            // Essential log here.
             log.info("Ignore not alive process {} of job {}", pid, jobId);
+            removeProcessPidInChildProcess(pid);
         }
     }
 
