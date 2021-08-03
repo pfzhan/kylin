@@ -105,14 +105,6 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
     this.memoryStreamEnabled = mse
   }
 
-  def getPartitions(kafkaParam: Map[String, String]): Int = {
-    if (!memoryStreamEnabled) {
-      KafkaClient.getPartitions(kafkaParam)
-    } else {
-      3
-    }
-  }
-
   def post(text: String): Unit = {
     event.offer(text)
   }

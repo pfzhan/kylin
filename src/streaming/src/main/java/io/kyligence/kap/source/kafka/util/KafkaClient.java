@@ -24,9 +24,7 @@
 
 package io.kyligence.kap.source.kafka.util;
 
-import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -80,15 +78,5 @@ public class KafkaClient {
             props.putAll(properties);
         }
         return props;
-    }
-
-    public static int getPartitions(Map<String, String> kafkaParam) {
-        final String brokers = kafkaParam.get("kafka.bootstrap.servers");
-        final String topic = kafkaParam.get("subscribe");
-        final Properties property = new Properties();
-        try (final KafkaConsumer consumer = KafkaClient.getKafkaConsumer(brokers,
-                "kylin_streaming_kafka_client_" + UUID.randomUUID(), property)) {
-            return consumer.partitionsFor(topic).size();
-        }
     }
 }

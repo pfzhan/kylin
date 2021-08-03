@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -106,7 +105,6 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
             }
         });
         source.enableMemoryStream(true);
-        Assert.assertEquals(3, source.getPartitions(new HashMap<>(0)));
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
 
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);

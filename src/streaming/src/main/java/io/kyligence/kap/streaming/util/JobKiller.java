@@ -51,16 +51,25 @@ public class JobKiller {
 
     private static boolean isYarnEnv = StreamingUtils.isJobOnCluster(KylinConfig.getInstanceFromEnv());
 
+    private static IClusterManager mock = null;
+
+    public static IClusterManager createClusterManager() {
+        if (mock != null) {
+            return mock;
+        } else {
+            return ClusterManagerFactory.create(KylinConfig.getInstanceFromEnv());
+        }
+    }
+
     public static synchronized void killApplication(String jobId) {
-        val config = KylinConfig.getInstanceFromEnv();
         if (isYarnEnv) {
             int errCnt = 0;
             while (errCnt++ < 3) {
                 try {
-                    final IClusterManager cm = ClusterManagerFactory.create(config);
+                    final IClusterManager cm = createClusterManager();
                     if (cm.applicationExisted(jobId)) {
                         cm.killApplication("", jobId);
-                        logger.info("kill jobId:" + jobId);
+                        logger.info("kill jobId:{}", jobId);
                     }
                     return;
                 } catch (UncheckedTimeoutException e) {
@@ -78,9 +87,6 @@ public class JobKiller {
      *     negative number: process is kill unsuccessfully
      */
     public static synchronized int killProcess(StreamingJobMeta jobMeta) {
-        val config = KylinConfig.getInstanceFromEnv();
-        String pid = jobMeta.getProcessId();
-
         if (!isYarnEnv) {
             if (jobMeta.getJobType() == JobTypeEnum.STREAMING_BUILD) {
                 StreamingEntry.stop();
@@ -88,14 +94,19 @@ public class JobKiller {
                 StreamingMergeEntry.shutdown();
             }
             return 1;
+        } else {
+            val strLogger = new StringLogger();
+            val exec = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
+            return killYarnEnvProcess(exec, jobMeta, strLogger);
         }
+    }
+
+    public static int killYarnEnvProcess(CliCommandExecutor exec, StreamingJobMeta jobMeta, StringLogger strLogger) {
         String nodeInfo = jobMeta.getNodeInfo();
-        CliCommandExecutor exec = config.getCliCommandExecutor();
         int statusCode = -1;
 
         try {
             String jobId = StreamingUtils.getJobId(jobMeta.getModelId(), jobMeta.getJobType().name());
-            val strLogger = new StringLogger();
             int retryCnt = 0;
 
             boolean forced = false;
@@ -116,7 +127,7 @@ public class JobKiller {
             }
 
         } catch (ShellException e) {
-            logger.warn("failed to kill driver {} on {}", nodeInfo, pid);
+            logger.warn("failed to kill driver {} on {}", nodeInfo, jobMeta.getProcessId());
         }
         return statusCode;
     }
@@ -136,11 +147,10 @@ public class JobKiller {
         }
     }
 
-    public static int grepProcess(CliCommandExecutor exec, StringLogger strLogger, String jobId)
-            throws ShellException {
+    public static int grepProcess(CliCommandExecutor exec, StringLogger strLogger, String jobId) throws ShellException {
         String cmd = String.format(Locale.getDefault(), GREP_CMD, jobId);
         val result = exec.execute(cmd, strLogger).getCode();
-        logger.info("grep process cmd=" + cmd + ", result = " + result);
+        logger.info("grep process cmd={}, result ={} ", cmd, result);
         return result;
     }
 
@@ -148,7 +158,7 @@ public class JobKiller {
         String cmd = String.format(Locale.getDefault(), GREP_CMD, jobId);
         val force = forced ? " -9" : StringUtils.EMPTY;
         val result = exec.execute(cmd + "|xargs kill" + force, null).getCode();
-        logger.info("kill process cmd=" + cmd + ", result = " + result);
+        logger.info("kill process cmd={}, result ={} ", cmd, result);
         return result;
     }
 }

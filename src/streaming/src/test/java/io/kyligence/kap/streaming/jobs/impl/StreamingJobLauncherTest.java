@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.streaming.jobs.impl;
 
-
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -36,7 +34,9 @@ import org.junit.rules.ExpectedException;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
+
 import lombok.val;
 
 public class StreamingJobLauncherTest extends NLocalFileMetadataTestCase {
@@ -117,9 +117,9 @@ public class StreamingJobLauncherTest extends NLocalFileMetadataTestCase {
 
         val launcher = new StreamingJobLauncher();
         launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
-        try{
+        try {
             launcher.startYarnJob();
-        }catch (Exception e) {
+        } catch (Exception e) {
         }
     }
 }

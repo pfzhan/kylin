@@ -30,7 +30,6 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.source.SourceFactory;
-import org.apache.spark.utils.EmbededServer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,7 +44,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.source.kafka.NSparkKafkaSource;
-import io.kyligence.kap.source.kafka.util.KafkaClient;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
@@ -65,21 +63,16 @@ public class TestStreaming extends StreamingTestCase {
 
     private static String PROJECT = "streaming_test";
     private static String DATAFLOW_ID = "e78a89dd-847f-4574-8afa-8768b4228b73";
-    EmbededServer server;
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        server = new EmbededServer();
-        server.setup();
         val topic = "ssb-topic";
-        server.createTopic(topic, 3);
     }
 
     @After
     public void tearDown() {
         this.cleanupTestMetadata();
-        server.teardown();
     }
 
     @Test
@@ -123,8 +116,6 @@ public class TestStreaming extends StreamingTestCase {
         var model = flatTableDesc.getDataModel();
         var tableDesc = model.getRootFactTable().getTableDesc();
         var kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();
-        Assert.assertEquals(3, KafkaClient.getPartitions(kafkaParam));
-        Assert.assertEquals(3, source.getPartitions(kafkaParam));
         Assert.assertEquals("earliest", kafkaParam.get("startingOffsets"));
 
         val jobParams = new HashMap<String, String>();
