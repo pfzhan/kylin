@@ -137,6 +137,14 @@ public class HDFSMetadataStore extends MetadataStore {
         } finally {
             IOUtils.closeQuietly(out);
         }
+        final FileStatus fileStatus = fs.getFileStatus(p);
+        if (bs.size() != fileStatus.getLen()) {
+            throw new IOException(
+                    "Put resource fail : " + resPath + ", because resource file length not equal with ByteSource");
+        }
+        if (fileStatus.getLen() == 0) {
+            throw new IOException("Put resource fail : " + resPath + ", because resource file is Zero length");
+        }
     }
 
     @Override
