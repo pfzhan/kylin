@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.DistributedLockException;
+import org.apache.kylin.common.exception.DistributedLockException;
 import org.apache.kylin.common.lock.curator.CuratorDistributedLock.LockEntry;
 import org.apache.kylin.common.util.ZKUtil;
 import org.slf4j.Logger;

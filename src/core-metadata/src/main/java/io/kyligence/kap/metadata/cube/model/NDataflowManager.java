@@ -283,7 +283,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
 
         // save dataflow
-        df.setOwner(owner);
         df.getSegments().validate();
         crud.save(df);
 
@@ -740,12 +739,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
             val newStatus = Optional.ofNullable(update.getStatus()).orElse(df.getStatus());
             df.setStatus(newStatus);
-
-            val newDesc = Optional.ofNullable(update.getDescription()).orElse(df.getDescription());
-            df.setDescription(newDesc);
-
-            val newOwner = Optional.ofNullable(update.getOwner()).orElse(df.getOwner());
-            df.setOwner(newOwner);
 
             df.setCost(update.getCost() > 0 ? update.getCost() : df.getCost());
 

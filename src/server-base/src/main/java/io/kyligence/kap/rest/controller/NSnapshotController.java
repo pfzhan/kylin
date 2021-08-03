@@ -37,7 +37,6 @@ import java.util.Set;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
@@ -87,7 +86,7 @@ public class NSnapshotController extends NBasicController {
     public EnvelopeResponse<String> configSnapshotPartitionCol(@RequestBody SnapshotTableConfigRequest configRequest) {
         checkProjectName(configRequest.getProject());
         snapshotService.configSnapshotPartitionCol(configRequest.getProject(), configRequest.getTablePartitionCol());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "get col info of snapshot table", tags = { "AI" }, notes = "get col info")
@@ -109,7 +108,7 @@ public class NSnapshotController extends NBasicController {
         List<SnapshotColResponse> responses = snapshotService.getSnapshotCol(project, tables, databases, tablePattern,
                 includeExistSnapshot, excludeBroken);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
     @ApiOperation(value = "reload partition col of table", tags = { "AI" }, notes = "reload partition col")
@@ -121,7 +120,7 @@ public class NSnapshotController extends NBasicController {
             checkProjectName(request.getProject());
             SnapshotColResponse responses = snapshotService.reloadPartitionCol(request.getProject(),
                     request.getTable());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, responses, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, responses, "");
         } catch (Exception e) {
             logger.error("reload partition column failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
@@ -141,7 +140,7 @@ public class NSnapshotController extends NBasicController {
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), false,
                 snapshotsRequest.getPriority());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "refreshSnapshotsManually", tags = { "AI" }, notes = "refresh snapshots")
@@ -157,7 +156,7 @@ public class NSnapshotController extends NBasicController {
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), true,
                 snapshotsRequest.getPriority());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
 
     }
 
@@ -168,7 +167,7 @@ public class NSnapshotController extends NBasicController {
         checkProjectName(snapshotsRequest.getProject());
         SnapshotCheckResponse response = snapshotService.checkBeforeDeleteSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getTables());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "deleteSnapshots", tags = { "AI" }, notes = "delete snapshots")
@@ -178,7 +177,7 @@ public class NSnapshotController extends NBasicController {
             @RequestParam(value = "tables") Set<String> tables) {
         project = checkProjectName(project);
         SnapshotCheckResponse response = snapshotService.deleteSnapshots(project, tables);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getSnapshots", tags = { "AI" }, notes = "get snapshots")
@@ -205,7 +204,7 @@ public class NSnapshotController extends NBasicController {
         }
         List<SnapshotInfoResponse> responses = snapshotService.getProjectSnapshots(project, table, statusFilter,
                 partitionFilter, sortBy, isReversed);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
     @ApiOperation(value = "getTables", tags = { "AI" }, notes = "get all tables with or without snapshot")
@@ -219,7 +218,7 @@ public class NSnapshotController extends NBasicController {
         checkNonNegativeIntegerArg("page_offset", offset);
         checkNonNegativeIntegerArg("page_size", limit);
         val res = snapshotService.getTables(project, table, offset, limit);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, res, "");
     }
 
     @ApiOperation(value = "loadMoreTables", tags = { "AI" }, notes = "load more table pages")
@@ -236,6 +235,6 @@ public class NSnapshotController extends NBasicController {
         checkNonNegativeIntegerArg("page_offset", offset);
         checkNonNegativeIntegerArg("page_size", limit);
         List<TableNameResponse> tables = snapshotService.getTableNameResponses(project, database, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tables, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(tables, offset, limit), "");
     }
 }

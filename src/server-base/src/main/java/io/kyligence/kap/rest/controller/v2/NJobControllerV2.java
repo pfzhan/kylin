@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -73,7 +73,7 @@ public class NJobControllerV2 extends NBasicController {
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         final ExecutableResponse jobInstance = jobService.getJobInstance(jobId);
         aclEvaluate.checkProjectOperationPermission(jobInstance.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 jobService.manageJob(jobInstance.getProject(), jobInstance, JobActionEnum.RESUME.toString()), "");
     }
 
@@ -106,6 +106,6 @@ public class NJobControllerV2 extends NBasicController {
         List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         executables = jobService.addOldParams(executables);
         Map<String, Object> result = getDataResponse("jobs", executables, pageOffset, pageSize);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 }

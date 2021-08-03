@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.controller;
 import io.kyligence.kap.rest.response.SystemProfileResponse;
 import io.kyligence.kap.rest.service.LightningService;
 import io.swagger.annotations.ApiOperation;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,6 +48,6 @@ public class LightningController {
     @ApiOperation(value = "systemProfile", tags = {"MID"}, notes = "")
     @GetMapping(value = "/system_profile")
     public EnvelopeResponse<SystemProfileResponse> systemProfile() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, lightningService.systemProfile(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, lightningService.systemProfile(), "");
     }
 }

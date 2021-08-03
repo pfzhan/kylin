@@ -324,7 +324,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         if (getSubContext().size() > 1) {
             return false;
         }
-        if (getContext().storageContext.getCandidate().isEmptyCandidate() && getContext().storageContext.getCandidateStreaming().isEmptyCandidate()) {
+        if (getContext().storageContext.getCandidate().isEmptyCandidate() && getContext().storageContext.getStreamingCandidate().isEmptyCandidate()) {
             return false;
         }
         boolean isFastBitmapEnabled;

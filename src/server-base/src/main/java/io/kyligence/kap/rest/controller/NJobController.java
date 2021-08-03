@@ -40,7 +40,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
@@ -111,7 +110,7 @@ public class NJobController extends NBasicController {
         } else {
             executables = jobService.listGlobalJobs(jobFilter, pageOffset, pageSize);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, executables, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, executables, "");
     }
 
     @ApiOperation(value = "getWaitingJobs", tags = { "DW" }, notes = "Update Response: total_size")
@@ -123,7 +122,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(null, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(null, offset, limit), "");
     }
 
     @Deprecated
@@ -133,7 +132,7 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse<Map<String, Object>> getWaitingJobsInfoGroupByModel(
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 
     @ApiOperation(value = "dropJob dropGlobalJob", tags = {
@@ -153,7 +152,7 @@ public class NJobController extends NBasicController {
         } else {
             jobService.batchDropGlobalJob(jobIds, statuses);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update Body: job_ids")
@@ -177,7 +176,7 @@ public class NJobController extends NBasicController {
             EventBusFactory.getInstance().postAsync(new UpdateJobStatusEventNotifier(jobUpdateRequest.getJobIds(),
                     jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses()));
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update Param: job_id")
@@ -187,7 +186,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
     }
 
     @ApiOperation(value = "updateJobStatus", tags = {
@@ -201,7 +200,7 @@ public class NJobController extends NBasicController {
         result.put(JOB_ID_ARG_NAME, jobId);
         result.put(STEP_ID_ARG_NAME, stepId);
         result.put("cmd_output", jobService.getJobOutput(project, jobId, stepId));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "downloadLogFile", tags = {
@@ -217,7 +216,7 @@ public class NJobController extends NBasicController {
         String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", project, stepId);
         InputStream jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
         setDownloadResponse(jobOutput, downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/statistics")
@@ -226,7 +225,7 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse<JobStatisticsResponse> getJobStats(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime),
                 "");
     }
 
@@ -237,7 +236,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
             @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 jobService.getJobCount(project, startTime, endTime, dimension), "");
     }
 
@@ -248,7 +247,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
             @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
     }
 
@@ -267,7 +266,7 @@ public class NJobController extends NBasicController {
                 sparkJobUpdateRequest.getTaskId(), sparkJobUpdateRequest.getYarnAppId(),
                 sparkJobUpdateRequest.getYarnAppUrl());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     /**
@@ -285,6 +284,6 @@ public class NJobController extends NBasicController {
                 sparkJobTimeRequest.getTaskId(), sparkJobTimeRequest.getYarnJobWaitTime(),
                 sparkJobTimeRequest.getYarnJobRunTime());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

@@ -38,7 +38,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -121,7 +120,7 @@ public class OpenTableController extends NBasicController {
             throws IOException {
         checkProjectName(project);
         List<TableDesc> result = tableService.getTableDescByType(project, withExt, table, database, isFuzzy, sourceType);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
 
     @ApiOperation(value = "loadTables", tags = { "AI" })
@@ -195,7 +194,7 @@ public class OpenTableController extends NBasicController {
         try {
             String projectName = checkProjectName(project);
             OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(projectName, table);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
@@ -228,7 +227,7 @@ public class OpenTableController extends NBasicController {
             response.setSamplingId(pair.getFirst());
             response.setJobIds(pair.getSecond());
 
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
@@ -251,6 +250,6 @@ public class OpenTableController extends NBasicController {
         columnFormatResponse.setColumnName(columnName);
         columnFormatResponse.setColumnFormat(columnFormat);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, columnFormatResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, columnFormatResponse, "");
     }
 }

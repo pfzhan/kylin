@@ -24,20 +24,8 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
-import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
-import io.kyligence.kap.secondstorage.ddl.AlterTable;
-import io.kyligence.kap.secondstorage.ddl.CreateDatabase;
-import io.kyligence.kap.secondstorage.ddl.DropTable;
-import io.kyligence.kap.secondstorage.ddl.InsertInto;
-import io.kyligence.kap.secondstorage.ddl.RenameTable;
-import io.kyligence.kap.secondstorage.ddl.Select;
-import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithAlias;
-import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.val;
+import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
+import static io.kyligence.kap.clickhouse.job.DataLoader.getPrefixColumn;
 
 import java.sql.Date;
 import java.sql.SQLException;
@@ -46,11 +34,23 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import static io.kyligence.kap.clickhouse.job.Load.columns;
-import static io.kyligence.kap.clickhouse.job.Load.getPrefixColumn;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.ddl.AlterTable;
+import io.kyligence.kap.secondstorage.ddl.CreateDatabase;
+import io.kyligence.kap.secondstorage.ddl.DropTable;
+import io.kyligence.kap.secondstorage.ddl.InsertInto;
+import io.kyligence.kap.secondstorage.ddl.RenameTable;
+import io.kyligence.kap.secondstorage.ddl.Select;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithAlias;
+import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.val;
 
 @Getter
-public class ShardLoad {
+public class ShardLoader {
     private final ClickHouse clickHouse;
     private final String database;
     private final ClickHouseRender render = new ClickHouseRender();
@@ -67,7 +67,7 @@ public class ShardLoad {
     private final List<Date> targetPartitions;
     private final List<Date> committedPartition = new ArrayList<>();
 
-    public ShardLoad(ShardLoadContext context) throws SQLException {
+    public ShardLoader(ShardLoadContext context) throws SQLException {
         this.clickHouse = new ClickHouse(context.jdbcURL);
         this.database = context.database;
         this.tableEngine = context.tableEngine;
@@ -84,13 +84,11 @@ public class ShardLoad {
     }
 
     private void commitIncrementalLoad() throws SQLException {
-        final ClickHouseCreateTable likeTable =
-                ClickHouseCreateTable.createCKTableIgnoreExist(database, destTableName)
-                        .likeTable(database, insertTempTableName);
+        final ClickHouseCreateTable likeTable = ClickHouseCreateTable.createCKTableIgnoreExist(database, destTableName)
+                .likeTable(database, insertTempTableName);
         clickHouse.apply(likeTable.toSql(render));
         Select queryPartition = new Select(TableIdentifier.table(database, insertTempTableName))
-                .column(ColumnWithAlias.builder().name(getPrefixColumn(partitionColumn))
-                        .distinct(true).build());
+                .column(ColumnWithAlias.builder().name(getPrefixColumn(partitionColumn)).distinct(true).build());
         List<Date> partitions = clickHouse.queryPartition(queryPartition.toSql(render), partitionFormat);
         // clean exists partition data
         batchDropPartition(targetPartitions);
@@ -127,8 +125,8 @@ public class ShardLoad {
 
     private void commitFullLoad() throws SQLException {
         //3 rename with atomically
-        final RenameTable renameToTempTemp =
-                RenameTable.renameSource(database, destTableName).to(database, destTempTableName);
+        final RenameTable renameToTempTemp = RenameTable.renameSource(database, destTableName).to(database,
+                destTempTableName);
         try {
             clickHouse.apply(renameToTempTemp.toSql(render));
         } catch (SQLException e) {
@@ -136,8 +134,8 @@ public class ShardLoad {
                 throw e;
             }
         }
-        final RenameTable renameToDest =
-                RenameTable.renameSource(database, insertTempTableName).to(database, destTableName);
+        final RenameTable renameToDest = RenameTable.renameSource(database, insertTempTableName).to(database,
+                destTableName);
         clickHouse.apply(renameToDest.toSql(render));
     }
 
@@ -155,7 +153,9 @@ public class ShardLoad {
     }
 
     public void cleanIncrementLoad() throws SQLException {
-        batchDropPartition(committedPartition);
+        if (isIncremental()) {
+            batchDropPartition(committedPartition);
+        }
     }
 
     private void batchDropPartition(List<Date> partitions) throws SQLException {
@@ -173,8 +173,7 @@ public class ShardLoad {
         for (val partition : partitions) {
             alterTable = new AlterTable(TableIdentifier.table(database, insertTempTableName),
                     new AlterTable.ManipulatePartition(Objects.toString(partition),
-                            TableIdentifier.table(database, destTableName),
-                            AlterTable.PartitionOperation.MOVE));
+                            TableIdentifier.table(database, destTableName), AlterTable.PartitionOperation.MOVE));
             // clean partition data
             clickHouse.apply(alterTable.toSql(render));
             if (successPartition != null) {
@@ -189,15 +188,14 @@ public class ShardLoad {
         dropTable(likeTempTableName);
     }
 
-
-    private void createTable(String table, LayoutEntity layout, String partitionBy, boolean addPrefix) throws SQLException {
+    private void createTable(String table, LayoutEntity layout, String partitionBy, boolean addPrefix)
+            throws SQLException {
         dropTable(table);
 
-        final ClickHouseCreateTable mergeTable =
-                ClickHouseCreateTable.createCKTable(database, table)
-                        .columns(columns(layout, partitionBy, addPrefix))
-                        .partitionBy(addPrefix && partitionBy!= null ? getPrefixColumn(partitionBy) : partitionBy)
-                        .engine(Engine.DEFAULT);
+        final ClickHouseCreateTable mergeTable = ClickHouseCreateTable.createCKTable(database, table)
+                .columns(columns(layout, partitionBy, addPrefix))
+                .partitionBy(addPrefix && partitionBy != null ? getPrefixColumn(partitionBy) : partitionBy)
+                .engine(Engine.DEFAULT);
         clickHouse.apply(mergeTable.toSql(render));
     }
 
@@ -209,14 +207,11 @@ public class ShardLoad {
     private void loadOneFile(String destTable, String parquetFile, String srcTable) throws SQLException {
         dropTable(srcTable);
         try {
-            final ClickHouseCreateTable likeTable =
-                    ClickHouseCreateTable.createCKTable(database, srcTable)
-                            .likeTable(database, likeTempTableName)
-                            .engine(tableEngine.apply(parquetFile));
+            final ClickHouseCreateTable likeTable = ClickHouseCreateTable.createCKTable(database, srcTable)
+                    .likeTable(database, likeTempTableName).engine(tableEngine.apply(parquetFile));
             clickHouse.apply(likeTable.toSql(render));
 
-            final InsertInto insertInto =
-                    InsertInto.insertInto(database, destTable).from(database, srcTable);
+            final InsertInto insertInto = InsertInto.insertInto(database, destTable).from(database, srcTable);
             clickHouse.apply(insertInto.toSql(render));
         } finally {
             dropTable(srcTable);

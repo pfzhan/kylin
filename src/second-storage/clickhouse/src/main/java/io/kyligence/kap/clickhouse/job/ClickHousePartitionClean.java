@@ -24,30 +24,30 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-
-import com.clearspring.analytics.util.Preconditions;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.secondstorage.NameUtil;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentRange;
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_SECOND_STORAGE_SEGMENT_CLEAN;
 
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Objects;
 
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_SECOND_STORAGE_SEGMENT_CLEAN;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentRange;
+
+import com.clearspring.analytics.util.Preconditions;
+
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.NameUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClickHousePartitionClean extends AbstractClickHouseClean {
     private String database;
     private String table;
     private Map<String, SegmentRange<Long>> segmentRangeMap;
-
 
     public ClickHousePartitionClean() {
         setName(STEP_SECOND_STORAGE_SEGMENT_CLEAN);
@@ -68,31 +68,33 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
         Preconditions.checkState(nodeGroupManager.isPresent() && tableFlowManager.isPresent());
         val dataflow = dataflowManager.getDataflow(getParam(NBatchConstants.P_DATAFLOW_ID));
         val tableFlow = Objects.requireNonNull(tableFlowManager.get().get(dataflow.getId()).orElse(null));
-        setNodeCount(Math.toIntExact(nodeGroupManager.map(manager -> manager.listAll().stream()
-                .mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum()).orElse(0L)));
+        setNodeCount(Math.toIntExact(nodeGroupManager.map(
+                manager -> manager.listAll().stream().mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum())
+                .orElse(0L)));
         segments.forEach(segment -> {
-            nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
-                if (!tableFlow.getTableDataList().isEmpty()) {
-                    database = NameUtil.getDatabase(dataflow);
-                    table = NameUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
-                    ShardClean shardClean = segmentRangeMap.get(segment).isInfinite() ? new ShardClean(node, database, table, null, true)
-                            : new ShardClean(node, database, table, IncrementalLoad.rangeToPartition(segmentRangeMap.get(segment)));
-                    shardCleanList.add(shardClean);
-                }
-            });
+            nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream())
+                    .forEach(node -> {
+                        if (!tableFlow.getTableDataList().isEmpty()) {
+                            database = NameUtil.getDatabase(dataflow);
+                            table = NameUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
+                            ShardCleaner shardCleaner = segmentRangeMap.get(segment).isInfinite()
+                                    ? new ShardCleaner(node, database, table, null, true)
+                                    : new ShardCleaner(node, database, table,
+                                            DataLoader.rangeToPartition(segmentRangeMap.get(segment)));
+                            shardCleaners.add(shardCleaner);
+                        }
+                    });
         });
     }
 
     @Override
-    protected Runnable getTask(ShardClean shardClean) {
+    protected Runnable getTask(ShardCleaner shardCleaner) {
         return () -> {
             try {
-                shardClean.cleanPartitions();
+                shardCleaner.cleanPartitions();
             } catch (SQLException e) {
-                log.error("node {} clean partitions {} in {}.{} failed", shardClean.getClickHouse().getShardName(),
-                        shardClean.getPartitions(),
-                        shardClean.getDatabase(),
-                        shardClean.getTable());
+                log.error("node {} clean partitions {} in {}.{} failed", shardCleaner.getClickHouse().getShardName(),
+                        shardCleaner.getPartitions(), shardCleaner.getDatabase(), shardCleaner.getTable());
                 ExceptionUtils.rethrow(e);
             }
         };

@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.RestClient;
+import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.common.util.DaemonThreadFactory;
 import org.apache.kylin.rest.util.SpringContext;
 import org.slf4j.Logger;

@@ -23,23 +23,26 @@
  */
 package io.kyligence.kap.secondstorage.metadata;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 
-import javax.annotation.concurrent.NotThreadSafe;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 
 @NotThreadSafe
-public abstract class NManager <T extends RootPersistentEntity > implements IKeepNames, IManager<T> {
+public abstract class Manager<T extends RootPersistentEntity> implements IKeepNames, IManager<T> {
 
     protected final KylinConfig config;
     protected final String project;
@@ -49,11 +52,11 @@ public abstract class NManager <T extends RootPersistentEntity > implements IKee
         return ResourceStore.getKylinMetaStore(this.config);
     }
 
-    protected NManager(KylinConfig cfg, final String project) {
+    protected Manager(KylinConfig cfg, final String project) {
 
         if (logger().isInfoEnabled() && !UnitOfWork.isAlreadyInTransaction()) {
-                logger().info("Initializing {} with KylinConfig Id: {} for project {}", name(),
-                        System.identityHashCode(cfg), project);
+            logger().info("Initializing {} with KylinConfig Id: {} for project {}", name(),
+                    System.identityHashCode(cfg), project);
         }
 
         this.config = cfg;
@@ -64,7 +67,7 @@ public abstract class NManager <T extends RootPersistentEntity > implements IKee
             protected T initEntityAfterReload(T entity, String resourceName) {
                 if (entity instanceof IManagerAware) {
                     IManagerAware<T> managerAware = (IManagerAware<T>) entity;
-                    managerAware.setManager(NManager.this);
+                    managerAware.setManager(Manager.this);
                 }
                 return entity;
             }
@@ -80,12 +83,14 @@ public abstract class NManager <T extends RootPersistentEntity > implements IKee
         }
         return crud.save(entity);
     }
+
     protected T copy(T entity) {
         return crud.copyBySerialization(entity);
     }
 
     // Create
     protected abstract T newRootEntity(String cubeName);
+
     public T makeSureRootEntity(String cubeName) {
         return get(cubeName).orElseGet(() -> createAS(newRootEntity(cubeName)));
     }
@@ -112,7 +117,7 @@ public abstract class NManager <T extends RootPersistentEntity > implements IKee
     }
 
     //Update
-    protected T internalUpdate(T entity){
+    protected T internalUpdate(T entity) {
         if (entity.isCachedAndShared())
             throw new IllegalStateException();
 
@@ -126,25 +131,22 @@ public abstract class NManager <T extends RootPersistentEntity > implements IKee
         return save(entity);
     }
 
-    public T update(String uuid, Consumer<T> updater){
-        return get(uuid)
-                .map(this::copy)
-                .map(copied -> {
-                    updater.accept(copied);
-                    return internalUpdate(copied);})
-                .orElse(null);
+    public T update(String uuid, Consumer<T> updater) {
+        return get(uuid).map(this::copy).map(copied -> {
+            updater.accept(copied);
+            return internalUpdate(copied);
+        }).orElse(null);
     }
 
-    protected T upsert(String uuid, Consumer<T> updater, Supplier<T> creator){
-        return get(uuid)
-                .map(this::copy)
-                .map(copied -> {
-                    updater.accept(copied);
-                    return internalUpdate(copied);})
-                .orElseGet(() -> {
-                    T newEntity = creator.get();
-                    updater.accept(newEntity);
-                    return createAS(newEntity);});
+    protected T upsert(String uuid, Consumer<T> updater, Supplier<T> creator) {
+        return get(uuid).map(this::copy).map(copied -> {
+            updater.accept(copied);
+            return internalUpdate(copied);
+        }).orElseGet(() -> {
+            T newEntity = creator.get();
+            updater.accept(newEntity);
+            return createAS(newEntity);
+        });
     }
 
     //Delete

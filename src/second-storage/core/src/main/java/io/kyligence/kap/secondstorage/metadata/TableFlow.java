@@ -72,9 +72,9 @@ public class TableFlow extends RootPersistentEntity
         return new Builder();
     }
 
-    protected transient NManager<TableFlow> manager;
+    protected transient Manager<TableFlow> manager;
     @Override
-    public void setManager(NManager<TableFlow> manager) {
+    public void setManager(Manager<TableFlow> manager) {
         this.manager = manager;
     }
 

@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.metadata;
+package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
@@ -36,7 +36,6 @@ import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.restclient.RestClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -47,13 +46,15 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.google.common.base.Joiner;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
+import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
 import io.kyligence.kap.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
+import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.val;
 
 @Ignore("Only for Developer")

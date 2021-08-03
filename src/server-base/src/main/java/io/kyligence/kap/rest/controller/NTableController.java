@@ -54,7 +54,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.request.SamplingRequest;
@@ -149,7 +148,7 @@ public class NTableController extends NBasicController {
         List<TableDesc> tableDescs = new ArrayList<>();
 
         tableDescs.addAll(tableService.getTableDescByType(project, withExt, table, database, isFuzzy, sourceType));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tableDescs, offset, limit),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, getDataResponse("tables", tableDescs, offset, limit),
                 "");
     }
 
@@ -168,7 +167,7 @@ public class NTableController extends NBasicController {
             throws Exception {
 
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 tableService.getProjectTables(project, table, offset, limit, false, (databaseName, tableName) -> {
                     return tableService.getTableDescByType(project, withExt, tableName, databaseName, isFuzzy,
                             sourceType);
@@ -187,7 +186,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         String dbTblName = database + "." + table;
         tableService.unloadTable(project, dbTblName, cascade);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "prepareUnloadTable", tags = { "AI" }, notes = "Update URL: {project}; Update Param: project")
@@ -199,7 +198,7 @@ public class NTableController extends NBasicController {
             @PathVariable(value = "table") String table) throws IOException {
         checkProjectName(project);
         val response = tableService.preUnloadTable(project, database + "." + table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     /**
@@ -217,7 +216,7 @@ public class NTableController extends NBasicController {
         }
         tableService.setPartitionKey(partitionKeyRequest.getTable(), partitionKeyRequest.getProject(),
                 partitionKeyRequest.getColumn(), partitionKeyRequest.getPartitionColumnFormat());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "makeTop", tags = { "AI" })
@@ -226,7 +225,7 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<String> setTableTop(@RequestBody TopTableRequest topTableRequest) {
         checkProjectName(topTableRequest.getProject());
         tableService.setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "loadTables", tags = {
@@ -271,7 +270,7 @@ public class NTableController extends NBasicController {
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority());
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
     }
 
     @ApiOperation(value = "dataRange", tags = { "AI" })
@@ -282,7 +281,7 @@ public class NTableController extends NBasicController {
         checkRequiredArg(TABLE, dateRangeRequest.getTable());
         validateDataRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
         tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "refreshSegments", tags = {
@@ -299,7 +298,7 @@ public class NTableController extends NBasicController {
         validateRange(request.getRefreshStart(), request.getRefreshEnd());
         modelService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
                 request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "latestData", tags = { "AI" })
@@ -322,7 +321,7 @@ public class NTableController extends NBasicController {
             throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "partitionColumnFormat", tags = { "AI" })
@@ -334,7 +333,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(TABLE, table);
         checkRequiredArg("partitionColumn", partitionColumn);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 tableService.getPartitionColumnFormat(project, table, partitionColumn), "");
     }
 
@@ -344,7 +343,7 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<List<BatchLoadTableResponse>> getBatchLoadTables(
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getBatchLoadTables(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableService.getBatchLoadTables(project), "");
     }
 
     @ApiOperation(value = "batchUpdate", tags = { "AI" })
@@ -352,11 +351,11 @@ public class NTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> batchLoad(@RequestBody List<DateRangeRequest> requests) throws Exception {
         if (requests.isEmpty())
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
 
         checkArgsAndValidateRangeForBatchLoad(requests);
         tableService.batchLoadDataRange(requests.get(0).getProject(), requests);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "databases", tags = { "AI" })
@@ -366,7 +365,7 @@ public class NTableController extends NBasicController {
             throws Exception {
         checkProjectName(project);
         List<String> databases = tableService.getSourceDbNames(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, databases, "");
     }
 
     @ApiOperation(value = "loadedDatabases", tags = { "AI" })
@@ -376,7 +375,7 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<Set<String>> getLoadedDatabases(@RequestParam(value = "project") String project) {
         checkProjectName(project);
         Set<String> loadedDatabases = tableService.getLoadedDatabases(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadedDatabases, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadedDatabases, "");
     }
 
     /**
@@ -398,7 +397,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "database", required = true) String database) throws Exception {
         checkProjectName(project);
         List<TableNameResponse> tables = tableService.getTableNameResponses(project, database, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tables, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(tables, offset, limit), "");
     }
 
     @ApiOperation(value = "showProjectTableNames", tags = {
@@ -411,7 +410,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) throws Exception {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 tableService.getProjectTables(project, table, offset, limit, true, (databaseName, tableName) -> {
                     return tableService.getHiveTableNameResponses(project, databaseName, tableName);
                 }), "");
@@ -427,7 +426,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         List<TablesAndColumnsResponse> responses = tableService.getTableAndColumns(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
     @ApiOperation(value = "affectedDataRange", tags = { "AI" })
@@ -445,7 +444,7 @@ public class NTableController extends NBasicController {
         tableService.checkRefreshDataRangeReadiness(project, table, start, end);
         RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse(project, table,
                 start, end);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "updatePushdownMode", tags = { "AI" }, notes = "Update Body: pushdown_range_limited")
@@ -456,7 +455,7 @@ public class NTableController extends NBasicController {
         checkRequiredArg(TABLE, pushDownModeRequest.getTable());
         tableService.setPushDownMode(pushDownModeRequest.getProject(), pushDownModeRequest.getTable(),
                 pushDownModeRequest.isPushdownRangeLimited());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getPushdownMode", tags = { "AI" })
@@ -467,7 +466,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(TABLE, table);
         boolean result = tableService.getPushDownMode(project, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "autoMergeConfig", tags = { "DW" })
@@ -488,7 +487,7 @@ public class NTableController extends NBasicController {
             response = tableService.getAutoMergeConfigByTable(project, tableName);
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "updateAutoMergeConfig", tags = {
@@ -508,7 +507,7 @@ public class NTableController extends NBasicController {
         } else {
             tableService.setAutoMergeConfigByTable(autoMergeRequest.getProject(), autoMergeRequest);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "samplingJobs", tags = { "AI" })
@@ -523,7 +522,7 @@ public class NTableController extends NBasicController {
 
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
                 request.getRows(), request.getPriority());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "hasSamplingJob", tags = { "AI" }, notes = "Update Param: qualified_table_name")
@@ -534,7 +533,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         checkSamplingTable(qualifiedTableName);
         boolean hasSamplingJob = tableSamplingService.hasSamplingJob(project, qualifiedTableName);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasSamplingJob, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasSamplingJob, "");
     }
 
     private void checkSamplingRows(int rows) {
@@ -570,7 +569,7 @@ public class NTableController extends NBasicController {
         try {
             checkProjectName(project);
             val result = tableService.preProcessBeforeReloadWithFailFast(project, table);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
         } catch (Exception e) {
             logger.error("Reload Table Failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
@@ -593,7 +592,7 @@ public class NTableController extends NBasicController {
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
                     request.getMaxRows(), request.isNeedBuild(), request.getPriority());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (Exception e) {
             logger.error("Reload Table Failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
@@ -608,7 +607,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "project", required = true, defaultValue = "") String project,
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force) throws Exception {
         NHiveTableNameResponse response = tableService.loadProjectHiveTableNameToCacheImmediately(project, force);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "importSSB", tags = { "DW" })
@@ -616,14 +615,14 @@ public class NTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> importSSBData() {
         tableService.importSSBDataBase();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "importSSB", tags = { "DW" })
     @GetMapping(value = "/ssb")
     @ResponseBody
     public EnvelopeResponse<Boolean> checkSSB() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.checkSSBDataBase(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableService.checkSSBDataBase(), "");
     }
 
     @ApiOperation(value = "catalogCache", tags = { "DW" })
@@ -650,7 +649,7 @@ public class NTableController extends NBasicController {
             @RequestParam("model_name") String modelName) {
         checkProjectName(project);
         val res = tableService.getTablesOfModel(project, modelName);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, res, "");
     }
 
     private void checkRefreshParam(Map refreshRequest) {

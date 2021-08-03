@@ -28,7 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -119,7 +119,7 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
         user1.setDefaultPassword(false);
         List<ManagedUser> managedUsers = Lists.newArrayList(user1);
         Mockito.when(nUserController.listAllUsers("KYLIN", false, 0, 10)).thenReturn(new EnvelopeResponse<>(
-                ResponseCode.CODE_SUCCESS, DataResult.get(managedUsers, 0, 10), "testListAllUsers"));
+                KylinException.CODE_SUCCESS, DataResult.get(managedUsers, 0, 10), "testListAllUsers"));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/kap/user/users").contentType(MediaType.APPLICATION_JSON)
                 .param("name", "KYLIN").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
@@ -132,6 +132,6 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
     public void testBasics() {
         EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserControllerV2.authenticatedUser();
         Assert.assertNotNull(userDetailsEnvelopeResponse);
-        Assert.assertTrue(userDetailsEnvelopeResponse.getCode().equals(ResponseCode.CODE_SUCCESS));
+        Assert.assertTrue(userDetailsEnvelopeResponse.getCode().equals(KylinException.CODE_SUCCESS));
     }
 }

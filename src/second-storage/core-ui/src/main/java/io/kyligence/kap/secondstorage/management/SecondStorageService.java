@@ -40,7 +40,7 @@ import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
@@ -204,7 +204,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     public List<NodeData> listAvailableNodes() {
         val config = KylinConfig.getInstanceFromEnv();
         val usedNodes = NProjectManager.getInstance(config).listAllProjects().stream().flatMap(projectInstance -> {
-            NManager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(config, projectInstance.getName());
+            Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(config, projectInstance.getName());
             return nodeGroupManager.listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream());
         }).collect(Collectors.toSet());
         List<String> allNodes = SecondStorageNodeHelper.getAllNames();

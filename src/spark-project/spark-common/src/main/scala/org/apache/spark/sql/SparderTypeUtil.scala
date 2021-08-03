@@ -24,13 +24,6 @@
 
 package org.apache.spark.sql.util
 
-import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float => JFloat, Long => JLong, Short => JShort}
-import java.math.BigDecimal
-import java.sql.{Date, Timestamp, Types}
-import java.time.ZoneId
-import java.util.regex.Pattern
-import java.util.{GregorianCalendar, TimeZone}
-
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
@@ -48,8 +41,13 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import scala.collection.mutable
-import scala.collection.immutable
+import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float => JFloat, Long => JLong, Short => JShort}
+import java.math.BigDecimal
+import java.sql.{Date, Timestamp, Types}
+import java.time.ZoneId
+import java.util.regex.Pattern
+import java.util.{GregorianCalendar, TimeZone}
+import scala.collection.{immutable, mutable}
 
 object SparderTypeUtil extends Logging {
   val DATETIME_FAMILY = List("time", "date", "timestamp", "datetime")
@@ -161,14 +159,10 @@ object SparderTypeUtil extends Logging {
       case DateType => SqlTypeName.DATE.getName
       case TimestampType => SqlTypeName.TIMESTAMP.getName
       case BooleanType => SqlTypeName.BOOLEAN.getName
-      case _ => {
-        if (dt.isInstanceOf[DecimalType]) {
-          val decimalType = dt.asInstanceOf[DecimalType]
-          SqlTypeName.DECIMAL.getName + "(" + decimalType.precision + "," + decimalType.scale + ")"
-        } else {
-          throw new IllegalArgumentException(s"unsupported SqlTypeName $dt")
-        }
-      }
+      case decimalType: DecimalType =>
+        SqlTypeName.DECIMAL.getName + "(" + decimalType.precision + "," + decimalType.scale + ")"
+      case _ =>
+        throw new IllegalArgumentException(s"unsupported SqlTypeName $dt")
     }
   }
 
@@ -467,16 +461,6 @@ object SparderTypeUtil extends Logging {
     calciteTimestamp / 1000
   }
 
-  // ms to microsecond, spark need micro sec.
-  //  def toSparkMicrosecond(calciteTimestamp: Long): java.lang.Long = {
-  //    calciteTimestamp * 1000
-  //  }
-
-  // ms to day
-  //  def toSparkDate(calciteTimestamp: Long): java.lang.Integer = {
-  //    (calciteTimestamp / 1000 / 3600 / 24).toInt
-  //  }
-
   def toCalciteTimestamp(sparkTimestamp: Long): Long = {
     sparkTimestamp * 1000
   }
@@ -553,12 +537,4 @@ object SparderTypeUtil extends Logging {
     builder.createStructField()
   }
 
-  private def getDecimalPrecisionAndScale(javaType: String): (Int, Int) = {
-    val DECIMAL_PATTERN = Pattern.compile("DECIMAL\\(([0-9]+),([0-9]+)\\)", Pattern.CASE_INSENSITIVE)
-    val decimalMatcher = DECIMAL_PATTERN.matcher(javaType)
-    if (decimalMatcher.find) {
-      (Integer.valueOf(decimalMatcher.group(1)), Integer.valueOf(decimalMatcher.group(2)))
-    }
-    else null
-  }
 }

@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -83,7 +83,7 @@ public class NUserGroupControllerV2 extends NBasicController {
         Map<String, Object> result = new HashMap<>();
         result.put("usersWithGroup", usersWithGroup);
         result.put("size", groups.size());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "get users with group");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "get users with group");
     }
 
 }

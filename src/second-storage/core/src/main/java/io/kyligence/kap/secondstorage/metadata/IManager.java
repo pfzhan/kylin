@@ -28,7 +28,10 @@ import org.slf4j.Logger;
 
 public interface IManager<T extends RootPersistentEntity> {
     Logger logger();
+
     String name();
+
     String rootPath();
+
     Class<T> entityType();
 }

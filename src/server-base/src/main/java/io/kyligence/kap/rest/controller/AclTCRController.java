@@ -38,7 +38,6 @@ import com.google.common.collect.Lists;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
@@ -107,7 +106,7 @@ public class AclTCRController extends NBasicController {
                 table.setRowFilter(null);
             });
         });
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "getProjectSidTCR", tags = { "MID" }, //
@@ -137,7 +136,7 @@ public class AclTCRController extends NBasicController {
                table.setLikeRows(null);
            });
         });
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "updateProject", tags = { "MID" }, notes = "Update URL: {project}")
@@ -163,13 +162,13 @@ public class AclTCRController extends NBasicController {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/updatable", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<Boolean> getAllowAclUpdatable(@RequestParam("project") String project) throws IOException {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 AclPermissionUtil.isAclUpdatable(project, aclTCRService.getCurrentUserGroups()), "");
     }
 

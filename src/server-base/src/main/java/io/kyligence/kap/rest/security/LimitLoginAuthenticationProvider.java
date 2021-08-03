@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.restclient.RestClient;
+import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

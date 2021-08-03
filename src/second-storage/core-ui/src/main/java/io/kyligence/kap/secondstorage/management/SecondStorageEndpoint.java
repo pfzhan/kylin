@@ -47,7 +47,6 @@ import org.apache.kylin.common.exception.KylinException;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -117,7 +116,7 @@ public class SecondStorageEndpoint extends NBasicController {
         checkSegmentParms(request.getSegmentIds().toArray(new String[0]),
                 request.getSegmentNames().toArray(new String[0]));
         secondStorageService.triggerSegmentsClean(request.getProject(), request.getModel(), new HashSet<>(request.getSegmentIds()));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     @ApiOperation(value = "enableModel")
@@ -133,7 +132,7 @@ public class SecondStorageEndpoint extends NBasicController {
                 modelEnableRequest.getModel(), modelEnableRequest.isEnabled());
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(Collections.singletonList(jobInfo.orElse(null)));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobInfoResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobInfoResponse, "");
     }
 
     @ApiOperation(value = "enableProject")
@@ -145,7 +144,7 @@ public class SecondStorageEndpoint extends NBasicController {
                 projectEnableRequest.isEnabled());
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(Collections.singletonList(jobInfo.orElse(null)));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobInfoResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, jobInfoResponse, "");
     }
 
     @ApiOperation(value = "disableProjectStorageValidation")
@@ -153,14 +152,14 @@ public class SecondStorageEndpoint extends NBasicController {
     public EnvelopeResponse<List<String>> validateProjectStorage(@RequestBody ProjectEnableRequest projectEnableRequest) {
         checkProjectName(projectEnableRequest.getProject());
         List<String> models = secondStorageService.getAllSecondStorageModel(projectEnableRequest.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, models, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, models, "");
     }
 
     @ApiOperation(value = "listSecondStorageNodes")
     @GetMapping(value = "/nodes")
     @ResponseBody
     public EnvelopeResponse<List<NodeData>> listNodes() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, secondStorageService.listAvailableNodes(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.listAvailableNodes(), "");
     }
 
     private EnvelopeResponse<JobInfoResponse> internalLoadIntoStorage(StorageRequest request) {
@@ -178,7 +177,7 @@ public class SecondStorageEndpoint extends NBasicController {
 
         JobInfoResponse response = new JobInfoResponse();
         response.setJobs(modelService.exportSegmentToSecondStorage(request.getProject(), request.getModel(), segIds));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @PostMapping(value = "/recovery/model")
@@ -187,7 +186,7 @@ public class SecondStorageEndpoint extends NBasicController {
         checkRequiredArg("modelName", request.getModelName());
         checkModel(request.getProject(), request.getModelName());
         importSingleModel(request.getProject(), request.getModelName());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     private void importSingleModel(String project, String modelName) {
@@ -239,18 +238,18 @@ public class SecondStorageEndpoint extends NBasicController {
         ProjectRecoveryResponse response = new ProjectRecoveryResponse();
         response.setSubmittedModels(submittedModels);
         response.setFailedModels(failedModels);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @PostMapping(value = "/config/refresh")
     public EnvelopeResponse<ProjectRecoveryResponse> refreshConf() {
         secondStorageService.refreshConf();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
     @PostMapping(value = "/reset")
     public EnvelopeResponse resetStorage() {
         secondStorageService.resetStorage();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     private void checkModel(String project, String modelName) {

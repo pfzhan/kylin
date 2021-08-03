@@ -55,7 +55,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.UnauthorizedException;
@@ -187,7 +186,7 @@ public class NUserController extends NBasicController {
         logger.info("Creating user: {}", user);
         completeAuthorities(user);
         userService.createUser(user);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateUser", tags = { "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
@@ -242,7 +241,7 @@ public class NUserController extends NBasicController {
 
         logger.info("Saving user {}", user);
         userService.updateUser(user);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "deleteUser", tags = { "MID" })
@@ -275,7 +274,7 @@ public class NUserController extends NBasicController {
         aclTCRService.revokeAclTCR(toBeDeleteUser.getUsername(), true);
         EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(toBeDeleteUser.getUsername(), true));
         userService.deleteUser(toBeDeleteUser.getUsername());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     //@DeleteMapping(value = "/{username:.+}")
@@ -306,7 +305,7 @@ public class NUserController extends NBasicController {
         aclTCRService.revokeAclTCR(username, true);
         EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(username, true));
         userService.deleteUser(username);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "listAllUsers", tags = { "MID" }, notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
@@ -325,7 +324,7 @@ public class NUserController extends NBasicController {
         for (ManagedUser u : subList) {
             userService.completeUserInfo(u);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 DataResult.get(subList, usersByFuzzyMatching, pageOffset, pageSize), "");
     }
 
@@ -384,7 +383,7 @@ public class NUserController extends NBasicController {
             token.setDetails(SecurityContextHolder.getContext().getAuthentication().getDetails());
             SecurityContextHolder.getContext().setAuthentication(token);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "auth", tags = { "MID" })
@@ -403,7 +402,7 @@ public class NUserController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<UserDetails> updateUserWithoutAuth(@RequestBody ManagedUser user) {
         userService.updateUser(user);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     private void checkLicense() {
@@ -427,12 +426,12 @@ public class NUserController extends NBasicController {
 
         if (authentication.getPrincipal() instanceof UserDetails) {
             data = (UserDetails) authentication.getPrincipal();
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
         }
 
         if (authentication.getDetails() instanceof UserDetails) {
             data = (UserDetails) authentication.getDetails();
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
         }
 
         throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());

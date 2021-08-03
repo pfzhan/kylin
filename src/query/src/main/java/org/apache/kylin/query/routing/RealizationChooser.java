@@ -258,7 +258,8 @@ public class RealizationChooser {
             } else {
                 Set<TblColRef> dimensions = Sets.newHashSet();
                 Set<FunctionDesc> metrics = Sets.newHashSet();
-                boolean isBatchQuery = !(context.realization instanceof HybridRealization) && !context.realization.isStreaming();
+                boolean isBatchQuery = !(context.realization instanceof HybridRealization)
+                        && !context.realization.isStreaming();
                 buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics, context.realization);
                 buildStorageContext(context.storageContext, dimensions, metrics, selectedCandidate, isBatchQuery);
                 fixContextForTableIndexAnswerNonRawQuery(context);
@@ -284,8 +285,9 @@ public class RealizationChooser {
         }
     }
 
-    private static List<Candidate> selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
-                                                              Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap) {
+    private static List<Candidate> selectRealizationFromModel(NDataModel model, OLAPContext context,
+            boolean isPartialMatch, Multimap<NDataModel, IRealization> modelMap,
+            Map<NDataModel, Map<String, String>> model2AliasMap) {
         final Map<String, String> map = matchJoins(model, context, isPartialMatch);
         if (map == null) {
             return null;
@@ -333,7 +335,8 @@ public class RealizationChooser {
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
                 .getDataflow(model.getUuid());
         if (model.isFusionModel()) {
-            FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+            FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    model.getProject());
             String batchId = fusionModelManager.getFusionModel(model.getFusionId()).getBatchModel().getUuid();
             val batchDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
                     .getDataflow(batchId);
@@ -413,7 +416,7 @@ public class RealizationChooser {
     }
 
     private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
-                                                 Set<FunctionDesc> metrics, Candidate candidate, boolean isBatchQuery) {
+            Set<FunctionDesc> metrics, Candidate candidate, boolean isBatchQuery) {
         if (isBatchQuery) {
             buildBatchStorageContext(context, dimensions, metrics, candidate);
         } else {
@@ -422,7 +425,7 @@ public class RealizationChooser {
     }
 
     private static void buildBatchStorageContext(StorageContext context, Set<TblColRef> dimensions,
-                                            Set<FunctionDesc> metrics, Candidate candidate) {
+            Set<FunctionDesc> metrics, Candidate candidate) {
         val layoutCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedCandidate();
         val prunedSegments = candidate.getPrunedSegments();
         val prunedPartitions = candidate.getPrunedPartitions();
@@ -449,10 +452,10 @@ public class RealizationChooser {
     }
 
     private static void buildStreamingStorageContext(StorageContext context, Set<TblColRef> dimensions,
-                                            Set<FunctionDesc> metrics, Candidate candidate) {
+            Set<FunctionDesc> metrics, Candidate candidate) {
         context.setPrunedStreamingSegments(candidate.getPrunedStreamingSegments());
         val layoutStreamingCandidate = (NLayoutCandidate) candidate.getCapability().getSelectedStreamingCandidate();
-        context.setCandidateStreaming(layoutStreamingCandidate);
+        context.setStreamingCandidate(layoutStreamingCandidate);
         if (layoutStreamingCandidate == null || layoutStreamingCandidate.isEmptyCandidate()) {
             context.setStreamingLayoutId(-1L);
         } else {
@@ -501,19 +504,18 @@ public class RealizationChooser {
             logger.debug(
                     "for context {}, chosen model: {}, its join: {}, batch layout: {}, batch layout dimensions: {}, "
                             + "batch layout measures: {}, batch segments: {}",
-                    context.getCtxId(), model.getAlias(), model.getJoinsGraph(),
-                    cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
-                    segmentIds);
+                    context.getCtxId(), model.getAlias(), model.getJoinsGraph(), cuboidLayout.getId(),
+                    cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(), segmentIds);
         }
         if (layoutStreamingCandidate != null && !layoutStreamingCandidate.isEmptyCandidate()) {
             LayoutEntity cuboidLayout = layoutStreamingCandidate.getLayoutEntity();
-            val segmentIds = candidate.getPrunedStreamingSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+            val segmentIds = candidate.getPrunedStreamingSegments().stream().map(NDataSegment::getId)
+                    .collect(Collectors.toList());
             logger.debug(
                     "for context {}, chosen model: {}, its join: {}, streaming layout: {}, streaming layout dimensions: {}, "
                             + "streaming layout measures: {}, streaming segments: {}",
-                    context.getCtxId(), model.getAlias(), model.getJoinsGraph(),
-                    cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
-                    segmentIds);
+                    context.getCtxId(), model.getAlias(), model.getJoinsGraph(), cuboidLayout.getId(),
+                    cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(), segmentIds);
         }
     }
 
@@ -524,14 +526,15 @@ public class RealizationChooser {
         if (streamLayout == null || streamLayout.isEmptyCandidate()) {
             return false;
         }
-        if (batchLayout.getLayoutEntity().getIndex().isTableIndex() != streamLayout.getLayoutEntity().getIndex().isTableIndex()) {
+        if (batchLayout.getLayoutEntity().getIndex().isTableIndex() != streamLayout.getLayoutEntity().getIndex()
+                .isTableIndex()) {
             return true;
         }
         return false;
     }
 
     private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
-                                                  Collection<FunctionDesc> metrics, IRealization realization) {
+            Collection<FunctionDesc> metrics, IRealization realization) {
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric() && !func.isGrouping()) {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision

@@ -25,7 +25,7 @@ package io.kyligence.kap.secondstorage;
 
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
@@ -35,11 +35,11 @@ public interface SecondStoragePlugin {
 
     String queryCatalog();
 
-    NManager<TableFlow> tableFlowManager(KylinConfig config, String project);
+    Manager<TableFlow> tableFlowManager(KylinConfig config, String project);
 
-    NManager<TablePlan> tablePlanManager(KylinConfig config, String project);
+    Manager<TablePlan> tablePlanManager(KylinConfig config, String project);
 
-    NManager<NodeGroup> nodeGroupManager(KylinConfig config, String project);
+    Manager<NodeGroup> nodeGroupManager(KylinConfig config, String project);
 
     SecondStorageConfigLoader getConfigLoader();
 }

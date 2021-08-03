@@ -26,6 +26,6 @@ package io.kyligence.kap.secondstorage.metadata;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 public interface IManagerAware <T extends RootPersistentEntity> {
-    void setManager(NManager<T> manager);
+    void setManager(Manager<T> manager);
     void verify();
 }

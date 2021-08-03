@@ -116,9 +116,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("is_realtime_segment")
     private boolean isRealtimeSegment = false;
 
-    @JsonProperty("is_encoding_data_skew")
-    private boolean isEncodingDataSkew = false;
-
     // resumable flag, donn't cross building jobs
     // worked only in HDFSMeteStore
     @JsonProperty("is_snapshot_ready")
@@ -176,7 +173,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.sourceCount = other.sourceCount;
         this.additionalInfo = other.additionalInfo;
         this.excludedTables = other.excludedTables;
-        this.isEncodingDataSkew = other.isEncodingDataSkew;
         this.isSnapshotReady = other.isSnapshotReady;
         this.isDictReady = other.isDictReady;
         this.isFlatTableReady = other.isFlatTableReady;
@@ -474,14 +470,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public void setColumnSourceBytes(Map<String, Long> columnSourceBytes) {
         this.columnSourceBytes = columnSourceBytes;
-    }
-
-    public boolean isEncodingDataSkew() {
-        return isEncodingDataSkew;
-    }
-
-    public void setEncodingDataSkew(boolean encodingDataSkew) {
-        isEncodingDataSkew = encodingDataSkew;
     }
 
     public String getProject() {

@@ -77,7 +77,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
@@ -2020,9 +2019,9 @@ public class TableService extends BasicService {
         tables.forEach(table -> refreshTable(table, refreshed, failed));
 
         if (failed.isEmpty()) {
-            result.setCode(ResponseCode.CODE_SUCCESS);
+            result.setCode(KylinException.CODE_SUCCESS);
         } else {
-            result.setCode(ResponseCode.CODE_UNDEFINED);
+            result.setCode(KylinException.CODE_UNDEFINED);
             result.setMsg(message.getTABLE_REFRESH_NOTFOUND());
         }
         result.setRefreshed(refreshed);
@@ -2045,7 +2044,7 @@ public class TableService extends BasicService {
         val message = MsgPicker.getMsg();
         List<ServerInfoResponse> servers = clusterManager.getQueryServers();
         TableRefreshAll result = new TableRefreshAll();
-        result.setCode(ResponseCode.CODE_SUCCESS);
+        result.setCode(KylinException.CODE_SUCCESS);
         StringBuilder msg = new StringBuilder();
         List<TableRefresh> nodes = new ArrayList<>();
 
@@ -2057,8 +2056,8 @@ public class TableService extends BasicService {
                 if (StringUtils.isNotBlank(response.getMsg())) {
                     msg.append(host + ":" + response.getMsg() + ";");
                 }
-                if (response.getCode().equals(ResponseCode.CODE_UNDEFINED)) {
-                    result.setCode(ResponseCode.CODE_UNDEFINED);
+                if (response.getCode().equals(KylinException.CODE_UNDEFINED)) {
+                    result.setCode(KylinException.CODE_UNDEFINED);
                 }
                 if (response.getData() != null) {
                     TableRefresh data = JsonUtil.convert(response.getData(), TableRefresh.class);

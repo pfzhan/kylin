@@ -37,7 +37,6 @@ import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -99,7 +98,7 @@ public class NIndexPlanController extends NBasicController {
         modelService.validateCCType(request.getModelId(), request.getProject());
         indexPlanService.checkIndexCountWithinLimit(request);
         val response = fusionIndexService.updateRuleBasedCuboid(request.getProject(), request).getSecond();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getRule", tags = { "AI" })
@@ -109,7 +108,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val rule = fusionIndexService.getRule(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, rule, "");
     }
 
     @ApiOperation(value = "diffRule", tags = { "AI" })
@@ -120,7 +119,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, request.getModelId());
 
         val diffRuleBasedIndexResponse = fusionIndexService.calculateDiffRuleBasedIndex(request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, diffRuleBasedIndexResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, diffRuleBasedIndexResponse, "");
     }
 
     @ApiOperation(value = "calculateAggIndexCombination", tags = { "AI" }, notes = "Update Body: model_id")
@@ -131,7 +130,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, request.getModelId());
 
         val aggIndexCount = fusionIndexService.calculateAggIndexCount(request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, aggIndexCount, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, aggIndexCount, "");
     }
 
     @ApiOperation(value = "createTableIndex", tags = { "AI" }, notes = "Update Body: model_id")
@@ -141,7 +140,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, request.getModelId());
         modelService.validateCCType(request.getModelId(), request.getProject());
         val response = fusionIndexService.createTableIndex(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "updateTableIndex", tags = { "AI" }, notes = "Update Body: model_id")
@@ -152,7 +151,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg("id", request.getId());
         modelService.validateCCType(request.getModelId(), request.getProject());
         val response = fusionIndexService.updateTableIndex(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @Deprecated
@@ -164,7 +163,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg("id", id);
         indexPlanService.removeTableIndex(project, modelId, id);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @Deprecated
@@ -179,7 +178,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val tableIndexs = indexPlanService.getTableIndexs(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tableIndexs, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(tableIndexs, offset, limit), "");
     }
 
     @ApiOperation(value = "getIndex", tags = { "AI" }, notes = "Update response: total_size")
@@ -199,7 +198,7 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids, range);
         val indexUpdateEnabled = fusionIndexService.checkUpdateIndexEnabled(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, FusionRuleDataResult.get(indexes, offset, limit, indexUpdateEnabled), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, FusionRuleDataResult.get(indexes, offset, limit, indexUpdateEnabled), "");
     }
 
     @ApiOperation(value = "indexGraph", tags = { "AI" })
@@ -210,7 +209,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val indexes = indexPlanService.getIndexGraph(project, modelId, size);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, indexes, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, indexes, "");
     }
 
     @ApiOperation(value = "deleteIndex", tags = { "AI" }, notes = "Update response: need to update total_size")
@@ -221,7 +220,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         fusionIndexService.removeIndex(project, modelId, layoutId, indexRange);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "batch deleteIndex", tags = { "AI" })
@@ -234,7 +233,7 @@ public class NIndexPlanController extends NBasicController {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
         fusionIndexService.removeIndexes(project, modelId, layoutIds);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "create base index", tags = { "AI" })
@@ -244,7 +243,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         val response = indexPlanService.createBaseIndex(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "update base index", tags = { "AI" })
@@ -254,7 +253,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         val response = indexPlanService.updateBaseIndex(request.getProject(), request, false);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getIndex", tags = { "AI" })
@@ -264,6 +263,6 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val response = indexPlanService.getStat(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 }

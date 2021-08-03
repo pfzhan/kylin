@@ -120,11 +120,6 @@ public class DFBuildJob extends SparkApplication {
             if (needSkipSegment(segId)) {
                 continue;
             }
-            if (seg.isEncodingDataSkew()) {
-                logger.debug("Encoding data skew , set it to true");
-                KylinBuildEnv.get().setEncodingDataSkew(true);
-            }
-
             // choose source
             DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
             datasetChooser.decideSources();
@@ -249,7 +244,7 @@ public class DFBuildJob extends SparkApplication {
         NDataflow dataflow = dfMgr.getDataflow(dataflowId);
         NDataflow newDF = dataflow.copy();
         val update = new NDataflowUpdate(dataflow.getUuid());
-        List<NDataSegment> nDataSegments = Lists.newArrayList();
+        List<NDataSegment> dataSegments = Lists.newArrayList();
         for (Map.Entry<String, Object> entry : toUpdateSegmentSourceSize.entrySet()) {
             NDataSegment segment = newDF.getSegment(entry.getKey());
             if (Objects.isNull(segment)) {
@@ -258,12 +253,9 @@ public class DFBuildJob extends SparkApplication {
             }
             segment.setSourceBytesSize((Long) entry.getValue());
             segment.setLastBuildTime(System.currentTimeMillis());
-            if (KylinBuildEnv.get().encodingDataSkew()) {
-                segment.setEncodingDataSkew(true);
-            }
-            nDataSegments.add(segment);
+            dataSegments.add(segment);
         }
-        update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
+        update.setToUpdateSegs(dataSegments.toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update);
 
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);

@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.response.DataResult;
@@ -96,7 +96,7 @@ public class StreamingJobController extends NBasicController {
         StreamingJobFilter jobFilter = new StreamingJobFilter(modelName, modelNames, jobTypes, statuses, project,
                 sortBy, reverse);
         val data = streamingJobService.getStreamingJobList(jobFilter, pageOffset, pageSize);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 
     @GetMapping(value = "/model_name")
@@ -114,7 +114,7 @@ public class StreamingJobController extends NBasicController {
         } else {
             data = new ArrayList<>();
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 
     @ApiOperation(value = "updateStreamingJobStatus", notes = "Update Body: jobId")
@@ -125,7 +125,7 @@ public class StreamingJobController extends NBasicController {
         checkRequiredArg("action", streamingJobExecuteRequest.getAction());
         streamingJobService.updateStreamingJobStatus(streamingJobExecuteRequest.getProject(),
                 streamingJobExecuteRequest.getJobIds(), streamingJobExecuteRequest.getAction());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @PutMapping(value = "/params")
@@ -135,7 +135,7 @@ public class StreamingJobController extends NBasicController {
         checkProjectName(streamingJobParamsRequest.getProject());
         streamingJobService.updateStreamingJobParams(streamingJobParamsRequest.getProject(),
                 streamingJobParamsRequest.getJobId(), streamingJobParamsRequest.getParams());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/stats/{jobId:.+}")
@@ -144,7 +144,7 @@ public class StreamingJobController extends NBasicController {
             @PathVariable(value = "jobId") String jobId, @RequestParam(value = "project") String project,
             @RequestParam(value = "time_filter", required = false, defaultValue = "-1") Integer timeFilter) {
         val response = streamingJobService.getStreamingJobDataStats(jobId, project, timeFilter);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @PutMapping(value = "/stats")
@@ -153,7 +153,7 @@ public class StreamingJobController extends NBasicController {
             @RequestBody StreamingJobStatsRequest streamingJobStatsRequest) {
         checkProjectName(streamingJobStatsRequest.getProject());
         streamingJobService.collectStreamingJobStats(streamingJobStatsRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @PutMapping(value = "/spark")
@@ -162,7 +162,7 @@ public class StreamingJobController extends NBasicController {
             @RequestBody StreamingJobUpdateRequest streamingJobUpdateRequest) {
         checkProjectName(streamingJobUpdateRequest.getProject());
         streamingJobService.updateStreamingJobInfo(streamingJobUpdateRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/records")
@@ -171,7 +171,7 @@ public class StreamingJobController extends NBasicController {
             @RequestParam(value = "project") String project, @RequestParam(value = "job_id") String jobId) {
         checkProjectName(project);
         val data = streamingJobService.getStreamingJobRecordList(project, jobId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 
     @PostMapping(value = "/dataflow/segment")
@@ -234,7 +234,7 @@ public class StreamingJobController extends NBasicController {
 
         Map<String, String> result = new HashMap<>();
         result.put("cmd_output", streamingJobService.getStreamingJobSimpleLog(projectName, jobId));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @GetMapping(value = "/{job_id:.+}/download_log")
@@ -246,7 +246,7 @@ public class StreamingJobController extends NBasicController {
         String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", projectName, jobId);
         InputStream inputStream = streamingJobService.getStreamingJobAllLog(projectName, jobId);
         setDownloadResponse(inputStream, downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
 }

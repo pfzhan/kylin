@@ -47,7 +47,6 @@ import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CO
 
 import com.fasterxml.jackson.core.JsonParseException;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 
 import com.google.common.base.Throwables;
 
@@ -85,7 +84,7 @@ public class ErrorResponse extends EnvelopeResponse {
                 errorCode = FAILED_PARSE_JSON.toErrorCode().getLocalizedString();
             }
             this.msg = errorCode + " " + exception.getLocalizedMessage();
-            this.code = ResponseCode.CODE_UNDEFINED;
+            this.code = KylinException.CODE_UNDEFINED;
             this.stacktrace = Throwables.getStackTraceAsString(exception);
         }
     }

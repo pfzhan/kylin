@@ -40,7 +40,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -103,7 +102,7 @@ public class OpenMetaStoreController extends NBasicController {
         checkExportModelsValid(projectName, request);
         ModelPreviewRequest modelPreviewRequest = convertToModelPreviewRequest(projectName, request);
         metaStoreController.exportModelMetadata(projectName, modelPreviewRequest, response);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "uploadAndCheckModelMetadata", tags = { "MID" })
@@ -123,7 +122,7 @@ public class OpenMetaStoreController extends NBasicController {
             throws Exception {
         String projectName = checkProjectName(project);
         metaStoreController.importModelMetadata(projectName, metadataFile, request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     private ModelPreviewRequest convertToModelPreviewRequest(String project, OpenModelPreviewRequest request) {

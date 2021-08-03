@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AccessEntryResponse;
@@ -109,7 +108,7 @@ public class NAccessControllerV2 extends NBasicController {
             data.put(TABLE_NAME, tableList);
             dataList.add(data);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataList, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dataList, "");
     }
 
     @ApiOperation(value = "getAccessEntities", tags = { "MID" })
@@ -129,6 +128,6 @@ public class NAccessControllerV2 extends NBasicController {
         HashMap<String, Object> data = new HashMap<>();
         data.put("sids", sublist);
         data.put("size", resultsAfterFuzzyMatching.size());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 }

@@ -27,13 +27,14 @@ import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.common.util.Unsafe;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.secondstorage.SecondStorage;
-import io.kyligence.kap.secondstorage.metadata.NManager;
-import io.kyligence.kap.secondstorage.metadata.TableEntity;
-import io.kyligence.kap.secondstorage.metadata.TablePlan;
+import io.kyligence.kap.secondstorage.metadata.Manager;
+import io.kyligence.kap.secondstorage.metadata.PartitionType;
+import io.kyligence.kap.secondstorage.metadata.TableData;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,10 +44,12 @@ import org.junit.Test;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class NClickHouseManagerTest {
+public class ClickHouseFlowManagerTest {
+
     private static final String DEFAULT_PROJECT = "default";
     private static final String TEST_DESCRIPTION = "test_description";
 
@@ -71,93 +74,97 @@ public class NClickHouseManagerTest {
             IllegalAccessException,
             InvocationTargetException,
             InstantiationException {
+
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NManager<TablePlan> manager = SecondStorage.tablePlanManager(config, DEFAULT_PROJECT);
+        Manager<TableFlow> manager = SecondStorage.tableFlowManager(config, DEFAULT_PROJECT);
         Assert.assertNotNull(manager);
 
         // refect
-        Class<? extends NManager<TablePlan>> managerClass =
-                (Class<? extends NManager<TablePlan>>) manager.getClass();
-        Constructor<? extends NManager<TablePlan>> constructor =
+        Class<? extends Manager<TableFlow>> managerClass = (Class<? extends Manager<TableFlow>>) manager.getClass();
+        Constructor<? extends Manager<TableFlow>> constructor =
                 managerClass.getDeclaredConstructor(KylinConfig.class, String.class);
         Unsafe.changeAccessibleObject(constructor, true);
-        final NManager<TablePlan> refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
+        final Manager<TableFlow> refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
         Assert.assertNotNull(refectionManage);
 
         final String cubeName = UUID.randomUUID().toString();
 
-        TablePlan cube = TablePlan.builder()
+        TableFlow flow = TableFlow.builder()
                 .setModel(cubeName)
                 .setDescription(TEST_DESCRIPTION)
                 .build();
-        Assert.assertNotNull(manager.createAS(cube));
+        Assert.assertNotNull(manager.createAS(flow));
 
         // list
-        List<TablePlan> cubes = manager.listAll();
-        Assert.assertEquals(1, cubes.size());
+        List<TableFlow> flows = manager.listAll();
+        Assert.assertEquals(1, flows.size());
 
         // get
-        TablePlan cube2 = manager.get(cubeName).orElse(null);
-        Assert.assertNotNull(cube2);
+        TableFlow flow2 = manager.get(cubeName).orElse(null);
+        Assert.assertNotNull(flow2);
 
         // update
         try {
-            cube2.setDescription("new_description");
+            flow2.setDescription("new_description");
             Assert.fail();
         } catch (IllegalStateException ex) {
             // expected for updating the cached object
         }
-        TablePlan cube3 = manager.update(cube.getUuid(), copyForWrite -> copyForWrite.setDescription("new_description"));
-        Assert.assertEquals("new_description", cube3.getDescription());
+        TableFlow flow3 = manager.update(flow.getUuid(), copyForWrite -> copyForWrite.setDescription("new_description"));
+        Assert.assertEquals("new_description", flow3.getDescription());
 
         // delete
-        manager.delete(cube);
-        TablePlan cube4 = manager.get(cubeName).orElse(null);
-        Assert.assertNull(cube4);
+        manager.delete(flow);
+        TableFlow flow4 = manager.get(cubeName).orElse(null);
+        Assert.assertNull(flow4);
         Assert.assertEquals(0, manager.listAll().size());
     }
 
     @Test
-    public void testAddTableEntity() {
+    public void testTableData() {
         final String cubeName = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NIndexPlanManager manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
-        IndexPlan indexPlan = manager.getIndexPlan(cubeName);
-        List<LayoutEntity> allLayouts = indexPlan.getAllLayouts();
-        Assert.assertTrue(allLayouts.size() >=2);
-
+        List<LayoutEntity> allLayouts = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT)
+                .getIndexPlan(cubeName)
+                .getAllLayouts();
+        Assert.assertTrue(allLayouts.size() >= 2);
         LayoutEntity layout0 = allLayouts.get(0);
+        TableFlow firstFlow = SecondStorage.tableFlowManager(config, DEFAULT_PROJECT)
+                .makeSureRootEntity(cubeName);
+        TableFlow flow1 = firstFlow.update(copied ->
+            copied.upsertTableData(
+                    layout0,
+                    t -> {},
+                    ()-> TableData.builder()
+                            .setLayoutEntity(layout0)
+                            .setPartitionType(PartitionType.FULL)
+                            .build()
+            ));
+        Assert.assertNotNull(flow1);
+        Assert.assertEquals(1, flow1.getTableDataList().size());
+        Assert.assertEquals(PartitionType.FULL, flow1.getTableDataList().get(0).getPartitionType());
+        Assert.assertSame(flow1.getTableDataList().get(0), flow1.getEntity(layout0).orElse(null));
+        TableData data = flow1.getTableDataList().get(0);
+        Assert.assertEquals(0, data.getPartitions().size());
+        Assert.assertNull(data.getSchemaURL());
+        Assert.assertNull(data.getShardJDBCURLs());
 
-        NManager<TablePlan> ckManager = SecondStorage.tablePlanManager(config, DEFAULT_PROJECT);
-        TablePlan firstPlan = ckManager.makeSureRootEntity(cubeName);
-
-        TablePlan plan = firstPlan.createTableEntityIfNotExists(layout0, true);
-
-        Assert.assertNotNull(plan);
-        Assert.assertEquals(1, plan.getTableMetas().size());
-        Assert.assertEquals(TableEntity.DEFAULT_SHARD, plan.getTableMetas().get(0).getShardNumbers());
-
-        LayoutEntity layout1 = allLayouts.get(1);
-        TablePlan plan1 = plan.createTableEntityIfNotExists(layout1, true);
-
-        Assert.assertNotNull(plan1);
-        Assert.assertEquals(plan.getId(), plan1.getId());
-        Assert.assertEquals(2, plan1.getTableMetas().size());
-        Assert.assertSame(plan1, plan1.getTableMetas().get(0).getTablePlan());
-        Assert.assertSame(plan1, plan1.getTableMetas().get(1).getTablePlan());
-
-        TablePlan plan2 = plan1.createTableEntityIfNotExists(layout1, false);
-        Assert.assertEquals(plan.getId(), plan2.getId());
-        Assert.assertEquals(2, plan2.getTableMetas().size());
-        Assert.assertSame(plan2, plan2.getTableMetas().get(0).getTablePlan());
-        Assert.assertSame(plan2, plan2.getTableMetas().get(1).getTablePlan());
-
-        final int updateShardNumbers = 6;
-        TablePlan plan3 = ckManager.update(cubeName,
-                copyForWrite -> copyForWrite.getTableMetas().get(0).setShardNumbers(updateShardNumbers));
-
-        Assert.assertEquals(plan.getId(), plan3.getId());
-        Assert.assertEquals(2, plan3.getTableMetas().size());
-        Assert.assertEquals(updateShardNumbers, plan3.getTableMetas().get(0).getShardNumbers());
+        TableFlow flow2 = flow1.update(copied ->
+                copied.upsertTableData(
+                        layout0,
+                        t -> t.addPartition(TablePartition.builder()
+                                .setShardNodes(Collections.singletonList("xxx"))
+                                .setSegmentId("yyy").build()),
+                        ()-> null));
+        Assert.assertNotNull(flow2);
+        Assert.assertEquals(1, flow2.getTableDataList().size());
+        Assert.assertEquals(PartitionType.FULL, flow2.getTableDataList().get(0).getPartitionType());
+        Assert.assertSame(flow2.getTableDataList().get(0), flow2.getEntity(layout0).orElse(null));
+        TableData data1 = flow2.getTableDataList().get(0);
+        Assert.assertEquals(1, data1.getPartitions().size());
+        Assert.assertEquals(1, data1.getPartitions().get(0).getShardNodes().size());
+        Assert.assertEquals("yyy", data1.getPartitions().get(0).getSegmentId());
+        Assert.assertEquals("xxx", data1.getPartitions().get(0).getShardNodes().get(0));
     }
+
 }

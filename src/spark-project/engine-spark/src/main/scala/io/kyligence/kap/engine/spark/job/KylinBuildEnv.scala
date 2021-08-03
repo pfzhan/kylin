@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util.concurrent.atomic.AtomicReference
-
 import io.kyligence.kap.cluster.{ClusterManagerFactory, IClusterManager}
-import javax.annotation.concurrent.NotThreadSafe
-import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
+
+import java.util.concurrent.atomic.AtomicReference
+import javax.annotation.concurrent.NotThreadSafe
 
 class KylinBuildEnv(config: KylinConfig) {
 
@@ -41,11 +41,6 @@ class KylinBuildEnv(config: KylinConfig) {
 
   lazy val clusterManager: IClusterManager = ClusterManagerFactory.create(config)
 
-  var encodingDataSkew = false
-
-  def setEncodingDataSkew(boolean: Boolean): Unit = {
-    encodingDataSkew = boolean;
-  }
 }
 
 object KylinBuildEnv {

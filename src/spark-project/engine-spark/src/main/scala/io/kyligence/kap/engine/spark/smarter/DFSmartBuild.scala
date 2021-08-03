@@ -95,10 +95,6 @@ class DFSmartBuild extends DFBuildJob with Logging {
 
   private def segmentBuild(segId: String): Unit = {
     val seg = getSegment(segId)
-    if (seg.isEncodingDataSkew) {
-      logDebug("Encoding data skew , set it to true")
-      KylinBuildEnv.get.setEncodingDataSkew(true)
-    }
     buildSnapshot()
     // choose source
     val dfChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true)

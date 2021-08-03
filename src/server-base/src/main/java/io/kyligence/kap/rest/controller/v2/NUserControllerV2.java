@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -114,12 +114,12 @@ public class NUserControllerV2 extends NBasicController {
 
         if (authentication.getPrincipal() instanceof UserDetails) {
             data = (UserDetails) authentication.getPrincipal();
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
         }
 
         if (authentication.getDetails() instanceof UserDetails) {
             data = (UserDetails) authentication.getDetails();
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
         }
 
         throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());

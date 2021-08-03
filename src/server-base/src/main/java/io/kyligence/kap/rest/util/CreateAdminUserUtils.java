@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.UserService;
@@ -72,7 +71,7 @@ public class CreateAdminUserUtils {
         log.info("Creating user: {}", user);
         completeAuthorities(user);
         userService.createUser(user);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     public static String pwdEncode(String pwd) {

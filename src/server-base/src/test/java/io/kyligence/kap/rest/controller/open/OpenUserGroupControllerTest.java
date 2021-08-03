@@ -26,7 +26,7 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
@@ -102,7 +102,7 @@ public class OpenUserGroupControllerTest {
     @Test
     public void testGetUsersByGroup() throws Exception {
         Mockito.doReturn(
-                new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(Lists.newArrayList(), 0, 10), ""))
+                new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(Lists.newArrayList(), 0, 10), ""))
                 .when(userGroupController).getUsersByGroupName("g1@.h", "", 0, 10);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/group_members/{group_name:.+}", "g1@.h")

@@ -77,16 +77,16 @@ object SecondStorage extends LogEx {
 
   def enabled: Boolean = secondStoragePlugin != null && secondStoragePlugin.ready()
 
-  def tableFlowManager(config: KylinConfig, project: String): NManager[TableFlow] =
+  def tableFlowManager(config: KylinConfig, project: String): Manager[TableFlow] =
     secondStoragePlugin.tableFlowManager(config, project)
 
-  def tableFlowManager(dataflow: NDataflow): NManager[TableFlow] =
+  def tableFlowManager(dataflow: NDataflow): Manager[TableFlow] =
     tableFlowManager(dataflow.getConfig, dataflow.getProject)
 
-  def tablePlanManager(config: KylinConfig, project: String): NManager[TablePlan] =
+  def tablePlanManager(config: KylinConfig, project: String): Manager[TablePlan] =
     secondStoragePlugin.tablePlanManager(config, project)
 
-  def nodeGroupManager(config: KylinConfig, project: String): NManager[NodeGroup] =
+  def nodeGroupManager(config: KylinConfig, project: String): Manager[NodeGroup] =
     secondStoragePlugin.nodeGroupManager(config, project)
 
   private def queryCatalog() = Option.apply(secondStoragePlugin.queryCatalog())

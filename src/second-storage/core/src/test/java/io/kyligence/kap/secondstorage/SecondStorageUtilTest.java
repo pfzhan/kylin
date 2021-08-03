@@ -27,7 +27,7 @@ package io.kyligence.kap.secondstorage;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
@@ -63,7 +63,7 @@ import java.util.Optional;
 @PrepareForTest({SecondStorageNodeHelper.class, NExecutableManager.class})
 public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
-    private NManager<TableFlow> tableFlowManager = Mockito.mock(NManager.class);
+    private Manager<TableFlow> tableFlowManager = Mockito.mock(Manager.class);
     private NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
 
     @Before

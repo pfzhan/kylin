@@ -41,7 +41,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -85,7 +84,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         NDataflow df = new NDataflow();
         df.config = (KylinConfigExt) plan.getConfig();
         df.setUuid(plan.getUuid());
-        df.setCreateTimeUTC(System.currentTimeMillis());
         df.setSegments(new Segments<>());
         df.setStatus(realizationStatusEnum);
 
@@ -97,14 +95,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     @JsonIgnore
     @Setter
     private KylinConfigExt config;
-    @JsonProperty("description")
-    private String description;
-    @JsonProperty("owner")
-    private String owner;
-    @JsonProperty("mp_values")
-    private String[] mpValues = StringUtil.EMPTY_ARRAY;
-    @JsonProperty("create_time_utc")
-    private long createTimeUTC;
+
     @JsonProperty("status")
     private RealizationStatusEnum status;
     @JsonProperty("cost")
@@ -125,17 +116,9 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     @JsonProperty("layout_query_hit_count")
     private Map<Long, FrequencyMap> layoutHitCount = Maps.newHashMap();
 
-    @Getter
-    @Setter
-    @JsonProperty("event_error")
-    private boolean eventError;
-
     @JsonManagedReference
     @JsonProperty("segments")
     private Segments<NDataSegment> segments = new Segments<>();
-
-    @JsonProperty("storage_location_identifier")
-    private String storageLocationIdentifier; // maybe useful in some cases..
 
     @Getter
     @Setter
@@ -445,11 +428,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     @Override
-    public boolean supportsLimitPushDown() {
-        return true; // TODO: storage_type defined on cuboid level, which will decide whether to support
-    }
-
-    @Override
     public boolean hasPrecalculatedFields() {
         return true;
     }
@@ -462,33 +440,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        checkIsNotCachedAndShared();
-        this.description = description;
-    }
-
-    public String[] getMpValues() {
-        return isCachedAndShared() ? Arrays.copyOf(mpValues, mpValues.length) : mpValues;
-    }
-
-    public void setMpValues(String[] mpValues) {
-        checkIsNotCachedAndShared();
-        this.mpValues = mpValues;
-    }
-
-    public long getCreateTimeUTC() {
-        return createTimeUTC;
-    }
-
-    public void setCreateTimeUTC(long createTimeUTC) {
-        checkIsNotCachedAndShared();
-        this.createTimeUTC = createTimeUTC;
-    }
 
     public RealizationStatusEnum getStatus() {
         return status;
@@ -514,24 +465,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         if (segments.isEmpty() && RealizationStatusEnum.ONLINE == this.getStatus()) {
             this.setStatus(RealizationStatusEnum.OFFLINE);
         }
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    void setOwner(String owner) {
-        checkIsNotCachedAndShared();
-        this.owner = owner;
-    }
-
-    public String getStorageLocationIdentifier() {
-        return storageLocationIdentifier;
-    }
-
-    public void setStorageLocationIdentifier(String storageLocationIdentifier) {
-        checkIsNotCachedAndShared();
-        this.storageLocationIdentifier = storageLocationIdentifier;
     }
 
     public int getCost() {

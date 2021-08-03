@@ -104,7 +104,6 @@ public class OLAPSortRel extends Sort implements OLAPRel {
             OLAPRel olapChild = (OLAPRel) this.getInput();
             TblColRef orderCol = olapChild.getColumnRowType().getAllColumns().get(index);
             this.context.addSort(orderCol, order);
-            this.context.storageContext.markSort();
         }
     }
 

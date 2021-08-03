@@ -507,7 +507,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         mockIndexEntity1.setId(1);
         LayoutEntity mockLayout1 = new LayoutEntity();
         mockLayout1.setIndex(mockIndexEntity1);
-        aggMock.storageContext.setCandidateStreaming(new NLayoutCandidate(mockLayout1));
+        aggMock.storageContext.setStreamingCandidate(new NLayoutCandidate(mockLayout1));
         aggMock.storageContext.setStreamingLayoutId(10001L);
         aggMock.storageContext.setPrunedStreamingSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(aggMock);

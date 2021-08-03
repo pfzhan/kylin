@@ -109,7 +109,6 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
                 OLAPRel olapChild = (OLAPRel) this.getInput();
                 TblColRef orderCol = olapChild.getColumnRowType().getAllColumns().get(index);
                 this.context.addSort(orderCol, order);
-                this.context.storageContext.markSort();
                 this.context.allColumns.addAll(orderCol.getSourceColumns());
             }
         }

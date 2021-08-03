@@ -38,7 +38,6 @@ import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.Segments;
@@ -186,7 +185,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testGetModels() throws Exception {
         Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
                 "last_modify", false, null, null, null, null, true))
-                .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
+                .thenReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("page_offset", "1").param("project", "default").param("model_name", "model1")
                 .param("page_size", "5").param("exact", "true").param("table", "").param("owner", "ADMIN")
@@ -206,7 +205,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         mockGetModelName(modelName, project, modelId);
         Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", null, null, false,
                 "end_time", true)).thenReturn(
-                new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
+                new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).param("page_offset", "1").param("project", project)
                 .param("page_size", "5").param("start", "432").param("end", "2234").param("sort_by", "end_time")
@@ -227,7 +226,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("0");
         request.setEnd("100");
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .buildSegmentsManually(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -248,7 +247,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setType(SegmentsRequest.SegmentsRequestType.REFRESH);
         request.setIds(new String[]{"1", "2"});
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .refreshOrMergeSegments(modelId, request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -268,7 +267,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         req.setParallelBuildBySegment(false);
         req.setSegmentIds(Lists.newArrayList(ids));
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         Mockito.doReturn(new Pair("model_id", ids)).when(fusionModelService).convertSegmentIdWithName(modelId, project,
                 ids, null);
@@ -291,7 +290,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         req.setProject(project);
         req.setParallelBuildBySegment(false);
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
@@ -314,7 +313,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         req.setProject(project);
         req.setParallelBuildBySegment(false);
         mockGetModelName(modelName, project, modelId);
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .addIndexesToSegments(modelId, req);
         MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
@@ -335,7 +334,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String project = "default";
         mockGetModelName(modelName, project, modelId);
 
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, true, false, null, null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "true")
@@ -353,7 +352,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
         SegmentsRequest request = new SegmentsRequest();
         request.setIds(new String[]{"1", "2"});
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, false, false, request.getIds(), null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "false").param("ids", request.getIds())

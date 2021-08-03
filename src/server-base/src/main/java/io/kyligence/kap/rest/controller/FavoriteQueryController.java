@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public class FavoriteQueryController extends NBasicController {
         checkProjectName(project);
         checkProjectUnmodifiable(project);
         SQLParserResponse data = favoriteRuleService.importSqls(files, project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 
     @ApiOperation(value = "sqlValidate", tags = { "AI" }, notes = "Update Response: incapable_reason, sql_advices")
@@ -77,7 +77,7 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse<SQLValidateResponse> sqlValidate(@RequestBody SQLValidateRequest request) {
         checkProjectName(request.getProject());
         checkProjectUnmodifiable(request.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 favoriteRuleService.sqlValidate(request.getProject(), request.getSql()), "");
     }
 }

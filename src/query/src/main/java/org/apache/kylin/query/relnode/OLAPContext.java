@@ -146,13 +146,6 @@ public class OLAPContext {
         this.storageContext = new StorageContext(seq);
         this.sortColumns = Lists.newArrayList();
         this.sortOrders = Lists.newArrayList();
-        Map<String, String> parameters = _localPrarameters.get();
-        if (parameters != null) {
-            String acceptPartialResult = parameters.get(PRM_ACCEPT_PARTIAL_RESULT);
-            if (acceptPartialResult != null) {
-                this.storageContext.setAcceptPartialResult(Boolean.parseBoolean(acceptPartialResult));
-            }
-        }
     }
 
     public final int id;
@@ -288,24 +281,12 @@ public class OLAPContext {
         return allColumns.isEmpty() && aggregations.isEmpty() && !constantAggregations.isEmpty();
     }
 
-    public boolean isConstantQueryWithoutAggregation() {
-        // deal with probing query like select 1,current_date from Table
-        return allColumns.isEmpty() && aggregations.isEmpty() && constantAggregations.isEmpty();
-    }
-
     public static List<NativeQueryRealization> getNativeRealizations() {
-        StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
         List<NativeQueryRealization> realizations = Lists.newArrayList();
 
         if (getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
             for (OLAPContext ctx : getThreadLocalContexts()) {
                 if (ctx.realization != null) {
-                    if (!QueryContext.current().getQueryTagInfo().isPartial()) {
-                        QueryContext.current().getQueryTagInfo()
-                                .setPartial(ctx.storageContext.isPartialResultReturned());
-                    }
-
-                    logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
                     final String realizationType;
                     Set<String> tableSets = Sets.newHashSet();
                     if (ctx.storageContext.isEmptyLayout()) {
@@ -355,7 +336,6 @@ public class OLAPContext {
                 }
             }
         }
-        logger.info(logSb.toString());
         return realizations;
     }
 
@@ -502,7 +482,7 @@ public class OLAPContext {
     public boolean isAnsweredByTableIndex() {
         NLayoutCandidate candidate;
         if (this.realization.isStreaming()) {
-            candidate = this.storageContext.getCandidateStreaming();
+            candidate = this.storageContext.getStreamingCandidate();
         } else {
             candidate = this.storageContext.getCandidate();
         }

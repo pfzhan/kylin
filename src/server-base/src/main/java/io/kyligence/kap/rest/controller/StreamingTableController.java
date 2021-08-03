@@ -38,7 +38,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -96,7 +95,7 @@ public class StreamingTableController extends NBasicController {
             streamingTableService.createKafkaConfig(project, streamingRequest.getKafkaConfig());
             LoadTableResponse loadTableResponse = new LoadTableResponse();
             loadTableResponse.getLoaded().add(streamingRequest.getTableDesc().getIdentity());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
@@ -128,7 +127,7 @@ public class StreamingTableController extends NBasicController {
             streamingTableService.updateKafkaConfig(project, streamingRequest.getKafkaConfig());
             LoadTableResponse loadTableResponse = new LoadTableResponse();
             loadTableResponse.getLoaded().add(streamingRequest.getTableDesc().getIdentity());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());

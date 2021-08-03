@@ -79,7 +79,7 @@ object TableScanPlan extends LogEx {
                     (dataflow.isStreaming && !context.isStreamCandidateEmpty))
             .map(dataflow => {
               if (dataflow.isStreaming) {
-                tableScan(rel, dataflow, olapContext, session, prunedStreamingSegments, context.getCandidateStreaming)
+                tableScan(rel, dataflow, olapContext, session, prunedStreamingSegments, context.getStreamingCandidate)
               } else {
                 tableScan(rel, dataflow, olapContext, session, prunedSegments, context.getCandidate)
               }

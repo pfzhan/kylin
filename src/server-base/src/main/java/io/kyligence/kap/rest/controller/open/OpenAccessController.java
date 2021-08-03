@@ -41,7 +41,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.AccessEntryResponse;
@@ -112,7 +111,7 @@ public class OpenAccessController extends NBasicController {
         List<ProjectPermissionResponse> permissionResponses = convertAceResponseToProjectPermissionResponse(
                 aeResponses);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 DataResult.get(permissionResponses, pageOffset, pageSize), "");
     }
 
@@ -137,7 +136,7 @@ public class OpenAccessController extends NBasicController {
         accessService.remoteBatchGrantAccess(accessRequests, ae);
         aclTCRService.updateAclTCR(projectUuid, accessRequests);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateProjectPermission", tags = { "MID" })
@@ -162,7 +161,7 @@ public class OpenAccessController extends NBasicController {
 
         aclTCRService.updateAclTCR(projectUuid, Lists.newArrayList(accessRequest));
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "revokeProjectPermission", tags = { "MID" })
@@ -184,7 +183,7 @@ public class OpenAccessController extends NBasicController {
         accessService.remoteRevokeAccess(ae, name, principal);
         aclTCRService.revokeAclTCR(projectUuid, name, principal);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getUserOrGroupAclPermissions", tags = { "MID" })
@@ -218,7 +217,7 @@ public class OpenAccessController extends NBasicController {
 
         List<SidPermissionWithAclResponse> response = accessService.getUserOrGroupAclPermissions(projects, name,
                 principal);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     private void updateRequestCaseInsentive(BatchProjectPermissionRequest permissionRequest) {

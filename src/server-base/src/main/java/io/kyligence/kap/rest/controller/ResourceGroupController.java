@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -63,13 +63,13 @@ public class ResourceGroupController extends NBasicController {
         checkResourceGroupRequest(request);
 
         if (!resourceGroupChanged(request)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         }
 
         resourceGroupService.updateResourceGroup(request);
         EventBusFactory.getInstance().postAsync(new EpochCheckBroadcastNotifier());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     private void checkResourceGroupRequest(ResourceGroupRequest request) {

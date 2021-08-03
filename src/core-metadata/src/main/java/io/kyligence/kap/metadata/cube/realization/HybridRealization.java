@@ -53,7 +53,7 @@ import lombok.Getter;
 
 public class HybridRealization implements IRealization {
 
-    public static final String REALIZATION_TYPE = "NHYBRID";
+    public static final String REALIZATION_TYPE = "HYBRID";
 
     private final static Logger logger = LoggerFactory.getLogger(HybridRealization.class);
 
@@ -288,11 +288,6 @@ public class HybridRealization implements IRealization {
     @Override
     public long getDateRangeEnd() {
         return dateRangeEnd;
-    }
-
-    @Override
-    public boolean supportsLimitPushDown() {
-        return false;
     }
 
     @Override

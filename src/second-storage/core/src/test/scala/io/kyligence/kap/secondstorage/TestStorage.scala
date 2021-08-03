@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package io.kyligence.kap.secondstorage
-import io.kyligence.kap.secondstorage.metadata.{NManager, NodeGroup, TableFlow, TablePlan}
+import io.kyligence.kap.secondstorage.metadata.{Manager, NodeGroup, TableFlow, TablePlan}
 import org.apache.kylin.common.KylinConfig
 
 class TestStorage extends SecondStoragePlugin {
@@ -30,11 +30,11 @@ class TestStorage extends SecondStoragePlugin {
 
   override def queryCatalog(): String = "unknown"
 
-  override def tableFlowManager(config: KylinConfig, project: String): NManager[TableFlow] = null
+  override def tableFlowManager(config: KylinConfig, project: String): Manager[TableFlow] = null
 
-  override def tablePlanManager(config: KylinConfig, project: String): NManager[TablePlan] = null
+  override def tablePlanManager(config: KylinConfig, project: String): Manager[TablePlan] = null
 
-  override def nodeGroupManager(config: KylinConfig, project: String): NManager[NodeGroup] = null
+  override def nodeGroupManager(config: KylinConfig, project: String): Manager[NodeGroup] = null
 
   override def getConfigLoader: SecondStorageConfigLoader = null
 }

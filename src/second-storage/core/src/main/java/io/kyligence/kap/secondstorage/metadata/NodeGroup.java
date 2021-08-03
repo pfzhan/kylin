@@ -42,14 +42,14 @@ public class NodeGroup extends RootPersistentEntity implements Serializable, IKe
         IManagerAware<NodeGroup> {
     @JsonProperty("nodeNames")
     private List<String> nodeNames = new ArrayList<>();
-    private transient NManager<NodeGroup> manager;
+    private transient Manager<NodeGroup> manager;
 
     public static Builder builder() {
         return new Builder();
     }
 
     @Override
-    public void setManager(NManager<NodeGroup> manager) {
+    public void setManager(Manager<NodeGroup> manager) {
         this.manager = manager;
     }
 

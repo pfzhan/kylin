@@ -3009,16 +3009,6 @@ public class ModelService extends BasicService {
         getDataModelManager(project).updateDataModelDesc(dataModel);
     }
 
-    private void cleanIndexPlanWhenNoSegments(String project, String dataFlowId) {
-        NDataflowManager dataflowManager = getDataflowManager(project);
-        NDataflow dataflow = dataflowManager.getDataflow(dataFlowId);
-        if (null == dataflow.getLatestReadySegment()) {
-            getIndexPlanManager(project).updateIndexPlan(dataFlowId, copyForWrite -> {
-                copyForWrite.getToBeDeletedIndexes().clear();
-            });
-        }
-    }
-
     @Transaction(project = 1)
     public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         aclEvaluate.checkProjectOperationPermission(project);

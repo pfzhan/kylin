@@ -24,6 +24,8 @@
 
 package org.apache.kylin.common.response;
 
+import org.apache.kylin.common.exception.KylinException;
+
 public class RestResponse<T> {
 
     protected String code;
@@ -34,17 +36,17 @@ public class RestResponse<T> {
     protected RestResponse() {
     }
     public static RestResponse ok(Object data) {
-        return new RestResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new RestResponse(KylinException.CODE_SUCCESS, data, "");
     }
 
     public static RestResponse ok() {
-        return new RestResponse(ResponseCode.CODE_SUCCESS, "", "");
+        return new RestResponse(KylinException.CODE_SUCCESS, "", "");
     }
     public static RestResponse fail() {
         return new RestResponse("200", "", "");
     }
     public RestResponse(T data) {
-        this(ResponseCode.CODE_SUCCESS, data, "");
+        this(KylinException.CODE_SUCCESS, data, "");
     }
 
     public RestResponse(String code, T data, String msg) {

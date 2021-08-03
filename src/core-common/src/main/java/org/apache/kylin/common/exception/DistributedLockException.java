@@ -40,36 +40,12 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.source.datagen;
+package org.apache.kylin.common.exception;
 
-import java.io.IOException;
-import java.util.Map;
+public class DistributedLockException extends RuntimeException {
 
-import org.apache.kylin.metadata.model.TableDesc;
-
-public class TableGenConfig {
-
-    boolean needGen;
-    double rows;
-
-    public TableGenConfig(TableDesc table, ModelDataGenerator modelGen) throws IOException {
-        String dataGen = table.getDataGen();
-        if (dataGen == null && !modelGen.existsInStore(table)) {
-            dataGen = "";
-        }
-
-        if (dataGen == null || "no".equals(dataGen) || "false".equals(dataGen) || "skip".equals(dataGen))
-            return;
-
-        if (table.isView())
-            return;
-
-        needGen = true;
-
-        Map<String, String> config = Util.parseEqualCommaPairs(dataGen, "rows");
-
-        // config.rows is either a multiplier (0,1] or an absolute row number
-        rows = Util.parseDouble(config, "rows", modelGen.getModel().isFactTable(table.getIdentity()) ? 1.0 : 20);
+    public DistributedLockException(String message, Throwable cause) {
+        super(message, cause);
     }
 
 }

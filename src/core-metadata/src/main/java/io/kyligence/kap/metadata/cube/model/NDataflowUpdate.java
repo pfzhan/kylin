@@ -55,16 +55,6 @@ public class NDataflowUpdate {
     @Accessors(chain = true)
     @Setter
     @Getter
-    private String description;
-
-    @Accessors(chain = true)
-    @Setter
-    @Getter
-    private String owner;
-
-    @Accessors(chain = true)
-    @Setter
-    @Getter
     private int cost = -1;
 
     public NDataflowUpdate(String dataflowId) {

@@ -25,7 +25,7 @@ package io.kyligence.kap.tool.daemon;
 
 import lombok.Getter;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.RestClient;
+import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.common.util.CliCommandExecutor;
 
 import javax.crypto.SecretKey;

@@ -35,7 +35,7 @@ import java.util.Map;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.rest.request.StreamingRequest;
 import io.kyligence.kap.rest.service.KafkaService;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +61,7 @@ public class KafkaController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getTopics(@RequestBody StreamingRequest streamingRequest) throws IOException {
         KafkaConfig kafkaConfig = streamingRequest.getKafkaConfig();
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS,
                 kafkaService.getTopics(kafkaConfig, streamingRequest.getProject(), streamingRequest.getFuzzyKey()), "");
     }
 
@@ -72,10 +72,10 @@ public class KafkaController extends NBasicController {
         List<ByteBuffer> messages = kafkaService.getMessages(kafkaConfig, streamingRequest.getProject(),
                 streamingRequest.getClusterIndex());
         if (messages == null || messages.isEmpty()) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "There is no message in this topic");
+            return new EnvelopeResponse(KylinException.CODE_SUCCESS, "", "There is no message in this topic");
         }
         Map<String, Object> resp = kafkaService.getMessageTypeAndDecodedMessages(messages);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, resp, "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, resp, "");
     }
 
     @PostMapping(value = "convert", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -85,6 +85,6 @@ public class KafkaController extends NBasicController {
         String message = streamingRequest.getMessage();
         String messageType = streamingRequest.getMessageType();
         Map<String, Object> result = kafkaService.convertSampleMessageToFlatMap(kafkaConfig, messageType, message);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, result, "");
     }
 }

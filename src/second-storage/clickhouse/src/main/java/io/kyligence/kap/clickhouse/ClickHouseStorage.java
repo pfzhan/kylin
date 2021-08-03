@@ -48,14 +48,14 @@ import io.kyligence.kap.clickhouse.job.ClickHouseProjectCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseRefresh;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
-import io.kyligence.kap.clickhouse.metadata.NClickHouseFlowManager;
-import io.kyligence.kap.clickhouse.metadata.NClickHouseManager;
-import io.kyligence.kap.clickhouse.metadata.NClickHouseNodeGroupManager;
+import io.kyligence.kap.clickhouse.metadata.ClickHouseFlowManager;
+import io.kyligence.kap.clickhouse.metadata.ClickHouseManager;
+import io.kyligence.kap.clickhouse.metadata.ClickHouseNodeGroupManager;
 import io.kyligence.kap.secondstorage.SecondStorageConfigLoader;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStoragePlugin;
 import io.kyligence.kap.secondstorage.config.Cluster;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
@@ -104,18 +104,18 @@ public class ClickHouseStorage implements SecondStoragePlugin {
     }
 
     @Override
-    public NManager<TableFlow> tableFlowManager(KylinConfig config, String project) {
-        return config.getManager(project, NClickHouseFlowManager.class);
+    public Manager<TableFlow> tableFlowManager(KylinConfig config, String project) {
+        return config.getManager(project, ClickHouseFlowManager.class);
     }
 
     @Override
-    public NManager<TablePlan> tablePlanManager(KylinConfig config, String project) {
-        return config.getManager(project, NClickHouseManager.class);
+    public Manager<TablePlan> tablePlanManager(KylinConfig config, String project) {
+        return config.getManager(project, ClickHouseManager.class);
     }
 
     @Override
-    public NManager<NodeGroup> nodeGroupManager(KylinConfig config, String project) {
-        return config.getManager(project, NClickHouseNodeGroupManager.class);
+    public Manager<NodeGroup> nodeGroupManager(KylinConfig config, String project) {
+        return config.getManager(project, ClickHouseNodeGroupManager.class);
     }
 
     @Override

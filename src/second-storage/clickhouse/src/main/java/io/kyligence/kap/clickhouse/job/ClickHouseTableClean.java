@@ -24,19 +24,21 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_SECOND_STORAGE_MODEL_CLEAN;
+
+import java.sql.SQLException;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
+
 import com.clearspring.analytics.util.Preconditions;
+
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
-
-import java.sql.SQLException;
-
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_SECOND_STORAGE_MODEL_CLEAN;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClickHouseTableClean extends AbstractClickHouseClean {
@@ -54,27 +56,27 @@ public class ClickHouseTableClean extends AbstractClickHouseClean {
         Preconditions.checkState(nodeGroupManager.isPresent() && tableFlowManager.isPresent());
         val dataflow = dataflowManager.getDataflow(getParam(NBatchConstants.P_DATAFLOW_ID));
         val tableFlow = tableFlowManager.flatMap(manager -> manager.get(dataflow.getId()));
-        setNodeCount(Math.toIntExact(nodeGroupManager.map(manager -> manager.listAll().stream()
-                .mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum()).orElse(0L)));
-        nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
-            if (tableFlow.isPresent() && !tableFlow.get().getTableDataList().isEmpty()) {
-                ShardClean shardClean = new ShardClean(node,
-                        NameUtil.getDatabase(dataflow),
-                        NameUtil.getTable(dataflow, tableFlow.get().getTableDataList().get(0).getLayoutID()));
-                shardCleanList.add(shardClean);
-            }
-        });
+        setNodeCount(Math.toIntExact(nodeGroupManager.map(
+                manager -> manager.listAll().stream().mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum())
+                .orElse(0L)));
+        nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream())
+                .forEach(node -> {
+                    if (tableFlow.isPresent() && !tableFlow.get().getTableDataList().isEmpty()) {
+                        ShardCleaner shardCleaner = new ShardCleaner(node, NameUtil.getDatabase(dataflow),
+                                NameUtil.getTable(dataflow, tableFlow.get().getTableDataList().get(0).getLayoutID()));
+                        shardCleaners.add(shardCleaner);
+                    }
+                });
     }
 
     @Override
-    protected Runnable getTask(ShardClean shardClean) {
+    protected Runnable getTask(ShardCleaner shardCleaner) {
         return () -> {
             try {
-                shardClean.cleanTable();
+                shardCleaner.cleanTable();
             } catch (SQLException e) {
-                log.error("node {} clean table {}.{} failed", shardClean.getClickHouse().getShardName(),
-                        shardClean.getDatabase(),
-                        shardClean.getTable());
+                log.error("node {} clean table {}.{} failed", shardCleaner.getClickHouse().getShardName(),
+                        shardCleaner.getDatabase(), shardCleaner.getTable());
                 ExceptionUtils.rethrow(e);
             }
         };

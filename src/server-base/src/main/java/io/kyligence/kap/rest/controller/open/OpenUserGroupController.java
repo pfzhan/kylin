@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -88,7 +88,7 @@ public class OpenUserGroupController extends NBasicController {
                     : StringUtils.containsIgnoreCase(group, groupName)).collect(Collectors.toList());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(groups, pageOffset, pageSize), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(groups, pageOffset, pageSize), "");
     }
 
     @ApiOperation(value = "getUsersByGroup", tags = { "MID" })
@@ -113,7 +113,7 @@ public class OpenUserGroupController extends NBasicController {
         List<UserInfoResponse> userInfoResponses = members.stream().map(UserInfoResponse::new)
                 .collect(Collectors.toList());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 DataResult.get(userInfoResponses, pageOffset, pageSize), "");
     }
 

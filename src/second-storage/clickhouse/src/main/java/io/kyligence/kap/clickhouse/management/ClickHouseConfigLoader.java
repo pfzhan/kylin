@@ -30,6 +30,7 @@ import io.kyligence.kap.secondstorage.config.Node;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.kylin.common.ClickHouseConfig;
+import org.apache.kylin.common.Singletons;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -41,7 +42,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
-    private static final AtomicReference<ClickHouseConfigLoader> INSTANCE = new AtomicReference<>();
 
     private final File configFile;
     private final AtomicReference<Cluster> cluster = new AtomicReference<>();
@@ -51,23 +51,16 @@ public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
     }
 
     public static ClickHouseConfigLoader getInstance() {
-        if (INSTANCE.get() == null) {
-            synchronized (ClickHouseConfigLoader.class) {
-                if (INSTANCE.get() == null) {
-                    File configFile = new File(ClickHouseConfig.getInstanceFromEnv().getClusterConfig());
-                    ClickHouseConfigLoader clickHouseConfigLoader = new ClickHouseConfigLoader(configFile);
-                    clickHouseConfigLoader.load();
-                    INSTANCE.set(clickHouseConfigLoader);
-                }
-            }
-        }
-        return INSTANCE.get();
+        return Singletons.getInstance(ClickHouseConfigLoader.class, clazz -> {
+            File configFile = new File(ClickHouseConfig.getInstanceFromEnv().getClusterConfig());
+            ClickHouseConfigLoader clickHouseConfigLoader = new ClickHouseConfigLoader(configFile);
+            clickHouseConfigLoader.load();
+            return clickHouseConfigLoader;
+        });
     }
 
     public static void clean() {
-        synchronized (ClickHouseConfigLoader.class) {
-            INSTANCE.set(null);
-        }
+        Singletons.clearInstance(ClickHouseConfigLoader.class);
     }
 
     public static Yaml getConfigYaml() {
@@ -103,10 +96,8 @@ public class ClickHouseConfigLoader implements SecondStorageConfigLoader {
 
     @Override
     public void refresh() {
-        File config = new File(ClickHouseConfig.getInstanceFromEnv().getClusterConfig());
-        ClickHouseConfigLoader clickHouseConfigLoader = new ClickHouseConfigLoader(config);
-        clickHouseConfigLoader.load();
-        INSTANCE.set(clickHouseConfigLoader);
+        clean();
+        getInstance();
     }
 
     @Override

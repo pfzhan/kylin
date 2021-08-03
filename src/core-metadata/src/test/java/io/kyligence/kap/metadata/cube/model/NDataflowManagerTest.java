@@ -164,9 +164,9 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         // update
         NDataflowUpdate update = new NDataflowUpdate(name);
-        update.setDescription("new_description");
+        update.setCost(1000);
         df = mgr.updateDataflow(update);
-        Assert.assertEquals("new_description", df.getDescription());
+        Assert.assertEquals(1000, df.getCost());
 
         // update cached objects causes exception
 

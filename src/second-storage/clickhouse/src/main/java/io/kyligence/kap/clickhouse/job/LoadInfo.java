@@ -23,18 +23,6 @@
  */
 package io.kyligence.kap.clickhouse.job;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.secondstorage.metadata.PartitionType;
-import io.kyligence.kap.secondstorage.metadata.SegmentFileStatus;
-import io.kyligence.kap.secondstorage.metadata.TableData;
-import io.kyligence.kap.secondstorage.metadata.TableFlow;
-import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import lombok.val;
-import org.apache.kylin.metadata.model.SegmentRange;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,11 +34,25 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.metadata.model.SegmentRange;
+
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.secondstorage.metadata.PartitionType;
+import io.kyligence.kap.secondstorage.metadata.SegmentFileStatus;
+import io.kyligence.kap.secondstorage.metadata.TableData;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import lombok.val;
+
 public class LoadInfo {
     final NDataModel model;
     final NDataSegment segment;
-    final String segmentId;            // it is required for updating meta after load
-    private String OldSegmentId;
+    final String segmentId; // it is required for updating meta after load
+    private String oldSegmentId;
     final String[] nodeNames;
     final LayoutEntity layout;
     final List<List<SegmentFileStatus>> shardFiles;
@@ -63,12 +65,12 @@ public class LoadInfo {
         return (List<T>) Arrays.asList(new Object[size]);
     }
 
-
     private LoadInfo(NDataModel model, NDataSegment segment, LayoutEntity layout, String[] nodeNames) {
         this(model, segment, null, layout, nodeNames);
     }
 
-    private LoadInfo(NDataModel model, NDataSegment segment, String oldSegmentId, LayoutEntity layout, String[] nodeNames) {
+    private LoadInfo(NDataModel model, NDataSegment segment, String oldSegmentId, LayoutEntity layout,
+            String[] nodeNames) {
         this.model = model;
         this.segment = segment;
         final int shardNumber = nodeNames.length;
@@ -76,7 +78,7 @@ public class LoadInfo {
         this.segmentId = segment.getId();
         this.layout = layout;
         this.shardFiles = newFixedSizeList(shardNumber);
-        this.OldSegmentId = oldSegmentId;
+        this.oldSegmentId = oldSegmentId;
         for (int i = 0; i < shardNumber; ++i) {
             this.shardFiles.set(i, new ArrayList<>(100));
         }
@@ -105,7 +107,8 @@ public class LoadInfo {
      *
      */
 
-    public static LoadInfo distribute(String[] nodeNames, NDataModel model, NDataSegment segment, FileProvider provider, LayoutEntity layout) {
+    public static LoadInfo distribute(String[] nodeNames, NDataModel model, NDataSegment segment, FileProvider provider,
+            LayoutEntity layout) {
         int shardNum = nodeNames.length;
         final LoadInfo info = new LoadInfo(model, segment, layout, nodeNames);
         val it = provider.getAllFilePaths().iterator();
@@ -129,16 +132,13 @@ public class LoadInfo {
     }
 
     public LoadInfo setOldSegmentId(String oldSegmentId) {
-        OldSegmentId = oldSegmentId;
+        this.oldSegmentId = oldSegmentId;
         return this;
     }
 
     private void addShardFile(int shardIndex, String filePath, long fileLen) {
         Preconditions.checkArgument(shardIndex < shardFiles.size());
-        shardFiles.get(shardIndex).add(SegmentFileStatus.builder()
-                .setLen(fileLen)
-                .setPath(filePath)
-                .build());
+        shardFiles.get(shardIndex).add(SegmentFileStatus.builder().setLen(fileLen).setPath(filePath).build());
     }
 
     public LayoutEntity getLayout() {
@@ -147,9 +147,7 @@ public class LoadInfo {
 
     public List<List<String>> getShardFiles() {
         return shardFiles.stream()
-                .map(files -> files.stream()
-                        .map(SegmentFileStatus::getPath)
-                        .collect(Collectors.toList()))
+                .map(files -> files.stream().map(SegmentFileStatus::getPath).collect(Collectors.toList()))
                 .collect(Collectors.toList());
     }
 
@@ -178,40 +176,21 @@ public class LoadInfo {
             sizeInNode = metric.getByPartitions(targetDatabase, targetTable, Collections.singletonList("tuple()"));
         } else {
             sizeInNode = metric.getByPartitions(targetDatabase, targetTable,
-                    IncrementalLoad.rangeToPartition((SegmentRange<Long>) segment.getSegRange())
-                            .stream().map(Objects::toString).collect(Collectors.toList())
-            );
+                    DataLoader.rangeToPartition((SegmentRange<Long>) segment.getSegRange()).stream()
+                            .map(Objects::toString).collect(Collectors.toList()));
         }
-        return TablePartition.builder()
-                .setSegmentId(segmentId)
-                .setShardNodes(Arrays.asList(nodeNames))
-                .setId(UUID.randomUUID().toString())
-                .setNodeFileMap(nodeFileMap)
-                .setSizeInNode(sizeInNode)
-                .build();
+        return TablePartition.builder().setSegmentId(segmentId).setShardNodes(Arrays.asList(nodeNames))
+                .setId(UUID.randomUUID().toString()).setNodeFileMap(nodeFileMap).setSizeInNode(sizeInNode).build();
     }
 
-    public void upsertTableData(
-            TableFlow copied,
-            String database,
-            String table,
-            PartitionType partitionType) {
-        copied.upsertTableData(
-                layout,
-                tableData -> {
-                    Preconditions.checkArgument(tableData.getPartitionType() == partitionType);
-                    if (OldSegmentId != null) {
-                        tableData.removePartitions(tablePartition -> tablePartition
-                                .getSegmentId().equals(OldSegmentId));
-                    }
-                    tableData.addPartition(createMetaInfo());
-                },
-                () -> TableData.builder()
-                        .setPartitionType(partitionType)
-                        .setLayoutEntity(getLayout())
-                        .setDatabase(database)
-                        .setTable(table)
-                        .build()
-        );
+    public void upsertTableData(TableFlow copied, String database, String table, PartitionType partitionType) {
+        copied.upsertTableData(layout, tableData -> {
+            Preconditions.checkArgument(tableData.getPartitionType() == partitionType);
+            if (oldSegmentId != null) {
+                tableData.removePartitions(tablePartition -> tablePartition.getSegmentId().equals(oldSegmentId));
+            }
+            tableData.addPartition(createMetaInfo());
+        }, () -> TableData.builder().setPartitionType(partitionType).setLayoutEntity(getLayout()).setDatabase(database)
+                .setTable(table).build());
     }
 }

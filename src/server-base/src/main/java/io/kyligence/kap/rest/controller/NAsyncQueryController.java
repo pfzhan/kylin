@@ -43,7 +43,6 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.util.AsyncQueryUtil;
@@ -170,15 +169,15 @@ public class NAsyncQueryController extends NBasicController {
 
         switch (asyncQueryService.queryStatus(sqlRequest.getProject(), sqlRequest.getQueryId())) {
         case SUCCESS:
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                     new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.SUCCESSFUL, "query success"),
                     "");
         case FAILED:
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                     new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.FAILED, exceptionHandle.get()),
                     "");
         default:
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                     new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "query still running"),
                     "");
         }
@@ -198,9 +197,9 @@ public class NAsyncQueryController extends NBasicController {
         }
         try {
             if (asyncQueryService.batchDelete(project, time)) {
-                return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
             } else {
-                return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false,
+                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, false,
                         MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
             }
         } catch (ParseException e) {
@@ -224,14 +223,14 @@ public class NAsyncQueryController extends NBasicController {
         aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, false,
+            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, false,
                     "Access denied. Only task submitters or admin users can delete the query results");
         }
         boolean result = asyncQueryService.deleteByQueryId(project, queryId);
         if (result)
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
         else
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, false, MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, false, MsgPicker.getMsg().getCLEAN_FOLDER_FAIL());
     }
 
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Response: query_id")
@@ -250,7 +249,7 @@ public class NAsyncQueryController extends NBasicController {
         aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
+            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, null,
                     "Access denied. Only task submitters or admin users can get the query status");
         }
         AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(project, queryId);
@@ -273,7 +272,7 @@ public class NAsyncQueryController extends NBasicController {
             break;
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, asyncQueryResponse, "");
     }
 
     @ApiOperation(value = "fileStatus", tags = { "QE" }, notes = "Update URL: file_status")
@@ -291,11 +290,11 @@ public class NAsyncQueryController extends NBasicController {
         aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, 0L,
+            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, 0L,
                     "Access denied. Only task submitters or admin users can get the file status");
         }
         long length = asyncQueryService.fileStatus(project, queryId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, length, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, length, "");
     }
 
     @ApiOperation(value = "async query status", tags = { "QE" })
@@ -314,10 +313,10 @@ public class NAsyncQueryController extends NBasicController {
         aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, null,
+            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, null,
                     "Access denied. Only task submitters or admin users can get the metadata");
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, asyncQueryService.getMetaData(project, queryId), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, asyncQueryService.getMetaData(project, queryId), "");
     }
 
     @ApiOperation(value = "downloadQueryResult", tags = { "QE" }, notes = "Update URL: result")
@@ -339,7 +338,7 @@ public class NAsyncQueryController extends NBasicController {
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
+            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, "",
                     "Access denied. Only task submitters or admin users can download the query results");
         }
         asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, project,
@@ -360,7 +359,7 @@ public class NAsyncQueryController extends NBasicController {
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "." + format + "\"");
         asyncQueryService.retrieveSavedQueryResult(project, queryId, includeHeader || include_header, response, format,
                 encode);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "async query result path", tags = { "QE" })
@@ -378,10 +377,10 @@ public class NAsyncQueryController extends NBasicController {
         aclEvaluate.checkProjectReadPermission(project);
         checkProjectName(project);
         if (!asyncQueryService.hasPermission(queryId, project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNAUTHORIZED, "",
+            return new EnvelopeResponse<>(KylinException.CODE_UNAUTHORIZED, "",
                     "Access denied. Only task submitters or admin users can get the query path");
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 asyncQueryService.asyncQueryResultPath(project, queryId), "");
     }
 }

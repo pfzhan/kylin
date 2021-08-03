@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -55,7 +55,7 @@ public class NEpochController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateEpochOwner(@RequestBody EpochRequest epochRequest) {
         epochService.updateEpoch(epochRequest.getProjects(), epochRequest.isForce(), epochRequest.isClient());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "change all epoch", tags = { "DW" })
@@ -63,12 +63,12 @@ public class NEpochController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateAllEpochOwner(@RequestBody EpochRequest epochRequest) {
         epochService.updateAllEpochs(epochRequest.isForce(), epochRequest.isClient());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/maintenance_mode")
     @ResponseBody
     public EnvelopeResponse<Boolean> isMaintenanceMode() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, epochService.isMaintenanceMode(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, epochService.isMaintenanceMode(), "");
     }
 }

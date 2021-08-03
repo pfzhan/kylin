@@ -53,7 +53,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -143,7 +142,7 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> listLicense() {
         val info = licenseInfoService.extractLicenseInfo();
-        val response = new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, info, "");
+        val response = new EnvelopeResponse<>(KylinException.CODE_SUCCESS, info, "");
         try {
             val warning = licenseInfoService.verifyLicense(info);
             if (warning != null) {
@@ -166,7 +165,7 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
         systemService.backup(backupRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "uploadLicense", tags = { "MID" })
@@ -182,7 +181,7 @@ public class NSystemController extends NBasicController {
         byte[] bytes = uploadfile.getBytes();
         licenseInfoService.updateLicense(new String(bytes, Charset.defaultCharset()));
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
     //either content or file is okay
@@ -202,7 +201,7 @@ public class NSystemController extends NBasicController {
 
         licenseInfoService.updateLicense(bytes);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
     @ApiOperation(value = "trialLicense", tags = { "MID" }, notes = "Update Body: product_type")
@@ -232,7 +231,7 @@ public class NSystemController extends NBasicController {
             throw new KylinException(REMOTE_SERVER_ERROR, MsgPicker.getMsg().getLICENSE_ERROR());
         }
         licenseInfoService.updateLicense(trialLicense.getData());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
     @ApiOperation(value = "get license info", tags = { "MID" })
@@ -291,21 +290,21 @@ public class NSystemController extends NBasicController {
             result = licenseInfoService.getLicenseMonitorInfoWithDetail(sourceUsageFilter, pageOffset, pageSize);
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "get license capacity info", tags = { "MID" })
     @GetMapping(value = "/license/capacity")
     @ResponseBody
     public EnvelopeResponse getLicenseCapacityInfo() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
     @ApiOperation(value = "get license node info", tags = { "MID" })
     @GetMapping(value = "/license/nodes")
     @ResponseBody
     public EnvelopeResponse getLicenseNodeInfo() {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseNodeInfo(), "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, licenseInfoService.getLicenseNodeInfo(), "");
     }
 
     @ApiOperation(value = "get license monitor info single project", tags = { "MID" })
@@ -314,7 +313,7 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse getLicenseMonitorInfoSingleProject(@RequestParam(value = "project") String project,
             @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
         Map<Long, Long> projectCapacities = licenseInfoService.getProjectCapacities(project, dataRange);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacities, "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, projectCapacities, "");
     }
 
     @ApiOperation(value = "get license monitor info in project", tags = { "MID" }, notes = "Update Param: page_offset, page_size;")
@@ -335,7 +334,7 @@ public class NSystemController extends NBasicController {
             List<CapacityDetailsResponse> tableCapacityDetailsPaging = PagingUtil.cutPage(tables, pageOffset, pageSize);
             projectCapacityResponse.setTables(tableCapacityDetailsPaging);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectCapacityResponse, "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, projectCapacityResponse, "");
     }
 
     @ApiOperation(value = "get last month/quarter/year license monitor info", tags = { "MID" })
@@ -343,7 +342,7 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getLicenseMonitorInfoHistory(
             @RequestParam(value = "data_range", required = false, defaultValue = "month") String dataRange) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getSourceUsageHistory(dataRange), "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, licenseInfoService.getSourceUsageHistory(dataRange), "");
     }
 
     @ApiOperation(value = "refresh license monitor info in a project", tags = { "MID" })
@@ -352,7 +351,7 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse<String> refresh(@RequestParam("project") String project) {
         aclEvaluate.checkIsGlobalAdmin();
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "refresh license monitor info in all projects", tags = { "MID" })
@@ -361,7 +360,7 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse<LicenseMonitorInfoResponse> refreshAll(HttpServletRequest request) {
         aclEvaluate.checkIsGlobalAdmin();
         licenseInfoService.updateSourceUsage();
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, licenseInfoService.getLicenseCapacityInfo(), "");
     }
 
     @ApiOperation(value = "diag", tags = { "SM" })
@@ -374,7 +373,7 @@ public class NSystemController extends NBasicController {
         if (StringUtils.isEmpty(host)) {
             String uuid = systemService.dumpLocalDiagPackage(diagPackageRequest.getStart(), diagPackageRequest.getEnd(),
                     diagPackageRequest.getJobId());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, uuid, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, uuid, "");
         } else {
             String url = host + "/kylin/api/system/diag";
             return generateTaskForRemoteHost(request, url);
@@ -386,7 +385,7 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateDiagProgress(@RequestBody DiagProgressRequest diagProgressRequest) {
         systemService.updateDiagProgress(diagProgressRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "diagStatus", tags = { "SM" })
@@ -425,7 +424,7 @@ public class NSystemController extends NBasicController {
             @RequestParam(value = "id") String id, final HttpServletRequest request) throws Exception {
         if (StringUtils.isEmpty(host)) {
             systemService.stopDiagTask(id);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } else {
             String url = host + "/kylin/api/system/diag?id=" + id;
             return generateTaskForRemoteHost(request, url);
@@ -437,7 +436,7 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> setMaintenanceMode(@RequestBody MaintenanceModeRequest maintenanceModeRequest) {
         maintenanceModeService.setMaintenanceMode(maintenanceModeRequest.getReason());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "exitMaintenance", tags = { "DW" })
@@ -446,14 +445,14 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse<String> unsetReadMode(@RequestParam(value = "reason") String reason) {
         maintenanceModeService.unsetMaintenanceMode(reason);
         EventBusFactory.getInstance().postAsync(new EpochCheckBroadcastNotifier());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getMaintenance", tags = { "DW" })
     @GetMapping(value = "/maintenance_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<MaintenanceModeResponse> getMaintenanceMode() throws Exception {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, maintenanceModeService.getMaintenanceMode(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, maintenanceModeService.getMaintenanceMode(), "");
     }
 
     @ApiOperation(value = "servers", tags = { "DW" })
@@ -469,7 +468,7 @@ public class NSystemController extends NBasicController {
         } else {
             response.setServers(servers.stream().map(ServerInfoResponse::getHost).collect(Collectors.toList()));
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     //for kc
@@ -479,14 +478,14 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse<LicenseInfo> modifyLicense() {
         licenseInfoService.refreshLicenseVolume();
         EventBusFactory.getInstance().postAsync(new RefreshVolumeBroadcastEventNotifier());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     @ApiOperation(value = "host", tags = { "DW" })
     @GetMapping(value = "/host")
     @ResponseBody
     public EnvelopeResponse<String> getHostname() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AddressUtil.getLocalInstance(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, AddressUtil.getLocalInstance(), "");
     }
 
     @ApiOperation(value = "reload metadata", tags = { "MID" })
@@ -494,6 +493,6 @@ public class NSystemController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> reloadMetadata() {
         systemService.reloadMetadata();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

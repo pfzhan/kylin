@@ -212,7 +212,6 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertFalse(realization.getAllColumnDescs().isEmpty());
         Assert.assertFalse(realization.getAllDimensions().isEmpty());
         Assert.assertTrue(realization.getDateRangeStart() < realization.getDateRangeEnd());
-        Assert.assertFalse(realization.supportsLimitPushDown());
         Assert.assertEquals(realization.getStorageType(), IStorageAware.ID_NDATA_STORAGE);
         Assert.assertNotNull(realization.getUuid());
         Assert.assertFalse(realization.isStreaming());
@@ -299,7 +298,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("model_streaming", context2.realization.getModel().getAlias());
         Assert.assertTrue(context2.storageContext.isBatchCandidateEmpty());
         Assert.assertFalse(context2.storageContext.isStreamCandidateEmpty());
-        Assert.assertEquals(context2.storageContext.getCandidateStreaming(), context2.storageContext.getCandidate());
+        Assert.assertEquals(context2.storageContext.getStreamingCandidate(), context2.storageContext.getCandidate());
     }
 
     @Test

@@ -37,7 +37,6 @@ import com.google.common.collect.Lists;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
@@ -92,7 +91,7 @@ public class OpenAclTCRController extends NBasicController {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     private void mergeSidAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests)
@@ -127,6 +126,6 @@ public class OpenAclTCRController extends NBasicController {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_SID_TYPE());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

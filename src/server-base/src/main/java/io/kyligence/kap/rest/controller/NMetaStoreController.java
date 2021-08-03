@@ -43,7 +43,6 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -85,7 +84,7 @@ public class NMetaStoreController extends NBasicController {
             @RequestParam(value = "model_ids", required = false, defaultValue = "") List<String> modeIds) {
         checkProjectName(project);
         List<ModelPreviewResponse> simplifiedModels = metaStoreService.getPreviewModels(project, modeIds);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, simplifiedModels, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, simplifiedModels, "");
     }
 
     @ApiOperation(value = "backupModels", tags = { "MID" })
@@ -128,7 +127,7 @@ public class NMetaStoreController extends NBasicController {
 
         SchemaChangeCheckResult modelMetadataCheckResponse = metaStoreService.checkModelMetadata(project, uploadFile,
                 request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelMetadataCheckResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelMetadataCheckResponse, "");
     }
 
     @ApiOperation(value = "uploadModels", tags = { "MID" })
@@ -147,7 +146,7 @@ public class NMetaStoreController extends NBasicController {
 
         metaStoreService.importModelMetadata(project, metadataFile, request);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "cleanupModels", tags = { "SM" })
@@ -159,7 +158,7 @@ public class NMetaStoreController extends NBasicController {
             checkProjectName(project);
         }
         metaStoreService.cleanupMeta(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "cleanupStorage", tags = { "SM" })
@@ -168,7 +167,7 @@ public class NMetaStoreController extends NBasicController {
     public EnvelopeResponse<String> cleanupStorage(@RequestBody StorageCleanupRequest request) throws Exception {
 
         metaStoreService.cleanupStorage(request.getProjectsToClean(), request.isCleanupStorage());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     private void checkUploadFile(MultipartFile uploadFile) {

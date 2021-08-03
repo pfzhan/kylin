@@ -28,7 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.util.List;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +88,7 @@ public class NRecommendationController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         request.setModelId(modelId);
         OptRecResponse optRecResponse = optRecService.approve(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, optRecResponse, "");
     }
 
     @ApiOperation(value = "validateOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
@@ -101,7 +101,7 @@ public class NRecommendationController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         OptRecDetailResponse optRecDetailResponse = optRecService.validateSelectedRecItems(request.getProject(),
                 modelId, request.getRecItemsToAddLayout(), request.getRecItemsToRemoveLayout());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecDetailResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, optRecDetailResponse, "");
     }
 
     @ApiOperation(value = "cleanOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
@@ -113,7 +113,7 @@ public class NRecommendationController extends NBasicController {
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         optRecService.clean(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "removeOptimizeRecommendationsV2", tags = { "AI" }, notes = "Add URL: {model}")
@@ -137,7 +137,7 @@ public class NRecommendationController extends NBasicController {
         }
 
         optRecService.discard(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getOptimizeRecommendations", tags = { "AI" }, notes = "Add URL: {model}")
@@ -156,7 +156,7 @@ public class NRecommendationController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         OptRecLayoutsResponse optRecLayoutsResponse = optRecService.getOptRecLayoutsResponse(project, modelId,
                 recTypeList, key, desc, sortBy, offset, limit);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, optRecLayoutsResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, optRecLayoutsResponse, "");
     }
 
     @ApiOperation(value = "getOptimizeRecommendationDetail", tags = { "AI" }, notes = "Add URL: {model}")
@@ -170,7 +170,7 @@ public class NRecommendationController extends NBasicController {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 optRecService.getSingleOptRecDetail(project, modelId, itemId, isAdd), "");
     }
 
@@ -186,7 +186,7 @@ public class NRecommendationController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(REC_COUNT_ACTION, action);
         optRecService.updateRecommendationCount(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "accelerate query history and select topn", tags = { "AI" }, notes = "Add URL: {model}")
@@ -197,6 +197,6 @@ public class NRecommendationController extends NBasicController {
         checkProjectNotSemiAuto(project);
         projectService.accelerateImmediately(project);
         rawRecService.updateCostsAndTopNCandidates(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

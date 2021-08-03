@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.controller.v2;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
@@ -52,7 +51,7 @@ public class NSystemControllerV2 extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<LicenseInfo> listLicense() {
         val info = licenseInfoService.extractLicenseInfo();
-        val response = new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, info, "");
+        val response = new EnvelopeResponse<>(KylinException.CODE_SUCCESS, info, "");
         try {
             val warning = licenseInfoService.verifyLicense(info);
             if (warning != null) {

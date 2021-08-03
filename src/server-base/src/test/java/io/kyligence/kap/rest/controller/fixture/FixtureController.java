@@ -25,8 +25,8 @@
 package io.kyligence.kap.rest.controller.fixture;
 
 import io.kyligence.kap.rest.controller.NBasicController;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,6 +35,6 @@ public class FixtureController extends NBasicController {
 
     @RequestMapping("/api/handleErrors")
     public EnvelopeResponse request() {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, null, "");
     }
 }

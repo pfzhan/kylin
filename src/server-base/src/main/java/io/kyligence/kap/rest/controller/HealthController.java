@@ -35,7 +35,7 @@ import java.util.List;
 import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,7 +85,7 @@ public class HealthController extends NBasicController {
         try (BufferedInputStream bis = new BufferedInputStream(request.getInputStream())) {
             byte[] encryptedToken = readEncryptedToken(bis);
             if (!validateToken(encryptedToken)) {
-                return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, KEStatusChecker.PERMISSION_DENIED);
+                return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, null, KEStatusChecker.PERMISSION_DENIED);
             }
             return getHealthStatus();
         }
@@ -99,7 +99,7 @@ public class HealthController extends NBasicController {
         try (BufferedInputStream bis = new BufferedInputStream(request.getInputStream())) {
             byte[] encryptedToken = readEncryptedToken(bis);
             if (!validateToken(encryptedToken)) {
-                return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", KEStatusChecker.PERMISSION_DENIED);
+                return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, "", KEStatusChecker.PERMISSION_DENIED);
             }
 
             if (ServiceOpLevelEnum.QUERY_DOWN_GRADE.getOpType().equals(state)) {
@@ -110,7 +110,7 @@ public class HealthController extends NBasicController {
                 throw new IllegalArgumentException("Illegal server state: " + state);
             }
 
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         }
     }
 
@@ -119,7 +119,7 @@ public class HealthController extends NBasicController {
         List<HealthResponse.CanceledSlowQueryStatusResponse> canceledSlowQueriesStatus = healthService
                 .getCanceledSlowQueriesStatus();
         HealthResponse healthResponse = new HealthResponse(sparkRestartStatus, canceledSlowQueriesStatus);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, healthResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, healthResponse, "");
     }
 
     private byte[] readEncryptedToken(BufferedInputStream bis) throws IOException {

@@ -36,7 +36,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
@@ -77,8 +77,8 @@ public class SecondStorageUtil {
         checkEnableModel(project, model);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             final KylinConfig config = KylinConfig.getInstanceFromEnv();
-            Optional<NManager<TablePlan>> tablePlanManager = tablePlanManager(config, project);
-            Optional<NManager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
+            Optional<Manager<TablePlan>> tablePlanManager = tablePlanManager(config, project);
+            Optional<Manager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
             Preconditions.checkState(tableFlowManager.isPresent() && tablePlanManager.isPresent());
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
             TablePlan tablePlan = tablePlanManager.get().makeSureRootEntity(model);
@@ -147,7 +147,7 @@ public class SecondStorageUtil {
     public static boolean isProjectEnable(String project) {
         if (isGlobalEnable()) {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            Optional<NManager<NodeGroup>> nodeGroupManager = nodeGroupManager(config, project);
+            Optional<Manager<NodeGroup>> nodeGroupManager = nodeGroupManager(config, project);
             return nodeGroupManager.isPresent() && !nodeGroupManager.get().listAll().isEmpty();
         }
         return false;
@@ -157,7 +157,7 @@ public class SecondStorageUtil {
         if (!isProjectEnable(project)) {
             return Collections.emptyList();
         }
-        Optional<NManager<NodeGroup>> groupManager = nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
+        Optional<Manager<NodeGroup>> groupManager = nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
         Preconditions.checkNotNull(groupManager);
         return groupManager.map(nodeGroupNManager -> nodeGroupNManager.listAll().stream()
                 .flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).distinct()
@@ -170,7 +170,7 @@ public class SecondStorageUtil {
     public static boolean isModelEnable(String project, String model) {
         if (isProjectEnable(project)) {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            Optional<NManager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
+            Optional<Manager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
             return tableFlowManager.isPresent() && tableFlowManager.get().get(model).isPresent();
         }
         return false;
@@ -180,14 +180,14 @@ public class SecondStorageUtil {
         if (models == null || models.isEmpty()) {
             return Collections.emptyList();
         }
-        Optional<NManager<TableFlow>> tableFlowManager =
+        Optional<Manager<TableFlow>> tableFlowManager =
                 SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), models.get(0).getProject());
         Preconditions.checkState(tableFlowManager.isPresent());
         return setSecondStorageSizeInfo(models, tableFlowManager.get());
     }
 
     protected static List<SecondStorageInfo>
-    setSecondStorageSizeInfo(List<NDataModel> models, NManager<TableFlow> tableFlowManager) {
+    setSecondStorageSizeInfo(List<NDataModel> models, Manager<TableFlow> tableFlowManager) {
         return models.stream().map(model -> {
             SecondStorageInfo secondStorageInfo = new SecondStorageInfo();
             secondStorageInfo.setSecondStorageEnabled(isModelEnable(model.getProject(), model.getId()));
@@ -229,9 +229,9 @@ public class SecondStorageUtil {
     public static void disableProject(String project) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            Optional<NManager<NodeGroup>> nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, project);
-            Optional<NManager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
-            Optional<NManager<TablePlan>> tablePlanManager = SecondStorageUtil.tablePlanManager(config, project);
+            Optional<Manager<NodeGroup>> nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, project);
+            Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
+            Optional<Manager<TablePlan>> tablePlanManager = SecondStorageUtil.tablePlanManager(config, project);
             nodeGroupManager.ifPresent(manager -> manager.listAll().forEach(manager::delete));
             tableFlowManager.ifPresent(manager -> manager.listAll().forEach(manager::delete));
             tablePlanManager.ifPresent(manager -> manager.listAll().forEach(manager::delete));
@@ -242,8 +242,8 @@ public class SecondStorageUtil {
     public static void disableModel(String project, String modelId) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            Optional<NManager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
-            Optional<NManager<TablePlan>> tablePlanManager = SecondStorageUtil.tablePlanManager(config, project);
+            Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
+            Optional<Manager<TablePlan>> tablePlanManager = SecondStorageUtil.tablePlanManager(config, project);
             tablePlanManager.ifPresent(manager -> manager.listAll().stream().filter(tablePlan -> tablePlan.getId().equals(modelId))
                     .forEach(manager::delete));
             tableFlowManager.ifPresent(manager -> manager.listAll().stream().filter(tableFlow -> tableFlow.getId().equals(modelId))
@@ -255,7 +255,7 @@ public class SecondStorageUtil {
     public static void cleanSegments(String project, String model, Set<String> segments) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            Optional<NManager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
+            Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
             tableFlowManager.ifPresent(manager -> manager.listAll().stream().filter(tableFlow -> tableFlow.getId().equals(model))
                     .forEach(tableFlow -> {
                         tableFlow.update(copy -> {
@@ -270,19 +270,19 @@ public class SecondStorageUtil {
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
-    public static Optional<NManager<TableFlow>> tableFlowManager(KylinConfig config, String project) {
+    public static Optional<Manager<TableFlow>> tableFlowManager(KylinConfig config, String project) {
         return isGlobalEnable() ? Optional.of(SecondStorage.tableFlowManager(config, project)) : Optional.empty();
     }
 
-    public static Optional<NManager<TableFlow>> tableFlowManager(NDataflow dataflow) {
+    public static Optional<Manager<TableFlow>> tableFlowManager(NDataflow dataflow) {
         return isGlobalEnable() ? tableFlowManager(dataflow.getConfig(), dataflow.getProject()) : Optional.empty();
     }
 
-    public static Optional<NManager<TablePlan>> tablePlanManager(KylinConfig config, String project) {
+    public static Optional<Manager<TablePlan>> tablePlanManager(KylinConfig config, String project) {
         return isGlobalEnable() ? Optional.of(SecondStorage.tablePlanManager(config, project)) : Optional.empty();
     }
 
-    public static Optional<NManager<NodeGroup>> nodeGroupManager(KylinConfig config, String project) {
+    public static Optional<Manager<NodeGroup>> nodeGroupManager(KylinConfig config, String project) {
         return isGlobalEnable() ? Optional.of(SecondStorage.nodeGroupManager(config, project)) : Optional.empty();
     }
 }

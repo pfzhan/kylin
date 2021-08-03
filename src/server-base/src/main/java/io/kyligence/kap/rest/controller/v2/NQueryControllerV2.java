@@ -30,7 +30,7 @@ import java.util.Map;
 import javax.validation.Valid;
 
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -74,7 +74,7 @@ public class NQueryControllerV2 extends NBasicController {
         String projectName = checkProjectName(sqlRequest.getProject());
         sqlRequest.setProject(projectName);
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponse, "");
     }
 
     @ApiOperation(value = "prepareQuery", tags = { "QE" })
@@ -89,6 +89,6 @@ public class NQueryControllerV2 extends NBasicController {
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
     }
 }

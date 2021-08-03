@@ -32,7 +32,7 @@ import io.kyligence.kap.rest.controller.NProjectController;
 import io.kyligence.kap.rest.controller.NSystemController;
 import io.kyligence.kap.rest.controller.NUserController;
 import lombok.val;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.security.AclPermissionEnum;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,7 +81,7 @@ public class KICompatibleController {
         Map<String, Object> response = Maps.newHashMap();
         response.put("models", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @GetMapping(value = "/index_plans/rule", produces = { HTTP_VND_APACHE_KYLIN_V3_JSON })
@@ -98,7 +98,7 @@ public class KICompatibleController {
         Map<String, Object> response = Maps.newHashMap();
         response.put("projects", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @GetMapping(value = "/system/license", produces = { HTTP_VND_APACHE_KYLIN_V3_JSON })
@@ -120,7 +120,7 @@ public class KICompatibleController {
         Map<String, Object> response = Maps.newHashMap();
         response.put("users", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
 }

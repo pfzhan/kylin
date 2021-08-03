@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -72,7 +72,7 @@ public class NModelControllerV2 extends NBasicController {
         models = modelService.addOldParams(project, models);
 
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelResponse, "");
     }
 
 }

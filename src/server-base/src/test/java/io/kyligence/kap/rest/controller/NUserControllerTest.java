@@ -40,7 +40,6 @@ import java.util.Locale;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -153,7 +152,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testBasics() {
         EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserController.authenticatedUser();
         Assert.assertNotNull(userDetailsEnvelopeResponse);
-        Assert.assertEquals(userDetailsEnvelopeResponse.getCode(), ResponseCode.CODE_SUCCESS);
+        Assert.assertEquals(userDetailsEnvelopeResponse.getCode(), KylinException.CODE_SUCCESS);
     }
 
     @Test

@@ -48,7 +48,6 @@ import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.rest.constant.Constant;
@@ -233,7 +232,7 @@ public class SystemService extends BasicService {
         DiagStatusResponse exception = exceptionMap.getIfPresent(uuid);
         if (exception != null) {
             exception.setUuid(uuid);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, exception, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, exception, "");
         }
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         if (Objects.isNull(diagInfo)) {
@@ -245,7 +244,7 @@ public class SystemService extends BasicService {
         response.setStatus("000");
         response.setStage(diagInfo.getStage());
         response.setProgress(diagInfo.getProgress());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     public void updateDiagProgress(DiagProgressRequest diagProgressRequest) {

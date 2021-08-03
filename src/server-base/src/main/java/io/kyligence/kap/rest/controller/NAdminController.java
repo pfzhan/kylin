@@ -37,7 +37,7 @@ import java.util.TimeZone;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -85,7 +85,7 @@ public class NAdminController extends NBasicController {
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys) + addPropertyInMetadata();
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, config, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, config, "");
     }
 
     @ApiOperation(value = "health APIs", tags = { "SM" })
@@ -98,7 +98,7 @@ public class NAdminController extends NBasicController {
         ZoneId zoneId = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).toZoneId();
         data.put("instance.timezone", zoneId.toString());
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 
     private String addPropertyInMetadata() {

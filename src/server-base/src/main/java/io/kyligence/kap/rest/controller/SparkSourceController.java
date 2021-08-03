@@ -29,7 +29,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.spark.sql.AnalysisException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +68,7 @@ public class SparkSourceController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<DDLResponse> executeSQL(@RequestBody DDLRequest request) {
         DDLResponse ddlResponse = sparkSourceService.executeSQL(request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, ddlResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, ddlResponse, "");
     }
 
     @ApiOperation(value = "exportTable", tags = { "DW" })
@@ -77,7 +77,7 @@ public class SparkSourceController extends NBasicController {
     public EnvelopeResponse<ExportTablesResponse> exportTableStructure(@RequestBody ExportTableRequest request) {
         ExportTablesResponse tableResponse = sparkSourceService.exportTables(request.getDatabases(),
                 request.getTables());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, tableResponse, "");
     }
 
     @ApiOperation(value = "dropTable", tags = { "DW" })
@@ -85,67 +85,67 @@ public class SparkSourceController extends NBasicController {
     public EnvelopeResponse<String> dropTable(@PathVariable("database") String database,
             @PathVariable("table") String table) throws AnalysisException {
         sparkSourceService.dropTable(database, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "listDatabase", tags = { "DW" })
     @GetMapping(value = "/databases")
     public EnvelopeResponse<List<String>> listDatabase() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listDatabase(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.listDatabase(), "");
     }
 
     @ApiOperation(value = "listTables", tags = { "DW" })
     @GetMapping(value = "/{database}/tables")
     public EnvelopeResponse<List<TableNameResponse>> listTables(@PathVariable("database") String database,
             @RequestParam("project") String project) throws Exception {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listTables(database, project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.listTables(database, project), "");
     }
 
     @ApiOperation(value = "listColumns", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/columns")
     public EnvelopeResponse listColumns(@PathVariable("database") String database,
             @PathVariable("table") String table) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.listColumns(database, table), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.listColumns(database, table), "");
     }
 
     @ApiOperation(value = "getTableDesc", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/desc")
     public EnvelopeResponse<String> getTableDesc(@PathVariable("database") String database,
             @PathVariable("table") String table) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.getTableDesc(database, table), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.getTableDesc(database, table), "");
     }
 
     @ApiOperation(value = "hasPartition", tags = { "DW" })
     @GetMapping(value = "{database}/{table}/has_partition")
     public EnvelopeResponse<Boolean> hasPartition(@PathVariable("database") String database,
             @PathVariable("table") String table) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.hasPartition(database, table), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.hasPartition(database, table), "");
     }
 
     @ApiOperation(value = "databaseExists", tags = { "DW" })
     @GetMapping(value = "/{database}/exists")
     public EnvelopeResponse<Boolean> databaseExists(@PathVariable("database") String database) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.databaseExists(database), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.databaseExists(database), "");
     }
 
     @ApiOperation(value = "tableExists", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/exists")
     public EnvelopeResponse<Boolean> tableExists(@PathVariable("database") String database,
             @PathVariable("table") String table) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.tableExists(database, table), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.tableExists(database, table), "");
     }
 
     @ApiOperation(value = "loadSamples", tags = { "DW" })
     @GetMapping(value = "/load_samples")
     public EnvelopeResponse<List<String>> loadSamples() throws IOException {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.loadSamples(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.loadSamples(), "");
     }
 
     @ApiOperation(value = "msck", tags = { "DW" })
     @GetMapping(value = "/{database}/{table}/msck")
     public EnvelopeResponse<List<String>> msck(@PathVariable("database") String database,
             @PathVariable("table") String table) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sparkSourceService.msck(database, table), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sparkSourceService.msck(database, table), "");
     }
 
 }

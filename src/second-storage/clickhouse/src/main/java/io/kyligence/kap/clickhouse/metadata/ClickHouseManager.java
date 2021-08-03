@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.clickhouse.metadata;
 
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
@@ -35,16 +35,16 @@ import static io.kyligence.kap.clickhouse.ClickHouseConstants.RES_PATH_FMT;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.STORAGE_NAME;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.PLAN;
 
-public class NClickHouseManager extends NManager<TablePlan> {
+public class ClickHouseManager extends Manager<TablePlan> {
 
-    private static final Logger logger = LoggerFactory.getLogger(NClickHouseManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClickHouseManager.class);
 
     // called by reflection
-    static NClickHouseManager newInstance(KylinConfig config, String project) {
-        return new NClickHouseManager(config, project);
+    static ClickHouseManager newInstance(KylinConfig config, String project) {
+        return new ClickHouseManager(config, project);
     }
 
-    private NClickHouseManager(KylinConfig cfg, final String project) {
+    private ClickHouseManager(KylinConfig cfg, final String project) {
         super(cfg, project);
     }
 
@@ -55,7 +55,7 @@ public class NClickHouseManager extends NManager<TablePlan> {
 
     @Override
     public String name() {
-        return "NClickHouseManager";
+        return "ClickHouseManager";
     }
 
     @Override

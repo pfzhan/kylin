@@ -110,37 +110,7 @@ class DFDictionaryBuilder(
           bucketDict.saveBucketDict(partitionID)
           ListBuffer.empty.iterator
       }(RowEncoder.apply(schema = afterDistinct.schema))
-    val queryExecutionId = UUID.randomUUID.toString
-    ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, queryExecutionId)
     df.count()
-    val execution = QueryExecutionCache.getQueryExecution(queryExecutionId)
-    if (execution != null) {
-      val filterExec = execution.executedPlan.collectFirst {
-        case a: FilterExec =>
-          a.asInstanceOf[FilterExec]
-      }
-      if (filterExec.isDefined) {
-        val filterMetrics = filterExec.get.metrics.get("numOutputRows")
-        val filtered = if (filterMetrics.isDefined) {
-          filterMetrics.get.value
-        } else {
-          logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
-          0
-        }
-        val tableScanMetrics = JobMetricsUtils.collectOutputRows(filterExec.get)
-        val fileOut = tableScanMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)
-        logInfo(s"Null value number is ${fileOut - filtered}")
-        if (!KylinBuildEnv.get().encodingDataSkew) {
-          KylinBuildEnv.get().encodingDataSkew = (fileOut - filtered) > seg.getConfig.getNullEncodingOptimizeThreshold
-          logInfo(s"Encoding data skew is ${KylinBuildEnv.get().encodingDataSkew} because the " +
-            s"difference values is ${fileOut - filtered} > ${seg.getConfig.getNullEncodingOptimizeThreshold}")
-        }
-      } else {
-        logInfo(s"Can not find FilterExec whit plan ${execution.executedPlan.toString()}")
-      }
-    }
-    ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, null)
-
     globalDict.writeMetaDict(bucketPartitionSize, seg.getConfig.getGlobalDictV2MaxVersions, seg.getConfig.getGlobalDictV2VersionTTL)
 
     if (seg.getConfig.isGlobalDictCheckEnabled) {

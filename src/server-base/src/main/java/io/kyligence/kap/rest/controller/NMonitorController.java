@@ -32,7 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.spark.memory.MetricsCollectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +64,7 @@ public class NMonitorController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<ExecutorMemoryResponse>> getMemoryMetrics() {
         Map<String, List<String>> memorySnapshotMap = MetricsCollectHelper.getMemorySnapshot();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, parseToMemoryResponse(memorySnapshotMap), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, parseToMemoryResponse(memorySnapshotMap), "");
     }
 
     @ApiOperation(value = "getThreadInfoMetrics", tags = { "SM" }, notes = "Update URL: thread_info")
@@ -73,7 +72,7 @@ public class NMonitorController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<ExecutorThreadInfoResponse>> getThreadInfoMetrics() {
         Map<String, List<String>> threadInfoSnapshotMap = MetricsCollectHelper.getThreadInfoSnapshot();
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, parseToThreadInfoResponse(threadInfoSnapshotMap), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, parseToThreadInfoResponse(threadInfoSnapshotMap), "");
     }
 
     private List<ExecutorMemoryResponse> parseToMemoryResponse(Map<String, List<String>> memList) {
@@ -109,7 +108,7 @@ public class NMonitorController extends NBasicController {
             throw new RuntimeException("Failed to connect InfluxDB service. Please check its status and the network.");
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "getStatusStatistics", tags = { "SM" })
@@ -130,6 +129,6 @@ public class NMonitorController extends NBasicController {
             throw new RuntimeException("Failed to connect InfluxDB service. Please check its status and the network.");
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 }

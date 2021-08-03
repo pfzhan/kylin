@@ -24,17 +24,6 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecuteResult;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,12 +34,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecuteResult;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 public abstract class AbstractClickHouseClean extends AbstractExecutable {
     public static final String CLICKHOUSE_SHARD_CLEAN_PARAM = "P_CLICKHOUSE_SHARD_CLEAN";
     public static final String CLICKHOUSE_NODE_COUNT_PARAM = "P_CLICKHOUSE_NODE_COUNT";
     public static final String THREAD_NAME = "CLICKHOUSE_CLEAN";
-    protected List<ShardClean> shardCleanList = new ArrayList<>();
+    protected List<ShardCleaner> shardCleaners = new ArrayList<>();
     private int nodeCount = 10;
 
     public void setNodeCount(int nodeCount) {
@@ -60,14 +62,15 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
     }
 
     protected void saveState() {
-        this.setParam(CLICKHOUSE_SHARD_CLEAN_PARAM, JsonUtil.writeValueAsStringQuietly(shardCleanList));
+        this.setParam(CLICKHOUSE_SHARD_CLEAN_PARAM, JsonUtil.writeValueAsStringQuietly(shardCleaners));
         this.setParam(CLICKHOUSE_NODE_COUNT_PARAM, String.valueOf(nodeCount));
     }
 
     protected void loadState() {
         try {
-            shardCleanList = JsonUtil.readValue(this.getParam(CLICKHOUSE_SHARD_CLEAN_PARAM), new TypeReference<List<ShardClean>>() {
-            });
+            shardCleaners = JsonUtil.readValue(this.getParam(CLICKHOUSE_SHARD_CLEAN_PARAM),
+                    new TypeReference<List<ShardCleaner>>() {
+                    });
             this.nodeCount = Integer.parseInt(this.getParam(CLICKHOUSE_NODE_COUNT_PARAM));
         } catch (IOException e) {
             ExceptionUtils.rethrow(e);
@@ -91,15 +94,14 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
 
     protected abstract void internalInit();
 
-    protected abstract Runnable getTask(ShardClean shardClean);
+    protected abstract Runnable getTask(ShardCleaner shardCleaner);
 
     protected void workImpl() throws ExecutionException, InterruptedException {
-        val taskPool = new ThreadPoolExecutor(nodeCount, nodeCount,
-                0L, TimeUnit.MILLISECONDS,
+        val taskPool = new ThreadPoolExecutor(nodeCount, nodeCount, 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(), new NamedThreadFactory(THREAD_NAME));
         List<Future<?>> results = new ArrayList<>();
-        shardCleanList.forEach(shardClean -> {
-            val result = taskPool.submit(getTask(shardClean));
+        shardCleaners.forEach(shardCleaner -> {
+            val result = taskPool.submit(getTask(shardCleaner));
             results.add(result);
         });
         try {
@@ -122,9 +124,9 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
     }
 
     protected void closeShardClean() {
-        if (!shardCleanList.isEmpty()) {
-            shardCleanList.forEach(shardClean -> shardClean.getClickHouse().close());
-            shardCleanList.clear();
+        if (!shardCleaners.isEmpty()) {
+            shardCleaners.forEach(shardCleaner -> shardCleaner.getClickHouse().close());
+            shardCleaners.clear();
         }
     }
 }

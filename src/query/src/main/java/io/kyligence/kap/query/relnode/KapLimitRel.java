@@ -126,17 +126,10 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
         if (context != null) {
             if (!context.afterHavingClauseFilter && !context.afterLimit) {
                 int limit = translateRexToValue(localFetch, Integer.MAX_VALUE);
-                this.context.storageContext.setLimit(limit);
                 this.context.setLimit(limit);
 
-                if (localOffset != null) {
-                    int offset = translateRexToValue(localOffset, 0);
-                    this.context.storageContext.setOffset(offset);
-                }
                 context.afterLimit = true;
 
-            } else {
-                this.context.storageContext.setOverlookOuterLimit();
             }
             if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);

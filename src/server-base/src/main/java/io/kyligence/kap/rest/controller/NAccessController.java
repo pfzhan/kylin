@@ -43,7 +43,6 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.DataResult;
@@ -119,7 +118,7 @@ public class NAccessController extends NBasicController {
         String permission = groups.contains(ROLE_ADMIN) ? "GLOBAL_ADMIN"
                 : AclPermissionEnum.convertToAclPermission(accessService.getCurrentUserPermissionInProject(project));
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, permission, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, permission, "");
     }
 
     @ApiOperation(value = "getAvailableSids", tags = { "MID" }, //
@@ -149,7 +148,7 @@ public class NAccessController extends NBasicController {
 
         List<String> matchedSids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, whole);
         List<String> subList = PagingUtil.cutPage(matchedSids, pageOffset, pageSize);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedSids), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(subList, matchedSids), "");
     }
 
     @ApiOperation(value = "access control APIs", tags = { "MID" })
@@ -183,7 +182,7 @@ public class NAccessController extends NBasicController {
 
         List<String> matchedUsers = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, whole);
         List<String> subList = PagingUtil.cutPage(matchedUsers, pageOffset, pageSize);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedUsers), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(subList, matchedUsers), "");
     }
 
     @ApiOperation(value = "getAccessEntities", tags = { "MID" }, //
@@ -202,7 +201,7 @@ public class NAccessController extends NBasicController {
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
                 nameSeg, isCaseSensitive);
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(sublist, resultsAfterFuzzyMatching),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(sublist, resultsAfterFuzzyMatching),
                 "");
     }
 
@@ -217,7 +216,7 @@ public class NAccessController extends NBasicController {
         List<String> groups = accessService.getAllAclSids(ae, MetadataConstants.TYPE_GROUP);
         result.put("user", users);
         result.put("group", groups);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     /**
@@ -237,7 +236,7 @@ public class NAccessController extends NBasicController {
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.remoteGrantACL(uuid, Lists.newArrayList(accessRequest));
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "batchGrant", tags = {
@@ -257,7 +256,7 @@ public class NAccessController extends NBasicController {
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType) && initAcl) {
             aclTCRService.remoteGrantACL(uuid, requests);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     /**
@@ -283,7 +282,7 @@ public class NAccessController extends NBasicController {
         }
         accessService.update(ae, accessRequest.getAccessEntryId(), permission);
         boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasAdminProject, "");
     }
 
     @ApiOperation(value = "revokeAcl", tags = { "MID" }, //
@@ -305,7 +304,7 @@ public class NAccessController extends NBasicController {
             aclTCRService.remoteRevokeACL(uuid, sid, principal);
         }
         boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasAdminProject, "");
     }
 
     @ApiOperation(value = "batch revoke Acl", tags = { "MID" }, notes = "")
@@ -325,7 +324,7 @@ public class NAccessController extends NBasicController {
             requests.forEach(r -> aclTCRService.remoteRevokeACL(uuid, r.getSid(), r.isPrincipal()));
         }
         boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, hasAdminProject, "");
     }
 
     private List<String> getAllUserNames() throws IOException {

@@ -51,6 +51,10 @@ public class Singletons implements Serializable {
         return instance.getInstance0(clz, creator);
     }
 
+    public static void clearInstance(Class<?> tClass) {
+        instance.clearByType(tClass);
+    }
+
     static <T> Creator<T> defaultCreator(String project) {
         return clz -> {
             Constructor<T> method = clz.getDeclaredConstructor(String.class);
@@ -141,7 +145,7 @@ public class Singletons implements Serializable {
         }
     }
 
-    void clearByType(Class clz) {
+    void clearByType(Class<?> clz) {
         if (instances != null)
             instances.remove(clz);
     }

@@ -24,17 +24,19 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import com.clearspring.analytics.util.Preconditions;
-import io.kyligence.kap.secondstorage.NameUtil;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.KylinConfig;
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_SECOND_STORAGE_NODE_CLEAN;
 
 import java.sql.SQLException;
 
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_SECOND_STORAGE_NODE_CLEAN;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KylinConfig;
+
+import com.clearspring.analytics.util.Preconditions;
+
+import io.kyligence.kap.secondstorage.NameUtil;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClickHouseDatabaseClean extends AbstractClickHouseClean {
@@ -48,22 +50,24 @@ public class ClickHouseDatabaseClean extends AbstractClickHouseClean {
         KylinConfig config = getConfig();
         val nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, getProject());
         Preconditions.checkState(nodeGroupManager.isPresent());
-        setNodeCount(Math.toIntExact(nodeGroupManager.map(manager -> manager.listAll().stream()
-                .mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum()).orElse(0L)));
-        nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).forEach(node -> {
-            ShardClean shardClean = new ShardClean(node, NameUtil.getDatabase(config, getProject()));
-            shardCleanList.add(shardClean);
-        });
+        setNodeCount(Math.toIntExact(nodeGroupManager.map(
+                manager -> manager.listAll().stream().mapToLong(nodeGroup -> nodeGroup.getNodeNames().size()).sum())
+                .orElse(0L)));
+        nodeGroupManager.get().listAll().stream().flatMap(nodeGroup -> nodeGroup.getNodeNames().stream())
+                .forEach(node -> {
+                    ShardCleaner shardCleaner = new ShardCleaner(node, NameUtil.getDatabase(config, getProject()));
+                    shardCleaners.add(shardCleaner);
+                });
     }
 
     @Override
-    protected Runnable getTask(ShardClean shardClean) {
+    protected Runnable getTask(ShardCleaner shardCleaner) {
         return () -> {
             try {
-                shardClean.cleanDatabase();
+                shardCleaner.cleanDatabase();
             } catch (SQLException e) {
-                log.error("node {} clean database {} failed", shardClean.getClickHouse().getShardName(),
-                        shardClean.getDatabase());
+                log.error("node {} clean database {} failed", shardCleaner.getClickHouse().getShardName(),
+                        shardCleaner.getDatabase());
                 ExceptionUtils.rethrow(e);
             }
         };

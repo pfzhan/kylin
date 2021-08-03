@@ -44,15 +44,14 @@ package org.apache.kylin.common.exception;
 import java.util.Collection;
 import java.util.Locale;
 
-import org.apache.kylin.common.response.ResponseCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import lombok.Getter;
 
 @Getter
 public class KylinException extends RuntimeException {
-    public static final Logger logger = LoggerFactory.getLogger(KylinException.class);
+
+    public final static String CODE_SUCCESS = "000";
+    public final static String CODE_UNAUTHORIZED = "401";
+    public final static String CODE_UNDEFINED = "999";
 
     private final ErrorCode errorCode;
     private final String code; //for example 999
@@ -62,13 +61,13 @@ public class KylinException extends RuntimeException {
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg) {
         super(msg);
         this.errorCode = errorCodeSupplier.toErrorCode();
-        this.code = ResponseCode.CODE_UNDEFINED;
+        this.code = CODE_UNDEFINED;
     }
 
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg, boolean throwTrace) {
         super(msg);
         this.errorCode = errorCodeSupplier.toErrorCode();
-        this.code = ResponseCode.CODE_UNDEFINED;
+        this.code = CODE_UNDEFINED;
         this.throwTrace = throwTrace;
     }
 
@@ -79,13 +78,13 @@ public class KylinException extends RuntimeException {
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg, Throwable cause) {
         super(msg, cause);
         this.errorCode = errorCodeSupplier.toErrorCode();
-        this.code = ResponseCode.CODE_UNDEFINED;
+        this.code = CODE_UNDEFINED;
     }
 
     public KylinException(ErrorCodeSupplier errorCodeSupplier, String msg, Collection<? extends Throwable> causes) {
         super(msg);
         this.errorCode = errorCodeSupplier.toErrorCode();
-        this.code = ResponseCode.CODE_UNDEFINED;
+        this.code = CODE_UNDEFINED;
         causes.forEach(this::addSuppressed);
     }
 

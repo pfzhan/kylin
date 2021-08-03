@@ -282,11 +282,6 @@ public class NDataModel extends RootPersistentEntity {
     // mark this model as used for model save checking
     private boolean saveCheck = false;
 
-    /**
-     * Error messages during resolving json metadata
-     */
-    private List<String> errors = new ArrayList<>();
-
     public enum ColumnStatus {
         TOMB, EXIST, DIMENSION
     }
@@ -959,22 +954,6 @@ public class NDataModel extends RootPersistentEntity {
         if (modelType != null && modelType != modelTypeFromTable) {
             throw new IllegalStateException("Model Type is inconsistent.");
         }
-    }
-
-    /**
-     * @param message error message
-     * @param silent  if throw exception
-     */
-    public void addError(String message, boolean silent) {
-        if (!silent) {
-            throw new IllegalStateException(message);
-        } else {
-            this.errors.add(message);
-        }
-    }
-
-    public List<String> getError() {
-        return this.errors;
     }
 
     @Override

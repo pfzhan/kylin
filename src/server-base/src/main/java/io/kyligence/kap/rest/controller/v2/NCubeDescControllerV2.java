@@ -25,7 +25,7 @@ package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -57,7 +57,7 @@ public class NCubeDescControllerV2 extends NBasicController {
         checkProjectName(project);
         NCubeDescResponse cubeDesc = modelService.getCubeWithExactModelName(modelAlias, project);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, new NCubeResponse(cubeDesc), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, new NCubeResponse(cubeDesc), "");
     }
 
 }

@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
@@ -109,7 +108,7 @@ public class NCubesControllerV2 extends NBasicController {
         }
 
         HashMap<String, Object> modelResponse = getDataResponse("cubes", result, offset, limit);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelResponse, "");
     }
 
     @ApiOperation(value = "getCube", tags = { "AI" })
@@ -129,7 +128,7 @@ public class NCubesControllerV2 extends NBasicController {
             throw new KylinException(FAILED_PARSE_JSON, e);
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "rebuild", tags = { "DW" })
@@ -183,10 +182,10 @@ public class NCubesControllerV2 extends NBasicController {
             }
             break;
         default:
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Invalid build type.");
+            return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, null, "Invalid build type.");
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "manageSegments", tags = { "DW" })
@@ -224,7 +223,7 @@ public class NCubesControllerV2 extends NBasicController {
             }
             val mergeResponse = modelService.mergeSegmentsManually(new MergeSegmentParams(
                     dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(mergeResponse), "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, JobInfoResponseV2.convert(mergeResponse), "");
         case "REFRESH":
             if (CollectionUtils.isEmpty(idList)) {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER,
@@ -232,16 +231,16 @@ public class NCubesControllerV2 extends NBasicController {
             }
             val refreshResponse = modelService.refreshSegmentById(new RefreshSegmentParams(
                     dataModelResponse.getProject(), dataModelResponse.getId(), idList.toArray(new String[0])));
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(refreshResponse), "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, JobInfoResponseV2.convert(refreshResponse), "");
         case "DROP":
             if (CollectionUtils.isEmpty(idList)) {
                 throw new KylinException(INVALID_SEGMENT_PARAMETER, "You should choose at least one segment to drop!");
             }
             modelService.deleteSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
                     idList.toArray(new String[0]), true);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "Drop segments successfully");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "Drop segments successfully");
         default:
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Invalid build type.");
+            return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, "", "Invalid build type.");
         }
     }
 
@@ -275,7 +274,7 @@ public class NCubesControllerV2 extends NBasicController {
             }
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, holes, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, holes, "");
     }
 
     @ApiOperation(value = "getSql", tags = { "AI" })
@@ -291,7 +290,7 @@ public class NCubesControllerV2 extends NBasicController {
         String sql = modelService.getModelSql(dataModelResponse.getId(), dataModelResponse.getProject());
         Properties response = new Properties();
         response.setProperty("sql", sql);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
 }

@@ -103,9 +103,6 @@ public class ModelBrokenListener {
                 dfUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
             }
             dataflowManager.updateDataflow(dfUpdate);
-            if (model.getBrokenReason() == NDataModel.BrokenReason.EVENT) {
-                dataflowManager.updateDataflow(model.getId(), copyForWrite -> copyForWrite.setEventError(true));
-            }
             model.setHandledAfterBroken(true);
             modelManager.updateDataBrokenModelDesc(model);
 

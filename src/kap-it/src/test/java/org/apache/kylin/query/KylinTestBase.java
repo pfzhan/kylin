@@ -78,7 +78,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -805,7 +804,6 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
 
     protected static void setupAll() throws Exception {
         //setup env
-        SandboxMetadataTestCase.staticCreateTestMetadata();
         config = KylinConfig.getInstanceFromEnv();
 
         //setup cube conn
@@ -825,23 +823,12 @@ public class KylinTestBase extends NLocalFileMetadataTestCase {
         if (h2Connection != null)
             closeConnection(h2Connection);
 
-        SandboxMetadataTestCase.staticCleanupTestMetadata();
         RemoveBlackoutRealizationsRule.blackList.clear();
-
-    }
-
-    protected boolean checkFinalPushDownLimit() {
-        OLAPContext context = getFirstOLAPContext();
-        return context.storageContext.isLimitPushDownEnabled();
 
     }
 
     private OLAPContext getFirstOLAPContext() {
         return OLAPContext.getThreadLocalContexts().iterator().next();
-    }
-
-    protected String getQueryFolderPrefix() {
-        return "";
     }
 
 }

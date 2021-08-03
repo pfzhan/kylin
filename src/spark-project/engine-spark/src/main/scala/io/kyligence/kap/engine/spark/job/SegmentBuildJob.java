@@ -107,9 +107,7 @@ public class SegmentBuildJob extends SegmentJob {
     }
 
     private void buildSegment(NDataSegment dataSegment, SegmentBuildExec exec) throws IOException {
-        log.info("Encoding data skew {} segment {}", //
-                dataSegment.isEncodingDataSkew(), dataSegment.getId());
-        KylinBuildEnv.get().setEncodingDataSkew(dataSegment.isEncodingDataSkew());
+        log.info("Encoding segment {}", dataSegment.getId());
         exec.buildSegment();
     }
 
@@ -147,9 +145,6 @@ public class SegmentBuildJob extends SegmentJob {
             for (Map.Entry<String, Object> entry : segmentSourceSize.entrySet()) {
                 NDataSegment segment = newDF.getSegment(entry.getKey());
                 segment.setSourceBytesSize((Long) entry.getValue());
-                if (KylinBuildEnv.get().encodingDataSkew()) {
-                    segment.setEncodingDataSkew(true);
-                }
                 nDataSegments.add(segment);
             }
             update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));

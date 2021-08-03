@@ -43,7 +43,7 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.secondstorage.config.Cluster;
 import io.kyligence.kap.secondstorage.config.Node;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 
 public class SecondStorageNodeHelper {
@@ -89,7 +89,7 @@ public class SecondStorageNodeHelper {
     }
 
     public static List<Node> getALlNodesInProject(String project) {
-        Optional<NManager<NodeGroup>> nodeGroupOptional = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
+        Optional<Manager<NodeGroup>> nodeGroupOptional = SecondStorageUtil.nodeGroupManager(KylinConfig.getInstanceFromEnv(), project);
         Preconditions.checkState(nodeGroupOptional.isPresent(), "node group manager is not init");
         return nodeGroupOptional.get().listAll().stream()
                 .flatMap(nodeGroup -> nodeGroup.getNodeNames().stream()).map(NODE_MAP::get)

@@ -59,7 +59,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -1225,7 +1224,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testRefreshSingleCatalogCache() {
         Map<String, List<String>> request = mockRefreshTable("DEFAULT.TEST_KYLIN_FACT", "DEFAULT.TEST_KYLIN_FAKE");
         TableRefresh tableRefresh = tableService.refreshSingleCatalogCache(request);
-        Assert.assertEquals(tableRefresh.getCode(), ResponseCode.CODE_UNDEFINED);
+        Assert.assertEquals(tableRefresh.getCode(), KylinException.CODE_UNDEFINED);
         Assert.assertEquals(tableRefresh.getRefreshed().size(), 1);
         Assert.assertEquals(tableRefresh.getFailed().size(), 1);
     }

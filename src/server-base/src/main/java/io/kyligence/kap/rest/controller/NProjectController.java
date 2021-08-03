@@ -52,7 +52,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -158,7 +157,7 @@ public class NProjectController extends NBasicController {
         List<UserProjectPermissionResponse> projects = projectService
                 .getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(project, exactMatch,
                         AclPermissionEnum.valueOf(permission));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
     }
 
     @ApiOperation(value = "deleteProjects", tags = { "SM" })
@@ -167,7 +166,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<String> dropProject(@PathVariable("project") String project) {
         projectService.dropProject(project);
         projectService.clearManagerCache(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "backupProject", tags = { "SM" }, notes = "Update URL, {project}")
@@ -175,7 +174,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> backupProject(@PathVariable("project") String project) throws Exception {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.backupProject(project), "");
     }
 
     @ApiOperation(value = "saveProject", tags = { "SM" }, notes = "Update Param: former_project_name, project_desc_data")
@@ -202,7 +201,7 @@ public class NProjectController extends NBasicController {
             logger.warn("Transfer update epoch {} request failed, wait for schedule worker to update epoch.",
                     projectDesc.getName(), e);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createdProj, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, createdProj, "");
     }
 
     @ApiOperation(value = "updateDefaultDatabase", tags = { "SM" }, notes = "Add URL: {project}; Update Param: default_database;")
@@ -213,7 +212,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("default_database", defaultDatabaseRequest.getDefaultDatabase());
 
         projectService.updateDefaultDatabase(project, defaultDatabaseRequest.getDefaultDatabase());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateQueryAccelerateThresholdConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -227,7 +226,7 @@ public class NProjectController extends NBasicController {
         }
         projectService.updateQueryAccelerateThresholdConfig(project, favoriteQueryThresholdRequest.getThreshold(),
                 favoriteQueryThresholdRequest.getTipsEnabled());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getQueryAccelerateThresholdConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -235,7 +234,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<FavoriteQueryThresholdResponse> getQueryAccelerateThresholdConfig(
             @PathVariable(value = "project") String project) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 projectService.getQueryAccelerateThresholdConfig(project), "");
     }
 
@@ -245,7 +244,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<StorageVolumeInfoResponse> getStorageVolumeInfo(
             @PathVariable(value = "project") String project) {
         aclEvaluate.checkProjectReadPermission(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),
                 "");
     }
 
@@ -260,7 +259,7 @@ public class NProjectController extends NBasicController {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectService.cleanupGarbage(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
     }
 
     @ApiOperation(value = "updateStorageQuotaConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -271,7 +270,7 @@ public class NProjectController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg("storage_quota_size", storageQuotaRequest.getStorageQuotaSize());
         projectService.updateStorageQuotaConfig(project, storageQuotaRequest.getStorageQuotaSize());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
     }
 
     @ApiOperation(value = "updateFavoriteRules", tags = { "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
@@ -282,7 +281,7 @@ public class NProjectController extends NBasicController {
         checkProjectUnmodifiable(request.getProject());
         checkUpdateFavoriteRuleArgs(request);
         projectService.updateRegularRule(request.getProject(), request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
@@ -312,7 +311,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@PathVariable(value = "project") String project) {
         checkProjectName(project);
         aclEvaluate.checkProjectWritePermission(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.getFavoriteRules(project), "");
     }
 
     @ApiOperation(value = "statistics", tags = { "SM" })
@@ -323,7 +322,7 @@ public class NProjectController extends NBasicController {
         ProjectStatisticsResponse projectStatistics = projectService.getProjectStatistics(project);
         projectStatistics.setLastWeekQueryCount(qhService.getLastWeekQueryCount(project));
         projectStatistics.setUnhandledQueryCount(qhService.getQueryCountToAccelerate(project));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectStatistics, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectStatistics, "");
     }
 
     @ApiOperation(value = "getAcceleration", tags = { "AI" })
@@ -334,7 +333,7 @@ public class NProjectController extends NBasicController {
         checkProjectNotSemiAuto(project);
         AbstractAsyncTask asyncTask = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, ((AsyncAccelerationTask) asyncTask).isAlreadyRunning(),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, ((AsyncAccelerationTask) asyncTask).isAlreadyRunning(),
                 "");
     }
 
@@ -345,7 +344,7 @@ public class NProjectController extends NBasicController {
         checkProjectName(project);
         checkProjectNotSemiAuto(project);
         Set<Integer> deltaRecs = projectService.accelerateManually(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, deltaRecs.size(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, deltaRecs.size(), "");
     }
 
     @ApiOperation(value = "statistics", tags = { "AI" })
@@ -356,7 +355,7 @@ public class NProjectController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg("user", user);
         AsyncTaskManager.cleanAccelerationTagByUser(project, user);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     @ApiOperation(value = "updateShardNumConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -365,7 +364,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<String> updateShardNumConfig(@PathVariable("project") String project,
             @RequestBody ShardNumConfigRequest req) {
         projectService.updateShardNumConfig(project, req);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getShardNumConfig(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.getShardNumConfig(project), "");
     }
 
     @ApiOperation(value = "updateGarbageCleanupConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -376,7 +375,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("low_frequency_threshold", garbageCleanUpConfigRequest.getLowFrequencyThreshold());
         checkRequiredArg("frequency_time_window", garbageCleanUpConfigRequest.getFrequencyTimeWindow());
         projectService.updateGarbageCleanupConfig(project, garbageCleanUpConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
     }
 
     @ApiOperation(value = "updateJobNotificationConfig", tags = { "DW" }, notes = "Add URL: {project}; ")
@@ -390,7 +389,7 @@ public class NProjectController extends NBasicController {
                 jobNotificationConfigRequest.getJobErrorNotificationEnabled());
         checkRequiredArg("job_notification_emails", jobNotificationConfigRequest.getJobNotificationEmails());
         projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updatePushDownConfig", tags = { "QE" }, notes = "Add URL: {project}; ")
@@ -400,7 +399,7 @@ public class NProjectController extends NBasicController {
             @RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkRequiredArg("push_down_enabled", pushDownConfigRequest.getPushDownEnabled());
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateSCD2Config", tags = { "AI" }, notes = "Add URL: {project}; ")
@@ -410,7 +409,7 @@ public class NProjectController extends NBasicController {
             @RequestBody SCD2ConfigRequest scd2ConfigRequest) {
         checkRequiredArg("scd2_enabled", scd2ConfigRequest.getScd2Enabled());
         projectService.updateSCD2Config(project, scd2ConfigRequest, modelService);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updatePushDownProjectConfig", tags = { "QE" }, notes = "Add URL: {project}; ")
@@ -421,7 +420,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("runner_class_name", pushDownProjectConfigRequest.getRunnerClassName());
         checkRequiredArg("converter_class_names", pushDownProjectConfigRequest.getConverterClassNames());
         projectService.updatePushDownProjectConfig(project, pushDownProjectConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateSnapshotConfig", tags = { "AI" }, notes = "Add URL: {project}; ")
@@ -432,7 +431,7 @@ public class NProjectController extends NBasicController {
         checkBooleanArg("snapshot_manual_management_enabled",
                 snapshotConfigRequest.getSnapshotManualManagementEnabled());
         projectService.updateSnapshotConfig(project, snapshotConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateExposeComputedColumnConfig", tags = { "QE" }, notes = "Add URL: {project}; ")
@@ -442,7 +441,7 @@ public class NProjectController extends NBasicController {
             @RequestBody ComputedColumnConfigRequest computedColumnConfigRequest) {
         checkRequiredArg("expose_computed_column", computedColumnConfigRequest.getExposeComputedColumn());
         projectService.updateComputedColumnConfig(project, computedColumnConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateSegmentConfig", tags = { "DW" }, notes = "Add URL: {project}; ")
@@ -454,7 +453,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("auto_merge_time_ranges", segmentConfigRequest.getAutoMergeTimeRanges());
         checkRequiredArg("create_empty_segment_enabled", segmentConfigRequest.getCreateEmptySegmentEnabled());
         projectService.updateSegmentConfig(project, segmentConfigRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateProjectGeneralInfo", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -463,14 +462,14 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<String> updateProjectGeneralInfo(@PathVariable("project") String project,
             @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
         projectService.updateProjectGeneralInfo(project, projectGeneralInfoRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getProjectConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
     @GetMapping(value = "/{project:.+}/project_config")
     @ResponseBody
     public EnvelopeResponse<ProjectConfigResponse> getProjectConfig(@PathVariable(value = "project") String project) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.getProjectConfig(project), "");
     }
 
     @ApiOperation(value = "resetProjectConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -479,7 +478,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse<ProjectConfigResponse> resetProjectConfig(@PathVariable("project") String project,
             @RequestBody ProjectConfigResetRequest projectConfigResetRequest) {
         checkRequiredArg("reset_item", projectConfigResetRequest.getResetItem());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 projectService.resetProjectConfig(project, projectConfigResetRequest.getResetItem()), "");
     }
 
@@ -490,7 +489,7 @@ public class NProjectController extends NBasicController {
             @RequestBody DataSourceTypeRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         projectService.setDataSourceType(project, request.getSourceType());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateYarnQueue", tags = { "DW" }, notes = "Add URL: {project}; ")
@@ -501,7 +500,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("queue_name", request.getQueueName());
 
         projectService.updateYarnQueue(project, request.getQueueName());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateProjectKerberosInfo", tags = { "DW" }, notes = "Add URL: {project}; ")
@@ -513,7 +512,7 @@ public class NProjectController extends NBasicController {
         File file = projectService.generateTempKeytab(projectKerberosInfoRequest.getPrincipal(), keytabFile);
         projectKerberosInfoRequest.setKeytab(FileUtils.encodeBase64File(file.getAbsolutePath()));
         projectService.updateProjectKerberosInfo(project, projectKerberosInfoRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateProjectOwner", tags = { "SM" })
@@ -524,7 +523,7 @@ public class NProjectController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg("owner", request.getOwner());
         projectService.updateProjectOwner(project, request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateProjectConfig", tags = { "SM" }, notes = "Add URL: {project}; ")
@@ -540,7 +539,7 @@ public class NProjectController extends NBasicController {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportEdit());
         }
         projectService.updateProjectConfig(project, request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "deleteProjectConfig", tags = { "SM" })
@@ -553,14 +552,14 @@ public class NProjectController extends NBasicController {
             throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getConfigNotSupportDelete());
         }
         projectService.deleteProjectConfig(request.getProject(), request.getConfigName());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "nonCustomConfig", tags = { "SM" })
     @GetMapping(value = "/default_configs")
     @ResponseBody
     public EnvelopeResponse<Set<String>> getNonCustomProjectConfigs() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs(), "");
     }
 
     @ApiOperation(value = "update jdbc config (update)", tags = { "QE" }, notes = "Add URL: {project}; ")
@@ -570,7 +569,7 @@ public class NProjectController extends NBasicController {
             @PathVariable(value = "project") String project) {
         checkRequiredArg("project", project);
         projectService.updateJdbcConfig(project, jdbcRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, null, "");
     }
 
     @ApiOperation(value = "updateMultiPartitionConfig", tags = { "DW" }, notes = "Add URL: {project}; ")
@@ -580,6 +579,6 @@ public class NProjectController extends NBasicController {
             @RequestBody MultiPartitionConfigRequest request) {
         checkRequiredArg("multi_partition_enabled", request.getMultiPartitionEnabled());
         projectService.updateMultiPartitionConfig(project, request, modelService);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

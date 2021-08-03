@@ -49,7 +49,7 @@ public class NBucketDictionary {
         this.bucketId = bucketId;
         final NGlobalDictStore globalDictStore = NGlobalDictStoreFactory.getResourceStore(baseDir);
         Long[] versions = globalDictStore.listAllVersions();
-        logger.info("versions.length is {}", versions.length);
+        logger.debug("versions.length is {}", versions.length);
         if (versions.length == 0) {
             this.absoluteDictMap = new Object2LongOpenHashMap<>();
         } else {

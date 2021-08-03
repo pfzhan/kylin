@@ -96,12 +96,10 @@ public interface IRealization extends IStorageAware {
 
     long getDateRangeEnd();
 
-    boolean supportsLimitPushDown();
-
     int getCost();
 
     boolean hasPrecalculatedFields();
 
-    public boolean isStreaming();
+    boolean isStreaming();
 
 }

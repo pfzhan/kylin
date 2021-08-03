@@ -27,7 +27,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.util.List;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -139,7 +139,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         DateRangeRequest dateRangeRequest = new DateRangeRequest();
         dateRangeRequest.setProject(project);
         dateRangeRequest.setTable(tableName);
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nTableController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nTableController)
                 .setDateRanges(dateRangeRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -163,7 +163,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         refreshSegmentsRequest.setAffectedEnd("100");
         refreshSegmentsRequest.setTable(tableName);
 
-        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nTableController)
+        Mockito.doReturn(new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "")).when(nTableController)
                 .refreshSegments(refreshSegmentsRequest);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //

@@ -45,14 +45,6 @@ public class NBreakerConfig {
         return kapConfig.getCircuitBreakerThresholdOfModel();
     }
 
-    public int thresholdOfFavoriteQuery() {
-        return kapConfig.getCircuitBreakerThresholdOfFavoriteQuery();
-    }
-
-    public int thresholdOfSqlPatternToBlacklist() {
-        return kapConfig.getCircuitBreakerThresholdOfSqlPatternToBlacklist();
-    }
-
     public long thresholdOfQueryResultRowCount() {
         return kapConfig.getCircuitBreakerThresholdOfQueryResultRowCount();
     }

@@ -108,15 +108,8 @@ public class OLAPLimitRel extends SingleRel implements OLAPRel {
         // ignore limit after having clause
         // ignore limit after another limit, e.g. select A, count(*) from (select A,B from fact group by A,B limit 100) limit 10
         if (!context.afterHavingClauseFilter && !context.afterLimit) {
-            this.context.storageContext.setLimit(translateRexToValue(localFetch, Integer.MAX_VALUE));
-
-            if (localOffset != null) {
-                this.context.storageContext.setOffset(translateRexToValue(localOffset, 0));
-            }
 
             context.afterLimit = true;
-        } else {
-            this.context.storageContext.setOverlookOuterLimit();
         }
     }
 

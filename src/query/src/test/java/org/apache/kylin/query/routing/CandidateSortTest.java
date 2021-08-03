@@ -214,11 +214,6 @@ public class CandidateSortTest {
             }
 
             @Override
-            public boolean supportsLimitPushDown() {
-                return false;
-            }
-
-            @Override
             public int getCost() {
                 return cost;
             }

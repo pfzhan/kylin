@@ -47,7 +47,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kylin.common.exceptions.DistributedLockException;
+import org.apache.kylin.common.exception.DistributedLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

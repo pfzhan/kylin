@@ -23,33 +23,7 @@
  */
 package io.kyligence.kap.clickhouse.job;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.secondstorage.NameUtil;
-import io.kyligence.kap.secondstorage.SecondStorage;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.metadata.NManager;
-import io.kyligence.kap.secondstorage.metadata.NodeGroup;
-import io.kyligence.kap.secondstorage.metadata.PartitionType;
-import io.kyligence.kap.secondstorage.metadata.SegmentFileStatus;
-import io.kyligence.kap.secondstorage.metadata.TableEntity;
-import io.kyligence.kap.secondstorage.metadata.TableFlow;
-import io.kyligence.kap.secondstorage.metadata.TablePlan;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions;
+import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_EXPORT_TO_SECOND_STORAGE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +40,35 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_EXPORT_TO_SECOND_STORAGE;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions;
+
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.secondstorage.NameUtil;
+import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.metadata.Manager;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
+import io.kyligence.kap.secondstorage.metadata.PartitionType;
+import io.kyligence.kap.secondstorage.metadata.SegmentFileStatus;
+import io.kyligence.kap.secondstorage.metadata.TableEntity;
+import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePlan;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The mechanism we used is unique for ClickHouse That‘s why we name it {@link ClickHouseLoad} instead of NJDBCLoad.
@@ -75,7 +77,6 @@ import static io.kyligence.kap.secondstorage.SecondStorageConstants.STEP_EXPORT_
  */
 @Slf4j
 public class ClickHouseLoad extends AbstractExecutable {
-
 
     private static <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
         try {
@@ -114,11 +115,7 @@ public class ClickHouseLoad extends AbstractExecutable {
 
     private Engine createTableEngine() {
         val sourceType = getTableSourceType();
-        return new Engine(sourceType.getTableEngineType(),
-                getUtParam(ROOT_PATH),
-                getUtParam(SOURCE_URL),
-                sourceType
-        );
+        return new Engine(sourceType.getTableEngineType(), getUtParam(ROOT_PATH), getUtParam(SOURCE_URL), sourceType);
     }
 
     private boolean isAzurePlatform() {
@@ -157,18 +154,17 @@ public class ClickHouseLoad extends AbstractExecutable {
         return new SegmentFileProvider(segmentLayoutRoot);
     }
 
-    private List<LoadInfo>
-    distributeLoad(NDataflow df, IndexPlan indexPlan, TablePlan tablePlan, String[] nodeNames) {
+    private List<LoadInfo> distributeLoad(NDataflow df, IndexPlan indexPlan, TablePlan tablePlan, String[] nodeNames) {
         int ckInstances = nodeNames.length;
         return getSegmentIds() // Equivalent to scala `for comprehension`
-                .stream()
-                .flatMap(segId ->
-                        getLayoutIds().stream().map(indexPlan::getLayoutEntity).filter(SecondStorageUtil::isBaseTableIndex).map(layoutEntity -> {
+                .stream().flatMap(segId -> getLayoutIds().stream().map(indexPlan::getLayoutEntity)
+                        .filter(SecondStorageUtil::isBaseTableIndex).map(layoutEntity -> {
                             TableEntity tableEntity = tablePlan.getEntity(layoutEntity).orElse(null);
                             Preconditions.checkArgument(tableEntity != null);
                             int shardNumber = Math.min(ckInstances, tableEntity.getShardNumbers());
                             return LoadInfo.distribute(selectInstances(nodeNames, shardNumber), df.getModel(),
-                                    df.getSegment(segId), getFileProvider(df, segId, layoutEntity.getId()), layoutEntity);
+                                    df.getSegment(segId), getFileProvider(df, segId, layoutEntity.getId()),
+                                    layoutEntity);
                         }))
                 .collect(Collectors.toList());
     }
@@ -196,20 +192,18 @@ public class ClickHouseLoad extends AbstractExecutable {
         }
 
         TablePlan tablePlan() {
-            return SecondStorage.tablePlanManager(config, project)
-                    .get(dataflowId)
+            return SecondStorage.tablePlanManager(config, project).get(dataflowId)
                     .orElseThrow(() -> new IllegalStateException(" no table plan found"));
         }
+
         TableFlow tableFlow() {
-            return SecondStorage.tableFlowManager(config, project)
-                    .get(dataflowId)
+            return SecondStorage.tableFlowManager(config, project).get(dataflowId)
                     .orElseThrow(() -> new IllegalStateException(" no table flow found"));
         }
 
         boolean isIncremental(Set<String> segIds) {
-            return this.df.getSegments().stream()
-                    .filter(segment -> segIds.contains(segment.getId()))
-                    .noneMatch(nDataSegment -> nDataSegment.getSegRange().isInfinite());
+            return this.df.getSegments().stream().filter(segment -> segIds.contains(segment.getId()))
+                    .noneMatch(segment -> segment.getSegRange().isInfinite());
         }
 
         public String getProject() {
@@ -264,12 +258,11 @@ public class ClickHouseLoad extends AbstractExecutable {
         final MethodContext mc = new MethodContext(this);
         return wrapWithExecuteException(() -> {
             val isIncrementalBuild = mc.isIncremental(getSegmentIds());
-            NManager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(mc.config, mc.project);
+            Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(mc.config, mc.project);
             val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);
             val partitions = tableFlowManager.listAll().stream()
                     .flatMap(tableFlow -> tableFlow.getTableDataList().stream())
-                    .flatMap(tableData -> tableData.getPartitions().stream())
-                    .collect(Collectors.toList());
+                    .flatMap(tableData -> tableData.getPartitions().stream()).collect(Collectors.toList());
             Map<String, Long> nodeSizeMap = new HashMap<>();
             partitions.forEach(partition -> partition.getNodeFileMap().forEach((node, files) -> {
                 Long size = nodeSizeMap.computeIfAbsent(node, n -> 0L);
@@ -283,17 +276,16 @@ public class ClickHouseLoad extends AbstractExecutable {
                 nodeGroups[it.nextIndex()] = it.next().getNodeNames().toArray(new String[0]);
             }
             ShardOptions options = new ShardOptions(ShardOptions.buildReplicaSharding(nodeGroups));
-            Load load;
-            if (isIncrementalBuild) {
-                load = new IncrementalLoad(mc.database, mc.prefixTableName, createTableEngine());
-            } else {
-                load = new FullLoad(mc.database, mc.prefixTableName, createTableEngine());
-            }
+            boolean isIncremental = mc.isIncremental(getSegmentIds());
+            DataLoader dataLoader = new DataLoader(mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
             val replicaNum = options.replicaShards().length;
             List<List<LoadInfo>> tempLoadInfos = new ArrayList<>();
             for (val shards : options.replicaShards()) {
-                val sortedShards = Arrays.stream(shards).sorted(Comparator.comparingLong(node -> nodeSizeMap.getOrDefault(node, 0L))).collect(Collectors.toList());
-                List<LoadInfo> infoList = distributeLoad(mc.df, mc.indexPlan(), mc.tablePlan(), sortedShards.toArray(new String[]{}));
+                val sortedShards = Arrays.stream(shards)
+                        .sorted(Comparator.comparingLong(node -> nodeSizeMap.getOrDefault(node, 0L)))
+                        .collect(Collectors.toList());
+                List<LoadInfo> infoList = distributeLoad(mc.df, mc.indexPlan(), mc.tablePlan(),
+                        sortedShards.toArray(new String[] {}));
                 infoList = preprocessLoadInfo(infoList);
                 tempLoadInfos.add(infoList);
             }
@@ -306,26 +298,23 @@ public class ClickHouseLoad extends AbstractExecutable {
             }).collect(Collectors.toList());
 
             for (List<LoadInfo> infoBatch : loadInfos)
-                load.load(infoBatch);
+                dataLoader.load(infoBatch);
 
             updateMeta();
             return ExecuteResult.createSucceed();
         });
     }
 
-
     protected void updateMeta() {
         Preconditions.checkArgument(this.getLoadInfos() != null, "no load info found");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             final MethodContext mc = new MethodContext(this);
             val isIncrementalBuild = mc.isIncremental(getSegmentIds());
-            return mc.tableFlow().update(copied ->
-                    this.getLoadInfos().stream().flatMap(Collection::stream).forEach(loadInfo ->
-                            loadInfo.upsertTableData(
-                                    copied,
-                                    mc.database,
+            return mc.tableFlow()
+                    .update(copied -> this.getLoadInfos().stream().flatMap(Collection::stream)
+                            .forEach(loadInfo -> loadInfo.upsertTableData(copied, mc.database,
                                     mc.prefixTableName.apply(loadInfo.getLayout()),
-                                    isIncrementalBuild ? PartitionType.INCREMENTAL : PartitionType.FULL)));},
-                    project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+                                    isIncrementalBuild ? PartitionType.INCREMENTAL : PartitionType.FULL)));
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 }

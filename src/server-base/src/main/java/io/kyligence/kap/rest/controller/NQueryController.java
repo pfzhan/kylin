@@ -55,7 +55,6 @@ import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.exception.QueryErrorCode;
@@ -145,7 +144,7 @@ public class NQueryController extends NBasicController {
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponse, "");
     }
 
     @ApiOperation(value = "cancelQuery", tags = { "QE" })
@@ -154,7 +153,7 @@ public class NQueryController extends NBasicController {
     public EnvelopeResponse<String> stopQuery(@PathVariable("id") String id) {
         queryService.stopQuery(id);
         EventBusFactory.getInstance().postAsync(new StopQueryBroadcastEventNotifier(id));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     // TODO should be just "prepare" a statement, get back expected ResultSetMetaData
@@ -170,7 +169,7 @@ public class NQueryController extends NBasicController {
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
     }
 
     @ApiOperation(value = "savedQueries", tags = { "QE" })
@@ -182,7 +181,7 @@ public class NQueryController extends NBasicController {
         Query newQuery = new Query(queryName, sqlRequest.getProject(), sqlRequest.getSql(),
                 sqlRequest.getDescription());
         queryService.saveQuery(creator, sqlRequest.getProject(), newQuery);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "removeSavedQueries", tags = { "QE" })
@@ -193,7 +192,7 @@ public class NQueryController extends NBasicController {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         queryService.removeSavedQuery(creator, project, id);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getSavedQueries", tags = { "QE" })
@@ -206,7 +205,7 @@ public class NQueryController extends NBasicController {
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         List<Query> savedQueries = queryService.getSavedQueries(creator, project).getQueries();
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(savedQueries, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(savedQueries, offset, limit), "");
     }
 
     @ApiOperation(value = "downloadQueryHistories", tags = {"QE"})
@@ -252,7 +251,7 @@ public class NQueryController extends NBasicController {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "downloadQueryHistoriesSql", tags = {"QE"})
@@ -284,7 +283,7 @@ public class NQueryController extends NBasicController {
             throw new KylinException(FAILED_DOWNLOAD_FILE, e.getMessage());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getQueryHistories", tags = { "QE" })
@@ -306,7 +305,7 @@ public class NQueryController extends NBasicController {
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
                 latencyTo, sql, server, submitter, null, null, queryStatus, realizations, false, null, true);
         checkGetQueryHistoriesParam(request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
     }
 
@@ -323,7 +322,7 @@ public class NQueryController extends NBasicController {
         checkGetQueryHistoriesParam(request);
         Map<String, Object> queryHistories = QueryHisTransformStandardUtil.transformQueryHistory(
                 queryHistoryService.getQueryHistories(request, size, offset));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistories, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryHistories, "");
     }
 
 
@@ -339,7 +338,7 @@ public class NQueryController extends NBasicController {
         request.setFilterSubmitter(submitter);
         request.setSubmitterExactlyMatch(false);
         checkGetQueryHistoriesParam(request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryUsernames(request, size), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryHistoryService.getQueryHistoryUsernames(request, size), "");
     }
 
     @ApiOperation(value = "getQueryHistoryModels", tags = { "QE" }, notes = "Update Param: project, model_name")
@@ -353,7 +352,7 @@ public class NQueryController extends NBasicController {
         request.setProject(project);
         request.setFilterModelName(modelAlias);
         List<String> modelNames = queryHistoryService.getQueryHistoryModels(request, size);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelNames, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelNames, "");
     }
 
     @ApiOperation(value = "getServers", tags = { "QE" })
@@ -362,9 +361,9 @@ public class NQueryController extends NBasicController {
     public EnvelopeResponse<List> getServers(
             @RequestParam(value = "ext", required = false, defaultValue = "false") boolean ext) {
         if (ext) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getServers(), "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, clusterManager.getServers(), "");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                     clusterManager.getServers().stream().map(ServerInfoResponse::getHost).collect(Collectors.toList()),
                     "");
         }
@@ -440,14 +439,14 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.getMetadataV2(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.getMetadataV2(project), "");
     }
 
     @GetMapping(value = "/statistics")
     public EnvelopeResponse<QueryStatisticsResponse> getQueryStatistics(@RequestParam("project") String project,
             @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 queryHistoryService.getQueryStatistics(project, startTime, endTime), "");
     }
 
@@ -456,7 +455,7 @@ public class NQueryController extends NBasicController {
             @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime,
             @RequestParam("dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 queryHistoryService.getQueryCount(project, startTime, endTime, dimension), "");
     }
 
@@ -465,7 +464,7 @@ public class NQueryController extends NBasicController {
             @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime,
             @RequestParam("dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 queryHistoryService.getAvgDuration(project, startTime, endTime, dimension), "");
     }
 
@@ -473,13 +472,13 @@ public class NQueryController extends NBasicController {
     @GetMapping(value = "/history_queries/table_names")
     public EnvelopeResponse<Map<String, String>> getQueryHistoryTableNames(
             @RequestParam(value = "projects", required = false) List<String> projects) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects),
                 "");
     }
 
     @PutMapping(value = "/format")
     public EnvelopeResponse<List<String>> formatQuery(@RequestBody SQLFormatRequest request) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.format(request.getSqls()), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.format(request.getSqls()), "");
     }
 
     private void checkQueryName(String queryName) {

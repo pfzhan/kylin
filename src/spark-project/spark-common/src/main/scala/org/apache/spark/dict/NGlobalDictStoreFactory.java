@@ -54,7 +54,7 @@ public class NGlobalDictStoreFactory {
     public static NGlobalDictStore getResourceStore(String baseDir) {
         try {
             Class<? extends NGlobalDictStore> clz = ClassUtil.forName(getGlobalDictStoreImpl(), NGlobalDictStore.class);
-            log.info("Use global dict store impl {}", clz.getCanonicalName());
+            log.trace("Use global dict store impl {}", clz.getCanonicalName());
             return clz.getConstructor(String.class).newInstance(baseDir);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to create global dict store", e);

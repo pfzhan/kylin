@@ -232,11 +232,11 @@ object SparderQueryTest extends Logging {
     val cubeSize = cubeSchema.size
     val sparkSize = sparkSchema.size
     assert(cubeSize == sparkSize, s"$cubeSize did not equal $sparkSize")
-    for (i <- 0 to cubeSize - 1) {
+    for (i <- 0 until cubeSize) {
       val cubeStructField = cubeSchema.get(i)
       val sparkStructField = SparderTypeUtil.convertSparkFieldToJavaField(sparkSchema.apply(i))
       assert(isSameDataType(cubeStructField, sparkStructField),
-        s"${cubeStructField.getDataTypeName()} did not equal ${sparkSchema.apply(i).dataType.toString()}")
+        s"${cubeStructField.getDataTypeName} did not equal ${sparkSchema.apply(i).dataType.toString}")
     }
   }
 

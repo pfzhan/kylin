@@ -246,10 +246,6 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
         val dfMgr = NDataflowManager.getInstance(config, "default");
         val df = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        dfMgr.updateDataflow(df.getId(), copyForWrite -> {
-            copyForWrite.setCreateTimeUTC(System.currentTimeMillis());
-        });
-
         val execMgr = NExecutableManager.getInstance(config, "default");
         val job1 = new DefaultChainedExecutable();
         job1.setId("job1");

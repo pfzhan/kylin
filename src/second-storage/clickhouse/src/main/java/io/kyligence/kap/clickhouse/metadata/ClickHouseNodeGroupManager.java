@@ -23,29 +23,34 @@
  */
 package io.kyligence.kap.clickhouse.metadata;
 
-
-import io.kyligence.kap.secondstorage.metadata.NManager;
-import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.Manager;
+import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 
+import static io.kyligence.kap.clickhouse.ClickHouseConstants.NODE_GROUP;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.RES_PATH_FMT;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.STORAGE_NAME;
-import static io.kyligence.kap.clickhouse.ClickHouseConstants.DATA;
 
-public class NClickHouseFlowManager extends NManager<TableFlow> {
+public class ClickHouseNodeGroupManager extends Manager<NodeGroup> {
 
-    private static final Logger logger = LoggerFactory.getLogger(NClickHouseFlowManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClickHouseNodeGroupManager.class);
+
+    private ClickHouseNodeGroupManager(KylinConfig cfg, final String project) {
+        super(cfg, project);
+    }
 
     // called by reflection
-    static NClickHouseFlowManager newInstance(KylinConfig config, String project) {
-        return new NClickHouseFlowManager(config, project);
+    static ClickHouseNodeGroupManager newInstance(KylinConfig config, String project) {
+        return new ClickHouseNodeGroupManager(config, project);
     }
-    private NClickHouseFlowManager(KylinConfig cfg, String project) {
-        super(cfg, project);
+
+    @Override
+    protected NodeGroup newRootEntity(String cubeName) {
+        return NodeGroup.builder().build();
     }
 
     @Override
@@ -55,25 +60,17 @@ public class NClickHouseFlowManager extends NManager<TableFlow> {
 
     @Override
     public String name() {
-        return "NClickHouseFlowManager";
+        return "ClickHouseNodeGroupManager";
     }
 
     @Override
     public String rootPath() {
-        return String.format(Locale.ROOT, RES_PATH_FMT, project, STORAGE_NAME, DATA);
+        return String.format(Locale.ROOT, RES_PATH_FMT, project, STORAGE_NAME, NODE_GROUP);
     }
 
     @Override
-    public Class<TableFlow> entityType() {
-        return TableFlow.class;
+    public Class<NodeGroup> entityType() {
+        return NodeGroup.class;
     }
 
-    @Override
-    protected TableFlow newRootEntity(String cubeName) {
-        final String description = "create by newRootEntity";
-        return TableFlow.builder()
-                .setModel(cubeName)
-                .setDescription(description)
-                .build();
-    }
 }

@@ -35,7 +35,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +85,7 @@ public class KEStatusChecker extends AbstractHealthChecker {
     CheckResult doCheck() {
         try {
             EnvelopeResponse<Status> response = getHealthStatus();
-            if (!ResponseCode.CODE_SUCCESS.equals(response.code)) {
+            if (!KylinException.CODE_SUCCESS.equals(response.code)) {
                 if (PERMISSION_DENIED.equals(response.getMsg())) {
                     setKgSecretKey(null);
                 }

@@ -55,7 +55,6 @@ import java.io.StringReader;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -64,14 +63,11 @@ import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
-import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OrderedProperties;
 import org.slf4j.Logger;
@@ -80,7 +76,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 
 /**
  */
@@ -123,9 +121,8 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     @ThirdPartyDependencies({
-            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager",
-                    classes = {"StaticAuthenticationProvider", "StaticUserGroupService"})
-    })
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "StaticAuthenticationProvider", "StaticUserGroupService" }) })
     public static KylinConfig getInstanceFromEnv() {
         KylinConfig config = THREAD_ENV_INSTANCE.get();
         if (config != null) {
@@ -192,7 +189,6 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-
     public enum UriType {
         PROPERTIES_FILE, REST_ADDR, LOCAL_FOLDER, HDFS_FILE
     }
@@ -218,12 +214,8 @@ public class KylinConfig extends KylinConfigBase {
                     throw new IllegalStateException(
                             "Metadata uri : " + metaUri + " looks like a file but it's neither a file nor a directory");
                 }
-            } else {
-                if (RestClient.matchFullRestPattern(metaUri))
-                    return UriType.REST_ADDR;
-                else
-                    throw new IllegalStateException("Metadata uri : " + metaUri + " is not a valid REST URI address");
             }
+            throw new IllegalStateException("Metadata uri : " + metaUri + " is not recognized");
         } catch (Exception e) {
             throw new IllegalStateException("Metadata uri : " + metaUri + " is not recognized", e);
         }
@@ -234,8 +226,6 @@ public class KylinConfig extends KylinConfigBase {
          * --hbase:
          *
          * 1. PROPERTIES_FILE: path to kylin.properties
-         * 2. REST_ADDR: rest service resource, format: user:password@host:port
-         *
          * --local:
          *
          * 1.  LOCAL_FOLDER: path to resource folder
@@ -257,19 +247,8 @@ public class KylinConfig extends KylinConfigBase {
                 throw new RuntimeException(e);
             }
             return config;
-        } else {// rest_addr
-            try {
-                KylinConfig config = new KylinConfig();
-                RestClient client = new RestClient(uri);
-                String propertyText = client.getKylinProperties();
-                InputStream is = IOUtils.toInputStream(propertyText, Charset.defaultCharset());
-                Properties prop = streamToTrimProps(is);
-                config.reloadKylinConfig(prop);
-                return config;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
+        throw new RuntimeException("not implement");
     }
 
     public static Properties streamToTrimProps(InputStream is) throws IOException {

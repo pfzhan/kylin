@@ -32,7 +32,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import org.apache.kylin.common.KylinConfig;
@@ -83,8 +83,8 @@ public class SecondStorageJobUtil extends ExecutableUtil {
             throw new KylinException(FAILED_CREATE_JOB, MsgPicker.getMsg().getADD_JOB_CHECK_SEGMENT_READY_FAIL());
         }
 
-        NManager<TablePlan> tablePlanManager = SecondStorage.tablePlanManager(config, project);
-        NManager<TableFlow> tableFlowManager = SecondStorage.tableFlowManager(config, project);
+        Manager<TablePlan> tablePlanManager = SecondStorage.tablePlanManager(config, project);
+        Manager<TableFlow> tableFlowManager = SecondStorage.tableFlowManager(config, project);
         TablePlan plan = tablePlanManager.makeSureRootEntity(model);
         tableFlowManager.makeSureRootEntity(model);
         Map<Long, List<LayoutEntity>> layouts = segments.get(0)

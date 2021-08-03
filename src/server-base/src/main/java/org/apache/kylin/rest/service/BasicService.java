@@ -56,7 +56,7 @@ import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.restclient.RestClient;
+import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;

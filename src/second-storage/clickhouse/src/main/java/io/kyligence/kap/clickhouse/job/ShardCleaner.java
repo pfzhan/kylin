@@ -24,8 +24,18 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import java.sql.Date;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Objects;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.msgpack.core.Preconditions;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.ddl.AlterTable;
@@ -33,20 +43,12 @@ import io.kyligence.kap.secondstorage.ddl.DropDatabase;
 import io.kyligence.kap.secondstorage.ddl.DropTable;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.msgpack.core.Preconditions;
-
-import java.sql.Date;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Slf4j
-public class ShardClean {
+public class ShardCleaner {
     @JsonProperty("node")
     private String node;
     @JsonProperty("database")
@@ -61,22 +63,22 @@ public class ShardClean {
     @JsonIgnore
     private ClickHouse clickHouse;
 
-    public ShardClean() {
+    public ShardCleaner() {
     }
 
-    public ShardClean(String node, String database) {
+    public ShardCleaner(String node, String database) {
         this(node, database, null, null);
     }
 
-    public ShardClean(String node, String database, String table) {
+    public ShardCleaner(String node, String database, String table) {
         this(node, database, table, null);
     }
 
-    public ShardClean(String node, String database, String table, List<Date> partitions) {
+    public ShardCleaner(String node, String database, String table, List<Date> partitions) {
         this(node, database, table, partitions, false);
     }
 
-    public ShardClean(String node, String database, String table, List<Date> partitions, boolean isFull) {
+    public ShardCleaner(String node, String database, String table, List<Date> partitions, boolean isFull) {
         this.node = Preconditions.checkNotNull(node);
         this.database = Preconditions.checkNotNull(database);
         this.table = table;
@@ -90,7 +92,8 @@ public class ShardClean {
             try {
                 clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve(node));
             } catch (SQLException e) {
-                log.error("node {} connect failed, jdbc url: {}. Please check node status.", node, SecondStorageNodeHelper.resolve(node));
+                log.error("node {} connect failed, jdbc url: {}. Please check node status.", node,
+                        SecondStorageNodeHelper.resolve(node));
                 return ExceptionUtils.rethrow(e);
             }
         }
@@ -122,9 +125,8 @@ public class ShardClean {
         } else {
             log.debug("drop partitions in table {}.{}: {}", database, table, partitions);
             for (val partition : partitions) {
-                alterTable = new AlterTable(TableIdentifier.table(database, table),
-                        new AlterTable.ManipulatePartition(Objects.toString(partition),
-                                AlterTable.PartitionOperation.DROP));
+                alterTable = new AlterTable(TableIdentifier.table(database, table), new AlterTable.ManipulatePartition(
+                        Objects.toString(partition), AlterTable.PartitionOperation.DROP));
                 Preconditions.checkNotNull(getClickHouse()).apply(alterTable.toSql(getRender()));
             }
         }

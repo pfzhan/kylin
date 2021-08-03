@@ -28,7 +28,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,7 +61,7 @@ public class NProjectControllerV2 extends NBasicController {
 
         List<ProjectInstance> readableProjects = projectService.getReadableProjects(project, exactMatch);
         HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, size);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projects, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projects, "");
     }
 
 }

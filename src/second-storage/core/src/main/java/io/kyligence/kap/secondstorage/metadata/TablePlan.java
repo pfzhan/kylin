@@ -71,10 +71,10 @@ public class TablePlan extends RootPersistentEntity
         return new Builder();
     }
 
-    protected transient NManager<TablePlan> manager;
+    protected transient Manager<TablePlan> manager;
 
     @Override
-    public void setManager(NManager<TablePlan> manager) {
+    public void setManager(Manager<TablePlan> manager) {
         this.manager = manager;
     }
 

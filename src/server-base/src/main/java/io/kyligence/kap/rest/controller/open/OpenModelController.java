@@ -47,7 +47,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -203,7 +202,7 @@ public class OpenModelController extends NBasicController {
         List<IndexDetail> detailList = Lists.newArrayList();
         listDataResult.forEach(indexResponse -> detailList.add(IndexDetail.newIndexDetail(indexResponse)));
         response.setIndexDetailList(detailList);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     static List<IndexEntity.Status> checkIndexStatus(List<String> statusList) {
@@ -377,7 +376,7 @@ public class OpenModelController extends NBasicController {
             @PathVariable("model") String modelAlias) {
         String projectName = checkProjectName(project);
         NModelDescResponse result = modelService.getModelDesc(modelAlias, projectName);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "update partition for single-partition model and forward compatible", tags = { "DW" })
@@ -398,7 +397,7 @@ public class OpenModelController extends NBasicController {
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
         modelService.updateDataModelParatitionDesc(projectName, modelAlias, modelParatitionDescRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "couldAnsweredByExistedModel", tags = { "AI" })
@@ -409,7 +408,7 @@ public class OpenModelController extends NBasicController {
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
         List<NDataModel> models = modelService.couldAnsweredByExistedModels(request.getProject(), request.getSqls());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 models.stream().map(NDataModel::getAlias).collect(Collectors.toList()), "");
     }
 
@@ -451,7 +450,7 @@ public class OpenModelController extends NBasicController {
         aclEvaluate.checkProjectWritePermission(request.getProject());
         checkNotEmpty(request.getSqls());
         OpenModelValidationResponse response = batchSqlValidate(request.getProject(), request.getSqls());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildIndicesManually", tags = { "AI" })
@@ -479,7 +478,7 @@ public class OpenModelController extends NBasicController {
         String modelId = getModel(modelAlias, projectName).getId();
         checkRequiredArg(NModelController.MODEL_ID, modelId);
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(projectName, modelId, recActionType);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 new OpenOptRecLayoutsResponse(projectName, modelId, response), "");
     }
 
@@ -507,7 +506,7 @@ public class OpenModelController extends NBasicController {
         } else {
             approvedModelIndexes = optRecService.batchApprove(projectName, request.getRecActionType());
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 new OpenRecApproveResponse(projectName, approvedModelIndexes), "");
     }
 
@@ -520,7 +519,7 @@ public class OpenModelController extends NBasicController {
         request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
     }
 
     @ApiOperation(value = "optimizeModels", tags = { "AI" })
@@ -533,7 +532,7 @@ public class OpenModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         checkNotEmpty(request.getSqls());
         request.setForce2CreateNewModel(false);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
     }
 
     @ApiOperation(value = "deleteModel", tags = { "AI" })
@@ -557,7 +556,7 @@ public class OpenModelController extends NBasicController {
         checkRequiredArg("start", request.getStart());
         checkRequiredArg("end", request.getEnd());
         validateDataRange(request.getStart(), request.getEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 modelService.checkSegments(request.getProject(), modelAlias, request.getStart(), request.getEnd()), "");
     }
 
@@ -608,7 +607,7 @@ public class OpenModelController extends NBasicController {
         checkRequiredArg("sub_partition_values", subPartitionValues);
         NDataModel model = getModel(modelAlias, projectName);
         modelService.deletePartitionsByValues(project, segmentId, model.getId(), subPartitionValues);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "addMultiPartitionValues", notes = "Add URL: {model}", tags = { "DW" })

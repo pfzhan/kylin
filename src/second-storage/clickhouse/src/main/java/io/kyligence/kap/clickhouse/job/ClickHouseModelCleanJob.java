@@ -29,7 +29,7 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.metadata.NManager;
+import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import lombok.val;
@@ -57,7 +57,7 @@ public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
         setProject(builder.df.getProject());
         long startTime = Long.MAX_VALUE - 1;
         long endTime = 0L;
-        Optional<NManager<TableFlow>> manager = SecondStorageUtil.tableFlowManager(builder.df);
+        Optional<Manager<TableFlow>> manager = SecondStorageUtil.tableFlowManager(builder.df);
         Preconditions.checkState(manager.isPresent());
         Optional<TableFlow> tableFlow = manager.get().get(builder.df.getId());
         Preconditions.checkState(tableFlow.isPresent());

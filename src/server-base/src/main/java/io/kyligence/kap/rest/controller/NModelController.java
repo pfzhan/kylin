@@ -57,7 +57,6 @@ import org.apache.kylin.common.exception.CommonErrorCode;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -188,7 +187,7 @@ public class NModelController extends NBasicController {
                 owner, status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes,
                 lastModifyFrom, lastModifyTo, onlyNormalDim);
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, filterModels, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, filterModels, "");
     }
 
     @ApiOperation(value = "offlineAllModelsInProject", tags = {
@@ -198,7 +197,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> offlineAllModelsInProject(@RequestParam("project") String project) {
         checkProjectName(project);
         modelService.offlineAllModelsInProject(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "offlineAllModelsInProject", tags = {
@@ -208,7 +207,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> onlineAllModelsInProject(@RequestParam("project") String project) {
         checkProjectName(project);
         modelService.onlineAllModelsInProject(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "createModel", tags = { "AI" })
@@ -223,7 +222,7 @@ public class NModelController extends NBasicController {
         validateDataRange(modelRequest.getStart(), modelRequest.getEnd(), partitionDateFormat);
         try {
             NDataModel model = modelService.createModel(modelRequest.getProject(), modelRequest);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                     BuildBaseIndexResponse.from(modelService.getIndexPlan(model.getId(), model.getProject())), "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e);
@@ -240,7 +239,7 @@ public class NModelController extends NBasicController {
         checkProjectNotSemiAuto(project);
         try {
             modelService.batchCreateModel(project, modelRequests, Lists.newArrayList());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
         }
@@ -254,7 +253,7 @@ public class NModelController extends NBasicController {
         checkProjectNotSemiAuto(request.getProject());
         AbstractContext proposeContext = modelService.suggestModel(request.getProject(), request.getSqls(),
                 request.getReuseExistedModel(), true);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 modelService.buildModelSuggestionResponse(proposeContext), "");
     }
 
@@ -270,7 +269,7 @@ public class NModelController extends NBasicController {
                 req.setWithEmptySegment(request.isWithEmptySegment());
             });
             modelService.batchCreateModel(request.getProject(), request.getNewModels(), request.getReusedModels());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
         }
@@ -285,7 +284,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<Boolean> validateModelAlias(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         checkRequiredArg(MODEL_ID, modelRequest.getUuid());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, !modelService
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, !modelService
                 .checkModelAliasUniqueness(modelRequest.getUuid(), modelRequest.getAlias(), modelRequest.getProject()),
                 "");
     }
@@ -296,7 +295,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
         checkProjectNotSemiAuto(request.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 modelService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
     }
 
@@ -317,7 +316,7 @@ public class NModelController extends NBasicController {
         List<String> status = nonOffline ? modelService.getModelNonOffOnlineStatus()
                 : Collections.singletonList(ModelStatusToDisplayEnum.OFFLINE.name());
         List<String> scd2ModelsOnline = modelService.getSCD2ModelsAliasByStatus(project, status);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, scd2ModelsOnline, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, scd2ModelsOnline, "");
     }
 
     /**
@@ -334,7 +333,7 @@ public class NModelController extends NBasicController {
             onlineStatus = modelService.getModelNonOffOnlineStatus();
         }
         List<String> multiPartitionModels = modelService.getMultiPartitionModelsAlias(project, onlineStatus);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, multiPartitionModels, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, multiPartitionModels, "");
     }
 
     @ApiOperation(value = "getLatestData", tags = { "AI" }, notes = "Update URL: {model}")
@@ -366,7 +365,7 @@ public class NModelController extends NBasicController {
             throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getAggIndices", tags = {
@@ -386,7 +385,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         val result = modelService.getAggIndices(project, modelId, indexId, contentSeg, isCaseSensitive, pageOffset,
                 pageSize, sortBy, reverse);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "updateAggIndicesShardColumns", tags = {
@@ -399,7 +398,7 @@ public class NModelController extends NBasicController {
         aggShardByColumnsRequest.setModelId(modelId);
         checkRequiredArg(MODEL_ID, aggShardByColumnsRequest.getModelId());
         fusionIndexService.updateShardByColumns(aggShardByColumnsRequest.getProject(), aggShardByColumnsRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getAggIndicesShardColumns", tags = {
@@ -410,7 +409,7 @@ public class NModelController extends NBasicController {
             @PathVariable(value = "model") String modelId, @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, indexPlanService.getShardByColumns(project, modelId),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, indexPlanService.getShardByColumns(project, modelId),
                 "");
     }
 
@@ -422,7 +421,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getTableIndices(modelId, project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.getTableIndices(modelId, project), "");
     }
 
     @ApiOperation(value = "buildIndicesManually", tags = { "DW" }, notes = "Update URL: {model}")
@@ -436,7 +435,7 @@ public class NModelController extends NBasicController {
         modelService.validateCCType(modelId, request.getProject());
 
         val response = modelService.buildIndicesManually(modelId, request.getProject(), request.getPriority());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getModelJson", tags = { "AI" }, notes = "Update URL: {model}")
@@ -449,7 +448,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         try {
             String json = modelService.getModelJson(modelId, project);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, json, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, json, "");
         } catch (JsonProcessingException e) {
             throw new RuntimeException("can not get model json " + e);
         }
@@ -465,7 +464,7 @@ public class NModelController extends NBasicController {
 
         try {
             String sql = modelService.getModelSql(modelId, project);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sql, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sql, "");
         } catch (Exception e) {
             throw new RuntimeException("can not get model sql, " + e);
         }
@@ -486,13 +485,13 @@ public class NModelController extends NBasicController {
         if ("TOGGLE_PARTITION".equals(action)) {
             modelService.checkSingleIncrementingLoadingTable(project, tableName);
             val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, affectedModelResponse, "");
         } else if ("DROP_TABLE".equals(action)) {
             val affectedModelResponse = modelService.getAffectedModelsByDeletingTable(tableName, project);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, affectedModelResponse, "");
         } else if ("RELOAD_ROOT_FACT".equals(action)) {
             val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, affectedModelResponse, "");
         } else {
             throw new IllegalArgumentException();
         }
@@ -504,7 +503,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<InvalidIndexesResponse> detectInvalidIndexes(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
         InvalidIndexesResponse response = modelService.detectInvalidIndexes(request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "updateModelSemantic", tags = { "AI" })
@@ -523,7 +522,7 @@ public class NModelController extends NBasicController {
             } else {
                 response = fusionModelService.updateDataModelSemantic(request.getProject(), request);
             }
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
         } catch (LookupTableException e) {
             logger.error("Update model failed", e);
             throw new KylinException(FAILED_UPDATE_MODEL, e);
@@ -545,7 +544,7 @@ public class NModelController extends NBasicController {
         try {
             modelService.updatePartitionColumn(request.getProject(), modelId, request.getPartitionDesc(),
                     request.getMultiPartitionDesc());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             logger.error("Change partition failed", e);
             throw new KylinException(FAILED_UPDATE_MODEL, e);
@@ -566,7 +565,7 @@ public class NModelController extends NBasicController {
         }
 
         fusionModelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "updateModelStatus", tags = { "AI" }, notes = "Update Body: model_id, new_model_name")
@@ -577,7 +576,7 @@ public class NModelController extends NBasicController {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         modelService.updateDataModelStatus(modelId, modelRenameRequest.getProject(), modelRenameRequest.getStatus());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "unlinkModel", tags = { "AI" }, notes = "Update Body: model_id")
@@ -588,7 +587,7 @@ public class NModelController extends NBasicController {
         checkProjectName(unlinkModelRequest.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         modelService.unlinkModel(modelId, unlinkModelRequest.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "deleteModel", tags = { "AI" }, notes = "Update URL: {project}; Update Param: project")
@@ -598,7 +597,7 @@ public class NModelController extends NBasicController {
             @RequestParam("project") String project) {
         checkProjectName(project);
         fusionModelService.dropModel(model, project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getPurgeModelAffectedResponse", tags = { "AI" }, notes = "Add URL: {model}")
@@ -608,7 +607,7 @@ public class NModelController extends NBasicController {
             @PathVariable(value = "model") String model, @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, model);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 modelService.getPurgeModelAffectedResponse(project, model), "");
     }
 
@@ -626,7 +625,7 @@ public class NModelController extends NBasicController {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "checkComputedColumns", tags = {
@@ -642,7 +641,7 @@ public class NModelController extends NBasicController {
         modelService.primaryCheck(modelDesc);
         ComputedColumnCheckResponse response = modelService.checkComputedColumn(modelDesc, modelRequest.getProject(),
                 modelRequest.getCcInCheck());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "getComputedColumnUsage", tags = { "AI" })
@@ -651,7 +650,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<ComputedColumnUsageResponse> getComputedColumnUsage(
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getComputedColumnUsages(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.getComputedColumnUsages(project), "");
     }
 
     @Deprecated
@@ -663,7 +662,7 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         modelService.updateModelDataCheckDesc(request.getProject(), modelId, request.getCheckOptions(),
                 request.getFaultThreshold(), request.getFaultActions());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getModelConfig", tags = { "AI" }, notes = "Update Param: model_name, page_offset, page_size")
@@ -676,7 +675,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         val modelConfigs = modelService.getModelConfig(project, modelAlias);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(modelConfigs, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(modelConfigs, offset, limit), "");
     }
 
     @ApiOperation(value = "updateModelConfig", tags = { "AI" })
@@ -686,7 +685,7 @@ public class NModelController extends NBasicController {
             @RequestBody ModelConfigRequest request) {
         checkProjectName(request.getProject());
         modelService.updateModelConfig(request.getProject(), modelId, request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
@@ -706,7 +705,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<ModelSaveCheckResponse> checkBeforeModelSave(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         ModelSaveCheckResponse response = modelService.checkBeforeModelSave(modelRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "updateModelOwner", tags = { "AI" })
@@ -717,7 +716,7 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg("owner", request.getOwner());
         fusionModelService.updateModelOwner(request.getProject(), modelId, request);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     /* Segments */
@@ -742,7 +741,7 @@ public class NModelController extends NBasicController {
         validateRange(start, end);
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(dataflowId, project, start, end, status,
                 withAllIndexes, withoutAnyIndexes, allToComplement, sortBy, reverse);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
     }
 
     @ApiOperation(value = "fixSegmentsManually", tags = { "DW" }, notes = "Add URL: {model}")
@@ -757,7 +756,7 @@ public class NModelController extends NBasicController {
                 .forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd(), partitionColumnFormat));
         JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
                 segmentsRequest.getSegmentHoles(), segmentsRequest.getIgnoredSnapshotTables());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "checkSegments", tags = { "DW" })
@@ -771,7 +770,7 @@ public class NModelController extends NBasicController {
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, res, "");
     }
 
     @ApiOperation(value = "checkSegmentsIfDelete", tags = { "DW" })
@@ -781,7 +780,7 @@ public class NModelController extends NBasicController {
             @RequestParam("project") String project, @RequestParam(value = "ids", required = false) String[] ids) {
         checkProjectName(project);
         val res = modelService.checkSegHoleIfSegDeleted(model, project, ids);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, res, "");
     }
 
     @ApiOperation(value = "deleteSegments", tags = { "DW" }, notes = "Update URL: {project}; Update Param: project")
@@ -806,7 +805,7 @@ public class NModelController extends NBasicController {
             modelService.deleteSegmentById(dataflowId, project, idsDeleted, force);
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "refreshOrMergeSegments", tags = { "DW" }, notes = "Add URL: {model}")
@@ -841,7 +840,7 @@ public class NModelController extends NBasicController {
         }
         JobInfoResponse response = new JobInfoResponse();
         response.setJobs(jobInfos);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "refreshOrMergeSegments", tags = { "DW" })
@@ -855,7 +854,7 @@ public class NModelController extends NBasicController {
         }
         Pair<Long, Long> merged = modelService
                 .checkMergeSegments(new MergeSegmentParams(request.getProject(), modelId, request.getIds()));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 new MergeSegmentCheckResponse(merged.getFirst(), merged.getSecond()), "");
     }
 
@@ -873,7 +872,7 @@ public class NModelController extends NBasicController {
                 buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
                 buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority(),
                 buildSegmentsRequest.isBuildAllSubPartitions());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildSegmentsManually", tags = { "DW" }, notes = "Add URL: {model}")
@@ -896,7 +895,7 @@ public class NModelController extends NBasicController {
                         .withBuildAllSubPartitions(buildSegmentsRequest.isBuildAllSubPartitions());
 
         JobInfoResponse response = fusionModelService.incrementBuildSegmentsManually(incrParams);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildSegmentsManually", tags = { "DW" }, notes = "Add URL: {model}")
@@ -906,7 +905,7 @@ public class NModelController extends NBasicController {
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
         val response = fusionModelService.addIndexesToSegments(modelId, buildSegmentsRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildSegmentsManually", tags = { "DW" }, notes = "Add URL: {model}")
@@ -918,7 +917,7 @@ public class NModelController extends NBasicController {
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment(),
                 buildSegmentsRequest.getPriority());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildSegmentsManually", tags = { "DW" }, notes = "Add URL: {model}")
@@ -929,7 +928,7 @@ public class NModelController extends NBasicController {
         checkProjectName(deleteSegmentsRequest.getProject());
         modelService.removeIndexesFromSegments(deleteSegmentsRequest.getProject(), modelId,
                 deleteSegmentsRequest.getSegmentIds(), deleteSegmentsRequest.getIndexIds());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "export model", tags = { "QE" }, notes = "Add URL: {model}")
@@ -983,7 +982,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
         val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
                 param.getSubPartitionValues(), param.isParallelBuildBySegment(), param.isBuildAllSubPartitions());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildMultiPartition", tags = { "DW" })
@@ -994,7 +993,7 @@ public class NModelController extends NBasicController {
         checkProjectName(param.getProject());
         checkRequiredArg("segment_id", param.getSegmentId());
         val response = modelService.refreshSegmentPartition(param, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "deleteMultiPartition", tags = { "DW" })
@@ -1007,7 +1006,7 @@ public class NModelController extends NBasicController {
         HashSet<Long> partitions = Sets.newHashSet();
         Arrays.stream(ids).forEach(id -> partitions.add(Long.parseLong(id)));
         modelService.deletePartitions(project, segment, modelId, partitions);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getMultiPartitions", tags = { "DW" })
@@ -1023,7 +1022,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         val responseList = modelService.getSegmentPartitions(project, modelId, segId, status, sortBy, reverse);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responseList, pageOffset, pageSize),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(responseList, pageOffset, pageSize),
                 "");
     }
 
@@ -1034,7 +1033,7 @@ public class NModelController extends NBasicController {
             @RequestBody MultiPartitionMappingRequest mappingRequest) {
         checkProjectName(mappingRequest.getProject());
         modelService.updateMultiPartitionMapping(mappingRequest.getProject(), modelId, mappingRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "getMultiPartitionValues", tags = { "DW" }, notes = "Add URL: {model}")
@@ -1043,7 +1042,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<List<MultiPartitionValueResponse>> getMultiPartitionValues(
             @PathVariable("model") String modelId, @RequestParam("project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getMultiPartitionValues(project, modelId),
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.getMultiPartitionValues(project, modelId),
                 "");
     }
 
@@ -1054,7 +1053,7 @@ public class NModelController extends NBasicController {
             @RequestBody UpdateMultiPartitionValueRequest request) {
         checkProjectName(request.getProject());
         modelService.addMultiPartitionValues(request.getProject(), modelId, request.getSubPartitionValues());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "deleteMultiPartitionValues", tags = { "DW" }, notes = "Add URL: {model}")
@@ -1064,7 +1063,7 @@ public class NModelController extends NBasicController {
             @RequestParam("project") String project, @RequestParam(value = "ids") Long[] ids) {
         checkProjectName(project);
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(ids));
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
 }
