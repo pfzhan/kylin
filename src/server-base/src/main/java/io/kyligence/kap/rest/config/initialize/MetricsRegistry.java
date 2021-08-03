@@ -407,7 +407,7 @@ public class MetricsRegistry {
                     project, tags, generateJobStatisticsTags.apply(type.name()));
             PrometheusMetricsGroup.newCounterFromDropwizard(PrometheusMetrics.SUCCESSFUL_JOB_COUNT_DAILY,
                     MetricsName.SUCCESSFUL_JOB_COUNT, project, tags, generateJobStatisticsTags.apply(type.name()));
-            PrometheusMetricsGroup.newCounterFromDropwizard(PrometheusMetrics.ERROR_JOB_COUNT,
+            PrometheusMetricsGroup.newCounterFromDropwizard(PrometheusMetrics.ERROR_JOB_COUNT_DAILY,
                     MetricsName.ERROR_JOB_COUNT, project, tags, generateJobStatisticsTags.apply(type.name()));
             PrometheusMetricsGroup.newCounterFromDropwizard(PrometheusMetrics.JOB_TOTAL_DURATION_DAILY,
                     MetricsName.JOB_TOTAL_DURATION, project, tags, generateJobStatisticsTags.apply(type.name()));

@@ -51,6 +51,7 @@ package io.kyligence.kap.rest.config.initialize;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -118,7 +119,7 @@ public class QueryMetricsListener {
     }
 
     private void updateQueryTypeMetrics(QueryMetrics queryMetrics, String project, Map<String, String> tags) {
-        if (queryMetrics.getErrorType() != null) {
+        if (QueryHistory.QUERY_HISTORY_FAILED.equals(queryMetrics.getQueryStatus())) {
             MetricsGroup.counterInc(MetricsName.QUERY_FAILED, MetricsCategory.PROJECT, project, tags);
             MetricsGroup.meterMark(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, project, tags);
         }
