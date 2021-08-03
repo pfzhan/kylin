@@ -38,6 +38,7 @@
     </EditableBlock>
     <!-- 项目存储设置 -->
     <EditableBlock
+      v-if="this.$store.state.config.platform !== 'iframe'"
       :header-content="$t('storageSettings')"
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'storage-quota')"
@@ -237,7 +238,7 @@
             <div class="ksd-mt-10 ksd-fs-14">
               <el-form-item prop="count_value">
                 <span>{{$t('AccQueryStart')}}</span>
-                <el-input-number :min="1" :max="1000" v-model.trim="rulesObj.count_value" size="small" class="rule-setting-input count-input" :disabled="!rulesObj.count_enable" :controls="false"></el-input-number> 
+                <el-input-number :min="1" :max="1000" v-model.trim="rulesObj.count_value" size="small" class="rule-setting-input count-input" :disabled="!rulesObj.count_enable" :controls="false"></el-input-number>
                 <span>{{$t('AccQueryEnd')}}</span>
               </el-form-item>
             </div>
