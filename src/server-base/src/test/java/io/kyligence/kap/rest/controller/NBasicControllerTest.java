@@ -33,6 +33,7 @@ import java.util.Locale;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
@@ -182,6 +183,8 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     public void testTimeRangeValid() {
         nBasicController.validateDataRange("0", "86400000", "yyyy-MM-dd");
         nBasicController.validateDataRange("1000000000000", "2200000000000", "yyyy-MM-dd");
+        nBasicController.validateDataRange("0", "86400000", PartitionDesc.TimestampType.MILLISECOND.name);
+        nBasicController.validateDataRange("1000000000000", "2200000000000", PartitionDesc.TimestampType.SECOND.name);
     }
 
     @Test

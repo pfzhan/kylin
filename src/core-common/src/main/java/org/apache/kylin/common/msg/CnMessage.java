@@ -1359,6 +1359,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getINVALID_CUSTOMIZE_FORMAT() {
+        return "格式不支持，请检查后重新输入。";
+    }
+
+    @Override
     public String getSEGMENT_CONTAINS_GAPS() {
         return "无法合并所选 Segment，因为时间范围不连续。请检查后重试。";
     }

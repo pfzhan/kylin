@@ -37,6 +37,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
+import static org.apache.kylin.metadata.model.PartitionDesc.transformTimestamp2Format;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -472,8 +473,8 @@ public class NBasicController {
                 throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
 
             try {
-                startLong = DateFormat.getFormatTimeStamp(start, partitionColumnFormat);
-                endLong = DateFormat.getFormatTimeStamp(end, partitionColumnFormat);
+                startLong = DateFormat.getFormatTimeStamp(start, transformTimestamp2Format(partitionColumnFormat));
+                endLong = DateFormat.getFormatTimeStamp(end, transformTimestamp2Format(partitionColumnFormat));
             } catch (Exception e) {
                 throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
             }

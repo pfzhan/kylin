@@ -112,12 +112,41 @@ public class PartitionDesc implements Serializable {
         return (type.isInt() || type.isBigInt()) && DateFormat.isDatePattern(partitionDateFormat);
     }
 
-    public boolean partitionColumnIsTimeMillis() {
-        if (partitionDateColumnRef == null)
-            return false;
+    public enum TimestampType implements Serializable {
+        MILLISECOND("TIMESTAMP MILLISECOND", 1L, DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS), //
+        SECOND("TIMESTAMP SECOND", 1000L, DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS);
 
-        DataType type = partitionDateColumnRef.getType();
-        return type.isBigInt() && !DateFormat.isDatePattern(partitionDateFormat);
+        public final String name;
+        public final long millisecondRatio;
+        public final String format;
+
+        TimestampType(String name, long millisecondRatio, String format) {
+            this.name = name;
+            this.millisecondRatio = millisecondRatio;
+            this.format = format;
+        }
+    }
+
+    public boolean partitionColumnIsTimestamp() {
+        return getTimestampType() != null;
+    }
+
+    public TimestampType getTimestampType() {
+        for (TimestampType timestampType : TimestampType.values()) {
+            if (timestampType.name.equals(partitionDateFormat)) {
+                return timestampType;
+            }
+        }
+        return null;
+    }
+
+    public static String transformTimestamp2Format(String columnFormat) {
+        for (TimestampType timestampType : TimestampType.values()) {
+            if (timestampType.name.equals(columnFormat)) {
+                return timestampType.format;
+            }
+        }
+        return columnFormat;
     }
 
     public boolean partitionColumnIsDate() {
@@ -224,8 +253,11 @@ public class PartitionDesc implements Serializable {
                         partDesc.getPartitionDateFormat());
             } else if (partDesc.partitionColumnIsYmdInt()) {
                 buildSingleColumnRangeCondAsYmdInt(builder, partitionDateColumn, startInclusive, endExclusive);
-            } else if (partDesc.partitionColumnIsTimeMillis()) {
-                buildSingleColumnRangeCondAsTimeMillis(builder, partitionDateColumn, startInclusive, endExclusive);
+            } else if (partDesc.partitionColumnIsTimestamp()) {
+                TimestampType timestampType = partDesc.getTimestampType();
+                startInclusive = startInclusive / timestampType.millisecondRatio;
+                endExclusive = endExclusive / timestampType.millisecondRatio;
+                buildSingleColumnRangeCondAsTimestamp(builder, partitionDateColumn, startInclusive, endExclusive);
             } else if (partitionDateColumn != null) {
                 buildSingleColumnRangeCondition(builder, partitionDateColumn, startInclusive, endExclusive,
                         partDesc.getPartitionDateFormat());
@@ -249,12 +281,16 @@ public class PartitionDesc implements Serializable {
                     DateFormat.formatToDateStr(endExclusive, partitionColumnDateFormat), partitionColumnDateFormat));
         }
 
-        private static void buildSingleColumnRangeCondAsTimeMillis(StringBuilder builder, TblColRef partitionColumn,
+        private static void buildSingleColumnRangeCondAsTimestamp(StringBuilder builder, TblColRef partitionColumn,
                 long startInclusive, long endExclusive) {
             String partitionColumnName = partitionColumn.getExpressionInSourceDB();
-            builder.append(partitionColumnName + " >= " + startInclusive);
+            String symbol = "";
+            if (!partitionColumn.getType().isIntegerFamily()) {
+                symbol = "'";
+            }
+            builder.append(partitionColumnName + " >= " + symbol + startInclusive + symbol);
             builder.append(" AND ");
-            builder.append(partitionColumnName + " < " + endExclusive);
+            builder.append(partitionColumnName + " < " + symbol + endExclusive + symbol);
         }
 
         private static void buildSingleColumnRangeCondAsYmdInt(StringBuilder builder, TblColRef partitionColumn,

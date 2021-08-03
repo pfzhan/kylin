@@ -1161,6 +1161,10 @@ public class Message {
         return "Can’t set the time partition column. The values of the selected column is not time formatted. Please select again.";
     }
 
+    public String getINVALID_CUSTOMIZE_FORMAT() {
+        return "Unsupported format. Please check and re-enter.";
+    }
+
     public String getSEGMENT_CONTAINS_GAPS() {
         return "Can’t merge the selected segments, as there are gap(s) in between. Please check and try again.";
     }

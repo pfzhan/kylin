@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -33,9 +34,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.rest.service.FusionModelService;
-import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
-import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -70,6 +68,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
@@ -95,7 +94,9 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
+import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import lombok.val;
@@ -455,6 +456,32 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
+    }
+
+    @Test
+    public void checkPartitionDesc() throws Exception {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        partitionDesc.setPartitionDateFormat(PartitionDesc.TimestampType.SECOND.name);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        partitionDesc.setPartitionDateFormat("yyyy'@:1008'MM-dd");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        partitionDesc.setPartitionDateFormat("error format");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+        partitionDesc.setPartitionDateFormat("");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+        Mockito.verify(nModelController, times(4)).checkPartitionDesc(Mockito.any(PartitionDesc.class));
     }
 
     @Test

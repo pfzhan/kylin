@@ -33,6 +33,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_MERGE_SEG
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 
@@ -497,6 +498,31 @@ public class NModelController extends NBasicController {
         }
     }
 
+    @ApiOperation(value = "checkPartitionDesc", tags = { "AI" })
+    @PostMapping(value = "/check_partition_desc")
+    @ResponseBody
+    public EnvelopeResponse<String> checkPartitionDesc(@RequestBody PartitionDesc partitionDesc) {
+        try {
+            String partitionDateFormat = partitionDesc.getPartitionDateFormat();
+            if (StringUtils.isEmpty(partitionDateFormat)) {
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+            }
+            PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
+            if (timestampType == null) {
+
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat(partitionDateFormat,
+                        Locale.getDefault(Locale.Category.FORMAT));
+                String dateFormat = simpleDateFormat.format(new Date());
+                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dateFormat, "");
+            } else {
+                long timestamp = System.currentTimeMillis() / timestampType.millisecondRatio;
+                return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, timestamp + "", "");
+            }
+        } catch (Exception e) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+        }
+    }
+
     @ApiOperation(value = "detectInvalidIndexes", tags = { "AI" })
     @PostMapping(value = "/invalid_indexes")
     @ResponseBody
@@ -693,7 +719,7 @@ public class NModelController extends NBasicController {
             if (StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
                 throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
             }
-            if (partitionDesc.getPartitionDateFormat() != null) {
+            if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
                 validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());
             }
         }
