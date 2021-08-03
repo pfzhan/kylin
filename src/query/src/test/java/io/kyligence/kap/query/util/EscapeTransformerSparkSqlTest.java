@@ -191,7 +191,7 @@ public class EscapeTransformerSparkSqlTest {
                 + "from \"FRPDB0322\".\"ZB_POLICY_T_VIEW\" \"ZB_POLICY_T_VIEW\" limit10;";
         expectedSql = "select distinct SUBSTRING(`ZB_POLICY_T_VIEW`.`DIMENSION1`, "
                 + "position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) + 3, "
-                + "(position ('|2|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) - position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`)) - 3) as `memberUniqueName`  "
+                + "(position ('|2|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`) - position ('|1|' in `ZB_POLICY_T_VIEW`.`DIMENSION1`)) - 3) as `memberUniqueName` "
                 + "from `FRPDB0322`.`ZB_POLICY_T_VIEW` `ZB_POLICY_T_VIEW` limit10;";
         transformedSQL = transformer.transform(originString);
         Assert.assertEquals(expectedSql, transformedSQL);
@@ -223,15 +223,15 @@ public class EscapeTransformerSparkSqlTest {
                 + "       count(dayofweek(date0)), max(extract(dow from date1)),\n"
                 + "       count(dayofmonth(date0)), max(extract(day from date1)) from tdvt.calcs as calcs";
         String expectedSQL = "select count(distinct year(date0)), max(YEAR(date1)),\n"
-                + "       count(distinct month(date0)), max(MONTH(date1)),\n"
-                + "       count(distinct quarter(date0)), max(QUARTER(date1)),\n"
-                + "       count(distinct hour(date0)), max(HOUR(date1)),\n"
-                + "       count(distinct minute(date0)), max(MINUTE(date1)),\n"
-                + "       count(distinct second(date0)), max(SECOND(date1)),\n"
-                + "       count(week(date0)), max(WEEKOFYEAR(date1)),\n"
-                + "       count(dayofyear(date0)), max(DAYOFYEAR(date1)),\n"
-                + "       count(dayofweek(date0)), max(DAYOFWEEK(date1)),\n"
-                + "       count(dayofmonth(date0)), max(DAYOFMONTH(date1)) from tdvt.calcs as calcs";
+                + " count(distinct month(date0)), max(MONTH(date1)),\n"
+                + " count(distinct quarter(date0)), max(QUARTER(date1)),\n"
+                + " count(distinct hour(date0)), max(HOUR(date1)),\n"
+                + " count(distinct minute(date0)), max(MINUTE(date1)),\n"
+                + " count(distinct second(date0)), max(SECOND(date1)),\n"
+                + " count(week(date0)), max(WEEKOFYEAR(date1)),\n"
+                + " count(dayofyear(date0)), max(DAYOFYEAR(date1)),\n"
+                + " count(dayofweek(date0)), max(DAYOFWEEK(date1)),\n"
+                + " count(dayofmonth(date0)), max(DAYOFMONTH(date1)) from tdvt.calcs as calcs";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -291,7 +291,7 @@ public class EscapeTransformerSparkSqlTest {
     @Test
     public void testPI() {
         String originalSQL = "select sum({fn pi()}), count(pi() + price), lstg_format_name  from test_kylin_fact";
-        String expectedSQL = "select sum(pi()), count(PI() + price), lstg_format_name  from test_kylin_fact";
+        String expectedSQL = "select sum(pi()), count(PI() + price), lstg_format_name from test_kylin_fact";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

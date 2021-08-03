@@ -618,7 +618,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             SQLResponse response = queryService.doQueryWithCache(request);
 
             Assert.assertEquals("From line 1, column 32 to line 1, column 42: Object 'SOME_TABLE1' not found\n"
-                    + "while executing SQL: \"WITH tableId as (select * from some_table1) , tableId2 AS (select * FROM some_table2) select * from tableId join tableId2 on tableId.a = tableId2.b\"",
+                    + "while executing SQL: \"WITH tableId as (select * from some_table1), tableId2 AS (select * FROM some_table2) select * from tableId join tableId2 on tableId.a = tableId2.b\"",
                     response.getExceptionMessage());
         }
     }

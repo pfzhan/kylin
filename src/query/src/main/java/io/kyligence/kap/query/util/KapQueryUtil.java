@@ -62,7 +62,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.relnode.KapJoinRel;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -100,7 +99,7 @@ public class KapQueryUtil {
             log.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
 
-        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
+        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 2).trim();
     }
 
     public static String massageExpression(NDataModel model, String project, String expression,

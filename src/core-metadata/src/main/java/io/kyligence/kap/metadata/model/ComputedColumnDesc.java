@@ -59,7 +59,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
-@SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ComputedColumnDesc implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnDesc.class);
@@ -140,23 +139,10 @@ public class ComputedColumnDesc implements Serializable {
         return CC_PREFIX;
     }
 
-    /**
-     * check if a column name starts with "_CC_"
-     * @param columnName
-     * @return
-     */
-    public static boolean isComputedColumnName(String columnName) {
-        return columnName.startsWith(CC_PREFIX);
-    }
-
     public static String getOriginCcName(String ccNameWithPrefix) {
         return ccNameWithPrefix.startsWith(ComputedColumnDesc.CC_PREFIX)
                 ? ccNameWithPrefix.replaceFirst(ComputedColumnDesc.CC_PREFIX, "")
                 : ccNameWithPrefix;
-    }
-
-    public static String getInternalCcName(String originCcName) {
-        return originCcName.startsWith(ComputedColumnDesc.CC_PREFIX) ? originCcName : CC_PREFIX + originCcName;
     }
 
     public String getInternalCcName() {
@@ -184,7 +170,7 @@ public class ComputedColumnDesc implements Serializable {
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
                     throw new KylinException(COLUMN_NOT_EXIST,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id.toString()));
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id));
                 }
                 return null;
             }

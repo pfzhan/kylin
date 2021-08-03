@@ -132,19 +132,19 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls5.sql"))), PROJECT);
         Assert.assertEquals(3, sqls1.size());
         Assert.assertEquals("select CAL_DT from TEST_KYLIN_FACT", sqls1.get(0));
-        Assert.assertEquals("select concat(';',LSTG_FORMAT_NAME),'123',234,'abc' from TEST_KYLIN_FACT", sqls1.get(1));
-        Assert.assertEquals("select '456',456,'dgf' from TEST_KYLIN_FACT", sqls1.get(2));
+        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME), '123', 234, 'abc' from TEST_KYLIN_FACT", sqls1.get(1));
+        Assert.assertEquals("select '456', 456, 'dgf' from TEST_KYLIN_FACT", sqls1.get(2));
 
         List<String> sqls2 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls6.sql", "sqls6.sql",
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls6.sql"))), PROJECT);
         Assert.assertEquals(1, sqls2.size());
-        Assert.assertEquals("select concat(';',LSTG_FORMAT_NAME) from TEST_KYLIN_FACT", sqls2.get(0));
+        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME) from TEST_KYLIN_FACT", sqls2.get(0));
 
         List<String> sqls3 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls7.sql", "sqls7.sql",
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls7.sql"))), PROJECT);
         Assert.assertEquals(2, sqls3.size());
         Assert.assertEquals("select CAL_DT from TEST_KYLIN_FACT", sqls3.get(0));
-        Assert.assertEquals("select concat(';',LSTG_FORMAT_NAME),'123',234,'abc' from TEST_KYLIN_FACT", sqls3.get(1));
+        Assert.assertEquals("select concat(';', LSTG_FORMAT_NAME), '123', 234, 'abc' from TEST_KYLIN_FACT", sqls3.get(1));
 
         List<String> sqls4 = favoriteRuleService.transformFileToSqls(new MockMultipartFile("sqls8.sql", "sqls8.sql",
                 "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls8.sql"))), PROJECT);

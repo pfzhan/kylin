@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -25,6 +27,12 @@ public class EscapeParser implements IKeep {
     private static final String CEIL_FLOOR_EXCEPTION_MSG = "%s(exp to timeunit) encounters timeunit %s, but only supports %s";
     private static final String EXTRACT_FROM_EXCEPTION_MSG = "extract(timeunit from exp) encounters timeunit %s, but only supports %s";
     private static final String TIMESTAMP_DIFF_ADD_EXCEPTION_MSG = "%s(timeunit, exp1, exp2) encounters timeunit %s, but only supports %s";
+    private static final String COMMA_STR = ",";
+    private static final String SPACE_STR = " ";
+    private static final char SPACE_CHAR = ' ';
+    private static final String QUOTE_STR = "'";
+    private static final ImmutableSet<String> OPERATORS = ImmutableSet.of("+", "-", "*", "/", "%", "=",
+        ">=", "<=", "!=", "<>", "||");
 
     private EscapeDialect dialect = EscapeDialect.DEFAULT;
 
@@ -42,6 +50,34 @@ public class EscapeParser implements IKeep {
     public EscapeParser(EscapeDialect newDialect, String sql) {
         this(new StringReader(sql));
         this.dialect = newDialect;
+    }
+
+    private static String normalize(String str) {
+        if (str.equals(COMMA_STR)) {
+            str = str + SPACE_STR;
+        } else if (OPERATORS.contains(str)) {
+            str = SPACE_STR + str + SPACE_STR;
+        }
+        return str;
+    }
+
+    private static boolean needDropPreSpace(String str) {
+        return COMMA_STR.equals(str) || OPERATORS.contains(str)
+            || (StringUtils.isBlank(str) && !SPACE_STR.equals(str));
+    }
+
+    private static void appendExpression(StringBuilder sb, String innerString) {
+        if (sb.length() != 0) {
+            int last = sb.length() - 1;
+            if (sb.charAt(last) != SPACE_CHAR && innerString.startsWith(QUOTE_STR)) {
+                sb.append(SPACE_STR);
+            }
+        }
+
+        int len = sb.length();
+        if (!SPACE_STR.equals(innerString) || (len != 0 && sb.charAt(len - 1) != SPACE_CHAR)) {
+            sb.append(innerString);
+        }
     }
 }
 
@@ -73,7 +109,6 @@ TOKEN :
 | < DOUBLE_QUOTE : "\"">
 | < QUOTED_IDENTIFIER: <DOUBLE_QUOTE> ( (~["\"","\n","\r"]) | ("\"\"") )+ <DOUBLE_QUOTE> >
 | < DOT : "." >
-| < BANGEQUAL : "!=" >
 | < CEIL : "CEIL" >
 | < FLOOR : "FLOOR" >
 | < TO : "TO" >
@@ -102,12 +137,17 @@ TOKEN :
 |   < LT: "<" >
 |   < HOOK: "?" >
 |   < COLON: ":" >
+|   < LE: "<=" >
+|   < GE: ">=" >
+|   < NE: "<>" >
+|   < BANGEQUAL : "!=" >
 |   < NOT: "!" >
 |   < PLUS: "+" >
 |   < MINUS: "-" >
 |   < STAR: "*" >
 |   < SLASH: "/" >
 |   < MOD: "%" >
+|   < CONCAT: "||" >
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
 |   < DOLLAR: "$" >
@@ -141,7 +181,14 @@ String Input() :
     LOOKAHEAD(2)
     innerString = Expression()
     {
-        transformedStr.append(innerString);
+        if(transformedStr.length() != 0) {
+            int lastIndex = transformedStr.length() - 1;
+            if (transformedStr.charAt(lastIndex) == SPACE_CHAR && needDropPreSpace(innerString)) {
+                transformedStr.deleteCharAt(lastIndex);
+            }
+            innerString = normalize(innerString);
+        }
+        appendExpression(transformedStr, innerString);
     }
     )+
     <EOF>
@@ -212,8 +259,8 @@ String Space() :
 String Punctuation() :
 {}
 {
-    (<DOT> | <EQ> | <GT> | <LT> | <HOOK> | <COLON> | <NOT>| <PLUS>
-        | <MINUS> | <STAR> | <SLASH> | <MOD> | <VERTICAL_BAR> | <CARET> | <DOLLAR> )
+    (<DOT> | <LE> |<GE> | <NE> | <BANGEQUAL> | <EQ> | <GT> | <LT> | <NOT> | <HOOK> | <COLON> | <PLUS>
+        | <MINUS> | <STAR> | <SLASH> | <MOD> | <CONCAT> | <CARET> | <DOLLAR> | <VERTICAL_BAR> )
     {
         log.trace("meet token {}", getToken(0).toString());
         return getToken(0).image;
@@ -301,7 +348,14 @@ String ParenExpress() :
     (
         innerString = Expression()
         {
-            transformed.append(innerString);
+        if(transformed.length() != 0) {
+            int lastIndex = transformed.length() - 1;
+            if (transformed.charAt(lastIndex) == SPACE_CHAR && needDropPreSpace(innerString)) {
+                transformed.deleteCharAt(lastIndex);
+            }
+            innerString = normalize(innerString);
+        }
+        appendExpression(transformed, innerString);
         }
     )*
     < RPAREN >
@@ -356,7 +410,7 @@ String CastExpression() :
     }
     (< SPACE >)* <RPAREN>
     {
-        return String.format(Locale.ROOT, "%s(%s)", function, String.join(" ", parameters));
+        return String.format(Locale.ROOT, "%s(%s)", function, String.join(SPACE_STR, parameters));
     }
 }
 
@@ -409,7 +463,7 @@ String TsDiffOrAddExpression() :
     (< SPACE >)* <LPAREN> (< SPACE >)*
     {
         String timeunit = ParameterExpression().trim();
-        if (timeunit.startsWith("'") && timeunit.endsWith("'") && timeunit.length() > 2) {
+        if (timeunit.startsWith(QUOTE_STR) && timeunit.endsWith(QUOTE_STR) && timeunit.length() > 2) {
             timeunit = timeunit.substring(1, timeunit.length() - 1);
         }
         if (!timeunitSet.contains(timeunit.toUpperCase(Locale.ROOT))) {
