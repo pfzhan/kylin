@@ -2745,4 +2745,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getSystemProfileExtractor() {
         return getOptional("kylin.tool.system-profile-extractor", "io.kyligence.kap.tool.LightningSystemProfileExtractor");
     }
+
+    public boolean isPrometheusMetricsEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metrics.prometheus-enabled", TRUE));
+    }
 }

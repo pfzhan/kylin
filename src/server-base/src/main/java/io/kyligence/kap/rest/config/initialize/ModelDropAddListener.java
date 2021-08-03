@@ -65,7 +65,9 @@ public class ModelDropAddListener {
         context.doAfterUnit(() -> {
             log.debug("delete model {} in project {}", modelId, project);
             MetricsGroup.removeModelMetrics(project, modelId);
-            PrometheusMetricsGroup.removeModelMetrics(project, modelName);
+            if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+                PrometheusMetricsGroup.removeModelMetrics(project, modelName);
+            }
         });
     }
 
@@ -124,29 +126,31 @@ public class ModelDropAddListener {
         MetricsGroup.newCounter(MetricsName.MODEL_WAIT_DURATION, MetricsCategory.PROJECT, project, tags);
         MetricsGroup.newHistogram(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT, project, tags);
 
-        // add prometheus metrics
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
+        if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+            // add prometheus metrics
+            NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
 
-        JobTypeEnum[] jobTypeEnums = JobTypeEnum.getTypesForPrometheus();
-        PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD,
-                project, modelAlias, executableManager, manager -> {
-                    AbstractExecutable lastSuccessJob = manager.getLastSuccessExecByModel(modelId, jobTypeEnums);
-                    AbstractExecutable currentRunningJob = manager.getMaxDurationRunningExecByModel(modelId, jobTypeEnums);
-                    if (Objects.isNull(lastSuccessJob) || Objects.isNull(currentRunningJob)
-                            || lastSuccessJob.getDuration() <= 0) {
-                        return 0.0;
-                    }
-                    return (currentRunningJob.getDuration() - lastSuccessJob.getDuration()) / (double) lastSuccessJob.getDuration();
-                });
-        PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.RECOMMENDED_DELETE_INDEX_NUM, project, modelAlias,
-                new Object(), obj -> {
-                    if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-                        return 0;
-                    }
-                    OptRecService optRecService = SpringContext.getBean(OptRecService.class);
-                    return optRecService.getOptRecLayoutsResponse(project, modelId, OptRecService.RecActionType.REMOVE_INDEX.name()).getSize();
-                });
+            JobTypeEnum[] jobTypeEnums = JobTypeEnum.getTypesForPrometheus();
+            PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD,
+                    project, modelAlias, executableManager, manager -> {
+                        AbstractExecutable lastSuccessJob = manager.getLastSuccessExecByModel(modelId, jobTypeEnums);
+                        AbstractExecutable currentRunningJob = manager.getMaxDurationRunningExecByModel(modelId, jobTypeEnums);
+                        if (Objects.isNull(lastSuccessJob) || Objects.isNull(currentRunningJob)
+                                || lastSuccessJob.getDuration() <= 0) {
+                            return 0.0;
+                        }
+                        return (currentRunningJob.getDuration() - lastSuccessJob.getDuration()) / (double) lastSuccessJob.getDuration();
+                    });
+            PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.RECOMMENDED_DELETE_INDEX_NUM, project, modelAlias,
+                    new Object(), obj -> {
+                        if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
+                            return 0;
+                        }
+                        OptRecService optRecService = SpringContext.getBean(OptRecService.class);
+                        return optRecService.getOptRecLayoutsResponse(project, modelId, OptRecService.RecActionType.REMOVE_INDEX.name()).getSize();
+                    });
+        }
     }
 
     abstract static class GaugeWrapper implements Gauge<Long> {

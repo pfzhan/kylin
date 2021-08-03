@@ -75,8 +75,10 @@ public class MetricsConfig {
 
         log.info("Register host metrics...");
         MetricsRegistry.registerHostMetrics(host);
-        log.info("Register micrometer global metrics");
-        MetricsRegistry.registerMicrometerGlobalMetrics();
+        if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+            log.info("Register micrometer global metrics");
+            MetricsRegistry.registerMicrometerGlobalMetrics();
+        }
 
         METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
             Set<String> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects()
@@ -86,7 +88,9 @@ public class MetricsConfig {
             for (String newProject : newProjects) {
                 log.info("Register project metrics for {}", newProject);
                 MetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
-                MetricsRegistry.registerMicrometerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
+                if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+                    MetricsRegistry.registerMicrometerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
+                }
             }
 
             Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);
@@ -95,7 +99,9 @@ public class MetricsConfig {
                 log.info("Remove project metrics for {}", outDatedProject);
                 MetricsGroup.removeProjectMetrics(outDatedProject);
                 MetricsRegistry.removeProjectFromStorageSizeMap(outDatedProject);
-                PrometheusMetricsGroup.removeProjectMetrics(outDatedProject);
+                if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+                    PrometheusMetricsGroup.removeProjectMetrics(outDatedProject);
+                }
             }
 
             allControlledProjects.clear();
