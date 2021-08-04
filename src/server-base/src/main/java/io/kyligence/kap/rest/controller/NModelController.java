@@ -966,7 +966,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "server_host", required = false) String serverHost,
             @RequestParam(value = "server_port", required = false) Integer serverPort, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
 
         String host = KylinConfig.getInstanceFromEnv().getModelExportHost();
         Integer port = KylinConfig.getInstanceFromEnv().getModelExportPort() == -1 ? null
@@ -978,10 +978,10 @@ public class NModelController extends NBasicController {
         host = host == null ? request.getServerName() : host;
         port = port == null ? request.getServerPort() : port;
 
-        BISyncModel syncModel = modelService.exportModel(project, modelId, exportAs, element, host, port);
+        BISyncModel syncModel = modelService.exportModel(projectName, modelId, exportAs, element, host, port);
 
-        String fileName = String.format(Locale.ROOT, "%s_%s_%s", project,
-                modelService.getModelById(modelId, project).getAlias(),
+        String fileName = String.format(Locale.ROOT, "%s_%s_%s", projectName,
+                modelService.getModelById(modelId, projectName).getAlias(),
                 new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault(Locale.Category.FORMAT)).format(new Date()));
         switch (exportAs) {
         case TABLEAU_CONNECTOR_TDS:

@@ -92,11 +92,11 @@ public class NMetaStoreController extends NBasicController {
     @ResponseBody
     public void exportModelMetadata(@RequestParam(value = "project") String project, ModelPreviewRequest request,
             HttpServletResponse response) throws Exception {
-        checkProjectName(project);
+        String projectName = checkProjectName(project);
         if (CollectionUtils.isEmpty(request.getIds())) {
             throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to export!");
         }
-        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(project,
+        ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(projectName,
                 request.getIds(), request.isExportRecommendations(), request.isExportOverProps(),
                 request.isExportMultiplePartitionValues());
         String filename;
@@ -104,7 +104,7 @@ public class NMetaStoreController extends NBasicController {
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
                 byteArrayOutputStream.toByteArray())) {
             byte[] md5 = HashFunction.MD5.checksum(byteArrayInputStream);
-            filename = String.format(Locale.ROOT, "%s_model_metadata_%s_%s.zip", project.toLowerCase(Locale.ROOT),
+            filename = String.format(Locale.ROOT, "%s_model_metadata_%s_%s.zip", projectName.toLowerCase(Locale.ROOT),
                     new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
                             .format(new Date()),
                     DatatypeConverter.printHexBinary(md5));
