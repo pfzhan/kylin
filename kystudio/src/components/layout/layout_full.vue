@@ -191,6 +191,9 @@ export default class LayoutFull extends Vue {
     this.showCopyStatus = false
   }
   mounted () {
+    if (this.$store.state.config.platform === 'iframe') {
+      document.getElementsByClassName('kapApp')[0].classList.add('cloud-iframe-style')
+    }
   }
 }
 </script>
