@@ -156,9 +156,13 @@ public class FileCatalog implements IExternalCatalog, IKeep {
                 Path path = toAbsolutePath(fileSystem,
                         new Path(String.format(Locale.ROOT, "%s/%s.csv", meta, tableDesc.getIdentity())));
                 if (tableUpperCaseName.equals("SUPPLIER")) {
-                    tableObj.setPartitionColumnNames(Arrays.asList(new FieldSchema("S_CITY", "varchar(10)", "")));
+                    path = toAbsolutePath(fileSystem,
+                            new Path(String.format(Locale.ROOT, "%s/%s", meta, tableDesc.getIdentity())));
+                    tableObj.setPartitionColumnNames(Arrays.asList(new FieldSchema("S_NATION", "varchar(10)", ""),
+                            new FieldSchema("S_CITY", "varchar(10)", "")));
                     tableObj.setFields(
-                            schemas.stream().filter(i -> !i.getName().equals("S_CITY")).collect(Collectors.toList()));
+                            schemas.stream().filter(i -> !i.getName().equals("S_CITY") && !i.getName().equals("S_NATION"))
+                                    .collect(Collectors.toList()));
                 }
 
                 tableObj.setFields(schemas);

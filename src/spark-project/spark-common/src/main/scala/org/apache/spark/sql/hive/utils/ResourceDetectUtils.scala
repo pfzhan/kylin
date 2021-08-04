@@ -49,7 +49,14 @@ object ResourceDetectUtils extends Logging {
     var paths = Seq.empty[Path]
     plan.foreach {
       case plan: FileSourceScanExec =>
-        paths ++= plan.relation.location.rootPaths
+        if (plan.relation.location.partitionSchema.nonEmpty) {
+          val selectedPartitions = plan.relation.location.listFiles(plan.partitionFilters, plan.dataFilters)
+          selectedPartitions.flatMap(partition => partition.files).foreach(file => {
+            paths :+= file.getPath
+          })
+        } else {
+          paths ++= plan.relation.location.rootPaths
+        }
       case plan: InMemoryTableScanExec =>
         val _plan = plan.relation.cachedPlan
         paths ++= getPaths(_plan)

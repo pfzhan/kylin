@@ -22,25 +22,44 @@
 
 package org.apache.spark.sql.hive.utils
 
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.common.SharedSparkSession
 import org.apache.spark.sql.execution.FileSourceScanExec
-import org.apache.spark.sql.execution.datasources.{FileIndex, HadoopFsRelation}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.execution.datasources.{FileIndex, HadoopFsRelation, PartitionDirectory}
+import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.wordspec.AnyWordSpec
 
 class TestResourceDetectUtilsByMock extends AnyWordSpec with MockFactory with SharedSparkSession {
   "getPaths" when {
     "FileSourceScanExec" should {
-      "get right paths" in {
+      "get root paths" in {
         val paths = Seq(new Path("test"))
         val fileIndex = mock[FileIndex]
         (fileIndex.rootPaths _).expects().returning(paths).anyNumberOfTimes()
+        val dataFilters = Seq.empty
+        (fileIndex.partitionSchema _).expects().returning(new StructType()).anyNumberOfTimes()
         val relation = HadoopFsRelation(fileIndex, new StructType(), new StructType(), null, null, null)(spark)
-        val sparkPlan = FileSourceScanExec(relation, null, null, null, null, null, Seq.empty, Option(new TableIdentifier("table")), false
-        )
+        val sparkPlan = FileSourceScanExec(relation, null, null, null, null, null, Seq.empty, Option(new TableIdentifier("table")), false)
+        assert(paths == ResourceDetectUtils.getPaths(sparkPlan))
+      }
+    }
+  }
+
+  "getPaths" when {
+    "FileSourceScanExec" should {
+      "get partition paths" in {
+        val path = new Path("test")
+        val paths = Seq(path)
+        val fileIndex = mock[FileIndex]
+        val relation = HadoopFsRelation(fileIndex, new StructType(), new StructType(), null, null, null)(spark)
+        val sparkPlan = FileSourceScanExec(relation, null, null, null, null, null, Seq.empty, Option(new TableIdentifier("table")), false)
+        val dataFilters = Seq.empty
+        val fileStatus = new FileStatus()
+        fileStatus.setPath(path)
+        (fileIndex.partitionSchema _).expects().returning(StructType(StructField("f1", IntegerType, true) :: Nil)).anyNumberOfTimes()
+        (fileIndex.listFiles _).expects(null, dataFilters).returning(Seq(PartitionDirectory(null, Seq(fileStatus)))).anyNumberOfTimes()
         assert(paths == ResourceDetectUtils.getPaths(sparkPlan))
       }
     }
