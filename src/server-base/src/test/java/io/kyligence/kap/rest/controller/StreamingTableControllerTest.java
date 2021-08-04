@@ -141,25 +141,6 @@ public class StreamingTableControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSaveStreamingTableColumnsNotMatch() throws Exception {
-        String streamingTable = "DEFAULT.SSB_TOPIC";
-        val request = new StreamingRequest();
-        request.setProject(PROJECT);
-        val kafkaConfig = new KafkaConfig();
-        kafkaConfig.setSubscribe("ssb_topic");
-        kafkaConfig.setBatchTable("SSB.P_LINEORDER");
-        request.setKafkaConfig(kafkaConfig);
-        val tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT).getTableDesc(streamingTable);
-        request.setTableDesc(tableDesc);
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/streaming_tables/table")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(streamingTableController).saveStreamingTable(Mockito.any(StreamingRequest.class));
-    }
-
-    @Test
     public void testUpdateStreamingTable() throws Exception {
         val request = new StreamingRequest();
         request.setProject(PROJECT);

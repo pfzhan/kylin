@@ -24,9 +24,13 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.Arrays;
+import java.util.Locale;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -198,4 +202,74 @@ public class StreamingTableServiceTest extends CSVSourceTestCase {
                 .filter(column -> StringUtils.equalsIgnoreCase(column.getDatatype(), DataType.DOUBLE)).count());
     }
 
+    @Test
+    public void testCheckColumnsNotMatch() {
+        StreamingRequest streamingRequest = new StreamingRequest();
+        streamingRequest.setProject(PROJECT);
+        TableDesc tableDesc = new TableDesc();
+        tableDesc.setColumns(new ColumnDesc[] { new ColumnDesc("1", "name1", "DECIMAL", "", "", "", ""),
+                new ColumnDesc("2", "name2", "double", "", "", "", ""),
+                new ColumnDesc("3", "name3", "int", "", "", "", "") });
+        streamingRequest.setTableDesc(tableDesc);
+        val kafkaConfig = new KafkaConfig();
+        val batchTableName = "SSB.P_LINEORDER";
+        kafkaConfig.setDatabase("SSB");
+        kafkaConfig.setBatchTable(batchTableName);
+        kafkaConfig.setName("TPCH_TOPIC");
+        kafkaConfig.setKafkaBootstrapServers("10.1.2.210:9092");
+        kafkaConfig.setSubscribe("tpch_topic");
+        kafkaConfig.setStartingOffsets("latest");
+        streamingRequest.setKafkaConfig(kafkaConfig);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
+        streamingTableService.checkColumns(streamingRequest);
+    }
+
+    /**
+     * fusion model check
+     */
+    @Test
+    public void testCheckColumnsNoTimestampPartition() {
+        StreamingRequest streamingRequest = new StreamingRequest();
+        streamingRequest.setProject(PROJECT);
+        TableDesc streamingTableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getTableDesc("SSB.LINEORDER");
+        streamingRequest.setTableDesc(streamingTableDesc);
+
+        val kafkaConfig = new KafkaConfig();
+        kafkaConfig.setDatabase("SSB");
+        kafkaConfig.setBatchTable("SSB.LINEORDER");
+        kafkaConfig.setName("TPCH_TOPIC");
+        kafkaConfig.setKafkaBootstrapServers("10.1.2.210:9092");
+        kafkaConfig.setSubscribe("tpch_topic");
+        kafkaConfig.setStartingOffsets("latest");
+        streamingRequest.setKafkaConfig(kafkaConfig);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST());
+        streamingTableService.checkColumns(streamingRequest);
+    }
+
+    /**
+     * streaming model check
+     */
+    @Test
+    public void testCheckColumnsNoTimestampPartition1() {
+        StreamingRequest streamingRequest = new StreamingRequest();
+        streamingRequest.setProject(PROJECT);
+        TableDesc streamingTableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getTableDesc("SSB.LINEORDER");
+        streamingRequest.setTableDesc(streamingTableDesc);
+
+        val kafkaConfig = new KafkaConfig();
+        kafkaConfig.setDatabase("SSB");
+        kafkaConfig.setName("TPCH_TOPIC");
+        kafkaConfig.setKafkaBootstrapServers("10.1.2.210:9092");
+        kafkaConfig.setSubscribe("tpch_topic");
+        kafkaConfig.setStartingOffsets("latest");
+        streamingRequest.setKafkaConfig(kafkaConfig);
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST());
+        streamingTableService.checkColumns(streamingRequest);
+    }
 }

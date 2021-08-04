@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -106,13 +107,14 @@ public class StreamingJobService extends BasicService {
 
     public void launchStreamingJob(String project, String modelId, JobTypeEnum jobType) {
         checkModelStatus(project, modelId, jobType);
+        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
         StreamingScheduler scheduler = StreamingScheduler.getInstance(project);
         scheduler.submitJob(project, modelId, jobType);
     }
 
     public void checkModelStatus(String project, String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val config = KylinConfig.getInstanceFromEnv();
         val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
 
         val modelMgr = NDataModelManager.getInstance(config, jobMeta.getProject());
@@ -151,13 +153,6 @@ public class StreamingJobService extends BasicService {
             });
             return null;
         }, project);
-    }
-
-    public void updateStreamingJobStatus(String project, String modelId, String action) {
-        updateStreamingJobStatus(project,
-                Arrays.asList(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name())), action);
-        updateStreamingJobStatus(project,
-                Arrays.asList(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name())), action);
     }
 
     public void updateStreamingJobStatus(String project, List<String> jobIds, String action) {
@@ -226,22 +221,14 @@ public class StreamingJobService extends BasicService {
             NDataSegment afterMergeSeg = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 val df = dfMgr.getDataflow(modelId);
-                if (df != null) {
-                    return dfMgr.mergeSegments(df, rangeToMerge, true, layer, newSegId);
-                } else {
-                    return null;
-                }
+                return df != null ? dfMgr.mergeSegments(df, rangeToMerge, true, layer, newSegId) : null;
             }, project);
             return getSegmentId(afterMergeSeg);
         } else {
             val newSegment = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 NDataflow df = dfMgr.getDataflow(modelId);
-                if (df != null) {
-                    return dfMgr.appendSegmentForStreaming(df, rangeToMerge, newSegId);
-                } else {
-                    return null;
-                }
+                return df != null ? dfMgr.appendSegmentForStreaming(df, rangeToMerge, newSegId) : null;
             }, project);
             return getSegmentId(newSegment);
         }
@@ -444,7 +431,7 @@ public class StreamingJobService extends BasicService {
         return jobList;
     }
 
-    private boolean isBatchModelBroken(NDataModel dataModel) {
+    public boolean isBatchModelBroken(NDataModel dataModel) {
         try {
             if (dataModel.isFusionModel()) {
                 val fmMgr = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(), dataModel.getProject());

@@ -38,17 +38,25 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -118,7 +126,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
+    private static String[] timeZones = {"GMT+8", "CST", "PST", "UTC"};
 
     private static String PROJECT = "streaming_test";
     private static String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
@@ -249,7 +257,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testGetStreamingJobListOfIndex() throws Exception {
+    public void testGetStreamingJobListOfIndex() {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = createStatData(jobId);
 
@@ -267,14 +275,49 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testIsBatchModelBroken() {
+        val model = Mockito.spy(NDataModel.class);
+        Mockito.when(model.isFusionModel()).thenReturn(false);
+        val result = streamingJobService.isBatchModelBroken(model);
+        Assert.assertFalse(result);
+    }
+
+    @Test
+    public void testIsBatchModelBroken1() {
+        val model = Mockito.spy(NDataModel.class);
+        Mockito.when(model.isFusionModel()).thenReturn(true);
+        model.setFusionId("4965c827-fbb4-4ea1-a744-3f341a3b030d");
+        val result = streamingJobService.isBatchModelBroken(model);
+        Assert.assertTrue(result);
+    }
+
+    @Test
     public void testGetStreamingJobDataStats() throws Exception {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
-        val meta = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 1);
-        Assert.assertEquals("500,400", StringUtils.join(meta.getDataLatencyHist(), ","));
-        Assert.assertEquals("32,8", StringUtils.join(meta.getConsumptionRateHist(), ","));
-        Assert.assertEquals("1200,3200", StringUtils.join(meta.getProcessingTimeHist(), ","));
+        val meta1 = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 1);
+        Assert.assertEquals("500,400", StringUtils.join(meta1.getDataLatencyHist(), ","));
+        Assert.assertEquals("32,8", StringUtils.join(meta1.getConsumptionRateHist(), ","));
+        Assert.assertEquals("1200,3200", StringUtils.join(meta1.getProcessingTimeHist(), ","));
+        val meta3 = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 3);
+        Assert.assertNotNull(meta3);
+        val meta7 = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 7);
+        Assert.assertNotNull(meta7);
         streamingJobsStatsManager.dropTable();
+    }
+
+
+    @Test
+    public void testGetStreamingJobDataStatsException() throws Exception {
+        val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
+        val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
+        try {
+            streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 9);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+        } finally {
+            streamingJobsStatsManager.dropTable();
+        }
     }
 
     private StreamingJobStatsManager mockStreamingJobDataStats(String jobId) {
@@ -291,7 +334,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testUpdateStreamingJobStatusToStart() throws Exception {
-        streamingJobService.updateStreamingJobStatus(PROJECT, MODEL_ID, "START");
+        streamingJobService.updateStreamingJobStatus(PROJECT, createJobList(MODEL_ID), "START");
         KylinConfig testConfig = getTestConfig();
         StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
         String buildJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
@@ -305,7 +348,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testUpdateStatusOfNullPrj() throws Exception {
-        streamingJobService.updateStreamingJobStatus(null, MODEL_ID, "START");
+        streamingJobService.updateStreamingJobStatus(null, createJobList(MODEL_ID), "START");
         KylinConfig testConfig = getTestConfig();
         StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
         String buildJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
@@ -319,8 +362,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testUpdateStatusOfEmptyProject() throws Exception {
-        streamingJobService.updateStreamingJobStatus(StringUtils.EMPTY, MODEL_ID, "START");
-        streamingJobService.updateStreamingJobStatus(StringUtils.EMPTY, MODEL_ID, "STOP");
+        streamingJobService.updateStreamingJobStatus(StringUtils.EMPTY, createJobList(MODEL_ID), "START");
+        streamingJobService.updateStreamingJobStatus(StringUtils.EMPTY, createJobList(MODEL_ID), "STOP");
         KylinConfig testConfig = getTestConfig();
 
         StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
@@ -334,9 +377,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testUpdateStreamingJobStatusToStopOfEmptyProject() throws Exception {
-        streamingJobService.updateStreamingJobStatus(PROJECT, MODEL_ID, "START");
-        streamingJobService.updateStreamingJobStatus(PROJECT, MODEL_ID, "STOP");
+    public void testUpdateStreamingJobStatusToStop() throws Exception {
+        streamingJobService.updateStreamingJobStatus(PROJECT, createJobList(MODEL_ID), "START");
+        streamingJobService.updateStreamingJobStatus(PROJECT, createJobList(MODEL_ID), "STOP");
         KylinConfig testConfig = getTestConfig();
 
         StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(testConfig, PROJECT);
@@ -347,6 +390,11 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         String mergeJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name());
         val mergeMeta = streamingJobManager.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.STOPPED, mergeMeta.getCurrentStatus());
+    }
+
+    private List<String> createJobList(String modelId) {
+        return Arrays.asList(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name()),
+                StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
     }
 
     @Test
@@ -623,12 +671,35 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
             copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
         });
-        streamingJobService.forceStopStreamingJob(PROJECT, MODEL_ID, JobTypeEnum.STREAMING_BUILD);
-        streamingJobService.forceStopStreamingJob(PROJECT, MODEL_ID, JobTypeEnum.STREAMING_MERGE);
+        val jobIds = Arrays.asList(StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name()),
+                StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name()));
+        streamingJobService.updateStreamingJobStatus(PROJECT, jobIds, StreamingJobActionEnum.FORCE_STOP.name());
         val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
         val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
         Assert.assertEquals(JobStatusEnum.STOPPED, mergeJobMeta.getCurrentStatus());
+    }
+
+    @Test
+    public void testRestartStreamingJob() {
+        val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(buildJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        mgr.updateStreamingJob(mergeJobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        val jobIds = Arrays.asList(StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name()),
+                StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name()));
+        streamingJobService.updateStreamingJobStatus(PROJECT, jobIds, StreamingJobActionEnum.RESTART.name());
+        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        val mergeJobMeta = mgr.getStreamingJobByUuid(mergeJobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, buildJobMeta.getCurrentStatus());
+        Assert.assertEquals(JobStatusEnum.RUNNING, mergeJobMeta.getCurrentStatus());
     }
 
     @Test
@@ -655,8 +726,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         String sampleLog = "";
         try (InputStream inputStream = streamingJobService.getStreamingJobAllLog(project, jobId);
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(inputStream, Charset.defaultCharset()))) {
+             BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(inputStream, Charset.defaultCharset()))) {
             String line;
             StringBuilder sampleData = new StringBuilder();
             while ((line = reader.readLine()) != null) {
@@ -707,5 +778,92 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         } catch (Exception e) {
             Assert.fail();
         }
+    }
+
+    /**
+     * streaming model is broken
+     */
+    @Test
+    public void testCheckModelStatus1() {
+        String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+
+        val buildJobId = modelId + "_build";
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        val kafkaConfMgr = KafkaConfigManager.getInstance(config, PROJECT);
+        kafkaConfMgr.removeKafkaConfig("SSB.P_LINEORDER_STR");
+        val model = NDataModelManager.getInstance(config, PROJECT).getDataModelDesc(modelId);
+        Assert.assertTrue(model.isBroken());
+        thrown.expect(KylinException.class);
+        streamingJobService.checkModelStatus(PROJECT, modelId, buildJobMeta.getJobType());
+    }
+
+    /**
+     * batch model of fusion model is broken
+     */
+    @Test
+    public void testCheckModelStatus2() {
+        String modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+
+        val buildJobId = modelId + "_build";
+        var buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+
+        val tblMetaMgr = NTableMetadataManager.getInstance(config, PROJECT);
+        tblMetaMgr.removeSourceTable("SSB.LINEORDER_HIVE");
+
+        val modelMgr = NDataModelManager.getInstance(config, PROJECT);
+        val streamingModel = modelMgr.getDataModelDesc(modelId);
+        Assert.assertFalse(streamingModel.isBroken());
+
+        val batchModelId = "cd2b9a23-699c-4699-b0dd-38c9412b3dfd";
+        val batchModel = modelMgr.getDataModelDesc(batchModelId);
+        Assert.assertTrue(batchModel.isBroken());
+
+        thrown.expect(KylinException.class);
+        streamingJobService.checkModelStatus(PROJECT, modelId, buildJobMeta.getJobType());
+    }
+
+    @Test
+    public void testCheckPartitionColumn() {
+        val config = getTestConfig();
+        val mgr = NDataModelManager.getInstance(config, PROJECT);
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        mgr.updateDataModel(modelId, copy -> {
+            copy.setPartitionDesc(null);
+        });
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+    }
+
+    @Test
+    public void testCheckPartitionColumn1() {
+        val config = getTestConfig();
+        val mgr = NDataModelManager.getInstance(config, PROJECT);
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        mgr.updateDataModel(modelId, copy -> {
+            copy.setPartitionDesc(Mockito.spy(PartitionDesc.class));
+        });
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+    }
+
+    @Test
+    public void testCheckPartitionColumn2() {
+        val config = getTestConfig();
+        val mgr = NDataModelManager.getInstance(config, PROJECT);
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        mgr.updateDataModel(modelId, copy -> {
+            val mock = Mockito.spy(PartitionDesc.class);
+            mock.setPartitionDateFormat("yyyy/MM/dd");
+            copy.setPartitionDesc(mock);
+        });
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
+        streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
     }
 }

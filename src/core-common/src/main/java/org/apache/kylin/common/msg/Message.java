@@ -1005,6 +1005,22 @@ public class Message {
         return "Can’t find the partition column. Please check and try again.";
     }
 
+    public String getPARTITION_COLUMN_START_ERROR() {
+        return "Can’t start. Please ensure the time partition column is a timestamp column and the time format is valid.";
+    }
+
+    public String getPARTITION_COLUMN_SAVE_ERROR() {
+        return "Can’t submit. Please ensure the time partition column is a timestamp column and the time format is valid.";
+    }
+
+    public String getTIMESTAMP_COLUMN_NOT_EXIST() {
+        return "Can’t load. Please ensure the table has at least a timestamp column.";
+    }
+
+    public String getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST() {
+        return "Can’t save the model. For fusion model, the time partition column must be added as a dimension.";
+    }
+
     public String getINVALID_PARTITION_COLUMN() {
         return "Please select an original column (not a computed column) from the fact table as time partition column.";
     }

@@ -65,6 +65,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIS
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
 import static org.apache.kylin.job.execution.JobTypeEnum.INDEX_BUILD;
 import static org.apache.kylin.job.execution.JobTypeEnum.SUB_PARTITION_BUILD;
@@ -92,6 +93,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -401,8 +403,8 @@ public class ModelService extends BasicService {
             FusionModel fusionModel = getFusionModelManager(model.getProject()).getFusionModel(model.getId());
             NDataModel batchModel = fusionModel.getBatchModel();
             if (!batchModel.isBroken()) {
-                List<NDataSegmentResponse> batchSegments = getSegmentsResponse(batchModel.getUuid(),
-                        model.getProject(), "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
+                List<NDataSegmentResponse> batchSegments = getSegmentsResponse(batchModel.getUuid(), model.getProject(),
+                        "1", String.valueOf(Long.MAX_VALUE - 1), null, executables, LAST_MODIFY, true);
                 calculateRecordSizeAndCount(batchSegments, oldParams);
                 ((FusionModelResponse) model).setBatchSegments(batchSegments);
             }
@@ -794,7 +796,8 @@ public class ModelService extends BasicService {
                         && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
                                 || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
                         && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
-                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()) && !p.getValue().fusionModelBatchPart())
+                        && isArgMatch(owner, exactMatch, p.getValue().getOwner())
+                        && !p.getValue().fusionModelBatchPart())
                 .collect(Collectors.toList());
     }
 
@@ -1591,6 +1594,24 @@ public class ModelService extends BasicService {
             } else {
                 modelRequest.getPartitionDesc().setPartitionDateFormat("");
             }
+            validateFusionModelDimension(modelRequest);
+        }
+    }
+
+    public void validateFusionModelDimension(ModelRequest modelRequest) {
+        val rootFactTableRef = modelRequest.getRootFactTable();
+        // fusion model check timestamp
+        if (rootFactTableRef != null) {
+            val TableDesc = rootFactTableRef.getTableDesc();
+            if (TableDesc != null && TableDesc.getKafkaConfig() != null && TableDesc.getKafkaConfig().hasBatchTable()) {
+                val partitionDesc = modelRequest.getPartitionDesc();
+                val columnName = partitionDesc.getPartitionDateColumn();
+                val hasPartitionColumn = modelRequest.getDimensionNameIdMap().containsKey(columnName);
+                if (!hasPartitionColumn) {
+                    throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
+                            String.format(Locale.ROOT, MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST()));
+                }
+            }
         }
     }
 
@@ -1825,7 +1846,6 @@ public class ModelService extends BasicService {
     public NDataModel createModel(String project, ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         validatePartitionDateColumn(modelRequest);
-
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
 
@@ -2096,7 +2116,8 @@ public class ModelService extends BasicService {
     }
 
     public void addBaseIndex(ModelRequest modelRequest, NDataModel model, IndexPlan indexPlan) {
-        if (!modelRequest.isWithSecondStorage() && NDataModel.ModelType.BATCH == model.getModelType() && modelRequest.isWithBaseIndex()) {
+        if (!modelRequest.isWithSecondStorage() && NDataModel.ModelType.BATCH == model.getModelType()
+                && modelRequest.isWithBaseIndex()) {
             indexPlan.createAndAddBaseIndex(model);
         } else if (modelRequest.isWithSecondStorage()) {
             indexPlan.createAndAddBaseIndex(Collections.singletonList(indexPlan.createBaseTableIndex(model)));
@@ -2681,6 +2702,8 @@ public class ModelService extends BasicService {
         val dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(modelId);
         val model = df.getModel();
+        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+
         if (partitionDesc == null && model.getPartitionDesc() == null && df.getFirstSegment() == null
                 && !model.isMultiPartitionModel()) {
             dataflowManager.fillDfManually(df,
@@ -3300,7 +3323,8 @@ public class ModelService extends BasicService {
         return baseIndexResponse;
     }
 
-    public void changeSecondStorageIfNeeded(String project, ModelRequest request, BuildBaseIndexResponse baseIndexResponse) {
+    public void changeSecondStorageIfNeeded(String project, ModelRequest request,
+            BuildBaseIndexResponse baseIndexResponse) {
 
         // disable second storage
         if (request.getId() != null && SecondStorageUtil.isModelEnable(project, request.getId())
@@ -3784,6 +3808,7 @@ public class ModelService extends BasicService {
 
     public ModelSaveCheckResponse checkBeforeModelSave(ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(modelRequest.getProject());
+        validateFusionModelDimension(modelRequest);
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
         NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
         Set<Long> affectedLayouts = Sets.newHashSet();

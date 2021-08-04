@@ -67,6 +67,7 @@ public class DateFormat {
     public static final String DEFAULT_TIME_PATTERN_WITH_MILLISECONDS_P3 = "HH:mm:ss.SSS'Z'";
     public static final String DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS = "yyyy-MM-dd HH:mm:ss";
     public static final String DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS = "yyyy-MM-dd HH:mm:ss.SSS";
+    public static final String DEFAULT_DATETIME_PATTERN_WITH_TIMEZONE = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     static final private Map<String, FastDateFormat> formatMap = new ConcurrentHashMap<String, FastDateFormat>();
 
@@ -282,5 +283,11 @@ public class DateFormat {
             logger.warn("format time error", e);
         }
         return Long.parseLong(time);
+    }
+
+    public static boolean isTimestampFormat(String format) {
+        return (DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS.equals(format)
+                || DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS.equals(format)
+                || DEFAULT_DATETIME_PATTERN_WITH_TIMEZONE.equals(format));
     }
 }

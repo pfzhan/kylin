@@ -1152,6 +1152,26 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getPARTITION_COLUMN_START_ERROR() {
+        return "无法启动。请确保模型的时间分区列为时间戳类型，且时间格式有效。";
+    }
+
+    @Override
+    public String getPARTITION_COLUMN_SAVE_ERROR() {
+        return "无法提交。请确保模型的时间分区列为时间戳类型，且时间格式有效。";
+    }
+
+    @Override
+    public String getTIMESTAMP_COLUMN_NOT_EXIST() {
+        return "无法加载。请确保表中有 timestamp 类型的列。";
+    }
+
+    @Override
+    public String getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST() {
+        return "无法保存模型。融合模型必须将时间分区列加入模型维度。";
+    }
+
+    @Override
     public String getINVALID_PARTITION_COLUMN() {
         return "请选择事实表上的原始列（而非可计算列）作为时间分区列。";
     }

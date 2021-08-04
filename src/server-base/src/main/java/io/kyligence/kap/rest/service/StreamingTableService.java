@@ -24,16 +24,22 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 import static org.apache.kylin.metadata.datatype.DataType.DECIMAL;
 import static org.apache.kylin.metadata.datatype.DataType.DOUBLE;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -103,6 +109,38 @@ public class StreamingTableService extends TableService {
                 column.setDatatype(DOUBLE);
             }
         });
+    }
+
+    public void checkColumns(StreamingRequest streamingRequest) {
+        String batchTableName = streamingRequest.getKafkaConfig().getBatchTable();
+        String project = streamingRequest.getProject();
+        if (!org.apache.commons.lang.StringUtils.isEmpty(batchTableName)) {
+            TableDesc batchTableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getTableDesc(batchTableName);
+            if (!checkColumnsMatch(batchTableDesc.getColumns(), streamingRequest.getTableDesc().getColumns())) {
+                throw new KylinException(RELOAD_TABLE_FAILED, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getBATCH_STREAM_TABLE_NOT_MATCH(), batchTableName));
+            }
+            ModelUtils.checkTimestampColumn(batchTableDesc);
+            streamingRequest.getTableDesc().setColumns(batchTableDesc.getColumns().clone());
+        } else {
+            ModelUtils.checkTimestampColumn(streamingRequest.getTableDesc());
+        }
+    }
+
+    private boolean checkColumnsMatch(ColumnDesc[] batchColumnDescs, ColumnDesc[] streamColumnDescs) {
+        if (batchColumnDescs.length != streamColumnDescs.length) {
+            return false;
+        }
+
+        List<String> batchColumns = Arrays.stream(batchColumnDescs).map(ColumnDesc::getName).sorted()
+                .collect(Collectors.toList());
+        List<String> streamColumns = Arrays.stream(streamColumnDescs).map(ColumnDesc::getName).sorted()
+                .collect(Collectors.toList());
+        if (!batchColumns.equals(streamColumns)) {
+            return false;
+        }
+        return true;
     }
 
 }

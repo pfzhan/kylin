@@ -36,11 +36,25 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.streaming.util.ReflectionUtils;
+
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class KafkaClientTest {
+
+    @Test
+    public void testConstructMethod() {
+        val constructors = KafkaClient.class.getDeclaredConstructors();
+        Assert.assertTrue(constructors.length == 1);
+
+        try {
+            constructors[0].setAccessible(true);
+            constructors[0].newInstance();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
 
     @Test
     public void testConstructDefaultKafkaConsumerProperties() {
@@ -71,7 +85,7 @@ public class KafkaClientTest {
 
     @Test
     public void testKafkaAdminClient() {
-        try (AdminClient client = KafkaClient.getKafkaAdminClient("localhost:9092", "group1", new Properties())) {
+        try (AdminClient client = KafkaClient.getKafkaAdminClient("localhost:9092", "group1")) {
             AdminMetadataManager metadataManager = (AdminMetadataManager) ReflectionUtils.getField(client,
                     "metadataManager");
             Cluster cluster = (Cluster) ReflectionUtils.getField(metadataManager, "cluster");
