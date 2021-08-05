@@ -47,6 +47,8 @@ public class Constants {
     public static final String KE_LICENSE_INFO = "ke.license.info";
     public static final String KE_LICENSE_VERSION = "ke.license.version";
     public static final String KE_LICENSE_VOLUME = "ke.license.volume";
+    public static final String HIDDEN_VALUE = "*****";
+    public static final String KYLIN_SOURCE_JDBC_PASS_KEY = "kylin.source.jdbc.pass";
 
     public static final String UNLIMITED = "Unlimited";
 }

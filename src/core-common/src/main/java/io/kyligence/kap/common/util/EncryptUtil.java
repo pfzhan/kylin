@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.common.util;
 
 import java.nio.charset.Charset;
@@ -63,6 +61,10 @@ public class EncryptUtil implements IKeep {
         }
     }
 
+    public static String encryptWithPrefix(String value) {
+        return ENC_PREFIX + encrypt(value) + ENC_SUBFIX;
+    }
+
     public static String decrypt(String strToDecrypt) {
         try {
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
@@ -80,6 +82,13 @@ public class EncryptUtil implements IKeep {
 
     private static void printUsage() {
         System.out.println("Usage: java org.apache.kylin.common.util <your_password>");
+    }
+
+    public static String getDecryptedValue(String value) {
+        if (isEncrypted(value)) {
+            return decryptPassInKylin(value);
+        }
+        return value;
     }
 
     public static void main(String[] args) {

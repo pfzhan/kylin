@@ -42,6 +42,7 @@
 
 package org.apache.kylin.common;
 
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_KEY;
 import static java.lang.Math.toIntExact;
 
 import java.io.File;
@@ -90,6 +91,7 @@ import io.kyligence.kap.common.constant.NonCustomProjectLevelConfig;
 import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.common.util.ClusterConstant;
+import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.common.util.SizeConvertUtil;
 import io.kyligence.kap.common.util.Unsafe;
@@ -1111,7 +1113,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getJdbcPass() {
-        return getOptional("kylin.source.jdbc.pass");
+        return EncryptUtil.getDecryptedValue(getOptional(KYLIN_SOURCE_JDBC_PASS_KEY));
     }
 
     public String getJdbcAdaptorClass() {

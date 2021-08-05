@@ -328,7 +328,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getJdbcDialect", new PropertiesEntity("kylin.source.jdbc.dialect", "mysql", "mysql"));
 
         map.put("getJdbcUser", new PropertiesEntity("kylin.source.jdbc.user", "postgres", "postgres"));
-        map.put("getJdbcPass", new PropertiesEntity("kylin.source.jdbc.pass", "kylin", "kylin"));
+        map.put("getJdbcPass",
+                new PropertiesEntity("kylin.source.jdbc.pass", "ENC('YeqVr9MakSFbgxEec9sBwg==')", "kylin"));
 
         map.put("getDefaultStorageEngine", new PropertiesEntity("kylin.storage.default", "20", 20));
 

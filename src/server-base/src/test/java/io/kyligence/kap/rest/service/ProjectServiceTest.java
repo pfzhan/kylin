@@ -22,10 +22,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.common.constant.Constants.HIDDEN_VALUE;
 import static io.kyligence.kap.metadata.model.MaintainModelType.MANUAL_MAINTAIN;
 
 import java.io.IOException;
@@ -998,7 +997,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testUpdateJdbcConfig() {
+    public void testUpdateJdbcConfig() throws Exception {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(PROJECT_JDBC);
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -1013,6 +1012,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         jdbcRequest.setPushdownClass("org.apache.kylin.sdk.datasource.PushDownRunnerSDKImpl");
         jdbcRequest.setSourceConnector("io.kyligence.kap.source.jdbc.DefaultSourceConnector");
         jdbcRequest.setUrl("jdbc:h2:mem:db");
+        jdbcRequest.setPass("kylin");
         projectService.updateJdbcConfig(PROJECT_JDBC, jdbcRequest);
 
         ProjectInstance project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
@@ -1023,6 +1023,17 @@ public class ProjectServiceTest extends ServiceTestBase {
                 project.getOverrideKylinProps().get("kylin.query.pushdown.partition-check.runner-class-name"));
         Assert.assertEquals("io.kyligence.kap.source.jdbc.DefaultSourceConnector",
                 project.getOverrideKylinProps().get("kylin.source.jdbc.connector-class-name"));
+        Assert.assertEquals("ENC('YeqVr9MakSFbgxEec9sBwg==')",
+                project.getOverrideKylinProps().get("kylin.source.jdbc.pass"));
+
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+        Mockito.doReturn(true).when(accessService).isGlobalAdmin(Mockito.anyString());
+        List<UserProjectPermissionResponse> projectInstances = projectService
+                .getProjectsFilterByExactMatchAndPermissionWrapperUserPermission(PROJECT_JDBC, true,
+                        AclPermissionEnum.READ);
+        Assert.assertEquals(1, projectInstances.size());
+        Assert.assertEquals(HIDDEN_VALUE,
+                projectInstances.get(0).getProject().getOverrideKylinProps().get("kylin.source.jdbc.pass"));
     }
 
     @Test

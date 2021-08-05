@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.common.constant.Constants.HIDDEN_VALUE;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_KEY;
 import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
@@ -47,7 +49,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
@@ -89,6 +90,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
+import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
@@ -107,6 +109,7 @@ import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecV2;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
@@ -129,7 +132,7 @@ import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
-import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.Setter;
 import lombok.val;
@@ -188,6 +191,8 @@ public class ProjectService extends BasicService {
         } else {
             overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, KylinConfig.FALSE);
         }
+
+        encryptJdbcPassInOverrideKylinProps(overrideProps);
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
             throw new KylinException(DUPLICATE_PROJECT_NAME,
@@ -212,7 +217,7 @@ public class ProjectService extends BasicService {
         return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionEnum.READ);
     }
 
-    public List<String> getOwnedProjects(){
+    public List<String> getOwnedProjects() {
         val config = KylinConfig.getInstanceFromEnv();
         val epochManager = EpochManager.getInstance(config);
         return NProjectManager.getInstance(config).listAllProjects().stream() //
@@ -262,6 +267,7 @@ public class ProjectService extends BasicService {
         Predicate<ProjectInstance> filter = getRequestFilter(projectName, exactMatch, permission);
         return getProjectsWithFilter(filter).stream().map(projectInstance -> {
             String userPermission = null;
+            clearJdbcPassInOverrideKylinProps(projectInstance.getOverrideKylinProps());
             try {
                 userPermission = AclPermissionEnum.convertToAclPermission(
                         accessService.getCurrentUserPermissionInProject(projectInstance.getName()));
@@ -617,9 +623,25 @@ public class ProjectService extends BasicService {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
+        encryptJdbcPassInOverrideKylinProps(overrideKylinProps);
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(KylinConfig.trimKVFromMap(overrideKylinProps));
         });
+    }
+
+    private void encryptJdbcPassInOverrideKylinProps(Map<String, String> overrideKylinProps) {
+        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)) {
+            if (overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY) != null) {
+                overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY,
+                        EncryptUtil.encryptWithPrefix(overrideKylinProps.get(KYLIN_SOURCE_JDBC_PASS_KEY)));
+            }
+        }
+    }
+
+    private void clearJdbcPassInOverrideKylinProps(Map<String, String> overrideKylinProps) {
+        if (overrideKylinProps.containsKey(KYLIN_SOURCE_JDBC_PASS_KEY)) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY, HIDDEN_VALUE);
+        }
     }
 
     @Transaction(project = 0)
