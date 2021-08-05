@@ -46,6 +46,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -83,7 +84,8 @@ public class JobSyncListener {
             if (exception == null) {
                 return false;
             }
-            log.info("Trigger SimpleHttpRequestRetryHandler, exception : " + exception.getClass().getName() + ", retryTimes : " + retryTimes);
+            log.info("Trigger SimpleHttpRequestRetryHandler, exception : " + exception.getClass().getName()
+                    + ", retryTimes : " + retryTimes);
             return retryTimes < MAX_RETRY_COUNT;
         }
     }
@@ -147,22 +149,26 @@ public class JobSyncListener {
         NDataflow dataflow = manager.getDataflow(dfID);
         List<SegRange> segRangeList = Lists.newArrayList();
         List<SegmentPartitionsInfo> segmentPartitionsInfoList = Lists.newArrayList();
-        if (dataflow != null) {
+        if (dataflow != null && CollectionUtils.isNotEmpty(segmentIds)) {
             val model = dataflow.getModel();
             val partitionDesc = model.getMultiPartitionDesc();
             for (String id : segmentIds) {
                 NDataSegment segment = dataflow.getSegment(id);
+                if (segment == null) {
+                    continue;
+                }
                 TimeRange segRange = segment.getTSRange();
                 segRangeList.add(new SegRange(id, segRange.getStart(), segRange.getEnd()));
                 if (partitionDesc != null && notifier.getSegmentPartitionsMap().get(id) != null
                         && !notifier.getSegmentPartitionsMap().get(id).isEmpty()) {
-                    List<SegmentPartitionResponse> SegmentPartitionResponses = segment.getMultiPartitions().stream()
-                            .filter(segmentPartition -> notifier.getSegmentPartitionsMap().get(id)
+                    List<SegmentPartitionResponse> SegmentPartitionResponses = segment.getMultiPartitions()
+                            .stream().filter(segmentPartition -> notifier.getSegmentPartitionsMap().get(id)
                                     .contains(segmentPartition.getPartitionId()))
                             .map(partition -> {
                                 val partitionInfo = partitionDesc.getPartitionInfo(partition.getPartitionId());
-                                return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(),
-                                        partition.getStatus(), partition.getLastBuildTime(), partition.getSourceCount(),
+                                return new SegmentPartitionResponse(partitionInfo.getId(),
+                                        partitionInfo.getValues(), partition.getStatus(),
+                                        partition.getLastBuildTime(), partition.getSourceCount(),
                                         partition.getStorageSize());
                             }).collect(Collectors.toList());
                     segmentPartitionsInfoList.add(new SegmentPartitionsInfo(id, SegmentPartitionResponses));
@@ -215,8 +221,8 @@ public class JobSyncListener {
         private long endTime;
 
         public JobInfo(String jobId, String project, String subject, Set<String> segmentIds, Set<Long> layoutIds,
-                       long duration, String jobState, String jobType, List<SegRange> segRanges,
-                       List<SegmentPartitionsInfo> segmentPartitionInfoList, long startTime, long endTime) {
+                long duration, String jobState, String jobType, List<SegRange> segRanges,
+                List<SegmentPartitionsInfo> segmentPartitionInfoList, long startTime, long endTime) {
             this.jobId = jobId;
             this.project = project;
             this.modelId = subject;
@@ -272,7 +278,8 @@ public class JobSyncListener {
 
     static void postJobInfo(JobInfo info) {
         String url = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierUrl();
-
+        log.info("post job info parameter, url : {}, state : {}, segmentId : {}", url, info.getState(),
+                info.getSegmentIds());
         if (url == null || info.getSegmentIds() == null || "READY".equalsIgnoreCase(info.getState())) {
             return;
         }
@@ -326,7 +333,7 @@ public class JobSyncListener {
                             project, tags, duration);
 
                     PrometheusMetricsGroup.summaryRecord((duration + notifier.getWaitTime()) / 1000.0,
-                            PrometheusMetrics.MODEL_BUILD_DURATION, new double[]{0.8, 0.9}, //
+                            PrometheusMetrics.MODEL_BUILD_DURATION, new double[] { 0.8, 0.9 }, //
                             "project", project, "model", modelAlias);
                 }
 

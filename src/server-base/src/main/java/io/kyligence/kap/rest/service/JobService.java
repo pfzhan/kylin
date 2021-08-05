@@ -28,6 +28,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JO
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.JOB_NOT_EXIST;
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
@@ -454,6 +455,10 @@ public class JobService extends BasicService {
         NExecutableManager executableManager = getExecutableManager(project);
         //executableManager.getJob only reply ChainedExecutable
         AbstractExecutable executable = executableManager.getJob(jobId);
+        if (executable == null) {
+            throw new KylinException(JOB_NOT_EXIST,
+                    String.format(Locale.ROOT, "Can't find job %s Please check and try again.", jobId));
+        }
         List<ExecutableStepResponse> executableStepList = new ArrayList<>();
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (int i = 0; i < tasks.size(); ++i) {

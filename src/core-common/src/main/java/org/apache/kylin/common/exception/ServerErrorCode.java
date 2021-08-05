@@ -165,6 +165,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     CONCURRENT_SUBMIT_JOB_LIMIT("KE-010013006"), //
     ILLEGAL_JOB_ACTION("KE-010013007"), //
     STORAGE_QUOTA_LIMIT("KE-010013008"), //
+    JOB_NOT_EXIST("KE-010013009"), //
 
     // 10014XXX sql expression
     INVALID_FILTER_CONDITION("KE-010014001"), //

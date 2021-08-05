@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.common.scheduler;
 
-import com.google.common.collect.Maps;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,9 +63,11 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.layoutIds = layoutIds;
         this.waitTime = waitTime;
         if (partitionIds != null) {
-            this.segmentPartitionsMap = Maps.newHashMapWithExpectedSize(segmentIds.size());
-            for (String segmentId : segmentIds) {
-                segmentPartitionsMap.put(segmentId, partitionIds);
+            this.segmentPartitionsMap = new HashMap<>();
+            if (segmentIds != null) {
+                for (String segmentId : segmentIds) {
+                    segmentPartitionsMap.put(segmentId, partitionIds);
+                }
             }
         }
         this.jobClass = jobClass;
