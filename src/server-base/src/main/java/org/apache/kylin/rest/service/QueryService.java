@@ -262,7 +262,6 @@ public class QueryService extends BasicService {
             QueryResult result = queryRoutingEngine.queryWithSqlMassage(queryParams);
             if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
                 QueryContext.current().getMetrics().setResultRowCount(result.getSize());
-                QueryContext.current().getMetrics().setResultRowCount(0);
             }
             return buildSqlResponse(QueryContext.current().getQueryTagInfo().isPushdown(),
                     result.getRowsIterable(), result.getSize(), result.getColumnMetas(), sqlRequest.getProject());
