@@ -38,7 +38,7 @@
     </EditableBlock>
     <!-- 项目存储设置 -->
     <EditableBlock
-      v-if="this.$store.state.config.platform !== 'iframe'"
+      v-if="$store.state.config.platform !== 'iframe'"
       :header-content="$t('storageSettings')"
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'storage-quota')"
