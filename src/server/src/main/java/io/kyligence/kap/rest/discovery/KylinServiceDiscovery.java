@@ -27,6 +27,9 @@ import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum;
 
 import java.util.List;
 
+import org.apache.curator.utils.ZKPaths;
+import org.apache.kylin.common.KylinConfig;
+
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 
 public interface KylinServiceDiscovery {
@@ -35,5 +38,10 @@ public interface KylinServiceDiscovery {
 
     interface Callback {
         void action();
+    }
+
+    default String getZkPathByModeEnum(ServerModeEnum modeEnum) {
+        return ZKPaths.makePath("kylin", KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "services",
+                modeEnum.getName());
     }
 }

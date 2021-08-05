@@ -25,6 +25,9 @@
 package io.kyligence.kap.rest.discovery;
 
 import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum;
+import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum.ALL;
+import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum.JOB;
+import static io.kyligence.kap.common.util.ClusterConstant.ServerModeEnum.QUERY;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +37,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -44,6 +50,8 @@ import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.curator.x.discovery.details.ServiceCacheListener;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +60,7 @@ import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -68,7 +77,14 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
     @Autowired
     private KylinServiceDiscoveryClient kylinServiceDiscoveryClient;
 
+    @Autowired
+    private ServiceDiscovery<ZookeeperInstance> serviceDiscovery;
+
+    @Autowired
+    private CuratorFramework curatorClient;
+
     private final Map<ServerModeEnum, ServiceCache<ZookeeperInstance>> serverModeCacheMap;
+    private final List<ServerModeEnum> ALL_CHECK_MODE_LIST = ImmutableList.of(ALL, JOB, QUERY);
 
     private static final Callback UPDATE_ALL_EPOCHS = () -> {
         try {
@@ -78,32 +94,60 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
         }
     };
 
-    public KylinServiceDiscoveryCache(ServiceDiscovery<ZookeeperInstance> serviceDiscovery) throws Exception {
+    public KylinServiceDiscoveryCache() {
         serverModeCacheMap = Maps.newHashMap();
-        // all server cache
-        serverModeCacheMap.put(ServerModeEnum.ALL,
-                createServiceCache(serviceDiscovery, ServerModeEnum.ALL, UPDATE_ALL_EPOCHS));
-
-        // query server cache
-        serverModeCacheMap.put(ServerModeEnum.QUERY, createServiceCache(serviceDiscovery, ServerModeEnum.QUERY, () -> {
-
-        }));
-
-        // job server cache
-        serverModeCacheMap.put(ServerModeEnum.JOB,
-                createServiceCache(serviceDiscovery, ServerModeEnum.JOB, UPDATE_ALL_EPOCHS));
-
-        start();
     }
 
-    private void start() throws Exception {
+    @PostConstruct
+    private void init() throws Exception {
+        registerServiceCache();
+        startServiceCache();
+    }
+
+    @PreDestroy
+    private void close() {
+        for (ServiceCache<ZookeeperInstance> serviceCache : serverModeCacheMap.values()) {
+            IOUtils.closeQuietly(serviceCache);
+        }
+        serverModeCacheMap.clear();
+    }
+
+    private void registerServiceCache() throws Exception {
+        for (ServerModeEnum serverModeEnum : ALL_CHECK_MODE_LIST) {
+            registerServiceCacheByMode(serverModeEnum);
+        }
+    }
+
+    private void registerServiceCacheByMode(ServerModeEnum modeEnum) throws Exception {
+        switch (modeEnum) {
+        case QUERY:
+            serverModeCacheMap.put(QUERY, createServiceCache(serviceDiscovery, QUERY, () -> {
+            }));
+            break;
+        case JOB:
+            serverModeCacheMap.put(JOB, createServiceCache(serviceDiscovery, JOB, UPDATE_ALL_EPOCHS));
+            break;
+        case ALL:
+            serverModeCacheMap.put(ALL, createServiceCache(serviceDiscovery, ALL, UPDATE_ALL_EPOCHS));
+            break;
+        default:
+            break;
+        }
+
+    }
+
+    private void startServiceCache() throws Exception {
         for (ServiceCache<ZookeeperInstance> serviceCache : serverModeCacheMap.values()) {
             serviceCache.start();
         }
     }
 
     private ServiceCache<ZookeeperInstance> createServiceCache(ServiceDiscovery<ZookeeperInstance> serviceDiscovery,
-            ServerModeEnum serverMode, Callback action) {
+            ServerModeEnum serverMode, Callback action) throws Exception {
+
+        //create mode path first
+        createZkNodeIfNeeded(getZkPathByModeEnum(serverMode));
+
         ServiceCache<ZookeeperInstance> serviceCache = serviceDiscovery.serviceCacheBuilder().name(serverMode.getName())
                 .threadFactory(Executors.defaultThreadFactory()).build();
 
@@ -116,7 +160,7 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
                 logger.info("kylin.server.cluster-mode-{} update to {}", serverMode.getName(), serverNodes);
 
                 // current node is active all/job nodes, try to update all epochs
-                if (getServerInfoByServerMode(ServerModeEnum.JOB).stream().map(ServerInfoResponse::getHost).anyMatch(
+                if (getServerInfoByServerMode(JOB).stream().map(ServerInfoResponse::getHost).anyMatch(
                         server -> Objects.equals(server, kylinServiceDiscoveryClient.getLocalServiceServer()))) {
                     logger.debug("Current node is active node, try to update all epochs");
                     action.action();
@@ -163,6 +207,23 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
         }
 
         return serverInfoResponses;
+    }
+
+    private void createZkNodeIfNeeded(String nodePath) throws Exception {
+        try {
+            if (curatorClient.checkExists().forPath(nodePath) != null) {
+                logger.warn("The znode {} is existed", nodePath);
+                return;
+            }
+            curatorClient.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(nodePath);
+            logger.info("create znode {} success", nodePath);
+
+        } catch (KeeperException.NodeExistsException e) {
+            logger.warn("The znode {} has been created by others", nodePath);
+        } catch (Exception e) {
+            logger.error("Fail to check or create znode for {}", nodePath, e);
+            throw e;
+        }
     }
 
     private static String instance2ServerStr(@Nonnull ServiceInstance<ZookeeperInstance> serviceInstance) {
