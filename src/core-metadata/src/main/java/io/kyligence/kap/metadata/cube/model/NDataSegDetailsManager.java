@@ -160,6 +160,9 @@ class NDataSegDetailsManager implements IKeepNames {
     private NDataSegDetails upsertForSegmentQuietly(NDataSegDetails details) {
         try {
             return upsertForSegment(details);
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException("Failed to insert/update NDataSegDetails for segment "
+                    + details.getDataflowId() + "." + details.getUuid(), e);
         } catch (Exception e) {
             logger.error("Failed to insert/update NDataSegDetails for segment {}",
                     details.getDataflowId() + "." + details.getUuid(), e);
