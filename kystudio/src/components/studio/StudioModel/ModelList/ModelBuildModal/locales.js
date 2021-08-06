@@ -29,7 +29,7 @@ export default {
     partitionDateColumn: 'Time Partition Column',
     noPartition: 'No Partition',
     dateFormat: 'Time Format',
-    pleaseInputColumn: 'Please select time format',
+    pleaseInputColumn: 'Please select or enter a customized time format',
     detectFormat: 'Detect partition time format',
     showMore: 'View partition settings',
     showLess: 'Hide partition settings',
@@ -63,7 +63,13 @@ export default {
     multilevelPartitionDesc: 'A column from the selected table could be chosen. The models under this project could be partitioned by this column in addition to time partitioning. ',
     selectAllSubPartitions: 'All Subpartition Values',
     habirdModelBuildTips: 'Only batch index(es) will be built right now. Streaming index(es) will be built when streaming job is started again.',
-    disableChangePartitionTips: 'The time partition settings can\'t be modified for fusion model and streaming model.'
+    disableChangePartitionTips: 'The time partition settings can\'t be modified for fusion model and streaming model.',
+    previewFormat: 'Format preview: ',
+    formatRule: 'The customized time format is supported. ',
+    viewDetail: 'More info',
+    rule1: 'Use a combination of yyyy, MM, dd, HH, mm, ss, SSS, etc.',
+    rule2: 'When using letters as separators, use a pair of \' (single quote) to quote, i.e. \'T\' will be recognized as T.',
+    rule3: 'When using \\ (backslash) or \' (single quote) as separator, use \\ (backslash) as an escape character, i.e. \'aa\\\'bb\' will be recognized as aa\'bb.'
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
@@ -95,7 +101,7 @@ export default {
     partitionDateColumn: '时间分区列',
     noPartition: '无分区',
     dateFormat: '时间格式',
-    pleaseInputColumn: '请选择时间格式',
+    pleaseInputColumn: '请选择或输入自定义时间格式',
     detectFormat: '获取分区列时间格式',
     showMore: '显示分区列设置',
     showLess: '隐藏分区列设置',
@@ -129,6 +135,12 @@ export default {
     multilevelPartitionDesc: '可选择表上的一列作为子分区，对模型进行分区管理。',
     selectAllSubPartitions: '全部子分区值',
     habirdModelBuildTips: '仅构建离线索引，实时索引的构建将在实时任务重新启动时进行。',
-    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。'
+    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。',
+    previewFormat: '格式预览：',
+    formatRule: '支持输入自定义时间格式，',
+    viewDetail: '更多信息',
+    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 等自定义组合',
+    rule2: '使用字母作分隔符时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
+    rule3: '使用 \\（反斜杠）或 \'（单引号）作分隔符时，需使用 \\（反斜杠）转义，例如： \'aa\\\'bb\' 将被识别为 aa\'bb'
   }
 }

@@ -376,5 +376,8 @@ export default {
   },
   deleteSyncSegments (para) {
     return Vue.resource(apiUrl + 'storage/segments{?segment_ids}').delete(para)
+  },
+  validateDateFormat (para) {
+    return Vue.resource(apiUrl + 'models/check_partition_desc').save(para)
   }
 }

@@ -67,17 +67,31 @@
               </el-col>
             </el-row>
           </el-form-item>
-          <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
+          <el-form-item  :label="$t('dateFormat')" :class="{'is-error': errorFormat}" v-if="partitionMeta.table">
             <el-row :gutter="5">
-              <el-col :span="12">
+              <el-col :span="partitionMeta.column&&$store.state.project.projectPushdownConfig&&!isNotBatchModel ? 22 : 24">
                 <el-tooltip effect="dark" :content="$t('disableChangePartitionTips')" :disabled="!isNotBatchModel" placement="bottom">
-                  <el-select :disabled="isLoadingNewRange || isLoadingFormat || !datasourceActions.includes('changePartition') || isNotBatchModel" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
-                    <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
-                    <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+                  <el-select
+                    :disabled="isLoadingNewRange || isLoadingFormat || !datasourceActions.includes('changePartition') || isNotBatchModel"
+                    v-guide.partitionColumnFormat style="width:100%"
+                    @change="val => partitionColumnFormatChange(val)"
+                    v-model="partitionMeta.format"
+                    filterable
+                    allow-create
+                    default-first-option
+                    :placeholder="$t('pleaseInputColumn')">
+                    <el-option-group>
+                      <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
+                      <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
+                      <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+                    </el-option-group>
+                    <el-option-group>
+                      <el-option :label="f.label" :value="f.value" v-for="f in dateTimestampFormats" :key="f.label"></el-option>
+                    </el-option-group>
                   </el-select>
                 </el-tooltip>
               </el-col>
-              <el-col :span="12">
+              <el-col :span="2" v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig&&!isNotBatchModel">
                 <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
                   <div style="display: inline-block;">
                     <el-button
@@ -86,13 +100,23 @@
                       :disabled="isLoadingNewRange || !datasourceActions.includes('changePartition')"
                       icon="el-ksd-icon-data_range_search_old"
                       v-guide.getPartitionColumnFormat
-                      v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig&&!isNotBatchModel"
                       @click="handleLoadFormat">
                     </el-button>
                   </div>
                 </el-tooltip>
               </el-col>
             </el-row>
+            <div class="error-format" v-if="errorFormat">{{errorFormat}}</div>
+            <div class="pre-format" v-if="formatedDate">{{$t('previewFormat')}}{{formatedDate}}</div>
+            <div class="format">{{$t('formatRule')}}
+              <span v-if="isExpandFormatRule" @click="isExpandFormatRule = false">{{$t('viewDetail')}}<i class="el-icon-ksd-more_01-copy arrow"></i></span>
+              <span v-else @click="isExpandFormatRule = true">{{$t('viewDetail')}}<i class="el-icon-ksd-more_02 arrow"></i></span>
+            </div>
+            <div class="detail-content" v-if="isExpandFormatRule">
+              <p><span class="ksd-mr-2">1. </span><span>{{$t('rule1')}}</span></p>
+              <p><span class="ksd-mr-2">2. </span><span>{{$t('rule2')}}</span></p>
+              <p><span class="ksd-mr-2">3. </span><span>{{$t('rule3')}}</span></p>
+            </div>
             <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
           </el-form-item>
           <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table && !isNotBatchModel">
@@ -156,7 +180,7 @@
                   @change="resetError"
                   value-format="timestamp"
                   :is-auto-complete="true"
-                  :format="partitionMeta.format"
+                  :format="partitionFormat"
                 >
                 </el-date-picker>
                 <el-date-picker
@@ -168,7 +192,7 @@
                   value-format="timestamp"
                   @change="resetError"
                   :is-auto-complete="true"
-                  :format="partitionMeta.format"
+                  :format="partitionFormat"
                 >
                 </el-date-picker>
                 <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
@@ -187,6 +211,11 @@
                 <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
               </div>
               <p v-if="dateErrorMsg" class="error-date-range error-msg">{{dateErrorMsg}}</p>
+              <div class="timestamp-format-tips" v-if="partitionMeta.format.indexOf('TIMESTAMP') !== -1 && (modelBuildMeta.dataRangeVal[0] || modelBuildMeta.dataRangeVal[1])">
+                <span>{{partitionMeta.format}}: </span>
+                <span v-if="modelBuildMeta.dataRangeVal[0]">{{partitionMeta.format === 'TIMESTAMP MILLISECOND' ? new Date(modelBuildMeta.dataRangeVal[0]).getTime() : Math.round(new Date(modelBuildMeta.dataRangeVal[0]).getTime() / 1000)}}</span> - 
+                <span v-if="modelBuildMeta.dataRangeVal[1]">{{partitionMeta.format === 'TIMESTAMP MILLISECOND' ? new Date(modelBuildMeta.dataRangeVal[1]).getTime() : Math.round(new Date(modelBuildMeta.dataRangeVal[1]).getTime() / 1000)}}</span>
+              </div>
             </el-form-item>
           </el-form>
           <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
@@ -263,7 +292,7 @@
   import store, { types } from './store'
   import NModel from '../../ModelEdit/model.js'
   import { BuildIndexStatus } from 'config/model'
-  import { dateFormats, timestampFormats } from 'config'
+  import { dateFormats, timestampFormats, dateTimestampFormats } from 'config'
   import arealabel from '../../../../common/area_label.vue'
   import moment from 'moment'
 
@@ -306,7 +335,8 @@
         updataModel: 'UPDATE_MODEL',
         autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
         setModelPartition: 'MODEL_PARTITION_SET',
-        fetchSubPartitionValues: 'FETCH_SUB_PARTITION_VALUES'
+        fetchSubPartitionValues: 'FETCH_SUB_PARTITION_VALUES',
+        validateDateFormat: 'VALIDATE_DATE_FORMAT'
       }),
       ...mapMutations('ModelBuildModal', {
         setModal: types.SET_MODAL,
@@ -358,6 +388,7 @@
     isLoadingFormat = false
     dateFormats = dateFormats
     timestampFormats = timestampFormats
+    dateTimestampFormats = dateTimestampFormats
     isExpand = true
     isShowWarning = false
     isWillAddIndex = false
@@ -371,6 +402,9 @@
     subPartitionOptions = []
     subPartitionGroupOne = []
     dateErrorMsg = ''
+    formatedDate = ''
+    errorFormat = ''
+    isExpandFormatRule = false
     timestamp = Date.now().toString(32)
 
     @Watch('buildType')
@@ -431,6 +465,15 @@
     }
     get incrementalDisabled () {
       return !(this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format && this.modelBuildMeta.dataRangeVal.length) && this.buildType === 'incremental'
+    }
+    get partitionFormat () {
+      if (this.partitionMeta.format === 'TIMESTAMP SECOND') {
+        return 'yyyy-MM-dd HH:mm:ss'
+      }
+      if (this.partitionMeta.format === 'TIMESTAMP MILLISECOND') {
+        return 'yyyy-MM-dd HH:mm:ss.SSS'
+      }
+      return this.partitionMeta.format
     }
     handChangeBuildType () {
       if (this.buildType === 'incremental' && !this.partitionMeta.table) {
@@ -561,7 +604,18 @@
       this.changePartitionSetting()
     }
 
-    partitionColumnFormatChange () {
+    async partitionColumnFormatChange (val) {
+      this.formatedDate = ''
+      this.errorFormat = ''
+      if (val) {
+        try {
+          const res = await this.validateDateFormat({partition_date_column: this.partitionMeta.column, partition_date_format: this.partitionMeta.format})
+          this.formatedDate = await handleSuccessAsync(res)
+        } catch (e) {
+          this.errorFormat = e.body.msg
+          this.formatedDate = ''
+        }
+      }
       this.modelBuildMeta.dataRangeVal = []
       this.changePartitionSetting()
     }
@@ -746,6 +800,7 @@
       this.multiPartitionValues = []
       this.subPartitionGroupOne = []
       this.dateErrorMsg = ''
+      this.isExpandFormatRule = false
       this.resetError()
       this.hideModal()
       setTimeout(() => {
@@ -1087,6 +1142,49 @@
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
   .model-build {
+    .error-format {
+      color: @error-color-1;
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .timestamp-format-tips,
+    .pre-format {
+      color: @text-normal-color;
+      font-size: 14px;
+      margin-top: 4px;
+      background-color: @base-background-color;
+      height: 26px;
+      line-height: 26px;
+      border-radius: 4px;
+      display: inline-block;
+      padding: 0 4px;
+    }
+    .format {
+      font-size: 12px;
+      line-height: 16px;
+      color: @text-disabled-color;
+      margin-top: 4px;
+      span {
+        color: @base-color;
+        cursor: pointer;
+        .arrow {
+          transform: rotate( 90deg );
+          margin-left: 3px;
+        }
+      }
+    }
+    .detail-content {
+      background-color: @base-background-color-1;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      font-size: 12px;
+      color: @text-normal-color;
+      line-height: 16px;
+      margin-top: 5px;
+      p {
+        display: flex;
+      }
+    }
     .habird-tips {
       font-size: 14px;
     }

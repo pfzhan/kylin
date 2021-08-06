@@ -444,6 +444,9 @@ export default {
     },
     [types.DELETE_SYNC_SEGMENTS] (_, params) {
       return api.model.deleteSyncSegments(params)
+    },
+    [types.VALIDATE_DATE_FORMAT] (_, params) {
+      return api.model.validateDateFormat(params)
     }
   },
   getters: {

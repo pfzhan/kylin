@@ -11,10 +11,16 @@ export default {
     dateFormat: 'Time Format',
     detectFormat: 'Detect partition time format',
     noColumnFund: 'Column not found',
-    pleaseInputColumn: 'Please select time format',
+    pleaseInputColumn: 'Please select or enter a customized time format',
     changeSegmentTip1: 'You have modified the partition column as {tableColumn}, time format {dateType}. After saving, all segments under the model {modelName} will be purged. You need to reload the data, the model cannot serve related queries during data loading. Please confirm whether to submit?',
     changeSegmentTip2: 'You have modified as no partition column. After saving, all segments under the model {modelName} will be purged . The system will automatically rebuild the index and full load the data. The model cannot serve related queries during index building. Please confirm whether to submit?',
-    changeSegmentTips: 'With partition setting changed, all segments and data would be deleted. The model couldn’t serve queries. Meanwhile, the related ongoing jobs for building index would be discarded.<br/>Do you want to continue?'
+    changeSegmentTips: 'With partition setting changed, all segments and data would be deleted. The model couldn’t serve queries. Meanwhile, the related ongoing jobs for building index would be discarded.<br/>Do you want to continue?',
+    previewFormat: 'Format preview: ',
+    formatRule: 'The customized time format is supported. ',
+    viewDetail: 'More info',
+    rule1: 'Use a combination of yyyy, MM, dd, HH, mm, ss, SSS, etc.',
+    rule2: 'When using letters as separators, use a pair of \' (single quote) to quote, i.e. \'T\' will be recognized as T.',
+    rule3: 'When using \\ (backslash) or \' (single quote) as separator, use \\ (backslash) as an escape character, i.e. \'aa\\\'bb\' will be recognized as aa\'bb.'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -27,10 +33,16 @@ export default {
     noPartition: '无分区',
     dateFormat: '时间格式',
     detectFormat: '获取分区列时间格式',
-    pleaseInputColumn: '请选择时间格式',
+    pleaseInputColumn: '请选择或输入自定义时间格式',
     noColumnFund: '找不到该列',
     changeSegmentTip1: '您修改分区列为 {tableColumn}，格式为 {dateType}，保存后会导致模型 {modelName} 下的所有 Segments 被清空。您需要重新加载数据，数据加载期间该模型不能服务于相关的查询。请确认是否提交？',
     changeSegmentTip2: '您修改为无分区列，保存后会导致模型 {modelName} 下所有 Segments 被清空。系统将自动重新构建索引并全量加载数据，索引构建期间该模型不能服务于相关的查询。请确认是否提交？',
-    changeSegmentTips: '修改模型分区设置后，系统将删除所有 Segment 及数据，模型将无法服务于业务查询。同时正在执行的构建任务将被终止。<br/>是否要继续保存？'
+    changeSegmentTips: '修改模型分区设置后，系统将删除所有 Segment 及数据，模型将无法服务于业务查询。同时正在执行的构建任务将被终止。<br/>是否要继续保存？',
+    previewFormat: '格式预览：',
+    formatRule: '支持输入自定义时间格式，',
+    viewDetail: '更多信息',
+    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 等自定义组合',
+    rule2: '使用字母作分隔符时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
+    rule3: '使用 \\（反斜杠）或 \'（单引号）作分隔符时，需使用 \\（反斜杠）转义，例如： \'aa\\\'bb\' 将被识别为 aa\'bb'
   }
 }

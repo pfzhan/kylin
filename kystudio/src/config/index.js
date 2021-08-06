@@ -250,6 +250,11 @@ export const dateFormats = [
   {label: 'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'', value: 'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''}
 ]
 
+export const dateTimestampFormats = [
+  {label: 'TIMESTAMP (SECOND)', value: 'TIMESTAMP SECOND'},
+  {label: 'TIMESTAMP (MILLISECOND)', value: 'TIMESTAMP MILLISECOND'}
+]
+
 export const timestampFormats = [
   {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
   {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},

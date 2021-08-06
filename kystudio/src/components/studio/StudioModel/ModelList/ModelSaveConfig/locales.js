@@ -23,7 +23,7 @@ export default {
     dataFilterCondTips: 'Data filter condition is an addition data filter during data loading. E.g. you can filter out those records with null values or specific records according to your business rules',
     noColumnFund: 'Column not found',
     pleaseInputColumn: 'Please select a partition column',
-    pleaseInputColumnFormat: 'Please select time format',
+    pleaseInputColumnFormat: 'Please select or enter a customized time format',
     detectFormat: 'Detect partition time format',
     errorMsg: 'Error Message:',
     filterCondTips: 'Modifying the data filter conditions will result in all indexes under this model being rebuilt. Please modify with caution.',
@@ -57,7 +57,13 @@ export default {
     streamSecStoragePartitionTips: 'Can\'t save the model. For fusion model, the time partition column must be added as a dimension.',
     baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default.',
     notBatchModelPartitionTips: 'The time partition settings can\'t be modified after the fusion model or streaming model is saved.',
-    disableChangePartitionTips: 'The time partition settings can\'t be modified for fusion model and streaming model.'
+    disableChangePartitionTips: 'The time partition settings can\'t be modified for fusion model and streaming model.',
+    previewFormat: 'Format preview: ',
+    formatRule: 'The customized time format is supported. ',
+    viewDetail: 'More info',
+    rule1: 'Use a combination of yyyy, MM, dd, HH, mm, ss, SSS, etc.',
+    rule2: 'When using letters as separators, use a pair of \' (single quote) to quote, i.e. \'T\' will be recognized as T.',
+    rule3: 'When using \\ (backslash) or \' (single quote) as separator, use \\ (backslash) as an escape character, i.e. \'aa\\\'bb\' will be recognized as aa\'bb.'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -83,7 +89,7 @@ export default {
     dataFilterCondTips: '您可以通过数据筛选在保存模型时过滤掉空值数据或是符合特定条件的数据',
     noColumnFund: '找不到该列',
     pleaseInputColumn: '请选择分区列',
-    pleaseInputColumnFormat: '请选择时间格式',
+    pleaseInputColumnFormat: '请选择或输入自定义时间格式',
     detectFormat: '获取分区列时间格式',
     errorMsg: '错误信息：',
     filterCondTips: '修改数据筛选条件将会导致该模型下所有索引重新构建，请谨慎修改。',
@@ -117,6 +123,12 @@ export default {
     streamSecStoragePartitionTips: '无法保存模型。融合模型必须将时间分区列加入模型维度。',
     baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。',
     notBatchModelPartitionTips: '保存后，融合模型和实时模型将无法修改时间分区设置。',
-    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。'
+    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。',
+    previewFormat: '格式预览：',
+    formatRule: '支持输入自定义时间格式，',
+    viewDetail: '更多信息',
+    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 等自定义组合',
+    rule2: '使用字母作分隔符时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
+    rule3: '使用 \\（反斜杠）或 \'（单引号）作分隔符时，需使用 \\（反斜杠）转义，例如： \'aa\\\'bb\' 将被识别为 aa\'bb'
   }
 }

@@ -30,7 +30,7 @@
       </el-form-item>
       <el-form-item  :label="$t('partitionDateColumn')" v-if="partitionMeta.table">
         <el-row :gutter="5">
-          <el-col :span="11" v-if="partitionMeta.table">
+          <el-col :span="12" v-if="partitionMeta.table">
             <el-form-item prop="column">
               <el-select
               v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
@@ -42,13 +42,32 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="11">
-            <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" @change="changePartitionSetting" :placeholder="$t('pleaseInputColumn')">
-              <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
-              <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+        </el-row>
+      </el-form-item>
+      <el-form-item  :label="$t('dateFormat')" :class="{'is-error': errorFormat}" v-if="partitionMeta.table">
+        <el-row :gutter="5">
+          <el-col :span="partitionMeta.column && $store.state.project.projectPushdownConfig && modelDesc.model_type === 'BATCH' ? 22 : 24">
+            <el-select
+              :disabled="isLoadingFormat"
+              v-guide.partitionColumnFormat
+              style="width:100%"
+              filterable
+              allow-create
+              default-first-option
+              v-model="partitionMeta.format"
+              @change="val => changePartitionSetting('format', val)"
+              :placeholder="$t('pleaseInputColumn')">
+              <el-option-group>
+                <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
+                <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
+                <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+              </el-option-group>
+              <el-option-group>
+                <el-option :label="f.label" :value="f.value" v-for="f in dateTimestampFormats" :key="f.label"></el-option>
+              </el-option-group>
             </el-select>
           </el-col>
-          <el-col :span="1">
+          <el-col :span="2" v-if="partitionMeta.column && $store.state.project.projectPushdownConfig && modelDesc.model_type === 'BATCH'">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
               <div style="display: inline-block;">
                 <el-button
@@ -56,12 +75,22 @@
                   :loading="isLoadingFormat"
                   icon="el-ksd-icon-data_range_search_old"
                   v-guide.getPartitionColumnFormat
-                  v-if="partitionMeta.column && $store.state.project.projectPushdownConfig && modelDesc.model_type === 'BATCH'"
                   @click="handleLoadFormat">
                 </el-button>
               </div>
             </el-tooltip>
           </el-col>
+          <div class="error-format" v-if="errorFormat">{{errorFormat}}</div>
+          <div class="pre-format" v-if="formatedDate">{{$t('previewFormat')}}{{formatedDate}}</div>
+          <div class="format">{{$t('formatRule')}}
+            <span v-if="isExpandFormatRule" @click="isExpandFormatRule = false">{{$t('viewDetail')}}<i class="el-icon-ksd-more_01-copy arrow"></i></span>
+            <span v-else @click="isExpandFormatRule = true">{{$t('viewDetail')}}<i class="el-icon-ksd-more_02 arrow"></i></span>
+          </div>
+          <div class="detail-content" v-if="isExpandFormatRule">
+            <p><span class="ksd-mr-2">1. </span><span>{{$t('rule1')}}</span></p>
+            <p><span class="ksd-mr-2">2. </span><span>{{$t('rule2')}}</span></p>
+            <p><span class="ksd-mr-2">3. </span><span>{{$t('rule3')}}</span></p>
+          </div>
         </el-row>
       </el-form-item>
       <el-form-item v-if="((!modelDesc.multi_partition_desc && $store.state.project.multi_partition_enabled) || modelDesc.multi_partition_desc) && partitionMeta.table && !isNotBatchModel">
@@ -72,7 +101,7 @@
           </el-tooltip>
         </span>
         <el-row>
-          <el-col :span="11">
+          <el-col :span="12">
             <el-select
               :disabled="isLoadingNewRange"
               v-model="partitionMeta.multiPartition"
@@ -108,7 +137,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from 'store'
 import locales from './locales'
 import store, { types } from './store'
-import { timeDataType, dateFormats, timestampFormats } from 'config'
+import { timeDataType, dateFormats, timestampFormats, dateTimestampFormats } from 'config'
 import NModel from '../../ModelEdit/model.js'
 import { isDatePartitionType, isStreamingPartitionType, isSubPartitionType, kapConfirm } from 'util'
 import { handleSuccessAsync, handleError } from 'util/index'
@@ -138,7 +167,8 @@ vuex.registerModule(['modals', 'ModelPartition'], store)
     // 后台接口请求
     ...mapActions({
       fetchPartitionFormat: 'FETCH_PARTITION_FORMAT',
-      setModelPartition: 'MODEL_PARTITION_SET'
+      setModelPartition: 'MODEL_PARTITION_SET',
+      validateDateFormat: 'VALIDATE_DATE_FORMAT'
     })
   },
   locales
@@ -159,6 +189,7 @@ export default class ModelPartition extends Vue {
   }
   dateFormats = dateFormats
   timestampFormats = timestampFormats
+  dateTimestampFormats = dateTimestampFormats
   prevPartitionMeta = {
     table: '',
     column: '',
@@ -166,6 +197,9 @@ export default class ModelPartition extends Vue {
     multiPartition: ''
   }
   isShowWarning = false
+  formatedDate = ''
+  errorFormat = ''
+  isExpandFormatRule = false
   validateBrokenColumn (rule, value, callback) {
     if (value) {
       if (this.checkIsBroken(this.brokenPartitionColumns, value)) {
@@ -248,7 +282,18 @@ export default class ModelPartition extends Vue {
     return result
   }
   // 分区设置改变
-  changePartitionSetting () {
+  async changePartitionSetting (type, val) {
+    this.formatedDate = ''
+    this.errorFormat = ''
+    if (type === 'format' && val) {
+      try {
+        const res = await this.validateDateFormat({partition_date_column: this.partitionMeta.column, partition_date_format: this.partitionMeta.format})
+        this.formatedDate = await handleSuccessAsync(res)
+      } catch (e) {
+        this.errorFormat = e.body.msg
+        this.formatedDate = ''
+      }
+    }
     if (JSON.stringify(this.prevPartitionMeta) !== JSON.stringify(this.partitionMeta)) {
       if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
         this.isShowWarning = true
@@ -381,6 +426,7 @@ export default class ModelPartition extends Vue {
   }
   handleClose (isSubmit) {
     this.isLoadingFormat = false
+    this.isExpandFormatRule = false
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()
@@ -395,6 +441,48 @@ export default class ModelPartition extends Vue {
 <style lang="less" scoped>
 @import '../../../../../assets/styles/variables.less';
 .partition-dialog {
+  .error-format {
+    color: @error-color-1;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .pre-format {
+    color: @text-normal-color;
+    font-size: 14px;
+    margin-top: 4px;
+    background-color: @base-background-color;
+    height: 26px;
+    line-height: 26px;
+    border-radius: 4px;
+    display: inline-block;
+    padding: 0 4px;
+  }
+  .format {
+    font-size: 12px;
+    line-height: 16px;
+    color: @text-disabled-color;
+    margin-top: 4px;
+    span {
+      color: @base-color;
+      cursor: pointer;
+      .arrow {
+        transform: rotate( 90deg );
+        margin-left: 3px;
+      }
+    }
+  }
+  .detail-content {
+    background-color: @base-background-color-1;
+    padding: 8px 16px;
+    box-sizing: border-box;
+    font-size: 12px;
+    color: @text-normal-color;
+    line-height: 16px;
+    margin-top: 4px;
+    p {
+      display: flex;
+    }
+  }
   .partition-set {
     span {
       color: @error-color-1;
