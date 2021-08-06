@@ -27,11 +27,19 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.naming.directory.SearchControls;
 
@@ -39,6 +47,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +66,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import org.springframework.util.CollectionUtils;
 
 public class LdapUserService implements UserService {
 
@@ -66,7 +76,12 @@ public class LdapUserService implements UserService {
 
     private static final String SKIPPED_LDAP = "skipped-ldap";
 
-    private static final com.google.common.cache.Cache<String, List<ManagedUser>> ldapUsersCache = CacheBuilder
+    private static final AtomicBoolean LOAD_TASK_STATUS = new AtomicBoolean(Boolean.FALSE);
+
+    private static final ThreadPoolExecutor LOAD_TASK_POOL = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(1), Executors.defaultThreadFactory(), (r, e) -> { });
+
+    private static final com.google.common.cache.Cache<String, Map<String, ManagedUser>> ldapUsersCache = CacheBuilder
             .newBuilder().maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
             .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
             .build();
@@ -108,37 +123,49 @@ public class LdapUserService implements UserService {
 
     @Override
     public boolean userExists(String username) {
-        for (ManagedUser user : listUsers()) {
-            if (user.getUsername().equals(username)) {
-                return true;
-            }
+        Map<String, ManagedUser> managedUserMap = this.getLDAPUsersCache();
+        if (Objects.nonNull(managedUserMap)) {
+            return managedUserMap.containsKey(username);
         }
-        return false;
+        UserDetails ldapUser = ldapUserDetailsService.loadUserByUsername(username);
+        this.asyncLoadCacheData();
+        return Objects.nonNull(ldapUser);
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-        for (ManagedUser user : listUsers()) {
-            if (StringUtils.equalsIgnoreCase(username, user.getUsername())) {
-                return user;
+        Map<String, ManagedUser> managedUserMap = this.getLDAPUsersCache();
+        if (Objects.nonNull(managedUserMap)) {
+            for (Map.Entry<String, ManagedUser> entry : managedUserMap.entrySet()) {
+                if (StringUtils.equalsIgnoreCase(username, entry.getKey())) {
+                    return entry.getValue();
+                }
             }
+            throw new UsernameNotFoundException(
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_NOT_FOUND(), username));
+        } else {
+            UserDetails ldapUser = ldapUserDetailsService.loadUserByUsername(username);
+            this.asyncLoadCacheData();
+            if (Objects.isNull(ldapUser)) {
+                String msg = String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_NOT_FOUND(), username);
+                throw new UsernameNotFoundException(msg);
+            }
+            return new ManagedUser(ldapUser.getUsername(), SKIPPED_LDAP, false, ldapUser.getAuthorities());
         }
-        throw new UsernameNotFoundException(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getUSER_NOT_FOUND(), username));
     }
 
     @Override
     public List<ManagedUser> listUsers() {
-        List<ManagedUser> allUsers = ldapUsersCache.getIfPresent(LDAP_USERS);
-        if (allUsers == null || allUsers.isEmpty()) {
+        Map<String, ManagedUser> allUsers = ldapUsersCache.getIfPresent(LDAP_USERS);
+        if (CollectionUtils.isEmpty(allUsers)) {
             logger.info("Failed to read users from cache, reload from ldap server.");
-            allUsers = new ArrayList<>();
+            allUsers = new HashMap<>();
             Set<String> ldapUsers = getAllUsers();
             for (String user : ldapUsers) {
                 ManagedUser ldapUser = new ManagedUser(user, SKIPPED_LDAP, false, Lists.newArrayList());
                 try {
                     completeUserInfoInternal(ldapUser);
-                    allUsers.add(ldapUser);
+                    allUsers.put(user, ldapUser);
                 } catch (IncorrectResultSizeDataAccessException e) {
                     logger.warn("Complete user {} info exception", ldapUser.getUsername(), e);
                 }
@@ -147,7 +174,7 @@ public class LdapUserService implements UserService {
                     "Failed to load users from ldap server, something went wrong."));
         }
         logger.info("Get all users size: {}", allUsers.size());
-        return Collections.unmodifiableList(allUsers);
+        return Collections.unmodifiableList(new ArrayList<>(allUsers.values()));
     }
 
     @Override
@@ -166,10 +193,20 @@ public class LdapUserService implements UserService {
     }
 
     public void completeUserInfoInternal(ManagedUser user) {
-        UserDetails ldapUser = ldapUserDetailsService.loadUserByUsername(user.getUsername());
-        ManagedUser managedUser = new ManagedUser(ldapUser.getUsername(), SKIPPED_LDAP, false,
-                ldapUser.getAuthorities());
-        user.setGrantedAuthorities(managedUser.getAuthorities());
+        Map<String, List<String>> userAndUserGroup = userGroupService.getUserAndUserGroup();
+        for (Map.Entry<String, List<String>> entry : userAndUserGroup.entrySet()) {
+            String groupName = entry.getKey();
+            Set<String> userSet = new HashSet<>(entry.getValue());
+            if(!userSet.contains(user.getUsername())){
+                continue;
+            }
+            if (groupName.equals(KylinConfig.getInstanceFromEnv().getLDAPAdminRole())) {
+                user.addAuthorities(groupName);
+                user.addAuthorities(Constant.ROLE_ADMIN);
+            } else {
+                user.addAuthorities(groupName);
+            }
+        }
     }
 
     public void onUserAuthenticated(String username) {
@@ -196,7 +233,38 @@ public class LdapUserService implements UserService {
             result.addAll(ldapTemplate.search(ldapUserSearchBase, ldapUserSearchFilter, searchControls,
                     attributesMapper, processor));
         } while (processor.hasMore());
-
+        logger.info("LDAP user info load success");
         return result;
+    }
+
+    private Map<String, ManagedUser> getLDAPUsersCache() {
+        return Optional.ofNullable(ldapUsersCache.getIfPresent(LDAP_USERS)).map(Collections::unmodifiableMap)
+                .orElse(null);
+    }
+
+    private void asyncLoadCacheData() {
+        if (null != this.getLDAPUsersCache() || LOAD_TASK_STATUS.get()) {
+            return;
+        }
+        Runnable runnable = () -> {
+            if (null != this.getLDAPUsersCache()) {
+                return;
+            }
+            if (!LOAD_TASK_STATUS.compareAndSet(Boolean.FALSE, Boolean.TRUE)) {
+                return;
+            }
+            try {
+                this.listUsers();
+            } catch (Exception e) {
+                logger.error("Failed to refresh cache asynchronously", e);
+            } finally {
+                LOAD_TASK_STATUS.set(Boolean.FALSE);
+            }
+        };
+        try {
+            LOAD_TASK_POOL.execute(runnable);
+        } catch (Exception e) {
+            logger.error("load user cache task error", e);
+        }
     }
 }

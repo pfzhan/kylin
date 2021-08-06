@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,12 +32,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.naming.directory.SearchControls;
 import javax.naming.ldap.LdapName;
 
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -45,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.ldap.NameNotFoundException;
 import org.springframework.ldap.control.PagedResultsDirContextProcessor;
 import org.springframework.ldap.core.AttributesMapper;
@@ -59,6 +61,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
+import org.springframework.util.CollectionUtils;
 
 public class LdapUserGroupService extends NUserGroupService {
 
@@ -74,6 +77,11 @@ public class LdapUserGroupService extends NUserGroupService {
             .build();
 
     private static final com.google.common.cache.Cache<String, List<ManagedUser>> ldapGroupsMembersCache = CacheBuilder
+            .newBuilder().maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
+            .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
+            .build();
+
+    private static final com.google.common.cache.Cache<String, List<String>> ldapGroupsAndMembersCache = CacheBuilder
             .newBuilder().maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
             .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
             .build();
@@ -143,8 +151,7 @@ public class LdapUserGroupService extends NUserGroupService {
     public Map<String, List<String>> getUserAndUserGroup() {
         Map<String, List<String>> result = Maps.newHashMap();
         for (String group : getAllUserGroups()) {
-            result.put(group,
-                    getGroupMembersByName(group).stream().map(ManagedUser::getUsername).collect(Collectors.toList()));
+            result.put(group, getGroupUsernameList(group));
         }
         return Collections.unmodifiableMap(result);
     }
@@ -161,9 +168,38 @@ public class LdapUserGroupService extends NUserGroupService {
     @Override
     public List<ManagedUser> getGroupMembersByName(String name) {
         List<ManagedUser> members = ldapGroupsMembersCache.getIfPresent(name);
-        if (members == null || members.isEmpty()) {
+        if (CollectionUtils.isEmpty(members)) {
             logger.info("Can not get the group {}'s all members from cache, ask ldap instead.", name);
             members = new ArrayList<>();
+            List<String> usernameList = getGroupUsernameList(name);
+            for (String username : usernameList) {
+                boolean userExists = userService.userExists(username);
+                if (userExists) {//guard groups may have ou or groups
+                    ManagedUser ldapUser = new ManagedUser(username, SKIPPED_LDAP, false,
+                            Lists.<GrantedAuthority>newArrayList());
+                    ldapUserService.completeUserInfoInternal(ldapUser);
+                    members.add(ldapUser);
+                }
+            }
+            ldapGroupsMembersCache.put(name, Collections.unmodifiableList(members));
+        }
+        return members;
+    }
+
+    @Override
+    public List<UserGroupResponseKI> getUserGroupResponse(List<UserGroup> userGroups) throws IOException {
+        List<UserGroupResponseKI> result = new ArrayList<>();
+        for (UserGroup group : userGroups) {
+            Set<String> groupMembers = new TreeSet<>(getGroupUsernameList(group.getGroupName()));
+            result.add(new UserGroupResponseKI(group.getUuid(), group.getGroupName(), groupMembers));
+        }
+        return result;
+    }
+
+    private List<String> getGroupUsernameList(String name) {
+        List<String> users = ldapGroupsAndMembersCache.getIfPresent(name);
+        if (null == users) {
+            users = new ArrayList<>();
             String ldapUserIDAttr = KapConfig.getInstanceFromEnv().getLDAPUserIDAttr();
             Set<String> ldapUserDNs = getAllGroupMembers(name);
 
@@ -174,30 +210,19 @@ public class LdapUserGroupService extends NUserGroupService {
                 } catch (Exception e) {
                     logger.warn("Can not get username from dn {} by user id attr {}", u, ldapUserIDAttr);
                     try {
-                        AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapUserIDAttr).get()
-                                .toString();
+                        AttributesMapper<String> attributesMapper = attributes -> attributes.get(ldapUserIDAttr).get().toString();
                         username = ldapTemplate.lookup(u, attributesMapper);
                         logger.info("Get dn {} username {} by ldap lookup", u, username);
                     } catch (NameNotFoundException ex) {
                         logger.info("Can not find user by dn {}", u, ex);
+                        continue;
                     }
                 }
-
-                if (userService.userExists(username)) {//guard groups may have ou or groups
-                    ManagedUser ldapUser = new ManagedUser(username, SKIPPED_LDAP, false,
-                            Lists.<GrantedAuthority> newArrayList());
-                    try {
-                        ldapUserService.completeUserInfoInternal(ldapUser);
-                        members.add(ldapUser);
-                    } catch (IncorrectResultSizeDataAccessException e) {
-                        logger.warn("Get group {} member {} by user id attr {} exception",
-                                name, ldapUser.getUsername(), ldapUserIDAttr, e);
-                    }
-                }
+                users.add(username);
             }
-            ldapGroupsMembersCache.put(name, Collections.unmodifiableList(members));
+            ldapGroupsAndMembersCache.put(name, Collections.unmodifiableList(users));
         }
-        return members;
+        return users;
     }
 
     private Set<String> getAllGroupMembers(String name) {

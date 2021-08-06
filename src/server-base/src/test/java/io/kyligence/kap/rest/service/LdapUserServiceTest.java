@@ -26,6 +26,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
@@ -33,12 +34,16 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.assertj.core.util.Lists;
@@ -316,4 +321,35 @@ public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(groups.stream().map(UserGroup::getGroupName).anyMatch(name -> name.contains("admin")));
         Assert.assertTrue(groups.stream().map(UserGroup::getGroupName).anyMatch(name -> name.contains("itpeople")));
     }
+
+    @Test
+    public void testGetUserGroupResponse() throws IOException {
+        List<String> allUserGroups = userGroupService.getAllUserGroups();
+        List<UserGroupResponseKI> userGroupResponse = userGroupService
+                .getUserGroupResponse(allUserGroups.stream().map(UserGroup::new).collect(Collectors.toList()));
+        Map<String, Set<String>> groupUsersMap = userGroupResponse.stream()
+                .map(UserGroupResponseKI::getUserGroupAndUsers).collect(toMap(Pair::getKey, Pair::getValue));
+        Assert.assertTrue(groupUsersMap.containsKey("admin"));
+        Assert.assertTrue(groupUsersMap.containsKey("itpeople"));
+        Assert.assertTrue(groupUsersMap.get("admin").contains("jenny"));
+        Assert.assertTrue(groupUsersMap.get("itpeople").contains("johnny"));
+        Assert.assertTrue(groupUsersMap.get("itpeople").contains("oliver"));
+        Assert.assertTrue(groupUsersMap.get("empty").isEmpty());
+    }
+
+    @Test
+    public void testGroupNameByUuidAndUuidByGroupName() throws IOException {
+        List<UserGroupResponseKI> userGroupResponse = userGroupService.getUserGroupResponse(
+                userGroupService.getAllUserGroups().stream().map(UserGroup::new).collect(Collectors.toList()));
+        userGroupResponse.stream().forEach(response -> {
+            String groupName = response.getGroupName();
+            String uuidByGroupName = userGroupService.getUuidByGroupName(response.getGroupName());
+            Assert.assertEquals(groupName, uuidByGroupName);
+            String uuid = response.getUuid();
+            String groupNameByUuid = userGroupService.getGroupNameByUuid(response.getUuid());
+            Assert.assertEquals(uuid, groupNameByUuid);
+        });
+
+    }
+
 }
