@@ -13,6 +13,7 @@
     <template v-if="isFormShow">
       <div class="batch-des">{{$t('batchMeasureDes')}}</div>
       <div class="ksd-mb-10 ksd-right">
+        <el-button @click="changeSyncName">{{!syncComment ? $t('syncName') : $t('resetSyncName')}}</el-button>
         <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
           <i slot="prefix" class="el-input__icon el-ksd-icon-search_22"></i>
         </el-input>
@@ -32,7 +33,8 @@
             v-if="table.show || isGuideMode"
             :data="table.columns"
             :ref="table.guid">
-            <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="name" :label="$t('name')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="column" :label="$t('column')"></el-table-column>
             <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
@@ -76,7 +78,8 @@
             :class="{'disabled-checkbox': flattenLookupTables.includes(table.alias)}"
             :data="table.columns"
             :ref="table.guid">
-            <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="name" :label="$t('name')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="column" :label="$t('column')"></el-table-column>
             <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, table)}" align="center">
               <template slot-scope="scope">
@@ -241,6 +244,7 @@ export default class BatchMeasureModal extends Vue {
   tableHeaderTops = []
   scrollTableList = []
   targetFixedTable = null
+  syncComment = false
 
   get flattenLookupTables () {
     return this.modelDesc.anti_flatten_lookups
@@ -278,7 +282,7 @@ export default class BatchMeasureModal extends Vue {
             name: this.checkHasSameName(allMeasureArr, column.name + '_SUM', column) ? column.name + '_SUM_' + column.table_alias : column.name + '_SUM',
             guid: sampleGuid(),
             expression: 'SUM',
-            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
+            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.column}],
             table_guid: column.table_guid
           }
           allMeasureArr.push(measure)
@@ -288,7 +292,7 @@ export default class BatchMeasureModal extends Vue {
             name: this.checkHasSameName(allMeasureArr, column.name + '_MIN', column) ? column.name + '_MIN_' + column.table_alias : column.name + '_MIN',
             guid: sampleGuid(),
             expression: 'MIN',
-            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
+            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.column}],
             table_guid: column.table_guid
           }
           allMeasureArr.push(measure)
@@ -298,7 +302,7 @@ export default class BatchMeasureModal extends Vue {
             name: this.checkHasSameName(allMeasureArr, column.name + '_MAX', column) ? column.name + '_MAX_' + column.table_alias : column.name + '_MAX',
             guid: sampleGuid(),
             expression: 'MAX',
-            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
+            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.column}],
             table_guid: column.table_guid
           }
           allMeasureArr.push(measure)
@@ -308,7 +312,7 @@ export default class BatchMeasureModal extends Vue {
             name: this.checkHasSameName(allMeasureArr, column.name + '_COUNT', column) ? column.name + '_COUNT_' + column.table_alias : column.name + '_COUNT',
             guid: sampleGuid(),
             expression: 'COUNT',
-            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.name}],
+            parameter_value: [{type: 'column', value: column.table_alias + '.' + column.column}],
             table_guid: column.table_guid
           }
           allMeasureArr.push(measure)
@@ -321,6 +325,7 @@ export default class BatchMeasureModal extends Vue {
   }
   handleClose (isSubmit, data) {
     this.hideModal()
+    this.syncComment = false
     setTimeout(() => {
       this.resetModalForm()
       this.callback && this.callback({
@@ -644,6 +649,36 @@ export default class BatchMeasureModal extends Vue {
     } catch (e) {
       console.error(e)
     }
+  }
+  // 同步注释到名称
+  changeSyncName () {
+    this.factTable.forEach((item, index) => {
+      item.columns.forEach((it, idx) => {
+        // const { COUNT, MAX, MIN, SUM } = it
+        // if (COUNT.value || MAX.value || MIN.value || SUM.value) {
+        if (!this.syncComment) {
+          it.name = it.comment ? it.comment.slice(0, 100) : it.name
+        } else {
+          it.name = it.column || ''
+        }
+        this.$set(this.factTable[index].columns[idx], 'name', it.name)
+        // }
+      })
+    })
+    this.lookupTable.forEach((item, index) => {
+      item.columns.forEach((it, idx) => {
+        // const { COUNT, MAX, MIN, SUM } = it
+        // if (COUNT.value || MAX.value || MIN.value || SUM.value) {
+        if (!this.syncComment) {
+          it.name = it.comment ? it.comment.slice(0, 100) : it.name
+        } else {
+          it.name = it.column || ''
+        }
+        this.$set(this.lookupTable[index].columns[idx], 'name', it.name)
+        // }
+      })
+    })
+    this.syncComment = !this.syncComment
   }
 }
 </script>

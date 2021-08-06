@@ -1040,7 +1040,7 @@ class NModel extends Schama {
       if (this.datasource) {
         let i = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
         if (i >= 0) {
-          return this.datasource[i]
+          return {...this.datasource[i], columns: this.datasource[i].columns.map(it => ({...it, column: it.name}))}
         }
       }
       return []
@@ -1054,6 +1054,9 @@ class NModel extends Schama {
       if (i >= 0) {
         let globalTableInfo = currentDatasource[i]
         globalTableInfo.table = globalTableInfo.database + '.' + globalTableInfo.name
+        globalTableInfo.columns.forEach(item => {
+          item['column'] = item.name
+        })
         let k = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
         if (k < 0) {
           this.datasource.push(globalTableInfo)

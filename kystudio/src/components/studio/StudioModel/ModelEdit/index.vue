@@ -1024,7 +1024,8 @@ export default class ModelEdit extends Vue {
       expression: 'SUM(column)',
       parameterValue: {type: 'column', value: '', table_guid: null},
       convertedColumns: [],
-      return_type: ''
+      return_type: '',
+      comment: ''
     }
   }
   batchSetMeasure () {
