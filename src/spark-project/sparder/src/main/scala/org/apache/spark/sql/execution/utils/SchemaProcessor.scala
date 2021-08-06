@@ -119,7 +119,7 @@ object SchemaProcessor {
       val path: String = TableScanPlan.toLayoutPath(df, nCuboidLayout.getId, base, latestReadySegment)
       val schema: StructType = sparkSession.read.parquet(path).schema
       val schemaFromNCuboidLayout: StructType = LayoutEntityConverter.genCuboidSchemaFromNCuboidLayout(nCuboidLayout)
-      if (!(schema == schemaFromNCuboidLayout)) {
+      if (!(schema == StructType.removeMetadata("__CHAR_VARCHAR_TYPE_STRING",schemaFromNCuboidLayout))) {
         throw new RuntimeException(s"Check schema failed : dfName: $dfName, layoutId: ${nCuboidLayout.getId}, actual: ${schemaFromNCuboidLayout.treeString}, expect: ${schema.treeString}")
       }
     }

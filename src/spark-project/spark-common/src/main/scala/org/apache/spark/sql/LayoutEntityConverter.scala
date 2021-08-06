@@ -22,7 +22,7 @@
 package org.apache.spark.sql
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
-import org.apache.kylin.metadata.model.FunctionDesc
+import org.apache.kylin.metadata.model.{FunctionDesc, TblColRef}
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogStorageFormat, CatalogTable, CatalogTableType}
 import org.apache.spark.sql.types._
@@ -65,11 +65,7 @@ object LayoutEntityConverter {
   def genCuboidSchemaFromNCuboidLayoutWithPartitionColumn(cuboid: LayoutEntity, partitionColumn: Seq[String]): StructType = {
     val dimensions = cuboid.getOrderedDimensions
     StructType(dimensions.asScala.filter(tp => !partitionColumn.contains(tp._1.toString)).map { i =>
-      StructField(
-        i._1.toString,
-        SparderTypeUtil.toSparkType(i._2.getType),
-        nullable = true
-      )
+      genSparkStructField(i._1.toString, i._2)
     }.toSeq ++
       cuboid.getOrderedMeasures.asScala.map {
         i =>
@@ -79,12 +75,27 @@ object LayoutEntityConverter {
             nullable = true)
       }.toSeq ++
       partitionColumn.map(pt => (pt, dimensions.get(pt.toInt))).map { i =>
-        StructField(
-          i._1.toString,
-          SparderTypeUtil.toSparkType(i._2.getType),
-          nullable = true
-        )
+        genSparkStructField(i._1, i._2)
       })
+  }
+
+  def genSparkStructField(name: String, tbl: TblColRef): StructField = {
+    val dataTpName = tbl.getType.getName
+    if (dataTpName.startsWith("varchar") || dataTpName.startsWith("char")) {
+      val meta = new MetadataBuilder().putString("__CHAR_VARCHAR_TYPE_STRING", tbl.getType.toString).build()
+      StructField(
+        name,
+        SparderTypeUtil.toSparkType(tbl.getType),
+        nullable = true,
+        metadata = meta
+      )
+    } else {
+      StructField(
+        name,
+        SparderTypeUtil.toSparkType(tbl.getType),
+        nullable = true
+      )
+    }
   }
 
   def genCuboidSchemaFromNCuboidLayout(cuboid: LayoutEntity, isFastBitmapEnabled: Boolean = false): StructType = {
@@ -111,12 +122,8 @@ object LayoutEntityConverter {
       }.toSeq
     }
 
-      StructType(cuboid.getOrderedDimensions.asScala.map { i =>
-      StructField(
-        i._1.toString,
-        SparderTypeUtil.toSparkType(i._2.getType),
-        nullable = true
-      )
+    StructType(cuboid.getOrderedDimensions.asScala.map { i =>
+      genSparkStructField(i._1.toString, i._2)
     }.toSeq ++ measures)
   }
   def genBucketSpec(layoutEntity: LayoutEntity, partitionColumn: Set[String]): Option[BucketSpec] = {
