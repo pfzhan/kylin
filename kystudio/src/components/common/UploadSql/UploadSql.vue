@@ -28,7 +28,10 @@
           </el-button>
           <div :class="['upload-rules', {'check-rules': showUploadRules}]">
             <ul class="rule-list">
-              <li :class="['rule-item', item.status === 'success' ? 'is-success' : item.status === 'error' ? 'is-error' : null]" v-for="item in uploadRules" :key="item.type"><span v-if="item.status === 'default'">•</span><i class="el-icon-ksd-accept" v-else-if="item.status === 'success'"></i><i v-else class="el-icon-ksd-close"></i> {{item.query ? $t(item.text, item.query()): $t(item.text)}}</li>
+              <li :class="['rule-item', item.status === 'success' ? 'is-success' : item.status === 'error' ? 'is-error' : null]" v-for="item in uploadRules" :key="item.type">
+                <span v-if="item.status === 'default'">•</span><i class="el-icon-ksd-accept" v-else-if="item.status === 'success'"></i><i v-else class="el-icon-ksd-close"></i>
+                {{item.query ? $t(item.text, item.query()): $t(item.text)}}
+              </li>
             </ul>
             <p class="rule-info"><span class="icon el-icon-ksd-info ksd-mr-5"></span><span class="tip-text">{{$t('uploadSizeTip')}}</span></p>
           </div>
@@ -296,13 +299,14 @@ export default class UploadSqlModel extends Vue {
   convertSqls = []
   uploadRules = {
     fileFormat: {type: 'fileFormat', text: 'uploadRule1', status: 'default'},
-    unValidSqls: {type: 'unValidSqls', text: 'uploadRule2', status: 'default'},
-    totalSize: {type: 'totalSize', text: 'uploadRule3', status: 'default'},
-    sqlSizes: {type: 'sqlSizes', text: 'uploadRule4', status: 'default', query: this.queryHandler}
+    // unValidSqls: {type: 'unValidSqls', text: 'uploadRule2', status: 'default'},
+    totalSize: {type: 'totalSize', text: 'uploadRule3', status: 'default'}
+    // sqlSizes: {type: 'sqlSizes', text: 'uploadRule4', status: 'default', query: this.queryHandler}
   }
   showUploadRules = false
   wrongFormatFile = []
   addBaseIndex = true
+  errMsgInstance = null
   handleClose () {
     this.hideModal()
     this.resetModalForm()
@@ -835,6 +839,9 @@ export default class UploadSqlModel extends Vue {
     }
   }
   fileItemChange (file, fileList) {
+    if (this.errMsgInstance) {
+      this.errMsgInstance.close()
+    }
     this.wrongFormatFile = []
     for (let item in this.uploadRules) {
       this.uploadRules[item].status = 'default'
@@ -843,6 +850,9 @@ export default class UploadSqlModel extends Vue {
     this.flagFiles()
   }
   handleRemove (file, fileList) {
+    if (this.errMsgInstance) {
+      this.errMsgInstance.close()
+    }
     this.messageInstance && this.messageInstance.close()
     this.uploadItems = fileList
     // let totalSize = 0
@@ -933,6 +943,14 @@ export default class UploadSqlModel extends Vue {
       this.uploadRules.fileFormat.status = 'success'
     }
   }
+  uploadErrorMsg () {
+    this.errMsgInstance = this.$message({
+      showClose: true,
+      message: this.$t('uploadErrorMsg', { maxCount: this.favoriteImportSqlMaxSize }),
+      type: 'error',
+      duration: 0
+    })
+  }
   submitFiles () {
     const formData = new FormData()   // 利用H5 FORMDATA 同时传输多文件和数据
     this.uploadItems.filter((item) => {
@@ -946,8 +964,11 @@ export default class UploadSqlModel extends Vue {
         this.checkUploadFiles(this.uploadItems)
         this.showUploadRules = true
         this.importLoading = false
-        this.uploadRules.sqlSizes.status = data.size > this.favoriteImportSqlMaxSize ? 'error' : 'success'
-        this.uploadRules.unValidSqls.status = data.wrong_format_file && data.wrong_format_file.length ? 'error' : 'success'
+        // this.uploadRules.sqlSizes.status = data.size > this.favoriteImportSqlMaxSize ? 'error' : 'success'
+        // this.uploadRules.unValidSqls.status = data.wrong_format_file && data.wrong_format_file.length ? 'error' : 'success'
+        if (data.size > this.favoriteImportSqlMaxSize) {
+          return this.uploadErrorMsg()
+        }
         this.wrongFormatFile = data.wrong_format_file || []
         if (Object.keys(this.uploadRules).filter(item => this.uploadRules[item].status === 'success').length === Object.keys(this.uploadRules).length) {
           this.uploadFlag = 'step2'
