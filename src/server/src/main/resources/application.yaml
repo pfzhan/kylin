@@ -67,7 +67,7 @@ spring:
     zookeeper:
       connect-string: ${kylin.env.zookeeper-connect-string}
       discovery:
-        root: /kylin/${kylin.metadata.url.identifier}/services
+        root: /kylin/${kylin.metadata.url.instance.id}/services
   session:
     store-type: HASH_MAP
     jdbc:

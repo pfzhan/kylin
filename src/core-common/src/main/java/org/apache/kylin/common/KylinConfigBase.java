@@ -294,6 +294,7 @@ public abstract class KylinConfigBase implements Serializable {
     final protected void reloadKylinConfig(Properties properties) {
         this.properties = BCC.check(properties);
         setProperty("kylin.metadata.url.identifier", getMetadataUrlPrefix());
+        setProperty("kylin.metadata.url.instance.id", getMetadataUrlInstanceId());
         setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());
         setProperty("kylin.log.spark-driver-properties-file", getLogSparkDriverPropertiesFile());
         setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
@@ -526,6 +527,14 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getMetadataUrlPrefix() {
         return getMetadataUrl().getIdentifier();
+    }
+
+    public String getMetadataUrlInstanceId() {
+        val url = getMetadataUrl();
+        String instanceId = url.getIdentifier()
+                + (url.getParameter("url") == null ? "" : "_" + url.getParameter("url"));
+        instanceId = instanceId.replaceAll("\\W", "_");
+        return instanceId;
     }
 
     public Map<String, String> getMetadataStoreImpls() {
