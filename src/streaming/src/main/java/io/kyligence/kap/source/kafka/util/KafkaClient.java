@@ -27,22 +27,28 @@ package io.kyligence.kap.source.kafka.util;
 import java.util.Properties;
 
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 public class KafkaClient {
+    private static Consumer<Object, Object> mockup;
 
     private KafkaClient() {
         throw new IllegalStateException("Utility class");
     }
 
-    public static KafkaConsumer getKafkaConsumer(String brokers, String consumerGroup, Properties properties) {
+    public static Consumer<Object, Object> getKafkaConsumer(String brokers, String consumerGroup, Properties properties) {
         Properties props = constructDefaultKafkaConsumerProperties(brokers, consumerGroup, properties);
-        return new KafkaConsumer<>(props);
+        if (mockup != null) {
+            return mockup;
+        } else {
+            return new KafkaConsumer<>(props);
+        }
     }
 
-    public static KafkaConsumer getKafkaConsumer(String brokers, String consumerGroup) {
+    public static Consumer<Object, Object> getKafkaConsumer(String brokers, String consumerGroup) {
         return getKafkaConsumer(brokers, consumerGroup, new Properties());
     }
 

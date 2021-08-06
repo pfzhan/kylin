@@ -30,10 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.MockConsumer;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
-import org.apache.kylin.common.msg.Message;
-import org.apache.spark.utils.EmbededServer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,6 +46,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.source.kafka.util.KafkaClient;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
@@ -51,46 +56,22 @@ public class KafkaTableUtilTest extends StreamingTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    private static String PROJECT = "streaming_test";
-
     String brokerServer = "localhost:19093";
-
-    EmbededServer server;
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        server = new EmbededServer(19093);
-        server.setup();
         init();
     }
 
     @After
     public void tearDown() {
         this.cleanupTestMetadata();
-        server.teardown();
     }
 
     KafkaConfig kafkaConfig = new KafkaConfig();
 
     public void init() {
-        val topic = "ssb-topic";
-        server.createTopic(topic, 3);
-
-        val topic1 = "ssb-topic1";
-        val topic2 = "ssb-topic2";
-        val topic3 = "default-topic";
-        server.createTopic(topic1, 1);
-        server.createTopic(topic2, 1);
-        server.createTopic(topic3, 1);
-
-        val messages = new HashMap();
-        messages.put("Message 1", 1);
-        messages.put("Message 3", 2);
-        messages.put("Message 4", 4);
-        server.sendMessages(topic1, messages);
-        server.flush();
-
         ReflectionUtils.setField(kafkaConfig, "database", "SSB");
         ReflectionUtils.setField(kafkaConfig, "name", "P_LINEORDER");
         ReflectionUtils.setField(kafkaConfig, "project", "streaming_test");
@@ -102,7 +83,24 @@ public class KafkaTableUtilTest extends StreamingTestCase {
     }
 
     @Test
+    public void testConstructMethod() {
+        val constructors = KafkaTableUtil.class.getDeclaredConstructors();
+        Assert.assertTrue(constructors.length == 1);
+
+        try {
+            constructors[0].setAccessible(true);
+            constructors[0].newInstance();
+        } catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testGetMessages() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
+
         val messages = KafkaTableUtil.getMessages(kafkaConfig, 1);
         Assert.assertEquals(7, messages.size());
 
@@ -115,11 +113,15 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         } catch (Exception e) {
             Assert.fail();
         }
-        ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
     }
 
     @Test
     public void testGetMessageTypeAndDecodedMessages() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
+
         try {
             KafkaTableUtil.getMessageTypeAndDecodedMessages(null);
         } catch (Exception e) {
@@ -139,11 +141,18 @@ public class KafkaTableUtilTest extends StreamingTestCase {
 
         val msg = "{\"timestamp\": \"2000-01-01 05:06:12\"}";
         val base64Msg = new String(Base64.encodeBase64(msg.getBytes()));
-        val msgList = Arrays.asList(ByteBuffer.allocate(base64Msg.length()));
+        val buffer1 = ByteBuffer.allocate(msg.length());
+        buffer1.put(msg.getBytes());
+        buffer1.flip();
+        val buffer2 = ByteBuffer.allocate(msg.length());
+        buffer2.put(msg.getBytes());
+        buffer2.flip();
+        val msgList = Arrays.asList(buffer1, buffer2);
         val map = KafkaTableUtil.getMessageTypeAndDecodedMessages(msgList);
         Assert.assertEquals(2, map.size());
-        Assert.assertEquals(CollectKafkaStats.BINARY_MESSAGE, map.get("message_type"));
+        Assert.assertEquals(CollectKafkaStats.JSON_MESSAGE, map.get("message_type"));
         Assert.assertEquals(1, ((List) map.get("message")).size());
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
     }
 
     @Test
@@ -153,11 +162,35 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", "");
         Assert.assertFalse(KafkaTableUtil.validateKafkaConfig(kafkaConfig.getKafkaBootstrapServers()));
         Assert.assertFalse(KafkaTableUtil.validateKafkaConfig(null));
-        ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
     }
 
     @Test
     public void testGetTopics() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
+        val topics = KafkaTableUtil.getTopics(kafkaConfig, topic);
+        Assert.assertEquals(1, topics.get("kafka-cluster-1").size());
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
+
+        kafkaConfig.setKafkaBootstrapServers("");
+        try {
+            KafkaTableUtil.getTopics(kafkaConfig, topic);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.INVALID_BROKER_DEFINITION.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void getBrokenBrokers() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
+
         String brokenBrokerServer = "1.1.1.1:9092,2.2.2.2:9092,3.3.3.3:9092";
         kafkaConfig.setKafkaBootstrapServers(brokenBrokerServer);
         val brokenBrokers1 = KafkaTableUtil.getBrokenBrokers(kafkaConfig);
@@ -168,46 +201,24 @@ public class KafkaTableUtilTest extends StreamingTestCase {
 
         kafkaConfig.setKafkaBootstrapServers(brokerServer);
         val brokenBrokers2 = KafkaTableUtil.getBrokenBrokers(kafkaConfig);
-        Assert.assertEquals(0, brokenBrokers2.size());
+        Assert.assertEquals(1, brokenBrokers2.size());
 
-        val topics = KafkaTableUtil.getTopics(kafkaConfig, "ssb");
-        Assert.assertEquals(3, topics.get("kafka-cluster-1").size());
-
-        val topics2 = CollectKafkaStats.getTopics(kafkaConfig, "default");
-        Assert.assertEquals(1, topics2.get("kafka-cluster-1").size());
-
-        val messages = CollectKafkaStats.getMessages(kafkaConfig, 1);
-        Assert.assertEquals(7, messages.size());
-
+        kafkaConfig.setKafkaBootstrapServers("");
         try {
-            ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", "");
-            KafkaTableUtil.getTopics(kafkaConfig, "default");
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-        }
-
-        try {
-            ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", "");
             KafkaTableUtil.getBrokenBrokers(kafkaConfig);
-            Assert.fail();
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.INVALID_BROKER_DEFINITION.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            KylinException kylinException = (KylinException) e;
-            Assert.assertEquals(kylinException, kylinException.withData("test"));
-            Assert.assertEquals("test", kylinException.getData());
+            Assert.fail();
         }
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage(Message.getInstance().getBROKER_TIMEOUT_MESSAGE());
-        kafkaConfig.setKafkaBootstrapServers(brokenBrokerServer);
-        CollectKafkaStats.getTopics(kafkaConfig, "ssb");
-
-        ReflectionUtils.setField(kafkaConfig, "kafkaBootstrapServers", brokerServer);
     }
 
     @Test
     public void testConvertMessageToFlatMap() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
         try {
             KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE, null);
         } catch (KylinException e) {
@@ -244,10 +255,32 @@ public class KafkaTableUtilTest extends StreamingTestCase {
                 "{\"a\": 2, \"b\": 2, \"timestamp\": \"2000-01-01 05:06:12\"}");
 
         Assert.assertEquals(3, result.size());
+
+        try {
+            kafkaConfig.setParserName("test");
+            KafkaTableUtil.convertMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE, "{\"timestamp\": \"2000-01-01 05:06:12\"}");
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_PARSER_ERROR.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+        try {
+            KafkaTableUtil.convertMessageToFlatMap(null, CollectKafkaStats.JSON_MESSAGE, "{\"timestamp\": \"2000-01-01 05:06:12\"}");
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.STREAMING_PARSER_ERROR.toErrorCode().getCodeString(),
+                    e.getErrorCode().getCodeString());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
     }
 
     @Test
     public void testValidateStreamMessageType() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
         KafkaTableUtil.validateStreamMessageType(CollectKafkaStats.JSON_MESSAGE);
         KafkaTableUtil.validateStreamMessageType(CollectKafkaStats.BINARY_MESSAGE);
         try {
@@ -267,10 +300,14 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         } catch (Exception e) {
             Assert.fail();
         }
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
     }
 
     @Test
     public void testDeserializeSampleMessage() {
+        val topic = "ssb-topic1";
+        val partition = 0;
+        setupMockConsumer(topic, partition, 7);
         try {
             KafkaTableUtil.deserializeSampleMessage(CollectKafkaStats.JSON_MESSAGE, "a");
         } catch (KylinException e) {
@@ -297,6 +334,28 @@ public class KafkaTableUtilTest extends StreamingTestCase {
         } catch (Exception e) {
             Assert.fail();
         }
+        ReflectionUtils.setField(KafkaClient.class, "mockup", null);
+    }
+
+    private MockConsumer setupMockConsumer(String topic, int partition, int msgCnt) {
+        ReflectionUtils.setField(KafkaClient.class, "mockup", new MockConsumer<>(OffsetResetStrategy.LATEST));
+        val mockup = (MockConsumer) ReflectionUtils.getField(KafkaClient.class, "mockup");
+        mockup.assign(Arrays.asList(new TopicPartition(topic, partition)));
+        mockup.updatePartitions(topic, Arrays.asList(new PartitionInfo(topic, partition, null, new Node[0], new Node[0])));
+        val beginningOffsets = new HashMap<>();
+        beginningOffsets.put(new TopicPartition(topic, partition), 0L);
+        mockup.updateBeginningOffsets(beginningOffsets);
+        for (int i = 0; i < msgCnt; i++) {
+            val value = ByteBuffer.allocate(10);
+            value.put(("msg-" + i).getBytes());
+            value.flip();
+            val rec = new ConsumerRecord<String, ByteBuffer>(topic, partition, i, null, value);
+            mockup.addRecord(rec);
+        }
+        val endOffsets = new HashMap<>();
+        endOffsets.put(new TopicPartition(topic, partition), 7L);
+        mockup.updateEndOffsets(endOffsets);
+        return mockup;
     }
 
 }

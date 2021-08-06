@@ -139,18 +139,13 @@ public class KafkaTableUtil {
 
     private static Map<String, Object> flattenMessage(KafkaConfig kafkaConfig, String messageType, String message) {
         ByteBuffer byteBuf = deserializeSampleMessage(messageType, message);
-        if (byteBuf != null) {
-            StreamingParser streamingParser;
-            try {
-                streamingParser = StreamingParser.getStreamingParser(kafkaConfig.getParserName(), null, null);
-            } catch (ReflectiveOperationException e) {
-                throw new KylinException(STREAMING_PARSER_ERROR, e);
-            }
-            return streamingParser.flattenMessage(byteBuf);
+        StreamingParser streamingParser;
+        try {
+            streamingParser = StreamingParser.getStreamingParser(kafkaConfig.getParserName(), null, null);
+        } catch (ReflectiveOperationException e) {
+            throw new KylinException(STREAMING_PARSER_ERROR, e);
         }
-
-        throw new KylinException(INVALID_STREAMING_MESSAGE, "Message type is invalid, it should be "
-                + CollectKafkaStats.JSON_MESSAGE + " or " + CollectKafkaStats.BINARY_MESSAGE);
+        return streamingParser.flattenMessage(byteBuf);
     }
 
     public static ByteBuffer deserializeSampleMessage(String messageType, String message) {
