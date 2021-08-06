@@ -64,6 +64,12 @@ public class SimplifiedMeasure implements Serializable {
     @EqualsAndHashCode.Exclude
     @JsonProperty("converted_columns")
     private List<ColumnDesc> convertedColumns = new ArrayList<>();
+    @EqualsAndHashCode.Exclude
+    @JsonProperty("column")
+    private String column;
+    @EqualsAndHashCode.Exclude
+    @JsonProperty("comment")
+    private String comment;
     @JsonProperty("configuration")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Map<String, String> configuration = Maps.newHashMap();
@@ -79,6 +85,8 @@ public class SimplifiedMeasure implements Serializable {
                 .collect(Collectors.toList());
         measureResponse.setConfiguration(measure.getFunction().getConfiguration());
         measureResponse.setParameterValue(parameters);
+        measureResponse.setColumn(measure.getColumn());
+        measureResponse.setComment(measure.getComment());
         return measureResponse;
     }
 
@@ -86,6 +94,8 @@ public class SimplifiedMeasure implements Serializable {
         NDataModel.Measure measure = new NDataModel.Measure();
         measure.setId(getId());
         measure.setName(getName());
+        measure.setColumn(getColumn());
+        measure.setComment(getComment());
         FunctionDesc functionDesc = new FunctionDesc();
         functionDesc.setReturnType(getReturnType());
         functionDesc.setExpression(getExpression());

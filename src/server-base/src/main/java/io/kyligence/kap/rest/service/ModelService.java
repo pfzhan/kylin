@@ -855,6 +855,9 @@ public class ModelService extends BasicService {
         NDataModelResponse nDataModelResponse = modelDesc.isFusionModel() ? new FusionModelResponse(modelDesc)
                 : new NDataModelResponse(modelDesc);
 
+        //extract model measure source column
+        addMeasureSourceColumn(nDataModelResponse);
+
         if (modelDesc.isBroken()) {
             val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName);
             if (tableManager.getTableDesc(modelDesc.getRootFactTableName()) == null) {
@@ -877,6 +880,19 @@ public class ModelService extends BasicService {
             }
         }
         return nDataModelResponse;
+    }
+
+    private void addMeasureSourceColumn(NDataModelResponse nDataModelResponse) {
+        nDataModelResponse.getMeasures().forEach(measure -> {
+            List<TblColRef> colRefs = measure.getFunction().getColRefs();
+            TblColRef colRef = colRefs.size() > 0 ? colRefs.get(0) : null;
+            if (colRef != null) {
+                measure.setColumn(colRef.getName());
+                if (colRef.getColumnDesc() != null) {
+                    measure.setComment(colRef.getColumnDesc().getComment());
+                }
+            }
+        });
     }
 
     private boolean checkSCD2ForbiddenOnline(NDataModel modelDesc, String projectName) {

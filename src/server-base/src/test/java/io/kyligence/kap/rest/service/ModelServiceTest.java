@@ -6197,6 +6197,25 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetModelWithMeasureRemark() {
+        String project = "default";
+        String modelName = "nmodel_basic";
+        NDataModelResponse model = modelService.getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null,
+                null, true)
+                .get(0);
+        Assert.assertEquals(model.getMeasures().size(), model.getSimplifiedMeasures().size());
+        Assert.assertEquals("TRANS_CNT", model.getMeasures().get(0).getName());
+        Assert.assertNull(model.getMeasures().get(0).getColumn());
+        Assert.assertNull(model.getMeasures().get(0).getComment());
+        Assert.assertEquals("GMV_SUM", model.getMeasures().get(1).getName());
+        Assert.assertEquals("PRICE", model.getMeasures().get(1).getColumn());
+        Assert.assertEquals("PRICE", model.getMeasures().get(1).getComment());
+        Assert.assertEquals("TOP_SELLER", model.getMeasures().get(8).getName());
+        Assert.assertEquals("PRICE", model.getMeasures().get(8).getColumn());
+        Assert.assertEquals("PRICE", model.getMeasures().get(8).getComment());
+    }
+
+    @Test
     public void testCreateFusionModel() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "streaming_test");

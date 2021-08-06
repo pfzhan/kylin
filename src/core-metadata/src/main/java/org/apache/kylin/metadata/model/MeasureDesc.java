@@ -67,6 +67,10 @@ public class MeasureDesc implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Deprecated
     private String dependentMeasureRef;
+    @JsonProperty("column")
+    private String column;
+    @JsonProperty("comment")
+    private String comment;
 
     public String getName() {
         return name;
@@ -82,6 +86,22 @@ public class MeasureDesc implements Serializable {
 
     public void setFunction(FunctionDesc function) {
         this.function = function;
+    }
+
+    public String getColumn() {
+        return column;
+    }
+
+    public void setColumn(String column) {
+        this.column = column;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     @Deprecated

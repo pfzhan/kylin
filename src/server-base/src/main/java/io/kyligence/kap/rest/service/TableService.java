@@ -1771,6 +1771,8 @@ public class TableService extends BasicService {
 
                                     newMeasure.setFunction(newFunction);
                                     newMeasure.setName(measure.getName());
+                                    newMeasure.setColumn(measure.getColumn());
+                                    newMeasure.setComment(measure.getComment());
 
                                     Set<Pair<NDataModel.Measure, NDataModel.Measure>> measureList = result
                                             .getOrDefault(modelAlias, new HashSet<>());
