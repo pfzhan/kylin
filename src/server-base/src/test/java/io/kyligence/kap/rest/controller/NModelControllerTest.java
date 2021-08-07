@@ -205,8 +205,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSegments() throws Exception {
-        when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234",
-                "", "end_time", true)).thenReturn(mockSegments());
+        when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234", "",
+                "end_time", true)).thenReturn(mockSegments());
         mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).param("offset", "0").param("project", "default")
@@ -235,8 +235,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         when(modelSpy4.isSecondStorageEnabled()).thenReturn(true);
         mockedModels.add(modelSpy4);
 
-        when(modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify",
-                true, null, null, null)).thenReturn(mockedModels);
+        when(modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify", true,
+                null, null, null)).thenReturn(mockedModels);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
                 .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "ONLINE")
@@ -253,8 +253,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetRelatedModels() throws Exception {
 
-        when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1"))
-                .thenReturn(mockRelatedModels());
+        when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1")).thenReturn(mockRelatedModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
                 .param("exact", "true").param("owner", "ADMIN").param("status", "ONLINE").param("sortBy", "last_modify")
@@ -461,12 +460,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void checkPartitionDesc() throws Exception {
         PartitionDesc partitionDesc = new PartitionDesc();
+        partitionDesc.setPartitionDateColumn("col");
         partitionDesc.setPartitionDateFormat(PartitionDesc.TimestampType.SECOND.name);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        partitionDesc.setPartitionDateFormat("yyyy'@:1008'MM-dd");
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        partitionDesc.setPartitionDateFormat("yyyy'@:1008'MM''dd");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -475,13 +475,18 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         partitionDesc.setPartitionDateFormat("");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
-        Mockito.verify(nModelController, times(4)).checkPartitionDesc(Mockito.any(PartitionDesc.class));
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        partitionDesc.setPartitionDateFormat("YYYY-dd-hh");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/check_partition_desc") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(partitionDesc))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        Mockito.verify(nModelController, times(5)).checkPartitionDesc(Mockito.any(PartitionDesc.class));
     }
 
     @Test

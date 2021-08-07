@@ -204,26 +204,6 @@ public class DefaultPartitionConditionBuilderTest {
     }
 
     @Test
-    public void testDatePartition_TimestampType_String() {
-        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "string");
-        PartitionDesc partitionDesc = new PartitionDesc();
-        partitionDesc.setPartitionDateColumnRef(col);
-        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
-        long startLong = System.currentTimeMillis();
-        long endLong = startLong + 24 * 3600 * 1000L;
-        for (PartitionDesc.TimestampType timestampType : PartitionDesc.TimestampType.values()) {
-            partitionDesc.setPartitionDateFormat(timestampType.name);
-            SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(startLong,
-                    endLong);
-            String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
-            Assert.assertEquals(
-                    "UNKNOWN_ALIAS.DATE_COLUMN >= '" + startLong / timestampType.millisecondRatio
-                            + "' AND UNKNOWN_ALIAS.DATE_COLUMN < '" + endLong / timestampType.millisecondRatio + "'",
-                    condition);
-        }
-    }
-
-    @Test
     public void testDatePartition_customizeFormat() {
         PartitionDesc partitionDesc = new PartitionDesc();
         TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "string");

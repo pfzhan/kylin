@@ -46,6 +46,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -64,8 +66,6 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -80,6 +80,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -140,13 +141,19 @@ import io.kyligence.kap.tool.bisync.BISyncModel;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import lombok.extern.log4j.Log4j;
 
+@Log4j
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
     public static final String MODEL_ID = "modelId";
     private static final String NEW_MODEL_NAME = "newModelNAME";
-    private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
+    //The front-end supports only the following formats
+    private static final List<String> SUPPORTED_FORMATS = ImmutableList.of("ZZ", "DD", "D", "Do", "dddd", "ddd", "dd", //
+            "d", "MMM", "MM", "M", "yyyy", "yy", "hh", "hh", "h", "HH", "H", "m", "mm", "ss", "s", "SSS", "SS", "S", //
+            "A", "a");
+    private static final Pattern QUOTE_PATTERN = Pattern.compile("\'(.*?)\'");
 
     @Autowired
     @Qualifier("modelService")
@@ -498,18 +505,37 @@ public class NModelController extends NBasicController {
         }
     }
 
+    private boolean isSupportFormatsFormats(PartitionDesc partitionDesc) {
+        if (partitionDesc.partitionColumnIsTimestamp()) {
+            return false;
+        }
+        String dateFormat = partitionDesc.getPartitionDateFormat();
+        Matcher matcher = QUOTE_PATTERN.matcher(dateFormat);
+        while (matcher.find()) {
+            dateFormat = dateFormat.replaceAll(matcher.group(), "");
+        }
+        for (String frontEndFormat : SUPPORTED_FORMATS) {
+            dateFormat = dateFormat.replaceAll(frontEndFormat, "");
+        }
+        int length = dateFormat.length();
+        for (int i = 0; i < length; i++) {
+            char c = dateFormat.charAt(i);
+            if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @ApiOperation(value = "checkPartitionDesc", tags = { "AI" })
     @PostMapping(value = "/check_partition_desc")
     @ResponseBody
     public EnvelopeResponse<String> checkPartitionDesc(@RequestBody PartitionDesc partitionDesc) {
         try {
+            validatePartitionDesc(partitionDesc);
             String partitionDateFormat = partitionDesc.getPartitionDateFormat();
-            if (StringUtils.isEmpty(partitionDateFormat)) {
-                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
-            }
             PartitionDesc.TimestampType timestampType = partitionDesc.getTimestampType();
             if (timestampType == null) {
-
                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat(partitionDateFormat,
                         Locale.getDefault(Locale.Category.FORMAT));
                 String dateFormat = simpleDateFormat.format(new Date());
@@ -550,10 +576,10 @@ public class NModelController extends NBasicController {
             }
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
         } catch (LookupTableException e) {
-            logger.error("Update model failed", e);
+            log.error("Update model failed", e);
             throw new KylinException(FAILED_UPDATE_MODEL, e);
         } catch (Exception e) {
-            logger.error("Update model failed", e);
+            log.error("Update model failed", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(FAILED_UPDATE_MODEL, root.getMessage());
         }
@@ -572,7 +598,7 @@ public class NModelController extends NBasicController {
                     request.getMultiPartitionDesc());
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            logger.error("Change partition failed", e);
+            log.error("Change partition failed", e);
             throw new KylinException(FAILED_UPDATE_MODEL, e);
         }
     }
@@ -718,6 +744,9 @@ public class NModelController extends NBasicController {
         if (partitionDesc != null) {
             if (StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
                 throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
+            }
+            if (!isSupportFormatsFormats(partitionDesc)) {
+                throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
             }
             if (partitionDesc.getPartitionDateFormat() != null && !partitionDesc.partitionColumnIsTimestamp()) {
                 validateDateTimeFormatPattern(partitionDesc.getPartitionDateFormat());
