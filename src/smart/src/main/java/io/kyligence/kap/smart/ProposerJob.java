@@ -243,8 +243,9 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         val contextParams = JsonUtil.readValue(new File(contextParamsFile), ContextParams.class);
         val sqls = contextParams.getSqls();
         val project = contextParams.getProject();
-        try (KylinConfig.SetAndUnsetThreadLocalConfig config = KylinConfig
-                .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(metaDir))) {
+        KylinConfig.SetAndUnsetThreadLocalConfig config = null;
+        try {
+            config = KylinConfig.setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(metaDir));
             val contextConstructor = Class.forName(contextClass).getConstructor(KylinConfig.class, String.class,
                     String[].class);
             val context = (AbstractContext) contextConstructor.newInstance(KylinConfig.getInstanceFromEnv(), project,
@@ -258,6 +259,11 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             new SmartMaster(context).runWithContext(null);
             val output = ContextOutput.from(context);
             JsonUtil.writeValue(new File(contextOutputFile), output);
+        } finally {
+            if (config != null) {
+                ResourceStore.clearCache(config.get());
+                config.close();
+            }
         }
     }
 

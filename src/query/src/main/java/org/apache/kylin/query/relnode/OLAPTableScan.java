@@ -343,11 +343,10 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         this.columnRowType = columnRowType;
     }
 
-    private static final VolcanoPlanner EMPTY_PLANNER = new VolcanoPlanner();
-
     private static RelOptCluster emptyCluster() {
+        VolcanoPlanner emptyPlanner = new VolcanoPlanner();
         RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-        return RelOptCluster.create(EMPTY_PLANNER, new RexBuilder(typeFactory));
+        return RelOptCluster.create(emptyPlanner, new RexBuilder(typeFactory));
     }
 
     public OLAPTableScan cleanRelOptCluster() {
