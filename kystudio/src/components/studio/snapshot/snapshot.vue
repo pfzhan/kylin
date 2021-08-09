@@ -67,7 +67,7 @@
         <template slot-scope="scope">
           <div class="partition-values" v-if="!loadingSnapshotTable">
             <span class="content" v-custom-tooltip="{text: scope.row.select_partition_col, w: 20, tableClassName: 'snapshot-table'}">{{scope.row.select_partition_col || $t('noPartition')}}</span>
-            <i @click="editPartitionColumn(scope.row)" :class="['el-icon-ksd-table_edit', {'is-disabled': scope.row.status === 'BROKEN'}]"></i>
+            <i @click="editPartitionColumn(scope.row)" v-if="scope.row.source_type === 9" :class="['el-icon-ksd-table_edit', {'is-disabled': scope.row.status === 'BROKEN'}]"></i>
           </div>
         </template>
       </el-table-column>
@@ -248,7 +248,7 @@
       <el-checkbox class="ksd-mt-10" v-model="refreshNewPartition" v-if="refreshSnapshotTables.length">
         {{$t('refreshNewPartitionTip')}}
         <el-tooltip :content="$t('refreshNewPartitionInfo')" effect="dark" placement="top">
-          <i class="el-ksd-icon-more_info_22"></i>
+          <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
         </el-tooltip>
       </el-checkbox>
       <span slot="footer" class="dialog-footer">

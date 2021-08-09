@@ -106,7 +106,7 @@
               <el-input :value="`${item.database}.${item.table}`" :disabled="true" style="width: 100%;"></el-input>
             </el-col>
             <el-col :span="11">
-              <el-select v-model="item.partition_column" :placeholder="$t('selectPartitionPlaceholder')" @change="changePartitionColumns(item)" style="width: 100%;" :disabled="item.isLoadingPartition">
+              <el-select v-model="item.partition_column" :placeholder="$t('selectPartitionPlaceholder')" @change="changePartitionColumns(item)" style="width: 100%;" :disabled="item.isLoadingPartition || item.source_type !== 9">
                 <el-option :label="$t('noPartition')" value=""></el-option>
                 <el-option :label="item.partition_col" :value="item.partition_col" v-if="item.partition_col">
                   <el-tooltip :content="item.partition_col" effect="dark" placement="top"><span style="float: left">{{ item.partition_col | omit(30, '...') }}</span></el-tooltip>
