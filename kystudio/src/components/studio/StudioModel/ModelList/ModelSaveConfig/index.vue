@@ -438,6 +438,7 @@ export default class ModelPartitionModal extends Vue {
   async changeColumn (type, val) {
     this.formatedDate = ''
     this.errorFormat = ''
+    this.isNotBatchModel && (this.partitionMeta.format = this.dateFormatsOptions[0].value)
     if (type === 'format' && val) {
       try {
         const res = await this.validateDateFormat({partition_date_column: this.partitionMeta.column, partition_date_format: this.partitionMeta.format})

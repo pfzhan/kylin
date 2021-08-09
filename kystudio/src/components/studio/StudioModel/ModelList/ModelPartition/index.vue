@@ -310,7 +310,9 @@ export default class ModelPartition extends Vue {
     this.changePartitionSetting()
   }
   partitionColumnChange () {
-    this.partitionMeta.format = 'yyyy-MM-dd'
+    if (!this.isNotBatchModel) {
+      this.partitionMeta.format = 'yyyy-MM-dd'
+    }
     this.$refs.partitionForm.validate()
     this.changePartitionSetting()
   }

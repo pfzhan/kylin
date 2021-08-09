@@ -1119,8 +1119,6 @@ export default class LayoutLeftRightTop extends Vue {
       .flag {
         width: 10px;
         height: 10px;
-        // position: absolute;
-        // left: -8px;
         display: inline-block;
         border-radius: 100%;
         &.is-danger {
