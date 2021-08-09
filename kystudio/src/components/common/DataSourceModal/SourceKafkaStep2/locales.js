@@ -37,6 +37,6 @@ export default {
     cancelSelected: '取消选中',
     columns: '列信息',
     attachHiveToggle: '关联 Hive 表',
-    attachHiveTips: '关联了 Hive 表的 Kafka 表可用于融合模型，未进行关联的 Kafka 表可用于实时模型。进行关联时，Kafka 表中列的数据类型必须与 Hive 表中的列保持一致，且无法修改列的数据类型。'
+    attachHiveTips: '关联了 Hive 表的 Kafka 表可用于融合数据模型，未进行关联的 Kafka 表可用于流数据模型。进行关联时，Kafka 表中列的数据类型必须与 Hive 表中的列保持一致，且无法修改列的数据类型。'
   }
 }

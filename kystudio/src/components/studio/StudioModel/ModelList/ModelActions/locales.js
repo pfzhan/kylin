@@ -125,10 +125,10 @@ export default {
     noIndexTips: '您需要先添加索引，才可以进行构建',
     changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。',
     jobSuccess: '任务已提交。可到任务页',
-    disableActionTips: '实时模型暂无法使用此功能',
-    disableActionTips2: '融合模型和实时模型暂无法使用此功能',
-    disableActionTips3: '融合模型暂无法使用此功能',
-    disableActionTips4: '融合模型和实时模型无法修改时间分区设置。',
-    disableSecStorageActionTips: '融合模型或实时模型暂无法使用分层存储'
+    disableActionTips: '流数据模型暂无法使用此功能',
+    disableActionTips2: '融合数据模型和流数据模型暂无法使用此功能',
+    disableActionTips3: '融合数据模型暂无法使用此功能',
+    disableActionTips4: '融合数据模型和流数据模型无法修改时间分区设置。',
+    disableSecStorageActionTips: '融合数据模型或流数据模型暂无法使用分层存储'
   }
 }

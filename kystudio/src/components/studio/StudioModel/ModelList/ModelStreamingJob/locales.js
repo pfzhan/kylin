@@ -32,7 +32,7 @@ export default {
     stopStreamingTitle: 'Stop Job'
   },
   'zh-cn': {
-    streaming: '实时任务',
+    streaming: '流数据任务',
     status: '状态',
     streamingIngestion: '数据摄入',
     autoMerge: '自动合并',
@@ -60,7 +60,7 @@ export default {
     value: '参数值',
     pleaseInputKey: '请输入参数名称',
     pleaseInputValue: '请输入参数值',
-    cofirmStopStreaming: '确认要终止实时任务吗？',
+    cofirmStopStreaming: '确认要终止流数据任务吗？',
     stopStreamingTitle: '终止任务'
   }
 }

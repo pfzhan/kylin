@@ -61,9 +61,9 @@ export default {
     previewFormat: 'Format preview: ',
     formatRule: 'The customized time format is supported. ',
     viewDetail: 'More info',
-    rule1: 'Use a combination of yyyy, MM, dd, HH, mm, ss, SSS, etc.',
-    rule2: 'When using letters as separators, use a pair of \' (single quote) to quote, i.e. \'T\' will be recognized as T.',
-    rule3: 'When using \\ (backslash) or \' (single quote) as separator, use \\ (backslash) as an escape character, i.e. \'aa\\\'bb\' will be recognized as aa\'bb.'
+    rule1: 'Support using some elements of yyyy, MM, dd, HH, mm, ss, SSS in positive order',
+    rule2: 'Support using - (hyphen), / (slash), : (colon), English space as separator',
+    rule3: 'When using unformatted letters, use a pair of \' (single quotes) to quote, i.e. \'T\' will be recognized as T'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -117,18 +117,18 @@ export default {
     secStorageTips: '关闭后，模型的分层存储数据将被清空，可能会影响查询效率。',
     openSecStorageTips: '检测到模型维度数较多，建议开启分层存储。',
     openSecStorageTips2: '开启分层存储后，现有 Segment 数据需加载到分层存储后生效。',
-    disableSecStorageActionTips: '融合模型或实时模型暂无法使用分层存储',
+    disableSecStorageActionTips: '融合数据模型或流数据模型暂无法使用分层存储',
     disableSecStorageActionTips2: '模型未定义维度/度量，无法生成基础明细索引和使用分层缓存。',
     secondStoragePartitionTips: '无法保存模型。当增量加载的模型开启分层存储时，必须将时间分区列加入维度。',
-    streamSecStoragePartitionTips: '无法保存模型。融合模型必须将时间分区列加入模型维度。',
+    streamSecStoragePartitionTips: '无法保存模型。融合数据模型必须将时间分区列加入模型维度。',
     baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。',
-    notBatchModelPartitionTips: '保存后，融合模型和实时模型将无法修改时间分区设置。',
-    disableChangePartitionTips: '融合模型和实时模型无法修改时间分区设置。',
+    notBatchModelPartitionTips: '保存后，融合数据模型和流数据模型将无法修改时间分区设置。',
+    disableChangePartitionTips: '融合数据模型和流数据模型无法修改时间分区设置。',
     previewFormat: '格式预览：',
     formatRule: '支持输入自定义时间格式，',
     viewDetail: '更多信息',
-    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 等自定义组合',
-    rule2: '使用字母作分隔符时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
-    rule3: '使用 \\（反斜杠）或 \'（单引号）作分隔符时，需使用 \\（反斜杠）转义，例如： \'aa\\\'bb\' 将被识别为 aa\'bb'
+    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 中的部分要素正序组合',
+    rule2: '支持使用 -（连字符）、/（斜线号）、:（冒号）、英文空格做分隔符',
+    rule3: '使用无格式字母时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T'
   }
 }

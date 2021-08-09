@@ -511,7 +511,7 @@ export default class ModelActions extends Vue {
     }
     if (!modelDesc.total_indexes && !isNeedBuildGuild || (!this.$store.state.project.multi_partition_enabled && modelDesc.multi_partition_desc)) return
     const projectName = this.currentSelectedProject
-    // 如果是融合模型，这里的构建入口是针对离线的，所以要传batch id
+    // 如果是融合数据模型，这里的构建入口是针对批数据的，所以要传batch id
     const modelName = modelDesc.model_type === 'HYBRID' ? modelDesc.batch_id : modelDesc.uuid
     const res = await this.fetchSegments({ projectName, modelName })
     const { total_size, value } = await handleSuccessAsync(res)

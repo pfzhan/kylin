@@ -162,7 +162,7 @@ export default {
     onlyIncreaseOrDecreaseTip: '提交后，将删除 {decreaseNum} 个索引，新增 {increaseNum} 个索引。',
     confirmTextBySaveAndBuild: '是否继续保存并构建？',
     confirmTextBySave: '是否继续保存？',
-    habirdModelBuildTips: '（将仅构建离线索引，实时索引的构建将在实时任务重新启动时进行。）',
+    habirdModelBuildTips: '（将仅构建批数据索引，流数据索引的构建将在流数据任务重新启动时进行。）',
     bulidAndSubmit: '保存并构建',
     maxDimCom: '最大维度组合数',
     generateDeletedIndexes: '不生成已删除的 {rollbackNum} 个索引',
@@ -229,8 +229,8 @@ export default {
     excludedTableIconTip: '被优化建议屏蔽的列',
     indexTimeRange: '索引数据范围',
     manyToManyAntiTableTip: '在优化建议中被屏蔽的表，若关联关系为一对多或多对多，则表中的维度无法在索引中使用。',
-    indexTimeRangeTips: '索引构建的数据范围。选择“离线和实时”将分别生成相同内容的实时和离线索引。',
-    refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。',
+    indexTimeRangeTips: '索引构建的数据范围。选择“融合”将分别生成相同内容的流数据和批数据索引。',
+    refuseAddIndexTip: '无法添加流数据索引。请先停止流数据任务，再清空流数据 Segment。',
     disableAddDim: '请先选择索引数据范围'
   }
 }

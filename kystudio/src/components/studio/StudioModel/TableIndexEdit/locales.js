@@ -59,8 +59,8 @@ export default {
     excludedTableIconTip: '被优化建议屏蔽的列',
     manyToManyAntiTableTip: '在优化建议中被屏蔽的表，若关联关系为一对多或多对多，则表中的维度无法在索引中使用。',
     indexTimeRange: '索引时间范围',
-    indexTimeRangeTips: '索引构建的数据范围。选择“离线和实时”将分别生成相同内容的实时和离线索引。',
+    indexTimeRangeTips: '索引构建的数据范围。选择“融合”将分别生成相同内容的流数据和批数据索引。',
     noIndexRangeByHybrid: '选择索引时间范围后展示可选择的列',
-    refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。'
+    refuseAddIndexTip: '无法添加流数据索引。请先停止流数据任务，再清空流数据 Segment。'
   }
 }

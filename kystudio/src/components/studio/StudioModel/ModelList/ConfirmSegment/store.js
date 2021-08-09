@@ -15,7 +15,7 @@ const initialState = JSON.stringify({
   isRemoveIndex: false,
   submitText: '',
   model: null,
-  isHybridBatch: false, // 标识是否是融合模型下的离线模型
+  isHybridBatch: false, // 标识是否是融合数据模型下的批数据模型
   callback: null
 })
 export default {

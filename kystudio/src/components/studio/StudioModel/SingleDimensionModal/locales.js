@@ -29,6 +29,6 @@ export default {
     sameColumn: '该列已被其他维度使用',
     addCCTip: '创建可计算列',
     disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。',
-    streamTips: '融合模型必须在维度中包含时间分区列。'
+    streamTips: '融合数据模型必须在维度中包含时间分区列。'
   }
 }

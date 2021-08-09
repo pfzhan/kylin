@@ -52,14 +52,14 @@ export default {
   },
   computed: {
     downlodaProject () {
-      if (this.showOutputJob) { // 下载实时任务日志
+      if (this.showOutputJob) { // 下载流数据任务日志
         return this.showOutputJob.project
       } else {
         return this.targetProject
       }
     },
     actionUrl () {
-      if (this.showOutputJob) { // 下载实时任务日志
+      if (this.showOutputJob) { // 下载流数据任务日志
         return `${apiUrl}streaming_jobs/${this.showOutputJob.uuid}/download_log`
       } else {
         return apiUrl + 'jobs/' + this.jobId + '/steps/' + this.stepId + '/log'
@@ -82,7 +82,7 @@ export default {
       if (this.hasClickDownloadLogBtn) {
         return false
       }
-      if (this.$store.state.config.platform === 'iframe') { // 云上暂不支持实时，暂不处理
+      if (this.$store.state.config.platform === 'iframe') { // 云上暂不支持流数据，暂不处理
         try {
           this.hasClickDownloadLogBtn = true
           this.downloadLog(params).then(res => {

@@ -63,7 +63,7 @@ export default {
   },
   'zh-cn': {
     adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
-    streamingJobsList: '实时任务列表',
+    streamingJobsList: '流数据任务列表',
     jobStart: '启动',
     jobRestart: '重启',
     jobStop: '停止',
@@ -118,7 +118,7 @@ export default {
     mulParamsKeyTips: '该参数已存在',
     errorStautsTips: '出现未知错误，请联系管理员查看。',
     errorStautsTips2: '出现未知错误，请下载系统诊断包查看日志或联系管理员。',
-    disableStartJobTips: '无法使用，请先添加实时索引',
+    disableStartJobTips: '无法使用，请先添加流数据索引',
     borkenModelDisableStartJobTips: '无法使用，模型 {modelName} 当前为 Broken 状态。',
     logInfoTip: '日志详情',
     output: '输出'

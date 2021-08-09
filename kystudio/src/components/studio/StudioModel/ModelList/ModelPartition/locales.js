@@ -18,9 +18,9 @@ export default {
     previewFormat: 'Format preview: ',
     formatRule: 'The customized time format is supported. ',
     viewDetail: 'More info',
-    rule1: 'Use a combination of yyyy, MM, dd, HH, mm, ss, SSS, etc.',
-    rule2: 'When using letters as separators, use a pair of \' (single quote) to quote, i.e. \'T\' will be recognized as T.',
-    rule3: 'When using \\ (backslash) or \' (single quote) as separator, use \\ (backslash) as an escape character, i.e. \'aa\\\'bb\' will be recognized as aa\'bb.'
+    rule1: 'Support using some elements of yyyy, MM, dd, HH, mm, ss, SSS in positive order',
+    rule2: 'Support using - (hyphen), / (slash), : (colon), English space as separator',
+    rule3: 'When using unformatted letters, use a pair of \' (single quotes) to quote, i.e. \'T\' will be recognized as T'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -41,8 +41,8 @@ export default {
     previewFormat: '格式预览：',
     formatRule: '支持输入自定义时间格式，',
     viewDetail: '更多信息',
-    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 等自定义组合',
-    rule2: '使用字母作分隔符时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T',
-    rule3: '使用 \\（反斜杠）或 \'（单引号）作分隔符时，需使用 \\（反斜杠）转义，例如： \'aa\\\'bb\' 将被识别为 aa\'bb'
+    rule1: '支持使用 yyyy, MM, dd, HH, mm, ss, SSS 中的部分要素正序组合',
+    rule2: '支持使用 -（连字符）、/（斜线号）、:（冒号）、英文空格做分隔符',
+    rule3: '使用无格式字母时，需用一对 \' （单引号）引用，例如：\'T\' 将被识别为 T'
   }
 }

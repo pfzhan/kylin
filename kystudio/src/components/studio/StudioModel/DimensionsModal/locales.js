@@ -62,7 +62,7 @@ export default {
     resetSyncName: '撤销同步',
     lockLookupTableTip: '无法在维度中使用该表中的列，因为该维度表的关联关系不进行预计算。',
     useCCBylockLookupTableTip: '无法使用部分可计算列，因为相关维度表的关联关系不进行预计算。',
-    streamTips: '融合模型必须在维度中包含时间分区列。',
+    streamTips: '融合数据模型必须在维度中包含时间分区列。',
     secStorTips: '在开启分层存储时，时间分区列不可从维度中删除。'
   }
 }

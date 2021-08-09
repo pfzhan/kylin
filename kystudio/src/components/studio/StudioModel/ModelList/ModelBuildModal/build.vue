@@ -81,13 +81,13 @@
                     default-first-option
                     :placeholder="$t('pleaseInputColumn')">
                     <el-option-group>
-                      <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
+                      <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1&&prevPartitionMeta.format" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
                       <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
                       <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
                     </el-option-group>
-                    <el-option-group>
+                    <!-- <el-option-group>
                       <el-option :label="f.label" :value="f.value" v-for="f in dateTimestampFormats" :key="f.label"></el-option>
-                    </el-option-group>
+                    </el-option-group> -->
                   </el-select>
                 </el-tooltip>
               </el-col>
@@ -420,7 +420,7 @@
       // batch 和 streaming 的都是取 uuid
       if (this.modelDesc.model_type !== 'HYBRID') {
         return this.modelDesc.uuid
-      } else { // HYBRID 模式的，传离线id
+      } else { // HYBRID 模式的，传批数据id
         return this.modelDesc.batch_id
       }
     }
@@ -528,6 +528,7 @@
         this.isLoadingFormat = true
         const response = await this.fetchPartitionFormat({ project: this.currentSelectedProject, table: this.selectedTable.name, partition_column: this.partitionMeta.column })
         this.partitionMeta.format = await handleSuccessAsync(response)
+        this.partitionColumnFormatChange(this.partitionMeta.format)
         this.isLoadingFormat = false
       } catch (e) {
         this.isLoadingFormat = false

@@ -226,7 +226,7 @@ exports.default = {
     jobNode: 'Job node',
     BATCH: 'Batch',
     STREAMING: 'Streaming',
-    HYBRID: 'Batch and Streaming'
+    HYBRID: 'Fusion'
   },
   model: {
     generateModel: 'From SQL',

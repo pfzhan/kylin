@@ -444,7 +444,7 @@ export default class ModelAggregate extends Vue {
     STREAMING: ['HYBRID', 'STREAMING']
   }
   switchIndexValue = 'index'
-  switchModelType = 'BATCH' // 默认离线 - BATCH, 实时 - STREAMING
+  switchModelType = 'BATCH' // 默认批数据 - BATCH, 流数据 - STREAMING
   isHaveComplementSegs = false
   indexesByQueryHistory = true  // 是否获取查询相关的索引
   isShowRealTimeModelActionTips = true
@@ -457,12 +457,12 @@ export default class ModelAggregate extends Vue {
   //   })
   // }
 
-  // 控制显示实时，离线选项
+  // 控制显示流数据，批数据选项
   get showModelTypeSwitch () {
     return this.model && this.model.model_type === 'HYBRID'
   }
 
-  // 判断是否时实时模式
+  // 判断是否时流数据模式
   get isRealTimeMode () {
     return (this.showModelTypeSwitch && this.switchModelType === 'STREAMING') || (this.model.model_type === 'STREAMING')
   }
@@ -475,7 +475,7 @@ export default class ModelAggregate extends Vue {
     }
   }
 
-  // 标识是融合模型下的离线模式
+  // 标识是融合数据模型下的批数据模式
   get isHybridBatch () {
     return this.model.model_type === 'HYBRID' && this.switchModelType === 'BATCH'
   }

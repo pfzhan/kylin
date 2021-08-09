@@ -328,7 +328,7 @@ import echarts from 'echarts'
       secStorage: '分层存储',
       aggDetailTitle: '聚合索引详情',
       tabelDetailTitle: '明细索引详情',
-      streamingTag: '实时',
+      streamingTag: '流数据',
       indexOverview: '索引总览'
     }
   },

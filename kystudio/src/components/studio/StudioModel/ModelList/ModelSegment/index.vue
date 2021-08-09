@@ -575,7 +575,7 @@ export default class ModelSegment extends Vue {
     // batch 和 streaming 的都是取 uuid
     if (this.model.model_type !== 'HYBRID') {
       return this.model.uuid
-    } else { // HYBRID 模式的，又需要渲染这个，说明是离线segment
+    } else { // HYBRID 模式的，又需要渲染这个，说明是批数据segment
       return this.model.batch_id
     }
   }

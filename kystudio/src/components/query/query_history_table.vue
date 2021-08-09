@@ -356,7 +356,7 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       unExistLayoutTip: '该索引已被删除',
       filteredTotalSize: '{totalSize} 条结果',
       secStorage: '分层存储',
-      streamingTag: '实时'
+      streamingTag: '流数据'
     }
   },
   filters: {

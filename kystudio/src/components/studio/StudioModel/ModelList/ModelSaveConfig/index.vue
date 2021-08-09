@@ -43,7 +43,7 @@
     </div>
     <el-form v-if="mode === 'saveModel'&&buildType=== 'incremental'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
       <div class="ksd-title-label-mini ksd-mb-10">{{$t('partitionSet')}}</div>
-      <!-- 新建实时、融合模型时提示 -->
+      <!-- 新建流数据、融合数据模型时提示 -->
       <el-alert
         class="ksd-mb-8"
         :title="$t('notBatchModelPartitionTips')"
@@ -108,13 +108,13 @@
                 @change="val => changeColumn('format', val)"
               >
                 <el-option-group>
-                  <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
+                  <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1&&prevPartitionMeta.format" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
                   <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
                   <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
                 </el-option-group>
-                <el-option-group>
+                <!-- <el-option-group>
                   <el-option :label="f.label" :value="f.value" v-for="f in dateTimestampFormats" :key="f.label"></el-option>
-                </el-option-group>
+                </el-option-group> -->
               </el-select>
             </el-tooltip>
           </el-col>
@@ -470,6 +470,7 @@ export default class ModelPartitionModal extends Vue {
       this.isLoadingFormat = true
       const response = await this.fetchPartitionFormat({ project: this.currentSelectedProject, table: this.selectedTable.name, partition_column: this.partitionMeta.column })
       this.partitionMeta.format = await handleSuccessAsync(response)
+      this.changeColumn('format', this.partitionMeta.format)
       this.isLoadingFormat = false
     } catch (e) {
       this.isLoadingFormat = false
@@ -690,7 +691,7 @@ export default class ModelPartitionModal extends Vue {
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
-    // 开启了分层存储或者融合模型，时间分区列必须选做维度列
+    // 开启了分层存储或者融合数据模型，时间分区列必须选做维度列
     if (this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental' && (this.modelDesc.with_second_storage || this.isHybridModel)) {
       const partitionColumn = this.partitionMeta.table + '.' + this.partitionMeta.column
       const index = indexOfObjWithSomeKey(this.allDimension, 'column', partitionColumn)

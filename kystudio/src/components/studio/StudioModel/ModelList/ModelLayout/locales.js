@@ -38,12 +38,12 @@ export default {
     modelMetadataChangedDesc: '检测到以下 Segment 中源表数据可能发生了变化，将导致构建后数据不一致。请与系统管理员核实。<br/>建议刷新以下这些 Segment 确保数据的一致性。',
     buildIndex: '构建索引',
     batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
-    hybridModelBuildTitle: '请为新增的离线索引选择需要构建至的数据范围。（实时索引的构建将在实时任务重新启动时进行。）',
+    hybridModelBuildTitle: '请为新增的批数据索引选择需要构建至的数据范围。（流数据索引的构建将在流数据任务重新启动时进行。）',
     modelEditAction: '编辑',
     modelBuildAction: '构建',
     moreAction: '更多',
     noResult: '暂无数据',
     recommendationsBtn: '优化建议',
-    streaming: '实时任务'
+    streaming: '流数据任务'
   }
 }

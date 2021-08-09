@@ -195,8 +195,8 @@ export default {
     viewSubPartitionTip: '查看子分区',
     subPartitionAlert: '请确保子分区值与源表中一致（大小写敏感），否则构建数据将为空。新添加的子分区值将被保存到该模型的子分区值列表中。',
     selectAllSubPartitions: '全部子分区值',
-    batch: '离线',
-    streaming: '实时',
+    batch: '批数据',
+    streaming: '流数据',
     syncSegmentTip: '同步',
     confirmSyncSegments: '确定要将以下 Segment(s) 中的明细索引数据加载到分层存储中吗？',
     refreshErrorTips: '当前没有可刷新索引。请检查后重试。'

@@ -32,8 +32,8 @@ export default {
     addTableIndex: '添加明细索引',
     cardinality: '基数',
     indexTimeRange: '索引时间范围',
-    refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。',
-    refuseRemoveIndexTip: '无法删除实时索引。请先停止实时任务，再清空实时 Segment。',
-    refuseEditIndexTip: '无法编辑实时索引。请先停止实时任务，再清空实时 Segment。'
+    refuseAddIndexTip: '无法添加流数据索引。请先停止流数据任务，再清空流数据 Segment。',
+    refuseRemoveIndexTip: '无法删除流数据索引。请先停止流数据任务，再清空流数据 Segment。',
+    refuseEditIndexTip: '无法编辑流数据索引。请先停止流数据任务，再清空流数据 Segment。'
   }
 }

@@ -58,13 +58,13 @@
               @change="val => changePartitionSetting('format', val)"
               :placeholder="$t('pleaseInputColumn')">
               <el-option-group>
-                <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
+                <el-option v-if="prevPartitionMeta.format.indexOf(dateFormatsOptions) === -1&&prevPartitionMeta.format" :label="prevPartitionMeta.format" :value="prevPartitionMeta.format"></el-option>
                 <el-option :label="f.label" :value="f.value" v-for="f in dateFormatsOptions" :key="f.label"></el-option>
                 <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
               </el-option-group>
-              <el-option-group>
+              <!-- <el-option-group>
                 <el-option :label="f.label" :value="f.value" v-for="f in dateTimestampFormats" :key="f.label"></el-option>
-              </el-option-group>
+              </el-option-group> -->
             </el-select>
           </el-col>
           <el-col :span="2" v-if="partitionMeta.column && $store.state.project.projectPushdownConfig && modelDesc.model_type === 'BATCH'">
@@ -354,6 +354,7 @@ export default class ModelPartition extends Vue {
       this.isLoadingFormat = true
       const response = await this.fetchPartitionFormat({ project: this.currentSelectedProject, table: this.selectedTable.name, partition_column: this.partitionMeta.column })
       this.partitionMeta.format = await handleSuccessAsync(response)
+      this.changePartitionSetting('format', this.partitionMeta.format)
       this.isLoadingFormat = false
     } catch (e) {
       this.isLoadingFormat = false

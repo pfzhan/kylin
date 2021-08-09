@@ -166,9 +166,9 @@ export default {
     buildBaseIndexTip: '成功添加 {baseIndexNum} 个基础索引。',
     updateBaseIndexTips: '将新建 1 个基础索引。原基础索引可能处于“锁定”状态，但仍可服务查询。确定要更新吗？',
     disabledDelBaseIndexTips: '删除基础明细索引，请先关闭模型的分层存储。',
-    realTimeModelActionTips: '构建实时索引需在任务页启动实时任务。添加/删除实时索引请进行以下步骤：停止实时任务，清空实时 Segment，添加/删除索引，启动实时任务。',
-    refuseAddIndexTip: '无法添加实时索引。请先停止实时任务，再清空实时 Segment。',
-    refuseRemoveIndexTip: '无法删除实时索引。请先停止实时任务，再清空实时 Segment。',
+    realTimeModelActionTips: '构建流数据索引需在任务页启动流数据任务。添加/删除流数据索引请进行以下步骤：停止流数据任务，清空流数据 Segment，添加/删除索引，启动流数据任务。',
+    refuseAddIndexTip: '无法添加流数据索引。请先停止流数据任务，再清空流数据 Segment。',
+    refuseRemoveIndexTip: '无法删除流数据索引。请先停止流数据任务，再清空流数据 Segment。',
     disabledBuildIndexTips: '锁定状态的索引禁止构建'
   }
 }

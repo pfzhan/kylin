@@ -223,9 +223,9 @@ exports.default = {
     toJoblist: '查看进度',
     queryNode: '查询节点',
     jobNode: '任务节点',
-    BATCH: '离线',
-    STREAMING: '实时',
-    HYBRID: '离线和实时'
+    BATCH: '批数据',
+    STREAMING: '流数据',
+    HYBRID: '融合'
   },
   model: {
     generateModel: 'SQL 建模',
@@ -475,8 +475,8 @@ exports.default = {
     queryhistory: '查询历史',
     acceleration: '加速引擎',
     design: '建模',
-    job: '离线任务',
-    streamingjob: '实时任务',
+    job: '批数据任务',
+    streamingjob: '流数据任务',
     cluster: '集群',
     admin: '系统管理',
     user: '用户',

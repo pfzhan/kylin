@@ -183,7 +183,7 @@ export default {
     flattenLookupTableTips: '无法在维度和度量中使用该表中的列，因为该维度表的关联关系不进行预计算。',
     batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
     disableDelDimTips: '在开启分层存储时，时间分区列不可从维度中删除。',
-    forbidenCreateCCTip: '融合模型暂不支持添加可计算列',
-    streamTips: '融合模型必须在维度中包含时间分区列。'
+    forbidenCreateCCTip: '融合数据模型暂不支持添加可计算列',
+    streamTips: '融合数据模型必须在维度中包含时间分区列。'
   }
 }

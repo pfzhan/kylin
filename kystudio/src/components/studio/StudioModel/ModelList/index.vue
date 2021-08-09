@@ -1040,7 +1040,7 @@ export default class ModelList extends Vue {
 
   get modelAttributesOptions () {
     let options = []
-    if (this.$store.state.config.platform === 'iframe') { // 云上暂不支持实时融合模型
+    if (this.$store.state.config.platform === 'iframe') { // 云上暂不支持流数据融合数据模型
       options = [
         { renderLabel: this.renderModelTypeLabel, value: 'BATCH' }
       ]
