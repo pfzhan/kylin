@@ -32,6 +32,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.core.Ordered;
@@ -50,6 +52,12 @@ public class KEFilter extends OncePerRequestFilter {
         }
         MsgPicker.setMsg(lang);
         ErrorCode.setMsg(lang);
+
+        if (request != null && "/kylin/api/query".equals(request.getRequestURI())) {
+            QueryContext.current(); // init query context to set the timer
+            QueryContext.currentTrace().startSpan(QueryTrace.HTTP_RECEPTION);
+        }
+
         filterChain.doFilter(request, response);
     }
 

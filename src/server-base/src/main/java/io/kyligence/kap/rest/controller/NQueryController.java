@@ -51,6 +51,7 @@ import javax.validation.Valid;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
@@ -143,6 +144,7 @@ public class NQueryController extends NBasicController {
         }
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
+        QueryContext.current().record("end_http_proc");
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponse, "");
     }

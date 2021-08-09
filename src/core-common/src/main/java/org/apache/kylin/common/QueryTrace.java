@@ -37,6 +37,7 @@ import java.util.Optional;
 public class QueryTrace {
 
     // span name
+    public static final String HTTP_RECEPTION = "HTTP_RECEPTION";
     public static final String GET_ACL_INFO = "GET_ACL_INFO";
     public static final String SQL_TRANSFORMATION = "SQL_TRANSFORMATION";
     public static final String SQL_PARSE_AND_OPTIMIZE = "SQL_PARSE_AND_OPTIMIZE";
