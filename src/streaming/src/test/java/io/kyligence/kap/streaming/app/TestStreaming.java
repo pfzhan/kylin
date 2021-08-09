@@ -76,7 +76,7 @@ public class TestStreaming extends StreamingTestCase {
     }
 
     @Test
-    public void testKafkaPartitions() {
+    public void testBuild() {
         val config = KylinConfig.getInstanceFromEnv();
 
         val source = (NSparkKafkaSource) SourceFactory.getSource(new ISourceAware() {
@@ -126,6 +126,7 @@ public class TestStreaming extends StreamingTestCase {
         tableDesc = model.getRootFactTable().getTableDesc();
         kafkaParam = tableDesc.getKafkaConfig().getKafkaParam();
         Assert.assertEquals("latest", kafkaParam.get("startingOffsets"));
+        ss.stop();
     }
 
     /**
@@ -138,7 +139,7 @@ public class TestStreaming extends StreamingTestCase {
         runner.init();
         val ss = createSparkSession();
         Assert.assertNotNull(ss);
-        AwaitUtils.await(() -> runner.run(), 2000, () -> {
+        AwaitUtils.await(() -> runner.run(), 10000, () -> {
             ss.stop();
         });
     }
@@ -153,7 +154,7 @@ public class TestStreaming extends StreamingTestCase {
         launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
         val ss = createSparkSession();
         Assert.assertNotNull(ss);
-        AwaitUtils.await(() -> launcher.launch(), 2000, () -> {
+        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {
             ss.stop();
         });
     }
@@ -167,7 +168,7 @@ public class TestStreaming extends StreamingTestCase {
         val launcher = new StreamingJobLauncher();
         launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
         val ss = createSparkSession();
-        AwaitUtils.await(() -> launcher.launch(), 2000, () -> {
+        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {
             ss.stop();
         });
     }
