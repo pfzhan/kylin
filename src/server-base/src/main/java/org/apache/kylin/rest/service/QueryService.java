@@ -417,7 +417,9 @@ public class QueryService extends BasicService {
                 .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown())
                 .put(LogReport.INDEX_FORCED, request.isForcedToIndex())
                 .put(LogReport.USER_AGENT, request.getUserAgent())
-                .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles());
+                .put(LogReport.BACK_DOOR_TOGGLES, request.getBackdoorToggles())
+                .put(LogReport.SCAN_SEGMENT_COUNT, QueryContext.current().getMetrics().getSegCount())
+                .put(LogReport.SCAN_FILE_COUNT, QueryContext.current().getMetrics().getFileCount());
         String log = report.oldStyleLog();
         if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery() && projectConfig.isUniqueAsyncQueryYarnQueue())) {
             logger.info(log);
@@ -1220,6 +1222,8 @@ public class QueryService extends BasicService {
         static final String INDEX_FORCED = "index_forced";
         static final String USER_AGENT = "user_agent";
         static final String BACK_DOOR_TOGGLES = "back_door_toggles";
+        static final String SCAN_SEGMENT_COUNT = "scan_segment_count";
+        static final String SCAN_FILE_COUNT = "scan_file_count";
 
         static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
                 .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
@@ -1234,7 +1238,8 @@ public class QueryService extends BasicService {
                 .put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ").put(TRACE_URL, "Trace URL: ")
                 .put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ").put(ERROR_MSG, "Message: ")
                 .put(USER_TAG, "User Defined Tag: ").put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ")
-                .put(USER_AGENT, "User Agent: ").put(BACK_DOOR_TOGGLES, "Back door toggles: ").build();
+                .put(USER_AGENT, "User Agent: ").put(BACK_DOOR_TOGGLES, "Back door toggles: ")
+                .put(SCAN_SEGMENT_COUNT, "Scan Segment Count: ").put(SCAN_FILE_COUNT, "Scan File Count: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
@@ -1279,6 +1284,8 @@ public class QueryService extends BasicService {
                     + get(ERROR_MSG) + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED)
                     + get(PUSH_DOWN_FORCED) + newLine + O2N.get(USER_AGENT) + get(USER_AGENT) + newLine
                     + O2N.get(BACK_DOOR_TOGGLES) + get(BACK_DOOR_TOGGLES) + newLine
+                    + O2N.get(SCAN_SEGMENT_COUNT) + get(SCAN_SEGMENT_COUNT) + newLine
+                    + O2N.get(SCAN_FILE_COUNT) + get(SCAN_FILE_COUNT) + newLine
                     + "==========================[QUERY]===============================" + newLine;
         }
 

@@ -1181,7 +1181,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryContext.current().setUserSQL(sql);
         String log = queryService.logQuery(request, response);
         //
-        final int groupCnt = 30;
+        final int groupCnt = 32;
         String matchNewLine = "\\n";
         String s = "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine + "SQL:\\s(.*?)" + matchNewLine
                 + "User:\\s(.*?)" + matchNewLine + "Success:\\s(.*?)" + matchNewLine + "Duration:\\s(.*?)"
@@ -1197,6 +1197,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
                 + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "Is forced to Push-Down:\\s(.*?)"
                 + matchNewLine + "User Agent:\\s(.*?)" + matchNewLine + "Back door toggles:\\s(.*?)" + matchNewLine
+                + "Scan Segment Count:\\s(.*?)" + matchNewLine + "Scan File Count:\\s(.*?)" + matchNewLine
                 + "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);

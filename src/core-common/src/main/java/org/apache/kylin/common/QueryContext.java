@@ -220,6 +220,7 @@ public class QueryContext implements Closeable {
         private boolean exactlyMatch;
         private boolean isException;
         private int segCount;
+        public int fileCount;
         private long queryStartTime;
         private String server;
         private long resultRowCount;

@@ -259,6 +259,8 @@ class FilePruner(val session: SparkSession,
       pruneShards
     }
     QueryContext.current().record("shard_pruning")
+    val totalFileCount = selected.flatMap(partition => partition.files).size
+    QueryContext.current().getMetrics.setFileCount(totalFileCount)
     val totalFileSize = selected.flatMap(partition => partition.files).map(_.getLen).sum
     val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
     setShufflePartitions(totalFileSize, sourceRows, session)
