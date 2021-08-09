@@ -502,6 +502,8 @@ public class OpenModelController extends NBasicController {
         String modelId = getModel(modelAlias, projectName).getId();
         checkRequiredArg(NModelController.MODEL_ID, modelId);
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(projectName, modelId, recActionType);
+        //open api not add recDetailResponse
+        response.getLayouts().forEach(optRecLayoutResponse -> optRecLayoutResponse.setRecDetailResponse(null));
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 new OpenOptRecLayoutsResponse(projectName, modelId, response), "");
     }

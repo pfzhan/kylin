@@ -967,7 +967,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         } else {
             filterRecItems.addAll(rawRecItems);
         }
-        return convertToV2RecResponse(project, modelId, filterRecItems);
+        return convertToV2RecResponse(project, modelId, filterRecItems, optRecV2);
     }
 
     /**
@@ -975,8 +975,8 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
      * if type=Layout, layout will be added to IndexPlan when user approves this RawRecItem
      * if type=REMOVAL_LAYOUT, layout will be removed from IndexPlan when user approves this RawRecItem
      */
-    private List<OptRecLayoutResponse> convertToV2RecResponse(String project, String modelId,
-            List<RawRecItem> recItems) {
+    private List<OptRecLayoutResponse> convertToV2RecResponse(String project, String modelId, List<RawRecItem> recItems,
+            OptRecV2 optRecV2) {
         List<OptRecLayoutResponse> layoutRecResponseList = Lists.newArrayList();
 
         NDataflowManager dfManager = getDataflowManager(project);
@@ -1000,6 +1000,14 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                 response.setIndexId(layoutId);
                 response.setDataSize(dataflow.getByteSize(layoutId));
             }
+            OptRecDetailResponse detailResponse = new OptRecDetailResponse();
+            List<Integer> validList = validate(Lists.newArrayList(rawRecItem.getId()), optRecV2, detailResponse, isAdd);
+            if (isAdd) {
+                detailResponse.getRecItemsToAddLayout().addAll(validList);
+            } else {
+                detailResponse.getRecItemsToRemoveLayout().addAll(validList);
+            }
+            response.setRecDetailResponse(detailResponse);
             layoutRecResponseList.add(response);
         });
         return layoutRecResponseList;

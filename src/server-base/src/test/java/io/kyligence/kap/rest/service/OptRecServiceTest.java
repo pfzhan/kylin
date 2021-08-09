@@ -57,6 +57,7 @@ import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
+import io.kyligence.kap.rest.response.OptRecDetailResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
 
@@ -125,45 +126,63 @@ public class OptRecServiceTest extends OptRecV2TestBase {
         prepareAllLayoutRecs();
         OptRecLayoutsResponse recResp1 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "ALL");
         Assert.assertEquals(28, recResp1.getLayouts().size());
+        assertOptRecDetailResponse(recResp1);
 
         // set topN to 50, get all and assert
         changeRecTopN(50);
         OptRecLayoutsResponse recResp2 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "ALL");
         Assert.assertEquals(35, recResp2.getLayouts().size());
+        assertOptRecDetailResponse(recResp2);
 
         // test empty recTypeList
         OptRecLayoutsResponse recResp = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList(), null, false, "", 0, 10);
         Assert.assertEquals(10, recResp.getLayouts().size());
+        assertOptRecDetailResponse(recResp);
 
         // only get add_table_index
         OptRecLayoutsResponse recResp3 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_TABLE_INDEX"), null, false, "", 0, 10);
         Assert.assertEquals(1, recResp3.getLayouts().size());
+        assertOptRecDetailResponse(recResp3);
 
         // test limit
         OptRecLayoutsResponse recResp4 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_AGG_INDEX", "ADD_TABLE_INDEX"), null, false, "", 0, 30);
         Assert.assertEquals(27, recResp4.getLayouts().size());
+        assertOptRecDetailResponse(recResp4);
         recResp4 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_AGG_INDEX"), null, false, "", 0, 20);
         Assert.assertEquals(20, recResp4.getLayouts().size());
+        assertOptRecDetailResponse(recResp4);
 
         // test offset
         OptRecLayoutsResponse recResp5 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_TABLE_INDEX"), null, false, "", 1, 10);
         Assert.assertTrue(recResp5.getLayouts().isEmpty());
+        assertOptRecDetailResponse(recResp5);
         recResp5 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_TABLE_INDEX"), null, false, "", 0, 10);
         Assert.assertEquals(1, recResp5.getLayouts().size());
+        assertOptRecDetailResponse(recResp5);
 
         // test orderBy
         OptRecLayoutsResponse recResp6 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_AGG_INDEX"), null, false, "usage", 0, 30);
         Assert.assertEquals(89, recResp6.getLayouts().get(recResp6.getLayouts().size() - 1).getId());
+        assertOptRecDetailResponse(recResp6);
         recResp6 = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(),
                 Lists.newArrayList("ADD_AGG_INDEX"), null, true, "usage", 0, 30);
         Assert.assertEquals(89, recResp6.getLayouts().get(0).getId());
+        assertOptRecDetailResponse(recResp6);
+    }
+
+    private void assertOptRecDetailResponse(OptRecLayoutsResponse recResp) {
+        recResp.getLayouts().forEach(layout -> {
+            OptRecDetailResponse optRecDetailResponse = optRecService.getSingleOptRecDetail(getProject(),
+                    getDefaultUUID(), layout.getId(), layout.isAdd());
+            Assert.assertEquals(optRecDetailResponse, layout.getRecDetailResponse());
+        });
     }
 
     private void prepareAllLayoutRecs() throws IOException {

@@ -54,5 +54,6 @@ public class OptRecLayoutResponse {
     private long dataSize;
     @JsonProperty("memo_info")
     private Map<String, String> memoInfo = Maps.newHashMap();
-
+    @JsonProperty("rec_detail_response")
+    private OptRecDetailResponse recDetailResponse;
 }
