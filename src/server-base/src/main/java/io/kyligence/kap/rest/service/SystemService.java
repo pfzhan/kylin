@@ -142,7 +142,11 @@ public class SystemService extends BasicService {
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
                     endTime, "-diagId", uuid };
         } else {//job
-            arguments = new String[] { "-job", jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
+            String jobOpt = "-job";
+            if (StringUtils.endsWithAny(jobId, new String[] { "_build", "_merge" })) {
+                jobOpt = "-streamingJob";
+            }
+            arguments = new String[] { jobOpt, jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
         }
         Future<?> task = executorService.submit(() -> {
             try {

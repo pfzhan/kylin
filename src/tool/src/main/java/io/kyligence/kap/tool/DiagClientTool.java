@@ -153,6 +153,9 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             exportClient(recordTime);
         }
 
+        String[] sparkLogArgs = { OPT_DIR, exportDir.getAbsolutePath(), "-startTime", String.valueOf(startTime), "-endTime", String.valueOf(endTime)};
+        dumpStreamingSparkLog(sparkLogArgs, recordTime);
+
         exportJstack(recordTime);
 
         exportConf(exportDir, recordTime, includeConf);

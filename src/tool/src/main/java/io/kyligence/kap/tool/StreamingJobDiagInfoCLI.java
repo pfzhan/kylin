@@ -21,28 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool.constant;
 
-public enum DiagSubTaskEnum {
-    METADATA, //
-    REC_CANDIDATE, //
-    AUDIT_LOG, //
-    CLIENT, //
-    JSTACK, //
-    CONF, //
-    HADOOP_CONF, //
-    BIN, //
-    HADOOP_ENV, //
-    CATALOG_INFO, //
-    SYSTEM_METRICS, //
-    MONITOR_METRICS, //
-    SPARK_LOGS, //
-    SPARDER_HISTORY, //
-    KG_LOGS, //
-    LOG, //
-    JOB_TMP, //
-    JOB_EVENTLOGS, //
-    YARN, //
-    TIERED_STORAGE_LOGS,
-    SPARK_STREAMING_LOGS
+package io.kyligence.kap.tool;
+
+import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.tool.util.ToolMainWrapper;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class StreamingJobDiagInfoCLI {
+
+    public static void main(String[] args) {
+        log.info("Start to collect streaming job diagnosis info.");
+        ToolMainWrapper.wrap(args, () -> {
+            StreamingJobDiagInfoTool streamingJobDiagInfoTool = new StreamingJobDiagInfoTool();
+            streamingJobDiagInfoTool.execute(args);
+        });
+
+        log.info("Collect streaming job diagnosis info completely.");
+        Unsafe.systemExit(0);
+    }
+
 }

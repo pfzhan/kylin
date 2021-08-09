@@ -35,6 +35,7 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.KG_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.METADATA;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.REC_CANDIDATE;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_STREAMING_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_METRICS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.TIERED_STORAGE_LOGS;
 
@@ -308,7 +309,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     private boolean isDiag() {
-        return this instanceof DiagClientTool || this instanceof JobDiagInfoTool;
+        return this instanceof DiagClientTool || this instanceof JobDiagInfoTool || this instanceof StreamingJobDiagInfoTool;
     }
 
     private boolean isDiagFromWeb(OptionsHelper optionsHelper) {
@@ -542,6 +543,20 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         });
 
         scheduleTimeoutTask(metadataTask, METADATA);
+    }
+
+    protected void dumpStreamingSparkLog(String[] sparkToolArgs, File recordTime) {
+        Future metadataTask = executorService.submit(() -> {
+            recordTaskStartTime(SPARK_STREAMING_LOGS);
+            try {
+                new StreamingSparkLogTool().execute(sparkToolArgs);
+            } catch (Exception e) {
+                logger.error("Failed to extract streaming spark log.", e);
+            }
+            recordTaskExecutorTimeToFile(SPARK_STREAMING_LOGS, recordTime);
+        });
+
+        scheduleTimeoutTask(metadataTask, SPARK_STREAMING_LOGS);
     }
 
     protected void exportRecCandidate(String project, String modelId, File exportDir, boolean full, File recordTime) {

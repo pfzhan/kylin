@@ -130,6 +130,8 @@ fi
 
 if [[ ${DIAG_OPTS} == *"-job"* ]]; then
     runTool io.kyligence.kap.tool.JobDiagInfoCLI ${DIAG_OPTS}
+elif [[ ${DIAG_OPTS} == *"-streamingJob"* ]]; then
+    runTool io.kyligence.kap.tool.StreamingJobDiagInfoCLI ${DIAG_OPTS}
 else
     runTool io.kyligence.kap.tool.DiagClientCLI ${DIAG_OPTS}
 fi
