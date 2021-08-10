@@ -74,6 +74,7 @@
           sortable>
         </el-table-column>
         <el-table-column
+          width='220'
           prop="last_modified"
           :label="$t('th_updateDate')"
           sortable
@@ -82,7 +83,25 @@
             {{transToGmtTime(scope.row.last_modified)}}
           </template>
         </el-table-column>
+        <el-table-column align="left" :label="$t('indexContent')">
+          <template slot-scope="scope">
+            <el-popover
+              ref="index-content-popover"
+              placement="top"
+              trigger="hover"
+              popper-class="col-index-content-popover">
+              <div class="index-content" slot="reference">{{getRowContentList(scope.row).map(it => it.name).slice(0, 20).join(', ')}}</div>
+              <template>
+                <p class="popover-header"><b>{{$t('indexesContent')}}</b><el-button v-if="getRowContentList(scope.row).length > 20" type="primary" text class="view-more-btn ksd-fs-12" @click="showDetail(scope.row)">{{$t('viewIndexDetails')}}<i class="el-icon-ksd-more_02 ksd-fs-12"></i></el-button></p>
+                <p style="white-space: pre-wrap;">{{getRowContentList(scope.row).map(it => it.name).slice(0, 20).join('\n')}}</p>
+                <el-button v-if="getRowContentList(scope.row).length > 20" class="ksd-fs-12" type="primary" text @click="showDetail(scope.row)">{{$t('viewAll')}}</el-button>
+              </template>
+            </el-popover>
+            <span class="detail-icon el-ksd-icon-view_16" @click="showDetail(scope.row)"></span>
+          </template>
+        </el-table-column>
         <el-table-column
+          width='120'
           :label="$t('th_note')">
           <div slot-scope="scope" class="col-tab-note">
             <!-- <el-tag class="th-note-tag" size="small" type="warning">查询历史</el-tag> -->
@@ -95,9 +114,6 @@
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.action')" width="83" fixed="right">
           <template slot-scope="scope">
-            <common-tip :content="$t('viewDetail')">
-              <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
-            </common-tip>
             <common-tip :content="$t('accept')">
               <i class="el-icon-ksd-accept ksd-ml-5" @click="confrim([scope.row])"></i>
             </common-tip>
@@ -338,7 +354,11 @@ import filterElements from '../../../../../../filter/index'
       batchBuildSubTitle: 'Please choose which data ranges you\'d like to build with the added indexes.',
       onlyStartLetters: 'Only supports starting with a letter',
       usedInOtherModel: 'Can\'t rename this computed column, as it\'s been used in other models.',
-      searchContentOrIndexId: 'Search index content or ID'
+      searchContentOrIndexId: 'Search index content or ID',
+      indexContent: 'Content',
+      viewIndexDetails: 'More details',
+      viewAll: 'View all',
+      indexesContent: 'Index Content'
     },
     'zh-cn': {
       recommendations: '优化建议',
@@ -408,7 +428,11 @@ import filterElements from '../../../../../../filter/index'
       batchBuildSubTitle: '请为新增的索引选择需要构建至的数据范围。',
       onlyStartLetters: '仅支持字母开头',
       usedInOtherModel: '该可计算列已在其他模型中使用，不可修改名称。',
-      searchContentOrIndexId: '搜索索引内容或 ID'
+      searchContentOrIndexId: '搜索索引内容或 ID',
+      indexContent: '内容',
+      viewIndexDetails: '更多详情',
+      viewAll: '查看全部',
+      indexesContent: '索引内容'
     }
   }
 })
@@ -556,21 +580,7 @@ export default class IndexList extends Vue {
   // 展示优化建议详情
   showDetail (row) {
     this.showIndexDetail = true
-    this.loadingDetails = true
-    this.currentIndex = row
-    this.getRecommendDetails({
-      project: this.currentProject,
-      modelId: this.modelDesc.uuid,
-      id: row.item_id,
-      is_add: row.is_add
-    }).then(async (res) => {
-      let data = await handleSuccessAsync(res)
-      this.detailData = [...data.cc_items.map(it => ({...it, type: 'cc'})), ...data.dimension_items.map(it => ({...it, type: 'dimension'})), ...data.measure_items.map(it => ({...it, type: 'measure'}))]
-      this.loadingDetails = false
-    }).catch(e => {
-      handleError(e)
-      this.loadingDetails = false
-    })
+    this.detailData = [...row.rec_detail_response.cc_items.map(it => ({...it, type: 'cc'})), ...row.rec_detail_response.dimension_items.map(it => ({...it, type: 'dimension'})), ...row.rec_detail_response.measure_items.map(it => ({...it, type: 'measure'}))]
   }
 
   // 获取优化建议
@@ -601,6 +611,10 @@ export default class IndexList extends Vue {
       handleError(e)
       this.loadingRecommends = false
     })
+  }
+
+  getRowContentList (row) {
+    return [...row.rec_detail_response.dimension_items, ...row.rec_detail_response.measure_items, ...row.rec_detail_response.cc_items]
   }
 
   // 批量删除
@@ -1049,4 +1063,43 @@ export default class IndexList extends Vue {
     }
   }
 }
+.col-index-content-popover {
+  .popover-header {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .view-more-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 0;
+    i {
+      font-size: 12px;
+    }
+  }
+}
+.recommendations-table{
+  .detail-icon {
+    position: absolute;
+    top: 50%;
+    transform: translate(0, -44%);
+    right: 15px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .index-content {
+    cursor: pointer;
+    width: calc(~'100% - 30px');
+    height: 23px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+     /*! autoprefixer: off */
+    -webkit-box-orient: vertical;
+    /* autoprefixer: on */
+    white-space: nowrap\0;
+  }
+}
+
 </style>
