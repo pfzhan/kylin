@@ -243,6 +243,9 @@
 
     <!-- 分层存储 -->
     <el-dialog width="600px" :title="$t('secStorage')" class="sec_storage_dialog" v-if="showSecStorageDialog" :append-to-body="true" :visible="true" @close="closeSecStorageDialog" :close-on-click-modal="false">
+      <el-alert v-if="isShowComputedColumnTip" show-icon type="warning" class="ksd-mb-8" :closable="false">
+        <span v-html="$t('forbidenComputedColumnTips')" class="ksd-fs-12"></span>
+      </el-alert>
       <el-alert
         :title="$t('openSecStorageTips2')"
         type="tip"
@@ -256,22 +259,15 @@
       <div class="ksd-mt-24 ksd-mb-24">
         <span class="font-medium">{{$t('supportSecStoage')}}</span>
         <span class="">
-          <common-tip :content="$t('disableSecStorageActionTips2')" v-if="isHaveNoDimMeas">
+          <common-tip :content="$t('disableSecStorageActionTips2')" :disabled="!isHaveNoDimMeas">
             <el-switch
-              disabled
+              :disabled="isHaveNoDimMeas"
               v-model="second_storage_enabled"
               @change="val => handleChangeSecStorage(val)"
               :active-text="$t('kylinLang.common.OFF')"
               :inactive-text="$t('kylinLang.common.ON')">
             </el-switch>
           </common-tip>
-          <el-switch
-            v-else
-            v-model="second_storage_enabled"
-            @change="val => handleChangeSecStorage(val)"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
-          </el-switch>
         </span>
       </div>
       <div v-if="currentModel.second_storage_nodes.length">
@@ -397,6 +393,7 @@ export default class ModelActions extends Vue {
   secStorageTipsType = ''
   isShowSecStorageTips = false
   isShowSecStorageTips2 = false
+  isShowComputedColumnTip = false
   secStorageLoading = false
   second_storage_enabled = this.currentModel.second_storage_enabled
   exportTDSOtions = [
@@ -724,6 +721,7 @@ export default class ModelActions extends Vue {
     } else {
       this.isShowSecStorageTips = false
     }
+    this.isShowComputedColumnTip = val
   }
 
   handleModel (action, modelDesc, successTip) {

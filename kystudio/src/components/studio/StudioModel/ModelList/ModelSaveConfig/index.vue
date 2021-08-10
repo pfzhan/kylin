@@ -183,13 +183,16 @@
       </div>
       <div v-show="isExpand">
         <div class="ksd-mb-24" v-if="$store.state.project.second_storage_enabled">
+          <el-alert v-if="isShowSecStorageTips2" show-icon type="warning" class="ksd-mb-8" :closable="false">
+            <span v-html="$t('forbidenComputedColumnTips')" class="ksd-fs-12"></span>
+          </el-alert>
           <!-- 已有模型提示 开始 -->
           <el-alert
             :title="$t('openSecStorageTips2')"
             type="tip"
             :closable="false"
             class="ksd-mb-8"
-            v-if="isShowSecStorageTips2&&modelDesc.uuid&&!isNotBatchModel"
+            v-if="isShowSecStorageTips2 && modelDesc.uuid && !isNotBatchModel"
             show-icon>
           </el-alert>
           <!-- 已有模型提示 结束 -->
@@ -198,7 +201,7 @@
             type="tip"
             :closable="false"
             class="ksd-mb-8"
-            v-if="modelDesc.simplified_dimensions.length>=20&&!isNotBatchModel"
+            v-if="modelDesc.simplified_dimensions.length >= 20 && !isNotBatchModel"
             show-icon>
           </el-alert>
           <el-alert
