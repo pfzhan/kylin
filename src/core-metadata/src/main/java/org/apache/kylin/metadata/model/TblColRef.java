@@ -66,6 +66,7 @@ public class TblColRef implements Serializable {
 
     private static final String INNER_TABLE_NAME = "_kylin_table";
     public static final String DYNAMIC_DATA_TYPE = "_dynamic_type";
+    public static final String UNKNOWN_ALIAS = "UNKNOWN_ALIAS";
 
     // used by projection rewrite, see OLAPProjectRel
     public enum InnerDataTypeEnum {
@@ -257,7 +258,7 @@ public class TblColRef implements Serializable {
     }
 
     public String getTableAlias() {
-        return table != null ? table.getAlias() : "UNKNOWN_ALIAS";
+        return table != null ? table.getAlias() : UNKNOWN_ALIAS;
     }
 
     public String getExpressionInSourceDB() {

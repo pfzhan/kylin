@@ -181,7 +181,7 @@ class IndexSuggester {
             indexEntity = createIndexEntity(suggestDescId(true), dimIds, measureIds);
         } else {
             dimIds = suggestAggIndexDimensions(ctx);
-            measureIds = suggestMeasures(ctx);
+            measureIds = suggestMeasures(dimIds, ctx);
             indexEntity = createIndexEntity(suggestDescId(false), dimIds, measureIds);
         }
 
@@ -331,13 +331,19 @@ class IndexSuggester {
         }).collect(Collectors.toList());
     }
 
-    private SortedSet<Integer> suggestMeasures(OLAPContext ctx) {
+    private SortedSet<Integer> suggestMeasures(List<Integer> dimIds, OLAPContext ctx) {
         Map<TblColRef, Integer> colIdMap = model.getEffectiveDimensions().inverse();
         SortedSet<Integer> measureIds = Sets.newTreeSet();
         // Add default measure count(1)
         measureIds.add(calcCountOneMeasureId());
 
         ctx.aggregations.forEach(aggFunc -> {
+            if (aggFunc.isAdvanceDimAsMeasure()) {
+                List<Integer> newDimIds = generateDimensionIds(Lists.newArrayList(aggFunc.getSourceColRefs()),
+                        model.getEffectiveDimensions().inverse());
+                dimIds.addAll(newDimIds);
+                return;
+            }
             Integer measureId = aggFuncIdMap.get(aggFunc);
             if (modelContext.getChecker().isMeasureOnLookupTable(aggFunc)) {
                 throw new PendingException(MEASURE_ON_EXCLUDED_LOOKUP_TABLE + aggFunc);

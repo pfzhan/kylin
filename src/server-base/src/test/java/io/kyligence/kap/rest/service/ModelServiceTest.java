@@ -6312,4 +6312,28 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(anyList());
     }
+
+    @Test
+    public void testProposeDimAsMeasureToAnswerCountDistinctExpr() {
+        overwriteSystemProp("kylin.query.implicit-computed-column-convert", "FALSE");
+        overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
+        val sqls = Lists.newArrayList("select \n"
+                + "count(distinct (case when ORDER_ID > 0  then price when ORDER_ID > 10 then SELLER_ID  else null end))  \n"
+                + "FROM TEST_KYLIN_FACT ");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
+        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        Assert.assertEquals(1, response.getNewModels().size());
+        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().size());
+        Assert.assertEquals(3, response.getNewModels().get(0).getIndexes().get(0).getDimensions().size());
+        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().get(0).getMeasures().size());
+
+        Assert.assertEquals("ORDER_ID",
+                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(0).getDimension().getName());
+        Assert.assertEquals("PRICE",
+                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(1).getDimension().getName());
+        Assert.assertEquals("SELLER_ID",
+                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(2).getDimension().getName());
+        Assert.assertEquals("COUNT_ALL",
+                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(0).getMeasure().getName());
+    }
 }

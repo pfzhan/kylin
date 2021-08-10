@@ -74,6 +74,16 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
+    public void testAdvanceDimAsMeasure() throws Exception {
+        overwriteSystemProp("kylin.query.implicit-computed-column-convert", "FALSE");
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_advance_dim_as_measure"));
+
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
+        overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_advance_dim_as_measure"));
+    }
+
+    @Test
     public void testAllQueries() throws Exception {
         excludedSqlPatterns.addAll(loadWhiteListPatterns());
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");

@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
@@ -85,6 +86,7 @@ import static org.apache.kylin.metadata.datatype.DataType.FLOAT;
 import static org.apache.kylin.metadata.datatype.DataType.INTEGER;
 import static org.apache.kylin.metadata.datatype.DataType.SMALL_INT;
 import static org.apache.kylin.metadata.datatype.DataType.TINY_INT;
+import static org.apache.kylin.metadata.model.TblColRef.UNKNOWN_ALIAS;
 
 /**
  */
@@ -449,6 +451,14 @@ public class FunctionDesc implements Serializable {
         default:
             return true;
         }
+    }
+
+    public boolean isAdvanceDimAsMeasure() {
+        // when kylin.query.implicit-computed-column-convert close
+        // propose dimension as measure to answer count(distinct expr)、min(expr)、max(expr)
+        return !KapConfig.getInstanceFromEnv().isImplicitComputedColumnConvertEnabled()
+                && DIMENSION_AS_MEASURES.contains(expression) && CollectionUtils.isNotEmpty(parameters)
+                && UNKNOWN_ALIAS.equals(parameters.get(0).getColRef().getTableAlias());
     }
 
     @Override
