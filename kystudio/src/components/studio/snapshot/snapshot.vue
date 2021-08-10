@@ -93,6 +93,18 @@
         </template>
       </el-table-column>
       <el-table-column
+        :label="$t('rows')"
+        prop="total_rows"
+        sortable="custom"
+        width="100"
+        header-align="right"
+        align="right"
+      >
+        <template slot-scope="scope">
+          <div>{{sliceNumber(scope.row.total_rows)}}</div>
+        </template>
+      </el-table-column>
+      <el-table-column
         header-align="right"
         align="right"
         prop="storage"
@@ -265,7 +277,7 @@ import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleSuccessAsync, handleError, kapConfirm } from '../../../util'
+import { handleSuccessAsync, handleError, kapConfirm, sliceNumber } from '../../../util'
 import { postCloudUrlMessage } from '../../../util/business'
 import { pageRefTags } from 'config'
 import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
@@ -335,7 +347,7 @@ export default class Snapshot extends Vue {
   refreshNewPartition = true
   loadingSnapshotTable = false
   filterTimer = null
-
+  sliceNumber = sliceNumber
   get partitionColumns () {
     return [{text: this.$t('noPartition'), value: false}, {text: this.$t('hasPartition'), value: true}]
   }
