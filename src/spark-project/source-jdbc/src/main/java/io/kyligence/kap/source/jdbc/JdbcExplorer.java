@@ -142,9 +142,9 @@ public class JdbcExplorer implements ISourceMetadataExplorer, ISampleDataDeploye
                 int kylinTypeId = dataSource.toKylinTypeId(typeName, type);
                 kylinType = dataSource.toKylinTypeName(kylinTypeId);
             }
-            int precision = (isPrecisionApplicable(kylinType) && csize > 0) ? csize : -1;
+            int precision = (isPrecisionApplicable(kylinType) && csize >= 0) ? csize : -1;
             precision = Math.min(precision, KylinConfig.getInstanceFromEnv().getDefaultVarcharPrecision());
-            int scale = (isScaleApplicable(kylinType) && digits > 0) ? digits : -1;
+            int scale = (isScaleApplicable(kylinType) && digits >= 0) ? digits : -1;
             columnDesc.setDatatype(new DataType(kylinType, precision, scale).toString());
             columnDesc.setId(String.valueOf(pos));
             columnDesc.setComment(remarks);
