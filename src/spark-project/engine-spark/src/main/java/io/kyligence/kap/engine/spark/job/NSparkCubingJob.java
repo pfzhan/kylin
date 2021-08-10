@@ -25,7 +25,9 @@
 package io.kyligence.kap.engine.spark.job;
 
 import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
+
 import static java.util.stream.Collectors.joining;
+
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.ArrayList;
@@ -53,6 +55,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -98,20 +101,26 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         super(notSetId);
     }
 
-    // for test use only
+    @VisibleForTesting
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
             Set<JobBucket> buckets) {
         return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, RandomUtil.randomUUIDStr(), null, null,
                 buckets);
     }
 
+    @VisibleForTesting
+    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
+            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables, Set<Long> partitions,
+            Set<JobBucket> buckets) {
+        val params = new JobFactory.JobBuildParams(segments, layouts, submitter, jobType, jobId, null,
+                ignoredSnapshotTables, partitions, buckets, Maps.newHashMap());
+        return innerCreate(params);
+    }
+
     //used for JobFactory
     public static NSparkCubingJob create(JobFactory.JobBuildParams jobBuildParams) {
 
-        NSparkCubingJob sparkCubingJob = create(jobBuildParams.getSegments(), jobBuildParams.getLayouts(),
-                jobBuildParams.getSubmitter(), jobBuildParams.getJobType(), jobBuildParams.getJobId(),
-                jobBuildParams.getIgnoredSnapshotTables(), jobBuildParams.getPartitions(), jobBuildParams.getBuckets(),
-                jobBuildParams.getExtParams());
+        NSparkCubingJob sparkCubingJob = innerCreate(jobBuildParams);
         if (CollectionUtils.isNotEmpty(jobBuildParams.getToBeDeletedLayouts())) {
             sparkCubingJob.setParam(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS,
                     NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(jobBuildParams.getToBeDeletedLayouts())));
@@ -119,16 +128,16 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         return sparkCubingJob;
     }
 
-    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables, Set<Long> partitions,
-            Set<JobBucket> buckets) {
-        return create(segments, layouts, submitter, jobType, jobId, ignoredSnapshotTables, partitions, buckets,
-                Maps.newHashMap());
-    }
-
-    private static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-            JobTypeEnum jobType, String jobId, Set<String> ignoredSnapshotTables, Set<Long> partitions,
-            Set<JobBucket> buckets, Map<String, String> params) {
+    private static NSparkCubingJob innerCreate(JobFactory.JobBuildParams params) {
+        Set<NDataSegment> segments = params.getSegments();
+        Set<LayoutEntity> layouts = params.getLayouts();
+        String submitter = params.getSubmitter();
+        JobTypeEnum jobType = params.getJobType();
+        String jobId = params.getJobId();
+        Set<String> ignoredSnapshotTables = params.getIgnoredSnapshotTables();
+        Set<Long> partitions = params.getPartitions();
+        Set<JobBucket> buckets = params.getBuckets();
+        Map<String, String> extParams = params.getExtParams();
         Preconditions.checkArgument(!segments.isEmpty());
         Preconditions.checkArgument(submitter != null);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -144,9 +153,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
             startTime = Math.min(startTime, Long.parseLong(segment.getSegRange().getStart().toString()));
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
-
         }
-        job.setParams(params);
+        job.setParams(extParams);
         job.setId(jobId);
         job.setName(jobType.toString());
         job.setJobType(jobType);
@@ -188,7 +196,8 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())) {
             // can't refresh segment when second storage do rebalanced
             if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH)) {
-                SecondStorageUtil.validateProjectLock(df.getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()));
+                SecondStorageUtil.validateProjectLock(df.getProject(),
+                        Collections.singletonList(LockTypeEnum.LOAD.name()));
             }
             boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex);
             if (Objects.equals(jobType, JobTypeEnum.INDEX_BUILD) || Objects.equals(jobType, JobTypeEnum.INC_BUILD)) {
@@ -212,15 +221,12 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         Boolean isTransactionalTable = df.getModel().getAllTableRefs().stream()
                 .anyMatch(tableRef -> tableRef.getTableDesc().isTransactional());
 
-        if(isNeedCleanUpTransactionalTableJob(isTransactionalTable, isRangePartitionTable,
+        if (isNeedCleanUpTransactionalTableJob(isTransactionalTable, isRangePartitionTable,
                 kylinConfig.isReadTransactionalTableEnabled())) {
             JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
         }
         return job;
     }
-
-
-
 
     public static void checkIfNeedBuildSnapshots(NSparkCubingJob job) {
         switch (job.getJobType()) {
