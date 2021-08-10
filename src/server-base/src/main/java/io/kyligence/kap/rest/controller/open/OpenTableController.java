@@ -41,6 +41,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -119,6 +120,7 @@ public class OpenTableController extends NBasicController {
             @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
             throws IOException {
         checkProjectName(project);
+        checkStreamingOperation(project, database + "." + table);
         List<TableDesc> result = tableService.getTableDescByType(project, withExt, table, database, isFuzzy, sourceType);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
@@ -130,6 +132,7 @@ public class OpenTableController extends NBasicController {
             throws Exception {
         String projectName = checkProjectName(tableLoadRequest.getProject());
         tableLoadRequest.setProject(projectName);
+        checkStreamingOperation(projectName, tableLoadRequest.getDatabases(), tableLoadRequest.getTables());
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
         validatePriority(tableLoadRequest.getPriority());
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
@@ -193,6 +196,7 @@ public class OpenTableController extends NBasicController {
             @RequestParam(value = "table") String table) {
         try {
             String projectName = checkProjectName(project);
+            checkStreamingOperation(project, table);
             OpenPreReloadTableResponse result = tableService.preProcessBeforeReloadWithoutFailFast(projectName, table);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
         } catch (Exception e) {
@@ -208,6 +212,7 @@ public class OpenTableController extends NBasicController {
             throws KylinException {
         try {
             String projectName = checkProjectName(request.getProject());
+            checkStreamingOperation(request.getProject(), request.getTable());
             request.setProject(projectName);
             checkRequiredArg("need_sampling", request.getNeedSampling());
             validatePriority(request.getPriority());
@@ -232,6 +237,15 @@ public class OpenTableController extends NBasicController {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
+    }
+
+    @ApiOperation(value = "samplingJobs", tags = { "AI" })
+    @PostMapping(value = "/sampling_jobs")
+    @ResponseBody
+    public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
+        checkProjectName(request.getProject());
+        checkStreamingOperation(request.getProject(), request.getQualifiedTableName());
+        return tableController.submitSampling(request);
     }
 
     @ApiOperation(value = "getPartitionColumnFormat", tags = { "DW" })

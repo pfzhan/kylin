@@ -1642,4 +1642,8 @@ public class Message {
     public String getDOWNLOAD_QUERY_HISTORY_TIMEOUT() {
         return "Export SQL timeout, please try again later.";
     }
+
+    public String getSTREAMING_OPERATION_NOT_SUPPORT() {
+        return "Can’t call this API. API calls related to the streaming data is not supported at the moment.";
+    }
 }

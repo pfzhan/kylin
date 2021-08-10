@@ -27,6 +27,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MODEL_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,8 +40,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.service.FusionIndexService;
-import io.kyligence.kap.rest.service.FusionModelService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -74,6 +73,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -105,6 +105,8 @@ import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
+import io.kyligence.kap.rest.service.FusionIndexService;
+import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
@@ -165,7 +167,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "only_normal_dim", required = false, defaultValue = "true") boolean onlyNormalDim) {
         String projectName = checkProjectName(project);
         return modelController.getModels(modelAlias, exactMatch, projectName, owner, status, table, offset, limit,
-                sortBy, reverse, modelAliasOrOwner, null, lastModifyFrom, lastModifyTo, onlyNormalDim);
+                sortBy, reverse, modelAliasOrOwner, Arrays.asList(ModelAttributeEnum.BATCH), lastModifyFrom,
+                lastModifyTo, onlyNormalDim);
     }
 
     @ApiOperation(value = "getIndexes", tags = { "AI" })
@@ -347,7 +350,7 @@ public class OpenModelController extends NBasicController {
     @DeleteMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model_name") String modelAlias,
-            @RequestParam("project") String project, // 
+            @RequestParam("project") String project, //
             @RequestParam("purge") Boolean purge, //
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
             @RequestParam(value = "ids", required = false) String[] ids, //
@@ -391,6 +394,11 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias) {
         String projectName = checkProjectName(project);
+        val dataModel = getModel(modelAlias, projectName);
+        if (dataModel != null && dataModel.isStreaming()) {
+            throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
+                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+        }
         NModelDescResponse result = modelService.getModelDesc(modelAlias, projectName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }

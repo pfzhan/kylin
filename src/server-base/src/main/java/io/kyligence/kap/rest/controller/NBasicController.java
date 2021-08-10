@@ -36,6 +36,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 import static org.apache.kylin.common.exception.ServerErrorCode.USER_UNAUTHORIZED;
 import static org.apache.kylin.metadata.model.PartitionDesc.transformTimestamp2Format;
 
@@ -114,6 +115,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -496,6 +498,23 @@ public class NBasicController {
         } catch (IllegalArgumentException e) {
             throw new KylinException(INVALID_PARAMETER,
                     "Invalid datetime format " + pattern + ". " + e.getLocalizedMessage());
+        }
+    }
+
+    public void checkStreamingOperation(String project, String[] databases, String[] tables) {
+        if (!ArrayUtils.isEmpty(databases) && !ArrayUtils.isEmpty(tables)) {
+            for (int i = 0; i < databases.length; i++) {
+                checkStreamingOperation(project, databases[i] + "." + tables[i]);
+            }
+        }
+    }
+
+    public void checkStreamingOperation(String project, String table) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val kafkaConf = KafkaConfigManager.getInstance(config, project).getKafkaConfig(table);
+        if (kafkaConf != null) {
+            throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
+                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
         }
     }
 

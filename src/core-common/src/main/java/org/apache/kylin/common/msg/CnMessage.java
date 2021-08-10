@@ -1864,4 +1864,9 @@ public class CnMessage extends Message {
     public String getDOWNLOAD_QUERY_HISTORY_TIMEOUT() {
         return "导出超时，请稍后重试。";
     }
+
+    @Override
+    public String getSTREAMING_OPERATION_NOT_SUPPORT() {
+        return "API调用失败，暂不支持调用流数据相关的API。";
+    }
 }

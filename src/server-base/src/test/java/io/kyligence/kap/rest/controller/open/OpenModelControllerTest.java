@@ -183,10 +183,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         return nDataSegments;
     }
 
-    private void mockGetModelName(String modelName, String project, String modelId) {
+    private NDataModelResponse mockGetModelName(String modelName, String project, String modelId) {
         NDataModelResponse model = new NDataModelResponse();
         model.setUuid(modelId);
         Mockito.doReturn(model).when(openModelController).getModel(modelName, project);
+        return model;
     }
 
     @Test
@@ -428,10 +429,23 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testGetModelDesc() throws Exception {
         String project = "default";
         String modelAlias = "model1";
-        Mockito.doAnswer(x -> null).when(modelService).getModelDesc(modelAlias, project);
+        mockGetModelName(modelAlias, project, UUID.randomUUID().toString());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).getModelDesc(project, modelAlias);
+    }
+
+    @Test
+    public void testGetModelDescForStreaming() throws Exception {
+        String project = "streaming_test";
+        String modelAlias = "model_streaming";
+        val model = mockGetModelName(modelAlias, project, UUID.randomUUID().toString());
+        model.setModelType(NDataModel.ModelType.STREAMING);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openModelController).getModelDesc(project, modelAlias);
     }
 

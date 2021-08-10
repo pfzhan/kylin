@@ -27,17 +27,21 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -49,10 +53,12 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -128,6 +134,18 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).getTableDesc(project, tableName, database, false, true, 0, 10, 9);
+
+        // call failed  when table is kafka table
+        String project1 = "streaming_test";
+        String tableName1 = "P_LINEORDER";
+        String database1 = "SSB";
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", project1).param("table", tableName1).param("database", database1)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        Mockito.verify(openTableController).getTableDesc(project1, tableName1, database1, false, true, 0, 10, 9);
     }
 
     @Test
@@ -219,6 +237,17 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).preReloadTable(project, tableName);
+
+        // call failed  when table is kafka table
+        String project1 = "streaming_test";
+        String tableName1 = "SSB.P_LINEORDER";
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/pre_reload") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", project1).param("table", tableName1)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        Mockito.verify(openTableController).preReloadTable(project1, tableName1);
     }
 
     @Test
@@ -251,6 +280,36 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).reloadTable(request2);
+
+        // test request without need_sampling
+        OpenReloadTableRequest request3 = new OpenReloadTableRequest();
+        request3.setProject("streaming_test");
+        request3.setTable("SSB.P_LINEORDER");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request3)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+        Mockito.verify(openTableController).reloadTable(request3);
+    }
+
+
+    @Test
+    public void testSubmitSamplingFailedForKafkaTable() throws Exception {
+        final SamplingRequest request = new SamplingRequest();
+        request.setProject("streaming_test");
+        request.setRows(20000);
+        request.setQualifiedTableName("SSB.P_LINEORDER");
+
+        String errorMsg = MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT();
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(request)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
+        Mockito.verify(openTableController).submitSampling(Mockito.any(SamplingRequest.class));
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
