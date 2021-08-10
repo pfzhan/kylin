@@ -36,6 +36,10 @@ public class SucceedSubTaskTestExecutable extends AbstractExecutable {
         super();
     }
 
+    public SucceedSubTaskTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         return ExecuteResult.createSucceed();

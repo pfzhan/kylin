@@ -54,6 +54,14 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
     @Setter
     private ExecutableHandler handler;
 
+    public DefaultChainedExecutableOnModel() {
+        super();
+    }
+
+    public DefaultChainedExecutableOnModel(Object notSetId) {
+        super(notSetId);
+    }
+
     private String getTargetModel() {
         return getTargetSubject();
     }

@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -43,14 +44,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -76,6 +80,9 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -149,6 +156,29 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     private String getProject() {
         return "default";
+    }
+
+    @Test
+    public void testCreateInstanceFromJobByReflection() throws Exception {
+        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
+        provider.addIncludeFilter(new AssignableTypeFilter(AbstractExecutable.class));
+
+        Set<BeanDefinition> components_kylin = provider.findCandidateComponents("org.apache.kylin");
+        Set<BeanDefinition> components_kap = provider.findCandidateComponents("io.kyligence.kap");
+        Set<BeanDefinition> components = Sets.newHashSet(components_kylin);
+        components.addAll(components_kap);
+        for (BeanDefinition component : components) {
+            final String beanClassName = component.getBeanClassName();
+            Class<? extends AbstractExecutable> clazz = ClassUtil.forName(beanClassName, AbstractExecutable.class);
+            // no construction method to create a random number ID
+            Constructor<? extends AbstractExecutable> constructor = clazz.getConstructor(Object.class);
+            AbstractExecutable result = constructor.newInstance(new Object());
+            if (org.apache.commons.lang3.StringUtils.equals(result.getId(), null)) {
+                Assert.assertNull(result.getId());
+            } else {
+                Assert.assertTrue(org.apache.commons.lang3.StringUtils.endsWith(result.getId(), "null"));
+            } 
+        }
     }
 
     @Test

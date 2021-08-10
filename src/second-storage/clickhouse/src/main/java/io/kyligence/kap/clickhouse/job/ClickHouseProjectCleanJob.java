@@ -41,6 +41,10 @@ public class ClickHouseProjectCleanJob extends DefaultChainedExecutable implemen
     public ClickHouseProjectCleanJob() {
     }
 
+    public ClickHouseProjectCleanJob(Object notSetId) {
+        super(notSetId);
+    }
+
     public ClickHouseProjectCleanJob(ClickHouseCleanJobParam builder) {
         setId(builder.getJobId());
         setName(JobTypeEnum.SECOND_STORAGE_NODE_CLEAN.toString());

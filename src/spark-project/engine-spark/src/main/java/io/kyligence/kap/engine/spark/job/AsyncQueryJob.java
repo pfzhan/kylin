@@ -71,6 +71,14 @@ public class AsyncQueryJob extends NSparkExecutable {
     private static final String[] META_DUMP_LIST = new String[] { DATAFLOW, DATAFLOW_DETAIL, INDEX_PLAN, MODEL, TABLE,
             TABLE_EXD, ACL };
 
+    public AsyncQueryJob() {
+        super();
+    }
+
+    public AsyncQueryJob(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);

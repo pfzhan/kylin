@@ -34,4 +34,12 @@ public class LongRunningTestExecutable extends BaseTestExecutable {
         }
         throw new RuntimeException("test timeout");
     }
+
+    public LongRunningTestExecutable() {
+        super();
+    }
+
+    public LongRunningTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
 }

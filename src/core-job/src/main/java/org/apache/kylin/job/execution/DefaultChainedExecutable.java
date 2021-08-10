@@ -71,6 +71,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         super();
     }
 
+    public DefaultChainedExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     public Set<String> getMetadataDumpList(KylinConfig config) {
         return Collections.emptySet();
     }

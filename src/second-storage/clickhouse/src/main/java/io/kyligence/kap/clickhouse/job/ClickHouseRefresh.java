@@ -46,6 +46,10 @@ public class ClickHouseRefresh extends ClickHouseLoad {
         this.setName(SecondStorageConstants.STEP_REFRESH_SECOND_STORAGE);
     }
 
+    public ClickHouseRefresh(Object notSetId) {
+        super(notSetId);
+    }
+
     private void initSegMap() {
         newSegToOld = new HashMap<>();
         String[] segmentIds = getParam(NBatchConstants.P_SEGMENT_IDS).split(",");

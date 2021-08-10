@@ -81,6 +81,14 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         }
     }
 
+    public NSparkMergingJob() {
+        super();
+    }
+
+    public NSparkMergingJob(Object notSetId) {
+        super(notSetId);
+    }
+
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
             String jobId) {
         return merge(mergedSegment, layouts, submitter, jobId, null, null);

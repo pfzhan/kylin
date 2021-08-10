@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -54,6 +53,10 @@ public class ErrorTestExecutable extends BaseTestExecutable {
 
     public ErrorTestExecutable() {
         super();
+    }
+
+    public ErrorTestExecutable(Object notSetId) {
+        super(notSetId);
     }
 
     @Override

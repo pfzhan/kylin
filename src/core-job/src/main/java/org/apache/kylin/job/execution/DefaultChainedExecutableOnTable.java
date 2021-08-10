@@ -33,6 +33,13 @@ import lombok.val;
 
 public class DefaultChainedExecutableOnTable extends DefaultChainedExecutable {
 
+    public DefaultChainedExecutableOnTable() {
+        super();
+    }
+
+    public DefaultChainedExecutableOnTable(Object notSetId) {
+        super(notSetId);
+    }
 
     public String getTableIdentity() {
         return getParam(NBatchConstants.P_TABLE_NAME);

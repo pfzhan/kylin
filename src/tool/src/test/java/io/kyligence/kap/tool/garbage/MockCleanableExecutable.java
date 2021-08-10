@@ -34,4 +34,12 @@ public class MockCleanableExecutable extends AbstractExecutable {
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         return ExecuteResult.createSucceed();
     }
+
+    public MockCleanableExecutable() {
+        super();
+    }
+
+    public MockCleanableExecutable(Object notSetId) {
+        super(notSetId);
+    }
 }

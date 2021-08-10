@@ -35,6 +35,10 @@ public class SucceedTestExecutable extends BaseTestExecutable {
         super();
     }
 
+    public SucceedTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         Map<String, String> info = new HashMap<String, String>(){{put("runningStatus", "inRunning");}};

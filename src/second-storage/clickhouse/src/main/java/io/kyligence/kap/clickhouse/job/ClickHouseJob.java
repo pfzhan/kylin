@@ -55,6 +55,10 @@ public class ClickHouseJob extends DefaultChainedExecutable {
     public ClickHouseJob() {
     }
 
+    public ClickHouseJob(Object notSetId) {
+        super(notSetId);
+    }
+
     private ClickHouseJob(Builder builder) {
         // check parameters
 

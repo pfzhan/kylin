@@ -53,6 +53,10 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
         setName(STEP_SECOND_STORAGE_SEGMENT_CLEAN);
     }
 
+    public ClickHousePartitionClean(Object notSetId) {
+        super(notSetId);
+    }
+
     public ClickHousePartitionClean setSegmentRangeMap(Map<String, SegmentRange<Long>> segmentRangeMap) {
         this.segmentRangeMap = segmentRangeMap;
         return this;

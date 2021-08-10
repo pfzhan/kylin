@@ -32,4 +32,7 @@ public abstract class BaseTestExecutable extends AbstractExecutable {
         super();
     }
 
+    public BaseTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
 }

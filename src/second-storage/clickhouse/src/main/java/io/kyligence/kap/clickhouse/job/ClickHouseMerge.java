@@ -47,6 +47,10 @@ public class ClickHouseMerge extends ClickHouseLoad {
         this.setName(SecondStorageConstants.STEP_MERGE_SECOND_STORAGE);
     }
 
+    public ClickHouseMerge(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected void init() {
         oldSegmentIds = Sets.newHashSet(getParam(NBatchConstants.P_SEGMENT_IDS).split(","));
@@ -66,8 +70,9 @@ public class ClickHouseMerge extends ClickHouseLoad {
         }
         val tableFlow = getDataFlow();
         Preconditions.checkNotNull(tableFlow);
-        val existedSegments = tableFlow.getTableDataList().stream().flatMap(tableData -> tableData.getPartitions().stream())
-                .map(TablePartition::getSegmentId).collect(Collectors.toSet());
+        val existedSegments = tableFlow.getTableDataList().stream()
+                .flatMap(tableData -> tableData.getPartitions().stream()).map(TablePartition::getSegmentId)
+                .collect(Collectors.toSet());
         return existedSegments.containsAll(oldSegmentIds) ? Collections.emptySet() : oldSegmentIds;
     }
 

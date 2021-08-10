@@ -51,6 +51,12 @@ public class FiveSecondSucceedTestExecutable extends BaseTestExecutable {
     public FiveSecondSucceedTestExecutable() {
         this(5);
     }
+
+    public FiveSecondSucceedTestExecutable(Object notSetId) {
+        super(notSetId);
+        this.seconds = 5;
+    }
+
     public FiveSecondSucceedTestExecutable(int seconds) {
         super();
         this.seconds = seconds;

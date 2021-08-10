@@ -49,4 +49,8 @@ public class NoErrorStatusExecutableOnModel extends DefaultChainedExecutableOnMo
     public NoErrorStatusExecutableOnModel() {
         super();
     }
+
+    public NoErrorStatusExecutableOnModel(Object notSetId) {
+        super(notSetId);
+    }
 }

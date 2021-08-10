@@ -38,6 +38,13 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
  *
  */
 public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
+    public NSparkSnapshotJob() {
+        super();
+    }
+
+    public NSparkSnapshotJob(Object notSetId) {
+        super(notSetId);
+    }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, String partitionCol,
             boolean incrementBuild, boolean isRefresh) {

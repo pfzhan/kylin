@@ -54,6 +54,10 @@ public class NSparkMergingStep extends NSparkExecutable {
         this.setName(ExecutableConstants.STEP_NAME_MERGER_SPARK_SEGMENT);
     }
 
+    public NSparkMergingStep(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());

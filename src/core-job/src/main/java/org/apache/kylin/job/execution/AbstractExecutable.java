@@ -202,6 +202,9 @@ public abstract class AbstractExecutable implements Executable {
         setId(UUID.randomUUID().toString());
     }
 
+    public AbstractExecutable(Object notSetId) {
+    }
+
     public void cancelJob() {
     }
 

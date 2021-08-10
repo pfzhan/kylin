@@ -52,6 +52,10 @@ public class SelfStopExecutable extends BaseTestExecutable {
         super();
     }
 
+    public SelfStopExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         doingWork = true;

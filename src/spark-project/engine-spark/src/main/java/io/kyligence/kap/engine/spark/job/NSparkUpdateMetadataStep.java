@@ -57,6 +57,10 @@ public class NSparkUpdateMetadataStep extends AbstractExecutable {
         this.setName(ExecutableConstants.STEP_UPDATE_METADATA);
     }
 
+    public NSparkUpdateMetadataStep(Object notSetId) {
+        super(notSetId);
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(NSparkUpdateMetadataStep.class);
 
     @Override

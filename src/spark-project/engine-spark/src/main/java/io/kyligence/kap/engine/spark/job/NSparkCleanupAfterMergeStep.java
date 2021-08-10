@@ -45,6 +45,10 @@ public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
         this.setName(ExecutableConstants.STEP_NAME_CLEANUP);
     }
 
+    public NSparkCleanupAfterMergeStep(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         String name = getParam(NBatchConstants.P_DATAFLOW_ID);

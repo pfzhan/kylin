@@ -50,6 +50,10 @@ public class FiveSecondErrorTestExecutable extends BaseTestExecutable {
         super();
     }
 
+    public FiveSecondErrorTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         try {

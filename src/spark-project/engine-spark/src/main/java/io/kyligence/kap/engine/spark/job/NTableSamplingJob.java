@@ -52,6 +52,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
+    public NTableSamplingJob() {
+        super();
+    }
+
+    public NTableSamplingJob(Object notSetId) {
+        super(notSetId);
+    }
 
     @Override
     public Set<String> getMetadataDumpList(KylinConfig config) {
@@ -111,6 +118,10 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
 
         // called by reflection
         public SamplingStep() {
+        }
+
+        public SamplingStep(Object notSetId) {
+            super(notSetId);
         }
 
         SamplingStep(String sparkSubmitClassName) {

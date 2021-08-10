@@ -45,6 +45,10 @@ public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
         super();
     }
 
+    public SucceedChainedTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         try {

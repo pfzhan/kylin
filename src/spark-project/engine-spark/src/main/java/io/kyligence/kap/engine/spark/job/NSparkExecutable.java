@@ -109,6 +109,14 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private volatile boolean isYarnCluster = false;
 
+    public NSparkExecutable() {
+        super();
+    }
+
+    public NSparkExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     public String getDataflowId() {
         return this.getParam(NBatchConstants.P_DATAFLOW_ID);
     }

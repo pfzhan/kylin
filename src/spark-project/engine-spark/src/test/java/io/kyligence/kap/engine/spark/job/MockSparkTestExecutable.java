@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Set;
@@ -36,7 +34,6 @@ import org.apache.kylin.metadata.MetadataConstants;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.Getter;
 import lombok.Setter;
-
 
 @Setter
 @Getter
@@ -60,5 +57,13 @@ public class MockSparkTestExecutable extends NSparkExecutable {
     @Override
     public String getDistMetaUrl() {
         return getMetaUrl();
+    }
+
+    public MockSparkTestExecutable() {
+        super();
+    }
+
+    public MockSparkTestExecutable(Object notSetId) {
+        super(notSetId);
     }
 }

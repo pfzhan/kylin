@@ -44,6 +44,10 @@ public class ClickHouseSegmentCleanJob extends DefaultChainedExecutable {
 
     public ClickHouseSegmentCleanJob() {}
 
+    public ClickHouseSegmentCleanJob(Object notSetId) {
+        super(notSetId);
+    }
+
     public ClickHouseSegmentCleanJob(ClickHouseCleanJobParam builder) {
         setId(builder.getJobId());
         setName(JobTypeEnum.SECOND_STORAGE_SEGMENT_CLEAN.toString());
@@ -84,14 +88,9 @@ public class ClickHouseSegmentCleanJob extends DefaultChainedExecutable {
         protected AbstractExecutable create(JobBuildParams jobBuildParams) {
             SecondStorageCleanJobBuildParams params = (SecondStorageCleanJobBuildParams) jobBuildParams;
             val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), params.getProject());
-            val param = ClickHouseCleanJobParam.builder()
-                    .jobId(params.getJobId())
-                    .submitter(params.getSubmitter())
-                    .project(params.getProject())
-                    .modelId(params.getModelId())
-                    .df(dfManager.getDataflow(params.getDataflowId()))
-                    .segments(params.getSegments())
-                    .build();
+            val param = ClickHouseCleanJobParam.builder().jobId(params.getJobId()).submitter(params.getSubmitter())
+                    .project(params.getProject()).modelId(params.getModelId())
+                    .df(dfManager.getDataflow(params.getDataflowId())).segments(params.getSegments()).build();
             return new ClickHouseSegmentCleanJob(param);
         }
     }

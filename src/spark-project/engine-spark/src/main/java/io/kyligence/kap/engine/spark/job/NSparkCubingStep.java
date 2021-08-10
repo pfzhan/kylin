@@ -56,6 +56,10 @@ public class NSparkCubingStep extends NSparkExecutable {
         this.setName(ExecutableConstants.STEP_NAME_BUILD_SPARK_CUBE);
     }
 
+    public NSparkCubingStep(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());

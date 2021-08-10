@@ -64,6 +64,10 @@ public class ShellExecutable extends AbstractExecutable {
         super();
     }
 
+    public ShellExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         try {

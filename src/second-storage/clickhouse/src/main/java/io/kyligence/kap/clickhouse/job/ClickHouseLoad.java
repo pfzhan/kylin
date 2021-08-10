@@ -105,6 +105,10 @@ public class ClickHouseLoad extends AbstractExecutable {
         this.setName(STEP_EXPORT_TO_SECOND_STORAGE);
     }
 
+    public ClickHouseLoad(Object notSetId) {
+        super(notSetId);
+    }
+
     public ClickHouseLoad(String name) {
         this.setName(name);
     }

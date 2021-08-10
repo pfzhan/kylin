@@ -47,6 +47,9 @@ public class ClickHouseTableClean extends AbstractClickHouseClean {
         setName(STEP_SECOND_STORAGE_MODEL_CLEAN);
     }
 
+    public ClickHouseTableClean(Object notSetId) {
+        super(notSetId);
+    }
     @Override
     protected void internalInit() {
         KylinConfig config = getConfig();

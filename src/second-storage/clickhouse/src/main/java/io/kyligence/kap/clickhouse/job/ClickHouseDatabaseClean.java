@@ -45,6 +45,10 @@ public class ClickHouseDatabaseClean extends AbstractClickHouseClean {
         setName(STEP_SECOND_STORAGE_NODE_CLEAN);
     }
 
+    public ClickHouseDatabaseClean(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected void internalInit() {
         KylinConfig config = getConfig();

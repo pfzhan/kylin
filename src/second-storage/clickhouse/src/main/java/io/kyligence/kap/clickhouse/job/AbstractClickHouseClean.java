@@ -55,6 +55,14 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
     protected List<ShardCleaner> shardCleaners = new ArrayList<>();
     private int nodeCount = 10;
 
+    public AbstractClickHouseClean() {
+        super();
+    }
+
+    public AbstractClickHouseClean(Object notSetId) {
+        super(notSetId);
+    }
+
     public void setNodeCount(int nodeCount) {
         if (nodeCount > 0) {
             this.nodeCount = nodeCount;

@@ -66,6 +66,10 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
         this.setName(ExecutableConstants.STEP_NAME_BUILD_SNAPSHOT);
     }
 
+    public NSparkSnapshotBuildingStep(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
         final Set<String> dumpList = Sets.newHashSet();

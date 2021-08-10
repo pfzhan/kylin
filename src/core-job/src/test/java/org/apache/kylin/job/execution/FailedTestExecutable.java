@@ -50,6 +50,10 @@ public class FailedTestExecutable extends BaseTestExecutable {
         super();
     }
 
+    public FailedTestExecutable(Object notSetId) {
+        super(notSetId);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) {
         try {

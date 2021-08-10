@@ -103,6 +103,8 @@ import lombok.val;
 public class NExecutableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NExecutableManager.class);
+    /** Dummy value to reflection */
+    private static final Object DUMMY_OBJECT = new Object();
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
 
     private static final int CMD_EXEC_TIMEOUT_SEC = 60;
@@ -920,8 +922,9 @@ public class NExecutableManager {
                 "Cannot parse this job: " + executablePO.getId() + ", the type is empty");
         try {
             Class<? extends AbstractExecutable> clazz = ClassUtil.forName(type, AbstractExecutable.class);
-            Constructor<? extends AbstractExecutable> constructor = clazz.getConstructor();
-            AbstractExecutable result = constructor.newInstance();
+            // no construction method to create a random number ID
+            Constructor<? extends AbstractExecutable> constructor = clazz.getConstructor(Object.class);
+            AbstractExecutable result = constructor.newInstance(DUMMY_OBJECT);
             result.setId(executablePO.getUuid());
             result.setName(executablePO.getName());
             result.setProject(project);

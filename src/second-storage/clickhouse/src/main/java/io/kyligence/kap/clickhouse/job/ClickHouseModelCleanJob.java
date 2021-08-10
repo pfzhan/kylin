@@ -49,6 +49,10 @@ public class ClickHouseModelCleanJob extends DefaultChainedExecutable {
 
     public ClickHouseModelCleanJob() {}
 
+    public ClickHouseModelCleanJob(Object notSetId) {
+        super(notSetId);
+    }
+
     public ClickHouseModelCleanJob(ClickHouseCleanJobParam builder) {
         setId(builder.getJobId());
         setName(JobTypeEnum.SECOND_STORAGE_MODEL_CLEAN.toString());

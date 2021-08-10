@@ -87,6 +87,14 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         }
     }
 
+    public NSparkCubingJob() {
+        super();
+    }
+
+    public NSparkCubingJob(Object notSetId) {
+        super(notSetId);
+    }
+
     // for test use only
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
             Set<JobBucket> buckets) {
