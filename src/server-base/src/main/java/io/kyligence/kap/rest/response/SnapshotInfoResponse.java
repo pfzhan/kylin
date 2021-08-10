@@ -46,6 +46,9 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
     @JsonProperty("usage")
     private int usage;
 
+    @JsonProperty("total_rows")
+    private long totalRows;
+
     @JsonProperty("storage")
     private long storage;
 
@@ -70,19 +73,20 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
     public SnapshotInfoResponse() {
     }
 
-    public SnapshotInfoResponse(TableDesc tableDesc, long storage, int factTableCount, int lookupTableCount,
-            long lastModifiedTime, SnapshotStatus status, Set<String> columns, String selectPartitionCol) {
+    public SnapshotInfoResponse(TableDesc tableDesc, long totalRows, int factTableCount, int lookupTableCount,
+            SnapshotStatus status, Set<String> columns) {
 
         this.table = tableDesc.getName();
         this.database = tableDesc.getDatabase();
         this.usage = tableDesc.getSnapshotHitCount();
-        this.storage = storage;
+        this.totalRows = totalRows;
+        this.storage = tableDesc.getLastSnapshotSize();
         this.factTableCount = factTableCount;
         this.lookupTableCount = lookupTableCount;
-        this.lastModifiedTime = lastModifiedTime;
+        this.lastModifiedTime = tableDesc.getLastModified();
         this.status = status;
         this.columns = columns;
-        this.selectPartitionCol = selectPartitionCol;
+        this.selectPartitionCol = tableDesc.getSelectedSnapshotPartitionCol();
     }
 
     @Override

@@ -81,6 +81,7 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
@@ -88,7 +89,6 @@ import io.kyligence.kap.rest.response.SnapshotCheckResponse;
 import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.val;
 
 @Component("snapshotService")
@@ -425,10 +425,10 @@ public class SnapshotService extends BasicService {
         List<SnapshotInfoResponse> response = new ArrayList<>();
         tables.forEach(tableDesc -> {
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
-            response.add(new SnapshotInfoResponse(tableDesc, tableDesc.getLastSnapshotSize(), countPair.getFirst(),
-                    countPair.getSecond(), tableDesc.getSnapshotLastModified(),
-                    getSnapshotJobStatus(tableDesc, executables), getForbiddenColumns(tableDesc),
-                    tableDesc.getSelectedSnapshotPartitionCol()));
+            TableExtDesc tableExtDesc = nTableMetadataManager.getOrCreateTableExt(tableDesc);
+            long totalRows = tableExtDesc.getTotalRows();
+            response.add(new SnapshotInfoResponse(tableDesc, totalRows, countPair.getFirst(), countPair.getSecond(),
+                    getSnapshotJobStatus(tableDesc, executables), getForbiddenColumns(tableDesc)));
         });
 
         if (!statusFilter.isEmpty()) {
@@ -713,6 +713,7 @@ public class SnapshotService extends BasicService {
                     MsgPicker.getMsg().getCOLUMN_NOT_EXIST(), StringUtils.join(notFoundCols, "', '")));
         }
     }
+
     public List<SnapshotColResponse> getSnapshotCol(String project, Set<String> tables, Set<String> databases,
             String tablePattern, boolean includeExistSnapshot) {
         return getSnapshotCol(project, tables, databases, tablePattern, includeExistSnapshot, true);
@@ -740,8 +741,8 @@ public class SnapshotService extends BasicService {
             }
             return table.getIdentity().toLowerCase(Locale.ROOT).contains(tablePattern.toLowerCase(Locale.ROOT));
         }).filter(table -> includeExistSnapshot || !hasLoadedSnapshot(table, executables)
-                || (!excludeBroken && table.isSnapshotHasBroken()))
-                .filter(this::isAuthorizedTableAndColumn).map(SnapshotColResponse::from).collect(Collectors.toList());
+                || (!excludeBroken && table.isSnapshotHasBroken())).filter(this::isAuthorizedTableAndColumn)
+                .map(SnapshotColResponse::from).collect(Collectors.toList());
     }
 
     public SnapshotColResponse reloadPartitionCol(String project, String table) throws Exception {
