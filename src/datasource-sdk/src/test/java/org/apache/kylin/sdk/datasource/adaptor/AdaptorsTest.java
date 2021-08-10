@@ -23,12 +23,12 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
+import java.sql.SQLException;
+
 import org.apache.kylin.sdk.datasource.framework.JdbcConnectorTest;
 import org.apache.kylin.sdk.datasource.framework.SourceConnectorFactory;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.sql.SQLException;
 
 public class AdaptorsTest extends JdbcConnectorTest {
 
@@ -41,16 +41,6 @@ public class AdaptorsTest extends JdbcConnectorTest {
         Assert.assertFalse(connector.listDatabases().contains("EDW"));
         Assert.assertTrue(connector.listTables("DEFAULT").isEmpty());
         Assert.assertFalse(connector.listTables("DB").isEmpty());
-        Assert.assertNotNull(connector.getTable("DB", "ROLES"));
-        Assert.assertNotNull(connector.listColumns("DB", "ROLES"));
-    }
-
-
-    @Test
-    public void testGreenplumAdaptor() throws SQLException {
-        getTestConfig().setProperty("kylin.source.jdbc.adaptor", "org.apache.kylin.sdk.datasource.adaptor.GreenplumAdaptor");
-        getTestConfig().setProperty("kylin.source.jdbc.dialect", "greenplum");
-        connector = SourceConnectorFactory.getJdbcConnector(getTestConfig());
         Assert.assertNotNull(connector.getTable("DB", "ROLES"));
         Assert.assertNotNull(connector.listColumns("DB", "ROLES"));
     }
