@@ -45,11 +45,17 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public enum JobStepType {
 
     RESOURCE_DETECT {
         @Override
         public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            if (config.getSparkEngineBuildStepsToSkip().contains(NResourceDetectStep.class.getName())) {
+                return null;
+            }
             return new NResourceDetectStep(parent);
         }
 
@@ -207,7 +213,11 @@ public enum JobStepType {
 
     public AbstractExecutable createStep(DefaultChainedExecutable parent, KylinConfig config) {
         AbstractExecutable step = create(parent, config);
-        addParam(parent, step, config);
+        if (step == null) {
+            log.info("{} skipped", this);
+        } else {
+            addParam(parent, step, config);
+        }
         return step;
     }
 
