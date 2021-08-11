@@ -145,7 +145,7 @@ public class RealizationPruner {
         for (NDataSegment dataSegment : allReadySegments) {
             try {
                 val segmentRanges = transformSegment2RexCall(dataSegment, dateFormat, rexBuilder, partitionColInputRef,
-                        partitionColumn.getType());
+                        partitionColumn.getType(), dataflow.isStreaming());
                 // compare with segment start
                 val segmentStartPredicate = RelOptPredicateList.of(rexBuilder,
                         Lists.newArrayList(segmentRanges.getFirst()));
@@ -178,7 +178,7 @@ public class RealizationPruner {
     }
 
     private static Pair<RexNode, RexNode> transformSegment2RexCall(NDataSegment dataSegment, String dateFormat,
-            RexBuilder rexBuilder, RexInputRef partitionColInputRef, DataType partitionColType) {
+            RexBuilder rexBuilder, RexInputRef partitionColInputRef, DataType partitionColType, boolean isStreaming) {
         String start;
         String end;
         if (dataSegment.isOffsetCube()) {
@@ -193,9 +193,11 @@ public class RealizationPruner {
         val endRexLiteral = transformValue2RexLiteral(rexBuilder, end, partitionColType);
         val greaterThanOrEqualCall = rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL,
                 Lists.newArrayList(partitionColInputRef, startRexLiteral));
-        val lessThanCall = rexBuilder.makeCall(SqlStdOperatorTable.LESS_THAN,
-                Lists.newArrayList(partitionColInputRef, endRexLiteral));
-        return Pair.newPair(greaterThanOrEqualCall, lessThanCall);
+
+        // the right side of streaming segments is closed, like [start, end], while batch segment is [start, end)
+        val sqlOperator = isStreaming ? SqlStdOperatorTable.LESS_THAN_OR_EQUAL:SqlStdOperatorTable.LESS_THAN;
+        val lessCall = rexBuilder.makeCall(sqlOperator, Lists.newArrayList(partitionColInputRef, endRexLiteral));
+        return Pair.newPair(greaterThanOrEqualCall, lessCall);
     }
 
     private static RexNode transformValue2RexLiteral(RexBuilder rexBuilder, String value, DataType colType) {

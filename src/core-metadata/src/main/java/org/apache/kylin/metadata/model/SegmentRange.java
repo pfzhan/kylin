@@ -413,7 +413,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
                 return comparePartitionOffset(this.sourcePartitionOffsetStart, t.sourcePartitionOffsetEnd) < 0
                         && comparePartitionOffset(t.sourcePartitionOffsetStart, this.sourcePartitionOffsetEnd) < 0;
             } else {
-                return this.start < t.end && t.start < this.end;
+                return this.start < t.end && t.start <= this.end;
             }
         }
 

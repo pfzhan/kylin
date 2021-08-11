@@ -337,7 +337,7 @@ class FilePruner(val session: SparkSession,
         e => {
           if (dataflow.getSegment(e.segmentID).isOffsetCube) {
             val ksRange = dataflow.getSegment(e.segmentID).getKSRange
-            SegFilters(ksRange.getStart, ksRange.getEnd, pattern).foldFilter(reducedFilter) match {
+            SegFilters(ksRange.getStart, ksRange.getEnd, pattern).foldStreamingFilter(reducedFilter) match {
               case Trivial(true) => true
               case Trivial(false) => false
             }
@@ -570,6 +570,67 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
       case GreaterThanOrEqual(_, value: Any) =>
         insurance(value) {
           ts => Trivial(ts < end)
+        }
+      case LessThan(_, value: Any) =>
+        insurance(value) {
+          ts => Trivial(ts > start)
+        }
+      case LessThanOrEqual(_, value: Any) =>
+        insurance(value) {
+          ts => Trivial(ts >= start)
+        }
+      case And(left: Filter, right: Filter) =>
+        And(foldFilter(left), foldFilter(right)) match {
+          case And(Trivial(false), _) => Trivial(false)
+          case And(_, Trivial(false)) => Trivial(false)
+          case And(Trivial(true), right) => right
+          case And(left, Trivial(true)) => left
+          case other => other
+        }
+      case Or(left: Filter, right: Filter) =>
+        Or(foldFilter(left), foldFilter(right)) match {
+          case Or(Trivial(true), _) => Trivial(true)
+          case Or(_, Trivial(true)) => Trivial(true)
+          case Or(Trivial(false), right) => right
+          case Or(left, Trivial(false)) => left
+          case other => other
+        }
+      case trivial: Trivial =>
+        trivial
+      case unsupportedFilter =>
+        // return 'true' to scan all partitions
+        // currently unsupported filters are:
+        // - StringStartsWith
+        // - StringEndsWith
+        // - StringContains
+        // - EqualNullSafe
+        Trivial(true)
+    }
+  }
+
+  def foldStreamingFilter(filter: Filter): Filter = {
+    filter match {
+      case EqualTo(_, value: Any) =>
+        insurance(value) {
+          ts => Trivial(ts >= start && ts <= end)
+        }
+      case In(_, values: Array[Any]) =>
+        val satisfied = values.map(v => insurance(v) {
+          ts => Trivial(ts >= start && ts <= end)
+        }).exists(_.equals(Trivial(true)))
+        Trivial(satisfied)
+
+      case IsNull(_) =>
+        Trivial(false)
+      case IsNotNull(_) =>
+        Trivial(true)
+      case GreaterThan(_, value: Any) =>
+        insurance(value) {
+          ts => Trivial(ts < end)
+        }
+      case GreaterThanOrEqual(_, value: Any) =>
+        insurance(value) {
+          ts => Trivial(ts <= end)
         }
       case LessThan(_, value: Any) =>
         insurance(value) {

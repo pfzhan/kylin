@@ -283,7 +283,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("model_streaming", context.realization.getModel().getAlias());
         Assert.assertTrue(context.storageContext.isEmptyLayout());
 
-        String sql2 = "select count(*) from SSB_STREAMING where LO_PARTITIONCOLUMN > '2021-05-01 00:00:00'";
+        String sql2 = "select count(*) from SSB_STREAMING where LO_PARTITIONCOLUMN >= '2021-05-28 15:25:00'";
         KylinConfig.getInstanceFromEnv().setProperty("kylin.smart.conf.memory-tuning", "false");
         val proposeContext2 = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql2 });
         SmartMaster smartMaster2 = new SmartMaster(proposeContext2);
