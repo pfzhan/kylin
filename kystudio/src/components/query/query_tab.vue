@@ -103,7 +103,8 @@ import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../
       overIntegerLength: 'Please enter a value no larger than 2,147,483,647.',
       viewLogs: 'View Logs',
       htraceTips: 'Please make sure Zipkin server is properly deployed according to the manual of performance diagnose package.',
-      queryError: 'The query fails.'
+      queryError: 'The query fails.',
+      queryTimeOut: 'The request timeout, please check the network situation and Kyligence Enterprise service instance status. If the resource group is turned on, please make sure that the project is bound to the query resource group and there are available query instances'
     },
     'zh-cn': {
       trace: '追踪',
@@ -117,7 +118,8 @@ import { kapConfirm, handleSuccess, handleError, postCloudUrlMessage } from '../
       overIntegerLength: '请输入小于等于 2,147,483,647 的数值。',
       viewLogs: '查看日志',
       htraceTips: '请确保已经按照性能诊断工具包使用说明部署完毕Zipkin服务器。',
-      queryError: '查询失败'
+      queryError: '查询失败',
+      queryTimeOut: '请求超时，请检查网络情况和 Kyligence Enterprise 服务实例状态，如果开启资源组，请确保项目已经绑定查询资源组且有可用的查询实例'
     }
   }
 })
@@ -281,7 +283,7 @@ export default class QueryTab extends Vue {
       this.isLoading = false
       this.isStopping = false
       handleError(res, (data, code, status, msg) => {
-        this.errinfo = msg || this.$t('kylinLang.common.timeOut')
+        this.errinfo = msg || this.$t('queryTimeOut')
         if (!status || status !== 200 || status < 0) {
           this.config.errorMsgBox.isShow = true
           this.config.errorMsgBox.msg = this.errinfo
