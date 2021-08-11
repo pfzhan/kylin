@@ -183,7 +183,7 @@
       </div>
       <div v-show="isExpand">
         <div class="ksd-mb-24" v-if="$store.state.project.second_storage_enabled">
-          <el-alert v-if="isShowSecStorageTips2" show-icon type="warning" class="ksd-mb-8" :closable="false">
+          <el-alert v-if="modelDesc.with_second_storage" show-icon type="warning" class="ksd-mb-8" :closable="false">
             <span v-html="$t('forbidenComputedColumnTips')" class="ksd-fs-12"></span>
           </el-alert>
           <!-- 已有模型提示 开始 -->
@@ -214,22 +214,15 @@
           </el-alert>
           <span class="ksd-title-label-mini">{{$t('secStorage')}}</span>
           <span class="sec-switch">
-            <common-tip :content="disableSecStorageTips" v-if="isNotBatchModel || isHaveNoDimMeas">
+            <common-tip :content="disableSecStorageTips" :disabled="!isNotBatchModel && !isHaveNoDimMea">
               <el-switch
-                disabled
+                :disabled="isNotBatchModel || isHaveNoDimMeas"
                 v-model="modelDesc.with_second_storage"
                 @change="val => handleSecStorageEnabled(val)"
                 :active-text="$t('kylinLang.common.OFF')"
                 :inactive-text="$t('kylinLang.common.ON')">
               </el-switch>
             </common-tip>
-            <el-switch
-              v-else
-              v-model="modelDesc.with_second_storage"
-              @change="val => handleSecStorageEnabled(val)"
-              :active-text="$t('kylinLang.common.OFF')"
-              :inactive-text="$t('kylinLang.common.ON')">
-            </el-switch>
           </span>
           <div class="secStorage-desc ksd-mt-8" v-html="$t('secStorageDesc')"></div>
         </div>

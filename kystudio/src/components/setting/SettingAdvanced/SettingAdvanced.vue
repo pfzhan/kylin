@@ -304,6 +304,7 @@
             show-overflow-tooltip
             prop="value"
             label="Value">
+            <template slot-scope="scope">{{scope.row.key === 'kylin.source.jdbc.pass' ? '••••••' : scope.row.value}}</template>
           </el-table-column>
           <el-table-column
             :label="$t('kylinLang.common.action')"

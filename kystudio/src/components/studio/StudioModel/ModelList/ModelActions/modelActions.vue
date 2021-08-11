@@ -243,7 +243,7 @@
 
     <!-- 分层存储 -->
     <el-dialog width="600px" :title="$t('secStorage')" class="sec_storage_dialog" v-if="showSecStorageDialog" :append-to-body="true" :visible="true" @close="closeSecStorageDialog" :close-on-click-modal="false">
-      <el-alert v-if="isShowComputedColumnTip" show-icon type="warning" class="ksd-mb-8" :closable="false">
+      <el-alert v-if="second_storage_enabled" show-icon type="warning" class="ksd-mb-8" :closable="false">
         <span v-html="$t('forbidenComputedColumnTips')" class="ksd-fs-12"></span>
       </el-alert>
       <el-alert
@@ -393,7 +393,6 @@ export default class ModelActions extends Vue {
   secStorageTipsType = ''
   isShowSecStorageTips = false
   isShowSecStorageTips2 = false
-  isShowComputedColumnTip = false
   secStorageLoading = false
   second_storage_enabled = this.currentModel.second_storage_enabled
   exportTDSOtions = [
@@ -721,7 +720,6 @@ export default class ModelActions extends Vue {
     } else {
       this.isShowSecStorageTips = false
     }
-    this.isShowComputedColumnTip = val
   }
 
   handleModel (action, modelDesc, successTip) {
