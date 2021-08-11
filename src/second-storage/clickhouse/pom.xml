@@ -10,7 +10,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kap-second-storage-clickhouse</artifactId>
+    <artifactId>second-storage-clickhouse</artifactId>
     <packaging>jar</packaging>
     <name>KAP - Second Storage Clickhouse</name>
     <url>http://kyligence.io</url>
