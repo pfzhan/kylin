@@ -43,10 +43,6 @@ sql802:java.lang.UnsupportedOperationException
 sql803:java.lang.UnsupportedOperationException
 sql804:java.lang.UnsupportedOperationException
 sql043:must "set max_parser_depth = 0"
-sql133:data correctness:KE-29141
-sql134:data correctness:KE-29141
-sql135:data correctness:KE-29141
-sql136:data correctness:KE-29141
 sql038:KE-29253, 浮点数不准确
 sql084:KE-29253, 浮点数不准确
 sql090:KE-29253, 浮点数不准确

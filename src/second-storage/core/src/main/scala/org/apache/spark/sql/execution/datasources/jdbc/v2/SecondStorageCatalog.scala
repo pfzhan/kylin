@@ -24,13 +24,16 @@
 package org.apache.spark.sql.execution.datasources.jdbc.v2
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import io.kyligence.kap.engine.spark.utils.JavaOptionals.toRichOptional
+import io.kyligence.kap.metadata.cube.model.NDataflowManager
+import io.kyligence.kap.secondstorage.ColumnMapping.secondStorageColumnToKapColumn
 import io.kyligence.kap.secondstorage.NameUtil
 import io.kyligence.kap.secondstorage.SecondStorage.tableFlowManager
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.sql.connector.catalog.Identifier
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JDBCRDD}
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCTableCatalog
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{BooleanType, StructType}
 
 class SecondStorageCatalog extends ShardJDBCTableCatalog {
 
@@ -44,6 +47,8 @@ class SecondStorageCatalog extends ShardJDBCTableCatalog {
           val pair = NameUtil.recoverLayout(ident.name())
           val model_id = pair.getFirst
           val layout = pair.getSecond
+          val dfMgr = NDataflowManager.getInstance(config, project)
+          val orderedDims = dfMgr.getDataflow(model_id).getIndexPlan.getLayoutEntity(layout).getOrderedDimensions
 
           val schemaURL = tableFlowManager(config, project)
             .get(model_id)
@@ -55,7 +60,16 @@ class SecondStorageCatalog extends ShardJDBCTableCatalog {
           val immutable = Map(
             JDBCOptions.JDBC_TABLE_NAME -> getTableName(ident),
             JDBCOptions.JDBC_URL -> schemaURL)
-          JDBCRDD.resolveTable(new JDBCOptions(immutable))
+          val jdbcSchema = JDBCRDD.resolveTable(new JDBCOptions(immutable))
+
+          // !!This is patch!!
+          StructType(jdbcSchema.map(e => {
+            orderedDims.get(secondStorageColumnToKapColumn(e.name).toInt).getType.getName match {
+              case DataType.BOOLEAN => e.copy(dataType = BooleanType)
+              case _ => e
+            }
+          })
+          )
         }
       })
 

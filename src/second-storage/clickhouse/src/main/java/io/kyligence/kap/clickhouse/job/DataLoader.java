@@ -39,6 +39,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import io.kyligence.kap.secondstorage.ColumnMapping;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
@@ -111,7 +112,7 @@ public class DataLoader {
     }
 
     static String getPrefixColumn(String col) {
-        return "c" + col;
+        return ColumnMapping.kapColumnToSecondStorageColumn(col);
     }
 
     private final String database;
