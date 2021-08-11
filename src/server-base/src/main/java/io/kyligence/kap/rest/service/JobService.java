@@ -46,9 +46,13 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -67,6 +71,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
@@ -714,6 +719,38 @@ public class JobService extends BasicService {
 
         sortBean.setExecutablePO(executablePO);
         return sortBean;
+    }
+
+    public void stopBatchJob(String project, TableDesc tableDesc) {
+        for (NDataModel tableRelatedModel : getDataflowManager(project).getModelsUsingTable(tableDesc)) {
+            stopBatchJobByModel(project, tableRelatedModel.getId());
+        }
+    }
+
+    private void stopBatchJobByModel(String project, String modelId) {
+
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+
+        if (!model.isFusionModel()) {
+            logger.warn("model is not fusion model, {}", modelId);
+            return;
+        }
+
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
+        executableManager.getJobs().stream().map(executableManager::getJob).filter(
+                job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
+                .forEach(job -> {
+                    Set<ExecutableState> matchedExecutableStates = Stream
+                            .of(JobStatusEnum.FINISHED, JobStatusEnum.ERROR, JobStatusEnum.DISCARDED)
+                            .map(this::parseToExecutableState).collect(Collectors.toSet());
+                    if (!matchedExecutableStates.contains(job.getOutput().getState())) {
+                        executableManager.discardJob(job.getId());
+                    }
+                });
     }
 
     @Setter

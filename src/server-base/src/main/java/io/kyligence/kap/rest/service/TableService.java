@@ -208,6 +208,10 @@ public class TableService extends BasicService {
     private IndexPlanService indexPlanService;
 
     @Autowired
+    @Qualifier("jobService")
+    private JobService jobService;
+
+    @Autowired
     private AclEvaluate aclEvaluate;
 
     @Autowired
@@ -963,6 +967,7 @@ public class TableService extends BasicService {
             unloadKafkaTableUsingTable(project, tableDesc);
         } else {
             stopStreamingJobByTable(project, tableDesc);
+            jobService.stopBatchJob(project, tableDesc);
         }
 
         unloadTable(project, table);

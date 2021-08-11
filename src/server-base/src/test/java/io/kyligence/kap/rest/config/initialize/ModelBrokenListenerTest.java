@@ -29,6 +29,7 @@ import static org.awaitility.Awaitility.await;
 import java.util.concurrent.TimeUnit;
 
 import io.kyligence.kap.rest.service.FusionModelService;
+import io.kyligence.kap.rest.service.JobService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
@@ -79,6 +80,9 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     @InjectMocks
     private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
+    @InjectMocks
+    private final JobService jobService = Mockito.spy(new JobService());
+
     @Before
     public void setup() {
         logger.info("ModelBrokenListenerTest setup");
@@ -92,6 +96,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
+        ReflectionTestUtils.setField(tableService, "jobService", jobService);
     }
 
     @After

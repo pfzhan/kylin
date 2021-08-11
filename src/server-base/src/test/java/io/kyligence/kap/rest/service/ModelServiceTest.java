@@ -257,6 +257,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
+    @InjectMocks
+    private final JobService jobService = Mockito.spy(new JobService());
+
     @Autowired
     private final TableService tableService = Mockito.spy(new TableService());
 
@@ -304,6 +307,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
+        ReflectionTestUtils.setField(tableService, "jobService", jobService);
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
         modelService.setIndexPlanService(indexPlanService);

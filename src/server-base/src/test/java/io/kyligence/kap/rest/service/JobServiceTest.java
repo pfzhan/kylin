@@ -50,6 +50,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -59,10 +61,12 @@ import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -833,6 +837,42 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage(String.format(Locale.ROOT, MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), "RUNNING",
                 "DISCARD, PAUSE, RESTART"));
         jobService.checkJobStatusAndAction("RUNNING", "RESUME");
+    }
+
+    @Test
+    public void testFusionModelStopBatchJob() {
+
+        String project = "streaming_test";
+        FusionModelManager mgr = FusionModelManager.getInstance(getTestConfig(), project);
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+
+        FusionModel fusionModel = mgr.getFusionModel("b05034a8-c037-416b-aa26-9e6b4a41ee40");
+
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setProject(project);
+        executable.setTargetSubject(fusionModel.getBatchModel().getUuid());
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
+
+        // test fusion model stop batch job
+        String table = "SSB.P_LINEORDER_STREAMING";
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(),
+                project);
+        val tableDesc = tableMetadataManager.getTableDesc(table);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobService.stopBatchJob(project, tableDesc);
+            return null;
+        }, project);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, job.getStatus());
+
+        // test no fusion model
+        String table2 = "SSB.DATES";
+        val tableDesc2 = tableMetadataManager.getTableDesc(table2);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            jobService.stopBatchJob(project, tableDesc2);
+            return null;
+        }, project);
     }
 
 }

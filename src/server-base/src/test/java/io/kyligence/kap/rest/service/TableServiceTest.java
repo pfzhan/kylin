@@ -131,6 +131,9 @@ public class TableServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private final TableService tableService = Mockito.spy(new TableService());
 
+    @InjectMocks
+    private final JobService jobService = Mockito.spy(new JobService());
+
     @Mock
     private final ModelService modelService = Mockito.spy(ModelService.class);
 
@@ -168,6 +171,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(tableService, "kafkaService", kafkaServiceMock);
         ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
         ReflectionTestUtils.setField(tableService, "fusionModelService", fusionModelService);
+        ReflectionTestUtils.setField(tableService, "jobService", jobService);
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
