@@ -31,7 +31,7 @@
       </el-table-column>
       <el-table-column
         prop="datatype"
-        width="120"
+        min-width="120"
         show-overflow-tooltip
         :label="$t('kylinLang.dataSource.dataType')">
       </el-table-column>
@@ -41,6 +41,7 @@
         align="right"
         header-align="right"
         min-width="105"
+        v-if="table.datasource!==1"
         show-overflow-tooltip
         :render-header="renderCardinalityHeader">
         <span slot-scope="scope">
@@ -53,6 +54,7 @@
         align="right"
         header-align="right"
         min-width="105"
+        v-if="table.datasource!==1"
         show-overflow-tooltip
         :label="$t('kylinLang.dataSource.minimal')">
         <span slot-scope="scope">
@@ -65,6 +67,7 @@
         align="right"
         header-align="right"
         min-width="105"
+        v-if="table.datasource!==1"
         show-overflow-tooltip
         :label="$t('kylinLang.dataSource.maximum')">
         <span slot-scope="scope">
@@ -74,6 +77,7 @@
       </el-table-column>
       <el-table-column
         prop="comment"
+        v-if="table.datasource!==1"
         show-overflow-tooltip
         :render-header="renderCommentHeader">
         <template slot-scope="scope">

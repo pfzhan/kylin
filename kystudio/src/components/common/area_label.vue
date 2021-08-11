@@ -52,6 +52,7 @@ export default {
       default: true
     },
     isSignSameValue: Boolean,
+    isCache: Boolean,
     remoteMethod: Function,
     selectGroupOne: {
       type: Array,
@@ -200,6 +201,14 @@ export default {
           if (!regExp.test(item.trim())) {
             tags[index] && (tags[index].className += ' error-tag')
             indexes.push(index)
+          } else if (this.isCache) {
+            let cacheTags = JSON.parse(localStorage.getItem('cacheTags'))
+            if (!cacheTags) {
+              localStorage.setItem('cacheTags', JSON.stringify([item.trim()]))
+            } else if (cacheTags.indexOf(item.trim()) === -1) {
+              cacheTags.unshift(item.trim())
+              cacheTags.length > 5 ? localStorage.setItem('cacheTags', JSON.stringify(cacheTags.slice(0, 5))) : localStorage.setItem('cacheTags', JSON.stringify(cacheTags))
+            }
           }
           if (this.errorValues && this.errorValues.indexOf(item.trim()) !== -1) {
             tags[index] && (tags[index].className += ' error-tag')

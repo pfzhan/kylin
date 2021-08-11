@@ -442,7 +442,7 @@ export default class ModelPartitionModal extends Vue {
     this.formatedDate = ''
     this.errorFormat = ''
     this.isNotBatchModel && (this.partitionMeta.format = this.dateFormatsOptions[0].value)
-    if (type === 'format' && val) {
+    if (type === 'format' && val || this.isNotBatchModel && type === 'column') { // 非批数据模型分区列默认选中第一个分区列格式，并且调用一下预览
       try {
         const res = await this.validateDateFormat({partition_date_column: this.partitionMeta.column, partition_date_format: this.partitionMeta.format})
         this.formatedDate = await handleSuccessAsync(res)

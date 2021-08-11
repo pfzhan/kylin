@@ -27,11 +27,14 @@
             @duplicateTags="checkDuplicateValue"
             @validateFailedTags="checkValidateValue"
             @refreshData="refreshData"
+            @change="getLastFiveBrokers"
             :disabled="loading"
             splitChar=","
             :allowcreate="true"
             :placeholder="$t('brockerTips')"
             @removeTag="removeSelected"
+            :isCache="true"
+            :labels="lastFiveBrokers"
             :datamap="{label: 'label', value: 'value'}">
           </arealabel>
         </div>
@@ -174,6 +177,7 @@ export default class SourceKafka extends Vue {
   isHaveErrorBlokers = false
   failed_servers = []
   isShowErrorBrokers = false
+  lastFiveBrokers = []
   checkDuplicateValue (val) {
     this.isHaveDupBlokers = val
   }
@@ -227,6 +231,12 @@ export default class SourceKafka extends Vue {
   resetParser () {
     this.isParserErrorShow = false
     this.isEmptyColName = false
+  }
+  getLastFiveBrokers () {
+    const cacheBrokers = JSON.parse(localStorage.getItem('cacheTags'))
+    this.lastFiveBrokers = cacheBrokers.map(b => {
+      return {label: b, value: b}
+    })
   }
   get searchTreeData () {
     let filterResult = objectClone(this.treeData) || []
@@ -387,6 +397,7 @@ export default class SourceKafka extends Vue {
   }
   mounted () {
     this.brokers = []
+    this.getLastFiveBrokers()
     if (this.convertDataStore && this.sampleDataStore && this.treeDataStore.length) {
       this.topicOptions = objectClone(this.convertDataStore)
       this.kafkaMeta = this.convertDataStore.kafka.kafka_config
