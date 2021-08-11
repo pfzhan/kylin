@@ -144,7 +144,8 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
             Assert.assertTrue(e instanceof LockedException);
             String msg = e.getMessage();
             Assert.assertTrue(msg.matches(
-                    "User ADMIN is locked, please try again after \\d+ seconds . Login failure again will be locked for 1 minutes ."));
+                    "For security concern, account ADMIN has been locked. Please try again in \\d+ seconds. "
+                            + "Login failure again will be locked for 1 minutes.."));
         }
     }
 

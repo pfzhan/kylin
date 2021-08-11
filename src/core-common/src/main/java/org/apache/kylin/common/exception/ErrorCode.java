@@ -59,6 +59,8 @@ public class ErrorCode implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(ErrorCode.class);
     private static final String EN_ERROR_CODE_FILE = "kylin_errorcode_conf_en.properties";
     private static final String ZH_ERROR_CODE_FILE = "kylin_errorcode_conf_zh.properties";
+    private static final String ZH_SEPARATOR = "：";
+    private static final String EN_SEPARATOR = ":";
     private static final ImmutableMap<String, String> enMap;
     private static final ImmutableMap<String, String> zhMap;
     private static final ThreadLocal<ImmutableMap<String, String>> frontMap = new ThreadLocal<>();
@@ -102,8 +104,10 @@ public class ErrorCode implements Serializable {
     }
 
     public String getLocalizedString() {
-        String description = getMap().getOrDefault(keCode, "unknown");
-        return String.format(Locale.ROOT, "%s(%s)", keCode, description);
+        ImmutableMap<String, String> res = getMap();
+        String description = res.getOrDefault(keCode, "unknown");
+        String separator = zhMap.equals(res) ? ZH_SEPARATOR : EN_SEPARATOR;
+        return String.format(Locale.ROOT, "%s(%s)%s", keCode, description, separator);
     }
 
     public String getString() {

@@ -543,12 +543,13 @@ public class CnMessage extends Message {
 
     @Override
     public String getUSER_BE_LOCKED(long seconds) {
-        return "用户名或密码错误，请在 " + formatSeconds(seconds) + " 后再次重试。";
+        return "用户名或密码错误，请在 " + formatSeconds(seconds) + "后再次重试。";
     }
 
     @Override
     public String getUSER_IN_LOCKED_STATUS(long leftSeconds, long nextLockSeconds) {
-        return "用户 %s 已被锁定，请在 " + formatSeconds(leftSeconds) + " 后重试。" + formatNextLockDuration(nextLockSeconds);
+        return "为了账号安全，用户 %s 被锁定。请在 " + formatSeconds(leftSeconds) + "后再试。"
+                + formatNextLockDuration(nextLockSeconds);
     }
 
     @Override
@@ -1445,6 +1446,11 @@ public class CnMessage extends Message {
     @Override
     public String getINSUFFICIENT_AUTHENTICATION() {
         return "无法认证用户信息，请重新登录。";
+    }
+
+    @Override
+    public String getDISABLED_USER() {
+        return "该用户已被禁用，请联系管理员。";
     }
 
     @Override

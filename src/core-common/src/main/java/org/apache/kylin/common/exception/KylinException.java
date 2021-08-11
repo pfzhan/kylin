@@ -112,7 +112,7 @@ public class KylinException extends RuntimeException {
 
     @Override
     public String getLocalizedMessage() {//for front
-        return String.format(Locale.ROOT, "%s:%s", errorCode.getLocalizedString(), super.getLocalizedMessage());
+        return String.format(Locale.ROOT, "%s%s", errorCode.getLocalizedString(), super.getLocalizedMessage());
     }
 
 }

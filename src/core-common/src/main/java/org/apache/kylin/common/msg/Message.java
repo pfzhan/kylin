@@ -360,8 +360,8 @@ public class Message {
     }
 
     public String getUSER_IN_LOCKED_STATUS(long leftSeconds, long nextLockSeconds) {
-        return "User %s is locked, please try again after " + formatSeconds(leftSeconds) + ". "
-                + formatNextLockDuration(nextLockSeconds);
+        return "For security concern, account %s has been locked. Please try again in " + formatSeconds(leftSeconds) + ". "
+                + formatNextLockDuration(nextLockSeconds) + ".";
     }
 
     protected String formatNextLockDuration(long nextLockSeconds) {
@@ -376,7 +376,9 @@ public class Message {
         long remainingMinutes = ((seconds - remainingSeconds) / 60) % 60;
         long remainingHour = ((seconds - remainingSeconds - remainingMinutes * 60) / 3600) % 24;
         long remainingDay = (seconds - remainingSeconds - remainingMinutes * 60 - remainingHour * 3600) / (3600 * 24);
-        return formatTime(remainingDay, remainingHour, remainingMinutes, remainingSeconds);
+        String formatTimeMessage = formatTime(remainingDay, remainingHour, remainingMinutes, remainingSeconds);
+        return formatTimeMessage.length() > 0 ? formatTimeMessage.substring(0, formatTimeMessage.length() - 1)
+                : formatTimeMessage;
     }
 
     protected String formatTime(long day, long hour, long min, long second) {
@@ -1228,6 +1230,10 @@ public class Message {
 
     public String getINSUFFICIENT_AUTHENTICATION() {
         return "Unable to authenticate. Please login again.";
+    }
+
+    public String getDISABLED_USER() {
+        return "This user is disabled. Please contact admin.";
     }
 
     public String getWRITE_IN_MAINTENANCE_MODE() {
