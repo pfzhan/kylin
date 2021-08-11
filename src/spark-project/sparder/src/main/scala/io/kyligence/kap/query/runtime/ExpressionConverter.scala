@@ -412,7 +412,7 @@ object ExpressionConverter {
           case "chr" =>
             new Column(expressions.Chr(k_lit(children.head).expr))
           case "space" =>
-            new Column(StringRepeat(k_lit(children.head).expr, k_lit(children.tail).expr))
+            new Column(StringRepeat(k_lit(" ").expr, k_lit(children.head).expr))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
