@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import io.kyligence.kap.tool.restclient.RestClient;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -58,6 +58,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
+import io.kyligence.kap.tool.restclient.RestClient;
 import lombok.extern.slf4j.Slf4j;
 import scala.Option;
 
@@ -143,6 +144,7 @@ public class SourceUsageUpdateListener {
         final List<TableDesc> copiedTables = NDataflowManager.getInstance(config, project).listUnderliningDataModels() //
                 .stream().map(NDataModel::getPartitionDesc).filter(Objects::nonNull) //
                 .map(PartitionDesc::getPartitionDateColumnRef).filter(Objects::nonNull) //
+                .filter(ref -> ref.getTableRef().getTableDesc().getSourceType() != ISourceAware.ID_STREAMING) //
                 .filter(ref -> !ref.getColumnDesc().isPartitioned()).distinct() // distinct
                 .filter(colRef -> {
                     String canonical = colRef.getCanonicalName();
