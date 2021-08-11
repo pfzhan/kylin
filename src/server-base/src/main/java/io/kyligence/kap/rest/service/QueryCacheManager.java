@@ -126,7 +126,7 @@ public class QueryCacheManager {
             getProjectCache(Type.SUCCESS_QUERY_CACHE, sqlRequest.getProject())
                     .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
         } catch (Exception e) {
-            logger.error("Error caching result of success query {}", sqlRequest.getSql(), e);
+            logger.error("[query cache log] Error caching result of success query {}", sqlRequest.getSql(), e);
         }
     }
 
@@ -147,12 +147,13 @@ public class QueryCacheManager {
             getProjectCache(Type.EXCEPTION_QUERY_CACHE, sqlRequest.getProject())
                     .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
         } catch (Exception e) {
-            logger.error("Error caching result of failed query {}", sqlRequest.getSql(), e);
+            logger.error("[query cache log] Error caching result of failed query {}", sqlRequest.getSql(), e);
         }
     }
 
     SQLResponse doSearchQuery(QueryCacheManager.Type type, SQLRequest sqlRequest) {
         Ehcache successCache = getProjectCache(type, sqlRequest.getProject());
+        logger.info("[query cache log] The cache key is: {}", sqlRequest.getCacheKey());
         Element element = successCache.get(sqlRequest.getCacheKey());
         if (element == null) {
             return null;
@@ -240,7 +241,7 @@ public class QueryCacheManager {
     }
 
     public void clearProjectCache(String project) {
-        logger.debug("clear query cache for {}", project);
+        logger.debug("[query cache log] clear query cache for {}", project);
         getProjectCache(Type.SUCCESS_QUERY_CACHE, project).removeAll();
         getProjectCache(Type.EXCEPTION_QUERY_CACHE, project).removeAll();
         getProjectCache(Type.SCHEMA_CACHE, project).removeAll();
