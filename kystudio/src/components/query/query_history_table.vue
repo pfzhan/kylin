@@ -301,6 +301,7 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       PREPARATION: 'Preparation',
       SQL_TRANSFORMATION: 'SQL transformation',
       SQL_PARSE_AND_OPTIMIZE: 'SQL parser optimization',
+      HTTP_RECEPTION: 'Reception',
       GET_ACL_INFO: 'ACL Checking',
       MODEL_MATCHING: 'Model matching',
       PREPARE_AND_SUBMIT_JOB: 'Creating and Submitting Spark job',
@@ -339,6 +340,7 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       PREPARATION: '查询准备',
       SQL_TRANSFORMATION: 'SQL 转换',
       SQL_PARSE_AND_OPTIMIZE: 'SQL 解析与优化',
+      HTTP_RECEPTION: '查询接收',
       GET_ACL_INFO: 'ACL 检查',
       MODEL_MATCHING: '模型匹配',
       PREPARE_AND_SUBMIT_JOB: '创建并提交 Spark 任务',
@@ -540,8 +542,11 @@ export default class QueryHistoryTable extends Vue {
         renderSteps[0].duration = renderSteps[0].duration + s.duration
         if (s.group === 'PREPARATION') {
           preStepNum++
-          renderSteps[1].duration = renderSteps[1].duration + s.duration
+          let preparationIndex = renderSteps.findIndex(item => item.name === 'PREPARATION')
+          renderSteps[preparationIndex].duration = renderSteps[preparationIndex].duration + s.duration
           renderSteps.push(s)
+        } else if (s.name === 'HTTP_RECEPTION') {
+          renderSteps.splice(1, 0, {name: 'HTTP_RECEPTION', duration: s.duration})
         } else {
           renderSteps.push(s)
         }
