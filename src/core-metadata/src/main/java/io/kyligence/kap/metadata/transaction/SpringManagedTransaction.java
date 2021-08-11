@@ -35,10 +35,11 @@ import org.springframework.jdbc.datasource.ConnectionHolder;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SpringManagedTransaction implements Transaction {
+public class SpringManagedTransaction implements Transaction, IKeep {
 
     private final DataSource dataSource;
 

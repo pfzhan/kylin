@@ -32,7 +32,9 @@ import org.apache.ibatis.session.TransactionIsolationLevel;
 import org.apache.ibatis.transaction.Transaction;
 import org.apache.ibatis.transaction.TransactionFactory;
 
-public class SpringManagedTransactionFactory implements TransactionFactory {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class SpringManagedTransactionFactory implements TransactionFactory, IKeep {
 
     @Override
     public Transaction newTransaction(DataSource dataSource, TransactionIsolationLevel level, boolean autoCommit) {
