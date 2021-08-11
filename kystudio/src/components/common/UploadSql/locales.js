@@ -72,7 +72,7 @@ export default {
     uploadRule3: 'The total file size can\'t be larger than 5 MB',
     uploadRule4: 'Up to {size} SQLs could be uploaded at a time',
     addBaseIndexCheckBox: 'Add Base Indexes',
-    baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default.',
+    baseIndexTips: 'Base indexes include all dimensions and measures of the model and automatically update as the model changes by default（Only batch data is supported for now）',
     uploadErrorMsg: 'The included SQLs exceed the maximum limit ({maxCount}) at a time. Please check and upload again.'
   },
   'zh-cn': {
@@ -148,7 +148,7 @@ export default {
     uploadRule3: '文件大小总量不超过 5MB',
     uploadRule4: '一次最多可上传 {size} 条 SQL',
     addBaseIndexCheckBox: '添加基础索引',
-    baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新。',
+    baseIndexTips: '基础索引包含模型全部维度和度量，默认随着模型变化自动更新（暂时仅支持批数据）',
     uploadErrorMsg: '上传的 SQL 数量超过单次上限 ({maxCount}) ，请检查后重新上传。'
   }
 }
