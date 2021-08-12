@@ -10,6 +10,8 @@
     <PROPERTY NAME="sql.case-sensitive" VALUE="false"/>
     <PROPERTY NAME="metadata.enable-cache" VALUE="false"/>
     <PROPERTY NAME="source.validation-query" VALUE="select 1"/>
+    <PROPERTY NAME="sql.paging-type" VALUE="LIMIT_OFFSET"/>
+    <PROPERTY NAME="sql.enable-quote-all-identifiers" VALUE="true"/>
 
     <!--LTrim-->
     <FUNCTION_DEF ID="76" EXPRESSION="LTRIM($0)"/>
