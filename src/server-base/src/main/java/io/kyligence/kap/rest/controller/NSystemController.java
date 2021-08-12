@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -386,6 +387,15 @@ public class NSystemController extends NBasicController {
     public EnvelopeResponse<String> updateDiagProgress(@RequestBody DiagProgressRequest diagProgressRequest) {
         systemService.updateDiagProgress(diagProgressRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @PutMapping(value = "/roll_event_log")
+    @ResponseBody
+    public EnvelopeResponse<String> rollEventLog() {
+        if (ToolUtil.waitForSparderRollUp()) {
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+        }
+        return new EnvelopeResponse<>(KylinException.CODE_UNDEFINED, "", "Rollup sparder eventLog failed.");
     }
 
     @ApiOperation(value = "diagStatus", tags = { "SM" })

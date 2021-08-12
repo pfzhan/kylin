@@ -315,6 +315,26 @@ public class RestClient {
         return true;
     }
 
+    public boolean rollUpEventLog() {
+        String url = baseUrl + "/system/roll_event_log";
+        HttpPut put = newPut(url);
+        HttpResponse response = null;
+        try {
+            response = client.execute(put);
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                String msg = EntityUtils.toString(response.getEntity());
+                logger.warn("Invalid response {}  rollup event_log url: {}\n{}",
+                        response.getStatusLine().getStatusCode(), url, msg);
+                return false;
+            }
+        } catch (Exception e) {
+            logger.warn("Error during get rollup event_log");
+        } finally {
+            cleanup(put, response);
+        }
+        return true;
+    }
+
     private void tryCatchUp() {
         try {
             ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());

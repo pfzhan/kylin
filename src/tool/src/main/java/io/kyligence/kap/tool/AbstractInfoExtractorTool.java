@@ -334,6 +334,16 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         }
     }
 
+    public void tryRollUpEventLog() {
+        int retry = 3;
+        int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
+        RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
+        boolean eventLogSuccess = false;
+        while (retry-- > 0 && !eventLogSuccess) {
+            eventLogSuccess = restClient.rollUpEventLog();
+        }
+    }
+
     public void extractCommitFile(File exportDir) {
         try {
             for (String commitSHA1File : COMMIT_SHA1_FILES) {

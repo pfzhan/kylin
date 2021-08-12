@@ -40,7 +40,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -165,10 +164,6 @@ public class ToolUtil {
 
     public static boolean waitForSparderRollUp() {
         boolean isRollUp = false;
-        if (!KapConfig.wrap(KylinConfig.getInstanceFromEnv()).isCloud()) {
-            log.info("Failed to roll up eventLog because environment is not in cloud.");
-            return isRollUp;
-        }
         val extractor = ExtractFactory.create();
         String check = SparderEnv.rollUpEventLog();
         if (StringUtils.isBlank(check)) {

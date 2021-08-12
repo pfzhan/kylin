@@ -44,7 +44,6 @@ import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.query.util.ExtractFactory;
 import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
-import io.kyligence.kap.tool.util.ToolUtil;
 
 public class DiagClientTool extends AbstractInfoExtractorTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -197,7 +196,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         Future sparderHistoryTask = executorService.submit(() -> {
             recordTaskStartTime(SPARDER_HISTORY);
             ILogExtractor extractTool = ExtractFactory.create();
-            ToolUtil.waitForSparderRollUp();
+            tryRollUpEventLog();
             KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
                     extractTool);
             recordTaskExecutorTimeToFile(SPARDER_HISTORY, recordTime);
