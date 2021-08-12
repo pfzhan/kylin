@@ -166,13 +166,9 @@
               >
                 <div class="title-popover">
                   <p class="title ksd-mb-20">{{scope.row.alias}}</p>
-                  <div class="label">
-                    <div class="name ksd-mb-8">{{$t('kylinLang.model.ownerGrid')}}</div>
-                    <div class="name">{{$t('description')}}</div>
-                  </div>
-                  <div class="content">
-                    <div class="ksd-mb-8">{{scope.row.owner}}</div>
-                    <div>{{scope.row.description || '-'}}</div>
+                  <div :class="['label', {'en': $lang === 'en'}]">
+                    <div class="group ksd-mb-8"><span class="title">{{$t('kylinLang.model.ownerGrid')}}</span><span class="item">{{scope.row.owner}}</span></div>
+                    <div class="group"><span class="title">{{$t('description')}}</span><span class="item">{{scope.row.description || '-'}}</span></div>
                   </div>
                 </div>
               </el-popover>
@@ -1573,14 +1569,33 @@ export default class ModelList extends Vue {
   }
   .label {
     display: inline-block;
-    .name {
+    .group {
       color: @text-disabled-color;
-      text-align: right;
+      // text-align: right;
       margin-right: 15px;
+      .title {
+        color: @text-disabled-color;
+        display: inline-block;
+        min-width: 40px;
+        word-break: break-all;
+        text-align: right;
+        margin-right: 10px;
+      }
+      .item {
+        display: inline-block;
+        max-width: 180px;
+        word-break: break-all;
+        vertical-align: top;
+      }
     }
-  }
-  .content {
-    display: inline-block;
+    &.en {
+      .title {
+        min-width: 80px;
+      }
+      .item {
+        max-width: 140px;
+      }
+    }
   }
 }
 .er-popover-layout {
