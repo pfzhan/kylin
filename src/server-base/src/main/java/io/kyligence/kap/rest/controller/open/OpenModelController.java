@@ -208,8 +208,9 @@ public class OpenModelController extends NBasicController {
         response.setIndexDetailList(detailList);
         if (CollectionUtils.isNotEmpty(batchIndexIds)) {
             Set<Long> batchIndexIdsSet = indexes.stream() //
-                    .filter(index -> index.getIndexRange() == IndexEntity.Range.BATCH) //
-                    .map(IndexResponse::getId).collect(Collectors.toSet()); //
+                    .filter(index -> index.getIndexRange() == null || index.getIndexRange() == IndexEntity.Range.BATCH) //
+                    .map(IndexResponse::getId).collect(Collectors.toSet());
+
             List<Long> absentBatchIndexIds = batchIndexIds.stream() //
                     .filter(id -> !batchIndexIdsSet.contains(id)) //
                     .collect(Collectors.toList());

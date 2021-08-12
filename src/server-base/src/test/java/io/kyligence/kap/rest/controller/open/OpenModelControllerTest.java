@@ -85,8 +85,10 @@ import io.kyligence.kap.rest.request.PartitionsBuildRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UpdateMultiPartitionValueRequest;
+import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.OpenGetIndexResponse;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
@@ -231,15 +233,25 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String modelName = "default_model_name";
         mockGetModelName(modelName, project, modelId);
-        val indexResponses = fusionIndexService.getIndexesWithRelatedTables(project, modelId, "", Lists.newArrayList(),
-                "last_modified", true, null, ids);
-        Mockito.when(fusionIndexService.getIndexesWithRelatedTables(modelId, project, "", Lists.newArrayList(),
-                "last_modified", true, null, ids)).thenReturn(indexResponses);
+        Mockito.when(fusionIndexService.getIndexesWithRelatedTables(Mockito.any(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(getIndexResponses());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/indexes", modelName)
                 .contentType(MediaType.APPLICATION_JSON).param("project", project) //
                 .param("batch_index_ids", "1,20000020001")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        OpenGetIndexResponse response = openModelController.getIndexes(project, modelName, null, 0, 10, //
+                null, "last_modified", "", true, ids).getData();
+        Assert.assertArrayEquals(response.getAbsentBatchIndexIds().toArray(),
+                Lists.newArrayList(20000020001L).toArray());
+    }
+
+    private List<IndexResponse> getIndexResponses() throws Exception {
+        IndexResponse index = new IndexResponse();
+        index.setId(1L);
+        index.setRelatedTables(Lists.newArrayList("table1", "table2"));
+        return Lists.newArrayList(index);
     }
 
     @Test
@@ -311,8 +323,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("parallel", "false") //
                 .param("ids", ids) //
                 .param("names", (String) null) //
-                .param("priority", "0")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .param("priority", "0").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 0);
     }
@@ -342,7 +353,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("batch_index_ids", "1,2") //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, batchIndexIds, true, 3);
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, batchIndexIds, true,
+                3);
     }
 
     @Test
