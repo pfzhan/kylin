@@ -25,12 +25,9 @@
 package io.kyligence.kap.tool;
 
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
@@ -40,7 +37,8 @@ import io.kyligence.kap.common.util.Unsafe;
  */
 public class KylinConfigCheckCLI implements IKeep {
 
-    private static final Set<String> SERVER_CONFIG = Sets.newHashSet("server.port", "server.address");
+    private static final String SERVER_CONFIG_PREFIX = "server.";
+    private static final String SPRING_CONFIG_PREFIX = "spring.";
     private static final String KYLIN_CONFIG_PREFIX = "kylin.";
     /**
      * Not recommended set the configuration items at the beginning with kap
@@ -55,7 +53,8 @@ public class KylinConfigCheckCLI implements IKeep {
     public static void execute() {
         Properties config = KylinConfig.newKylinConfig().exportToProperties();
         for (String key : config.stringPropertyNames()) {
-            if (!StringUtils.startsWith(key, KYLIN_CONFIG_PREFIX) && !SERVER_CONFIG.contains(key)
+            if (!StringUtils.startsWith(key, KYLIN_CONFIG_PREFIX) && !StringUtils.startsWith(key, SERVER_CONFIG_PREFIX)
+                    && !StringUtils.startsWith(key, SPRING_CONFIG_PREFIX)
                     && !StringUtils.startsWith(key, KAP_CONFIG_PREFIX)) {
                 System.out.println(key);
                 break;
