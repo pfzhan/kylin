@@ -221,8 +221,8 @@ export default class ModelERDiagram extends Vue {
   }
   .diagram-header {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 0px;
+    right: 0px;
   }
   .diagram-labels {
     float: left;

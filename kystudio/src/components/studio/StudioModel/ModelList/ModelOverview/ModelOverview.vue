@@ -55,7 +55,8 @@ export default class ModelOverview extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-overview {
-  height: 100%;
+  // height: 100%;
+  height: calc(~'100% - 32px');
   // margin: 15px;
   box-shadow: none;
   // border:1px solid rgba(245,245,245,1);
@@ -80,9 +81,11 @@ export default class ModelOverview extends Vue {
     background-color: @ke-background-color-white;
   }
   .model-er-diagram {
-    margin: -20px;
-    height: calc(~'100% + 40px');
-    width: calc(~'100% + 40px');
+    // margin: -20px;
+    // height: calc(~'100% + 40px');
+    // width: calc(~'100% + 40px');
+    height: 100%;
+    width: 100%;
   }
 }
 </style>

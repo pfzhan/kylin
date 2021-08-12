@@ -101,6 +101,10 @@ export default class ModelMeasureList extends Vue {
   }
   .parameter-label {
     color: @color-info;
+    white-space:nowrap;
+  }
+  .parameter-type {
+    white-space:nowrap;
   }
   .parameter-type:nth-child(2) + .parameter-label {
     margin-left: 5px;
