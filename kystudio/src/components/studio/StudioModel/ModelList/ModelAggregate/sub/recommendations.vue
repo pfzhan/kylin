@@ -579,6 +579,7 @@ export default class IndexList extends Vue {
 
   // 展示优化建议详情
   showDetail (row) {
+    this.currentIndex = row
     this.showIndexDetail = true
     this.detailData = [...row.rec_detail_response.cc_items.map(it => ({...it, type: 'cc'})), ...row.rec_detail_response.dimension_items.map(it => ({...it, type: 'dimension'})), ...row.rec_detail_response.measure_items.map(it => ({...it, type: 'measure'}))]
   }
