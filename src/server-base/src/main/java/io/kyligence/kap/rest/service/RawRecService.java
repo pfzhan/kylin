@@ -246,7 +246,7 @@ public class RawRecService {
                 continue;
             }
 
-            /* For unique string of layout may too long, so it is designed by a uuid,
+            /* For unique string of layout may too long, so it is designed by an uuid,
              * therefore, we need a HashMap to avoid one LayoutRecItemV2 maps to different RawRecItems.
              */
             Map<String, RawRecItem> layoutUniqueFlagRecMap = recManager

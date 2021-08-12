@@ -282,7 +282,7 @@ public class JdbcRawRecStore {
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
                     .and(table.type, isEqualTo(type)) //
-                    .and(table.state, isNotEqualTo(RawRecItem.RawRecState.APPLIED)) //
+                    .and(table.state, isNotIn(RawRecItem.RawRecState.APPLIED, RawRecItem.RawRecState.BROKEN)) //
                     .build().render(RenderingStrategies.MYBATIS3);
             List<RawRecItem> recItems = mapper.selectMany(statementProvider);
             log.info("Query raw recommendations of model({}/{}, semanticVersion: {}, type: {}) takes {} ms", //

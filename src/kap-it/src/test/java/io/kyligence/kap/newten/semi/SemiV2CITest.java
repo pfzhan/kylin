@@ -53,6 +53,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -60,6 +61,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
@@ -377,6 +379,86 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(13, modelAfterApplyRecItems.getAllNamedColumns().size());
         Assert.assertEquals(2, modelAfterApplyRecItems.getAllMeasures().size());
         Assert.assertEquals(1, modelAfterApplyRecItems.getComputedColumnDescs().size());
+    }
+
+    @Test
+    public void testRebuildManualCCProposeRecommendationNormally() {
+        // prepare an origin model
+        AbstractContext smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select sum(price+1) from test_kylin_fact " });
+        ProposerJob.propose(smartContext);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+
+        // assert origin model
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+        NDataModel modelBeforeGenerateRecItems = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(13, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(2, modelBeforeGenerateRecItems.getAllMeasures().size());
+        Assert.assertFalse(modelBeforeGenerateRecItems.getComputedColumnDescs().isEmpty());
+        Assert.assertEquals(1, modelBeforeGenerateRecItems.getComputedColumnDescs().size());
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        // remove measure of sum(price + 1)
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.updateDataModel(modelID, copyForWrite -> {
+            List<NDataModel.Measure> allMeasures = copyForWrite.getAllMeasures();
+            allMeasures.removeIf(measure -> !measure.getFunction().isCountConstant());
+            copyForWrite.setAllMeasures(allMeasures);
+        });
+
+        // generate raw recommendations for origin model
+        QueryHistory qh1 = new QueryHistory();
+        qh1.setSql("select lstg_format_name, sum(price+1) from test_kylin_fact group by lstg_format_name");
+        qh1.setQueryTime(QUERY_TIME);
+        qh1.setId(1);
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(qh1), false);
+
+        // assert before apply recommendations
+        NDataModel modelBeforeApplyRecItems = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(13, modelBeforeApplyRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeApplyRecItems.getAllMeasures().size());
+        Assert.assertFalse(modelBeforeApplyRecItems.getComputedColumnDescs().isEmpty());
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(3, rawRecItems.size());
+        rawRecItems.stream().filter(recItem -> recItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT)
+                .forEach(recItem -> recItem.setState(RawRecItem.RawRecState.BROKEN));
+        jdbcRawRecStore.update(rawRecItems);
+
+        // mock delete cc then rebuild a new same cc
+        modelManager.updateDataModel(modelID, copyForWrite -> {
+            List<ComputedColumnDesc> ccList = copyForWrite.getComputedColumnDescs();
+            String fullName = ccList.get(0).getFullName();
+            List<NDataModel.NamedColumn> allNamedColumns = copyForWrite.getAllNamedColumns();
+            NDataModel.NamedColumn column = allNamedColumns.stream()
+                    .filter(col -> col.getAliasDotColumn().equalsIgnoreCase(fullName)).findAny().orElse(null);
+            Preconditions.checkNotNull(column);
+            column.setStatus(NDataModel.ColumnStatus.TOMB);
+            int maxColumnId = copyForWrite.getMaxColumnId();
+            NDataModel.NamedColumn newCol;
+            try {
+                newCol = JsonUtil.deepCopy(column, NDataModel.NamedColumn.class);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+            newCol.setId(maxColumnId + 1);
+            newCol.setStatus(NDataModel.ColumnStatus.EXIST);
+            allNamedColumns.add(newCol);
+            copyForWrite.setAllNamedColumns(allNamedColumns);
+        });
+
+        // generate raw recommendations for origin model again
+        rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(qh1), false);
+        NDataModel modelBeforeApplyRecItemsAgain = modelManager.getDataModelDesc(modelID);
+        Assert.assertEquals(14, modelBeforeApplyRecItemsAgain.getAllNamedColumns().size());
+        Assert.assertEquals(1, modelBeforeApplyRecItemsAgain.getAllMeasures().size());
+        Assert.assertFalse(modelBeforeApplyRecItemsAgain.getComputedColumnDescs().isEmpty());
+        List<RawRecItem> rawRecItemsAgain = jdbcRawRecStore.queryAll();
+        Assert.assertEquals(5, rawRecItemsAgain.size());
     }
 
     @Test
