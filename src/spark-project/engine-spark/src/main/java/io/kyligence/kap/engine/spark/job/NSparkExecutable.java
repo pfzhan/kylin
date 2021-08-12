@@ -280,6 +280,9 @@ public class NSparkExecutable extends AbstractExecutable {
     @Override
     protected KylinConfig getConfig() {
         val originalConfig = KylinConfig.getInstanceFromEnv();
+        if (!originalConfig.isDevOrUT()) {
+            originalConfig.reloadFromSiteProperties();
+        }
         KylinConfigExt kylinConfigExt = null;
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
