@@ -6339,8 +6339,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testProposeMeasureWhenSubQueryOnFilter() {
-        val sqls = Lists.newArrayList("select LO_ORDERDATE,sum(LO_TAX) from SSB.LINEORDER " +
-                "where LO_ORDERDATE = (select max(LO_ORDERDATE) from SSB.LINEORDER) group by LO_ORDERDATE ;");
+        val sqls = Lists.newArrayList("select LO_ORDERDATE,sum(LO_TAX) from SSB.LINEORDER "
+                + "where LO_ORDERDATE = (select max(LO_ORDERDATE) from SSB.LINEORDER) group by LO_ORDERDATE ;");
         AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
         val response = modelService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(1, response.getNewModels().size());
