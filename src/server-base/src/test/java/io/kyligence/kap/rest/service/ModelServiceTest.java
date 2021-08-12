@@ -6336,4 +6336,25 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("COUNT_ALL",
                 response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(0).getMeasure().getName());
     }
+
+    @Test
+    public void testProposeMeasureWhenSubQueryOnFilter() {
+        val sqls = Lists.newArrayList("select LO_ORDERDATE,sum(LO_TAX) from SSB.LINEORDER " +
+                "where LO_ORDERDATE = (select max(LO_ORDERDATE) from SSB.LINEORDER) group by LO_ORDERDATE ;");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
+        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        Assert.assertEquals(1, response.getNewModels().size());
+        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().size());
+        Assert.assertEquals(1, response.getNewModels().get(0).getIndexes().get(0).getDimensions().size());
+        Assert.assertEquals(3, response.getNewModels().get(0).getIndexes().get(0).getMeasures().size());
+
+        Assert.assertEquals("LO_ORDERDATE",
+                response.getNewModels().get(0).getIndexes().get(0).getDimensions().get(0).getDimension().getName());
+        Assert.assertEquals("COUNT_ALL",
+                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(0).getMeasure().getName());
+        Assert.assertEquals("MAX_LINEORDER_LO_ORDERDATE",
+                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(1).getMeasure().getName());
+        Assert.assertEquals("SUM_LINEORDER_LO_TAX",
+                response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(2).getMeasure().getName());
+    }
 }
