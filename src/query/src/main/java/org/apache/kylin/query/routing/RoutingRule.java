@@ -75,7 +75,9 @@ public abstract class RoutingRule {
             String before = getPrintableText(candidates);
             rule.apply(candidates);
             String after = getPrintableText(candidates);
-            logger.debug("Applying rule: {}, realizations before:{}, realizations after: {}", rule, before, after);
+            if (!before.equals(after)) {
+                logger.info("Applying rule: {}, realizations before:{}, realizations after: {}", rule, before, after);
+            }
         }
     }
 

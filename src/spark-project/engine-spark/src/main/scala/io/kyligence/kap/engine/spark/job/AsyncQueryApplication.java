@@ -43,7 +43,6 @@ import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
-import io.kyligence.kap.query.util.QueryPatternUtil;
 
 public class AsyncQueryApplication extends SparkApplication {
 
@@ -95,7 +94,7 @@ public class AsyncQueryApplication extends SparkApplication {
             queryContext.getMetrics().setCorrectedSql(queryContext.getUserSQL());
         }
         queryContext.getMetrics()
-                .setSqlPattern(QueryPatternUtil.normalizeSQLPattern(queryContext.getMetrics().getCorrectedSql()));
+                .setSqlPattern(queryContext.getMetrics().getCorrectedSql());
         RDBMSQueryHistoryDAO.getInstance().insert(QueryMetricsContext.collect(queryContext));
     }
 

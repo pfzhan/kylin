@@ -19,6 +19,10 @@
 -keepnames class * extends org.apache.kylin.engine.mr.common.AbstractHadoopJob
 -keepnames class * extends org.apache.kylin.job.execution.AbstractExecutable
 -keepnames class * implements org.springframework.security.web.AuthenticationEntryPoint
+-keepnames class io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser
+-keepnames class io.kyligence.kap.query.runtime.plan.ResultPlan
+-keepnames class org.apache.spark.sql.kylin.external.LogEx
+-keepnames class io.kyligence.kap.engine.spark.utils.LogEx
 
 -keepclassmembers class * implements java.io.Serializable {
 	static final long serialVersionUID;

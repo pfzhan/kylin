@@ -235,7 +235,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
                 .toUpperCase(Locale.ROOT);
         TableRef tableRef = TblColRef.tableForUnknownModel(this.alias, olapTable.getSourceTable());
 
-        List<TblColRef> columns = new ArrayList<TblColRef>();
+        List<TblColRef> columns = new ArrayList<>();
         for (ColumnDesc sourceColumn : olapTable.getSourceColumns()) {
             TblColRef colRef = TblColRef.columnForUnknownModel(tableRef, sourceColumn);
             columns.add(colRef);

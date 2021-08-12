@@ -54,7 +54,7 @@ object ResultType extends Enumeration {
 object ResultPlan extends LogEx {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
-  private def collectInternal(df: DataFrame, rowType: RelDataType): (java.lang.Iterable[util.List[String]], Int) = logTime("collectInternal", info = true) {
+  private def collectInternal(df: DataFrame, rowType: RelDataType): (java.lang.Iterable[util.List[String]], Int) = logTime("collectInternal", debug = true) {
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
@@ -67,9 +67,9 @@ object ResultPlan extends LogEx {
           SparderEnv.getTotalCore).toInt
       }
     QueryContext.current().setShufflePartitions(partitionsNum)
-    logInfo(s"partitions num are : $partitionsNum," +
-      s" total scan bytes are ${QueryContext.current().getMetrics.getSourceScanBytes}" +
-      s" total cores are ${SparderEnv.getTotalCore}")
+    logInfo(s"partitions num are: $partitionsNum," +
+      s" total scan bytes are: ${QueryContext.current().getMetrics.getSourceScanBytes}," +
+      s" total cores are: ${SparderEnv.getTotalCore}")
     if (QueryContext.current().getQueryTagInfo.isHighPriorityQuery) {
       pool = "vip_tasks"
     } else if (QueryContext.current().getQueryTagInfo.isTableIndex) {
@@ -93,7 +93,7 @@ object ResultPlan extends LogEx {
       logInfo(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
         s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getMetrics.getSourceScanRows.toString)
-      logInfo(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
+      logDebug(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)

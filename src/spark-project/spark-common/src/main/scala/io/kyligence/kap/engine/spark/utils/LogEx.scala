@@ -47,15 +47,15 @@ object LogUtils {
 
 trait LogEx extends  Logging {
 
-  protected def logTime[U](action: String, info: Boolean = false)(body: => U): U = {
+  protected def logTime[U](action: String, debug: Boolean = false)(body: => U): U = {
     val start = System.currentTimeMillis()
     val result = body
     val end = System.currentTimeMillis()
 
     // If action is quite fast, don't logging
     if  (end - start > 2 ) {
-      if (info) {
-        logInfo(s"Run $action take ${end - start} ms")
+      if (debug) {
+        logDebug(s"Run $action take ${end - start} ms")
       } else {
         logTrace(s"Run $action take ${end - start} ms")
       }

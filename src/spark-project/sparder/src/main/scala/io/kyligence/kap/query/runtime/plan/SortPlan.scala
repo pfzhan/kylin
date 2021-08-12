@@ -34,7 +34,7 @@ import scala.collection.JavaConverters._
 object SortPlan extends LogEx {
   def sort(inputs: java.util.List[DataFrame],
            rel: KapSortRel,
-           dataContext: DataContext): DataFrame = logTime("sort", info = true) {
+           dataContext: DataContext): DataFrame = logTime("sort", debug = true) {
 
     val dataFrame = inputs.get(0)
 

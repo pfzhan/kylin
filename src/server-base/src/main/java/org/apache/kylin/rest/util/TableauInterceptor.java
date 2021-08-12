@@ -119,7 +119,7 @@ public class TableauInterceptor {
         String[] tokens = sql.split("[\r\n\t \\(\\)]");
         for (int i = 0; i < tableauTestQueries.length; ++i) {
             if (isTokenWiseEqual(tokens, tableauTestQueriesInToken.get(i))) {
-                logger.info("Hit fake response " + i);
+                logger.info("Hit fake response {}", i);
                 return fakeResponses[i];
             }
         }

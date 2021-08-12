@@ -247,9 +247,9 @@ public class EpochManager implements IKeep {
             }
 
             //3.update one by one
-            Set<String> updatedMewEpochs = tryUpdateEpochByProjects(projects);
+            Set<String> updatedNewEpochs = tryUpdateEpochByProjects(projects);
 
-            notifierAfterUpdatedEpoch("update", null, updatedMewEpochs);
+            notifierAfterUpdatedEpoch("update", null, updatedNewEpochs);
 
             logger.debug("End update Epochs:.........");
         }

@@ -120,8 +120,8 @@ public class SparderQueryPlanExec implements QueryPlanExec {
             return queryEngine.computeToIterable(dataContext, rel);
         } catch (final Exception e) {
             if (forceTableIndexAtException(e)) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Failed to use second storage table-index", e);
+                if (log.isInfoEnabled()) {
+                    log.info("Failed to use second storage table-index", e);
                 }
                 QueryContext.current().setForceTableIndex(true);
                 QueryContext.current().getSecondStorageUsageMap().clear();

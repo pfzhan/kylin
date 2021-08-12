@@ -106,7 +106,7 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
             olapContextImplementor.allocateContext(this, null);
             tempState.setHasFreeTable(false);
         }
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
 
         if (context == null && subContexts.size() == 1
                 && this.getInput() == Lists.newArrayList(this.subContexts).get(0).getTopNode()) {

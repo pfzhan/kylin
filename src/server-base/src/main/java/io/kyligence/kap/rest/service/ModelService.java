@@ -152,6 +152,7 @@ import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.OpenSqlAccelerateRequest;
 import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -4331,7 +4332,8 @@ public class ModelService extends BasicService {
 
         String currentUserName = AclPermissionUtil.getCurrentUsername();
         Set<String> groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(currentUserName);
-        Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
+        MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
+        Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, acl);
         AclTCRDigest digest = aclManager.getAllUnauthorizedTableColumn(currentUserName, groupsInProject,
                 modelTableColumns);
         if (digest.getColumns() != null && !digest.getColumns().isEmpty()) {

@@ -73,7 +73,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.newten.auto.NAutoTestBase;
-import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.tool.util.ZipFileUtil;
@@ -448,7 +447,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             }
             final String sqlPattern = value.getFilePath().contains("/sql_parentheses_escape/") //
                     ? key // sql in fold of sql_parentheses_escape cannot normalize sqlPattern directly
-                    : QueryPatternUtil.normalizeSQLPattern(key);
+                    : key;
             log.debug("** start comparing the SQL: {} **", value.getFilePath());
             if (!excludedSqlPatterns.contains(sqlPattern) && !value.ignoredCompareLevel()) {
                 Assert.assertEquals(
@@ -464,7 +463,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
         Set<String> patterns = Sets.newHashSet();
         for (JoinType joinType : JoinType.values()) {
             final String rst = KylinTestBase.changeJoinType(sql, joinType.name());
-            patterns.add(QueryPatternUtil.normalizeSQLPattern(rst));
+            patterns.add(rst);
         }
 
         return patterns;

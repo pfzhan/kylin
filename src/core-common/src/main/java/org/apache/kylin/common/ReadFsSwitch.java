@@ -76,8 +76,8 @@ public class ReadFsSwitch {
             fsOrFsBackup = true;
             fsBackupCount = 0;
             int sec = KapConfig.getInstanceFromEnv().getParquetReadFileSystemBackupResetSec();
-            resetMillis = System.currentTimeMillis() + 1000 * sec; // 1 min later
-            logger.info("Backup read FS is on for " + sec + " sec, switch=" + fsOrFsBackup);
+            resetMillis = System.currentTimeMillis() + 1000L * sec; // 1 min later
+            logger.info("Backup read FS is on for {} sec, switch={}", sec, fsOrFsBackup);
         }
     }
 

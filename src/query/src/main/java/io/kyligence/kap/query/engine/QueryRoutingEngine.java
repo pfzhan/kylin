@@ -102,7 +102,7 @@ public class QueryRoutingEngine {
                 logger.info("The corrected query: {}", correctedSql);
 
                 // add extra parameters into olap context, like acceptPartial
-                Map<String, String> parameters = new HashMap<String, String>();
+                Map<String, String> parameters = new HashMap<>();
                 parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(queryParams.isAcceptPartial()));
                 OLAPContext.setParameters(parameters);
                 // force clear the query context before a new query
@@ -189,10 +189,10 @@ public class QueryRoutingEngine {
         try {
             result = tryPushDownSelectQuery(queryParams, sqlException, BackdoorToggles.getPrepareOnly());
         } catch (KylinException e) {
-            logger.error("pushdown failed with kylin exception ", e);
+            logger.error("Pushdown failed with kylin exception ", e);
             throw e;
         } catch (Exception e2) {
-            logger.error("pushdown engine failed current query too", e2);
+            logger.error("Pushdown engine failed current query too", e2);
             //exception in pushdown, throw it instead of exception in calcite
             throw new RuntimeException(
                     "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);

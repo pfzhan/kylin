@@ -56,7 +56,6 @@ import java.util.concurrent.TimeoutException;
 import javax.ws.rs.BadRequestException;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -72,7 +71,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.query.security.AccessDeniedException;
@@ -159,9 +157,7 @@ public class PushDownUtil {
             }
             return result;
         }
-        if (!queryParams.isSelect() && !queryParams.isPrepare() && kylinConfig.isPushDownUpdateEnabled()) {
-            runner.executeUpdate(sql, project);
-        }
+
         return PushdownResult.emptyResult();
     }
 
@@ -259,35 +255,32 @@ public class PushDownUtil {
         Preconditions.checkArgument(sqlException != null);
         Throwable rootCause = ExceptionUtils.getRootCause(sqlException);
 
-        boolean isPushDownUpdateEnabled = KylinConfig.getInstanceFromEnv().isPushDownUpdateEnabled();
         //SqlValidatorException is not an excepted exception in the origin design.But in the multi pass scene,
         //query pushdown may create tables, and the tables are not in the model, so will throw SqlValidatorException.
-        if (isPushDownUpdateEnabled) {
-            return (rootCause instanceof NoRealizationFoundException //
-                    || rootCause instanceof RoutingIndicatorException || rootCause instanceof SqlValidatorException); //
-        } else {
-            if (rootCause instanceof KylinTimeoutException)
-                return false;
-            if (rootCause instanceof AccessDeniedException) {
-                return false;
-            }
-            if (rootCause instanceof RoutingIndicatorException) {
-                return true;
-            }
+        if (rootCause instanceof KylinTimeoutException) {
+            return false;
+        }
 
-            if (rootCause instanceof CalciteNotSupportException) {
-                return true;
-            }
+        if (rootCause instanceof AccessDeniedException) {
+            return false;
+        }
 
-            if (rootCause instanceof CompileException) {
-                return true;
-            }
+        if (rootCause instanceof RoutingIndicatorException) {
+            return true;
+        }
 
-            if (QueryContext.current().getQueryTagInfo().isWithoutSyntaxError()) {
-                logger.warn("route to push down for met error when running the query: {}",
-                        QueryContext.current().getMetrics().getCorrectedSql(), sqlException);
-                return true;
-            }
+        if (rootCause instanceof CalciteNotSupportException) {
+            return true;
+        }
+
+        if (rootCause instanceof CompileException) {
+            return true;
+        }
+
+        if (QueryContext.current().getQueryTagInfo().isWithoutSyntaxError()) {
+            logger.warn("route to push down for met error when running the query: {}",
+                    QueryContext.current().getMetrics().getCorrectedSql(), sqlException);
+            return true;
         }
         return false;
     }

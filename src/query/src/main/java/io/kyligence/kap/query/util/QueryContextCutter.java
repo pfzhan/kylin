@@ -116,7 +116,7 @@ public class QueryContextCutter {
         List<OLAPContext> contexts = ContextUtil.listContextsHavingScan();
 
         for (OLAPContext olapContext : contexts) {
-            logger.debug("Context for realization matching: {}", olapContext);
+            logger.info("Context for realization matching: {}", olapContext);
         }
 
         long selectLayoutStartTime = System.currentTimeMillis();
@@ -125,7 +125,7 @@ public class QueryContextCutter {
         } else {
             RealizationChooser.selectLayoutCandidate(contexts);
         }
-        logger.debug("select layout candidate for {} olapContext cost {} ms", contexts.size(),
+        logger.info("select layout candidate for {} olapContext cost {} ms", contexts.size(),
                 System.currentTimeMillis() - selectLayoutStartTime);
         QueryContext.current().record("end select realization");
         return contexts;

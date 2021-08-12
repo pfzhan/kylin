@@ -91,7 +91,7 @@ public class ComputedColumnUtil {
                 }
             }
         } catch (Exception e) {
-            logger.debug(String.format(Locale.ROOT, "share cc: '%s' name cross model fail", newCC.getExpression()), e);
+            logger.debug("share cc: '{}' name cross model fail", newCC.getExpression(), e);
             return null;
         }
         return null;

@@ -107,8 +107,6 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
 
     @Override
     public void implementOLAP(OLAPImplementor olapContextImplementor) {
-        //        Preconditions.checkState(columnRowType == null, "OLAPTableScan Must NOT be shared by more than one parent");
-
         context.allTableScans.add(this);
         columnRowType = buildColumnRowType();
 

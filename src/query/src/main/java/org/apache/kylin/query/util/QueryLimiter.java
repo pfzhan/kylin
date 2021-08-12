@@ -74,7 +74,7 @@ public class QueryLimiter {
             isDowngrading = true;
             logger.info("Query server state changed to downgrade");
         } else {
-            logger.info("Query server is already in downgrading state");
+            logger.debug("Query server is already in downgrading state");
         }
     }
 
@@ -83,13 +83,11 @@ public class QueryLimiter {
             isDowngrading = false;
             logger.info("Query server state changed to normal");
         } else {
-            logger.info("Query server is already in normal state");
+            logger.debug("Query server is already in normal state");
         }
     }
 
     public static void tryAcquire() {
-        logger.info("query: {} try to get acquire, current server state: {}", QueryContext.current().getQueryId(),
-                isDowngrading);
         downgradeState.set(isDowngrading);
         if (!isDowngrading) {
             return;
@@ -103,15 +101,16 @@ public class QueryLimiter {
             throw new BusyQueryException("Query rejected. Caused by query server is too busy");
         }
 
-        logger.info("query: {} success to get acquire", QueryContext.current().getQueryId());
+        logger.debug("query: {} success to get acquire", QueryContext.current().getQueryId());
     }
 
     public static void release() {
-        logger.info("query: {} try to release acquire, current server state: {}", QueryContext.current().getQueryId(),
-                downgradeState.get());
         if (!downgradeState.get()) {
             return;
         }
+
+        logger.debug("query: {} release acquire, current server state: {}", QueryContext.current().getQueryId(),
+                downgradeState.get());
 
         semaphore.release();
     }

@@ -528,7 +528,7 @@ public class OLAPContext {
         for (JoinDesc join : joins) {
             if (leftOrInnerTables.contains(join.getPKSide())) {
                 joinsGraph.setJoinToLeftOrInner(join);
-                logger.debug("Current join: {} is set to LEFT_OR_INNER", join);
+                logger.info("Current join: {} is set to LEFT_OR_INNER", join);
             }
         }
     }

@@ -121,7 +121,7 @@ object KylinSourceStrategy extends Strategy with LogEx {
       logInfo(s"Output Data Schema: ${outputSchema.simpleString(5)}")
 
       val outputAttributes = readDataColumns ++ partitionColumns
-      logTime("listFiles", info = true) {
+      logTime("listFiles", debug = true) {
         filePruner.listFiles(partitionKeyFilters.iterator.toSeq, dataFilters.iterator.toSeq)
       }
       val scan =

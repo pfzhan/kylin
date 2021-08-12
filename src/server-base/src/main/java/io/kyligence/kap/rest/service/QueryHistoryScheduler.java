@@ -87,7 +87,7 @@ public class QueryHistoryScheduler {
 
         RDBMSQueryHistoryDAO queryHistoryDAO;
 
-        WriteQueryHistoryRunner() throws Exception {
+        WriteQueryHistoryRunner() {
             queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         }
 

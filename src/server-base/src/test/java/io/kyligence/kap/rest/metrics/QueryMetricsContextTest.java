@@ -58,7 +58,6 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.query.engine.QueryExec;
-import io.kyligence.kap.query.util.QueryPatternUtil;
 import lombok.val;
 
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
@@ -377,7 +376,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMassagedSqlIsNull() {
         final String origSql = "select * from test_massage_sql_is_null";
-        final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
         // massaged sql is not set, so it is null
         final QueryContext queryContext = QueryContext.current();
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
@@ -385,7 +383,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         queryContext.setProject("default");
         queryContext.getMetrics().setCorrectedSql(origSql);
-        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.getMetrics().setSqlPattern(origSql);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
         queryContext.getQueryTagInfo().setHitExceptionCache(true);
         queryContext.getMetrics().setServer("localhost:7070");
@@ -395,7 +393,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
-        Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
+        Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
 
     @Test
@@ -413,14 +411,13 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         // PRICE * ITEM_COUNT expression already exists
         final String origSql = "SELECT SUM(PRICE * ITEM_COUNT), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
         final QueryContext queryContext = QueryContext.current();
         QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
 
         queryContext.setProject("default");
         queryContext.getMetrics().setCorrectedSql(origSql);
-        queryContext.getMetrics().setSqlPattern(sqlPattern);
+        queryContext.getMetrics().setSqlPattern(origSql);
         queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
         queryContext.getQueryTagInfo().setHitExceptionCache(true);
         queryContext.getMetrics().setServer("localhost:7070");
@@ -430,7 +427,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
         final Map<String, Object> influxdbFields = getInfluxdbFields(metricsContext);
         Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
-        Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
+        Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_PATTERN));
     }
 
     @Test

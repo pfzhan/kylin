@@ -99,7 +99,7 @@ public class SlowQueryDetector extends Thread {
         QueryEntry entry = runningQueries.remove(currentThread());
         if (null != entry && null != canceledSlowQueriesStatus.get(entry.queryId)) {
             canceledSlowQueriesStatus.remove(entry.queryId);
-            logger.info("Remove query [{}] from canceledSlowQueriesStatus", entry.queryId);
+            logger.debug("Remove query [{}] from canceledSlowQueriesStatus", entry.queryId);
         }
     }
 
@@ -143,12 +143,12 @@ public class SlowQueryDetector extends Thread {
                 if (null == canceledSlowQueryStatus) {
                     canceledSlowQueriesStatus.putIfAbsent(e.getQueryId(), new CanceledSlowQueryStatus(e.getQueryId(), 1,
                             System.currentTimeMillis(), e.getRunningTime()));
-                    logger.info("Query [{}] has been canceled 1 times, put to canceledSlowQueriesStatus", e.queryId);
+                    logger.debug("Query [{}] has been canceled 1 times, put to canceledSlowQueriesStatus", e.queryId);
                 } else {
                     int canceledTimes = canceledSlowQueryStatus.getCanceledTimes() + 1;
                     canceledSlowQueriesStatus.put(e.getQueryId(), new CanceledSlowQueryStatus(e.getQueryId(),
                             canceledTimes, System.currentTimeMillis(), e.getRunningTime()));
-                    logger.info("Query [{}] has been canceled {} times", e.getQueryId(), canceledTimes);
+                    logger.debug("Query [{}] has been canceled {} times", e.getQueryId(), canceledTimes);
                 }
             } catch (Exception ex) {
                 logger.error("Record slow query status failed!", ex);

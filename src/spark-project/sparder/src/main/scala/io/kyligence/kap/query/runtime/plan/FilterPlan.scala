@@ -31,7 +31,7 @@ object FilterPlan extends LogEx {
   def filter(
               inputs: java.util.List[DataFrame],
               rel: KapFilterRel,
-              dataContext: DataContext): DataFrame = logTime("filter", info = true) {
+              dataContext: DataContext): DataFrame = logTime("filter", debug = true) {
       val df = inputs.get(0)
       val visitor = new SparderRexVisitor(df,
         rel.getInput.getRowType,

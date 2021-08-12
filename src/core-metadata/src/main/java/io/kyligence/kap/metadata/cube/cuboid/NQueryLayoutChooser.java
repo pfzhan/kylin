@@ -100,16 +100,15 @@ public class NQueryLayoutChooser {
     public static NLayoutCandidate selectLayoutCandidate(NDataflow dataflow, List<NDataSegment> prunedSegments,
             SQLDigest sqlDigest) {
 
-        logger.info("Starting matching sql {}", sqlDigest);
         if (CollectionUtils.isEmpty(prunedSegments)) {
-            logger.info("there is no segment to answer sql");
+            logger.info("There is no segment to answer sql");
             return NLayoutCandidate.EMPTY;
         }
         List<NLayoutCandidate> candidates = new ArrayList<>();
         val commonLayouts = getLayoutsFromSegments(prunedSegments, dataflow);
         val model = dataflow.getModel();
         val isBatchFusionModel = model.isFusionModel() && !dataflow.isStreaming();
-        logger.debug("Matching dataflow with seg num: {} layout num: {}", prunedSegments.size(), commonLayouts.size());
+        logger.info("Matching dataflow with seg num: {} layout num: {}", prunedSegments.size(), commonLayouts.size());
         for (NDataLayout dataLayout : commonLayouts) {
             logger.trace("Matching layout {}", dataLayout);
             CapabilityResult tempResult = new CapabilityResult();
@@ -131,7 +130,6 @@ public class NQueryLayoutChooser {
                 continue;
             }
 
-            logger.trace("Matching succeeded");
             NLayoutCandidate candidate = new NLayoutCandidate(layout);
             candidate.setCost(dataLayout.getRows() * (tempResult.influences.size() + 1.0));
             if (!needDerive.isEmpty()) {
@@ -146,7 +144,7 @@ public class NQueryLayoutChooser {
                     + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds() + "s. Current step: Layout chooser. ");
         }
 
-        logger.debug("Matched candidates num : {}", candidates.size());
+        logger.info("Matched candidates num : {}", candidates.size());
         if (candidates.isEmpty()) {
             return null;
         }

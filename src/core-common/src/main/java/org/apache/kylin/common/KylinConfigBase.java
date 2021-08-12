@@ -1628,11 +1628,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown-enabled", "true"));
     }
 
-    //see jira KE-11625
-    public boolean isPushDownUpdateEnabled() {
-        return false;
-    }
-
     public String getPushDownRunnerClassName() {
         return getOptional("kylin.query.pushdown.runner-class-name", "");
     }

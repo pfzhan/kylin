@@ -35,7 +35,7 @@ import scala.collection.JavaConverters._
 object ProjectPlan extends LogEx {
   def select(inputs: java.util.List[DataFrame],
              rel: KapProjectRel,
-             dataContext: DataContext): DataFrame = logTime("project", info = true) {
+             dataContext: DataContext): DataFrame = logTime("project", debug = true) {
     val df = inputs.get(0)
     val duplicatedColumnsCount = collection.mutable.Map[Column, Int]()
     val selectedColumns = rel.rewriteProjects.asScala

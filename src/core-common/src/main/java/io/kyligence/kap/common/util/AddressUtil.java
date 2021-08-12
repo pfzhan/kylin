@@ -24,12 +24,12 @@
 package io.kyligence.kap.common.util;
 
 import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.UnknownHostException;
-import java.util.Enumeration;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.springframework.cloud.commons.util.InetUtils;
+import org.springframework.cloud.commons.util.InetUtilsProperties;
 
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.Setter;
@@ -90,29 +90,8 @@ public class AddressUtil implements IKeep {
         if (StringUtils.isNotBlank(localIpAddress)) {
             return localIpAddress;
         }
-
-        try {
-            InetAddress candidateAddress = null;
-
-            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-            while (networkInterfaces.hasMoreElements()) {
-                NetworkInterface iface = networkInterfaces.nextElement();
-                for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
-                    InetAddress inetAddr = inetAddrs.nextElement();
-                    if (!inetAddr.isLoopbackAddress()) {
-                        if (inetAddr.isSiteLocalAddress()) {
-                            return inetAddr.getHostAddress();
-                        }
-                        if (candidateAddress == null) {
-                            candidateAddress = inetAddr;
-                        }
-                    }
-                }
-            }
-            return candidateAddress == null ? InetAddress.getLocalHost().getHostAddress() : candidateAddress.getHostAddress();
-        } catch (Exception e) {
-            log.warn("use the NetworkInterface get local ip failed!", e);
+        try(InetUtils inetUtils = new InetUtils(new InetUtilsProperties())) {
+           return inetUtils.findFirstNonLoopbackHostInfo().getIpAddress();
         }
-        return "127.0.0.1";
     }
 }

@@ -235,7 +235,7 @@ class FilePruner(val session: SparkSession,
     QueryContext.current().record("seg_pruning")
     QueryContext.current().getMetrics.setSegCount(selected.size)
 
-    logInfo(s"Query Id: ${QueryContext.current().getQueryId};Segment Num: ${selected.size}.")
+    logInfo(s"Segment Num: ${selected.size}.")
     selected = selected.par.map { e =>
       val logString = s"[fetch file status for Segment ID: ${e.segmentID}; Partition Num: ${e.partitions.size}]"
       logTime(logString, true) {
@@ -303,7 +303,7 @@ class FilePruner(val session: SparkSession,
     } else {
       var selected = inputs
       try {
-        logTime(pruningType, info = true) {
+        logTime(pruningType, debug = true) {
           selected = pruningFunc(specFilters, inputs)
           logInfo(s"$pruningType: ${FilePruner.prunedSegmentInfo(inputs, selected)}")
         }

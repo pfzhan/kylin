@@ -465,7 +465,7 @@ public class QueryHistoryTaskScheduler {
                 if (!queryHistories.isEmpty()) {
                     consumer.accept(queryHistories);
                 }
-                log.debug("{} handled  {} query history", name(), queryHistories.size());
+                log.debug("{} handled {} query history", name(), queryHistories.size());
                 if (queryHistories.size() < batchSize || finishNum >= maxSize) {
                     break;
                 }

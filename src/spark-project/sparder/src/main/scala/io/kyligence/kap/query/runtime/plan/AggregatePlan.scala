@@ -54,7 +54,7 @@ object AggregatePlan extends LogEx {
 
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel,
-          dataContext: DataContext): DataFrame = logTime("aggregate", info = true) {
+          dataContext: DataContext): DataFrame = logTime("aggregate", debug = true) {
 
     var dataFrame = inputs.get(0)
     val schemaNames = dataFrame.schema.fieldNames

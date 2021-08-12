@@ -61,6 +61,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -170,8 +171,9 @@ public class AclTCRService extends BasicService {
                 return true;
             }
             val groupsOfUser = accessService.getGroupsOfExecuteUser(sid);
-            val groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfUser, project);
-            val hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(sid, groupsInProject, project, ADMINISTRATION);
+            MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
+            val groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfUser, acl);
+            val hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(sid, groupsInProject, ADMINISTRATION, acl);
             if (hasAdminPermission) {
                 return true;
             }

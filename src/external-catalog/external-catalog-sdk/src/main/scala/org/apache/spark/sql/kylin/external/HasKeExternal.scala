@@ -43,7 +43,7 @@ trait HasKeExternal extends LogEx {
 
   protected def withClient[T](action: String)(body: => T): T = {
     try {
-      logTime(action, info = true) {
+      logTime(action, debug = true) {
         body
       }
     } catch {

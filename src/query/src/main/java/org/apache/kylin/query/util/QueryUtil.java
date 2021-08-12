@@ -146,8 +146,7 @@ public class QueryUtil {
         String[] currentTransformers = queryTransformers.stream().map(Object::getClass).map(Class::getCanonicalName)
                 .toArray(String[]::new);
         String[] configTransformers = kylinConfig.getQueryTransformers();
-        boolean containsCCTransformer = Arrays.stream(configTransformers)
-                .anyMatch(t -> t.equals("io.kyligence.kap.query.util.ConvertToComputedColumn"));
+        boolean containsCCTransformer = Arrays.asList(configTransformers).contains("io.kyligence.kap.query.util.ConvertToComputedColumn");
         boolean transformersEqual = Objects.deepEquals(currentTransformers, configTransformers);
         if (transformersEqual && (isCCNeeded || !containsCCTransformer)) {
             return;

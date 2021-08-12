@@ -215,13 +215,13 @@ public class RealizationChooser {
         Map<NDataModel, Map<String, String>> model2AliasMap = Maps.newHashMap();
 
         // Step 2.1 try to exactly match model
-        logger.debug("Context join graph: {}", context.getJoinsGraph());
+        logger.info("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
             List<Candidate> candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
-            logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), candidate != null);
             if (candidate != null && !candidate.isEmpty()) {
                 candidates.addAll(candidate);
+                logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), true);
             }
             // discard the props of OLAPContext modified by rewriteCcInnerCol
             QueryRouter.restoreOLAPContextProps(context, preservedOLAPContext);
@@ -294,7 +294,6 @@ public class RealizationChooser {
         }
         context.fixModel(model, map);
         model2AliasMap.put(model, map);
-        logger.trace("Model {} join matched", model);
 
         preprocessOlapCtx(context);
         // check ready segments
@@ -443,7 +442,7 @@ public class RealizationChooser {
         context.setPrunedSegments(prunedSegments);
         context.setPrunedPartitions(prunedPartitions);
         val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
-        logger.debug(
+        logger.info(
                 "for context {}, chosen model: {}, its join: {}, layout: {}, dimensions: {}, measures: {}, segments: {}",
                 context.getCtxId(), cuboidLayout.getModel().getAlias(), cuboidLayout.getModel().getJoinsGraph(),
                 cuboidLayout.getId(), cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures(),
@@ -501,7 +500,7 @@ public class RealizationChooser {
         if (layoutCandidate != null && !layoutCandidate.isEmptyCandidate()) {
             LayoutEntity cuboidLayout = layoutCandidate.getLayoutEntity();
             val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
-            logger.debug(
+            logger.info(
                     "for context {}, chosen model: {}, its join: {}, batch layout: {}, batch layout dimensions: {}, "
                             + "batch layout measures: {}, batch segments: {}",
                     context.getCtxId(), model.getAlias(), model.getJoinsGraph(), cuboidLayout.getId(),
@@ -511,7 +510,7 @@ public class RealizationChooser {
             LayoutEntity cuboidLayout = layoutStreamingCandidate.getLayoutEntity();
             val segmentIds = candidate.getPrunedStreamingSegments().stream().map(NDataSegment::getId)
                     .collect(Collectors.toList());
-            logger.debug(
+            logger.info(
                     "for context {}, chosen model: {}, its join: {}, streaming layout: {}, streaming layout dimensions: {}, "
                             + "streaming layout measures: {}, streaming segments: {}",
                     context.getCtxId(), model.getAlias(), model.getJoinsGraph(), cuboidLayout.getId(),
@@ -604,7 +603,7 @@ public class RealizationChooser {
             String modelAlias = model.findFirstTable(firstTable.getTableIdentity()).getAlias();
             matchUp = ImmutableMap.of(firstTable.getAlias(), modelAlias);
             matched = true;
-            logger.debug("Context fact table {} matched lookup table in model {}", ctx.firstTableScan.getTableName(),
+            logger.info("Context fact table {} matched lookup table in model {}", ctx.firstTableScan.getTableName(),
                     model);
         } else if (ctx.joins.size() != ctx.allTableScans.size() - 1) {
             // has hanging tables
@@ -620,16 +619,13 @@ public class RealizationChooser {
             if (!matched) {
                 KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
                 if (kylinConfig.isJoinMatchOptimizationEnabled()) {
-                    logger.debug(
+                    logger.info(
                             "Query match join with join match optimization mode, trying to match with newly rewrite join graph.");
                     ctx.matchJoinWithFilterTransformation();
                     ctx.matchJoinWithEnhancementTransformation();
                     matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
-                    logger.debug("Match result for match join with join match optimization mode is: {}", matched);
+                    logger.info("Match result for match join with join match optimization mode is: {}", matched);
                 }
-            }
-
-            if (!matched) {
                 logger.debug("Context join graph missed model {}, model join graph {}", model, model.getJoinsGraph());
                 logger.debug("Missed match nodes - Context {}, Model {}",
                         ctx.getJoinsGraph().unmatched(model.getJoinsGraph()),

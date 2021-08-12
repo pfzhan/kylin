@@ -71,7 +71,7 @@ public class SparkEngine implements QueryEngine {
     @Override
     public ExecuteResult computeToIterable(DataContext dataContext, RelNode relNode) {
         Dataset<Row> sparkPlan = QueryResultMasks.maskResult(toSparkPlan(dataContext, relNode));
-        log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
+        log.info("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
         if (KapConfig.getInstanceFromEnv().isOnlyPlanInSparkEngine()) {
             return ResultPlan.completeResultForMdx(sparkPlan, relNode.getRowType());
         } else {

@@ -59,8 +59,6 @@ import static org.springframework.security.acls.domain.BasePermission.ADMINISTRA
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Collections;
@@ -113,7 +111,6 @@ import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.calcite.KEDialect;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
@@ -123,6 +120,7 @@ import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.response.SQLResponseTrace;
+import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PrepareSQLUtils;
@@ -136,6 +134,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -167,12 +166,11 @@ import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.TableSchema;
 import io.kyligence.kap.query.util.QueryModelPriorities;
-import io.kyligence.kap.query.util.QueryPatternUtil;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryScheduler;
-import io.kyligence.kap.rest.aspect.Transaction;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -186,7 +184,6 @@ import lombok.val;
 public class QueryService extends BasicService {
 
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
-    public static final String UNKNOWN = "Unknown";
     private static final String JDBC_METADATA_SCHEMA = "metadata";
     private static final Logger logger = LoggerFactory.getLogger("query");
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
@@ -292,33 +289,6 @@ public class QueryService extends BasicService {
         }
     }
 
-    public SQLResponse update(SQLRequest sqlRequest) throws Exception {
-        // non select operations, only supported when enable pushdown
-        logger.debug("Query pushdown enabled, redirect the non-select query to pushdown engine.");
-        try {
-            QueryExec queryExec = newQueryExec(sqlRequest.getProject());
-            QueryParams queryParams = new QueryParams(sqlRequest.getProject(), sqlRequest.getSql(),
-                    queryExec.getSchema(), BackdoorToggles.getPrepareOnly(), false, false);
-            queryParams.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
-            Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownQuery(queryParams);
-            if (r != null) {
-                QueryContext.current().getMetrics().setResultRowCount(0);
-                QueryContext.current().getMetrics().setResultRowCount(r.getFirst().size());
-            }
-
-            List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
-            columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
-                    null, null, null, Integer.MAX_VALUE, 128, 1, "char", false, false, false));
-
-            SQLResponse sqlResponse = new SQLResponse(columnMetas, r.getFirst(), 0, false, null, false, true);
-            sqlResponse.setEngineType(QueryContext.current().getPushdownEngine());
-            return sqlResponse;
-        } catch (Exception e) {
-            logger.info("pushdown engine failed to finish current non-select query");
-            throw e;
-        }
-    }
-
     @Transaction(project = 1)
     public void saveQuery(final String creator, final String project, final Query query) throws IOException {
         aclEvaluate.checkProjectReadPermission(project);
@@ -370,7 +340,7 @@ public class QueryService extends BasicService {
             layoutIds = Collections2.transform(response.getNativeRealizations(),
                     realization -> String.valueOf(realization.getLayoutId()));
             isPartialMatchModel = Collections2.transform(response.getNativeRealizations(),
-                    realiazation -> String.valueOf(realiazation.isPartialMatchModel()));
+                    realization -> String.valueOf(realization.isPartialMatchModel()));
         }
 
         int resultRowCount = 0;
@@ -393,6 +363,12 @@ public class QueryService extends BasicService {
         KylinConfig projectConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(request.getProject()).getConfig();
 
+        String errorMsg = response.getExceptionMessage();
+        if (StringUtils.isNotBlank(errorMsg)) {
+            int maxLength = 5000;
+            errorMsg = errorMsg.length() > maxLength ? errorMsg.substring(0, maxLength) : errorMsg;
+        }
+
         LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
                 .put(LogReport.SQL, sql).put(LogReport.USER, user)
                 .put(LogReport.SUCCESS, null == response.getExceptionMessage()).put(LogReport.DURATION, duration)
@@ -412,7 +388,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.TIMEOUT, response.isTimeout())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
-                .put(LogReport.ERROR_MSG, response.getExceptionMessage())
+                .put(LogReport.ERROR_MSG, errorMsg)
                 .put(LogReport.USER_TAG, request.getUser_defined_tag())
                 .put(LogReport.PUSH_DOWN_FORCED, request.isForcedToPushDown())
                 .put(LogReport.INDEX_FORCED, request.isForcedToIndex())
@@ -423,10 +399,9 @@ public class QueryService extends BasicService {
         String log = report.oldStyleLog();
         if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery() && projectConfig.isUniqueAsyncQueryYarnQueue())) {
             logger.info(log);
-            logger.info(report.jsonStyleLog());
+            logger.debug(report.jsonStyleLog());
             if (request.getExecuteAs() != null)
-                logger.info(String.format(Locale.ROOT, "[EXECUTE AS USER]: User [%s] executes the sql as user [%s].",
-                        user, request.getExecuteAs()));
+                logger.info("[EXECUTE AS USER]: User [{}] executes the sql as user [{}].", user, request.getExecuteAs());
         }
         return log;
     }
@@ -493,7 +468,6 @@ public class QueryService extends BasicService {
     private void checkSqlRequest(SQLRequest sqlRequest) {
         Message msg = MsgPicker.getMsg();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        String serverMode = kylinConfig.getServerMode();
         if (!kylinConfig.isQueryNode()) {
             throw new KylinException(JOBNODE_API_INVALID, msg.getQUERY_NOT_ALLOWED());
         }
@@ -512,7 +486,6 @@ public class QueryService extends BasicService {
 
     public SQLResponse queryWithCache(SQLRequest sqlRequest) {
         checkSqlRequest(sqlRequest);
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
         if (sqlRequest.getBackdoorToggles() != null)
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
@@ -528,11 +501,10 @@ public class QueryService extends BasicService {
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
             queryContext.getMetrics().setServer(clusterManager.getLocalServer());
 
-            String userSQL = sqlRequest.getSql();
-            String project = sqlRequest.getProject();
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
-            logger.info("Using project: {}", project);
 
+            String userSQL = sqlRequest.getSql();
             queryContext.setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
             String sql = QueryUtil.removeCommentInSql(userSQL);
             queryContext.setUserSQL(userSQL);
@@ -603,10 +575,10 @@ public class QueryService extends BasicService {
                 queryContext.getMetrics().setCorrectedSql(queryContext.getUserSQL());
             }
             queryContext.getMetrics()
-                    .setSqlPattern(QueryPatternUtil.normalizeSQLPattern(queryContext.getMetrics().getCorrectedSql()));
+                    .setSqlPattern(queryContext.getMetrics().getCorrectedSql());
 
             KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(project).getConfig();
+                    .getProject(sqlRequest.getProject()).getConfig();
 
             if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
                     && projectKylinConfig.isUniqueAsyncQueryYarnQueue())) {
@@ -628,7 +600,6 @@ public class QueryService extends BasicService {
             return sqlResponse;
 
         } catch (Exception e) {
-            logger.error("Query error", e);
             QueryContext.current().getMetrics().setException(true);
             if (sqlResponse != null) {
                 sqlResponse.setException(true);
@@ -670,19 +641,13 @@ public class QueryService extends BasicService {
 
     @VisibleForTesting
     protected SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, long startTime, boolean queryCacheEnabled) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        Message msg = MsgPicker.getMsg();
-
         SQLResponse sqlResponse;
         try {
             final boolean isSelect = QueryUtil.isSelectStatement(sqlRequest.getSql());
             if (isSelect) {
                 sqlResponse = query(sqlRequest);
-            } else if (kylinConfig.isPushDownEnabled() && kylinConfig.isPushDownUpdateEnabled()) {
-                sqlResponse = update(sqlRequest);
             } else {
-                logger.debug("Directly return exception as the sql is unsupported, and query pushdown is disabled");
-                throw new KylinException(PERMISSION_DENIED, msg.getNOT_SUPPORTED_SQL());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getNOT_SUPPORTED_SQL());
             }
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
@@ -777,13 +742,14 @@ public class QueryService extends BasicService {
         }
 
         Set<String> groupsOfExecuteUser;
-        boolean hasAdminPermission = false;
+        boolean hasAdminPermission;
         try {
             groupsOfExecuteUser = accessService.getGroupsOfExecuteUser(executeAs);
-            Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, project);
-            hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(executeAs, groupsInProject, project,
-                    ADMINISTRATION);
-        } catch (Exception UsernameNotFoundException) {
+            MutableAclRecord acl = AclPermissionUtil.getProjectAcl(project);
+            Set<String> groupsInProject = AclPermissionUtil.filterGroupsInProject(groupsOfExecuteUser, acl);
+            hasAdminPermission = AclPermissionUtil.isSpecificPermissionInProject(executeAs, groupsInProject,
+                    ADMINISTRATION, acl);
+        } catch (UsernameNotFoundException e) {
             throw new KylinException(INVALID_USER_NAME,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_EXECUTE_AS_USER(), executeAs));
         }
@@ -1067,15 +1033,6 @@ public class QueryService extends BasicService {
         }
     }
 
-    // TODO remove if no need
-    protected void processStatementAttr(Statement s, SQLRequest sqlRequest) throws SQLException {
-        Integer statementMaxRows = BackdoorToggles.getStatementMaxRows();
-        if (statementMaxRows != null) {
-            logger.info("Setting current statement's max rows to {}", statementMaxRows);
-            s.setMaxRows(statementMaxRows);
-        }
-    }
-
     protected String makeErrorMsgUserFriendly(Throwable e) {
         return QueryUtil.makeErrorMsgUserFriendly(e);
     }
@@ -1087,7 +1044,7 @@ public class QueryService extends BasicService {
         return false;
     }
 
-    private SQLResponse buildSqlResponse(Boolean isPushDown, Iterable<List<String>> results, int resultSize,
+    private SQLResponse buildSqlResponse(boolean isPushDown, Iterable<List<String>> results, int resultSize,
             List<SelectedColumnMeta> columnMetas, String project) {
         SQLResponse response = new SQLResponse(columnMetas, results, resultSize, 0, false, null,
                 QueryContext.current().getQueryTagInfo().isPartial(), isPushDown);
@@ -1263,34 +1220,48 @@ public class QueryService extends BasicService {
         }
 
         public String oldStyleLog() {
-
             String newLine = System.getProperty("line.separator");
-            return newLine + "==========================[QUERY]===============================" + newLine
-                    + O2N.get(QUERY_ID) + get(QUERY_ID) + newLine + O2N.get(SQL) + get(SQL) + newLine + O2N.get(USER)
-                    + get(USER) + newLine + O2N.get(SUCCESS) + get(SUCCESS) + newLine + O2N.get(DURATION)
-                    + get(DURATION) + newLine + O2N.get(PROJECT) + get(PROJECT) + newLine + O2N.get(REALIZATION_NAMES)
-                    + get(REALIZATION_NAMES) + newLine + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine
-                    + O2N.get(SNAPSHOTS) + get(SNAPSHOTS) + newLine + O2N.get(IS_PARTIAL_MATCH_MODEL)
-                    + get(IS_PARTIAL_MATCH_MODEL) + newLine + O2N.get(SCAN_ROWS) + get(SCAN_ROWS) + newLine
-                    + O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine + O2N.get(SCAN_BYTES) + get(SCAN_BYTES)
-                    + newLine + O2N.get(TOTAL_SCAN_BYTES) + get(TOTAL_SCAN_BYTES) + newLine + O2N.get(RESULT_ROW_COUNT)
-                    + get(RESULT_ROW_COUNT) + newLine + O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine
-                    + O2N.get(ACCEPT_PARTIAL) + get(ACCEPT_PARTIAL) + newLine + O2N.get(PARTIAL_RESULT)
-                    + get(PARTIAL_RESULT) + newLine + O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine
-                    + O2N.get(STORAGE_CACHE_USED) + get(STORAGE_CACHE_USED) + newLine + O2N.get(PUSH_DOWN)
-                    + get(PUSH_DOWN) + newLine + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine + O2N.get(TIMEOUT)
-                    + get(TIMEOUT) + newLine + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA)
-                    + get(TIMELINE_SCHEMA) + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG)
-                    + get(ERROR_MSG) + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine + O2N.get(PUSH_DOWN_FORCED)
-                    + get(PUSH_DOWN_FORCED) + newLine + O2N.get(USER_AGENT) + get(USER_AGENT) + newLine
-                    + O2N.get(BACK_DOOR_TOGGLES) + get(BACK_DOOR_TOGGLES) + newLine
-                    + O2N.get(SCAN_SEGMENT_COUNT) + get(SCAN_SEGMENT_COUNT) + newLine
-                    + O2N.get(SCAN_FILE_COUNT) + get(SCAN_FILE_COUNT) + newLine
-                    + "==========================[QUERY]===============================" + newLine;
+            String delimiter = "==========================[QUERY]===============================";
+
+            return newLine + delimiter + newLine //
+                    + O2N.get(QUERY_ID) + get(QUERY_ID) + newLine //
+                    + O2N.get(SQL) + get(SQL) + newLine //
+                    + O2N.get(USER) + get(USER) + newLine //
+                    + O2N.get(SUCCESS) + get(SUCCESS) + newLine //
+                    + O2N.get(DURATION) + get(DURATION) + newLine //
+                    + O2N.get(PROJECT) + get(PROJECT) + newLine //
+                    + O2N.get(REALIZATION_NAMES) + get(REALIZATION_NAMES) + newLine //
+                    + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine //
+                    + O2N.get(SNAPSHOTS) + get(SNAPSHOTS) + newLine //
+                    + O2N.get(IS_PARTIAL_MATCH_MODEL) + get(IS_PARTIAL_MATCH_MODEL) + newLine //
+                    + O2N.get(SCAN_ROWS) + get(SCAN_ROWS) + newLine //
+                    + O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine //
+                    + O2N.get(SCAN_BYTES) + get(SCAN_BYTES) + newLine //
+                    + O2N.get(TOTAL_SCAN_BYTES) + get(TOTAL_SCAN_BYTES) + newLine //
+                    + O2N.get(RESULT_ROW_COUNT) + get(RESULT_ROW_COUNT) + newLine //
+                    + O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine //
+                    + O2N.get(ACCEPT_PARTIAL) + get(ACCEPT_PARTIAL) + newLine //
+                    + O2N.get(PARTIAL_RESULT) + get(PARTIAL_RESULT) + newLine //
+                    + O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine //
+                    + O2N.get(STORAGE_CACHE_USED) + get(STORAGE_CACHE_USED) + newLine //
+                    + O2N.get(PUSH_DOWN) + get(PUSH_DOWN) + newLine //
+                    + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine //
+                    + O2N.get(TIMEOUT) + get(TIMEOUT) + newLine //
+                    + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine //
+                    + O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA) + newLine //
+                    + O2N.get(TIMELINE) + get(TIMELINE) + newLine //
+                    + O2N.get(ERROR_MSG) + get(ERROR_MSG) + newLine //
+                    + O2N.get(USER_TAG) + get(USER_TAG) + newLine //
+                    + O2N.get(PUSH_DOWN_FORCED) + get(PUSH_DOWN_FORCED) + newLine //
+                    + O2N.get(USER_AGENT) + get(USER_AGENT) + newLine //
+                    + O2N.get(BACK_DOOR_TOGGLES) + get(BACK_DOOR_TOGGLES) + newLine //
+                    + O2N.get(SCAN_SEGMENT_COUNT) + get(SCAN_SEGMENT_COUNT) + newLine //
+                    + O2N.get(SCAN_FILE_COUNT) + get(SCAN_FILE_COUNT) + newLine //
+                    + delimiter + newLine;
         }
 
         public String jsonStyleLog() {
-            return "[QUERY SUMMARY]: " + new Gson().toJson(logs);
+            return "[QUERY SUMMARY]: ".concat(new Gson().toJson(logs));
         }
     }
 

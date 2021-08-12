@@ -295,7 +295,7 @@ public class RealizationPruner {
                     val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
                             .getDataflow(model.getId());
                     val segment = dataflow.getSegment(entry.getKey());
-                    log.debug("segment {} does not have partition {}", segment.displayIdName(), partition.getId());
+                    log.info("segment {} does not have partition {}", segment.displayIdName(), partition.getId());
                     return null;
                 }
             }

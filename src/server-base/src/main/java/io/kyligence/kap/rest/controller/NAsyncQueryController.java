@@ -136,7 +136,7 @@ public class NAsyncQueryController extends NBasicController {
                 queryContext.getQueryTagInfo().setFileEncode(encode);
                 queryContext.getQueryTagInfo().setFileName(sqlRequest.getFileName());
                 queryContext.setProject(sqlRequest.getProject());
-                logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
+                logger.info("Start a new async query with queryId: {}", queryContext.getQueryId());
                 String queryId = queryContext.getQueryId();
                 queryIdRef.set(queryId);
                 try {
@@ -149,7 +149,7 @@ public class NAsyncQueryController extends NBasicController {
                     }
                 } catch (Exception e) {
                     try {
-                        logger.error("failed to run query " + queryContext.getQueryId(), e);
+                        logger.error("failed to run query {}", queryContext.getQueryId(), e);
                         AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
                                 e.getMessage());
                         exceptionHandle.set(e.getMessage());

@@ -108,17 +108,18 @@ public class AclPermissionUtil {
     }
 
     public static Set<String> getCurrentUserGroupsInProject(String project, Set<String> groups) {
-        return filterGroupsInProject(groups, project);
+        MutableAclRecord acl = getProjectAcl(project);
+        return filterGroupsInProject(groups, acl);
     }
 
     public static Set<String> getUserGroupsInProject(ManagedUser user, String project) {
         Set<String> groups = user.getAuthorities().stream().map(SimpleGrantedAuthority::toString)
                 .collect(Collectors.toSet());
-        return filterGroupsInProject(groups, project);
+        MutableAclRecord acl = getProjectAcl(project);
+        return filterGroupsInProject(groups, acl);
     }
 
-    public static Set<String> filterGroupsInProject(Set<String> groups, String project) {
-        MutableAclRecord acl = getProjectAcl(project);
+    public static Set<String> filterGroupsInProject(Set<String> groups, MutableAclRecord acl) {
         if (Objects.isNull(acl)) {
             return groups;
         }
@@ -131,7 +132,7 @@ public class AclPermissionUtil {
             }
             groupsInProject.add(getName(sid));
         }
-        return groups.stream().filter(g -> groupsInProject.contains(g)).collect(Collectors.toSet());
+        return groups.stream().filter(groupsInProject::contains).collect(Collectors.toSet());
     }
 
     public static Set<String> getGroupsInProject(Set<String> groups, String project) {
@@ -171,18 +172,19 @@ public class AclPermissionUtil {
             return false;
         }
 
-        Set<String> groups = getCurrentUserGroupsInProject(project, usergroups);
-        return isSpecificPermissionInProject(auth.getName(), groups, project, ADMINISTRATION);
+        MutableAclRecord acl = getProjectAcl(project);
+        Set<String> groups = filterGroupsInProject(usergroups, acl);
+        return isSpecificPermissionInProject(auth.getName(), groups, ADMINISTRATION, acl);
     }
 
     public static boolean isSpecificPermissionInProject(ManagedUser user, String project, Permission aclPermission) {
         Set<String> groups = getUserGroupsInProject(user, project);
-        return isSpecificPermissionInProject(user.getUsername(), groups, project, aclPermission);
+        MutableAclRecord acl = getProjectAcl(project);
+        return isSpecificPermissionInProject(user.getUsername(), groups, aclPermission, acl);
     }
 
     public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject,
-            String project, Permission aclPermission) {
-        MutableAclRecord acl = getProjectAcl(project);
+                                                        Permission aclPermission, MutableAclRecord acl) {
         if (Objects.isNull(acl)) {
             return false;
         }

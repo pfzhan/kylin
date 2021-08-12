@@ -34,11 +34,11 @@ import io.kyligence.kap.query.relnode.KapRel;
 
 public interface ICutContextStrategy {
 
-    public List<OLAPRel> cutOffContext(OLAPRel rootRel, RelNode parentOfRoot);
+    List<OLAPRel> cutOffContext(OLAPRel rootRel, RelNode parentOfRoot);
 
-    public boolean needCutOff(OLAPRel rootRel);
+    boolean needCutOff(OLAPRel rootRel);
 
-    public static class CutContextImplementor {
+    class CutContextImplementor {
         private int ctxSeq;
 
         public CutContextImplementor(int ctxSeq) {

@@ -81,13 +81,13 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
             return sql;
         }
 
-        logger.info("\nStart to transform SQL with row ACL\n");
+        logger.debug("\nStart to transform SQL with row ACL\n");
         // if origin SQL has where clause, add "()", see KAP#2873
         sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
 
         sql = rowFilter(defaultSchema, sql, allWhereCondWithTbls);
 
-        logger.info("\nFinsh transforming SQL with row ACL.\n");
+        logger.debug("\nFinsh transforming SQL with row ACL.\n");
         return sql;
     }
 

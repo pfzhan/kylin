@@ -34,11 +34,19 @@
         <Logger name="io.kyligence" level="DEBUG"/>
         <Logger name="org.springframework" level="WARN"/>
         <Logger name="org.apache.kylin" level="DEBUG"/>
-        <Logger name="io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser" level="INFO"/>
         <Logger name="org.apache.spark.ui" level="WARN"/>
         <Logger name="org.apache.spark.sql.execution.ui" level="WARN"/>
         <Logger name="org.springframework.security" level="INFO"/>
         <Logger name="org.apache.spark.ContextCleaner" level="WARN"/>
         <Logger name="io.kyligence.kap.ext" level="INFO"/>
+        <!--  Query log  -->
+        <Logger name="io.kyligence.kap.query" level="INFO"/>
+        <Logger name="org.apache.kylin.query" level="INFO"/>
+        <Logger name="io.kyligence.kap.metadata.cube.model.NDataflowCapabilityChecker" level="INFO" />
+        <Logger name="org.apache.kylin.common.util.CheckUtil" level="INFO" />
+        <Logger name="io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser" level="INFO" />
+        <Logger name="io.kyligence.kap.query.runtime.plan.ResultPlan" level="INFO" />
+        <Logger name="org.apache.spark.sql.kylin.external.LogEx" level="INFO" />
+        <Logger name="io.kyligence.kap.engine.spark.utils.LogEx" level="INFO" />
     </Loggers>
 </Configuration>

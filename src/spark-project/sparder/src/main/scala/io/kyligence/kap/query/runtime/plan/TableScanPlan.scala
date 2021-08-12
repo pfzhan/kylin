@@ -67,7 +67,7 @@ object TableScanPlan extends LogEx {
     }
   }
 
-  def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = logTime("table scan", info = true) {
+  def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = logTime("table scan", debug = true) {
     val session: SparkSession = SparderEnv.getSparkSession
     val olapContext = rel.getContext
     val context = olapContext.storageContext
