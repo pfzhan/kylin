@@ -99,6 +99,7 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import lombok.val;
 import lombok.var;
 
@@ -497,7 +498,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     public void testUpdateSegmentForOnline() throws Exception {
         val segId = "c380dd2a-43b8-4268-b73d-2a5f76236901";
         val dataflowId = "e78a89dd-847f-4574-8afa-8768b4228b73";
-        streamingJobService.updateSegment(PROJECT, dataflowId, segId, null, "ONLINE");
+        streamingJobService.updateSegment(PROJECT, dataflowId, segId, null, "ONLINE", 0L);
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, PROJECT);
         NDataflow df = mgr.getDataflow(dataflowId);
@@ -505,6 +506,34 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(SegmentStatusEnum.READY, seg.getStatus());
         Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
+    }
+
+    @Test
+    public void testUpdateSegmentForCount() throws Exception {
+        val segId = "c380dd2a-43b8-4268-b73d-2a5f76236901";
+        val dataflowId = "e78a89dd-847f-4574-8afa-8768b4228b73";
+        streamingJobService.updateSegment(PROJECT, dataflowId, segId, null, "ONLINE", 100L);
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, PROJECT);
+        NDataflow df = mgr.getDataflow(dataflowId);
+        val seg = df.getSegment(segId);
+        Assert.assertEquals(100L, seg.getSourceCount());
+
+        StreamingSegmentRequest request = new StreamingSegmentRequest(PROJECT, dataflowId, 200L);
+        request.setStatus("ONLINE");
+        streamingJobService.updateSegment(request.getProject(), request.getDataflowId(), segId, null, request.getStatus(), request.getSourceCount());
+        NDataflow df2 = mgr.getDataflow(request.getDataflowId());
+        val seg2 = df2.getSegment(segId);
+        Assert.assertEquals(200L, seg2.getSourceCount());
+        Assert.assertEquals(Long.valueOf(200), request.getSourceCount());
+
+        StreamingSegmentRequest request2 = new StreamingSegmentRequest(PROJECT, dataflowId);
+        request2.setStatus("ONLINE");
+        streamingJobService.updateSegment(request2.getProject(), request2.getDataflowId(), segId, null, request2.getStatus(), request2.getSourceCount());
+        NDataflow df3 = mgr.getDataflow(request2.getDataflowId());
+        val seg3 = df3.getSegment(segId);
+        Assert.assertEquals(200L, seg3.getSourceCount());
+        Assert.assertEquals(Long.valueOf(-1), request2.getSourceCount());
     }
 
     @Test

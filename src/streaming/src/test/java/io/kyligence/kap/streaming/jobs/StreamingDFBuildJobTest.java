@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -81,6 +82,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
     @Test
     public void testStreamingBuild() {
         val config = getTestConfig();
+        KylinBuildEnv.getOrCreate(config);
         val source = (NSparkKafkaSource) SourceFactory.getSource(new ISourceAware() {
 
             @Override
@@ -128,7 +130,8 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
         mgr.updateDataflow(update2);
         streamFlatTable.seg_$eq(seg1);
         val encodedStreamDataset = streamFlatTable.encodeStreamingDataset(seg1, model, batchDF);
-        val batchBuildJob = new BuildJobEntry(ss, PROJECT, DATAFLOW_ID, seg1, encodedStreamDataset, nSpanningTree);
+        val batchBuildJob = new BuildJobEntry(ss, PROJECT, DATAFLOW_ID, 100L, seg1, encodedStreamDataset,
+                nSpanningTree);
         try {
             val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
             var newDataflow = dfMgr.getDataflow(batchBuildJob.dataflowId());

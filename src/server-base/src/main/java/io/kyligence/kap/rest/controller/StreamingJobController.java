@@ -72,7 +72,6 @@ import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
-
 @Controller
 @RequestMapping(value = "/api/streaming_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class StreamingJobController extends NBasicController {
@@ -195,7 +194,8 @@ public class StreamingJobController extends NBasicController {
         List<NDataSegment> removeSegmentList = request.getRemoveSegment();
         String status = request.getStatus();
         checkProjectName(request.getProject());
-        streamingJobService.updateSegment(project, dataflowId, segId, removeSegmentList, status);
+        streamingJobService.updateSegment(project, dataflowId, segId, removeSegmentList, status,
+                request.getSourceCount());
         return RestResponse.ok();
     }
 

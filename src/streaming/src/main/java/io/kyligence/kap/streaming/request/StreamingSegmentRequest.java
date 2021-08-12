@@ -47,6 +47,8 @@ public class StreamingSegmentRequest implements Serializable, IKeep {
 
     private String status;
 
+    private Long sourceCount = -1L;
+
     public StreamingSegmentRequest() {
 
     }
@@ -54,5 +56,11 @@ public class StreamingSegmentRequest implements Serializable, IKeep {
     public StreamingSegmentRequest(String project, String dataflowId) {
         this.project = project;
         this.dataflowId = dataflowId;
+    }
+
+    public StreamingSegmentRequest(String project, String dataflowId, Long sourceCount) {
+        this.project = project;
+        this.dataflowId = dataflowId;
+        this.sourceCount = sourceCount;
     }
 }

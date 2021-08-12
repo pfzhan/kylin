@@ -32,6 +32,7 @@ class BuildJobEntry(
                      spark: SparkSession,
                      project: String,
                      dataflowId: String,
+                     val flatTableCount: Long,
                      val batchSegment: NDataSegment,
                      val streamingFlatDS: Dataset[Row],
                      val toBuildTree: NSpanningTree) extends JobEntry(project, dataflowId, spark) {

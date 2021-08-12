@@ -91,6 +91,7 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
     @Test
     public void testStreamingMergeSegment() {
         val config = KylinConfig.getInstanceFromEnv();
+        KylinBuildEnv.getOrCreate(config);
 
         val source = (NSparkKafkaSource)SourceFactory.getSource(new ISourceAware() {
 

@@ -154,9 +154,10 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
   }
 
   def processMicroBatch(microBatchEntry: MicroBatchEntry, minMaxBuffer: ArrayBuffer[(Long, Long)]): Unit = {
-    val batchDF = microBatchEntry.batchDF
+    val batchDF = microBatchEntry.batchDF.persist(StorageLevel.MEMORY_AND_DISK)
+    val flatTableCount: Long = batchDF.count()
     val timeColumn = microBatchEntry.timeColumn
-    val minMaxTime = batchDF.persist(StorageLevel.MEMORY_AND_DISK)
+    val minMaxTime = batchDF
       .agg(F.max(F.col(timeColumn)), F.min(F.col(timeColumn)))
       .collect()
       .head
@@ -174,6 +175,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
           ss,
           prj,
           dataflowId,
+          flatTableCount,
           batchSeg,
           encodedStreamDataset,
           microBatchEntry.nSpanningTree

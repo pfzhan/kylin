@@ -236,13 +236,17 @@ public class StreamingJobService extends BasicService {
     }
 
     public void updateSegment(String project, String modelId, String segId, List<NDataSegment> removeSegmentList,
-            String status) {
+            String status, Long sourceCount) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            Long defaultSourceCount = -1L;
             NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val df = dfMgr.getDataflow(modelId);
             if (df != null) {
                 NDataflow copy = df.copy();
                 val seg = copy.getSegment(segId);
+                if (!defaultSourceCount.equals(sourceCount)) {
+                    seg.setSourceCount(sourceCount);
+                }
                 seg.setStatus(SegmentStatusEnum.READY);
                 val dfUpdate = new NDataflowUpdate(modelId);
                 dfUpdate.setToUpdateSegs(seg);

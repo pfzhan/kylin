@@ -55,7 +55,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.streaming.StreamingCommitter;
 import io.kyligence.kap.streaming.common.BuildJobEntry;
 import io.kyligence.kap.streaming.metadata.BuildLayoutWithRestUpdate;
 import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
@@ -101,8 +100,6 @@ public class StreamingDFBuildJob extends DFBuildJob {
     build(Sets.newHashSet(theRootLevelBuildInfos), buildJobEntry.batchSegment().getId(),
         buildJobEntry.toBuildTree());
 
-    StreamingCommitter.commit(ss, cuboidDatasetMap, buildJobEntry.batchSegment(), project);
-
     logger.info("start update segment");
     if(config.isUTEnv()) {
       EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
@@ -120,7 +117,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
     } else {
       RestSupport rest = new RestSupport(config);
       String url = "/streaming_jobs/dataflow/segment";
-      StreamingSegmentRequest req = new StreamingSegmentRequest(project, buildJobEntry.dataflowId());
+      StreamingSegmentRequest req = new StreamingSegmentRequest(project, buildJobEntry.dataflowId(), buildJobEntry.flatTableCount());
       req.setNewSegId(buildJobEntry.batchSegment().getId());
       req.setStatus("ONLINE");
       try{
@@ -161,13 +158,8 @@ public class StreamingDFBuildJob extends DFBuildJob {
   @Override
   protected NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
       throws IOException {
-    // just count and cache
-    ss.sparkContext().setLocalProperty("spark.scheduler.pool", "build");
-    long layoutId = layout.getId();
-    NDataLayout dataLayout = getDataLayout(seg, layoutId);
-    StreamingCommitter.saveAndCachedataset(dataset, ss, layout);
     cuboidDatasetMap.put(layout.getId(), dataset);
-    return dataLayout;
+    return super.saveAndUpdateLayout(dataset, seg, layout);
   }
 
   public NDataSegment getSegment(String segId) {
