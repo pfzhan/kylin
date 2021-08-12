@@ -47,7 +47,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -72,12 +71,6 @@ public class ComputedColumnProposer extends AbstractModelProposer {
 
         // pre-init to construct join-tree
         initModel(dataModel);
-        if (modelContext.getChecker() == null) {
-            Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
-            ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, dataModel.getJoinTables(),
-                    dataModel);
-            modelContext.setChecker(checker);
-        }
         Set<String> ccSuggestions = collectLatentCCSuggestions(modelContext, dataModel);
         transferStatusOfNeedUpdateCC(ccSuggestions);
         List<ComputedColumnDesc> newValidCCList = transferToComputedColumn(dataModel, ccSuggestions);

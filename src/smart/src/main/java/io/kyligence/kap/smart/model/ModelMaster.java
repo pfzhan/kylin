@@ -46,6 +46,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelOptProposer;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
 import io.kyligence.kap.smart.SQLAnalysisProposer;
@@ -117,9 +118,8 @@ public class ModelMaster {
 
     public NDataModel proposeComputedColumn(NDataModel dataModel) {
         log.info("Start proposing computed columns.");
-        KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
-        boolean isComputedColumnEnabled = kapConfig.isImplicitComputedColumnConvertEnabled();
-        if (!isComputedColumnEnabled) {
+        initExcludedLookChecker(modelContext, dataModel);
+        if (isComputedColumnDisable()) {
             log.warn("The feature of proposing computed column in Kyligence Enterprise has been turned off.");
             if (modelContext.getChecker() == null) {
                 Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
@@ -144,6 +144,20 @@ public class ModelMaster {
             dataModel.setComputedColumnDescs(originalCCs);
         }
         return dataModel;
+    }
+
+    private boolean isComputedColumnDisable() {
+        KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
+        return !kapConfig.isImplicitComputedColumnConvertEnabled();
+    }
+
+    private void initExcludedLookChecker(ModelContext modelContext, NDataModel dataModel) {
+        if (modelContext.getChecker() == null) {
+            Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
+            ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, dataModel.getJoinTables(),
+                    dataModel);
+            modelContext.setChecker(checker);
+        }
     }
 
     public NDataModel shrinkComputedColumn(NDataModel dataModel) {
