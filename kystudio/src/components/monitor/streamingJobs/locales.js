@@ -58,6 +58,7 @@ export default {
     errorStautsTips2: 'An unknown error occurred. Please download system diagnostic package to view the log or contact the admin.',
     disableStartJobTips: 'Can\'t be used. Please add streaming indexes first.',
     borkenModelDisableStartJobTips: 'Can\'t be used. Model {modelName} is currently broken.',
+    noPartitonColumnDisableStartJobTips: 'Can\'t be used. Please specify a timestamp field as the time partition column of this model.',
     logInfoTip: 'Log Output',
     output: 'Output',
     jobDiagnosis: 'Download Job Diagnostic Package'
@@ -119,8 +120,9 @@ export default {
     mulParamsKeyTips: '该参数已存在',
     errorStautsTips: '出现未知错误，请联系管理员查看。',
     errorStautsTips2: '出现未知错误，请下载系统诊断包查看日志或联系管理员。',
-    disableStartJobTips: '无法使用，请先添加流数据索引',
+    disableStartJobTips: '无法使用，请先添加流数据索引。',
     borkenModelDisableStartJobTips: '无法使用，模型 {modelName} 当前为 Broken 状态。',
+    noPartitonColumnDisableStartJobTips: '无法使用，请先指定一个 timestamp 类型的字段作为该模型的时间分区列。',
     logInfoTip: '日志详情',
     output: '输出',
     jobDiagnosis: '下载任务诊断包'

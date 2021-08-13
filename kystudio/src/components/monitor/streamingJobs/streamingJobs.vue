@@ -364,12 +364,14 @@ export default class StreamingJobsList extends Vue {
 
   // 模型无索引时不让启动任务
   setJobSelectable (row) {
-    return row.model_indexes && row.model_indexes > 0 && !row.model_broken
+    return row.model_indexes && row.model_indexes > 0 && !row.model_broken && row.partition_desc && row.partition_desc.partition_date_column
   }
 
   disableStartJobTips (row) {
     if (row.model_broken) {
       return this.$t('borkenModelDisableStartJobTips', {modelName: row.model_alias})
+    } else if (!(row.partition_desc && row.partition_desc.partition_date_column)) {
+      return this.$t('noPartitonColumnDisableStartJobTips')
     } else {
       return this.$t('disableStartJobTips')
     }
