@@ -140,11 +140,14 @@
               class-name="job-fc-icon"
               width="96">
               <template slot-scope="scope">
+                <common-tip :content="$t('jobDiagnosis')" v-if="monitorActions.includes('diagnostic')">
+                  <i class="el-icon-ksd-ostin_diagnose ksd-fs-14 ksd-ml-4" @click.stop="showDiagnosisDetail(scope.row.uuid)"></i>
+                </common-tip>
                 <common-tip :content="$t('configurations')">
-                  <i class="el-ksd-icon-controller_22 ksd-fs-22" @click.stop="configJob(scope.row)"></i>
+                  <i class="el-ksd-icon-controller_22 ksd-fs-22 ksd-ml-4" @click.stop="configJob(scope.row)"></i>
                 </common-tip>
                 <common-tip :content="$t('logInfoTip')" v-if="!scope.row.launching_error&&scope.row.job_status!=='STARTING'">
-                  <i name="file" class="el-ksd-icon-log_22 ksd-fs-22 ksd-ml-4" @click="clickFile(scope.row)"></i>
+                  <i name="file" class="el-ksd-icon-log_22 ksd-fs-22" @click="clickFile(scope.row)"></i>
                 </common-tip>
               </template>
             </el-table-column>
@@ -247,6 +250,7 @@
         <el-button plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </span>
     </el-dialog>
+    <diagnostic v-if="showDiagnostic" @close="showDiagnostic = false" :jobId="diagnosticId"/>
   </div>
 </template>
 
@@ -263,6 +267,7 @@ import { handleSuccessAsync } from 'util'
 import charts from 'util/charts'
 import echarts from 'echarts'
 import jobDialog from '../job_dialog'
+import Diagnostic from 'components/admin/Diagnostic/index'
 @Component({
   methods: {
     ...mapActions({
@@ -282,7 +287,8 @@ import jobDialog from '../job_dialog'
     })
   },
   components: {
-    'job_dialog': jobDialog
+    'job_dialog': jobDialog,
+    Diagnostic
   },
   computed: {
     ...mapGetters([
@@ -347,6 +353,8 @@ export default class StreamingJobsList extends Vue {
   dialogVisible = false
   showOutputJob = null
   outputDetail = ''
+  showDiagnostic = false
+  diagnosticId = ''
   get isShowAdminTips () {
     return this.$store.state.user.isShowAdminTips && this.isAdminRole && this.$store.state.config.platform !== 'iframe' && !this.$store.state.system.isShowGlobalAlter
   }
@@ -921,6 +929,10 @@ export default class StreamingJobsList extends Vue {
   }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
+  }
+  showDiagnosisDetail (id) {
+    this.diagnosticId = id
+    this.showDiagnostic = true
   }
 }
 </script>

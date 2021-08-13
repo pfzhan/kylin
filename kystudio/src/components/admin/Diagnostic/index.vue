@@ -5,17 +5,17 @@
     width="720px"
     :close-on-click-modal="false"
     :before-close="() => handleClose('header')"
-    :title="$route.name === 'Job' ? $t('jobDiagnosis') : $t('systemDiagnosis') "
+    :title="isJobDiagnosis ? $t('jobDiagnosis') : $t('systemDiagnosis') "
   >
     <div class="body">
-      <template v-if="$route.name !== 'Job'">
+      <template v-if="!isJobDiagnosis">
         <el-alert
           class="ksd-pt-0 ksd-mb-10"
           type="info"
           :show-background="false"
           :closable="false"
           show-icon>
-          <span slot="title"><span v-html="$t('downloadSystemDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('job')">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
+          <span slot="title"><span v-html="$t('downloadSystemDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('job',$route.name)">{{$t('jobPage')}}</a>{{$t('downloadSystemDiagPackage2')}}</span>
         </el-alert>
         <div class="time-range">{{$t('timeRange')}}<el-tooltip :content="$t('timeRangeTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip>：</div>
         <el-radio-group v-model="timeRangeValue" class="time-range-radio" @change="changeTimeRange" :disabled="isRunning">
@@ -46,11 +46,11 @@
           <p class="error-text" v-if="validDateTime && getDateTimeValid">{{$t('timeErrorMsg')}}</p>
         </div>
       </template>
-      <div :class="['server', $route.name !== 'Job' && 'ksd-mt-15']">
+      <div :class="['server', !isJobDiagnosis && 'ksd-mt-15']">
         <el-alert
           class="ksd-pt-0 ksd-mb-10"
           type="info"
-          v-if="$route.name === 'Job'"
+          v-if="isJobDiagnosis"
           :show-background="false"
           :closable="false"
           show-icon>
@@ -59,8 +59,19 @@
             <span slot="title" v-html="$t('downloadJobDiagPackageForNorAdminForIframe')" v-else></span>
           </template>
           <template v-else>
-            <span slot="title" v-if="isAdminRole"><span v-html="$t('downloadJobDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('admin')">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
+            <span slot="title" v-if="isAdminRole"><span v-html="$t('downloadJobDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('admin',$route.name)">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
             <span slot="title" v-html="$t('downloadJobDiagPackageForNorAdmin')" v-else></span>
+          </template>
+        </el-alert>
+        <el-alert
+          class="ksd-pt-0 ksd-mb-10"
+          type="warning"
+          v-if="$route.name === 'Job'"
+          :show-background="false"
+          :closable="false"
+          show-icon>
+          <template>
+            <span slot="title" v-html="$t('downloadJobDiagPackage3')"></span>
           </template>
         </el-alert>
         <p class="title">{{$t('server')}}</p>
@@ -84,7 +95,7 @@
               <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" ></el-progress>
               <template v-if="item.status === '001'">
                 <span :class="['retry-btn', {'ksd-ml-20': isManualDownload}]" @click="retryJob(item)">{{$t('retry')}}</span>
-                <p class="error-text">{{$t('requireOverTime1')}}<a class="user-manual" :href="$route.name !== 'Job' ? 'https://sso.kyligence.com/uaa/login.html?lang=en&source=docs' : ($lang === 'en' ? 'https://docs.kyligence.io/books/v4.0/en/monitor/job_diagnosis.en.html' : 'https://docs.kyligence.io/books/v4.0/zh-cn/monitor/job_diagnosis.cn.html')" target="_blank">{{$t('manual')}}</a>{{$t('requireOverTime2')}}</p>
+                <p class="error-text">{{$t('requireOverTime1')}}<a class="user-manual" :href="!isJobDiagnosis ? 'https://sso.kyligence.com/uaa/login.html?lang=en&source=docs' : ($lang === 'en' ? 'https://docs.kyligence.io/books/v4.0/en/monitor/job_diagnosis.en.html' : 'https://docs.kyligence.io/books/v4.0/zh-cn/monitor/job_diagnosis.cn.html')" target="_blank">{{$t('manual')}}</a>{{$t('requireOverTime2')}}</p>
               </template>
               <template v-if="['002', '999'].includes(item.status)">
                 <span class="error-text">{{item.status === '002' ? $t('noAuthorityTip') : $t('otherErrorMsg')}}</span><span class="detail-text" @click="item.showErrorDetail = !item.showErrorDetail">{{$t('details')}}<i :class="item.showErrorDetail ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
@@ -212,26 +223,30 @@ export default class Diagnostic extends Vue {
   gotoWorkspaceList () {
     postCloudUrlMessage(this.$route, { name: 'Stack' })
   }
-  goto (page) {
+  goto (page, previousPage) {
     this.jumpPage = page
     if (this.isRunning) {
       this.showPopoverTip = true
       this.popperClass = 'jumpLinks'
       this.popoverCallback = this.gotoEventCallback
     } else {
-      this.gotoEventCallback()
+      this.gotoEventCallback(previousPage)
       this.$emit('close')
     }
   }
-  gotoEventCallback () {
+  gotoEventCallback (previousPage) {
     if (this.jumpPage === 'job') {
       if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
         postCloudUrlMessage(this.$route, { name: 'kapJob' })
       } else {
-        this.$router.push('/monitor/job')
+        if (this.$route.query.previousPage && this.$route.query.previousPage === 'StreamingJob') {
+          this.$router.push('/monitor/streamingJob')
+        } else {
+          this.$router.push('/monitor/job')
+        }
       }
     } else {
-      this.$router.push('/admin/project')
+      this.$router.push(`/admin/project?previousPage=${previousPage}`)
     }
   }
   // 获取诊断包可下载数/总数
@@ -247,6 +262,10 @@ export default class Diagnostic extends Vue {
   // 是否展示手动下载提示
   get showManualDownloadLayout () {
     return Object.keys(this.diagDumpIds).filter(it => this.diagDumpIds[it].stage === 'DONE').length > 0
+  }
+  // 是否任务为Job诊断包
+  get isJobDiagnosis () {
+    return this.$route.name === 'Job' || this.$route.name === 'StreamingJob'
   }
   // 进度条title
   getTitle (item) {
@@ -349,7 +368,7 @@ export default class Diagnostic extends Vue {
   // 生成诊断包
   generateDiagnostic () {
     if (this.getDateTimeValid || !this.servers.length) return
-    if (this.$route.name === 'Job' && !this.jobId) {
+    if (this.isJobDiagnosis && !this.jobId) {
       return
     }
     this.resetDumpData(false)
@@ -357,7 +376,7 @@ export default class Diagnostic extends Vue {
     this.isShowDiagnosticProcess = true
     let apiErrorNum = 0
     let data = {}
-    if (this.$route.name === 'Job') {
+    if (this.isJobDiagnosis) {
       data = {
         job_id: this.jobId
       }

@@ -59,7 +59,8 @@ export default {
     disableStartJobTips: 'Can\'t be used. Please add streaming indexes first.',
     borkenModelDisableStartJobTips: 'Can\'t be used. Model {modelName} is currently broken.',
     logInfoTip: 'Log Output',
-    output: 'Output'
+    output: 'Output',
+    jobDiagnosis: 'Download Job Diagnostic Package'
   },
   'zh-cn': {
     adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
@@ -121,6 +122,7 @@ export default {
     disableStartJobTips: '无法使用，请先添加流数据索引',
     borkenModelDisableStartJobTips: '无法使用，模型 {modelName} 当前为 Broken 状态。',
     logInfoTip: '日志详情',
-    output: '输出'
+    output: '输出',
+    jobDiagnosis: '下载任务诊断包'
   }
 }
