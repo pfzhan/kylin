@@ -23,22 +23,25 @@
  */
 package io.kyligence.kap.rest.util;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.val;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Locale;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Locale;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 
 public class ModelUtils {
 
@@ -58,6 +61,16 @@ public class ModelUtils {
         return bigDecimal.toString();
     }
 
+    public static void checkPartitionColumn(NDataModel model,
+                                            PartitionDesc partitionDesc, String errMsg) {
+        if (!model.isBroken() && model.isStreaming()) {
+            if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+                    || !DateFormat.isTimestampFormat(partitionDesc.getPartitionDateFormat())) {
+                throw new KylinException(INVALID_PARTITION_COLUMN, errMsg);
+            }
+        }
+    }
+
     public static void checkPartitionColumn(String project, String modelId, String errMsg) {
         val config = KylinConfig.getInstanceFromEnv();
 
@@ -65,10 +78,7 @@ public class ModelUtils {
         val model = modelMgr.getDataModelDesc(modelId);
         if (!model.isBroken() && model.isStreaming()) {
             val partitionDesc = model.getPartitionDesc();
-            if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
-                    || !DateFormat.isTimestampFormat(partitionDesc.getPartitionDateFormat())) {
-                throw new KylinException(INVALID_PARTITION_COLUMN, errMsg);
-            }
+            checkPartitionColumn(model, partitionDesc, errMsg);
         }
     }
 

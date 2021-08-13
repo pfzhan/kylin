@@ -1622,15 +1622,18 @@ public class ModelService extends BasicService {
     }
 
     public void validateFusionModelDimension(ModelRequest modelRequest) {
-        val rootFactTableRef = modelRequest.getRootFactTable();
+        val rootFactTableName = modelRequest.getRootFactTableName();
         // fusion model check timestamp
-        if (rootFactTableRef != null) {
-            val TableDesc = rootFactTableRef.getTableDesc();
+        val modelType = modelRequest.getModelType();
+        if (!StringUtils.isEmpty(rootFactTableName)
+                && (modelType == null || modelType == NDataModel.ModelType.HYBRID)) {
+            val mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject());
+            val TableDesc = mgr.getTableDesc(rootFactTableName);
             if (TableDesc != null && TableDesc.getKafkaConfig() != null && TableDesc.getKafkaConfig().hasBatchTable()) {
-                val partitionDesc = modelRequest.getPartitionDesc();
-                val columnName = partitionDesc.getPartitionDateColumn();
-                val hasPartitionColumn = modelRequest.getDimensionNameIdMap().containsKey(columnName);
-                if (!hasPartitionColumn) {
+                val columnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
+                val hasPartitionColumn = modelRequest.getSimplifiedDimensions().stream()
+                        .filter(column -> column.getName().equalsIgnoreCase(columnName)).findAny().isPresent();
+                if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(columnName)) {
                     throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST()));
                 }
@@ -2774,7 +2777,7 @@ public class ModelService extends BasicService {
         val dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(modelId);
         val model = df.getModel();
-        ModelUtils.checkPartitionColumn(project, modelId, MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
+        ModelUtils.checkPartitionColumn(model, partitionDesc, MsgPicker.getMsg().getPARTITION_COLUMN_SAVE_ERROR());
 
         if (partitionDesc == null && model.getPartitionDesc() == null && df.getFirstSegment() == null
                 && !model.isMultiPartitionModel()) {

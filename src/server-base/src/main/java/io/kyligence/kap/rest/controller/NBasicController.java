@@ -501,14 +501,6 @@ public class NBasicController {
         }
     }
 
-    public void checkStreamingOperation(String project, String[] databases, String[] tables) {
-        if (!ArrayUtils.isEmpty(databases) && !ArrayUtils.isEmpty(tables)) {
-            for (int i = 0; i < databases.length; i++) {
-                checkStreamingOperation(project, databases[i] + "." + tables[i]);
-            }
-        }
-    }
-
     public void checkStreamingOperation(String project, String table) {
         val config = KylinConfig.getInstanceFromEnv();
         val kafkaConf = KafkaConfigManager.getInstance(config, project).getKafkaConfig(table);

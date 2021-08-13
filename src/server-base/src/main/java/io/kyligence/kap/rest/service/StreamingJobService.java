@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -84,6 +83,7 @@ import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import io.kyligence.kap.rest.request.StreamingJobFilter;
 import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
 import io.kyligence.kap.rest.response.StreamingJobResponse;
+import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
@@ -91,7 +91,6 @@ import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
 import lombok.val;
-import lombok.var;
 
 @Component("streamingJobService")
 public class StreamingJobService extends BasicService {
@@ -148,9 +147,7 @@ public class StreamingJobService extends BasicService {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val config = KylinConfig.getInstanceFromEnv();
             StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-            mgr.updateStreamingJob(jobId, copyForWrite -> {
-                copyForWrite.setParams(params);
-            });
+            mgr.updateStreamingJob(jobId, copyForWrite -> copyForWrite.setParams(params));
             return null;
         }, project);
     }
@@ -184,7 +181,7 @@ public class StreamingJobService extends BasicService {
                 launchStreamingJob(jobProject, modelId, JobTypeEnum.valueOf(jobType));
                 break;
             default:
-                throw new IllegalStateException("This streaming job can not do this action: " + action);
+                break;
             }
         }
     }
@@ -209,12 +206,12 @@ public class StreamingJobService extends BasicService {
         }, project);
     }
 
-    public List<StreamingJobRecord> getStreamingJobRecordList(String project, String jobId) {
+    public List<StreamingJobRecord> getStreamingJobRecordList(String jobId) {
         val mgr = StreamingJobRecordManager.getInstance();
         return mgr.queryByJobId(jobId);
     }
 
-    public String addSegment(String project, String modelId, SegmentRange rangeToMerge, String currLayer,
+    public String addSegment(String project, String modelId, SegmentRange<?> rangeToMerge, String currLayer,
             String newSegId) {
         if (!StringUtils.isEmpty(currLayer)) {
             int layer = Integer.parseInt(currLayer) + 1;
@@ -382,15 +379,12 @@ public class StreamingJobService extends BasicService {
                 val uuid = id.substring(0, id.lastIndexOf("_"));
                 val dataModel = modelMap.get(uuid);
                 if (dataModel != null) {
-                    if (dataModel.isBroken()) {
+                    if (dataModel.isBroken() || isBatchModelBroken(dataModel)) {
                         entry.setModelBroken(true);
                     } else {
-                        if (isBatchModelBroken(dataModel)) {
-                            entry.setModelBroken(true);
-                        } else {
-                            val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
-                            entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
-                        }
+                        val mgr = indexPlanService.getIndexPlanManager(entry.getProject());
+                        entry.setModelIndexes(mgr.getIndexPlan(uuid).getAllLayouts().size());
+                        entry.setPartitionDesc(dataModel.getPartitionDesc());
                     }
                 }
             });
@@ -445,14 +439,12 @@ public class StreamingJobService extends BasicService {
         }
     }
 
-    public StreamingJobDataStatsResponse getStreamingJobDataStats(String jobId, String project, Integer timeFilter) {
-        val config = KylinConfig.getInstanceFromEnv();
-        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
+    public StreamingJobDataStatsResponse getStreamingJobDataStats(String jobId, Integer timeFilter) {
         val resp = new StreamingJobDataStatsResponse();
         Message msg = MsgPicker.getMsg();
         Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
-        var startTime = System.currentTimeMillis();
         if (timeFilter > 0) {
+            long startTime;
             switch (timeFilter) {
             case 1:
             case 3:

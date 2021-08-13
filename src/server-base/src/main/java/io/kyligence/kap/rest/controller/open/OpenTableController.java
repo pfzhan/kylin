@@ -29,6 +29,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_NA
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_TABLE_SAMPLE_RANGE;
 import static org.apache.kylin.common.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
+import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_STREAMING_OPERATION;
 
 import java.io.IOException;
 import java.util.List;
@@ -120,8 +121,12 @@ public class OpenTableController extends NBasicController {
             @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
             throws IOException {
         checkProjectName(project);
-        checkStreamingOperation(project, database + "." + table);
-        List<TableDesc> result = tableService.getTableDescByType(project, withExt, table, database, isFuzzy, sourceType);
+        if (sourceType == ISourceAware.ID_STREAMING) {
+            throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
+                    MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
+        }
+        List<TableDesc> result = tableService.getTableDescByType(project, withExt, table, database, isFuzzy,
+                sourceType);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
 
@@ -132,7 +137,6 @@ public class OpenTableController extends NBasicController {
             throws Exception {
         String projectName = checkProjectName(tableLoadRequest.getProject());
         tableLoadRequest.setProject(projectName);
-        checkStreamingOperation(projectName, tableLoadRequest.getDatabases(), tableLoadRequest.getTables());
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
         validatePriority(tableLoadRequest.getPriority());
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())

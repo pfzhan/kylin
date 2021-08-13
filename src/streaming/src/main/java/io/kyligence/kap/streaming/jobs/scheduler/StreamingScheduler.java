@@ -26,13 +26,10 @@ package io.kyligence.kap.streaming.jobs.scheduler;
 
 import java.util.AbstractMap;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,21 +51,20 @@ import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.springframework.util.CollectionUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cluster.ClusterManagerFactory;
-import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
@@ -81,7 +77,6 @@ import lombok.Getter;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class StreamingScheduler {
@@ -105,6 +100,7 @@ public class StreamingScheduler {
             JobStatusEnum.NEW);
 
     private static StreamingJobStatusWatcher jobStatusUpdater = new StreamingJobStatusWatcher();
+    private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
 
     public StreamingScheduler(String project) {
         Preconditions.checkNotNull(project);
@@ -137,7 +133,9 @@ public class StreamingScheduler {
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
-
+        if (!config.isUTEnv()) {
+            epochId = EpochManager.getInstance(config).getEpochId(project);
+        }
         int maxPoolSize = config.getMaxStreamingConcurrentJobLimit();
         ThreadFactory executorThreadFactory = new BasicThreadFactory.Builder()
                 .namingPattern("StreamingJobWorker(project:" + project + ")").uncaughtExceptionHandler((t, e) -> {
@@ -156,7 +154,9 @@ public class StreamingScheduler {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
-
+        if (checkEpochIdFailed(project)) {
+            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, jobId);
+        }
         checkJobStartStatus(jobMeta, jobId);
         int code = JobKiller.killProcess(jobMeta);
         if (code != 1) {
@@ -191,7 +191,7 @@ public class StreamingScheduler {
         if (existed) {
             StreamingJobManager jobMgr = StreamingJobManager.getInstance(config, project);
             JobStatusEnum status = jobMgr.getStreamingJobByUuid(jobId).getCurrentStatus();
-            if (isFailed(status) || isFinished(status)) {
+            if (JobStatusEnum.ERROR == status || JobStatusEnum.STOPPED == status) {
                 return;
             }
             MetaInfoUpdater.updateJobState(project, jobId, JobStatusEnum.STOPPING);
@@ -237,25 +237,11 @@ public class StreamingScheduler {
         log.info("Shutting down DefaultScheduler ....");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-        List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta();
-        List<StreamingJobMeta> retryJobMetaList = jobMetaList.stream()
-                .filter(meta -> JobStatusEnum.RUNNING == meta.getCurrentStatus()).collect(Collectors.toList());
-        val modelSet = new HashSet<StreamingJobMeta>();
-        retryJobMetaList.forEach(meta -> {
-            stopJob(meta.getModelId(), meta.getJobType());
-            modelSet.add(meta);
-        });
-        // wait stremaing job to shutdown gracefully
-        val jobMap = waitJob(modelSet, status -> isFinished(status) || isFailed(status),
-                config.getStreamingJobShutdownTimeout());
-
-        // kill job for wait too long time
-        jobMap.entrySet().stream().forEach(entry -> {
-            if (!entry.getValue().get()) {
-                log.info("Starts to kill streaming job:" + entry.getKey());
-                killJob(entry.getKey(), JobStatusEnum.ERROR);
-            }
-        });
+        List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta().stream()
+                .filter(meta -> JobStatusEnum.RUNNING == meta.getCurrentStatus()
+                        || JobStatusEnum.STARTING == meta.getCurrentStatus())
+                .collect(Collectors.toList());
+        jobMetaList.forEach(meta -> killJob(meta.getModelId(), meta.getJobType(), JobStatusEnum.STOPPED));
         releaseResources();
         ExecutorServiceUtil.forceShutdown(jobPool);
     }
@@ -264,56 +250,6 @@ public class StreamingScheduler {
         initialized.set(false);
         hasStarted.set(false);
         INSTANCE_MAP.remove(project);
-    }
-
-    private Map<String, AtomicBoolean> waitJob(Set<StreamingJobMeta> modelIds, Predicate<JobStatusEnum> predicate,
-            long timeout) {
-        val config = KylinConfig.getInstanceFromEnv();
-        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-
-        val jobMap = new HashMap<String, AtomicBoolean>();
-        modelIds.stream().forEach(item -> jobMap
-                .put(StreamingUtils.getJobId(item.getModelId(), item.getJobType().name()), new AtomicBoolean(false)));
-
-        long startTime = System.currentTimeMillis();
-        while (true) {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                log.error(e.getMessage(), e);
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
-            jobMap.forEach((jobId, isDone) -> {
-                StreamingJobMeta meta = mgr.getStreamingJobByUuid(jobId);
-                if (predicate.apply(meta.getCurrentStatus())) {
-                    isDone.set(true);
-                }
-            });
-            if (jobMap.size() == jobMap.values().stream().filter(item -> item.get()).count()) {
-                break;
-            }
-
-            if (timeout > 0 && (System.currentTimeMillis() - startTime) / (60 * 1000) > timeout) {
-                break;
-            }
-        }
-        return jobMap;
-    }
-
-    private boolean isFailed(JobStatusEnum state) {
-        if (JobStatusEnum.ERROR == state) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isFinished(JobStatusEnum state) {
-        if (JobStatusEnum.STOPPED == state) {
-            return true;
-        }
-        return false;
     }
 
     private void checkJobStartStatus(StreamingJobMeta jobMeta, String jobId) {
@@ -395,26 +331,11 @@ public class StreamingScheduler {
         }, project);
     }
 
-    public static boolean applicationExisted(String jobId) {
-        boolean existed = false;
-        val config = KylinConfig.getInstanceFromEnv();
-        if (!config.isUTEnv() && !StreamingUtils.isLocalMode()) {
-            int errCnt = 0;
-            while (errCnt++ < 3) {
-                try {
-                    final IClusterManager cm = ClusterManagerFactory.create(config);
-                    existed = cm.applicationExisted(jobId);
-                    return existed;
-                } catch (UncheckedTimeoutException e) {
-                    log.warn(e.getMessage());
-                    existed = false;
-                }
-            }
-        }
-        return existed;
+    public boolean applicationExisted(String jobId) {
+        return JobKiller.applicationExisted(jobId);
     }
 
-    private void killYarnApplication(String jobId, String modelId) {
+    public void killYarnApplication(String jobId, String modelId) {
         boolean isExists = applicationExisted(jobId);
         if (isExists) {
             JobKiller.killApplication(jobId);
@@ -484,5 +405,14 @@ public class StreamingScheduler {
             });
             return null;
         }, project);
+    }
+
+    public boolean checkEpochIdFailed(String project) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()
+                && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+            getInstance(project).forceShutdown();
+            return true;
+        }
+        return false;
     }
 }

@@ -2478,7 +2478,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
             req.setForce2CreateNewModel(false);
             return req;
         };
-
         String normSql = "select test_order.order_id,buyer_id from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
@@ -4704,7 +4703,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setProject(project);
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
-        modelRequest.setRootFactTableRef(dataModel.getRootFactTableRef());
+        Mockito.when(modelRequest.getSimplifiedDimensions()).thenReturn(new ArrayList<>(0));
+        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());
+        modelService.validateFusionModelDimension(modelRequest);
+    }
+
+    @Test
+    public void testValidateFusionModelDimensions1() {
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        val project = "streaming_test";
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
+        val dataModel = modelMgr.getDataModelDesc(modelId);
+        ModelRequest modelRequest = Mockito.spy(new ModelRequest(dataModel));
+        modelRequest.setProject(project);
+        modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
+        modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
         Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST());

@@ -81,6 +81,36 @@ public class JobKillerTest extends StreamingTestCase {
     }
 
     @Test
+    public void testYarnApplicationExisted() {
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", true);
+        val id = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        ReflectionUtils.setField(JobKiller.class, "mock", new MockClusterManager() {
+            @Override
+            public boolean applicationExisted(String jobId) {
+                return true;
+            }
+        });
+        Assert.assertTrue(JobKiller.applicationExisted(id));
+        ReflectionUtils.setField(JobKiller.class, "mock", null);
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", false);
+    }
+
+    @Test
+    public void testYarnApplicationExistedException() {
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", true);
+        val id = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        ReflectionUtils.setField(JobKiller.class, "mock", new MockClusterManager() {
+            @Override
+            public boolean applicationExisted(String jobId) {
+                throw new UncheckedTimeoutException("mock timeout");
+            }
+        });
+        Assert.assertFalse(JobKiller.applicationExisted(id));
+        ReflectionUtils.setField(JobKiller.class, "mock", null);
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", false);
+    }
+
+    @Test
     public void testKillYarnApplication() {
         ReflectionUtils.setField(JobKiller.class, "isYarnEnv", true);
         val id = "e78a89dd-847f-4574-8afa-8768b4228b72_build";

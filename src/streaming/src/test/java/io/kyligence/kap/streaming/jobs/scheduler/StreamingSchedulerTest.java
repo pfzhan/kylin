@@ -25,16 +25,17 @@ package io.kyligence.kap.streaming.jobs.scheduler;
 
 import java.util.Map;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
@@ -53,12 +54,10 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     private static String PROJECT = "streaming_test";
     private static String modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
     private static String dataflowId = modelId;
-    private SparkSession ss;
 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        ss = createSparkSession();
         val map = (Map<String, StreamingScheduler>)ReflectionUtils.getField(StreamingScheduler.class, "INSTANCE_MAP");
         map.clear();
     }
@@ -66,7 +65,6 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     @After
     public void tearDown() {
         this.cleanupTestMetadata();
-        ss.close();
     }
 
     @Test
@@ -95,6 +93,22 @@ public class StreamingSchedulerTest extends StreamingTestCase {
             Assert.assertEquals(true, e instanceof IllegalStateException);
         }
         streamingScheduler.forceShutdown();
+    }
+
+    @Test
+    public void testSubmitJobCheckEpochFail() {
+        val streamingScheduler = Mockito.spy(new StreamingScheduler(PROJECT));
+        streamingScheduler.init();
+        Assert.assertEquals(true, streamingScheduler.getInitialized().get());
+        Assert.assertEquals(true, streamingScheduler.getHasStarted().get());
+        Mockito.when(streamingScheduler.checkEpochIdFailed(PROJECT)).thenReturn(true);
+        thrown.expect(KylinException.class);
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+        val testConfig = getTestConfig();
+        val mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
+        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
+        Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
     }
 
     @Test
@@ -223,6 +237,26 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     }
 
     @Test
+    public void testStopYarnJob() {
+        val streamingScheduler = Mockito.spy(new StreamingScheduler(PROJECT));
+        val jobType = JobTypeEnum.STREAMING_MERGE;
+        val jobId = StreamingUtils.getJobId(modelId, jobType.toString());
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        Mockito.when(streamingScheduler.applicationExisted(jobId)).thenReturn(true);
+
+        var jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, jobMeta.getCurrentStatus());
+
+        streamingScheduler.stopJob(modelId, jobType);
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.STOPPING, jobMeta.getCurrentStatus());
+    }
+
+    @Test
     public void testRetryJob() {
         val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
         val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
@@ -317,6 +351,21 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     }
 
     @Test
+    public void testKillYarnApplication() {
+        val streamingScheduler = Mockito.spy(new StreamingScheduler(PROJECT));
+        val jobType = JobTypeEnum.STREAMING_MERGE;
+        val jobId = StreamingUtils.getJobId(modelId, jobType.toString());
+        val config = getTestConfig();
+        StreamingJobManager mgr = StreamingJobManager.getInstance(config, PROJECT);
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setCurrentStatus(JobStatusEnum.RUNNING);
+        });
+        Mockito.when(streamingScheduler.applicationExisted(jobId)).thenReturn(true);
+        thrown.expect(KylinException.class);
+        streamingScheduler.killYarnApplication(jobId, modelId);
+    }
+
+    @Test
     public void testForceStopStreamingJob() {
         val buildJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
         val mergeJobId = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
@@ -354,5 +403,19 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         instance.skipJobListener(PROJECT, buildJobId, false);
         buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
         Assert.assertFalse(buildJobMeta.isSkipListener());
+    }
+
+    @Test
+    public void testGetInstanceByProject() {
+        val instance = StreamingScheduler.getInstanceByProject(PROJECT + "_not_exist");
+        Assert.assertNull(instance);
+    }
+
+    @Test
+    public void testShutdownByProject() {
+        StreamingScheduler.getInstance(PROJECT);
+        StreamingScheduler.shutdownByProject(PROJECT);
+        val map = (Map<String, StreamingScheduler>)ReflectionUtils.getField(StreamingScheduler.class, "INSTANCE_MAP");
+        Assert.assertTrue(map.isEmpty());
     }
 }

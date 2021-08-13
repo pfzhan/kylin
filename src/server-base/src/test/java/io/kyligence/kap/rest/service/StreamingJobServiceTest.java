@@ -42,11 +42,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -86,13 +81,18 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobStats;
 import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.request.StreamingJobActionEnum;
 import io.kyligence.kap.rest.request.StreamingJobFilter;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
@@ -126,7 +126,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private static String[] timeZones = {"GMT+8", "CST", "PST", "UTC"};
+    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     private static String PROJECT = "streaming_test";
     private static String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
@@ -174,6 +174,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(8, list.getTotalSize());
         Assert.assertTrue(!list.getValue().get(0).isModelBroken());
+        Assert.assertNotNull(list.getValue().get(0).getPartitionDesc());
 
         // modelName filter
         jobFilter = new StreamingJobFilter("stream_merge", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
@@ -289,30 +290,33 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         model.setFusionId("4965c827-fbb4-4ea1-a744-3f341a3b030d");
         val result = streamingJobService.isBatchModelBroken(model);
         Assert.assertTrue(result);
+        val result1 = streamingJobService.isBatchModelBroken(null);
+        Assert.assertTrue(result1);
     }
 
     @Test
     public void testGetStreamingJobDataStats() throws Exception {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
-        val meta1 = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 1);
+        val meta1 = streamingJobService.getStreamingJobDataStats(jobId, 1);
         Assert.assertEquals("500,400", StringUtils.join(meta1.getDataLatencyHist(), ","));
         Assert.assertEquals("32,8", StringUtils.join(meta1.getConsumptionRateHist(), ","));
         Assert.assertEquals("1200,3200", StringUtils.join(meta1.getProcessingTimeHist(), ","));
-        val meta3 = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 3);
+        val meta3 = streamingJobService.getStreamingJobDataStats(jobId, 3);
         Assert.assertNotNull(meta3);
-        val meta7 = streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 7);
+        val meta7 = streamingJobService.getStreamingJobDataStats(jobId, 7);
         Assert.assertNotNull(meta7);
+        val meta8 = streamingJobService.getStreamingJobDataStats(jobId, 0);
+        Assert.assertNull(meta8.getConsumptionRateHist());
         streamingJobsStatsManager.dropTable();
     }
-
 
     @Test
     public void testGetStreamingJobDataStatsException() throws Exception {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
         try {
-            streamingJobService.getStreamingJobDataStats(jobId, PROJECT, 9);
+            streamingJobService.getStreamingJobDataStats(jobId, 9);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
         } finally {
@@ -468,6 +472,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val newSeg = df.getSegment(newSegId);
         Assert.assertEquals(newSegId, newSeg.getId());
         Assert.assertEquals("1", newSeg.getAdditionalInfo().get(StreamingConstants.FILE_LAYER));
+        val segId = streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, "0", newSegId);
+        Assert.assertEquals(StringUtils.EMPTY, segId);
     }
 
     @Test
@@ -482,6 +488,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val newSeg = df.getSegment(newSegId);
         Assert.assertEquals(newSegId, newSeg.getId());
         Assert.assertNull(newSeg.getAdditionalInfo().get(StreamingConstants.FILE_LAYER));
+        val segId =streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, null, newSegId);
+        Assert.assertEquals(StringUtils.EMPTY, segId);
+
     }
 
     @Test
@@ -547,6 +556,18 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testCollectStreamingJobStatsException() {
+        val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
+        Mockito.when(streamingJobService.getStreamingJobStatsManager()).thenReturn(null);
+        val req = new StreamingJobStatsRequest(jobId, PROJECT, 123L, 123.2, 42L, 30L, 50L, 60L);
+        try{
+            streamingJobService.collectStreamingJobStats(req);
+        }catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testGetStreamingJobInfoOfNoData() {
         val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
         streamingJobsStatsManager.deleteAllStreamingJobStats();
@@ -604,7 +625,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     public void testGetStreamingJobRecordList() throws Exception {
         val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
         createRecordData(jobId);
-        val list = streamingJobService.getStreamingJobRecordList(PROJECT, jobId);
+        val list = streamingJobService.getStreamingJobRecordList(jobId);
         Assert.assertEquals(3, list.size());
         Assert.assertEquals("START", list.get(0).getAction());
         Assert.assertEquals("STOP", list.get(1).getAction());

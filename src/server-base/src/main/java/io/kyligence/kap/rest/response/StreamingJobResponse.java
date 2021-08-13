@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.rest.response;
 
+import org.apache.kylin.metadata.model.PartitionDesc;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.Data;
 
@@ -65,4 +68,7 @@ public class StreamingJobResponse extends StreamingJobMeta{
 
     @JsonProperty("launching_error")
     private boolean launchingError = false;
+
+    @JsonProperty("partition_desc")
+    private PartitionDesc partitionDesc;
 }

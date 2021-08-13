@@ -143,7 +143,7 @@ public class StreamingJobController extends NBasicController {
     public EnvelopeResponse<StreamingJobDataStatsResponse> getStreamingJobDataStats(
             @PathVariable(value = "jobId") String jobId, @RequestParam(value = "project") String project,
             @RequestParam(value = "time_filter", required = false, defaultValue = "-1") Integer timeFilter) {
-        val response = streamingJobService.getStreamingJobDataStats(jobId, project, timeFilter);
+        val response = streamingJobService.getStreamingJobDataStats(jobId, timeFilter);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -170,7 +170,7 @@ public class StreamingJobController extends NBasicController {
     public EnvelopeResponse<List<StreamingJobRecord>> getStreamingJobRecordList(
             @RequestParam(value = "project") String project, @RequestParam(value = "job_id") String jobId) {
         checkProjectName(project);
-        val data = streamingJobService.getStreamingJobRecordList(project, jobId);
+        val data = streamingJobService.getStreamingJobRecordList(jobId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, data, "");
     }
 

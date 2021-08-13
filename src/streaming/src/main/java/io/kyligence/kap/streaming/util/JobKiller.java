@@ -61,6 +61,23 @@ public class JobKiller {
         }
     }
 
+    public static boolean applicationExisted(String jobId) {
+        boolean existed = false;
+        if (isYarnEnv) {
+            int errCnt = 0;
+            while (errCnt++ < 3) {
+                try {
+                    final IClusterManager cm = createClusterManager();
+                    return cm.applicationExisted(jobId);
+                } catch (UncheckedTimeoutException e) {
+                    logger.warn(e.getMessage());
+                    existed = false;
+                }
+            }
+        }
+        return existed;
+    }
+
     public static synchronized void killApplication(String jobId) {
         if (isYarnEnv) {
             int errCnt = 0;

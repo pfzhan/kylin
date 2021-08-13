@@ -24,17 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.mockito.Mockito.doNothing;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
-import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
-import io.kyligence.kap.rest.response.NDataModelResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -70,8 +67,13 @@ import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
+import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import lombok.val;
@@ -172,7 +174,7 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
                 .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
         dimensions.removeIf(column -> column.getAliasDotColumn().equalsIgnoreCase("P_LINEORDER_STREAMING.LO_PARTKEY"));
         request.setSimplifiedDimensions(dimensions);
-
+        doNothing().when(modelService).validateFusionModelDimension(Mockito.any());
         fusionModelService.updateDataModelSemantic("streaming_test", request);
 
         model = modelMgr.getDataModelDesc(modelId);

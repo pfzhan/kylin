@@ -137,15 +137,16 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
         // call failed  when table is kafka table
         String project1 = "streaming_test";
-        String tableName1 = "P_LINEORDER";
+        String tableName1 = "P_LINEORDER_STR";
         String database1 = "SSB";
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .param("project", project1).param("table", tableName1).param("database", database1)
+                .param("source_type", "1")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
-        Mockito.verify(openTableController).getTableDesc(project1, tableName1, database1, false, true, 0, 10, 9);
+        Mockito.verify(openTableController).getTableDesc(project1, tableName1, database1, false, true, 0, 10, 1);
     }
 
     @Test
@@ -224,6 +225,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).loadTables(tableLoadRequest);
+
     }
 
     @Test
