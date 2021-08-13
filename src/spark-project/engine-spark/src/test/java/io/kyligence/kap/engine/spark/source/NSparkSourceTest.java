@@ -98,4 +98,9 @@ public class NSparkSourceTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
                 && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }
+
+    @Test
+    public void testSupportBuildSnapShotByPartition() {
+        assert new NSparkDataSource(getTestConfig()).supportBuildSnapShotByPartition();
+    }
 }

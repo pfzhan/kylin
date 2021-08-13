@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import java.util.Arrays;
@@ -111,7 +109,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
         overrideKylinProps.put("kylin.query.force-limit", "-1");
-        overrideKylinProps.put("kylin.source.default", "11");
+        overrideKylinProps.put("kylin.source.default", "1");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
                 projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
                 MaintainModelType.AUTO_MAINTAIN);
@@ -253,6 +251,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(snapshotService, "tableService", tableService);
         NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         TableDesc tableDesc = tbgr.copyForWrite(tbgr.getTableDesc(table1));
+        tableDesc.setSourceType(1);
         tableDesc.setPartitionColumn(partitionCol);
 
         Mockito.when(tableService.extractTableMeta(Arrays.asList(table1).toArray(new String[0]), PROJECT))
@@ -428,6 +427,28 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testConfigPartitionColNotSupportSource() {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = projectManager.getProject("default");
+        LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
+        overrideKylinProps.put("kylin.query.force-limit", "-1");
+        overrideKylinProps.put("kylin.source.default", "8");
+        ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
+                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
+                MaintainModelType.AUTO_MAINTAIN);
+        projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
+                projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
+        enableSnapshotManualManagement();
+        String partColName = "CAL_DT";
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        thrown.expect(KylinException.class);
+        snapshotService.configSnapshotPartitionCol(PROJECT,
+                ImmutableMap.<String, String> builder().put(tableName, partColName).build());
+        thrown.expectMessage("not support");
+
+    }
+
+    @Test
     public void testConfigNonExistPartitionCol() {
         enableSnapshotManualManagement();
         thrown.expect(KylinException.class);
@@ -518,7 +539,6 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         SnapshotColResponse response = snapshotService.reloadPartitionCol(PROJECT, tableName[0]);
         Assert.assertEquals(partColName, response.getPartitionCol());
     }
-
 
     private String getSnapshotPath(String tableName) {
         return NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName)

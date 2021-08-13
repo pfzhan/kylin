@@ -27,12 +27,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 
 @Getter
 @Setter
@@ -53,23 +54,29 @@ public class SnapshotColResponse implements Comparable<SnapshotColResponse> {
     @JsonProperty("other_column_and_type")
     private Map<String, String> otherCol;
 
+    @JsonProperty("source_type")
+    private int sourceType;
+
     public SnapshotColResponse(String database, String table, String partitionCol, String partitionColType,
-            Map<String, String> otherCol) {
+            Map<String, String> otherCol, int sourceType) {
         this.database = database;
         this.table = table;
         this.partitionCol = partitionCol;
         this.partitionColType = partitionColType;
         this.otherCol = otherCol;
+        this.sourceType = sourceType;
     }
 
     public static SnapshotColResponse from(TableDesc table) {
         if (table.getPartitionColumn() != null) {
+
             ColumnDesc partCol = table.findColumnByName(table.getPartitionColumn());
             return new SnapshotColResponse(table.getDatabase(), table.getName(), partCol.getName(),
-                    partCol.getDatatype(), excludePartCol(table.getColumns(), partCol.getName()));
+                    partCol.getDatatype(), excludePartCol(table.getColumns(), partCol.getName()),
+                    table.getSourceType());
         } else {
             return new SnapshotColResponse(table.getDatabase(), table.getName(), null, null,
-                    excludePartCol(table.getColumns(), null));
+                    excludePartCol(table.getColumns(), null), table.getSourceType());
         }
     }
 

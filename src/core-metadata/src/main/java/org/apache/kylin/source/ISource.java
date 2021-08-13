@@ -42,12 +42,12 @@
 
 package org.apache.kylin.source;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
-
-import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * Represents a kind of source to Kylin, like Hive.
@@ -88,4 +88,6 @@ public interface ISource extends Closeable {
     default void close() throws IOException {
         // just implement it
     }
+
+    boolean supportBuildSnapShotByPartition();
 }

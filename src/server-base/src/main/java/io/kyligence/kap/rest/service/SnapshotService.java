@@ -28,6 +28,7 @@ import static io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus.BROKE
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_MANAGEMENT_NOT_ENABLED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_NOT_EXIST;
@@ -59,12 +60,15 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
+import org.apache.kylin.source.ISource;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -209,6 +213,7 @@ public class SnapshotService extends BasicService {
             SnapshotRequest.TableOption option = options.get(table.getIdentity());
             if (option != null) {
                 String partCol = option.getPartitionCol();
+                checkSupportBuildSnapShotByPartition(table);
                 if (StringUtils.isNotEmpty(partCol) && table.findColumnByName(partCol) == null) {
                     throw new IllegalArgumentException(
                             String.format(Locale.ROOT, "table %s col %s not exist", table.getIdentity(), partCol));
@@ -674,9 +679,18 @@ public class SnapshotService extends BasicService {
         return tableNameResponses;
     }
 
+    private void checkSupportBuildSnapShotByPartition(ISourceAware sourceAware) {
+        ISource source = SourceFactory.getSource(sourceAware);
+        if (!source.supportBuildSnapShotByPartition()) {
+            throw new KylinException(INVALID_PARAMETER,
+                    "not support build snapshot by partition column in current datasource");
+        }
+    }
+
     @Transaction(project = 0)
     public void configSnapshotPartitionCol(String project, Map<String, String> table2PartCol) {
         checkSnapshotManualManagement(project);
+        checkSupportBuildSnapShotByPartition(getProjectManager().getProject(project));
         aclEvaluate.checkProjectOperationPermission(project);
         checkTableAndCol(project, table2PartCol);
 

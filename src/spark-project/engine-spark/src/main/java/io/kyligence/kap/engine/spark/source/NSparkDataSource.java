@@ -79,4 +79,9 @@ public class NSparkDataSource implements ISource, IKeepNames {
         return new SegmentRange.TimePartitionedSegmentRange(Long.parseLong(start), Long.parseLong(end));
     }
 
+    @Override
+    public boolean supportBuildSnapShotByPartition() {
+        return true;
+    }
+
 }

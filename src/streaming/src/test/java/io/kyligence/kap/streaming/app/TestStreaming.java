@@ -90,6 +90,7 @@ public class TestStreaming extends StreamingTestCase {
                 return config;
             }
         });
+        assert source.supportBuildSnapShotByPartition();
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);
         var df = dfMgr.getDataflow(DATAFLOW_ID);
         // cleanup all segments first

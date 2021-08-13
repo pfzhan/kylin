@@ -201,4 +201,9 @@ public class CsvSource implements ISource {
             throw new IllegalStateException();
         return utMetaDir;
     }
+
+    @Override
+    public boolean supportBuildSnapShotByPartition() {
+        return true;
+    }
 }

@@ -97,4 +97,9 @@ public class JdbcSource implements ISource, IKeepNames {
             dataSource.close();
         }
     }
+
+    @Override
+    public boolean supportBuildSnapShotByPartition() {
+        return false;
+    }
 }

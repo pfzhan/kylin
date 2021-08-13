@@ -73,7 +73,7 @@ public class JdbcSourceTest extends JdbcTestBase {
         Assert.assertTrue(reader instanceof JdbcTableReader);
         Assert.assertTrue(readableTable.exists());
         Assert.assertNotNull(readableTable.getSignature());
-        while(reader.next()){
+        while (reader.next()) {
             String[] row = reader.getRow();
             Assert.assertNotNull(row);
         }
@@ -85,6 +85,7 @@ public class JdbcSourceTest extends JdbcTestBase {
         SegmentRange segmentRange2 = source.getSegmentRange("", "");
         Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
                 && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
+        assert !source.supportBuildSnapShotByPartition();
         source.close();
     }
 }

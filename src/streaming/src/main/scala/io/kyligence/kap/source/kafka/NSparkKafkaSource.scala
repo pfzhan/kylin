@@ -109,5 +109,7 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
     event.offer(text)
   }
 
+  override def supportBuildSnapShotByPartition = true
+
   // scalastyle:on
 }

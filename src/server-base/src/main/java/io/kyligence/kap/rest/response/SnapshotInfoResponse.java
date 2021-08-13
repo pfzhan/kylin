@@ -70,6 +70,9 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
     @JsonProperty("select_partition_col")
     private String selectPartitionCol;
 
+    @JsonProperty("source_type")
+    private int sourceType;
+
     public SnapshotInfoResponse() {
     }
 
@@ -87,6 +90,7 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
         this.status = status;
         this.columns = columns;
         this.selectPartitionCol = tableDesc.getSelectedSnapshotPartitionCol();
+        this.sourceType = tableDesc.getSourceType();
     }
 
     @Override
