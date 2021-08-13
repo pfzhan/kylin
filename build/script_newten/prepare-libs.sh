@@ -35,3 +35,4 @@ rm -rf build/lib build/tool
 mkdir build/lib build/tool
 cp src/assembly/target/kap-assembly-${kap_version}-job.jar build/lib/newten-job.jar
 mkdir -p build/lib/ext
+cp src/server/target/jars/kap-second-storage-clickhouse-*.jar build/lib/ext/kap-second-storage-clickhouse-${release_version}.jar
