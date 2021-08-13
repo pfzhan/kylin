@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -51,6 +52,9 @@ public class CacheCleanListener implements EventListenerRegistry.ResourceEventLi
             Pattern.compile("/([^/]+)" + ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/([^/]+)"),
             Pattern.compile("/([^/]+)" + ResourceStore.EXTERNAL_FILTER_RESOURCE_ROOT + "/([^/]+)"));
 
+    private static final List<Pattern> KAFKA_RESOURCE_PATTERN = Lists
+            .newArrayList(Pattern.compile("/([^/]+)" + ResourceStore.KAFKA_RESOURCE_ROOT + "/([^/]+)"));
+
     @Override
     public void onUpdate(KylinConfig config, RawResource rawResource) {
         // Do nothing. Cache will update internally because mvcc is changed.
@@ -70,6 +74,13 @@ public class CacheCleanListener implements EventListenerRegistry.ResourceEventLi
                 String table = extractTable(resPath, pattern);
                 if (StringUtils.isNotBlank(project) && StringUtils.isNotBlank(table)) {
                     NTableMetadataManager.getInstance(config, project).invalidCache(table);
+                }
+            });
+            KAFKA_RESOURCE_PATTERN.forEach(pattern -> {
+                String project = extractProject(resPath, pattern);
+                String kafkaTableName = extractTable(resPath, pattern);
+                if (StringUtils.isNotBlank(project) && StringUtils.isNotBlank(kafkaTableName)) {
+                    KafkaConfigManager.getInstance(config, project).invalidCache(kafkaTableName);
                 }
             });
         } catch (Exception e) {

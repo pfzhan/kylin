@@ -124,4 +124,8 @@ public class KafkaConfigManager {
         return kafkaConfigs;
     }
 
+    public void invalidCache(String resourceName) {
+        crud.invalidateCache(resourceName);
+    }
+
 }
