@@ -1680,10 +1680,8 @@ public class ModelService extends BasicService {
             IndexPlan emptyIndex = new IndexPlan();
             emptyIndex.setUuid(model.getUuid());
             indexPlanManager.createIndexPlan(emptyIndex);
+            addBaseIndex(modelRequest, model, indexPlan);
 
-            if (modelRequest.isWithBaseIndex()) {
-                indexPlan.createAndAddBaseIndex(model);
-            }
             // create DataFlow
             val df = dataflowManager.createDataflow(emptyIndex, model.getOwner());
             if (modelRequest.isWithEmptySegment() && !modelRequest.isStreaming()) {

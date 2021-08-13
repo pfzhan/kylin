@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.model;
 
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -338,7 +337,6 @@ public class SegmentsTest {
     @Test
     public void testMergeDay() {
         Segments segments = new Segments();
-        SimpleDateFormat sdf = new SimpleDateFormat(" yyyy-MM-dd HH:mm:ss ");
         NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
                 DateFormat.stringToMillis("1995-01-08 00:00:00"));
 
@@ -364,7 +362,6 @@ public class SegmentsTest {
     @Test
     public void testMergeDayStartCase() {
         Segments segments = new Segments();
-        SimpleDateFormat sdf = new SimpleDateFormat(" yyyy-MM-dd HH:mm:ss ");
         NDataSegment segment1 = newReadySegment(DateFormat.stringToMillis("1995-01-07 00:03:00"),
                 DateFormat.stringToMillis("1995-01-07 23:00:00"));
 

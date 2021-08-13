@@ -927,4 +927,28 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(19, model.getAllNamedColumns().size());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(1).getStatus());
     }
+
+    @Test
+    public void testSuggestStreamingModelDisableBaseIndex() {
+        String project = "streaming_test";
+        // optimize with a batch of sql list
+        List<String> li = Lists.newArrayList();
+        li.add("SELECT sum(LO_CUSTKEY) from SSB.P_LINEORDER_STR group by LO_CUSTKEY");
+        AbstractContext proposeContext = modelService.suggestModel(project, li, false, true);
+        List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
+        Assert.assertEquals(1, modelContextList.size());
+        Assert.assertEquals(NDataModel.ModelType.STREAMING, modelContextList.get(0).getTargetModel().getModelType());
+
+        String modelID = modelContextList.get(0).getTargetModel().getUuid();
+        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
+        List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
+        List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
+        List<ModelRequest> newModelRequests = mockModelRequest(newModels);
+        newModelRequests.forEach(request -> request.setWithBaseIndex(true));
+        modelService.batchCreateModel(project, newModelRequests, reusedModelRequests);
+        val indexPlan = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getIndexPlan(modelID);
+        Assert.assertFalse(indexPlan.containBaseTableLayout());
+        Assert.assertFalse(indexPlan.containBaseAggLayout());
+    }
 }
