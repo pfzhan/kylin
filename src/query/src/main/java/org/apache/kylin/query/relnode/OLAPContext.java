@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -84,6 +83,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.realization.HybridRealization;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
@@ -284,59 +284,73 @@ public class OLAPContext {
     public static List<NativeQueryRealization> getNativeRealizations() {
         List<NativeQueryRealization> realizations = Lists.newArrayList();
 
-        if (getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
-            for (OLAPContext ctx : getThreadLocalContexts()) {
-                if (ctx.realization != null) {
-                    final String realizationType;
-                    Set<String> tableSets = Sets.newHashSet();
-                    if (ctx.storageContext.isEmptyLayout()) {
-                        realizationType = null;
-                    } else if (ctx.storageContext.isUseSnapshot()) {
-                        realizationType = QueryMetrics.TABLE_SNAPSHOT;
-                        tableSets.add(ctx.getFirstTableIdentity());
-                    } else if (!ctx.storageContext.getCandidate().isEmptyCandidate()
-                            && ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
-                        realizationType = QueryMetrics.TABLE_INDEX;
-                        addTableSnapshots(tableSets, ctx);
-                    } else {
-                        realizationType = QueryMetrics.AGG_INDEX;
-                        addTableSnapshots(tableSets, ctx);
-                    }
-                    String modelId = ctx.realization.getModel().getUuid();
-                    String modelAlias = ctx.realization.getModel().getAlias();
-                    List<String> snapshots = Lists.newArrayList(tableSets);
+        // contexts can be null in case of 'explain plan for'
+        if (getThreadLocalContexts() == null) {
+            return realizations;
+        }
 
-                    if (ctx.storageContext.getStreamingLayoutId() != -1L) {
-                        val streamingRealization = new NativeQueryRealization(modelId, modelAlias,
-                                ctx.storageContext.getStreamingLayoutId(), realizationType,
-                                ctx.storageContext.isPartialMatchModel(), snapshots);
-                        streamingRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
-                                .getOrDefault(streamingRealization.getLayoutId(), false));
-                        streamingRealization.setStreamingLayout(true);
-                        realizations.add(streamingRealization);
+        for (OLAPContext ctx : getThreadLocalContexts()) {
+            if (ctx.realization == null) {
+                continue;
+            }
 
-                        if (ctx.realization instanceof HybridRealization) {
-                            String batchId = ((HybridRealization) ctx.realization).getBatchRealization().getUuid();
-                            val batchRealization = new NativeQueryRealization(batchId, modelAlias,
-                                    ctx.storageContext.getCuboidLayoutId(), realizationType,
-                                    ctx.storageContext.isPartialMatchModel(), snapshots);
-                            batchRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
-                                    .getOrDefault(batchRealization.getLayoutId(), false));
-                            realizations.add(batchRealization);
-                        }
+            final String realizationType;
+            Set<String> tableSets = Sets.newHashSet();
+            if (ctx.storageContext.isEmptyLayout()) {
+                realizationType = null;
+            } else if (ctx.storageContext.isUseSnapshot()) {
+                realizationType = QueryMetrics.TABLE_SNAPSHOT;
+                tableSets.add(ctx.getFirstTableIdentity());
+            } else if (!ctx.storageContext.getCandidate().isEmptyCandidate()
+                    && ctx.storageContext.getCandidate().getLayoutEntity().getIndex().isTableIndex()) {
+                realizationType = QueryMetrics.TABLE_INDEX;
+                addTableSnapshots(tableSets, ctx);
+            } else {
+                realizationType = QueryMetrics.AGG_INDEX;
+                addTableSnapshots(tableSets, ctx);
+            }
 
-                    } else {
-                        val realization = new NativeQueryRealization(modelId, modelAlias,
-                                ctx.storageContext.getCuboidLayoutId(), realizationType,
-                                ctx.storageContext.isPartialMatchModel(), snapshots);
-                        realization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
-                                .getOrDefault(realization.getLayoutId(), false));
-                        realizations.add(realization);
-                    }
+            val ctxRealizationModel = ctx.realization.getModel();
+            String modelId = ctxRealizationModel.getUuid();
+            //use fusion model alias
+            String modelAlias = ctxRealizationModel.getFusionModelAlias();
+
+            List<String> snapshots = Lists.newArrayList(tableSets);
+
+            if (ctx.storageContext.getStreamingLayoutId() != -1L) {
+                realizations.add(getStreamingNativeRealization(ctx, realizationType, modelId, modelAlias, snapshots));
+
+                if (ctx.realization instanceof HybridRealization) {
+                    String batchModelId = ((HybridRealization) ctx.realization).getBatchRealization().getUuid();
+                    realizations
+                            .add(getBatchNativeRealization(ctx, realizationType, batchModelId, modelAlias, snapshots));
                 }
+
+            } else {
+                realizations.add(getBatchNativeRealization(ctx, realizationType, modelId, modelAlias, snapshots));
             }
         }
         return realizations;
+    }
+
+    private static NativeQueryRealization getStreamingNativeRealization(OLAPContext ctx, String realizationType,
+            String modelId, String modelAlias, List<String> snapshots) {
+        val streamingRealization = new NativeQueryRealization(modelId, modelAlias,
+                ctx.storageContext.getStreamingLayoutId(), realizationType, ctx.storageContext.isPartialMatchModel(),
+                snapshots);
+        streamingRealization.setSecondStorage(QueryContext.current().getSecondStorageUsageMap()
+                .getOrDefault(streamingRealization.getLayoutId(), false));
+        streamingRealization.setStreamingLayout(true);
+        return streamingRealization;
+    }
+
+    private static NativeQueryRealization getBatchNativeRealization(OLAPContext ctx, String realizationType,
+            String modelId, String modelAlias, List<String> snapshots) {
+        val realization = new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
+                realizationType, ctx.storageContext.isPartialMatchModel(), snapshots);
+        realization.setSecondStorage(
+                QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
+        return realization;
     }
 
     private static void addTableSnapshots(Set<String> tableSets, OLAPContext ctx) {

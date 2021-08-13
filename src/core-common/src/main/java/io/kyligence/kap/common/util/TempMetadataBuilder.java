@@ -32,6 +32,8 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class TempMetadataBuilder {
 
     public static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
@@ -53,7 +55,13 @@ public class TempMetadataBuilder {
         return new TempMetadataBuilder(debug, KAP_META_TEST_DATA).build();
     }
 
-    public static String prepareLocalTempMetadata(boolean debug, String... overlay) {
+    public static String prepareLocalTempMetadata(boolean debug, boolean overwrite, String... overlay) {
+        if (overwrite) {
+            Preconditions.checkArgument(overlay.length == 1,
+                    "the length of metasrc should be only one, if you want to overwrite it!");
+            return new TempMetadataBuilder(debug, overlay).build();
+        }
+
         String[] nOverlay = new String[overlay.length + 1];
         nOverlay[0] = KAP_META_TEST_DATA;
         System.arraycopy(overlay, 0, nOverlay, 1, overlay.length);

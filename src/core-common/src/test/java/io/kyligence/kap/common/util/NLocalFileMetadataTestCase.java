@@ -158,7 +158,21 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     public static void staticCreateTestMetadata(String... overlay) {
-        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata(false, overlay);
+        staticCreateTestMetadataOverwrite(false, overlay);
+    }
+
+    public static void staticCreateBrandNewTestMetadata(String metaSrc) {
+        staticCreateTestMetadataOverwrite(true, metaSrc);
+    }
+
+    /**
+     * if overwrite is true, this will create a new metadta,
+     * and will not load KAP_META_TEST_DATA metadata
+     * @param overwrite
+     * @param overlay
+     */
+    private static void staticCreateTestMetadataOverwrite(boolean overwrite, String... overlay) {
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata(false, overwrite, overlay);
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
@@ -226,7 +240,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
             throw new IllegalStateException(e);
         }
     }
-    
+
     protected ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
@@ -239,7 +253,7 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     protected Map<Integer, Long> createKafkaPartitionsOffset(int partitionNumbers, Long offset) {
         Map<Integer, Long> map = new HashMap<Integer, Long>();
-        for (int i = 0; i < partitionNumbers; i++){
+        for (int i = 0; i < partitionNumbers; i++) {
             map.put(i, offset);
         }
         return map;

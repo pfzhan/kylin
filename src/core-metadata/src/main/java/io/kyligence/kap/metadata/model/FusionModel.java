@@ -130,10 +130,22 @@ public class FusionModel extends RootPersistentEntity implements Serializable {
     }
 
     public NDataModel getBatchModel() {
+        return getModelByType(NDataModel.ModelType.BATCH);
+    }
+
+    public NDataModel getStreamingModel() {
+        return getModelByType(NDataModel.ModelType.HYBRID);
+    }
+
+    public String getAlias() {
+        return getStreamingModel().getAlias();
+    }
+
+    public NDataModel getModelByType(NDataModel.ModelType modelType) {
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
         for (String modelId : getModelsId()) {
             NDataModel model = modelManager.getDataModelDesc(modelId);
-            if (model.getModelType() == NDataModel.ModelType.BATCH) {
+            if (model.getModelType() == modelType) {
                 return model;
             }
         }
