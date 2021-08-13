@@ -446,7 +446,7 @@
         <!-- second storage -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-second-storage-clickhouse</artifactId>
+            <artifactId>second-storage-clickhouse</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
