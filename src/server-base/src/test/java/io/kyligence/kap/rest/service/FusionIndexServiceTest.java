@@ -807,7 +807,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
 
         val indexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);
-        val indexUpdateEnabled = fusionIndexService.checkUpdateIndexEnabled("streaming_test", modelId);
+        val indexUpdateEnabled = FusionIndexService.checkUpdateIndexEnabled("streaming_test", modelId);
         val result = FusionRuleDataResult.get(indexes, 20, 10, indexUpdateEnabled);
         Assert.assertEquals(indexUpdateEnabled, result.isIndexUpdateEnabled());
 

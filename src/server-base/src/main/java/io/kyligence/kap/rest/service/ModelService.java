@@ -64,6 +64,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIS
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
 import static org.apache.kylin.common.exception.ServerErrorCode.SQL_NUMBER_EXCEEDS_LIMIT;
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNAUTHORIZED_ENTITY;
@@ -1710,6 +1711,11 @@ public class ModelService extends BasicService {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+
+            if (!FusionIndexService.checkUpdateIndexEnabled(project, modelRequest.getId())) {
+                throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                        MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT());
+            }
 
             Map<String, NDataModel.NamedColumn> columnMap = Maps.newHashMap();
             modelRequest.getAllNamedColumns().forEach(column -> {

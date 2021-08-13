@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.common.util.CollectionUtil.intersection;
 import static org.apache.kylin.common.exception.ServerErrorCode.REC_LIST_OUT_OF_DATE;
+import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_INDEX_UPDATE_DISABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.UNSUPPORTED_REC_OPERATION_TYPE;
 
 import java.util.Collections;
@@ -609,6 +610,12 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
     public OptRecResponse approve(String project, OptRecRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         String modelId = request.getModelId();
+
+        if (!FusionIndexService.checkUpdateIndexEnabled(project, modelId)) {
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
+                    MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT());
+        }
+
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
                 getDataModelManager(project).getDataModelDesc(modelId), false);
         Map<Integer, String> userDefinedRecNameMap = request.getNames();

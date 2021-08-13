@@ -197,7 +197,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val indexes = fusionIndexService.getIndexes(project, modelId, key, status, order, desc, sources, ids, range);
-        val indexUpdateEnabled = fusionIndexService.checkUpdateIndexEnabled(project, modelId);
+        val indexUpdateEnabled = FusionIndexService.checkUpdateIndexEnabled(project, modelId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, FusionRuleDataResult.get(indexes, offset, limit, indexUpdateEnabled), "");
     }
 

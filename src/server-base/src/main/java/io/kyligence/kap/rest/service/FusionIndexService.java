@@ -32,12 +32,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
-import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -52,19 +46,27 @@ import org.apache.kylin.rest.service.BasicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Range;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
-import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -419,32 +421,33 @@ public class FusionIndexService extends BasicService {
         return fusionModel.getBatchModel().getId();
     }
 
-    private void checkStreamingAggEnabled(DiffRuleBasedIndexResponse streamResponse, String project, String modelId) {
+    private static void checkStreamingAggEnabled(DiffRuleBasedIndexResponse streamResponse, String project,
+            String modelId) {
         if ((streamResponse.getDecreaseLayouts() > 0 || streamResponse.getIncreaseLayouts() > 0)
                 && checkStreamingJobAndSegments(project, modelId)) {
-            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT()));
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT());
         }
     }
 
-    public boolean checkUpdateIndexEnabled(String project, String modelId) {
-        val model = getDataModelManager(project).getDataModelDesc(modelId);
-        if ((NDataModel.ModelType.STREAMING == model.getModelType() || NDataModel.ModelType.HYBRID == model.getModelType())
-                && checkStreamingJobAndSegments(project, model.getUuid())) {
+    public static boolean checkUpdateIndexEnabled(String project, String modelId) {
+        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataModelDesc(modelId);
+        if (model == null) {
+            log.warn("model {} is not existed in project:{}", modelId, project);
             return false;
         }
-        return true;
+        return (NDataModel.ModelType.STREAMING != model.getModelType()
+                && NDataModel.ModelType.HYBRID != model.getModelType())
+                || !checkStreamingJobAndSegments(project, model.getUuid());
     }
 
-    private void checkStreamingIndexEnabled(String project, NDataModel model) throws KylinException {
+    private static void checkStreamingIndexEnabled(String project, NDataModel model) throws KylinException {
         if (NDataModel.ModelType.STREAMING == model.getModelType()
                 && checkStreamingJobAndSegments(project, model.getUuid())) {
-            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE()));
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_DELETE());
         }
     }
 
-    private boolean indexChangeEnable(String project, String modelId, IndexEntity.Range range,
+    private static boolean indexChangeEnable(String project, String modelId, IndexEntity.Range range,
             List<IndexEntity.Range> ranges) {
         if (!ranges.contains(range)) {
             return true;
@@ -452,7 +455,7 @@ public class FusionIndexService extends BasicService {
         return !checkStreamingJobAndSegments(project, modelId);
     }
 
-    private boolean checkStreamingJobAndSegments(String project, String modelId) {
+    private static boolean checkStreamingJobAndSegments(String project, String modelId) {
         String jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
         val config = KylinConfig.getInstanceFromEnv();
         StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
@@ -461,9 +464,6 @@ public class FusionIndexService extends BasicService {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         NDataflow df = dataflowManager.getDataflow(modelId);
 
-        if (JobStatusEnum.RUNNING == meta.getCurrentStatus() || !df.getSegments().isEmpty()) {
-            return true;
-        }
-        return false;
+        return JobStatusEnum.RUNNING == meta.getCurrentStatus() || !df.getSegments().isEmpty();
     }
 }
