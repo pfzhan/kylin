@@ -210,6 +210,37 @@ function killChildProcess {
     fi
 }
 
+function clearRedundantProcess {
+    if [ -f "${KYLIN_HOME}/pid" ]
+    then
+        pidKeep=0
+        pidRedundant=0
+        for pid in `cat ${KYLIN_HOME}/pid`
+        do
+            pidActive=`ps -ef | grep $pid | grep ${KYLIN_HOME} | wc -l`
+            if [ "$pidActive" -eq 1 ]
+            then
+                if [ "$pidKeep" -eq 0 ]
+                then
+                    pidKeep=$pid
+                else
+                    echo "Redundant Kyligence Enterprise process $pid to running process $pidKeep, stop it."
+                    bash ${KYLIN_HOME}/sbin/kill-process-tree.sh $pid
+                    ((pidRedundant+=1))
+                fi
+            fi
+        done
+        if [ "$pidKeep" -ne 0 ]
+        then
+            echo $pidKeep > ${KYLIN_HOME}/pid
+        fi
+        if [ "$pidRedundant" -ne 0 ]
+        then
+            quit "Kyligence Enterprise is redundant, start canceled."
+        fi
+    fi
+}
+
 function startKE(){
     if [ -f "${KYLIN_HOME}/pid" ]; then
         PID=`cat ${KYLIN_HOME}/pid`
@@ -264,7 +295,8 @@ function startKE(){
         TIME_ZONE="-Duser.timezone=${TIME_ZONE}"
     fi
 
-    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/conf,${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/guardian.sh kill"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 < /dev/null & echo $! > ${KYLIN_HOME}/pid &
+    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/conf,${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/guardian.sh kill"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 < /dev/null & echo $! >> ${KYLIN_HOME}/pid &
+    clearRedundantProcess
 
     PID=`cat ${KYLIN_HOME}/pid`
     CUR_DATE=$(date "+%Y-%m-%d %H:%M:%S")
