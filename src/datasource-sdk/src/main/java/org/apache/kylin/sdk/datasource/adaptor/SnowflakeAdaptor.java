@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 
 import javax.sql.rowset.CachedRowSet;
 
-import net.snowflake.client.jdbc.SnowflakeSQLException;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -75,7 +75,7 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
     public Connection getConnection() throws SQLException {
         try {
             return super.getConnection();
-        } catch (SnowflakeSQLException e) {
+        } catch (Exception e) {
             initAADParams();
         }
 
@@ -204,10 +204,11 @@ public class SnowflakeAdaptor extends DefaultAdaptor {
             if (response.getStatusLine().getStatusCode() == 200) {
                 return JsonUtil.readValue(response.getEntity().getContent(), KylinSnowflakeResponse.class);
             }
+            throw new IllegalStateException("request snowflake token exception code: "
+                    + response.getStatusLine().getStatusCode()
+                    + ", body: " + IOUtils.toString(response.getEntity().getContent()));
         } catch (Exception e) {
             throw new IllegalStateException("request snowflake token exception", e);
         }
-
-        return null;
     }
 }
