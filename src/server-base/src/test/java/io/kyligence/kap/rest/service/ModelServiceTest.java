@@ -4728,6 +4728,31 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testValidateFusionModelDimensions2() {
+        val modelId = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
+        val project = "streaming_test";
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
+        val dataModel = modelMgr.getDataModelDesc(modelId);
+        ModelRequest modelRequest = Mockito.spy(new ModelRequest(dataModel));
+        modelRequest.setProject(project);
+        modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
+        modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
+        Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
+        try{
+            modelRequest.setModelType(NDataModel.ModelType.BATCH);
+            modelService.validateFusionModelDimension(modelRequest);
+        }catch (Exception e) {
+            Assert.fail();
+        }
+        try{
+            modelRequest.setModelType(NDataModel.ModelType.STREAMING);
+            modelService.validateFusionModelDimension(modelRequest);
+        }catch (Exception e) {
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testMassageModelFilterCondition() {
         String project = "default";
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

@@ -1627,14 +1627,15 @@ public class ModelService extends BasicService {
         // fusion model check timestamp
         val modelType = modelRequest.getModelType();
         if (!StringUtils.isEmpty(rootFactTableName)
-                && (modelType == null || modelType == NDataModel.ModelType.HYBRID)) {
+                && (modelType != NDataModel.ModelType.BATCH && modelType != NDataModel.ModelType.STREAMING)) {
             val mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject());
             val TableDesc = mgr.getTableDesc(rootFactTableName);
             if (TableDesc != null && TableDesc.getKafkaConfig() != null && TableDesc.getKafkaConfig().hasBatchTable()) {
-                val columnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
+                val fullColumnName = modelRequest.getPartitionDesc().getPartitionDateColumn();
+                val columnName = fullColumnName.substring(fullColumnName.indexOf(".") + 1);
                 val hasPartitionColumn = modelRequest.getSimplifiedDimensions().stream()
                         .filter(column -> column.getName().equalsIgnoreCase(columnName)).findAny().isPresent();
-                if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(columnName)) {
+                if (!hasPartitionColumn && !modelRequest.getDimensionNameIdMap().containsKey(fullColumnName)) {
                     throw new KylinException(TIMESTAMP_COLUMN_NOT_EXIST,
                             String.format(Locale.ROOT, MsgPicker.getMsg().getTIMESTAMP_PARTITION_COLUMN_NOT_EXIST()));
                 }

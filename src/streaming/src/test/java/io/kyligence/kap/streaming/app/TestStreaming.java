@@ -33,6 +33,7 @@ import org.apache.kylin.source.SourceFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -67,7 +68,6 @@ public class TestStreaming extends StreamingTestCase {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        val topic = "ssb-topic";
     }
 
     @After
@@ -75,6 +75,7 @@ public class TestStreaming extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
+    @Ignore
     @Test
     public void testBuild() {
         val config = KylinConfig.getInstanceFromEnv();
@@ -138,11 +139,7 @@ public class TestStreaming extends StreamingTestCase {
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
         val runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
         runner.init();
-        val ss = createSparkSession();
-        Assert.assertNotNull(ss);
-        AwaitUtils.await(() -> runner.run(), 10000, () -> {
-            ss.stop();
-        });
+        AwaitUtils.await(() -> runner.run(), 10000, () -> {});
     }
 
     /**
@@ -153,11 +150,7 @@ public class TestStreaming extends StreamingTestCase {
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
         val launcher = new StreamingJobLauncher();
         launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
-        val ss = createSparkSession();
-        Assert.assertNotNull(ss);
-        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {
-            ss.stop();
-        });
+        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {});
     }
 
     /**
@@ -168,9 +161,6 @@ public class TestStreaming extends StreamingTestCase {
         val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
         val launcher = new StreamingJobLauncher();
         launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
-        val ss = createSparkSession();
-        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {
-            ss.stop();
-        });
+        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {});
     }
 }
