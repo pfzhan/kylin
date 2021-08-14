@@ -210,11 +210,11 @@ public class NJobController extends NBasicController {
     public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,
             @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project,
             HttpServletResponse response) {
-        checkProjectName(project);
+        final String projectName = checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
-        String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", project, stepId);
-        InputStream jobOutput = jobService.getAllJobOutput(project, jobId, stepId);
+        String downloadFilename = String.format(Locale.ROOT, "%s_%s.log", projectName, stepId);
+        InputStream jobOutput = jobService.getAllJobOutput(projectName, jobId, stepId);
         setDownloadResponse(jobOutput, downloadFilename, MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
