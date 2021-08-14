@@ -778,6 +778,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.query.load-counter-period-seconds", "3s", 3L));
         map.put("getJobFinishedNotifierUrl", new PropertiesEntity("kylin.job.finished-notifier-url",
                 "http://localhost:8088/test", "http://localhost:8088/test"));
+        map.put("getJobFinishedNotifierUsername",
+                new PropertiesEntity("kylin.job.finished-notifier-username", "admin", "admin"));
+        map.put("getJobFinishedNotifierPassword", new PropertiesEntity("kylin.job.finished-notifier-password",
+                "ENC('YeqVr9MakSFbgxEec9sBwg==')", "kylin"));
         map.put("getTurnMaintainModeRetryTimes",
                 new PropertiesEntity("kylin.tool.turn-on-maintainmodel-retry-times", "3", 3));
         map.put("getCatchUpTimeout", new PropertiesEntity("kylin.metadata.audit-log.catchup-timeout", "2s", 2L));
@@ -875,7 +879,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(490, methodsCount);
+        Assert.assertEquals(492, methodsCount);
     }
 
     @Test

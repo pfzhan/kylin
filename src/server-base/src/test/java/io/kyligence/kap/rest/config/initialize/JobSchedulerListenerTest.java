@@ -27,15 +27,16 @@ package io.kyligence.kap.rest.config.initialize;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Set;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -83,6 +84,8 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
                 latch = new CountDownLatch(1);
                 KylinConfig config = Mockito.mock(KylinConfig.class);
                 KylinConfig.setKylinConfigThreadLocal(config);
+                Mockito.when(config.getJobFinishedNotifierUsername()).thenReturn("ADMIN");
+                Mockito.when(config.getJobFinishedNotifierPassword()).thenReturn("KYLIN");
                 Mockito.when(config.getJobFinishedNotifierUrl()).thenReturn("http://localhost:" + port + "/test");
 
                 HttpServer server = HttpServer.create(new InetSocketAddress("localhost", port), 0);
@@ -216,6 +219,8 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         @Override
         public void handle(HttpExchange httpExchange) throws IOException {
             try {
+                assert "Basic QURNSU46S1lMSU4="
+                        .equals(httpExchange.getRequestHeaders().get(HttpHeaders.AUTHORIZATION).get(0));
                 InputStream in = httpExchange.getRequestBody();
                 String s = IOUtils.toString(in);
                 if (s.equals(JsonUtil.writeValueAsString(modelInfo))) {

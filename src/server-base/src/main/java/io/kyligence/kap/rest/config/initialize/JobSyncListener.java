@@ -24,9 +24,46 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLContext;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpRequestRetryHandler;
+import org.apache.http.client.ServiceUnavailableRetryStrategy;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
+import org.apache.kylin.metadata.model.TimeRange;
+
 import com.clearspring.analytics.util.Lists;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
@@ -44,33 +81,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.SneakyThrows;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.ServiceUnavailableRetryStrategy;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.protocol.HttpContext;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
-import org.apache.kylin.metadata.model.TimeRange;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JobSyncListener {
@@ -161,14 +174,13 @@ public class JobSyncListener {
                 segRangeList.add(new SegRange(id, segRange.getStart(), segRange.getEnd()));
                 if (partitionDesc != null && notifier.getSegmentPartitionsMap().get(id) != null
                         && !notifier.getSegmentPartitionsMap().get(id).isEmpty()) {
-                    List<SegmentPartitionResponse> SegmentPartitionResponses = segment.getMultiPartitions()
-                            .stream().filter(segmentPartition -> notifier.getSegmentPartitionsMap().get(id)
+                    List<SegmentPartitionResponse> SegmentPartitionResponses = segment.getMultiPartitions().stream()
+                            .filter(segmentPartition -> notifier.getSegmentPartitionsMap().get(id)
                                     .contains(segmentPartition.getPartitionId()))
                             .map(partition -> {
                                 val partitionInfo = partitionDesc.getPartitionInfo(partition.getPartitionId());
-                                return new SegmentPartitionResponse(partitionInfo.getId(),
-                                        partitionInfo.getValues(), partition.getStatus(),
-                                        partition.getLastBuildTime(), partition.getSourceCount(),
+                                return new SegmentPartitionResponse(partitionInfo.getId(), partitionInfo.getValues(),
+                                        partition.getStatus(), partition.getLastBuildTime(), partition.getSourceCount(),
                                         partition.getStorageSize());
                             }).collect(Collectors.toList());
                     segmentPartitionsInfoList.add(new SegmentPartitionsInfo(id, SegmentPartitionResponses));
@@ -285,11 +297,19 @@ public class JobSyncListener {
         }
 
         RequestConfig config = RequestConfig.custom().setSocketTimeout(3000).build();
-        try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(config)
+        try (CloseableHttpClient httpClient = HttpClients.custom().setSSLContext(getTrustAllSSLContext())
+                .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).setDefaultRequestConfig(config)
                 .setRetryHandler(new SimpleHttpRequestRetryHandler())
                 .setServiceUnavailableRetryStrategy(new SimpleServiceUnavailableRetryStrategy()).build()) {
             HttpPost httpPost = new HttpPost(url);
             httpPost.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            String username = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierUsername();
+            String password = KylinConfig.getInstanceFromEnv().getJobFinishedNotifierPassword();
+            if (username != null && password != null) {
+                log.info("use basic auth.");
+                String basicToken = makeToken(username, password);
+                httpPost.addHeader(HttpHeaders.AUTHORIZATION, basicToken);
+            }
             httpPost.setEntity(new StringEntity(JsonUtil.writeValueAsString(info), StandardCharsets.UTF_8));
             HttpResponse response = httpClient.execute(httpPost);
             int code = response.getStatusLine().getStatusCode();
@@ -301,6 +321,21 @@ public class JobSyncListener {
         } catch (IOException e) {
             log.warn("Error occurred when post job status.", e);
         }
+    }
+
+    @SneakyThrows
+    public static SSLContext getTrustAllSSLContext() {
+        return new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
+            @Override
+            public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                return true;
+            }
+        }).build();
+    }
+
+    private static String makeToken(String username, String password) {
+        String rawTokenString = String.format(Locale.ROOT, "%s:%s", username, password);
+        return "Basic " + Base64.getEncoder().encodeToString(rawTokenString.getBytes(Charset.defaultCharset()));
     }
 
     private void updateMetrics(JobFinishedNotifier notifier) {
