@@ -49,6 +49,11 @@ public class Constants {
     public static final String KE_LICENSE_VOLUME = "ke.license.volume";
     public static final String HIDDEN_VALUE = "*****";
     public static final String KYLIN_SOURCE_JDBC_PASS_KEY = "kylin.source.jdbc.pass";
+    public static final String KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY = "kylin.source.jdbc.source.name";
+    public static final String KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY = "kylin.source.jdbc.source.enable";
+    public static final String KYLIN_SOURCE_JDBC_CONNECTION_URL_KEY = "kylin.source.jdbc.connection-url";
+    public static final String KYLIN_SOURCE_JDBC_USER_KEY = "kylin.source.jdbc.user";
+    public static final String KYLIN_SOURCE_JDBC_DRIVER_KEY = "kylin.source.jdbc.driver";
 
     public static final String UNLIMITED = "Unlimited";
 }

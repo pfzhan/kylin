@@ -1875,4 +1875,9 @@ public class CnMessage extends Message {
     public String getSTREAMING_OPERATION_NOT_SUPPORT() {
         return "API调用失败，暂不支持调用流数据相关的API。";
     }
+
+    @Override
+    public String getJDBC_CONNECTION_INFO_WRONG() {
+        return "连接信息错误，请检查后重试";
+    }
 }

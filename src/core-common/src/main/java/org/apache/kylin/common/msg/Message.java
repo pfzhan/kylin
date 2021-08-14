@@ -1652,4 +1652,8 @@ public class Message {
     public String getSTREAMING_OPERATION_NOT_SUPPORT() {
         return "Can’t call this API. API calls related to the streaming data is not supported at the moment.";
     }
+
+    public String getJDBC_CONNECTION_INFO_WRONG() {
+        return "Invalid connection info.Please check and try again";
+    }
 }

@@ -120,6 +120,19 @@ public class ProjectConfigResponse {
     @JsonProperty("query_history_download_max_size")
     private int queryHistoryDownloadMaxSize;
 
+    @JsonProperty("jdbc_source_name")
+    private String jdbcSourceName;
+    @JsonProperty("jdbc_source_user")
+    private String jdbcSourceUser;
+    @JsonProperty("jdbc_source_pass")
+    private String jdbcSourcePass;
+    @JsonProperty("jdbc_source_connection_url")
+    private String jdbcSourceConnectionUrl;
+    @JsonProperty("jdbc_source_enable")
+    private boolean jdbcSourceEnable;
+    @JsonProperty("jdbc_source_driver")
+    private String jdbcSourceDriver;
+
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
         case 1:

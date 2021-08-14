@@ -88,6 +88,7 @@ import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.JdbcSourceInfoRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
@@ -142,7 +143,8 @@ public class NProjectController extends NBasicController {
     @Qualifier("epochService")
     private EpochService epochService;
 
-    @ApiOperation(value = "getProjects", tags = { "SM" }, notes = "Update Param: page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getProjects", tags = {
+            "SM" }, notes = "Update Param: page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<UserProjectPermissionResponse>>> getProjects(
@@ -177,7 +179,8 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, projectService.backupProject(project), "");
     }
 
-    @ApiOperation(value = "saveProject", tags = { "SM" }, notes = "Update Param: former_project_name, project_desc_data")
+    @ApiOperation(value = "saveProject", tags = {
+            "SM" }, notes = "Update Param: former_project_name, project_desc_data")
     @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<ProjectInstance> saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
@@ -204,7 +207,8 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, createdProj, "");
     }
 
-    @ApiOperation(value = "updateDefaultDatabase", tags = { "SM" }, notes = "Add URL: {project}; Update Param: default_database;")
+    @ApiOperation(value = "updateDefaultDatabase", tags = {
+            "SM" }, notes = "Add URL: {project}; Update Param: default_database;")
     @PutMapping(value = "/{project:.+}/default_database")
     @ResponseBody
     public EnvelopeResponse<String> updateDefaultDatabase(@PathVariable("project") String project,
@@ -273,7 +277,8 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, true, "");
     }
 
-    @ApiOperation(value = "updateFavoriteRules", tags = { "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
+    @ApiOperation(value = "updateFavoriteRules", tags = {
+            "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
     @PutMapping(value = "/{project:.+}/favorite_rules")
     @ResponseBody
     public EnvelopeResponse<String> updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) {
@@ -305,7 +310,8 @@ public class NProjectController extends NBasicController {
         }
     }
 
-    @ApiOperation(value = "getFavoriteRules", tags = { "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
+    @ApiOperation(value = "getFavoriteRules", tags = {
+            "SM" }, notes = "Update Param: freq_enable, freq_value, count_enable, count_value, duration_enable, min_duration, max_duration, submitter_enable, user_groups")
     @GetMapping(value = "/{project:.+}/favorite_rules")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getFavoriteRules(@PathVariable(value = "project") String project) {
@@ -333,8 +339,8 @@ public class NProjectController extends NBasicController {
         checkProjectNotSemiAuto(project);
         AbstractAsyncTask asyncTask = AsyncTaskManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .get(AsyncTaskManager.ASYNC_ACCELERATION_TASK);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, ((AsyncAccelerationTask) asyncTask).isAlreadyRunning(),
-                "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
+                ((AsyncAccelerationTask) asyncTask).isAlreadyRunning(), "");
     }
 
     @ApiOperation(value = "updateAcceleration", tags = { "AI" })
@@ -559,7 +565,8 @@ public class NProjectController extends NBasicController {
     @GetMapping(value = "/default_configs")
     @ResponseBody
     public EnvelopeResponse<Set<String>> getNonCustomProjectConfigs() {
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs(), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
+                KylinConfig.getInstanceFromEnv().getNonCustomProjectConfigs(), "");
     }
 
     @ApiOperation(value = "update jdbc config (update)", tags = { "QE" }, notes = "Add URL: {project}; ")
@@ -579,6 +586,16 @@ public class NProjectController extends NBasicController {
             @RequestBody MultiPartitionConfigRequest request) {
         checkRequiredArg("multi_partition_enabled", request.getMultiPartitionEnabled());
         projectService.updateMultiPartitionConfig(project, request, modelService);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateJdbcSourceInfoConfig", tags = { "DW" }, notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/jdbc_source_info_config")
+    @ResponseBody
+    public EnvelopeResponse<String> updateJdbcSourceConfig(@PathVariable("project") String project,
+            @RequestBody JdbcSourceInfoRequest request) {
+        checkRequiredArg("jdbc_source_enabled", request.getJdbcSourceEnable());
+        projectService.updateJdbcInfo(project, request);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 }

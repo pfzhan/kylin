@@ -42,6 +42,8 @@
 
 package org.apache.kylin.common;
 
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY;
 import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Field;
@@ -328,8 +330,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getJdbcDialect", new PropertiesEntity("kylin.source.jdbc.dialect", "mysql", "mysql"));
 
         map.put("getJdbcUser", new PropertiesEntity("kylin.source.jdbc.user", "postgres", "postgres"));
-        map.put("getJdbcPass",
-                new PropertiesEntity("kylin.source.jdbc.pass", "ENC('YeqVr9MakSFbgxEec9sBwg==')", "kylin"));
+
+        map.put("getJdbcEnable", new PropertiesEntity(KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY, "true", true));
+        map.put("getJdbcSourceName", new PropertiesEntity(KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY, "gbase", "gbase"));
 
         map.put("getDefaultStorageEngine", new PropertiesEntity("kylin.storage.default", "20", 20));
 
@@ -879,7 +882,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(492, methodsCount);
+        Assert.assertEquals(494, methodsCount);
     }
 
     @Test

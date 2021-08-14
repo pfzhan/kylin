@@ -24,11 +24,13 @@
 
 package io.kyligence.kap.common.constant;
 
-import lombok.Getter;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import lombok.Getter;
 
 @Getter
 public enum NonCustomProjectLevelConfig {
@@ -57,6 +59,8 @@ public enum NonCustomProjectLevelConfig {
     OLD_EXPOSE_COMPUTED_COLUMN("kap.query.metadata.expose-computed-column"),
 
     QUERY_NON_EQUI_JOIN_MODEL_ENABLED("kylin.query.non-equi-join-model-enabled"),
+
+    KYLIN_SOURCE_JDBC_SOURCE_ENABLE(KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY),
 
     // extra
     DATASOURCE_TYPE("kylin.source.default");

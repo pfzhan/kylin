@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.common.constant.Constants.HIDDEN_VALUE;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_DRIVER_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_KEY;
 import static io.kyligence.kap.metadata.model.MaintainModelType.MANUAL_MAINTAIN;
 
 import java.io.IOException;
@@ -92,6 +94,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.JdbcSourceInfoRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
@@ -1045,4 +1048,45 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
         Assert.assertEquals(10, projectStatistics.getModelSize());
     }
+
+    @Test
+    public void testUpdateJdbcInfo() {
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName(PROJECT_JDBC);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(projectInstance.getName(), projectInstance);
+            return null;
+        }, projectInstance.getName());
+
+        JdbcSourceInfoRequest jdbcSourceInfoRequest = new JdbcSourceInfoRequest();
+        jdbcSourceInfoRequest.setJdbcSourceEnable(true);
+        jdbcSourceInfoRequest.setJdbcSourceName("h2");
+        jdbcSourceInfoRequest.setJdbcSourceDriver("org.h2.Driver");
+        jdbcSourceInfoRequest.setJdbcSourceConnectionUrl("jdbc:h2:mem:db");
+        jdbcSourceInfoRequest.setJdbcSourceUser("kylin");
+        jdbcSourceInfoRequest.setJdbcSourcePass("kylin");
+        projectService.updateJdbcInfo(PROJECT_JDBC, jdbcSourceInfoRequest);
+
+        ProjectInstance project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
+        Assert.assertEquals("ENC('YeqVr9MakSFbgxEec9sBwg==')",
+                project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
+        jdbcSourceInfoRequest = new JdbcSourceInfoRequest();
+        jdbcSourceInfoRequest.setJdbcSourceEnable(true);
+        jdbcSourceInfoRequest.setJdbcSourceName("h2");
+        jdbcSourceInfoRequest.setJdbcSourceDriver("com.mysql.jdbc.driver");
+        thrown.expect(KylinException.class);
+        projectService.updateJdbcInfo(PROJECT_JDBC, jdbcSourceInfoRequest);
+
+        project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
+        Assert.assertEquals("org.h2.Driver", project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_DRIVER_KEY));
+        jdbcSourceInfoRequest = new JdbcSourceInfoRequest();
+        jdbcSourceInfoRequest.setJdbcSourceEnable(false);
+        jdbcSourceInfoRequest.setJdbcSourcePass("test");
+        projectService.updateJdbcInfo(PROJECT_JDBC, jdbcSourceInfoRequest);
+
+        project = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT_JDBC);
+        Assert.assertEquals("test", project.getOverrideKylinProps().get(KYLIN_SOURCE_JDBC_PASS_KEY));
+
+    }
+
 }

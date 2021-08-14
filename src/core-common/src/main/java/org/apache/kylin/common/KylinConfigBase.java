@@ -42,7 +42,12 @@
 
 package org.apache.kylin.common;
 
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_CONNECTION_URL_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_DRIVER_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_USER_KEY;
 import static java.lang.Math.toIntExact;
 
 import java.io.File;
@@ -547,19 +552,31 @@ public abstract class KylinConfigBase implements Serializable {
         return r;
     }
 
-    public String[] getHdfsMetaStoreFileSystemSchemas() {
-        return getOptionalStringArray("kylin.metadata.hdfs-compatible-schemas", //
-                new String[]{"hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
-                        "oss"});
+    public static File getDiagFileName() {
+        String uuid = UUID.randomUUID().toString().toUpperCase(Locale.ROOT).substring(0, 6);
+        String packageName = DIAG_ID_PREFIX
+                + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
+                        .format(new Date())
+                + "_" + uuid;
+        String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
+        String diagPath = "diag_dump/" + packageName;
+        File file;
+        if (StringUtils.isNotEmpty(workDir)) {
+            file = new File(workDir, diagPath);
+        } else {
+            file = new File(diagPath);
+        }
+        return file;
     }
 
     public String getSecurityProfile() {
         return getOptional("kylin.security.profile", "testing");
     }
 
-    public String[] getRealizationProviders() {
-        return getOptionalStringArray("kylin.metadata.realization-providers", //
-                new String[]{"io.kyligence.kap.metadata.cube.model.NDataflowManager"});
+    public String[] getHdfsMetaStoreFileSystemSchemas() {
+        return getOptionalStringArray("kylin.metadata.hdfs-compatible-schemas", //
+                new String[] { "hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
+                        "oss" });
     }
 
     public String getMultiPartitionKeyMappingProvider() {
@@ -1093,8 +1110,9 @@ public abstract class KylinConfigBase implements Serializable {
     // SOURCE.KAFKA
     // ============================================================================
 
-    public long getKafkaPollMessageTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.source.kafka.poll-message-timeout-ms", "3000ms"), TimeUnit.MILLISECONDS);
+    public String[] getRealizationProviders() {
+        return getOptionalStringArray("kylin.metadata.realization-providers", //
+                new String[] { "io.kyligence.kap.metadata.cube.model.NDataflowManager" });
     }
 
     public String getKafkaMaxOffsetsPerTrigger() {
@@ -1106,11 +1124,11 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
 
     public String getJdbcConnectionUrl() {
-        return getOptional("kylin.source.jdbc.connection-url");
+        return getOptional(KYLIN_SOURCE_JDBC_CONNECTION_URL_KEY);
     }
 
     public String getJdbcDriver() {
-        return getOptional("kylin.source.jdbc.driver");
+        return getOptional(KYLIN_SOURCE_JDBC_DRIVER_KEY);
     }
 
     public String getJdbcDialect() {
@@ -1118,11 +1136,20 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getJdbcUser() {
-        return getOptional("kylin.source.jdbc.user");
+        return getOptional(KYLIN_SOURCE_JDBC_USER_KEY);
     }
 
     public String getJdbcPass() {
         return EncryptUtil.getDecryptedValue(getOptional(KYLIN_SOURCE_JDBC_PASS_KEY));
+    }
+
+    public boolean getJdbcEnable() {
+        return Boolean.parseBoolean(getOptional(KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY, FALSE));
+    }
+
+    public long getKafkaPollMessageTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.source.kafka.poll-message-timeout-ms", "3000ms"),
+                TimeUnit.MILLISECONDS);
     }
 
     public String getJdbcAdaptorClass() {
@@ -1321,9 +1348,8 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.engine.global-dict-check-enabled", FALSE));
     }
 
-    public int[] getSparkEngineDriverMemoryStrategy() {
-        String[] dft = {"2", "20", "100"};
-        return getOptionalIntArray("kylin.engine.driver-memory-strategy", dft);
+    public String getJdbcSourceName() {
+        return getOptional(KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY);
     }
 
     public int getSparkEngineDriverMemoryMaximum() {
@@ -1482,13 +1508,9 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.large-query-threshold", String.valueOf(1000000)));
     }
 
-    /**
-     * The threshold for cartesian product partition number is
-     * executor instance num * executor core num * cartesian-partition-num-threshold-factor
-     * @return
-     */
-    public int getCartesianPartitionNumThresholdFactor() {
-        return Integer.parseInt(getOptional("kylin.query.cartesian-partition-num-threshold-factor", String.valueOf(100)));
+    public int[] getSparkEngineDriverMemoryStrategy() {
+        String[] dft = { "2", "20", "100" };
+        return getOptionalIntArray("kylin.engine.driver-memory-strategy", dft);
     }
 
     public int getLoadCounterCapacity() {
@@ -1499,15 +1521,14 @@ public abstract class KylinConfigBase implements Serializable {
         return TimeUtil.timeStringAs(getOptional("kylin.query.load-counter-period-seconds", "3s"), TimeUnit.SECONDS);
     }
 
-    public String[] getQueryTransformers() {
-        String value = getOptional("kylin.query.transformers");
-        return value == null ? new String[]{
-                "io.kyligence.kap.query.util.ReplaceStringWithVarchar",
-                "org.apache.kylin.query.util.PowerBIConverter",
-                "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer",
-                "io.kyligence.kap.query.util.ConvertToComputedColumn",
-                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter"}
-                : getOptionalStringArray("kylin.query.transformers", new String[0]);
+    /**
+     * The threshold for cartesian product partition number is
+     * executor instance num * executor core num * cartesian-partition-num-threshold-factor
+     * @return
+     */
+    public int getCartesianPartitionNumThresholdFactor() {
+        return Integer
+                .parseInt(getOptional("kylin.query.cartesian-partition-num-threshold-factor", String.valueOf(100)));
     }
 
     public String[] getQueryInterceptors() {
@@ -1640,15 +1661,13 @@ public abstract class KylinConfigBase implements Serializable {
         return pushdownRunner;
     }
 
-    public String[] getPushDownConverterClassNames() {
-        return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
-                new String[]{"org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
-                        "org.apache.kylin.query.util.PowerBIConverter",
-                        "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
-                        "io.kyligence.kap.query.util.RestoreFromComputedColumn",
-                        "io.kyligence.kap.query.security.RowFilter",
-                        "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
-                        "io.kyligence.kap.query.util.SparkSQLFunctionConverter"});
+    public String[] getQueryTransformers() {
+        String value = getOptional("kylin.query.transformers");
+        return value == null ? new String[] { "io.kyligence.kap.query.util.ReplaceStringWithVarchar",
+                "org.apache.kylin.query.util.PowerBIConverter", "org.apache.kylin.query.util.DefaultQueryTransformer",
+                "io.kyligence.kap.query.util.EscapeTransformer", "io.kyligence.kap.query.util.ConvertToComputedColumn",
+                "org.apache.kylin.query.util.KeywordDefaultDirtyHack", "io.kyligence.kap.query.security.RowFilter" }
+                : getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
 
     public String getPartitionCheckRunnerClassName() {
@@ -1807,18 +1826,20 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.server.streaming-change-meta", FALSE));
     }
 
-    @ThirdPartyDependencies({
-            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "StaticAuthenticationProvider", "StaticUserGroupService", "StaticUserService"})})
-    public int getServerUserCacheExpireSeconds() {
-        return Integer.parseInt(this.getOptional("kylin.server.auth-user-cache.expire-seconds", "300"));
+    public String[] getPushDownConverterClassNames() {
+        return getOptionalStringArray("kylin.query.pushdown.converter-class-names", new String[] {
+                "org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter",
+                "org.apache.kylin.query.util.PowerBIConverter", "org.apache.kylin.query.util.KeywordDefaultDirtyHack",
+                "io.kyligence.kap.query.util.RestoreFromComputedColumn", "io.kyligence.kap.query.security.RowFilter",
+                "io.kyligence.kap.query.security.HackSelectStarWithColumnACL",
+                "io.kyligence.kap.query.util.SparkSQLFunctionConverter" });
     }
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "StaticAuthenticationProvider"})})
-    public int getServerUserCacheMaxEntries() {
-        return Integer.parseInt(this.getOptional("kylin.server.auth-user-cache.max-entries", "100"));
+                    "StaticAuthenticationProvider", "StaticUserGroupService", "StaticUserService" }) })
+    public int getServerUserCacheExpireSeconds() {
+        return Integer.parseInt(this.getOptional("kylin.server.auth-user-cache.expire-seconds", "300"));
     }
 
     public String getExternalAclProvider() {
@@ -2146,8 +2167,11 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider");
     }
 
-    public String getStreamingBaseCheckpointLocation() {
-        return getOptional("kylin.engine.streaming-checkpoint-location", getHdfsWorkingDirectory() + "/streaming/checkpoint");
+    @ThirdPartyDependencies({
+            @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
+                    "StaticAuthenticationProvider" }) })
+    public int getServerUserCacheMaxEntries() {
+        return Integer.parseInt(this.getOptional("kylin.server.auth-user-cache.max-entries", "100"));
     }
 
     public String getStreamingBaseJobsLocation() {
@@ -2270,21 +2294,9 @@ public abstract class KylinConfigBase implements Serializable {
         return !FALSE.equals(option);
     }
 
-    public static File getDiagFileName() {
-        String uuid = UUID.randomUUID().toString().toUpperCase(Locale.ROOT).substring(0, 6);
-        String packageName = DIAG_ID_PREFIX
-                + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
-                .format(new Date())
-                + "_" + uuid;
-        String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
-        String diagPath = "diag_dump/" + packageName;
-        File file;
-        if (StringUtils.isNotEmpty(workDir)) {
-            file = new File(workDir, diagPath);
-        } else {
-            file = new File(diagPath);
-        }
-        return file;
+    public String getStreamingBaseCheckpointLocation() {
+        return getOptional("kylin.engine.streaming-checkpoint-location",
+                getHdfsWorkingDirectory() + "/streaming/checkpoint");
     }
 
     public boolean isTrackingUrlIpAddressEnabled() {
@@ -2504,7 +2516,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     private double getConfigItemDoubleValue(String configItem, double defaultDoubleValue, double rangeStart,
-                                            double rangeEnd) {
+            double rangeEnd) {
         double resultValue = defaultDoubleValue;
         try {
             resultValue = Integer.parseInt(getOptional(configItem, String.valueOf(defaultDoubleValue)));
@@ -2590,14 +2602,14 @@ public abstract class KylinConfigBase implements Serializable {
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "AuthenticationClient"})})
+                    "AuthenticationClient" }) })
     public Long getLightningClusterId() {
         return Long.parseLong(getOptional("kylin.lightning.cluster-id", "0"));
     }
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "AuthenticationClient"})})
+                    "AuthenticationClient" }) })
     public String getLightningServerZkNode() {
         return getOptional("kylin.lightning.server.zookeeper-node", "/kylin/management");
     }
@@ -2691,33 +2703,33 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String[] getJobResourceLackIgnoreExceptionClasses() {
         return getOptionalStringArray("kylin.job.resource-lack-ignore-exception-classes",
-                new String[]{"com.amazonaws.services.s3.model.AmazonS3Exception"});
+                new String[] { "com.amazonaws.services.s3.model.AmazonS3Exception" });
     }
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "StaticAuthenticationProvider"})})
+                    "StaticAuthenticationProvider" }) })
     public String getAADUsernameClaim() {
         return getOptional("kylin.server.aad-username-claim", "upn");
     }
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "StaticAuthenticationProvider"})})
+                    "StaticAuthenticationProvider" }) })
     public String getAADClientId() {
         return getOptional("kylin.server.aad-client-id", "");
     }
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "StaticAuthenticationProvider"})})
+                    "StaticAuthenticationProvider" }) })
     public String getAADTenantId() {
         return getOptional("kylin.server.aad-tenant-id", "");
     }
 
     @ThirdPartyDependencies({
             @ThirdPartyDependencies.ThirdPartyDependent(repository = "static-user-manager", classes = {
-                    "StaticAuthenticationProvider"})})
+                    "StaticAuthenticationProvider" }) })
     public int getAADTokenClockSkewSeconds() {
         return Integer.parseInt(this.getOptional("kylin.server.aad-token-clock-skew-seconds", "0"));
     }
@@ -2769,7 +2781,8 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getSystemProfileExtractor() {
-        return getOptional("kylin.tool.system-profile-extractor", "io.kyligence.kap.tool.LightningSystemProfileExtractor");
+        return getOptional("kylin.tool.system-profile-extractor",
+                "io.kyligence.kap.tool.LightningSystemProfileExtractor");
     }
 
     public boolean isPrometheusMetricsEnabled() {

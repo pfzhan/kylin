@@ -25,12 +25,18 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.common.constant.Constants.HIDDEN_VALUE;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_CONNECTION_URL_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_DRIVER_KEY;
 import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_PASS_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY;
+import static io.kyligence.kap.common.constant.Constants.KYLIN_SOURCE_JDBC_USER_KEY;
 import static org.apache.kylin.common.exception.ServerErrorCode.DATABASE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_EMAIL;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_TYPE_MISMATCH;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_JDBC_SOURCE_CONFIG;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.ONGOING_OPTIMIZATION;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
@@ -91,6 +97,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.SourceUsageUpdateNotifier;
 import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.JdbcUtils;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
@@ -115,6 +122,7 @@ import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JdbcRequest;
+import io.kyligence.kap.rest.request.JdbcSourceInfoRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.MultiPartitionConfigRequest;
 import io.kyligence.kap.rest.request.OwnerChangeRequest;
@@ -665,6 +673,66 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Transaction(project = 0)
+    public void updateJdbcInfo(String project, JdbcSourceInfoRequest jdbcSourceInfoRequest) {
+        if (jdbcSourceInfoRequest.getJdbcSourceEnable()) {
+            validateJdbcConfig(project, jdbcSourceInfoRequest);
+        }
+        Map<String, String> overrideKylinProps = Maps.newHashMap();
+        if (jdbcSourceInfoRequest.getJdbcSourceDriver() != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_DRIVER_KEY, jdbcSourceInfoRequest.getJdbcSourceDriver());
+        }
+        if (jdbcSourceInfoRequest.getJdbcSourceEnable() != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_SOURCE_ENABLE_KEY,
+                    jdbcSourceInfoRequest.getJdbcSourceEnable().toString());
+        }
+        if (jdbcSourceInfoRequest.getJdbcSourceName() != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_SOURCE_NAME_KEY, jdbcSourceInfoRequest.getJdbcSourceName());
+        }
+        if (jdbcSourceInfoRequest.getJdbcSourceConnectionUrl() != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_CONNECTION_URL_KEY,
+                    jdbcSourceInfoRequest.getJdbcSourceConnectionUrl());
+        }
+        if (jdbcSourceInfoRequest.getJdbcSourceUser() != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_USER_KEY, jdbcSourceInfoRequest.getJdbcSourceUser());
+        }
+        if (jdbcSourceInfoRequest.getJdbcSourcePass() != null) {
+            overrideKylinProps.put(KYLIN_SOURCE_JDBC_PASS_KEY, jdbcSourceInfoRequest.getJdbcSourcePass());
+        }
+
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
+    private void validateJdbcConfig(String project, JdbcSourceInfoRequest jdbcSourceInfoRequest) {
+        val projectInstance = getProjectManager().getProject(project);
+        val config = projectInstance.getConfig();
+        String driver = jdbcSourceInfoRequest.getJdbcSourceDriver();
+        if (driver == null) {
+            driver = config.getJdbcDriver();
+        }
+
+        String url = jdbcSourceInfoRequest.getJdbcSourceConnectionUrl();
+        if (url == null) {
+            url = config.getJdbcConnectionUrl();
+        }
+        String username = jdbcSourceInfoRequest.getJdbcSourceUser();
+        if (username == null) {
+            username = config.getJdbcUser();
+        }
+        String password = jdbcSourceInfoRequest.getJdbcSourcePass();
+        if (password == null) {
+            password = config.getJdbcPass();
+        }
+        Preconditions.checkNotNull(driver, "driver can not be null");
+        Preconditions.checkNotNull(url, "url can not be null");
+        Preconditions.checkNotNull(username, "username can not be null");
+        Preconditions.checkNotNull(password, "password can not be null");
+        if (!JdbcUtils.checkConnectionParameter(driver, url, username, password)) {
+            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJDBC_CONNECTION_INFO_WRONG());
+        }
+    }
+
     private String convertToString(List<String> stringList) {
         if (CollectionUtils.isEmpty(stringList)) {
             throw new KylinException(EMPTY_EMAIL, "Please enter at least one email address.");
@@ -737,6 +805,13 @@ public class ProjectService extends BasicService {
         response.setQueryHistoryDownloadMaxSize(config.getQueryHistoryDownloadMaxSize());
 
         response.setQueryHistoryDownloadMaxSize(config.getQueryHistoryDownloadMaxSize());
+
+        response.setJdbcSourceName(config.getJdbcSourceName());
+        response.setJdbcSourceUser(config.getJdbcUser());
+        response.setJdbcSourcePass(HIDDEN_VALUE);
+        response.setJdbcSourceConnectionUrl(config.getJdbcConnectionUrl());
+        response.setJdbcSourceEnable(config.getJdbcEnable());
+        response.setJdbcSourceDriver(config.getJdbcDriver());
 
         if (SecondStorageUtil.isGlobalEnable()) {
             response.setSecondStorageEnabled(SecondStorageUtil.isProjectEnable(project));
