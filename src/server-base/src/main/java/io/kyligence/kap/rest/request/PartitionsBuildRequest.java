@@ -30,6 +30,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class PartitionsBuildRequest implements ProjectInsensitiveRequest {
@@ -47,5 +48,10 @@ public class PartitionsBuildRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("build_all_sub_partitions")
     private boolean buildAllSubPartitions = false;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 
 }

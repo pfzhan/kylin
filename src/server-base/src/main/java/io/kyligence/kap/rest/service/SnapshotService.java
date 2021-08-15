@@ -111,9 +111,9 @@ public class SnapshotService extends BasicService {
 
     public JobInfoResponse buildSnapshots(String project, Set<String> buildDatabases,
             Set<String> needBuildSnapshotTables, Map<String, SnapshotRequest.TableOption> options, boolean isRefresh,
-            int priority) {
+            int priority, String yarnQueue) {
         if (buildDatabases.isEmpty()) {
-            return buildSnapshots(project, needBuildSnapshotTables, options, isRefresh, priority);
+            return buildSnapshots(project, needBuildSnapshotTables, options, isRefresh, priority, yarnQueue);
         }
 
         NTableMetadataManager tableManager = getTableManager(project);
@@ -134,7 +134,7 @@ public class SnapshotService extends BasicService {
         needBuildSnapshotTables
                 .addAll(tablesOfDatabases.stream().map(TableDesc::getIdentity).collect(Collectors.toSet()));
 
-        return buildSnapshots(project, needBuildSnapshotTables, options, isRefresh, priority);
+        return buildSnapshots(project, needBuildSnapshotTables, options, isRefresh, priority, yarnQueue);
     }
 
     private Set<TableDesc> skipLoadedTable(Set<TableDesc> tablesOfDatabases, String project) {
@@ -147,7 +147,7 @@ public class SnapshotService extends BasicService {
     }
 
     public JobInfoResponse buildSnapshots(String project, Set<String> needBuildSnapshotTables,
-            Map<String, SnapshotRequest.TableOption> options, boolean isRefresh, int priority) {
+            Map<String, SnapshotRequest.TableOption> options, boolean isRefresh, int priority, String yarnQueue) {
         checkSnapshotManualManagement(project);
         aclEvaluate.checkProjectOperationPermission(project);
         Set<TableDesc> tables = checkAndGetTable(project, needBuildSnapshotTables);
@@ -178,7 +178,7 @@ public class SnapshotService extends BasicService {
                             tableDesc.getIdentity(), option.getPartitionCol(), option.isIncrementalBuild(), isRefresh);
 
                     NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, getUsername(), option.getPartitionCol(),
-                            option.isIncrementalBuild(), isRefresh);
+                            option.isIncrementalBuild(), isRefresh, yarnQueue);
                     ExecutablePO po = NExecutableManager.toPO(job, project);
                     po.setPriority(priority);
                     execMgr.addJob(po);

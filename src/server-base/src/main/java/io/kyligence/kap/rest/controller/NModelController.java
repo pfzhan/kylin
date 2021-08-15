@@ -442,7 +442,8 @@ public class NModelController extends NBasicController {
 
         modelService.validateCCType(modelId, request.getProject());
 
-        val response = modelService.buildIndicesManually(modelId, request.getProject(), request.getPriority());
+        val response = modelService.buildIndicesManually(modelId, request.getProject(), request.getPriority(),
+                request.getYarnQueue());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -883,14 +884,16 @@ public class NModelController extends NBasicController {
                             .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()) //
                             .withPriority(request.getPriority()) //
                             .withPartialBuild(request.isPartialBuild()) //
-                            .withBatchIndexIds(request.getBatchIndexIds()));
+                            .withBatchIndexIds(request.getBatchIndexIds())
+                            .withYarnQueue(request.getYarnQueue()));
         } else {
             if (ArrayUtils.isEmpty(segIds) || segIds.length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
                         MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
             val jobInfo = modelService.mergeSegmentsManually(
-                    new MergeSegmentParams(request.getProject(), modelId, segIds).withPriority(request.getPriority()));
+                    new MergeSegmentParams(request.getProject(), modelId, segIds).withPriority(request.getPriority())
+                            .withYarnQueue(request.getYarnQueue()));
             if (jobInfo != null) {
                 jobInfos.add(jobInfo);
             }
@@ -930,7 +933,7 @@ public class NModelController extends NBasicController {
                 buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority(),
                 buildSegmentsRequest.isBuildAllSubPartitions(), //
                 buildSegmentsRequest.getBatchIndexIds(), //
-                buildSegmentsRequest.isPartialBuild());
+                buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -951,7 +954,8 @@ public class NModelController extends NBasicController {
                 buildSegmentsRequest.getSubPartitionValues())
                         .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables())
                         .withPriority(buildSegmentsRequest.getPriority())
-                        .withBuildAllSubPartitions(buildSegmentsRequest.isBuildAllSubPartitions());
+                        .withBuildAllSubPartitions(buildSegmentsRequest.isBuildAllSubPartitions())
+                        .withYarnQueue(buildSegmentsRequest.getYarnQueue());
 
         JobInfoResponse response = fusionModelService.incrementBuildSegmentsManually(incrParams);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -1040,7 +1044,8 @@ public class NModelController extends NBasicController {
         checkRequiredArg("segment_id", param.getSegmentId());
         checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
         val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
-                param.getSubPartitionValues(), param.isParallelBuildBySegment(), param.isBuildAllSubPartitions());
+                param.getSubPartitionValues(), param.isParallelBuildBySegment(), param.isBuildAllSubPartitions(),
+                param.getPriority(), param.getYarnQueue());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 

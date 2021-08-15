@@ -374,7 +374,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "names", required = false) String[] names,
             @RequestParam(value = "batch_index_ids", required = false) List<Long> batchIndexIds,
             @RequestParam(value = "partial_build", required = false, defaultValue = "false") boolean partialBuild,
-            @RequestParam(value = "priority", required = false, defaultValue = "3") Integer priority) {
+            @RequestParam(value = "priority", required = false, defaultValue = "3") Integer priority,
+            @RequestParam(value = "yarn_queue", required = false) String yarnQueue) {
         String projectName = checkProjectName(project);
         checkSegmentParms(ids, names);
         String modelId = getModel(modelAlias, projectName).getUuid();
@@ -386,6 +387,7 @@ public class OpenModelController extends NBasicController {
         req.setPartialBuild(partialBuild);
         req.setIndexIds(batchIndexIds);
         req.setPriority(priority);
+        req.setYarnQueue(yarnQueue);
         return modelController.addIndexesToSegments(pair.getFirst(), req);
     }
 

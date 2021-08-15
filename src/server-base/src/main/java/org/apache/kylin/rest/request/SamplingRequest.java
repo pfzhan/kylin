@@ -45,4 +45,6 @@ public class SamplingRequest implements Serializable, ProjectInsensitiveRequest 
     private String qualifiedTableName;
     private int rows;
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

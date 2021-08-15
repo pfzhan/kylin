@@ -96,7 +96,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false);
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -127,7 +127,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false);
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -174,7 +174,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, true);
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, true, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
@@ -224,7 +224,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
-        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN", false);
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN", false, null);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());

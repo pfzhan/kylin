@@ -404,7 +404,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
                 multiValues.add(new String[] { "123" });
             }
             jobInfo = modelService.buildSegmentsManually(getProject(), modelId, "" + range.getStart(),
-                    "" + range.getEnd(), true, null, multiValues, 3, false, layoutIds, true);
+                    "" + range.getEnd(), true, null, multiValues, 3, false, layoutIds, true, null);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -436,7 +436,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         req.setPartialBuild(true);
         req.setIndexIds(Lists.newArrayList(layoutId));
         val rs = modelService.addIndexesToSegments(req.getProject(), modelId, req.getSegmentIds(), req.getIndexIds(),
-                req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild());
+                req.isParallelBuildBySegment(), req.getPriority(), req.isPartialBuild(), null);
         Assert.assertEquals(rs.getJobs().size(), 1);
         val execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
         NSparkCubingJob job = (NSparkCubingJob) execMgr.getJob(rs.getJobs().get(0).getJobId());

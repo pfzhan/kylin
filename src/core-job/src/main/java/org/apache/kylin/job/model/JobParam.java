@@ -77,6 +77,8 @@ public class JobParam {
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
+    private String yarnQueue;
+
     /**
      * Some additional params in different jobTypes
      */
@@ -165,6 +167,11 @@ public class JobParam {
         if (Objects.nonNull(targetSegments)) {
             this.targetSegments = targetSegments;
         }
+        return this;
+    }
+
+    public JobParam withYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
         return this;
     }
 

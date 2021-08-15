@@ -37,4 +37,7 @@ public class BuildIndexRequest implements ProjectInsensitiveRequest {
     private String project;
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

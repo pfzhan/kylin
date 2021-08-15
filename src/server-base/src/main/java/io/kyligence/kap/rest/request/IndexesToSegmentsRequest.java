@@ -49,4 +49,7 @@ public class IndexesToSegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("partial_build")
     private boolean partialBuild;
+
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

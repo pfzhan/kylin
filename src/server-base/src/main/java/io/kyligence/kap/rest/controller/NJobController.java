@@ -251,6 +251,8 @@ public class NJobController extends NBasicController {
                 jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
     }
 
+
+
     /**
      * RPC Call
      *

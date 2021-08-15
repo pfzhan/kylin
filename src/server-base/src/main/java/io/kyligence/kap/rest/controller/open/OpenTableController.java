@@ -230,7 +230,7 @@ public class OpenTableController extends NBasicController {
 
             Pair<String, List<String>> pair = tableService.reloadTable(request.getProject(),
                     request.getTable().toUpperCase(Locale.ROOT), request.getNeedSampling(), request.getSamplingRows(),
-                    request.getNeedBuilding(), request.getPriority());
+                    request.getNeedBuilding(), request.getPriority(), request.getYarnQueue());
 
             OpenReloadTableResponse response = new OpenReloadTableResponse();
             response.setSamplingId(pair.getFirst());

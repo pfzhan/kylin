@@ -23,6 +23,10 @@
 package org.apache.spark.conf.rule
 
 
+import java.util
+
+import io.kyligence.kap.cluster.YarnClusterManager
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.utils.{LogUtils, SparkConfHelper, SparkConfRuleConstants}
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.{KapConfig, KylinConfig}
@@ -223,6 +227,23 @@ class StandaloneConfRule extends SparkConfRule {
       }
       val executorInstance = helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES)
       helper.setConf(SparkConfHelper.MAX_CORES, (executorInstance.toInt * helper.getConf(SparkConfHelper.EXECUTOR_CORES).toInt).toString)
+    }
+  }
+}
+
+class YarnConfRule extends SparkConfRule {
+  override def doApply(helper: SparkConfHelper): Unit = {
+    helper.getClusterManager match {
+      case yarnClusterMgr: YarnClusterManager =>
+        val yarnQueue: String = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
+        val yarnNames: util.List[String] = yarnClusterMgr.listQueueNames()
+        logInfo(s"current available yarn queues ${StringUtils.join(yarnNames, ',')}, user submit yarn queue $yarnQueue")
+        if (!yarnNames.contains(yarnQueue)) {
+          val configOverride: util.Map[String, String] = KylinBuildEnv.get().kylinConfig.getSparkConfigOverride
+          helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE))
+          logInfo(s"unknown queue $yarnQueue, set 'spark.yarn.queue' to ${configOverride.get(SparkConfHelper.DEFAULT_QUEUE)}")
+        }
+      case _ =>
     }
   }
 }

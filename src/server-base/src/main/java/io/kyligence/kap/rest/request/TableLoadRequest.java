@@ -42,4 +42,6 @@ public class TableLoadRequest implements ProjectInsensitiveRequest {
     @JsonProperty("sampling_rows")
     private Integer samplingRows;
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

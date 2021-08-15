@@ -54,6 +54,9 @@ public class SnapshotRequest implements ProjectInsensitiveRequest {
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
+
     @Getter
     @Setter
     public static class TableOption {

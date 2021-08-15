@@ -42,4 +42,9 @@ public class MergeSegmentParams extends BasicSegmentParams {
         this.priority = priority;
         return this;
     }
+
+    public MergeSegmentParams withYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
+        return this;
+    }
 }

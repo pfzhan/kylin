@@ -27,6 +27,7 @@ import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DATA_RANGE_
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_DATA_RANGE_START;
 import static org.apache.kylin.job.execution.AbstractExecutable.NOTIFY_LIST;
 import static org.apache.kylin.job.execution.AbstractExecutable.PARENT_ID;
+import static org.apache.kylin.job.execution.AbstractExecutable.SPARK_YARN_QUEUE;
 import static org.apache.kylin.job.execution.AbstractExecutable.SUBMITTER;
 
 import java.io.IOException;
@@ -158,6 +159,14 @@ public class ExecutableParams {
         } else {
             return null;
         }
+    }
+
+    public void setSparkYarnQueue(String queue) {
+        this.setParam(SPARK_YARN_QUEUE, queue);
+    }
+
+    public String getSparkYarnQueue() {
+        return getParam(SPARK_YARN_QUEUE);
     }
 
     /**

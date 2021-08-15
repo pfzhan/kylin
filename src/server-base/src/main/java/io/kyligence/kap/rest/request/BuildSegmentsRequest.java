@@ -61,4 +61,7 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("batch_index_ids")
     private List<Long> batchIndexIds;
+
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

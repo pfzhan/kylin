@@ -908,7 +908,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(new ModelSaveCheckResponse()).when(modelService).checkBeforeModelSave(Mockito.any());
         Mockito.doReturn(new JobInfoResponse()).when(modelService).buildSegmentPartitionByValue(param.getProject(), "",
                 param.getSegmentId(), param.getSubPartitionValues(), param.isParallelBuildBySegment(),
-                param.isBuildAllSubPartitions());
+                param.isBuildAllSubPartitions(), param.getPriority(), param.getYarnQueue());
         Mockito.doNothing().when(modelService).validateCCType(Mockito.any(), Mockito.any());
         mockMvc.perform(MockMvcRequestBuilders
                 .post("/api/models/{model}/model_segments/multi_partition", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")

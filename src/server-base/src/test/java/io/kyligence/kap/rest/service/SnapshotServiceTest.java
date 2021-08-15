@@ -129,7 +129,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tables = Sets.newHashSet(table1, table2);
         thrown.expect(KylinException.class);
         thrown.expectMessage("Snapshot management is not enable");
-        snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), false, 3, null);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tables = Sets.newHashSet("non-exist");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can’t find table \"non-exist\". Please check and try again.");
-        snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), false, 3, null);
     }
 
     @Test
@@ -147,7 +147,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         Set<String> tables = Sets.newHashSet("DEFAULT.TEST_KYLIN_FACT");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can't find the snapshot \"DEFAULT.TEST_KYLIN_FACT\". Please check and try again.");
-        snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), true, 3);
+        snapshotService.buildSnapshots(PROJECT, tables, Maps.newHashMap(), true, 3, null);
     }
 
     @Test
@@ -157,7 +157,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         final String table2 = "DEFAULT.TEST_ACCOUNT";
         Set<String> tables = Sets.newHashSet(table1, table2);
         Set<String> databases = Sets.newHashSet();
-        snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 0);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 0, null);
 
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
@@ -191,7 +191,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         String expected = "Can’t submit the job at the moment, as a building job for the same object already exists. Please try again later.";
         String actual = "";
         try {
-            snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), true, 3);
+            snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), true, 3, null);
         } catch (TransactionException e) {
             actual = e.getCause().getMessage();
         }
@@ -213,7 +213,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         TableDesc table = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName);
         Assert.assertTrue(table.isSnapshotHasBroken());
         snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(), Sets.newHashSet(tableName), Maps.newHashMap(), false,
-                1);
+                1, null);
         table = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableName);
         Assert.assertTrue(!table.isSnapshotHasBroken());
     }
@@ -225,7 +225,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         final String database = "DEFAULT";
         Set<String> databases = Sets.newHashSet(database);
         Set<String> tables = Sets.newHashSet();
-        snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3, null);
         val executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         final List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
@@ -237,7 +237,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         databases = Sets.newHashSet("non-exist");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can’t find database \"NON-EXIST\". Please check and try again.");
-        snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, Maps.newHashMap(), false, 3, null);
     }
 
     @Test
@@ -263,7 +263,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         SnapshotRequest.TableOption option = new SnapshotRequest.TableOption();
         option.setPartitionCol(partitionCol);
         option.setIncrementalBuild(true);
-        snapshotService.buildSnapshots(PROJECT, databases, tables, ImmutableMap.of(table1, option), false, 3);
+        snapshotService.buildSnapshots(PROJECT, databases, tables, ImmutableMap.of(table1, option), false, 3, null);
 
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
 
@@ -287,7 +287,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         enableSnapshotManualManagement();
         // initialize a sampling job and assert the status of it
         String table = "DEFAULT.TEST_KYLIN_FACT";
-        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3, null);
         NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), PROJECT);
         List<AbstractExecutable> allExecutables = executableManager.getAllExecutables();
         Assert.assertEquals(1, allExecutables.size());
@@ -295,7 +295,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         val initialJob = allExecutables.get(0);
         Assert.assertEquals(ExecutableState.READY, initialJob.getStatus());
         try {
-            snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3);
+            snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(table), Maps.newHashMap(), false, 3, null);
         } catch (TransactionException e) {
             Assert.assertTrue(e.getCause() instanceof JobSubmissionException);
             Assert.assertEquals(
@@ -323,7 +323,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         tableManager.getTableDesc(tableName).setLastSnapshotPath("file://a/b");
         Assert.assertNotNull(getSnapshotPath(tableName));
-        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), Maps.newHashMap(), false, 3, null);
         SnapshotCheckResponse response = snapshotService.deleteSnapshots(PROJECT, Sets.newHashSet(tableName));
         Assert.assertEquals(1, response.getAffectedJobs().size());
         Assert.assertNull(getSnapshotPath(tableName));
@@ -336,7 +336,7 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         tableManager.getTableDesc(tableName).setLastSnapshotPath("file://a/b");
         Assert.assertNotNull(getSnapshotPath(tableName));
-        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), Maps.newHashMap(), false, 3);
+        snapshotService.buildSnapshots(PROJECT, Sets.newHashSet(tableName), Maps.newHashMap(), false, 3, null);
         SnapshotCheckResponse response = snapshotService.checkBeforeDeleteSnapshots(PROJECT,
                 Sets.newHashSet(tableName));
         Assert.assertEquals(1, response.getAffectedJobs().size());

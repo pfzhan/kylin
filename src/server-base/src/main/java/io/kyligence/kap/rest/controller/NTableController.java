@@ -268,7 +268,7 @@ public class NTableController extends NBasicController {
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
-                    tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority());
+                    tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue());
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
     }
@@ -520,7 +520,7 @@ public class NTableController extends NBasicController {
         validatePriority(request.getPriority());
 
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
-                request.getRows(), request.getPriority());
+                request.getRows(), request.getPriority(), request.getYarnQueue());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
@@ -590,7 +590,7 @@ public class NTableController extends NBasicController {
                 throw new KylinException(INVALID_TABLE_SAMPLE_RANGE, MsgPicker.getMsg().getTABLE_SAMPLE_MAX_ROWS());
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
-                    request.getMaxRows(), request.isNeedBuild(), request.getPriority());
+                    request.getMaxRows(), request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (Exception e) {
             logger.error("Reload Table Failed...", e);

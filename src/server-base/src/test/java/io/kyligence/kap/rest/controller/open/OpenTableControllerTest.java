@@ -263,7 +263,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         request.setNeedSampling(false);
 
         Mockito.doReturn(new Pair<String, List<String>>()).when(tableService).reloadTable(request.getProject(),
-                request.getTable(), request.getNeedSampling(), 0, false, ExecutablePO.DEFAULT_PRIORITY);
+                request.getTable(), request.getNeedSampling(), 0, false, ExecutablePO.DEFAULT_PRIORITY, null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/reload") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //

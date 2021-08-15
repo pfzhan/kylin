@@ -67,4 +67,7 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
 
     @JsonProperty("build_all_sub_partitions")
     private boolean buildAllSubPartitions = false;
+
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

@@ -62,6 +62,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -373,6 +374,13 @@ public class NSparkExecutable extends AbstractExecutable {
         // append other driver ops
         overrideDriverOps(config, sparkConf);
 
+        if (getParent() != null) {
+            String yarnQueue = getParent().getSparkYarnQueue();
+            // TODO double check if valid yarn queue
+            if (!Strings.isNullOrEmpty(yarnQueue)) {
+                sparkConf.put(SPARK_YARN_QUEUE, yarnQueue);
+            }
+        }
         return sparkConf;
     }
 

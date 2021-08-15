@@ -69,6 +69,7 @@ import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,6 +112,7 @@ public abstract class AbstractExecutable implements Executable {
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
     public static final String DEPENDENT_FILES = "dependentFiles";
+    public static final String SPARK_YARN_QUEUE = "spark.yarn.queue";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
 
@@ -540,6 +542,15 @@ public abstract class AbstractExecutable implements Executable {
         } else {
             MailHelper.notifyUser(projectConfig, EmailNotificationContent.createContent(jobIssue, this.getParent()),
                     users);
+        }
+    }
+
+    public void setSparkYarnQueueIfEnabled(String project, String yarnQueue) {
+        ProjectInstance proj = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+        KylinConfig config = proj.getConfig();
+        // TODO check if valid queue
+        if (config.isSetYarnQueueInTaskEnabled() && config.getYarnQueueInTaskAvailable().contains(yarnQueue)) {
+            this.setSparkYarnQueue(yarnQueue);
         }
     }
 

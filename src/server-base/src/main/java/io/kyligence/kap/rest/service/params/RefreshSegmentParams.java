@@ -73,4 +73,9 @@ public class RefreshSegmentParams extends BasicSegmentParams {
         this.batchIndexIds = batchIndexIds;
         return this;
     }
+
+    public RefreshSegmentParams withYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
+        return this;
+    }
 }

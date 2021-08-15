@@ -139,7 +139,7 @@ public class NSnapshotController extends NBasicController {
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), false,
-                snapshotsRequest.getPriority());
+                snapshotsRequest.getPriority(), snapshotsRequest.getYarnQueue());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -155,7 +155,7 @@ public class NSnapshotController extends NBasicController {
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), true,
-                snapshotsRequest.getPriority());
+                snapshotsRequest.getPriority(), snapshotsRequest.getYarnQueue());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
 
     }

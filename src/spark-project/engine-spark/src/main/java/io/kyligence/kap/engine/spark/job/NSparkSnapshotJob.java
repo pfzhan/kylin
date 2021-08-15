@@ -47,18 +47,18 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
     }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, String partitionCol,
-            boolean incrementBuild, boolean isRefresh) {
+            boolean incrementBuild, boolean isRefresh, String yarnQueue) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), partitionCol, incrementBuild);
+        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), partitionCol, incrementBuild, yarnQueue);
     }
 
-    public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, boolean isRefresh) {
+    public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, boolean isRefresh, String yarnQueue) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), null, false);
+        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), null, false, yarnQueue);
     }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, JobTypeEnum jobType, String jobId,
-            String partitionCol, boolean incrementalBuild) {
+            String partitionCol, boolean incrementalBuild, String yarnQueue) {
         Preconditions.checkArgument(submitter != null);
         NSparkSnapshotJob job = new NSparkSnapshotJob();
         String project = tableDesc.getProject();
@@ -75,6 +75,7 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
 
         job.setParam(NBatchConstants.P_INCREMENTAL_BUILD, incrementalBuild + "");
         job.setParam(NBatchConstants.P_SELECTED_PARTITION_COL, partitionCol);
+        job.setSparkYarnQueueIfEnabled(project, yarnQueue);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.BUILD_SNAPSHOT.createStep(job, config);

@@ -24,13 +24,14 @@ package io.kyligence.kap.cluster
 
 import java.io.IOException
 import java.util
+import java.util.stream.Collectors
 import java.util.{ArrayList, EnumSet, List, Set}
 
-import com.google.common.collect.Sets
+import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.cluster.parser.SchedulerParserFactory
 import io.kyligence.kap.engine.spark.utils.StorageUtils
 import org.apache.commons.collections.CollectionUtils
-import org.apache.hadoop.yarn.api.records.{ApplicationId, ApplicationReport, YarnApplicationState}
+import org.apache.hadoop.yarn.api.records.{ApplicationId, ApplicationReport, QueueInfo, YarnApplicationState}
 import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
@@ -170,6 +171,17 @@ class YarnClusterManager extends IClusterManager with Logging {
         }
       }
       return false
+    })
+  }
+
+  def listQueueNames(): util.List[String] = {
+    withYarnClient(yarnClient => {
+      val queues: util.List[QueueInfo] = yarnClient.getAllQueues
+      val queueNames: util.List[String] = Lists.newArrayList()
+      for (queue <- queues.asScala) {
+        queueNames.add(queue.getQueueName)
+      }
+      queueNames
     })
   }
 }

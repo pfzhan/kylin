@@ -32,6 +32,7 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorInstancesRule;
+import org.apache.spark.conf.rule.YarnConfRule;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -356,5 +357,34 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 .thenReturn(new AvailableResource(new ResourceInfo(-60480, -100), new ResourceInfo(-60480, -100)));
         helper.generateSparkConf();
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
+    }
+
+    @Test
+    public void testYarnConfRule() throws JsonProcessingException {
+        // auto set default yarn queue
+        SparkConfHelper helper = new SparkConfHelper();
+        helper.setClusterManager(clusterManager);
+        YarnConfRule yarnConfRule = new YarnConfRule();
+        yarnConfRule.apply(helper);
+        Assert.assertEquals("default", helper.getConf(SparkConfHelper.DEFAULT_QUEUE));
+        SparkConf sparkConf = new SparkConf();
+        helper.applySparkConf(sparkConf);
+        Assert.assertEquals("default", sparkConf.get(SparkConfHelper.DEFAULT_QUEUE));
+
+        // set exist yarn queue
+        List<String> queueNames = Lists.newArrayList("default", "dw");
+        Mockito.when(clusterManager.listQueueNames()).thenReturn(queueNames);
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "dw");
+        yarnConfRule.apply(helper);
+        Assert.assertEquals("dw", helper.getConf(SparkConfHelper.DEFAULT_QUEUE));
+        helper.applySparkConf(sparkConf);
+        Assert.assertEquals("dw", sparkConf.get(SparkConfHelper.DEFAULT_QUEUE));
+
+        // set non-exist yarn queue
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "test");
+        yarnConfRule.apply(helper);
+        Assert.assertEquals("default", helper.getConf(SparkConfHelper.DEFAULT_QUEUE));
+        helper.applySparkConf(sparkConf);
+        Assert.assertEquals("default", sparkConf.get(SparkConfHelper.DEFAULT_QUEUE));
     }
 }

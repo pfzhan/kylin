@@ -656,7 +656,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         request.setQualifiedTableName("default.test_kylin_fact");
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
-                        ExecutablePO.DEFAULT_PRIORITY);
+                        ExecutablePO.DEFAULT_PRIORITY, null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
@@ -736,7 +736,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         String errorMsg = "Can’t perform table sampling. Please select at least one table.";
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
-                        ExecutablePO.DEFAULT_PRIORITY);
+                        ExecutablePO.DEFAULT_PRIORITY, null);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //
@@ -757,7 +757,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         String errorMsg = "The name of table for sampling is invalid. Please enter a table name like “database.table”.";
         Mockito.doReturn(Lists.newArrayList()).when(tableSamplingService) //
                 .sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(), request.getRows(),
-                        ExecutablePO.DEFAULT_PRIORITY);
+                        ExecutablePO.DEFAULT_PRIORITY, null);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/sampling_jobs") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(request)) //

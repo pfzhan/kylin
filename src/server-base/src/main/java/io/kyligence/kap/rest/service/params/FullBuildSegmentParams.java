@@ -64,4 +64,9 @@ public class FullBuildSegmentParams extends BasicSegmentParams {
         this.batchIndexIds = batchIndexIds;
         return this;
     }
+
+    public FullBuildSegmentParams withYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
+        return this;
+    }
 }

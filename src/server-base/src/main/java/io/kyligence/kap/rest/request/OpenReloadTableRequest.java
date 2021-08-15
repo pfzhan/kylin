@@ -43,4 +43,6 @@ public class OpenReloadTableRequest implements ProjectInsensitiveRequest {
     @JsonProperty("need_building")
     private Boolean needBuilding = false;
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 }

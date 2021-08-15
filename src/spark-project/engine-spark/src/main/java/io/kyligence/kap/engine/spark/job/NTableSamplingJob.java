@@ -69,11 +69,11 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
     }
 
     public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows) {
-        return create(tableDesc, project, submitter, rows, ExecutablePO.DEFAULT_PRIORITY);
+        return create(tableDesc, project, submitter, rows, ExecutablePO.DEFAULT_PRIORITY, null);
     }
 
     public static NTableSamplingJob create(TableDesc tableDesc, String project, String submitter, int rows,
-            int priority) {
+            int priority, String yarnQueue) {
         Preconditions.checkArgument(tableDesc != null, //
                 "Create table sampling job failed for table not exist!");
 
@@ -91,6 +91,7 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         job.setParam(NBatchConstants.P_TABLE_NAME, tableDesc.getIdentity());
         job.setParam(NBatchConstants.P_SAMPLING_ROWS, String.valueOf(rows));
         job.setPriority(priority);
+        job.setSparkYarnQueueIfEnabled(project, yarnQueue);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.RESOURCE_DETECT.createStep(job, config);

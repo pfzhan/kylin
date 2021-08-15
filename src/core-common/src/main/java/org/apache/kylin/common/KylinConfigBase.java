@@ -1004,6 +1004,15 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isDeleteJobTmpWhenRetry() {
         return Boolean.parseBoolean(getOptional("kylin.job.delete-job-tmp-when-retry", FALSE));
     }
+
+    public boolean isSetYarnQueueInTaskEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine-yarn.queue.in.task.enabled", FALSE));
+    }
+
+    public List<String> getYarnQueueInTaskAvailable() {
+        return Lists.newArrayList(getOptional("kylin.engine-yarn.queue.in.task.available", "default").split(","));
+    }
+
     // ============================================================================
     // SOURCE.HIVE
     // ============================================================================

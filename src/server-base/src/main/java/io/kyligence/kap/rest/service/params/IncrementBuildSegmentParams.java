@@ -111,6 +111,12 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams implemen
         return this;
     }
 
+    @Override
+    public IncrementBuildSegmentParams withYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
+        return this;
+    }
+
     public IncrementBuildSegmentParams withBuildAllSubPartitions(boolean buildAllSubPartitions) {
         this.buildAllSubPartitions = buildAllSubPartitions;
         return this;

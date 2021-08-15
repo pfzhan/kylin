@@ -49,6 +49,9 @@ public class SegmentsRequest implements ProjectInsensitiveRequest {
 
     private int priority = ExecutablePO.DEFAULT_PRIORITY;
 
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
+
     public enum SegmentsRequestType {
         REFRESH, MERGE
     }

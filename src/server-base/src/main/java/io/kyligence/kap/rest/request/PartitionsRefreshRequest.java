@@ -36,6 +36,7 @@ import io.kyligence.kap.rest.aspect.TransactionProjectUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 @AllArgsConstructor
@@ -56,6 +57,11 @@ public class PartitionsRefreshRequest implements ProjectInsensitiveRequest, Tran
 
     @JsonProperty("ignored_snapshot_tables")
     private Set<String> ignoredSnapshotTables;
+
+    private int priority = ExecutablePO.DEFAULT_PRIORITY;
+
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
 
     @Override
     public String transactionProjectUnit() {

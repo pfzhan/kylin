@@ -426,8 +426,6 @@ public abstract class SparkApplication implements Application, IKeep {
         chooseContentSize(helper);
 
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, Integer.toString(layoutSize));
-        Map<String, String> configOverride = getSparkConfigOverride(config);
-        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, configOverride.get(SparkConfHelper.DEFAULT_QUEUE));
         helper.setOption(SparkConfHelper.REQUIRED_CORES, calculateRequiredCores());
         helper.setConf(COUNT_DISTICT, hasCountDistinct().toString());
         helper.generateSparkConf();
