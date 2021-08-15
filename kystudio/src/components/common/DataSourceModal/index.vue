@@ -49,6 +49,12 @@
         :column-data="form.columnData"
         @input="handleInputKafkaData">
       </SourceKafkaStep2>
+      <!-- <SourceGbase
+        v-if="sourceGbase"
+        ref="gbase-datasource"
+        :source-type="sourceType"
+      >
+      </SourceGbase> -->
       <SourceCSVConnect
         ref="source-csv-connection-form"
         :form="form.csvSettings"
@@ -82,7 +88,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapState, mapMutations, mapActions } from 'vuex'
+import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 
 import vuex from '../../../store'
 import locales from './locales'
@@ -96,6 +102,7 @@ import SourceHiveSetting from './SourceHiveSetting/SourceHiveSetting.vue'
 import SourceHive from './SourceHive/SourceHive.vue'
 import SourceKafka from './SourceKafka/SourceKafka.vue'
 import SourceKafkaStep2 from './SourceKafkaStep2/SourceKafkaStep2.vue'
+import SourceGbase from './SourceJDBC/SourceGbase/SourceGbase.vue'
 import SourceCSVConnect from './SourceCSV/SourceConnect/connect.vue'
 import SourceCSVSetting from './SourceCSV/SourceSetting/setting.vue'
 import SourceCSVStructure from './SourceCSV/SourceStructure/structure.vue'
@@ -109,6 +116,7 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
     SourceHive,
     SourceKafka,
     SourceKafkaStep2,
+    SourceGbase,
     SourceCSVConnect,
     SourceCSVSetting,
     SourceCSVStructure,
@@ -121,8 +129,12 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
       editType: state => state.editType,
       callback: state => state.callback,
       firstEditType: state => state.firstEditType,
-      databaseSizeObj: state => state.databaseSizeObj
-    })
+      databaseSizeObj: state => state.databaseSizeObj,
+      connectGbaseSetting: state => state.form.connectGbaseSetting
+    }),
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
   },
   methods: {
     ...mapMutations('DataSourceModal', {
@@ -139,7 +151,8 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
       saveSourceConfig: 'SAVE_SOURCE_CONFIG',
       updateProjectDatasource: 'UPDATE_PROJECT_DATASOURCE',
       convertTopicJson: 'CONVERT_TOPIC_JSON',
-      saveKafka: 'SAVE_KAFKA'
+      saveKafka: 'SAVE_KAFKA',
+      checkConnectByGbase: 'CHECK_BASE_CONFIG'
     })
   },
   locales
@@ -163,7 +176,7 @@ export default class DataSourceModal extends Vue {
     }
   }
 
-  get modelWidth () { return this.editType === editTypes.HIVE || this.editType === editTypes.GBASE ? '960px' : (this.editType === editTypes.SELECT_SOURCE ? '600px' : '780px') }
+  get modelWidth () { return this.editType === editTypes.HIVE || this.editType === editTypes.GBASE ? '960px' : (this.editType === editTypes.SELECT_SOURCE || this.editType === editTypes.GBASE ? '600px' : '780px') }
   get confirmText () { return this.$t(confirmMaps[this.editType]) }
   get cancelText () {
     return this.firstEditType === this.editType ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType])
@@ -172,6 +185,8 @@ export default class DataSourceModal extends Vue {
   get sourceHive () { return [this.editTypes.HIVE, this.editTypes.RDBMS, this.editTypes.RDBMS2, this.editTypes.GBASE].includes(this.editType) }
   get sourceKafka () { return this.editType === this.editTypes.KAFKA }
   get sourceKafkaStep2 () { return this.editType === this.editTypes.KAFKA2 }
+  // get sourceGbase () { return this.editType === this.editTypes.GBASE }
+
   handleInput (key, value) {
     this.setModalForm(set(this.form, key, value))
   }
@@ -295,6 +310,7 @@ export default class DataSourceModal extends Vue {
         return await handleSuccessAsync(response)
       }
       case editTypes.HIVE:
+      case editTypes.GBASE:
       case editTypes.RDBMS:
       case editTypes.RDBMS2: {
         const response = await this.importTable(submitData)
@@ -315,6 +331,28 @@ export default class DataSourceModal extends Vue {
         const response = await this.saveKafka(submitData)
         return await handleSuccessAsync(response)
       }
+      // case editTypes.GBASE: {
+      //   try {
+      //     const params = objectClone(this.connectGbaseSetting)
+      //     if (!params.synced) {
+      //       const data = {
+      //         url: params.connectionString,
+      //         user: params.username,
+      //         pass: params.password,
+      //         driver: 'com.gbase.jdbc.Driver',
+      //         dialect: 'gbase8a',
+      //         adaptor: 'io.kyligence.kap.sdk.datasource.adaptor.Gbase8aAdaptor'
+      //       }
+      //       this.$refs['gbase-datasource'].$refs['source-auth-form'] && this.$refs['gbase-datasource'].$refs['source-auth-form'].$refs.form.validate()
+      //       if (!params.connectionString || !params.username || !params.password) return
+      //       const response = await this.checkConnectByGbase({...data, project: this.currentSelectedProject})
+      //       await handleSuccessAsync(response)
+      //     }
+      //     return this.setModal({ editType: editTypes.GBASE2 })
+      //   } catch (e) {
+      //     console.log(e)
+      //   }
+      // }
     }
   }
   async _validate () {
@@ -329,6 +367,7 @@ export default class DataSourceModal extends Vue {
       }
       case editTypes.HIVE:
       case editTypes.RDBMS:
+      case editTypes.GBASE:
       case editTypes.RDBMS2: {
         const isValid = this.form.selectedTables.length || this.form.selectedDatabases.length
         !isValid && this.$message(this.$t('pleaseSelectTableOrDatabase'))

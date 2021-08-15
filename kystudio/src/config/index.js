@@ -709,7 +709,6 @@ export const sourceTypes = getFullMapping({
   HIVE: 9,
   RDBMS: 16,
   KAFKA: 1,
-  RDBMS2: 8,
   CSV: 13,
   GBASE: 8
 })
