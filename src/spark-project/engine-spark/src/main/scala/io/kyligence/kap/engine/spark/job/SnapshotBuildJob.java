@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
@@ -141,21 +142,48 @@ public class SnapshotBuildJob extends SparkApplication {
                 return;
             }
             for (FileStatus fileStatus : fs.listStatus(sourcePath)) {
-                Path targetFilePath = new Path(target + "/" + fileStatus.getPath().getName());
+                final String targetFilePathString = target + "/" + fileStatus.getPath().getName();
+                Path targetFilePath = new Path(targetFilePathString);
                 if (fs.exists(targetFilePath)) {
                     logger.info(String.format(Locale.ROOT, "delete non-effective partition %s ", targetFilePath));
                     fs.delete(targetFilePath, true);
                 }
-                fs.rename(fileStatus.getPath(), new Path(target));
+                if (StringUtils.equalsIgnoreCase(fs.getScheme(), "s3a") && fs.isDirectory(fileStatus.getPath())) {
+                    fs.mkdirs(targetFilePath);
+                    renameS3A(fs, fileStatus, targetFilePath);
+                } else {
+                    fs.rename(fileStatus.getPath(), new Path(target));
+                }
             }
 
-            fs.delete(sourcePath, false);
+            fs.delete(sourcePath, true);
         } catch (Exception e) {
             logger.error(String.format(Locale.ROOT, "from %s to %s move file fail:", incrementalSnapshotPath,
                     originSnapshotPath), e);
             Throwables.propagate(e);
         }
 
+    }
+
+    private void renameS3A(FileSystem fs, FileStatus source, Path target) throws IOException {
+        for (FileStatus sourceInner : fs.listStatus(source.getPath())) {
+            if (!fs.exists(sourceInner.getPath())) {
+                continue;
+            }
+            if (sourceInner.isFile()) {
+                fs.rename(sourceInner.getPath(), target);
+            }
+            if (sourceInner.isDirectory()) {
+                final String targetInnerString = target + "/" + sourceInner.getPath().getName();
+                Path targetInner = new Path(targetInnerString);
+                if (fs.exists(targetInner)) {
+                    logger.info(String.format(Locale.ROOT, "delete non-effective partition %s ", targetInnerString));
+                    fs.delete(targetInner, true);
+                }
+                fs.mkdirs(targetInner);
+                renameS3A(fs, sourceInner, targetInner);
+            }
+        }
     }
 
     private String getSnapshotDir(String snapshotPath) {
