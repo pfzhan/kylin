@@ -442,9 +442,8 @@ class FilePruner(val session: SparkSession,
       case expressions.In(a: Attribute, list)
         if list.forall(_.isInstanceOf[Literal]) && a.name == shardColumnName =>
         getShardSetFromIterable(a, list.map(e => e.eval(EmptyRow)))
-      case expressions.InSet(a: Attribute, hset)
-        if hset.forall(_.isInstanceOf[Literal]) && a.name == shardColumnName =>
-        getShardSetFromIterable(a, hset.map(e => expressions.Literal(e).eval(EmptyRow)))
+      case expressions.InSet(a: Attribute, hset) if a.name == shardColumnName =>
+        getShardSetFromIterable(a, hset)
       case expressions.IsNull(a: Attribute) if a.name == shardColumnName =>
         getShardSetFromValue(a, null)
       case expressions.And(left, right) =>
