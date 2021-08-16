@@ -132,6 +132,9 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected void setSparkSubmitClassName(String className) {
+        if (KylinConfig.getInstanceFromEnv().getSparkEngineBuildStepsToSkip().contains(this.getClass().getName())) {
+            className = EmptyPlaceholderJob.class.getName();
+        }
         this.setParam(NBatchConstants.P_CLASS_NAME, className);
     }
 

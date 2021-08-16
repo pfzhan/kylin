@@ -863,6 +863,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isPrometheusMetricsEnabled", new PropertiesEntity("kylin.metrics.prometheus-enabled", "true", true));
         map.put("isSetYarnQueueInTaskEnabled", new PropertiesEntity("kylin.engine-yarn.queue.in.task.enabled", "false", false));
         map.put("getYarnQueueInTaskAvailable", new PropertiesEntity("kylin.engine-yarn.queue.in.task.available", "default", Lists.newArrayList("default")));
+        map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
     }
 
     @Before
@@ -883,7 +884,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(495, methodsCount);
+        Assert.assertEquals(496, methodsCount);
     }
 
     @Test

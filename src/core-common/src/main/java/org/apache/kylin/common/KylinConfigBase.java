@@ -1414,6 +1414,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.streaming.watermark", "");
     }
 
+    public String getSparkEngineBuildStepsToSkip() {
+        return getOptional("kylin.engine.steps.skip", "");
+    }
+
     // ============================================================================
     // ENGINE.SPARK
     // ============================================================================

@@ -99,18 +99,20 @@ object ResourceDetectUtils extends Logging {
   @throws[IOException]
   protected def listSourcePath(shareDir: Path): java.util.Map[String, java.util.Map[String, Double]] = {
     val fs = HadoopUtil.getWorkingFileSystem
-    val fileStatuses = fs.listStatus(shareDir, new PathFilter {
-      override def accept(path: Path): Boolean = {
-        path.toString.endsWith(ResourceDetectUtils.fileName())
-      }
-    })
     // segmnet -> (layout_ID, path)
     val resourcePaths = Maps.newHashMap[String, java.util.Map[String, Double]]()
-    for (file <- fileStatuses) {
-      val fileName = file.getPath.getName
-      val segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName) - 1)
-      val map = ResourceDetectUtils.readResourcePathsAs[java.util.Map[String, Double]](file.getPath)
-      resourcePaths.put(segmentId, map)
+    if (fs.exists(shareDir)) {
+      val fileStatuses = fs.listStatus(shareDir, new PathFilter {
+        override def accept(path: Path): Boolean = {
+          path.toString.endsWith(ResourceDetectUtils.fileName())
+        }
+      })
+      for (file <- fileStatuses) {
+        val fileName = file.getPath.getName
+        val segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName()) - 1)
+        val map = ResourceDetectUtils.readResourcePathsAs[java.util.Map[String, Double]](file.getPath)
+        resourcePaths.put(segmentId, map)
+      }
     }
     // return size with unit
     resourcePaths
