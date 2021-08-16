@@ -72,7 +72,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1502,59 +1501,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         runningExecutables = executableManager.getRunningExecutables(project, modelId);
         Assert.assertEquals(0, runningExecutables.size());
         scheduler.shutdown();
-    }
-
-    @Ignore("for testing")
-    @Test
-    public void testConcurrentJobWithPriorityCrossProject() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-
-        String project = "heterogeneous_segment";
-        String modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
-        val scheduler = NDefaultScheduler.getInstance(project);
-        val originExecutableManager = NExecutableManager.getInstance(config, project);
-        val executableManager = Mockito.spy(originExecutableManager);
-        Mockito.doAnswer(invocation -> {
-            String jobId = invocation.getArgument(0);
-            originExecutableManager.destroyProcess(jobId);
-            return null;
-        }).when(executableManager).destroyProcess(Mockito.anyString());
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
-        DefaultChainedExecutable job0 = generateJob(df, project, 0);
-        executableManager.addJob(job0);
-        DefaultChainedExecutable job1 = generateJob(df, project, 0);
-        executableManager.addJob(job1);
-        scheduler.init(new JobEngineConfig(config));
-
-        String project2 = "default";
-        String modelId2 = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        val scheduler2 = NDefaultScheduler.getInstance(project2);
-        val originExecutableManager2 = NExecutableManager.getInstance(config, project2);
-        val executableManager2 = Mockito.spy(originExecutableManager2);
-        Mockito.doAnswer(invocation -> {
-            String jobId = invocation.getArgument(0);
-            originExecutableManager2.destroyProcess(jobId);
-            return null;
-        }).when(executableManager).destroyProcess(Mockito.anyString());
-        val df2 = NDataflowManager.getInstance(getTestConfig(), project2).getDataflow(modelId2);
-        DefaultChainedExecutable job2_1 = generateJob(df2, project2, 1);
-        executableManager2.addJob(job2_1);
-
-        scheduler.init(new JobEngineConfig(config));
-        scheduler2.init(new JobEngineConfig(config));
-
-        if (!scheduler.hasStarted() || !scheduler2.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
-
-        var runningExecutables = executableManager2.getRunningExecutables(project2, modelId2);
-        Assert.assertEquals(1, runningExecutables.size());
-        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(0).getStatus());
-        waitForJobByStatus(job0.getId(), 60000, ExecutableState.SUCCEED, executableManager);
-        Assert.assertEquals(ExecutableState.READY, runningExecutables.get(0).getStatus());
-        waitForJobByStatus(job1.getId(), 60000, ExecutableState.SUCCEED, executableManager);
-        scheduler.shutdown();
-        scheduler2.shutdown();
     }
 
     private DefaultChainedExecutable generateJob(NDataflow df, String project, int priority) {
