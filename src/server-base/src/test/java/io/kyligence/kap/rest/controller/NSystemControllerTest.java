@@ -193,6 +193,13 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testRollEventLog() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/system/roll_event_log").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).rollEventLog();
+    }
+
+    @Test
     public void testCheckProjectArg() {
         AclEvaluate sourceValue = nSystemController.getAclEvaluate();
         AclEvaluate mockAclEvaluate = Mockito.mock(AclEvaluate.class);
