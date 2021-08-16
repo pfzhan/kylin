@@ -324,7 +324,7 @@ public class StreamingSparkLogTool extends ExecutableApplication {
                     // Time Filter
                     String rollingDate = new Path(path).getParent().getParent().getName();
                     DateTime rollingDateTime = new DateTime(rollingDate);
-                    DateTime startDateTime = new DateTime(Long.parseLong(startTime));
+                    DateTime startDateTime = new DateTime(Long.parseLong(startTime)).withTimeAtStartOfDay();
                     DateTime endDateTime = new DateTime(Long.parseLong(endTime));
 
                     return rollingDateTime.compareTo(startDateTime) >= 0 && rollingDateTime.compareTo(endDateTime) <= 0;
