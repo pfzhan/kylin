@@ -43,7 +43,7 @@
       </el-tooltip>
 
       <el-tooltip :content="$t('disabledJDBCTips', {jdbcName: jdbcSourceName})" placement="top" :disabled="!disabledSelectDataSource([jdbcSourceName.toLocaleUpperCase()])">
-        <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes[jdbcSourceName.toLocaleUpperCase()]])" @click="!disabledSelectDataSource([jdbcSourceName.toLocaleUpperCase()]) && clickHandler(sourceTypes[jdbcSourceName.toLocaleUpperCase()])" v-if="showGbaseData">
+        <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes[jdbcSourceName.toLocaleUpperCase()]])" @click="!disabledSelectDataSource([jdbcSourceName.toLocaleUpperCase()]) && clickHandler(sourceTypes[jdbcSourceName.toLocaleUpperCase()])" v-if="showJDBCEnter">
           <div class="datasource-icon">
             <!-- <i class="el-icon-ksd-mysql"></i> -->
             <img src="../../../../assets/img/datasource.png" alt="">
@@ -124,9 +124,9 @@ export default class SourceSelect extends Vue {
     }
   }
 
-  get showGbaseData () {
+  get showJDBCEnter () {
     const [{override_kylin_properties}] = this.allProject.filter(it => it.name === this.currentProject)
-    return override_kylin_properties['kylin.source.jdbc.source.name'] === 'GBase' && override_kylin_properties['kylin.source.jdbc.source.enable'] === 'true'
+    return override_kylin_properties['kylin.source.jdbc.source.name'] && override_kylin_properties['kylin.source.jdbc.source.enable'] === 'true'
   }
 
   get jdbcSourceName () {
