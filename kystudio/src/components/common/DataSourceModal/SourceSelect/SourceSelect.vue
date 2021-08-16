@@ -49,7 +49,7 @@
             <img src="../../../../assets/img/datasource.png" alt="">
           </div>
           <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
-          <div class="datasource-name">{{jdbcSourceName.toLocaleUpperCase()}}</div>
+          <div class="datasource-name">{{jdbcSourceName}}</div>
         </li>
       </el-tooltip>
     </ul>

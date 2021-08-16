@@ -74,14 +74,14 @@
           </div>
           <div class="setting-item">
             <div class="setting-label font-medium">{{$t('password')}}</div>
-            <div class="setting-value fixed">•••••••••</div>
+            <div class="setting-value fixed">••••••••</div>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="setting-item">
           <div class="setting-label">{{$t('jdbcConnectInfo')}}</div>
-          <div class="setting-value fixed"><el-button :disabled="!form.jdbc_datasource_enabled" plain icon="el-ksd-icon-add_22" size="small" @click="addDataSourceSetting(index)">{{$t('add')}}</el-button></div>
+          <div class="setting-value fixed"><el-button :disabled="!form.jdbc_datasource_enabled" plain icon="el-ksd-icon-add_22" size="small" @click="addDataSourceSetting">{{$t('add')}}</el-button></div>
         </div>
       </template>
     </EditableBlock>
@@ -665,19 +665,20 @@ export default class SettingBasic extends Vue {
         }
         case 'datasource-info': {
           if (!this.form.JDBCConnectSetting.length) return errorCallback()
-          const { connectionString, username, password } = this.form.JDBCConnectSetting[0]
+          const { connectionString, username, password, name } = this.form.JDBCConnectSetting[0]
           const currentProject = this.currentProjectData
           const data = {
             jdbc_source_connection_url: connectionString,
             jdbc_source_user: username,
-            jdbc_source_pass: password,
+            // jdbc_source_pass: password || null,
             jdbc_source_enable: this.form.jdbc_datasource_enabled,
-            jdbc_source_name: 'GBase',
+            jdbc_source_name: name,
             jdbc_source_driver: 'com.gbase.jdbc.Driver'
           }
+          password && (data['jdbc_source_pass'] = password)
           // this.$refs['gbase-datasource'].$refs['source-auth-form'] && this.$refs['gbase-datasource'].$refs['source-auth-form'].$refs.form.validate()
           if (!connectionString || !username) return errorCallback()
-          if (JSON.stringify(this.JDBCConnectSettingBackup) !== JSON.stringify(this.form.JDBCConnectSetting)) {
+          if (this.JDBCConnectSettingBackup.length && JSON.stringify(this.JDBCConnectSettingBackup) !== JSON.stringify(this.form.JDBCConnectSetting)) {
             await this.$msgbox({
               width: '400px',
               type: 'warning',
@@ -693,7 +694,7 @@ export default class SettingBasic extends Vue {
             currentProject['override_kylin_properties']['kylin.source.jdbc.connection-url'] = connectionString
             currentProject['override_kylin_properties']['kylin.source.jdbc.pass'] = password
             currentProject['override_kylin_properties']['kylin.source.jdbc.source.enable'] = this.form.jdbc_datasource_enabled.toString()
-            currentProject['override_kylin_properties']['kylin.source.jdbc.source.name'] = 'GBase'
+            currentProject['override_kylin_properties']['kylin.source.jdbc.source.name'] = name
             currentProject['override_kylin_properties']['kylin.source.jdbc.user'] = username
           }
           this.JDBCConnectSettingBackup = JSON.parse(JSON.stringify(this.form.JDBCConnectSetting))
@@ -947,35 +948,80 @@ export default class SettingBasic extends Vue {
 
   // 更改数据源设置
   modifyDataSourceSetting (index) {
+    const form = objectClone(this.form.JDBCConnectSetting[index])
     this.$msgbox({
       width: '600px',
       title: this.$t('modifyDatasourceConnect'),
-      message: <source-authority-form form={this.form.JDBCConnectSetting[index]}/>,
+      message: <source-authority-form ref='datasourceAuthorityForm' form={form}/>,
       confirmButtonText: this.$t('kylinLang.common.save'),
       showCancelButton: true,
       closeOnClickModal: false,
-      closeOnPressEscape: false
+      closeOnPressEscape: false,
+      callback: (action) => {
+        return new Promise((resolve, reject) => {
+          if (action === 'confirm') {
+            this.$set(this.form.JDBCConnectSetting, index, form)
+            resolve()
+          } else {
+            reject()
+          }
+        })
+      },
+      beforeClose: async (action, instance, done) => {
+        try {
+          if (action === 'confirm') {
+            this.$refs.datasourceAuthorityForm && await this.$refs.datasourceAuthorityForm.$refs.form.validate()
+            done()
+          } else {
+            this.$refs.datasourceAuthorityForm && this.$refs.datasourceAuthorityForm.$refs.form.clearValidate()
+            done()
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
     })
   }
 
   // 添加数据源设置
   addDataSourceSetting () {
-    this.form.JDBCConnectSetting.push({
+    const form = {
       connectionString: '',
       username: '',
-      password: ''
-    })
+      password: '',
+      name: 'Gbase'
+    }
     this.$msgbox({
       width: '600px',
       title: this.$t('addDatasourceConnect'),
-      message: <source-authority-form form={this.form.JDBCConnectSetting[this.form.JDBCConnectSetting.length - 1]}/>,
+      message: <source-authority-form ref='datasourceAuthorityForm' form={form}/>,
       confirmButtonText: this.$t('kylinLang.common.save'),
       showCancelButton: true,
       closeOnClickModal: false,
-      closeOnPressEscape: false
-    }).then(() => {
-    }).catch(() => {
-      this.form.JDBCConnectSetting.pop()
+      closeOnPressEscape: false,
+      callback: (action) => {
+        return new Promise((resolve, reject) => {
+          if (action === 'confirm') {
+            this.form.JDBCConnectSetting.push(form)
+            resolve()
+          } else {
+            reject()
+          }
+        })
+      },
+      beforeClose: async (action, instance, done) => {
+        try {
+          if (action === 'confirm') {
+            this.$refs.datasourceAuthorityForm && await this.$refs.datasourceAuthorityForm.$refs.form.validate()
+            done()
+          } else {
+            this.$refs.datasourceAuthorityForm && this.$refs.datasourceAuthorityForm.$refs.form.clearValidate()
+            done()
+          }
+        } catch (e) {
+          console.error(e)
+        }
+      }
     })
   }
 }
