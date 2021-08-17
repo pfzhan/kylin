@@ -317,6 +317,26 @@ public class EscapeTransformerTest {
     }
 
     @Test
+    public void testReservedHintQueryForEscapeParser() {
+        String originalSQL = "select /**/ /*+*//*+ some hint */ \n"
+                + " \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl";
+        String transformedSQL = transformer.transform(originalSQL);
+
+        String expectedSQL = "select /*+*//*+ some hint */\n"
+                + " \"--won't remove in quote, /*test*/\", count(*) from tbl";
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void testApproxNumericLiteral() {
+        String originSql = "select LO_DISCOUNT*0.10e+000 from ssb.lineorder";
+        String transformedSQL = transformer.transform(originSql);
+        System.out.println(transformedSQL);
+        String expectedSQL = "select LO_DISCOUNT * 0.10e+000 from ssb.lineorder";
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
     public void testTransformJDBCFuncQuery() {
         String originSql = "SELECT \"CALCS\".\"DATETIME0\", {DATE '2004-07-01'}, {fn TIMESTAMPDIFF(SQL_TSI_DAY,{ts '2004-07-01 00:00:00'},{fn CONVERT(\"CALCS\".\"DATETIME0\", DATE)})} AS \"TEMP_Test__2422160351__0_\"\n"
                 + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" + "GROUP BY \"CALCS\".\"DATETIME0\"";
@@ -389,8 +409,8 @@ public class EscapeTransformerTest {
                 + " count(distinct quarter(date0)), max(QUARTER(date1)),\n"
                 + " count(distinct hour(date0)), max(HOUR(date1)),\n"
                 + " count(distinct minute(date0)), max(MINUTE(date1)),\n"
-                + " count(distinct second(date0)), max(SECOND(date1)),\n" + " count(week(date0)), max(week(date1)),\n"
-                + " count(dayofyear(date0)), max(DAYOFYEAR(date1)),\n"
+                + " count(distinct second(date0)), max(SECOND(date1)),\n" //
+                + " count(week(date0)), max(week(date1)),\n" + " count(dayofyear(date0)), max(DAYOFYEAR(date1)),\n"
                 + " count(dayofweek(date0)), max(DAYOFWEEK(date1)),\n"
                 + " count(dayofmonth(date0)), max(DAYOFMONTH(date1)) from tdvt.calcs as calcs";
 
