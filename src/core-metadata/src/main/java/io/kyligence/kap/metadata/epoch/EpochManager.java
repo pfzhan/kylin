@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.Epoch;
@@ -390,46 +391,48 @@ public class EpochManager implements IKeep {
      */
     public boolean tryForceInsertOrUpdateEpochBatchTransaction(List<String> projects, boolean skipCheckMaintMode,
             String maintenanceModeReason, boolean expectedIsMaintenance) {
+        if ((!skipCheckMaintMode && !checkExpectedIsMaintenance(expectedIsMaintenance))
+                || CollectionUtils.isEmpty(projects)) {
+            return false;
+        }
+        val epochList = epochStore.list();
 
-        return epochStore.executeWithTransaction(() -> {
-            if ((!skipCheckMaintMode && !checkExpectedIsMaintenance(expectedIsMaintenance))
-                    || CollectionUtils.isEmpty(projects)) {
-                return false;
-            }
+        //epochs need to be updated
+        val needUpdateProjectSet = epochList.stream().map(Epoch::getEpochTarget).collect(Collectors.toSet());
+        List<Epoch> needUpdateEpochList = Lists.newArrayList();
+        if (CollectionUtils.isNotEmpty(needUpdateProjectSet)) {
+            epochList.forEach(epoch -> {
+                Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(epoch, epoch.getEpochTarget(), true, maintenanceModeReason);
+                if (Objects.nonNull(pair)) {
+                    needUpdateEpochList.add(pair.getSecond());
+                }
+            });
+        }
 
-            val epochList = epochStore.list();
+        //epoch need to be inserted
+        val needInsertProjectSet = Sets.difference(new HashSet<>(projects), needUpdateProjectSet);
+        List<Epoch> needInsertEpochList = Lists.newArrayList();
+        if (CollectionUtils.isNotEmpty(needInsertProjectSet)) {
+            needInsertProjectSet.forEach(project -> {
+                Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(null, project, true, maintenanceModeReason);
+                if (Objects.nonNull(pair)) {
+                    needInsertEpochList.add(pair.getSecond());
+                }
+            });
+        }
 
-            //epochs need to be updated
-            val needUpdateProjectSet = epochList.stream().map(Epoch::getEpochTarget).collect(Collectors.toSet());
-            if (CollectionUtils.isNotEmpty(needUpdateProjectSet)) {
-                val needUpdateEpochList = epochList.stream()
-                        .filter(epoch -> needUpdateProjectSet.contains(epoch.getEpochTarget())).map(epochTemp -> {
-                            Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(epochTemp, epochTemp.getEpochTarget(), true,
-                                    maintenanceModeReason);
-                            if (Objects.nonNull(pair)) {
-                                return pair.getSecond();
-                            }
-                            return null;
-                        }).filter(Objects::nonNull).collect(Collectors.toList());
-                //batch update
-                epochStore.updateBatch(needUpdateEpochList);
-            }
-
-            //epoch need to be inserted
-            val needInsertProjectSet = Sets.difference(new HashSet<>(projects), needUpdateProjectSet);
-            if (CollectionUtils.isNotEmpty(needInsertProjectSet)) {
-                val needInsertEpochList = needInsertProjectSet.stream().map(project -> {
-                    Pair<Epoch, Epoch> pair = oldEpoch2NewEpoch(null, project, true, maintenanceModeReason);
-                    if (Objects.nonNull(pair)) {
-                        return pair.getSecond();
-                    }
-                    return null;
-                }).filter(Objects::nonNull).collect(Collectors.toList());
-                epochStore.insertBatch(needInsertEpochList);
-            }
-            return true;
-        });
-
+        if (CollectionUtils.isNotEmpty(needUpdateEpochList) || CollectionUtils.isNotEmpty(needInsertEpochList)) {
+            epochStore.executeWithTransaction(() -> {
+                if (CollectionUtils.isNotEmpty(needUpdateEpochList)) {
+                    epochStore.updateBatch(needUpdateEpochList);
+                }
+                if (CollectionUtils.isNotEmpty(needInsertEpochList)) {
+                    epochStore.insertBatch(needInsertEpochList);
+                }
+                return true;
+            });
+        }
+        return true;
     }
 
     @Nullable

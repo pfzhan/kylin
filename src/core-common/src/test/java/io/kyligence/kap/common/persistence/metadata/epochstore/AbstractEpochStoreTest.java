@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.common.persistence.metadata.Epoch;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
+import io.kyligence.kap.common.persistence.metadata.JdbcEpochStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
@@ -123,6 +124,34 @@ public abstract class AbstractEpochStoreTest extends NLocalFileMetadataTestCase 
             Assert.assertTrue(compareEpoch(epoch, epochStore.getEpoch(epoch.getEpochTarget())));
         });
 
+    }
+
+    @Test
+    public void testBatchUpdateWithError() {
+        Epoch e1 = new Epoch();
+        e1.setEpochTarget("test1");
+        e1.setCurrentEpochOwner("owner1");
+        e1.setEpochId(1);
+        e1.setLastEpochRenewTime(System.currentTimeMillis());
+
+        epochStore.insert(e1);
+
+        Epoch e2 = new Epoch();
+        e2.setEpochTarget("test2");
+        e2.setCurrentEpochOwner("owner2");
+        e2.setEpochId(1);
+        e2.setLastEpochRenewTime(System.currentTimeMillis());
+
+        val batchEpochs = Arrays.asList(e1, e2);
+        boolean isError = false;
+        try {
+            epochStore.updateBatch(batchEpochs);
+        } catch (Exception e) {
+            isError = true;
+        }
+        if(epochStore instanceof JdbcEpochStore){
+            Assert.assertTrue(isError);
+        }
     }
 
     @Test

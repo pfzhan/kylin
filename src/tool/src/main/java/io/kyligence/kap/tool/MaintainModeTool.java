@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.tool.util.ToolMainWrapper;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
@@ -47,6 +46,7 @@ import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
+import io.kyligence.kap.tool.util.ToolMainWrapper;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -165,7 +165,12 @@ public class MaintainModeTool extends ExecutableApplication {
 
     private void enterMaintenanceModeWithRetry(int retryTimes, String reason, List<String> prj)
             throws IllegalStateException {
-        boolean updateEpoch = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(prj, false, reason, false);
+        boolean updateEpoch = false;
+        try {
+            updateEpoch = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(prj, false, reason, false);
+        } catch (Exception e) {
+            log.error("enter maintain mode failed", e);
+        }
         boolean checkMaintOwner = epochManager.isMaintenanceMode()
                 && epochManager.checkEpochOwner(UnitOfWork.GLOBAL_UNIT);
 
@@ -181,8 +186,13 @@ public class MaintainModeTool extends ExecutableApplication {
 
     private void exitMaintenanceModeWithRetry(int retryTimes, String reason, List<String> prj,
             boolean skipCheckMaintMode) throws IllegalStateException {
-        boolean updateEpoch = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(prj, skipCheckMaintMode, reason,
-                true);
+        boolean updateEpoch = false;
+        try {
+            updateEpoch = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(prj, skipCheckMaintMode, reason,
+                    true);
+        } catch (Exception e) {
+            log.error("exit maintain mode failed", e);
+        }
 
         if (updateEpoch && (!epochManager.checkExpectedIsMaintenance(true) || skipCheckMaintMode) && retryTimes > 0) {
             log.info("finished exited maintenance mode...retry:{},reason:{}", retryTimes, reason);

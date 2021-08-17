@@ -31,6 +31,7 @@ import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_UPDATE_ME
 import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -172,19 +173,22 @@ public class JdbcEpochStore extends EpochStore {
             return;
         }
 
-        jdbcTemplate.batchUpdate(String.format(Locale.ROOT, UPDATE_SQL, table), new BatchPreparedStatementSetter() {
+        int[] affectedRows = jdbcTemplate.batchUpdate(String.format(Locale.ROOT, UPDATE_SQL, table),
+                new BatchPreparedStatementSetter() {
 
-            @Override
-            public void setValues(PreparedStatement ps, int i) throws SQLException {
-                val epoch = epochs.get(i);
-                genUpdateEpochStatement(ps, epoch);
-            }
+                    @Override
+                    public void setValues(PreparedStatement ps, int i) throws SQLException {
+                        val epoch = epochs.get(i);
+                        genUpdateEpochStatement(ps, epoch);
+                    }
 
-            @Override
-            public int getBatchSize() {
-                return epochs.size();
-            }
-        });
+                    @Override
+                    public int getBatchSize() {
+                        return epochs.size();
+                    }
+                });
+
+        checkBatchResult(affectedRows, epochs.size());
     }
 
     @Override
@@ -193,19 +197,30 @@ public class JdbcEpochStore extends EpochStore {
             return;
         }
 
-        jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table), new BatchPreparedStatementSetter() {
+        int[] affectedRows = jdbcTemplate.batchUpdate(String.format(Locale.ROOT, INSERT_SQL, table),
+                new BatchPreparedStatementSetter() {
 
-            @Override
-            public void setValues(PreparedStatement ps, int i) throws SQLException {
-                val epoch = epochs.get(i);
-                genInsertEpochStatement(ps, epoch);
-            }
+                    @Override
+                    public void setValues(PreparedStatement ps, int i) throws SQLException {
+                        val epoch = epochs.get(i);
+                        genInsertEpochStatement(ps, epoch);
+                    }
 
-            @Override
-            public int getBatchSize() {
-                return epochs.size();
-            }
-        });
+                    @Override
+                    public int getBatchSize() {
+                        return epochs.size();
+                    }
+                });
+
+        checkBatchResult(affectedRows, epochs.size());
+    }
+
+    private void checkBatchResult(int[] affectedRows, int expected) {
+        int actual = Arrays.stream(affectedRows).sum();
+        if (actual != expected) {
+            throw new KylinException(FAILED_UPDATE_METADATA, String.format(Locale.ROOT,
+                    "Failed to updateBatch or insertBatch actual:%d expected:%d", actual, expected));
+        }
     }
 
     private void genInsertEpochStatement(final PreparedStatement ps, final Epoch epoch) throws SQLException {

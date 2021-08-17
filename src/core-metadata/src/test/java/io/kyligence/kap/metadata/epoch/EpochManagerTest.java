@@ -282,17 +282,22 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
 
     @Test
     public void testTryForceInsertOrUpdateEpochBatchTransaction() {
+        List<String> projects = Lists.newArrayList("test_add");
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+
+        Assert.assertTrue(getEpochStore().list().isEmpty());
+        boolean result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false, "test", false);
+        Assert.assertTrue(result);
+        Assert.assertFalse(getEpochStore().list().isEmpty());
+
         Epoch e1 = new Epoch();
         e1.setEpochTarget("test1");
         e1.setCurrentEpochOwner("owner1");
         e1.setEpochId(1);
         e1.setLastEpochRenewTime(System.currentTimeMillis());
-
         getEpochStore().insertBatch(Lists.newArrayList(e1));
 
-        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
-        List<String> projects = Lists.newArrayList("test1");
-        boolean result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false, "test", false);
+        result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(projects, false, "test", false);
         Assert.assertTrue(result);
 
         result = epochManager.tryForceInsertOrUpdateEpochBatchTransaction(Lists.newArrayList(), false, "test", false);
@@ -342,7 +347,8 @@ public class EpochManagerTest extends AbstractJdbcMetadataTestCase {
         //only update one target
         epochManager.tryUpdateEpoch(projectLists.get(0), false);
 
-        List<String> projectListWithPermission = ReflectionTestUtils.invokeMethod(epochManager, "listProjectWithPermission");
+        List<String> projectListWithPermission = ReflectionTestUtils.invokeMethod(epochManager,
+                "listProjectWithPermission");
 
         //project + global = epoch with permission
         Assert.assertEquals(projectManager.listAllProjects().size(), projectListWithPermission.size() - 1);
