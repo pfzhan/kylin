@@ -4,7 +4,8 @@
       <p>{{$t('recommendations')}}</p>
     </div>
     <div class="detail-content">
-      <p class="title-tip">{{$t('recommendationsTip1')}}<span v-if="$lang !== 'en'&&datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span><a href="javascript:void();" v-if="datasourceActions.includes('acceRuleSettingActions')" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en' && datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span></p>
+      <p class="title-tip ksd-mb-8">{{$t('recommendationsTip1')}}<span v-if="$lang !== 'en'&&datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span><a href="javascript:void();" v-if="datasourceActions.includes('acceRuleSettingActions')" @click="jumpToSetting">{{$t('modifyRules')}}</a><span v-if="$lang === 'en' && datasourceActions.includes('acceRuleSettingActions')">{{$t('recommendationsTip2')}}</span></p>
+      <el-alert :title="$t('realTimeModelAcceptRecommendTips')" type="tip" show-icon v-if="modelDesc.model_type === 'STREAMING'" />
       <div class="ksd-fleft ksd-mb-10 ksd-mt-10 ksd-fs-12" >
         <el-button text :disabled="!selectedList.length" @click="betchAccept" type="primary" icon="el-ksd-icon-confirm_22">{{$t('accept')}}</el-button><el-button text :disabled="!selectedList.length" type="primary" @click="betchDelete" icon="el-ksd-icon-table_delete_22">{{$t('delete')}}</el-button>
       </div>
@@ -358,7 +359,8 @@ import filterElements from '../../../../../../filter/index'
       indexContent: 'Content',
       viewIndexDetails: 'More details',
       viewAll: 'View all',
-      indexesContent: 'Index Content'
+      indexesContent: 'Index Content',
+      realTimeModelAcceptRecommendTips: 'To accept recommendations for streaming indexes, follow the steps: stop the streaming job, delete all the streaming segments, accept recommendations, start the streaming job.'
     },
     'zh-cn': {
       recommendations: '优化建议',
@@ -432,7 +434,8 @@ import filterElements from '../../../../../../filter/index'
       indexContent: '内容',
       viewIndexDetails: '更多详情',
       viewAll: '查看全部',
-      indexesContent: '索引内容'
+      indexesContent: '索引内容',
+      realTimeModelAcceptRecommendTips: '通过实时索引的优化建议需依次进行以下操作：停止实时任务，清空实时 Segment，通过优化建议，启动实时任务。'
     }
   }
 })

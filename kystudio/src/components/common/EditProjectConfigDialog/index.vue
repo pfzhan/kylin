@@ -11,7 +11,7 @@
         <el-input auto-complete="off" :disabled="editType === 'edit'" :placeholder="$t('keyPlaceholder')" @input="value => handlerInput('key', value.trim())" :value="form.key"></el-input>
       </el-form-item>
       <el-form-item :label="$t('value')" prop="value">
-        <el-input auto-complete="off" :placeholder="$t('valuePlaceholder')" :type="form.key === 'kylin.source.jdbc.pass' ? 'password' : 'text'" @input="value => handlerInput('value', value)" :value="form.value.trim()"></el-input>
+        <el-input auto-complete="off" :placeholder="$t('valuePlaceholder')" @input="value => handlerInput('value', value)" :value="form.value.trim()"></el-input>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">

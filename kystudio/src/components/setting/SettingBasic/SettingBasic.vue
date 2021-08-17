@@ -36,55 +36,6 @@
         <el-input class="setting-input" :rows="3" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
     </EditableBlock>
-    <!-- 数据源设置 -->
-    <EditableBlock
-      :header-content="$t('datasourceSetting')"
-      :is-keep-editing="true"
-      :is-edited="isFormEdited(form, 'datasource-info')"
-      :is-reset="false"
-      @submit="(scb, ecb) => handleSubmit('datasource-info', scb, ecb)">
-      <div class="setting-item">
-        <div class="setting-label font-medium">{{$t('JDBCDataSource')}}</div>
-        <div class="setting-value fixed">
-          <el-switch
-            v-model="form.jdbc_datasource_enabled"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')"
-          >
-          </el-switch>
-        </div>
-      </div>
-      <template v-if="form.JDBCConnectSetting.length">
-        <div v-for="(item, index) in form.JDBCConnectSetting" :key="item.sourceType">
-          <div class="setting-item">
-            <div class="setting-label font-medium">{{$t('jdbcConnectInfo')}}</div>
-            <div class="setting-value fixed"><el-button plain icon="el-ksd-icon-edit_22" size="small" @click="modifyDataSourceSetting(index)">{{$t('modify')}}</el-button></div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-label font-medium">{{$t('jdbcShowName')}}</div>
-            <div class="setting-value fixed">{{item.name}}</div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-label font-medium">{{$t('connectString')}}</div>
-            <div class="setting-value fixed">{{item.connectionString}}</div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-label font-medium">{{$t('username')}}</div>
-            <div class="setting-value fixed">{{item.username}}</div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-label font-medium">{{$t('password')}}</div>
-            <div class="setting-value fixed">••••••••</div>
-          </div>
-        </div>
-      </template>
-      <template v-else>
-        <div class="setting-item">
-          <div class="setting-label">{{$t('jdbcConnectInfo')}}</div>
-          <div class="setting-value fixed"><el-button :disabled="!form.jdbc_datasource_enabled" plain icon="el-ksd-icon-add_22" size="small" @click="addDataSourceSetting">{{$t('add')}}</el-button></div>
-        </div>
-      </template>
-    </EditableBlock>
     <!-- 项目存储设置 -->
     <EditableBlock
       v-if="$store.state.config.platform !== 'iframe'"
@@ -402,14 +353,13 @@
 
 <script>
 import Vue from 'vue'
-import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError, handleSuccess, handleSuccessAsync, objectClone, ArrayFlat } from '../../../util'
 import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
-import SourceAuthorityForm from '../../common/DataSourceModal/SourceJDBC/SourceAuthorityForm/SourceAuthorityForm.vue'
 
 @Component({
   props: {
@@ -419,18 +369,12 @@ import SourceAuthorityForm from '../../common/DataSourceModal/SourceJDBC/SourceA
     }
   },
   components: {
-    EditableBlock,
-    SourceAuthorityForm
+    EditableBlock
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject',
-      'currentProjectData'
-    ]),
-    ...mapState({
-      currentProject: state => state.project.selected_project,
-      dataSource: state => state.datasource.dataSource
-    })
+      'currentSelectedProject'
+    ])
   },
   methods: {
     ...mapActions({
@@ -443,14 +387,10 @@ import SourceAuthorityForm from '../../common/DataSourceModal/SourceJDBC/SourceA
       getFavoriteRules: 'GET_FAVORITE_RULES',
       getUserAndGroups: 'GET_USER_AND_GROUPS',
       updateFavoriteRules: 'UPDATE_FAVORITE_RULES',
-      fetchDBandTables: 'FETCH_DB_AND_TABLES',
-      checkConnectByGbase: 'CHECK_BASE_CONFIG'
+      fetchDBandTables: 'FETCH_DB_AND_TABLES'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
-    }),
-    ...mapMutations({
-      updateProject: 'UPDATE_PROJECT'
     })
   },
   locales
@@ -501,9 +441,6 @@ export default class SettingBasic extends Vue {
   }
   filterExcludeTablesTimer = null
   showIimitExcludedTableMsg = false
-  JDBCConnectSettingBackup = []
-  jdbcDatasourceEnabled = false
-
   created () {
     this.rulesAccerationDefault = {...this.rulesObj}
   }
@@ -529,15 +466,6 @@ export default class SettingBasic extends Vue {
       'low_frequency_threshold': [{ validator: validate['storageQuotaNum'], trigger: 'change' }]
     }
   }
-
-  get haveHiveOrKafKa () {
-    if (this.dataSource[this.currentProject] && this.dataSource[this.currentProject].length) {
-      return this.dataSource[this.currentProject].filter(it => it.source_type === 1 || it.source_type === 9).length
-    } else {
-      return false
-    }
-  }
-
   validatePass (rule, value, callback) {
     if (rule.field.indexOf('duration') !== -1 && this.rulesObj.duration_enable) {
       if (!value && value !== 0) {
@@ -570,12 +498,11 @@ export default class SettingBasic extends Vue {
   @Watch('rulesObj', { deep: true })
   @Watch('rulesAccerationDefault', { deep: true })
   onFormChange () {
-    const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'datasource-info') || this.isFormEdited(this.form, 'segment-settings') || this.isFormEdited(this.form, 'storage-quota') || this.isFormEdited(null, 'accleration-rule-settings')
+    const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'segment-settings') || this.isFormEdited(this.form, 'storage-quota') || this.isFormEdited(null, 'accleration-rule-settings')
     this.$emit('form-changed', { basicSetting })
   }
   initForm () {
     this.handleInit('basic-info')
-    this.handleInit('datasource-info')
     this.handleInit('segment-settings')
     this.handleInit('pushdown-settings')
     this.handleInit('storage-quota')
@@ -663,45 +590,6 @@ export default class SettingBasic extends Vue {
             break
           }
         }
-        case 'datasource-info': {
-          if (!this.form.JDBCConnectSetting.length) return errorCallback()
-          const { connectionString, username, password, name } = this.form.JDBCConnectSetting[0]
-          const currentProject = this.currentProjectData
-          const data = {
-            jdbc_source_connection_url: connectionString,
-            jdbc_source_user: username,
-            // jdbc_source_pass: password || null,
-            jdbc_source_enable: this.form.jdbc_datasource_enabled,
-            jdbc_source_name: name,
-            jdbc_source_driver: 'com.gbase.jdbc.Driver'
-          }
-          password && (data['jdbc_source_pass'] = password)
-          // this.$refs['gbase-datasource'].$refs['source-auth-form'] && this.$refs['gbase-datasource'].$refs['source-auth-form'].$refs.form.validate()
-          if (!connectionString || !username) return errorCallback()
-          if (this.JDBCConnectSettingBackup.length && JSON.stringify(this.JDBCConnectSettingBackup) !== JSON.stringify(this.form.JDBCConnectSetting)) {
-            await this.$msgbox({
-              width: '400px',
-              type: 'warning',
-              centerButton: true,
-              showCancelButton: true,
-              title: this.$t('saveDatasourceTitle'),
-              message: this.$t('saveDatasourceContent'),
-              confirmButtonText: this.$t('kylinLang.common.save')
-            })
-          }
-          await this.checkConnectByGbase({...data, project: this.currentSelectedProject})
-          if ('override_kylin_properties' in currentProject) {
-            currentProject['override_kylin_properties']['kylin.source.jdbc.connection-url'] = connectionString
-            currentProject['override_kylin_properties']['kylin.source.jdbc.pass'] = password
-            currentProject['override_kylin_properties']['kylin.source.jdbc.source.enable'] = this.form.jdbc_datasource_enabled.toString()
-            currentProject['override_kylin_properties']['kylin.source.jdbc.source.name'] = name
-            currentProject['override_kylin_properties']['kylin.source.jdbc.user'] = username
-          }
-          this.JDBCConnectSettingBackup = JSON.parse(JSON.stringify(this.form.JDBCConnectSetting))
-          this.jdbcDatasourceEnabled = this.form.jdbc_datasource_enabled
-          this.updateProject({project: currentProject})
-          break
-        }
         case 'segment-settings': {
           if (await this.$refs['segment-setting-form'].validate()) {
             const submitData = _getSegmentSettings(this.form, this.project)
@@ -761,22 +649,6 @@ export default class SettingBasic extends Vue {
     switch (type) {
       case 'basic-info': {
         this.form = { ...this.form, ..._getProjectGeneralInfo(this.project) }; break
-      }
-      case 'datasource-info': {
-        const { override_kylin_properties: projectConfig } = this.currentProjectData
-        if (!projectConfig['kylin.source.jdbc.connection-url']) return
-        this.form.JDBCConnectSetting = []
-        this.form.JDBCConnectSetting.push({
-          connectionString: projectConfig['kylin.source.jdbc.connection-url'] || '',
-          username: projectConfig['kylin.source.jdbc.user'] || '',
-          password: projectConfig['kylin.source.jdbc.pass'] ? projectConfig['kylin.source.jdbc.pass'] === '*****' ? '' : projectConfig['kylin.source.jdbc.pass'] : '',
-          sourceType: +projectConfig['kylin.source.default'] || 9,
-          name: projectConfig['kylin.source.jdbc.source.name'] || ''
-        })
-        this.form.jdbc_datasource_enabled = projectConfig['kylin.source.jdbc.source.enable'] ? projectConfig['kylin.source.jdbc.source.enable'] === 'true' : false
-        this.JDBCConnectSettingBackup = JSON.parse(JSON.stringify(this.form.JDBCConnectSetting))
-        this.jdbcDatasourceEnabled = this.form.jdbc_datasource_enabled
-        break
       }
       case 'segment-settings': {
         this.form = { ...this.form, ..._getSegmentSettings(this.project) }
@@ -843,8 +715,6 @@ export default class SettingBasic extends Vue {
     switch (type) {
       case 'basic-info':
         return JSON.stringify(_getProjectGeneralInfo(form)) !== JSON.stringify(_getProjectGeneralInfo(project))
-      case 'datasource-info':
-        return JSON.stringify(this.JDBCConnectSettingBackup) !== JSON.stringify(form.JDBCConnectSetting) || this.jdbcDatasourceEnabled !== form.jdbc_datasource_enabled
       case 'segment-settings':
         return JSON.stringify(_getSegmentSettings(form)) !== JSON.stringify(_getSegmentSettings(project))
       case 'storage-quota':
@@ -944,85 +814,6 @@ export default class SettingBasic extends Vue {
       this.dbInfoFilter.table = name
       this.getDbAndTablesInfo()
     }, 500)
-  }
-
-  // 更改数据源设置
-  modifyDataSourceSetting (index) {
-    const form = objectClone(this.form.JDBCConnectSetting[index])
-    this.$msgbox({
-      width: '600px',
-      title: this.$t('modifyDatasourceConnect'),
-      message: <source-authority-form ref='datasourceAuthorityForm' form={form}/>,
-      confirmButtonText: this.$t('kylinLang.common.save'),
-      showCancelButton: true,
-      closeOnClickModal: false,
-      closeOnPressEscape: false,
-      callback: (action) => {
-        return new Promise((resolve, reject) => {
-          if (action === 'confirm') {
-            this.$set(this.form.JDBCConnectSetting, index, form)
-            resolve()
-          } else {
-            reject()
-          }
-        })
-      },
-      beforeClose: async (action, instance, done) => {
-        try {
-          if (action === 'confirm') {
-            this.$refs.datasourceAuthorityForm && await this.$refs.datasourceAuthorityForm.$refs.form.validate()
-            done()
-          } else {
-            this.$refs.datasourceAuthorityForm && this.$refs.datasourceAuthorityForm.$refs.form.clearValidate()
-            done()
-          }
-        } catch (e) {
-          console.error(e)
-        }
-      }
-    })
-  }
-
-  // 添加数据源设置
-  addDataSourceSetting () {
-    const form = {
-      connectionString: '',
-      username: '',
-      password: '',
-      name: 'Gbase'
-    }
-    this.$msgbox({
-      width: '600px',
-      title: this.$t('addDatasourceConnect'),
-      message: <source-authority-form ref='datasourceAuthorityForm' form={form}/>,
-      confirmButtonText: this.$t('kylinLang.common.save'),
-      showCancelButton: true,
-      closeOnClickModal: false,
-      closeOnPressEscape: false,
-      callback: (action) => {
-        return new Promise((resolve, reject) => {
-          if (action === 'confirm') {
-            this.form.JDBCConnectSetting.push(form)
-            resolve()
-          } else {
-            reject()
-          }
-        })
-      },
-      beforeClose: async (action, instance, done) => {
-        try {
-          if (action === 'confirm') {
-            this.$refs.datasourceAuthorityForm && await this.$refs.datasourceAuthorityForm.$refs.form.validate()
-            done()
-          } else {
-            this.$refs.datasourceAuthorityForm && this.$refs.datasourceAuthorityForm.$refs.form.clearValidate()
-            done()
-          }
-        } catch (e) {
-          console.error(e)
-        }
-      }
-    })
   }
 }
 </script>

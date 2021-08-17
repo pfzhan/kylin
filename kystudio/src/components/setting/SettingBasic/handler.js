@@ -50,9 +50,7 @@ export const initialFormValue = {
   alias: '',
   project: '',
   description: '',
-  maintain_model_type: '',
-  jdbc_datasource_enabled: false,
-  JDBCConnectSetting: []
+  maintain_model_type: ''
 }
 export const validate = {
   'positiveNumber' (rule, value, callback) {
