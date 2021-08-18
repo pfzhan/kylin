@@ -688,7 +688,7 @@ public class KylinLogTool {
             }
 
             long days = (endTime - startTime) / DAY;
-            if (days > 30) {
+            if (days > 31) {
                 logger.error("time range is too large, startTime: {}, endTime: {}, days: {}", startTime, endTime, days);
                 return;
             }

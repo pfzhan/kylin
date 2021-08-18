@@ -205,7 +205,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         long start = System.currentTimeMillis();
         DiagClientTool diagClientTool = new DiagClientTool();
 
-        // > 30 day
+        // > 31 day
         diagClientTool.execute(new String[] { "-destDir", mainDir2.getAbsolutePath(), "-startTime", "1604999712000",
                 "-endTime", String.valueOf(System.currentTimeMillis()) });
 

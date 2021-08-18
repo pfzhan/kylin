@@ -350,6 +350,11 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         for (String childDir : childDirs) {
             Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
         }
+
+        // > 31 day
+        long startTime2 = DateTime.parse("2019-07-28").withTimeAtStartOfDay().getMillis() + 3600_000L;
+        long endTime2 = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
+        KylinLogTool.extractSparderLog(mainDir, startTime2, endTime2);
     }
 
     @Test

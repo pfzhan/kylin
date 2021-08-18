@@ -90,7 +90,7 @@ public class StreamingSparkLogTool extends ExecutableApplication {
             .isRequired(false).withDescription("specify the end of time range to extract logs. ").create("endTime");
 
     private static final long DAY = 24 * 3600 * 1000L;
-    private static final long MAX_DAY = 30L;
+    private static final long MAX_DAY = 31L;
     private static final String STREAMING_LOG_ROOT_DIR = "streaming_spark_logs";
     private static final String STREAMING_SPARK_DRIVER_DIR = "spark_driver";
     private static final String STREAMING_SPARK_EXECUTOR_DIR = "spark_executor";
