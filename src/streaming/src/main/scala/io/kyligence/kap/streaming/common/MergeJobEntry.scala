@@ -34,6 +34,7 @@ class MergeJobEntry(
        spark: SparkSession,
        project: String,
        dataflowId: String,
+       val afterMergeSegmentSourceCount: Long,
        val globalMergeTime: AtomicLong,
        val unMergedSegments: JList[NDataSegment],
        val afterMergeSegment: NDataSegment) extends JobEntry(project, dataflowId, spark) {

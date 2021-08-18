@@ -73,6 +73,7 @@ public class SyncMerger{
                     NDataflow copy = dfMgr.getDataflow(mergeJobEntry.dataflowId()).copy();
                     val seg = copy.getSegment(mergeJobEntry.afterMergeSegment().getId());
                     seg.setStatus(SegmentStatusEnum.READY);
+                    seg.setSourceCount(mergeJobEntry.afterMergeSegmentSourceCount());
                     val dfUpdate = new NDataflowUpdate(mergeJobEntry.dataflowId());
                     dfUpdate.setToUpdateSegs(seg);
                     List<NDataSegment> toRemoveSegs = mergeJobEntry.unMergedSegments();
@@ -84,7 +85,7 @@ public class SyncMerger{
                 RestSupport rest = new RestSupport(config);
                 String url = "/streaming_jobs/dataflow/segment";
                 StreamingSegmentRequest req = new StreamingSegmentRequest(mergeJobEntry.project(),
-                        mergeJobEntry.dataflowId());
+                        mergeJobEntry.dataflowId(), mergeJobEntry.afterMergeSegmentSourceCount());
                 req.setRemoveSegment(mergeJobEntry.unMergedSegments());
                 req.setNewSegId(mergeJobEntry.afterMergeSegment().getId());
                 try{

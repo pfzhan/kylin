@@ -142,7 +142,7 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
             return df1.getSegment(seg.getId());
         }).collect(Collectors.toList());
         val globalMergeTime = new AtomicLong(System.currentTimeMillis());
-        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), globalMergeTime, updatedSegments, afterMergeSeg);
+        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), 0L, globalMergeTime, updatedSegments, afterMergeSeg);
         return mergeJobEntry;
     }
 

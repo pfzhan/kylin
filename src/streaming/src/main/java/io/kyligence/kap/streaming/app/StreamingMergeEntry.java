@@ -303,10 +303,10 @@ public class StreamingMergeEntry extends StreamingApplication {
         updatedSegments = retainSegments.stream().map(seg -> {
             return df.getSegment(seg.getId());
         }).collect(Collectors.toList());
+        long afterMergeSegSourceCount = retainSegments.stream().mapToLong(NDataSegment::getSourceCount).sum();
+        logger.info("afterMergeSegment[{}] layer={}  from {}", afterMergeSeg, currLayer, updatedSegments);
 
-        logger.info("afterMergeSegment[" + afterMergeSeg + "] layer=" + currLayer + " from " + updatedSegments);
-
-        val mergeJobEntry = new MergeJobEntry(ss, project, dataflowId, globalMergeTime, updatedSegments, afterMergeSeg);
+        val mergeJobEntry = new MergeJobEntry(ss, project, dataflowId, afterMergeSegSourceCount, globalMergeTime, updatedSegments, afterMergeSeg);
         SyncMerger syncMerge = new SyncMerger(mergeJobEntry);
         syncMerge.run(merger);
         return afterMergeSeg;

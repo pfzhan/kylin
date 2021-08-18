@@ -166,6 +166,7 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         KylinBuildEnv.getOrCreate(config);
         try{
             merger.streamingMergeSegment(mergeJobEntry);
+            Assert.assertEquals(100L, mergeJobEntry.afterMergeSegmentSourceCount());
             Assert.assertEquals(5, df.getSegments().size());
             Assert.assertEquals("1", df.getSegment(mergeJobEntry.afterMergeSegment().getId()).getAdditionalInfo().get("file_layer"));
         }catch (Exception e) {
@@ -186,7 +187,7 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
             return df.getSegment(seg.getId());
         }).collect(Collectors.toList());
         val globalMergeTime = new AtomicLong(System.currentTimeMillis());
-        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), globalMergeTime, updatedSegments, afterMergeSeg);
+        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), 100L, globalMergeTime, updatedSegments, afterMergeSeg);
         return mergeJobEntry;
     }
 

@@ -108,6 +108,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
         NDataflow newDF = dfMgr.getDataflow(buildJobEntry.dataflowId()).copy();
         NDataSegment segUpdate = newDF.getSegment(buildJobEntry.batchSegment().getId());
         segUpdate.setStatus(SegmentStatusEnum.READY);
+        segUpdate.setSourceCount(buildJobEntry.flatTableCount());
         val dfUpdate = new NDataflowUpdate(buildJobEntry.dataflowId());
         dfUpdate.setToUpdateSegs(segUpdate);
         dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
