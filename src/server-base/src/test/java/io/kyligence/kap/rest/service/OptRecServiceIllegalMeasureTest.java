@@ -136,9 +136,9 @@ public class OptRecServiceIllegalMeasureTest extends OptRecV2TestBase {
         OptRecLayoutsResponse response = optRecService.getOptRecLayoutsResponse(getProject(), getDefaultUUID(), "all");
         Assert.assertEquals(8, response.getLayouts().size());
         Set<Integer> brokenRecs = response.getBrokenRecs();
-        Assert.assertEquals(6, brokenRecs.size());
+        Assert.assertEquals(11, brokenRecs.size());
         List<Integer> collect = brokenRecs.stream().sorted().collect(Collectors.toList());
-        Assert.assertEquals(Lists.newArrayList(15, 16, 18, 19, 20, 21), collect);
+        Assert.assertEquals(Lists.newArrayList(4, 5, 8, 13, 14, 15, 16, 18, 19, 20, 21), collect);
 
         optRecService.updateRecommendationCount(getProject(), getDefaultUUID());
         Assert.assertEquals(8, getModel().getRecommendationsCount());

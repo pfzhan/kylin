@@ -130,14 +130,14 @@ public class OptRecV2GeneralTest extends OptRecV2TestBase {
     public void testInitErrorForColumnOnModelMissing() throws IOException {
         prepareEnv(Lists.newArrayList(29));
         OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
-        Assert.assertTrue(optRecV2.getBrokenLayoutRefIds().contains(29));
+        Assert.assertTrue(optRecV2.getBrokenRefIds().contains(29));
     }
 
     @Test
     public void testInitErrorForMeasureOnModelMissing() throws IOException {
         prepareEnv(Lists.newArrayList(31));
         OptRecV2 optRecV2 = OptRecManagerV2.getInstance(getProject()).loadOptRecV2(getDefaultUUID());
-        Assert.assertTrue(optRecV2.getBrokenLayoutRefIds().contains(31));
+        Assert.assertTrue(optRecV2.getBrokenRefIds().contains(31));
     }
 
 }

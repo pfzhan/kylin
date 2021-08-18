@@ -305,6 +305,7 @@ public class JdbcRawRecStore {
                     .where(table.project, isEqualTo(project)) //
                     .and(table.semanticVersion, isEqualTo(semanticVersion)) //
                     .and(table.modelID, isEqualTo(model)) //
+                    .and(table.state, isNotEqualTo(RawRecItem.RawRecState.BROKEN)) //
                     .and(table.type,
                             isNotIn(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, RawRecItem.RawRecType.REMOVAL_LAYOUT)) //
                     .build().render(RenderingStrategies.MYBATIS3);

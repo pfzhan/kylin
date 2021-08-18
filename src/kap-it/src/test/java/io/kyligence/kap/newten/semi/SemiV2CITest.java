@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.newten.semi;
 
+import static io.kyligence.kap.metadata.model.util.ComputedColumnUtil.CC_NAME_PREFIX;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -63,16 +65,18 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem.RawRecType;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
+import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.OptRecRequest;
 import io.kyligence.kap.rest.response.LayoutRecDetailResponse;
@@ -365,7 +369,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         final OptRecDepResponse optCCRecDepResponse = optRecDetailResponse.getCcItems().get(0);
         Assert.assertEquals("\"TEST_KYLIN_FACT\".\"PRICE\" + 1", optCCRecDepResponse.getContent());
         final OptRecDepResponse optDimRecDepResponse = optRecDetailResponse.getDimensionItems().get(0);
-        Assert.assertEquals(optCCRecDepResponse.getName().replace(ComputedColumnUtil.CC_NAME_PREFIX, "DIMENSION_AUTO_"),
+        Assert.assertEquals(optCCRecDepResponse.getName().replace(CC_NAME_PREFIX, "DIMENSION_AUTO_"),
                 optDimRecDepResponse.getName());
 
         // mock optRecRequest() and apply recommendations
@@ -408,6 +412,15 @@ public class SemiV2CITest extends SemiAutoTestBase {
         modelManager.updateDataModel(modelID, copyForWrite -> {
             List<NDataModel.Measure> allMeasures = copyForWrite.getAllMeasures();
             allMeasures.removeIf(measure -> !measure.getFunction().isCountConstant());
+            val cc = copyForWrite.getComputedColumnDescs().get(0);
+            cc.setUuid(null);
+            cc.setColumnName("cc1");
+            for (NamedColumn col : copyForWrite.getAllNamedColumns()) {
+                if (col.getName().contains(CC_NAME_PREFIX)) {
+                    col.setAliasDotColumn("TEST_KYLIN_FACT.cc1");
+                    col.setName("cc1");
+                }
+            }
             copyForWrite.setAllMeasures(allMeasures);
         });
 
@@ -425,7 +438,9 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertFalse(modelBeforeApplyRecItems.getComputedColumnDescs().isEmpty());
         List<RawRecItem> rawRecItems = jdbcRawRecStore.queryAll();
         Assert.assertEquals(3, rawRecItems.size());
-        rawRecItems.stream().filter(recItem -> recItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT)
+        rawRecItems.stream()
+                .filter(recItem -> recItem.getType() == RawRecItem.RawRecType.ADDITIONAL_LAYOUT
+                        || recItem.getType() == RawRecType.MEASURE)
                 .forEach(recItem -> recItem.setState(RawRecItem.RawRecState.BROKEN));
         jdbcRawRecStore.update(rawRecItems);
 
@@ -450,7 +465,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
             allNamedColumns.add(newCol);
             copyForWrite.setAllNamedColumns(allNamedColumns);
         });
-
+        OptRecManagerV2.getInstance(getProject()).loadOptRecV2(modelID);
         // generate raw recommendations for origin model again
         rawRecService.generateRawRecommendations(getProject(), Lists.newArrayList(qh1), false);
         NDataModel modelBeforeApplyRecItemsAgain = modelManager.getDataModelDesc(modelID);

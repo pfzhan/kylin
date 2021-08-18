@@ -71,7 +71,7 @@ public class OptRecManagerV2 {
         Preconditions.checkState(StringUtils.isNotEmpty(uuid));
         OptRecV2 optRecV2 = new OptRecV2(project, uuid, true);
         optRecV2.initRecommendation();
-        List<Integer> brokenLayoutIds = Lists.newArrayList(optRecV2.getBrokenLayoutRefIds());
+        List<Integer> brokenLayoutIds = Lists.newArrayList(optRecV2.getBrokenRefIds());
         if (!brokenLayoutIds.isEmpty()) {
             log.debug("recognized broken index ids: {}", brokenLayoutIds);
             RawRecManager.getInstance(project).removeByIds(brokenLayoutIds);

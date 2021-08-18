@@ -49,7 +49,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
 import io.kyligence.kap.metadata.recommendation.util.RawRecUtil;
@@ -81,7 +80,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 continue;
             }
 
-            // When injecting the columns and measures of OLAPContext into the scopeBuilder fails, 
+            // When injecting the columns and measures of OLAPContext into the scopeBuilder fails,
             // discard this OLAPContext and set blocking cause to the related SQL.
             try {
                 Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
@@ -214,15 +213,17 @@ public class QueryScopeProposer extends AbstractModelProposer {
             }
 
             String uniqueContent = RawRecUtil.dimensionUniqueContent(tblColRef, ccMap);
-            if (isNewUniqueContent(uniqueContent)) {
-                DimensionRecItemV2 item = new DimensionRecItemV2();
-                item.setColumn(column);
-                item.setDataType(tblColRef.getDatatype());
-                item.setCreateTime(System.currentTimeMillis());
-                item.setUniqueContent(uniqueContent);
-                item.setUuid(String.format(Locale.ROOT, "dimension_%s", UUID.randomUUID()));
-                modelContext.getDimensionRecItemMap().putIfAbsent(item.getUuid(), item);
+            if (modelContext.getUniqueContentToFlag().containsKey(uniqueContent)) {
+                return;
             }
+
+            DimensionRecItemV2 item = new DimensionRecItemV2();
+            item.setColumn(column);
+            item.setDataType(tblColRef.getDatatype());
+            item.setCreateTime(System.currentTimeMillis());
+            item.setUniqueContent(uniqueContent);
+            item.setUuid(String.format(Locale.ROOT, "dimension_%s", UUID.randomUUID().toString()));
+            modelContext.getDimensionRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 
         private void injectCandidateMeasure(OLAPContext ctx) {
@@ -273,35 +274,16 @@ public class QueryScopeProposer extends AbstractModelProposer {
             }
 
             String uniqueContent = RawRecUtil.measureUniqueContent(measure, ccMap);
-            if (isNewUniqueContent(uniqueContent)) {
-                MeasureRecItemV2 item = new MeasureRecItemV2();
-                item.setMeasure(measure);
-                item.setCreateTime(System.currentTimeMillis());
-                item.setUniqueContent(uniqueContent);
-                item.setUuid(String.format(Locale.ROOT, "measure_%s", UUID.randomUUID()));
-                modelContext.getMeasureRecItemMap().putIfAbsent(item.getUuid(), item);
+            if (modelContext.getUniqueContentToFlag().containsKey(uniqueContent)) {
+                return;
             }
-        }
 
-        private boolean isNewUniqueContent(String uniqueContent) {
-            boolean isNewMeasure = false;
-            Map<String, RawRecItem> existingNonLayoutRecItemMap = modelContext.getProposeContext()
-                    .getExistingNonLayoutRecItemMap();
-            String uniqueFlag = modelContext.getUniqueContentToFlag().getOrDefault(uniqueContent, null);
-            if (uniqueFlag == null) {
-                isNewMeasure = true;
-            } else {
-                RawRecItem recItem = existingNonLayoutRecItemMap.get(uniqueFlag);
-                int[] dependIDs = recItem.getDependIDs();
-                for (int dependID : dependIDs) {
-                    if (dependID >= 0 && !dataModel.getEffectiveCols().containsKey(dependID)) {
-                        isNewMeasure = true;
-                        // existingNonLayoutRecItemMap.remove(uniqueFlag);
-                        break;
-                    }
-                }
-            }
-            return isNewMeasure;
+            MeasureRecItemV2 item = new MeasureRecItemV2();
+            item.setMeasure(measure);
+            item.setCreateTime(System.currentTimeMillis());
+            item.setUniqueContent(uniqueContent);
+            item.setUuid(String.format(Locale.ROOT, "measure_%s", UUID.randomUUID().toString()));
+            modelContext.getMeasureRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 
         private void build() {

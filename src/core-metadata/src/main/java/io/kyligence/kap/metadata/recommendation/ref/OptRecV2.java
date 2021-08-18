@@ -90,7 +90,7 @@ public class OptRecV2 {
     private final Map<Integer, LayoutRef> additionalLayoutRefs = Maps.newHashMap();
     private final Map<Integer, LayoutRef> removalLayoutRefs = Maps.newHashMap();
     private final Map<Integer, RawRecItem> rawRecItemMap = Maps.newHashMap();
-    private final Set<Integer> brokenLayoutRefIds = Sets.newHashSet();
+    private final Set<Integer> brokenRefIds = Sets.newHashSet();
 
     @Getter(lazy = true)
     private final List<LayoutEntity> layouts = getAllLayouts();
@@ -132,7 +132,7 @@ public class OptRecV2 {
         initRemovalLayoutRefs(queryBestRemovalLayoutRecItems());
 
         autoNameForMeasure();
-        brokenLayoutRefIds.addAll(filterBrokenLayoutRefs());
+        brokenRefIds.addAll(collectBrokenRefs());
         log.info("Initialize recommendation({}/{}) successfully.", project, uuid);
     }
 
@@ -146,7 +146,7 @@ public class OptRecV2 {
         }
         List<RawRecItem> reserved = Lists.newArrayList();
         initLayoutRefs(rawRecItems);
-        brokenLayoutRefIds.addAll(filterBrokenLayoutRefs());
+        brokenRefIds.addAll(collectBrokenRefs());
         log.info("Initialize recommendation patterns({}/{}) successfully.", project, uuid);
         return reserved;
     }
@@ -702,7 +702,7 @@ public class OptRecV2 {
         return effectiveRefList;
     }
 
-    private Set<Integer> filterBrokenLayoutRefs() {
+    private Set<Integer> collectBrokenRefs() {
         Set<Integer> brokenIds = Sets.newHashSet();
         additionalLayoutRefs.forEach((id, ref) -> {
             if (ref.isBroken() && id < 0) {
@@ -714,7 +714,18 @@ public class OptRecV2 {
                 brokenIds.add(-id);
             }
         });
+        fillBrokenRef(brokenIds, ccRefs);
+        fillBrokenRef(brokenIds, dimensionRefs);
+        fillBrokenRef(brokenIds, measureRefs);
         return brokenIds;
+    }
+
+    private void fillBrokenRef(Set<Integer> brokenIds, Map<Integer, RecommendationRef> refs) {
+        refs.forEach((id, ref) -> {
+            if (ref.isBroken() && id < 0) {
+                brokenIds.add(-id);
+            }
+        });
     }
 
     private Map<String, ComputedColumnDesc> initAllCCMap() {

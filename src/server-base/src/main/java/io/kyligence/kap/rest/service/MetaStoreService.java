@@ -85,11 +85,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.MetadataChecker;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -296,7 +296,7 @@ public class MetaStoreService extends BasicService {
                 .flatMap(Collection::stream) //
                 .filter(dependId -> dependId < 0) //
                 .map(dependId -> -dependId) //
-                .filter(dependId -> !optRecV2.getBrokenLayoutRefIds().contains(dependId)) //
+                .filter(dependId -> !optRecV2.getBrokenRefIds().contains(dependId)) //
                 .collect(Collectors.toSet());
 
         if (rawRecIds.isEmpty()) {

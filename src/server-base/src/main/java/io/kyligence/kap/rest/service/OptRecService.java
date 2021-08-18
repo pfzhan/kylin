@@ -830,7 +830,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
     private static LayoutRef checkRecItemIsValidAndReturn(OptRecV2 optRecV2, int recItemId, boolean isAdd) {
         Set<Integer> allRecItemIds = Sets.newHashSet(optRecV2.getRawIds());
-        Set<Integer> brokenRefIds = optRecV2.getBrokenLayoutRefIds();
+        Set<Integer> brokenRefIds = optRecV2.getBrokenRefIds();
         if (!allRecItemIds.contains(recItemId) || brokenRefIds.contains(recItemId)) {
             log.info("all recommendation ids {}, broken ref ids {}", allRecItemIds, brokenRefIds);
             throw new KylinException(REC_LIST_OUT_OF_DATE, MsgPicker.getMsg().getREC_LIST_OUT_OF_DATE());
@@ -946,7 +946,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             throw new KylinException(UNSUPPORTED_REC_OPERATION_TYPE, OptRecService.OPERATION_ERROR_MSG);
         }
 
-        brokenRecCollector.addAll(optRecV2.getBrokenLayoutRefIds());
+        brokenRecCollector.addAll(optRecV2.getBrokenRefIds());
         List<RawRecItem> filterRecItems = Lists.newArrayList();
         if (!StringUtils.isBlank(key)) {
             Set<String> ccFullNames = FuzzyKeySearcher.searchComputedColumns(optRecV2.getModel(), key);
