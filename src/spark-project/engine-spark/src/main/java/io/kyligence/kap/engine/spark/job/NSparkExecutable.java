@@ -174,6 +174,11 @@ public class NSparkExecutable extends AbstractExecutable {
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = getConfig();
 
+        String jobId = getId();
+        if (!config.isDevOrUT()) {
+            setDistMetaUrl(config.getJobTmpMetaStoreUrl(project, jobId));
+        }
+
         String sparkHome = KylinConfigBase.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
             throw new RuntimeException("Missing spark home");
@@ -219,7 +224,6 @@ public class NSparkExecutable extends AbstractExecutable {
             }, context.getEpochId(), project);
         }
 
-        String jobId = getId();
         String argsPath = createArgsFileOnHDFS(config, jobId);
         if (config.isUTEnv()) {
             return runLocalMode(argsPath);
