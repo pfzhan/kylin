@@ -640,7 +640,7 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
           ts => Trivial(ts >= start)
         }
       case And(left: Filter, right: Filter) =>
-        And(foldFilter(left), foldFilter(right)) match {
+        And(foldStreamingFilter(left), foldStreamingFilter(right)) match {
           case And(Trivial(false), _) => Trivial(false)
           case And(_, Trivial(false)) => Trivial(false)
           case And(Trivial(true), right) => right
@@ -648,7 +648,7 @@ case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
           case other => other
         }
       case Or(left: Filter, right: Filter) =>
-        Or(foldFilter(left), foldFilter(right)) match {
+        Or(foldStreamingFilter(left), foldStreamingFilter(right)) match {
           case Or(Trivial(true), _) => Trivial(true)
           case Or(_, Trivial(true)) => Trivial(true)
           case Or(Trivial(false), right) => right
