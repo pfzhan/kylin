@@ -81,7 +81,7 @@ public abstract class AbstractJobHandler {
             jobParam.setJobId(null);
             return;
         }
-        job.setSparkYarnQueue(jobParam.getYarnQueue());
+        job.setSparkYarnQueueIfEnabled(jobParam.getProject(), jobParam.getYarnQueue());
         job.setPriority(jobParam.getPriority());
         log.info("Job {} creates job {}", jobParam, job);
         String project = jobParam.getProject();

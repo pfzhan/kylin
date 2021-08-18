@@ -318,6 +318,13 @@ public class NSparkExecutable extends AbstractExecutable {
                 Objects.isNull(this.getLogPath()) ? "null" : this.getLogPath());
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
 
+        if (getParent() != null) {
+            String yarnQueue = getParent().getSparkYarnQueue();
+            // TODO double check if valid yarn queue
+            if (!Strings.isNullOrEmpty(yarnQueue)) {
+                jobOverrides.put("kylin.engine.spark-conf." + SPARK_YARN_QUEUE, yarnQueue);
+            }
+        }
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
@@ -380,14 +387,6 @@ public class NSparkExecutable extends AbstractExecutable {
         wrapExecutorGlobalDictionary(config, sparkConf);
         // append other driver ops
         overrideDriverOps(config, sparkConf);
-
-        if (getParent() != null) {
-            String yarnQueue = getParent().getSparkYarnQueue();
-            // TODO double check if valid yarn queue
-            if (!Strings.isNullOrEmpty(yarnQueue)) {
-                sparkConf.put(SPARK_YARN_QUEUE, yarnQueue);
-            }
-        }
         return sparkConf;
     }
 
