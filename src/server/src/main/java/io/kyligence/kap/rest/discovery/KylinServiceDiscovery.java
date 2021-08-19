@@ -41,7 +41,7 @@ public interface KylinServiceDiscovery {
     }
 
     default String getZkPathByModeEnum(ServerModeEnum modeEnum) {
-        return ZKPaths.makePath("kylin", KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix(), "services",
+        return ZKPaths.makePath("kylin", KylinConfig.getInstanceFromEnv().getMetadataUrlUniqueId(), "services",
                 modeEnum.getName());
     }
 }

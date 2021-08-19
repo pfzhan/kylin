@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -299,6 +300,7 @@ public abstract class KylinConfigBase implements Serializable {
     final protected void reloadKylinConfig(Properties properties) {
         this.properties = BCC.check(properties);
         setProperty("kylin.metadata.url.identifier", getMetadataUrlPrefix());
+        setProperty("kylin.metadata.url.unique-id", getMetadataUrlUniqueId());
         setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());
         setProperty("kylin.log.spark-driver-properties-file", getLogSparkDriverPropertiesFile());
         setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
@@ -426,7 +428,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getClusterName() {
-        return this.getOptional("kylin.server.cluster-name", getMetadataUrlPrefix());
+        return this.getOptional("kylin.server.cluster-name", getMetadataUrlUniqueId());
     }
 
     public int getZKBaseSleepTimeMs() {
@@ -532,6 +534,21 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getMetadataUrlPrefix() {
         return getMetadataUrl().getIdentifier();
+    }
+
+    public String getMetadataUrlUniqueId() {
+        if (KapConfig.CHANNEL_CLOUD.equalsIgnoreCase(getChannel())) {
+            return getMetadataUrlPrefix();
+        }
+        val url = getMetadataUrl();
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(url.getIdentifier());
+        Optional.ofNullable(url.getParameter("url"))
+                .map(value -> value.split("\\?")[0])
+                .map(value -> "_" + value)
+                .ifPresent(stringBuilder::append);
+        String instanceId = stringBuilder.toString().replaceAll("\\W", "_");
+        return instanceId;
     }
 
     public Map<String, String> getMetadataStoreImpls() {

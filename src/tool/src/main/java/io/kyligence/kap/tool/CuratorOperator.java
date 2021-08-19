@@ -72,7 +72,7 @@ public class CuratorOperator implements AutoCloseable {
     }
 
     private boolean checkNodeExist(String serverMode) throws Exception {
-        String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
+        String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlUniqueId();
         String nodePath = "/kylin/" + identifier + "/services/" + serverMode;
         Stat stat = zkClient.checkExists().forPath(nodePath);
         if (stat == null) {
@@ -103,7 +103,7 @@ public class CuratorOperator implements AutoCloseable {
     }
 
     public String getAddress() throws Exception {
-        String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
+        String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlUniqueId();
         ServiceDiscovery serviceDiscovery = ServiceDiscoveryBuilder.builder(Object.class).client(zkClient)
                 .basePath("/kylin/" + identifier + "/services")
                 .serializer(new ServiceInstanceSerializer<>(Object.class)).build();

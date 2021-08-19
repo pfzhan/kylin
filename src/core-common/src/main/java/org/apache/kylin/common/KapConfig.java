@@ -79,6 +79,8 @@ public class KapConfig {
 
     public static final String TDH_PLATFORM = "TDH";
 
+    public static final String CHANNEL_CLOUD = "cloud";
+
     private KapConfig(KylinConfig config) {
         this.config = config;
     }
@@ -232,7 +234,7 @@ public class KapConfig {
     }
 
     public boolean isCloud() {
-        return getChannelUser().equals("cloud");
+        return getChannelUser().equals(CHANNEL_CLOUD);
     }
 
     /**
