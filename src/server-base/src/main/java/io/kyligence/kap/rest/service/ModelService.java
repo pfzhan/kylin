@@ -1708,15 +1708,16 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isEmpty(modelRequestList)) {
             return;
         }
+
+        if (modelRequestList.stream()
+                .anyMatch(modelRequest -> !FusionIndexService.checkUpdateIndexEnabled(project, modelRequest.getId()))) {
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_CONVERT());
+        }
+
         for (ModelRequest modelRequest : modelRequestList) {
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
-
-            if (!FusionIndexService.checkUpdateIndexEnabled(project, modelRequest.getId())) {
-                throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
-                        MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT());
-            }
 
             Map<String, NDataModel.NamedColumn> columnMap = Maps.newHashMap();
             modelRequest.getAllNamedColumns().forEach(column -> {

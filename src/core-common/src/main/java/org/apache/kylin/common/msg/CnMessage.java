@@ -1826,6 +1826,14 @@ public class CnMessage extends Message {
         return "无法添加流数据索引。请先停止流数据任务，再清空流数据 Segment。";
     }
 
+    public String getSTREAMING_INDEXES_APPROVE() {
+        return "流数据模型暂无法通过优化建议。";
+    }
+
+    public String getSTREAMING_INDEXES_CONVERT() {
+        return "流数据模型暂无法转换为优化建议。";
+    }
+
     @Override
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
         return "不能同时强制下推和击中模型，参数 “forcedToPushDown” 和 “forced_to_index” 不能同时使用。请检查后重试。";

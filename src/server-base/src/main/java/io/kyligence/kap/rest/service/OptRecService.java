@@ -613,7 +613,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
 
         if (!FusionIndexService.checkUpdateIndexEnabled(project, modelId)) {
             throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
-                    MsgPicker.getMsg().getSTREAMING_INDEXES_EDIT());
+                    MsgPicker.getMsg().getSTREAMING_INDEXES_APPROVE());
         }
 
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(

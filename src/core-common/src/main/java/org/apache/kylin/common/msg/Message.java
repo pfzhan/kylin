@@ -1613,6 +1613,14 @@ public class Message {
         return "Can’t add the streaming indexes. Please stop the streaming job and then delete all the streaming segments.";
     }
 
+    public String getSTREAMING_INDEXES_APPROVE() {
+        return "Streaming model can’t accept recommendations at the moment.";
+    }
+
+    public String getSTREAMING_INDEXES_CONVERT() {
+        return "Streaming model can’t convert to recommendations at the moment.";
+    }
+
     public String getCANNOT_FORCE_TO_BOTH_PUSHDODWN_AND_INDEX() {
         return "Cannot force the query to pushdown and index at the same time. Only one of the parameter “forcedToPushDown“ and “forced_to_index” could be used. Please check and try again.";
     }
