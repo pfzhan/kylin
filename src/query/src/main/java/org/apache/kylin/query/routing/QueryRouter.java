@@ -48,19 +48,13 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPContextProp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import io.kyligence.kap.query.util.ComputedColumnRewriter;
-import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 
 /**
  * @author xjiang
@@ -74,32 +68,15 @@ public class QueryRouter {
 
     public static Candidate selectRealization(OLAPContext olapContext, IRealization realization,
             Map<String, String> aliasMap) {
-        String factTableName = olapContext.firstTableScan.getTableName();
-        String projectName = olapContext.olapSchema.getProjectName();
-        IRealization readyReal = null;
-
-        if (realization.isReady()) {
-            readyReal = realization;
-        }
-
-        if (readyReal == null) {
+        if (!realization.isReady()) {
             logger.warn("Realization {} is not ready", realization);
             return null;
         }
 
-        BiMap<String, String> aliasMapping = HashBiMap.create();
-        aliasMapping.putAll(aliasMap);
-
-        ComputedColumnRewriter.rewriteCcInnerCol(olapContext, readyReal.getModel(),
-                new QueryAliasMatchInfo(aliasMapping, null));
-
-        olapContext.resetSQLDigest();
-        SQLDigest sqlDigest = olapContext.getSQLDigest();
-
         List<Candidate> candidates = Lists.newArrayListWithCapacity(1);
-        candidates.add(new Candidate(realization, sqlDigest, olapContext));
-        logger.info("Find candidates by table {} and project={} : {}", factTableName, projectName,
-                StringUtils.join(candidates, ","));
+        candidates.add(new Candidate(realization, olapContext, aliasMap));
+        logger.info("Find candidates by table {} and project={} : {}", olapContext.firstTableScan.getTableName(),
+                olapContext.olapSchema.getProjectName(), StringUtils.join(candidates, ","));
         List<Candidate> originCandidates = Lists.newArrayList(candidates);
 
         // rule based realization selection, rules might reorder realizations or remove specific realization

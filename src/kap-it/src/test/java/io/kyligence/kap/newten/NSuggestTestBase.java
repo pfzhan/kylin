@@ -445,11 +445,8 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             if (RecAndQueryCompareUtil.AccelerationMatchedLevel.FAILED_QUERY == value.getLevel()) {
                 return;
             }
-            final String sqlPattern = value.getFilePath().contains("/sql_parentheses_escape/") //
-                    ? key // sql in fold of sql_parentheses_escape cannot normalize sqlPattern directly
-                    : key;
             log.debug("** start comparing the SQL: {} **", value.getFilePath());
-            if (!excludedSqlPatterns.contains(sqlPattern) && !value.ignoredCompareLevel()) {
+            if (!excludedSqlPatterns.contains(key) && !value.ignoredCompareLevel()) {
                 Assert.assertEquals(
                         "something unexpected happened when comparing result of sql: " + value.getFilePath(),
                         value.getAccelerateLayouts(), value.getQueryUsedLayouts());

@@ -73,6 +73,9 @@ public class Candidate {
     @Getter
     @Setter
     OLAPContextProp rewrittenCtx;
+    @Getter
+    @Setter
+    Map<String, String> aliasMap;
 
     @Getter
     @Setter
@@ -94,10 +97,10 @@ public class Candidate {
     @Setter
     private Map<String, List<Long>> prunedPartitions;
 
-    public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx) {
+    public Candidate(IRealization realization, OLAPContext ctx, Map<String, String> aliasMap) {
         this.realization = realization;
-        this.sqlDigest = sqlDigest;
         this.ctx = ctx;
+        this.aliasMap = aliasMap;
     }
 
     // for testing only
@@ -106,10 +109,6 @@ public class Candidate {
 
     public IRealization getRealization() {
         return realization;
-    }
-
-    public SQLDigest getSqlDigest() {
-        return sqlDigest;
     }
 
     public CapabilityResult getCapability() {

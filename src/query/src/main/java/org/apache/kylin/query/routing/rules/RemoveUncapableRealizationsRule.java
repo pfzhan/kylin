@@ -46,10 +46,16 @@ package org.apache.kylin.query.routing.rules;
 import java.util.Iterator;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.RoutingRule;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
+import io.kyligence.kap.query.util.ComputedColumnRewriter;
+import io.kyligence.kap.query.util.QueryAliasMatchInfo;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  */
@@ -62,8 +68,20 @@ public class RemoveUncapableRealizationsRule extends RoutingRule {
             if (candidate.getCapability() != null) {
                 continue;
             }
-            CapabilityResult capability = candidate.getRealization().isCapable(candidate.getSqlDigest(),
+            candidate.getCtx().resetSQLDigest();
+            CapabilityResult capability = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
                     candidate.getPrunedSegments(), candidate.getPrunedStreamingSegments());
+
+            if (!capability.capable && !candidate.getRealization().getModel().getComputedColumnDescs().isEmpty()) {
+                BiMap<String, String> aliasMapping = HashBiMap.create();
+                aliasMapping.putAll(candidate.getAliasMap());
+                ComputedColumnRewriter.rewriteCcInnerCol(candidate.getCtx(), candidate.getRealization().getModel(),
+                        new QueryAliasMatchInfo(aliasMapping, null));
+                candidate.getCtx().resetSQLDigest();
+                capability = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
+                        candidate.getPrunedSegments(), candidate.getPrunedStreamingSegments());
+            }
+
             candidate.setCapability(capability);
             if (!capability.capable) {
                 iterator.remove();

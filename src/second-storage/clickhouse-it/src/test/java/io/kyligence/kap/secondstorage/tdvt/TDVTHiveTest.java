@@ -54,7 +54,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -76,7 +75,6 @@ import java.util.stream.Stream;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
 import static io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest.populateSSWithCSVData;
 
-@Ignore("https://olapio.atlassian.net/browse/KE-29136")
 @RunWith(Parameterized.class)
 @Slf4j
 public class TDVTHiveTest {
@@ -89,7 +87,9 @@ public class TDVTHiveTest {
     static private final String queryCatalog = TDVTTest.class.getSimpleName();
     static private ImmutableSet<String> blackList = ImmutableSet.of(
             "untest.sql",
-            "sql108.sql"
+            "sql038.sql",
+            "sql108.sql",
+            "sql618.sql"
     );
 
     @ClassRule
