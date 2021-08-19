@@ -23,10 +23,10 @@
               <span class="label">{{$t('kylinLang.query.status')}}</span>
               <span>{{$t('kylinLang.common.success')}}</span>
             </p> -->
-            <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
+            <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}" v-if="realizations2 && realizations2.length">
               <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
               <span class="text">
-                <span v-if="realizations2 && realizations2.length" class="realization-tags">
+                <span  class="realization-tags">
                   <span v-for="(item, index) in realizations2" :key="item.modelId">
                     <template v-if="'visible' in item && !item.visible">
                       <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== realizations2.length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
@@ -36,7 +36,7 @@
                     </template>
                   </span>
                 </span>
-                <span v-else class="realization-tags">{{extraoption.engineType}}</span>
+                <!-- <span v-else class="realization-tags">{{extraoption.engineType}}</span> -->
               </span>
             </p>
             <p class="resultText" v-if="realizations.length">
