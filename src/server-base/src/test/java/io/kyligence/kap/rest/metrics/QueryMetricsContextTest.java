@@ -467,6 +467,32 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(metric.isSecondStorage());
     }
 
+    @Test
+    public void testCollectWhenLayoutIsNull() {
+
+        String sql = "select * from test_kylin_fact";
+        final QueryContext queryContext = QueryContext.current();
+
+        queryContext.getMetrics().setCorrectedSql(sql);
+        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+
+        long startTime = 1514764800000L;
+        queryContext.setProject("default");
+        queryContext.setUserSQL(sql);
+        queryContext.setAclInfo(new QueryContext.AclInfo("ADMIN", Sets.newHashSet("g1"), true));
+        queryContext.getMetrics().setQueryStartTime(startTime);
+        queryContext.setPushdownEngine("HIVE");
+        queryContext.getQueryTagInfo().setHitExceptionCache(true);
+
+        QueryContext.NativeQueryRealization aggIndex = new QueryContext.NativeQueryRealization("mocked_model_id",
+                "mocked_model", null, null, false, false, false, false, Lists.newArrayList());
+        queryContext.setNativeQueryRealizationList(Lists.newArrayList(aggIndex));
+
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(queryContext);
+        Assert.assertEquals(startTime, metricsContext.getQueryTime());
+    }
+
     public Map<String, String> getInfluxdbTags(QueryMetrics queryMetrics) {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, queryMetrics.getSubmitter()) //

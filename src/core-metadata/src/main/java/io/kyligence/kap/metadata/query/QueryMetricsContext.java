@@ -219,7 +219,7 @@ public class QueryMetricsContext extends QueryMetrics {
         }
 
         for (QueryContext.NativeQueryRealization realization : queryRealization) {
-            RealizationMetrics realizationMetrics = new RealizationMetrics(String.valueOf(realization.getLayoutId()),
+            RealizationMetrics realizationMetrics = new RealizationMetrics(Objects.toString(realization.getLayoutId(), null),
                     realization.getIndexType(), realization.getModelId(), realization.getSnapshots());
             realizationMetrics.setQueryId(queryId);
             realizationMetrics.setDuration(queryDuration);
