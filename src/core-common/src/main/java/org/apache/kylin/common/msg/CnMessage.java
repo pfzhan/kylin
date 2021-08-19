@@ -414,12 +414,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getJOB_REPEATED_START_FAILURE() {
-        return "不能重复启动实时任务。";
+        return "不能重复启动流数据任务。";
     }
 
     @Override
     public String getJOB_START_FAILURE() {
-        return "模型 \"%s\" 当前已有运行中的实时任务，无法重复启动。请检查后重试。";
+        return "模型 \"%s\" 当前已有运行中的流数据任务，无法重复启动。请检查后重试。";
     }
 
     @Override
@@ -429,7 +429,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getJOB_STOP_FAILURE() {
-        return "当前无法停止模型 \"%s\" 的实时任务。请查看日志，或稍后重试。";
+        return "当前无法停止模型 \"%s\" 的流数据任务。请查看日志，或稍后重试。";
     }
 
     // Access
@@ -1815,15 +1815,15 @@ public class CnMessage extends Message {
     }
 
     public String getSTREAMING_INDEXES_DELETE() {
-        return "无法删除实时索引。请先停止实时任务，再清空实时 Segment。";
+        return "无法删除流数据索引。请先停止流数据任务，再清空流数据 Segment。";
     }
 
     public String getSTREAMING_INDEXES_EDIT() {
-        return "无法编辑实时索引。请先停止实时任务，再清空实时 Segment。";
+        return "无法编辑流数据索引。请先停止流数据任务，再清空流数据 Segment。";
     }
 
     public String getSTREAMING_INDEXES_ADD() {
-        return "无法添加实时索引。请先停止实时任务，再清空实时 Segment。";
+        return "无法添加流数据索引。请先停止流数据任务，再清空流数据 Segment。";
     }
 
     @Override
@@ -1848,17 +1848,17 @@ public class CnMessage extends Message {
 
     @Override
     public String getFIX_STREAMING_SEGMENT() {
-        return "无法修复实时模型的 Segment。";
+        return "无法修复流数据模型的 Segment。";
     }
 
     @Override
     public String getNO_STREAMING_MODEL_FOUND() {
-        return "无法查询。由于实时数据必须通过索引查询，请确保有相应的索引。";
+        return "无法查询。由于流数据必须通过索引查询，请确保有相应的索引。";
     }
 
     @Override
     public String getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING() {
-        return "不支持实时表进行自动建模。";
+        return "不支持流数据表进行自动建模。";
     }
 
     @Override
