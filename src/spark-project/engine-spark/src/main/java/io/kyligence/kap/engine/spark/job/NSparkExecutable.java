@@ -83,6 +83,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import lombok.var;
 
 /**
  *
@@ -287,8 +288,9 @@ public class NSparkExecutable extends AbstractExecutable {
 
     @Override
     protected KylinConfig getConfig() {
-        val originalConfig = KylinConfig.getInstanceFromEnv();
+        var originalConfig = KylinConfig.getInstanceFromEnv();
         if (!originalConfig.isDevOrUT()) {
+            originalConfig = KylinConfig.createKylinConfig(originalConfig);
             originalConfig.reloadFromSiteProperties();
         }
         KylinConfigExt kylinConfigExt = null;
