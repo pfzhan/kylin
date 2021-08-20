@@ -118,8 +118,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();
-        Assert.assertEquals(RDSegmentBuildJob.class.getName(),
-                resourceDetectStep.getSparkSubmitClassName());
+        Assert.assertEquals(RDSegmentBuildJob.class.getName(), resourceDetectStep.getSparkSubmitClassName());
         Assert.assertEquals(ExecutableConstants.STEP_NAME_DETECT_RESOURCE, resourceDetectStep.getName());
         job.getParams().forEach((key, value) -> Assert.assertEquals(value, resourceDetectStep.getParam(key)));
         Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), resourceDetectStep.getId()).toString(),
@@ -131,6 +130,9 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         job.getParams().forEach((key, value) -> Assert.assertEquals(value, cubeStep.getParam(key)));
         Assert.assertEquals(config.getJobTmpMetaStoreUrl(getProject(), cubeStep.getId()).toString(),
                 cubeStep.getDistMetaUrl());
+
+        NSparkCleanupTransactionalTableStep cleanStep = job.getCleanIntermediateTableStep();
+        Assert.assertEquals(ExecutableConstants.STEP_INTERMEDIATE_TABLE_CLEANUP, cleanStep.getName());
     }
 
     @Test

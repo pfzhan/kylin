@@ -88,6 +88,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     private static final String TABLE_TYPE_VIEW = "VIEW";
     private static final String materializedTableNamePrefix = "kylin_intermediate_";
+    private static final String TRANSACTIONAL_TABLE_NAME_SUFFIX = "_hive_tx_intermediate";
 
     // returns <table, project>
     public static Pair<String, String> parseResourcePath(String path) {
@@ -198,6 +199,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     private boolean isBorrowedFromGlobal = false;
     private KafkaConfig kafkaConfig;
 
+    @Setter
+    @Getter
+    @JsonProperty("transactional")
+    private boolean isTransactional;
+
     public TableDesc() {
     }
 
@@ -227,7 +233,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.snapshotLastModified = other.getSnapshotLastModified();
         this.snapshotHasBroken = other.snapshotHasBroken;
         this.kafkaConfig = other.kafkaConfig;
-
+        this.isTransactional = other.isTransactional;
         setMvcc(other.getMvcc());
     }
 
@@ -449,6 +455,10 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getMaterializedName() {
         return materializedTableNamePrefix + database.getName() + "_" + name;
+    }
+
+    public String getTransactionalTableIdentity() {
+        return (getIdentity() + TRANSACTIONAL_TABLE_NAME_SUFFIX).toUpperCase(Locale.ROOT);
     }
 
     @Override

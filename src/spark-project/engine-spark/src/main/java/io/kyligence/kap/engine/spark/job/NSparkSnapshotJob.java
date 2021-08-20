@@ -79,7 +79,7 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.BUILD_SNAPSHOT.createStep(job, config);
-
+        JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
         return job;
     }
 

@@ -285,6 +285,8 @@ public abstract class SparkApplication implements Application, IKeep {
             // init KylinBuildEnv
             KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
             infos = KylinBuildEnv.get().buildJobInfos();
+            infos.recordJobId(jobId);
+            infos.recordProject(project);
             infos.recordJobStepId(System.getProperty("spark.driver.param.taskId", jobId));
             HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();

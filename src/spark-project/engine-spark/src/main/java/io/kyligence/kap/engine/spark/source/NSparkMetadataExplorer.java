@@ -164,6 +164,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         }
         //set table type = spark
         tableDesc.setSourceType(ISourceAware.ID_SPARK);
+        tableDesc.setTransactional(tableMeta.isTransactional);
 
         Set<String> partColumnSet = Optional.ofNullable(tableMeta.partitionColumns) //
                 .orElseGet(Collections::emptyList).stream().map(field -> field.name) //

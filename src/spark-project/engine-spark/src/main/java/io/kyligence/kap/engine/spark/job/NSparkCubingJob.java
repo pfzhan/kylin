@@ -195,6 +195,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
                 JobStepType.SECOND_STORAGE_REFRESH.createStep(job, config);
             }
         }
+        JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
         return job;
     }
 
@@ -225,6 +226,10 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
     NResourceDetectStep getResourceDetectStep() {
         return getTask(NResourceDetectStep.class);
+    }
+
+    NSparkCleanupTransactionalTableStep getCleanIntermediateTableStep() {
+        return getTask(NSparkCleanupTransactionalTableStep.class);
     }
 
     @Override

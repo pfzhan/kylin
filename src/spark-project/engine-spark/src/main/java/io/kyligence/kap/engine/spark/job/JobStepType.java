@@ -115,6 +115,13 @@ public enum JobStepType {
                 step.setParams(parent.getParams());
             });
         }
+    },
+
+    CLEAN_UP_TRANSACTIONAL_TABLE {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new NSparkCleanupTransactionalTableStep();
+        }
     };
 
     protected abstract AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config);

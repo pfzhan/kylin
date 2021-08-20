@@ -77,6 +77,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
         Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
                 "p_lineorder", "ssb");
         Assert.assertTrue(tableDescTableExtDescPair != null && tableDescTableExtDescPair.getFirst() != null);
+        Assert.assertFalse(tableDescTableExtDescPair.getFirst().isTransactional());
     }
 
     @Test
