@@ -24,9 +24,9 @@
 
 package org.apache.spark.sql
 
+import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.types.{BinaryType, StringType, StructField, StructType}
 import org.apache.spark.sql.udaf.{BitmapSerAndDeSer, BitmapSerAndDeSerObj}
 import org.apache.spark.sql.udf.UdfManager
@@ -221,5 +221,30 @@ class CountDistinctTest
       assertResult(4L)(de_bitmap.getLongCardinality)
       assert(de_bitmap.contains(234556234556L))
     }
+  }
+
+  test("test precise_count_distinct_decode") {
+    val array1: Array[Byte] = getBitmapArray(1, 2)
+    val array2: Array[Byte] = getBitmapArray(1, 3, 5)
+
+    val df = Seq(("a": String, array1),
+      (null, array1),
+      ("b": String, array2),
+      ("a": String, array2)).toDF("col1", "col2")
+    checkAnswer(df.coalesce(1).select(precise_count_distinct_decode($"col2")),
+      Seq(Row(2), Row(2), Row(3), Row(3)))
+  }
+
+  test("test approx_count_distinct_decode") {
+    val array1: Array[Byte] = getHllcArray(1, 2)
+    val array2: Array[Byte] = getHllcArray(1, 3, 5)
+
+    val df = Seq(("a": String, array1),
+      (null, array1),
+      ("b": String, array2),
+      ("a": String, array2)).toDF("col1", "col2")
+
+    checkAnswer(df.coalesce(1).select(approx_count_distinct_decode($"col2", 14)),
+      Seq(Row(2), Row(2), Row(3), Row(3)))
   }
 }

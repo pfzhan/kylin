@@ -271,7 +271,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
     protected void buildGroups() {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
-        this.groups = new ArrayList<TblColRef>();
+        this.groups = new ArrayList<>();
         for (int i = getGroupSet().nextSetBit(0); i >= 0; i = getGroupSet().nextSetBit(i + 1)) {
             Set<TblColRef> columns = inputColumnRowType.getSourceColumnsByIndex(i);
             this.groups.addAll(columns);

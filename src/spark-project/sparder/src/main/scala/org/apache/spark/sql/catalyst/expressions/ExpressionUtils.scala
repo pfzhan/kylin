@@ -24,11 +24,14 @@
 
 package org.apache.spark.sql.catalyst.expressions
 
+import org.apache.kylin.measure.hllc.HLLCounter
+import org.apache.kylin.measure.percentile.PercentileSerializer
 import org.apache.spark.sql.AnalysisException
-import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
-import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
+import org.apache.spark.sql.types.Decimal
+import org.apache.spark.sql.udaf.BitmapSerAndDeSerObj
 
+import java.nio.ByteBuffer
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
@@ -110,6 +113,31 @@ object ExpressionUtils {
     } else {
       new ExpressionInfo(clazz.getCanonicalName, name)
     }
+  }
+
+  def preciseCountDistinctDecodeHelper(bytes: Any): Long = {
+    val storageBytes = bytes.asInstanceOf[Array[Byte]]
+    val roaringMap = BitmapSerAndDeSerObj.deserialize(storageBytes)
+    roaringMap.getLongCardinality
+  }
+
+  def approxCountDistinctDecodeHelper(bytes: Any, precision: Any): Long = {
+      val storageFormat = bytes.asInstanceOf[Array[Byte]]
+      val preciseValue = precision.asInstanceOf[Int]
+      if (storageFormat.nonEmpty) {
+        val counter = new HLLCounter(preciseValue)
+        counter.readRegisters(ByteBuffer.wrap(storageFormat))
+        counter.getCountEstimate
+      } else {
+        0L
+      }
+  }
+
+  def percentileDecodeHelper(bytes: Any, quantile: Any, precision: Any): Double = {
+    val arrayBytes = bytes.asInstanceOf[Array[Byte]]
+    val serializer = new PercentileSerializer(precision.asInstanceOf[Int]);
+    val counter = serializer.deserialize(ByteBuffer.wrap(arrayBytes))
+    counter.getResultEstimateWithQuantileRatio(quantile.asInstanceOf[Decimal].toDouble)
   }
 }
 

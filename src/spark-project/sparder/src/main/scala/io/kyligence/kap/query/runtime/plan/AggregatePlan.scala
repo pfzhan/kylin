@@ -24,14 +24,15 @@ package io.kyligence.kap.query.runtime.plan
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.relnode.{KapAggregateRel, KapProjectRel}
 import io.kyligence.kap.query.runtime.RuntimeHelper
-import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
+import org.apache.calcite.rex.RexLiteral
 import org.apache.calcite.sql.SqlKind
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.expressions.aggregate.ApproximatePercentile
 import org.apache.spark.sql.catalyst.expressions.{CreateArray, In}
 import org.apache.spark.sql.catalyst.plans.logical.Project
 import org.apache.spark.sql.catalyst.util.ArrayData
@@ -40,11 +41,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udaf.SingleValueAgg
 import org.apache.spark.sql.util.SparderTypeUtil
+
 import java.util.Locale
-
-import org.apache.calcite.rex.RexLiteral
-import org.apache.spark.sql.catalyst.expressions.aggregate.ApproximatePercentile
-
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -53,8 +51,7 @@ object AggregatePlan extends LogEx {
     List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT", "BITMAP_UUID")
 
   def agg(inputs: java.util.List[DataFrame],
-          rel: KapAggregateRel,
-          dataContext: DataContext): DataFrame = logTime("aggregate", debug = true) {
+          rel: KapAggregateRel): DataFrame = logTime("aggregate", debug = true) {
 
     var dataFrame = inputs.get(0)
     val schemaNames = dataFrame.schema.fieldNames
@@ -62,8 +59,39 @@ object AggregatePlan extends LogEx {
 
     if (rel.getContext != null && rel.getContext.isExactlyAggregate && !rel.getContext.isNeedToManyDerived) {
       // exactly match, skip agg, direct project.
-      val aggCols = rel.getRewriteAggCalls.asScala
-        .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
+      val aggCols = rel.getRewriteAggCalls.asScala.zipWithIndex.map {
+        case (call: KylinAggregateCall, index: Int) =>
+          val funcName = OLAPAggregateRel.getAggrFuncName(call);
+          val dataType = call.getFunc.getReturnDataType
+          val argNames = call.getArgList.asScala.map(dataFrame.schema.names.apply(_))
+          val columnName = argNames.map(col)
+          val hash = System.identityHashCode(rel).toString
+          funcName match {
+            case FunctionDesc.FUNC_COUNT_DISTINCT =>
+              if (call.isHllCountDistinctFunc) {
+                val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, "APPROX_COUNT_DISTINCT_DECODE", hash, argNames: _*)
+                KapFunctions.approx_count_distinct_decode(columnName.head, dataType.getPrecision).alias(aggName)
+              } else if (call.isBitmapCountDistinctFunc) {
+                if (rel.getContext.isExactlyFastBitmap) {
+                  col(schemaNames.apply(call.getArgList.get(0)))
+                } else {
+                  val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, "PRECISE_COUNT_DISTINCT_DECODE", hash, argNames: _*)
+                  KapFunctions.precise_count_distinct_decode(columnName.head).alias(aggName)
+                }
+              } else {
+                throw new IllegalArgumentException(
+                  s"""Unsupported function name $funcName""")
+              }
+            case FunctionDesc.FUNC_PERCENTILE =>
+              val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, "PERCENTILE_DECODE", hash, argNames: _*)
+              KapFunctions.k_percentile_decode(columnName.head, columnName(1), dataType.getPrecision).alias(aggName)
+            case _ =>
+              col(schemaNames.apply(call.getArgList.get(0)))
+          }
+        case (call: Any, _: Int) =>
+          col(schemaNames.apply(call.getArgList.get(0)))
+      }.toList
+
       val prjList = groupList ++ aggCols
       logInfo(s"Query exactly match index, skip agg, project $prjList.")
       dataFrame.select(prjList: _*)
@@ -127,7 +155,7 @@ object AggregatePlan extends LogEx {
         val columnName = argNames.map(col)
         val registeredFuncName = RuntimeHelper.registerSingleByColName(funcName, dataType)
         val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, funcName, hash, argNames: _*)
-        if (funcName == "COUNT_DISTINCT") {
+        if (funcName == FunctionDesc.FUNC_COUNT_DISTINCT) {
           if (dataType.getName == "hllc") {
             org.apache.spark.sql.KapFunctions
               .approx_count_distinct(columnName.head, dataType.getPrecision)

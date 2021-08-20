@@ -105,7 +105,7 @@ object TableScanPlan extends LogEx {
     val fileList = prunedSegments.asScala.map (
       seg => toLayoutPath (dataflow, cuboidLayout.getId, basePath, seg, prunedPartitionMap)
     )
-    val path = fileList.mkString (",") + olapContext.isFastBitmapEnabled
+    val path = fileList.mkString (",") + olapContext.isExactlyFastBitmap()
     printLogInfo (basePath, dataflow.getId, cuboidLayout.getId, prunedSegments, prunedPartitionMap)
 
     val cached = cacheDf.get ().getOrDefault (path, null)
@@ -123,7 +123,7 @@ object TableScanPlan extends LogEx {
         }
       }.mkString(",")
       val newDf = session.kylin
-              .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
+              .isFastBitmapEnabled(olapContext.isExactlyFastBitmap())
               .bucketingEnabled(bucketEnabled(olapContext, cuboidLayout))
               .cuboidTable(dataflow, cuboidLayout, pruningInfo)
               .toDF(columnNames: _*)

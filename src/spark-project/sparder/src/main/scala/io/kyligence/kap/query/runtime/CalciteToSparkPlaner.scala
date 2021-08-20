@@ -87,7 +87,7 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
       case rel: KapAggregateRel =>
         logTime("agg") {
           actionWithCache(rel) {
-            AggregatePlan.agg(Lists.newArrayList(stack.pop()), rel, dataContext)
+            AggregatePlan.agg(Lists.newArrayList(stack.pop()), rel)
           }
         }
       case rel: KapJoinRel =>

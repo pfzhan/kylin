@@ -33,15 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.MultiPartitionDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.query.util.ICutContextStrategy;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -59,7 +50,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -70,6 +60,15 @@ import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.model.MultiPartitionDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.util.ICutContextStrategy;
 import lombok.Getter;
 
 /**
@@ -306,6 +305,11 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 this.rewriteAggCalls.add(aggCall);
             }
             getContext().setExactlyAggregate(isExactlyMatched());
+            if (getContext().isExactlyAggregate()) {
+                boolean fastBitmapEnabled = getContext().storageContext.getCandidate().getLayoutEntity()
+                        .getIndex().getIndexPlan().isFastBitmapEnabled();
+                getContext().setExactlyFastBitmap(fastBitmapEnabled && getContext().isHasBitmapMeasure());
+            }
         }
 
         // rebuild rowType & columnRowType
@@ -315,7 +319,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     }
 
     protected static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT",
-            "BITMAP_UUID");
+            "BITMAP_UUID", "PERCENTILE_APPROX");
 
     private Boolean isExactlyMatched() {
         if (!KapConfig.getInstanceFromEnv().needReplaceAggWhenExactlyMatched()) {
@@ -324,23 +328,17 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         if (getSubContext().size() > 1) {
             return false;
         }
-        if (getContext().storageContext.getCandidate().isEmptyCandidate() && getContext().storageContext.getStreamingCandidate().isEmptyCandidate()) {
-            return false;
-        }
-        boolean isFastBitmapEnabled;
         NLayoutCandidate candidate = getContext().storageContext.getCandidate();
         if (candidate.isEmptyCandidate()) {
             return false;
-        } else {
-            NDataModel model = candidate.getLayoutEntity().getModel();
-            if (model.getStorageType() != 0) {
-                return false;
-            }
-            if (model.getModelType() != NDataModel.ModelType.BATCH) {
-                return false;
-            }
-            isFastBitmapEnabled = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
-                    .getIndexPlan(model.getId()).isFastBitmapEnabled();
+        }
+
+        NDataModel model = candidate.getLayoutEntity().getModel();
+        if (model.getStorageType() != 0) {
+            return false;
+        }
+        if (model.getModelType() != NDataModel.ModelType.BATCH) {
+            return false;
         }
 
         for (AggregateCall call : getRewriteAggCalls()) {
@@ -352,24 +350,15 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
             if (getAggrFuncName(call).equals("BITMAP_UUID")) {
                 continue;
             }
-            if (call.getArgList().size() > 1) {
-                return false;
-            }
             if (call instanceof KylinAggregateCall) {
                 FunctionDesc func = ((KylinAggregateCall) call).getFunc();
-                boolean hasHllc = func.getReturnDataType() != null && func.getReturnDataType().getName().equals("hllc");
-                if (hasHllc) {
-                    logger.info("Has hllc measure, not apply exactly match optimize.");
-                    return false;
-                }
                 boolean hasBitmap = func.getReturnDataType() != null
                         && func.getReturnDataType().getName().equals("bitmap");
-                if (hasBitmap && !isFastBitmapEnabled) {
-                    return false;
-                }
                 if (hasBitmap) {
                     getContext().setHasBitmapMeasure(true);
                 }
+            } else {
+                return false;
             }
         }
         Set<String> cuboidDimSet = new HashSet<>();
@@ -382,22 +371,22 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
         logger.info("group by cols:{}", groupByCols);
         logger.info("cuboid dimensions: {}", cuboidDimSet);
-        // has count distinct but not enabled fast bitmap
-        boolean isDimensionMatch = isDimExactlyMatch();
+
+        boolean isDimensionMatch = isDimExactlyMatch(groupByCols, cuboidDimSet);
         if (!isDimensionMatch) {
             return false;
-        } else {
-            NDataflow dataflow = (NDataflow) getContext().realization;
-            PartitionDesc partitionDesc = dataflow.getModel().getPartitionDesc();
-            MultiPartitionDesc multiPartitionDesc = dataflow.getModel().getMultiPartitionDesc();
-            if (groupbyContainMultiPartitions(multiPartitionDesc) && groupbyContainSegmentPartition(partitionDesc)) {
-                logger.info("Find partition column. skip agg");
-                return true;
-            }
-
-            return dataflow.getQueryableSegments().size() == 1
-                    && dataflow.getQueryableSegments().get(0).getMultiPartitions().size() <= 1;
         }
+
+        NDataflow dataflow = (NDataflow) getContext().realization;
+        PartitionDesc partitionDesc = dataflow.getModel().getPartitionDesc();
+        MultiPartitionDesc multiPartitionDesc = dataflow.getModel().getMultiPartitionDesc();
+        if (groupbyContainMultiPartitions(multiPartitionDesc) && groupbyContainSegmentPartition(partitionDesc)) {
+            logger.info("Find partition column. skip agg");
+            return true;
+        }
+
+        return dataflow.getQueryableSegments().size() == 1
+                && dataflow.getQueryableSegments().get(0).getMultiPartitions().size() <= 1;
     }
 
     private boolean groupbyContainSegmentPartition(PartitionDesc partitionDesc) {
@@ -414,15 +403,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 multiPartitionDesc.getColumnRefs().stream().map(TblColRef::getIdentity).collect(Collectors.toSet()));
     }
 
-    private boolean isDimExactlyMatch() {
-        Set<String> groupByCols = getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
-        Set<String> cuboidDimSet = new HashSet<>();
-        if (getContext() != null && getContext().storageContext.getCandidate() != null) {
-            cuboidDimSet = getContext().storageContext.getCandidate().getLayoutEntity().getOrderedDimensions().values()
-                    .stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
-
-        }
-        return !groupByCols.isEmpty() && groupByCols.equals(cuboidDimSet) && isSimpleGroupType()
+    private boolean isDimExactlyMatch(Set<String> groupByCols, Set<String> cuboidDimSet) {
+        return groupByCols.equals(cuboidDimSet) && isSimpleGroupType()
                 && (this.context.getInnerGroupByColumns().isEmpty()
                         || !this.context.getGroupCCColRewriteMapping().isEmpty());
 

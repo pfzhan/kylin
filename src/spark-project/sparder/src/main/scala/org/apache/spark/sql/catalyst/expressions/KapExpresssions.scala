@@ -23,8 +23,6 @@
  */
 package org.apache.spark.sql.catalyst.expressions
 
-import java.time.ZoneId
-import java.util.TimeZone
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
@@ -36,6 +34,7 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.udf._
 
+import java.time.ZoneId
 import java.util.Locale
 import scala.collection.JavaConverters._
 
@@ -597,4 +596,91 @@ case class SubtractBitmapValue(child1: Expression, child2: Expression, upperBoun
       s"""$sb.evaluate2Values($arg1, $arg2, $upperBound)"""
     })
   }
+}
+
+case class PreciseCountDistinctDecode(_child: Expression)
+  extends UnaryExpression with ExpectsInputTypes {
+
+  override def child: Expression = _child
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType)
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val expressionUtils = ExpressionUtils.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (bytes) => {
+      s"""$expressionUtils.preciseCountDistinctDecodeHelper($bytes)"""
+    })
+  }
+
+  override protected def nullSafeEval(bytes: Any): Any = {
+    ExpressionUtils.preciseCountDistinctDecodeHelper(bytes)
+  }
+
+  override def eval(input: InternalRow): Any = {
+    if (input != null) {
+      super.eval(input)
+    } else {
+      0L
+    }
+  }
+
+  override def dataType: DataType = LongType
+
+  override def prettyName: String = "precise_count_distinct_decode"
+}
+
+case class ApproxCountDistinctDecode(expr: Expression, precision: Expression)
+  extends BinaryExpression with ExpectsInputTypes {
+
+  def left: Expression = expr
+  def right: Expression = precision
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType, IntegerType)
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val expressionUtils = ExpressionUtils.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (bytes, precision) => {
+      s"""$expressionUtils.approxCountDistinctDecodeHelper($bytes, $precision)"""
+    })
+  }
+
+  override protected def nullSafeEval(bytes: Any, precision: Any): Any = {
+    ExpressionUtils.approxCountDistinctDecodeHelper(bytes, precision)
+  }
+
+  override def eval(input: InternalRow): Any = {
+    if (input != null) {
+      super.eval(input)
+    } else {
+      0L
+    }
+  }
+
+  override def dataType: DataType = LongType
+
+  override def prettyName: String = "approx_count_distinct_decode"
+}
+
+case class PercentileDecode(bytes: Expression, quantile: Expression, precision: Expression) extends TernaryExpression with ExpectsInputTypes {
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType, DecimalType, IntegerType)
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val expressionUtils = ExpressionUtils.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (bytes, quantile, precision) => {
+      s"""$expressionUtils.percentileDecodeHelper($bytes, $quantile, $precision)"""
+    })
+  }
+
+  override protected def nullSafeEval(bytes: Any, quantile: Any, precision: Any): Any = {
+      ExpressionUtils.percentileDecodeHelper(bytes, quantile, precision)
+  }
+
+  override def dataType: DataType = DoubleType
+
+  override def prettyName: String = "percentile_decode"
+
+  override def nullable: Boolean = false
+
+  override def children: Seq[Expression] = Seq(bytes, quantile, precision)
 }

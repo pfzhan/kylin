@@ -254,7 +254,10 @@ public class OLAPContext {
 
     protected boolean isExactlyAggregate = false;
 
+    @Getter
     protected boolean hasBitmapMeasure = false;
+
+    protected boolean isExactlyFastBitmap = false;
 
     public boolean isExactlyAggregate() {
         return isExactlyAggregate;
@@ -264,8 +267,12 @@ public class OLAPContext {
         isExactlyAggregate = exactlyAggregate;
     }
 
-    public boolean isFastBitmapEnabled() {
-        return isExactlyAggregate && hasBitmapMeasure;
+    public boolean isExactlyFastBitmap() {
+        return isExactlyFastBitmap;
+    }
+
+    public void setExactlyFastBitmap(boolean isExactlyFastBitmap) {
+        this.isExactlyFastBitmap = isExactlyFastBitmap;
     }
 
     public void setHasBitmapMeasure(boolean bitmapMeasure) {

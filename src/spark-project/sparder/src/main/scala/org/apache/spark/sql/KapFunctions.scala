@@ -27,7 +27,7 @@ import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{ApproxCountDistinctDecode, CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, PercentileDecode, PreciseCountDistinctDecode, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.types.{ArrayType, BinaryType, DoubleType, LongType}
 import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, Percentile, PreciseCardinality, PreciseCountDistinct, PreciseCountDistinctAndArray, PreciseCountDistinctAndValue, ReusePreciseCountDistinct}
 
@@ -69,14 +69,23 @@ object KapFunctions {
   def k_percentile(head: Column, column: Column, precision: Int): Column =
     Column(Percentile(head.expr, precision, Some(column.expr), DoubleType).toAggregateExpression())
 
+  def k_percentile_decode(column: Column, p: Column, precision: Int): Column =
+    Column(PercentileDecode(column.expr, p.expr, Literal(precision)))
+
   def precise_count_distinct(column: Column): Column =
     Column(PreciseCountDistinct(column.expr, LongType).toAggregateExpression())
+
+  def precise_count_distinct_decode(column: Column): Column =
+    Column(PreciseCountDistinctDecode(column.expr))
 
   def precise_bitmap_uuid(column: Column): Column =
     Column(PreciseCountDistinct(column.expr, BinaryType).toAggregateExpression())
 
   def approx_count_distinct(column: Column, precision: Int): Column =
     Column(ApproxCountDistinct(column.expr, precision).toAggregateExpression())
+
+  def approx_count_distinct_decode(column: Column, precision: Int): Column =
+    Column(ApproxCountDistinctDecode(column.expr, Literal(precision)))
 
   def k_truncate(column: Column, scale: Int): Column = {
     Column(TRUNCATE(column.expr, Literal(scale)))
@@ -153,7 +162,10 @@ object KapFunctions {
     FunctionEntity(expression[ReusePreciseCountDistinct]("bitmap_or")),
     FunctionEntity(expression[PreciseCardinality]("bitmap_cardinality")),
     FunctionEntity(expression[PreciseCountDistinctAndValue]("bitmap_and_value")),
-    FunctionEntity(expression[PreciseCountDistinctAndArray]("bitmap_and_ids"))
+    FunctionEntity(expression[PreciseCountDistinctAndArray]("bitmap_and_ids")),
+    FunctionEntity(expression[PreciseCountDistinctDecode]("precise_count_distinct_decode")),
+    FunctionEntity(expression[ApproxCountDistinctDecode]("approx_count_distinct_decode")),
+    FunctionEntity(expression[PercentileDecode]("percentile_decode"))
   )
 }
 
