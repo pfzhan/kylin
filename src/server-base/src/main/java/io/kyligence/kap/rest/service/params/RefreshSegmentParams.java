@@ -78,4 +78,9 @@ public class RefreshSegmentParams extends BasicSegmentParams {
         this.yarnQueue = yarnQueue;
         return this;
     }
+
+    public RefreshSegmentParams withTag(Object tag) {
+        this.tag = tag;
+        return this;
+    }
 }

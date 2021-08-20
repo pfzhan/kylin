@@ -48,6 +48,7 @@ public class BasicSegmentParams implements TransactionProjectUnit {
     protected List<Long> batchIndexIds = Lists.newArrayList();
 
     protected String yarnQueue;
+    protected Object tag;
 
     BasicSegmentParams(String project, String modelId) {
         this.project = project;

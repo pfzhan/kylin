@@ -70,4 +70,8 @@ public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest 
 
     @JsonProperty("yarn_queue")
     private String yarnQueue;
+
+    @JsonProperty("tag")
+    private Object tag;
+
 }

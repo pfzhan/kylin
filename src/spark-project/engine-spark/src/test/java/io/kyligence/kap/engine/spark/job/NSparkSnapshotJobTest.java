@@ -96,7 +96,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null);
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -127,7 +127,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null);
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -155,9 +155,9 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         }).sum(), tableManager.getTableDesc(tableName).getLastSnapshotSize());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getTempSnapshotPath());
         Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
-        Assert.assertTrue(tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
+        Assert.assertTrue(
+                tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
     }
-
 
     @Test
     public void testBuildSnapshotByPartitionRefreshPart() throws Exception {
@@ -174,7 +174,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, true, null);
+                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, true, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
@@ -195,7 +195,8 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNotNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getLastSnapshotPath());
         Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
-        Assert.assertTrue(tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
+        Assert.assertTrue(
+                tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
     }
 
     private FileStatus[] list(String path) {

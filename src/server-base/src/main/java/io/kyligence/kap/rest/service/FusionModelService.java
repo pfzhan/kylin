@@ -200,7 +200,8 @@ public class FusionModelService extends BasicService {
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 targetModelId, buildSegmentsRequest.getSegmentIds(), buildSegmentsRequest.getIndexIds(),
                 buildSegmentsRequest.isParallelBuildBySegment(), buildSegmentsRequest.getPriority(),
-                buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue());
+                buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue(),
+                buildSegmentsRequest.getTag());
         return response;
     }
 

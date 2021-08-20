@@ -317,7 +317,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("names", (String) null) //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 3, null);
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 3, null,
+                null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments/completion", modelName)
                 .param("project", "default") //
                 .param("parallel", "false") //
@@ -325,7 +326,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("names", (String) null) //
                 .param("priority", "0").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 0, null);
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, null, false, 0, null,
+                null);
     }
 
     @Test
@@ -353,7 +355,8 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("batch_index_ids", "1,2") //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, batchIndexIds, true, 3, null);
+        Mockito.verify(openModelController).completeSegments(modelName, project, false, ids, null, batchIndexIds, true,
+                3, null, null);
     }
 
     @Test

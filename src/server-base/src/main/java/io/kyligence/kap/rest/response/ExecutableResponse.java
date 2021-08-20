@@ -24,9 +24,20 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.SecondStorageCleanJobUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.TableDesc;
+
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -36,15 +47,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.SecondStorageCleanJobUtil;
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.metadata.model.TableDesc;
-
-import java.util.List;
 
 @Setter
 @Getter
@@ -93,6 +95,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private long execEndTime;
     @JsonProperty("discard_safety")
     private boolean discardSafety;
+    @JsonProperty("tag")
+    private Object tag;
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -112,6 +116,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setExecEndTime(abstractExecutable.getEndTime());
         executableResponse.setDiscardSafety(abstractExecutable.safetyIfDiscard());
         executableResponse.setTotalDuration(executableResponse.getWaitTime() + executableResponse.getDuration());
+        executableResponse.setTag(abstractExecutable.getTag());
         return executableResponse;
     }
 

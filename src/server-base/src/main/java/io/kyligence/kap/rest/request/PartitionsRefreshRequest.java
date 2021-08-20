@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.request;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.job.dao.ExecutablePO;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -36,7 +38,6 @@ import io.kyligence.kap.rest.aspect.TransactionProjectUnit;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 @AllArgsConstructor
@@ -62,6 +63,9 @@ public class PartitionsRefreshRequest implements ProjectInsensitiveRequest, Tran
 
     @JsonProperty("yarn_queue")
     private String yarnQueue;
+
+    @JsonProperty("tag")
+    private Object tag;
 
     @Override
     public String transactionProjectUnit() {

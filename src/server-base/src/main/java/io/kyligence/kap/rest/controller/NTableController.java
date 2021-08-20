@@ -268,7 +268,8 @@ public class NTableController extends NBasicController {
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
-                    tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue());
+                    tableLoadRequest.getSamplingRows(), tableLoadRequest.getPriority(), tableLoadRequest.getYarnQueue(),
+                    tableLoadRequest.getTag());
         }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
     }
@@ -520,7 +521,7 @@ public class NTableController extends NBasicController {
         validatePriority(request.getPriority());
 
         tableSamplingService.sampling(Sets.newHashSet(request.getQualifiedTableName()), request.getProject(),
-                request.getRows(), request.getPriority(), request.getYarnQueue());
+                request.getRows(), request.getPriority(), request.getYarnQueue(), request.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

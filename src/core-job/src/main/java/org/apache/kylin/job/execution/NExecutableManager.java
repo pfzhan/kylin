@@ -158,6 +158,7 @@ public class NExecutableManager {
         result.setTargetPartitions(executable.getTargetPartitions());
         result.getOutput().setResumable(executable.isResumable());
         result.setPriority(executable.getPriority());
+        result.setTag(executable.getTag());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
             Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
@@ -935,6 +936,7 @@ public class NExecutableManager {
             result.setResumable(executablePO.getOutput().isResumable());
             result.setTargetPartitions(executablePO.getTargetPartitions());
             result.setPriority(executablePO.getPriority());
+            result.setTag(executablePO.getTag());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);

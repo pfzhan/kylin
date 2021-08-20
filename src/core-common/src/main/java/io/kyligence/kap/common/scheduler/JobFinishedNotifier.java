@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.common.scheduler;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -47,12 +47,13 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
     private boolean isSucceed;
     private long startTime;
     private long endTime;
+    private Object tag;
 
 
     public JobFinishedNotifier(String jobId, String project, String subject, long duration, String jobState,
                                String jobType, Set<String> segmentIds, Set<Long> layoutIds, Set<Long> partitionIds,
                                long waitTime, String jobClass, String owner, boolean result, long startTime,
-                               long endTime) {
+            long endTime, Object tag) {
         setProject(project);
         setSubject(subject);
         this.jobId = jobId;
@@ -75,6 +76,7 @@ public class JobFinishedNotifier extends SchedulerEventNotifier {
         this.isSucceed = result;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.tag = tag;
     }
 
 }

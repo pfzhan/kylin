@@ -168,6 +168,10 @@ public abstract class AbstractExecutable implements Executable {
 
     @Getter
     @Setter
+    private Object tag;
+
+    @Getter
+    @Setter
     private int stepId = -1;
 
     public String getTargetModelAlias() {

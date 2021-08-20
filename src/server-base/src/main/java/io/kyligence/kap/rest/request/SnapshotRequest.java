@@ -57,6 +57,9 @@ public class SnapshotRequest implements ProjectInsensitiveRequest {
     @JsonProperty("yarn_queue")
     private String yarnQueue;
 
+    @JsonProperty("tag")
+    private Object tag;
+
     @Getter
     @Setter
     public static class TableOption {

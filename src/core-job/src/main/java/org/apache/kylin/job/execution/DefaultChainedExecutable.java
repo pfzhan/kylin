@@ -51,7 +51,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -59,6 +58,7 @@ import org.apache.kylin.job.exception.JobStoppedException;
 
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
+import io.kyligence.kap.guava20.shaded.common.collect.Lists;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 
 /**
@@ -211,7 +211,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 .postSync(new JobFinishedNotifier(getId(), getProject(), getTargetSubject(), getDuration(),
                         state.toString(), getJobType().toString(), this.getSegmentIds(), this.getLayoutIds(),
                         getTargetPartitions(), getWaitTime(), this.getClass().getName(), this.getSubmitter(),
-                        result.succeed(), getJobStartTime(), getJobEndTime()));
+                        result.succeed(), getJobStartTime(), getJobEndTime(), getTag()));
     }
 
     private long getJobStartTime() {

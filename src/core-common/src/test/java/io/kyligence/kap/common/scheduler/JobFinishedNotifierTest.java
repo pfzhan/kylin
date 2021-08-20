@@ -51,7 +51,7 @@ public class JobFinishedNotifierTest {
         long endTime = 1626144908000L;
 
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, partitionIds, waitTime, "", "", true, startTime, endTime);
+                segIds, layoutIds, partitionIds, waitTime, "", "", true, startTime, endTime, null);
         Assert.assertEquals(jobId, notifier.getJobId());
         Assert.assertEquals(project, notifier.getProject());
         Assert.assertEquals(subject, notifier.getSubject());

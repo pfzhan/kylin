@@ -47,4 +47,9 @@ public class MergeSegmentParams extends BasicSegmentParams {
         this.yarnQueue = yarnQueue;
         return this;
     }
+
+    public MergeSegmentParams withTag(Object tag) {
+        this.tag = tag;
+        return this;
+    }
 }

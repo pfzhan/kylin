@@ -27,11 +27,12 @@ package io.kyligence.kap.rest.request;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.job.dao.ExecutablePO;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
-import org.apache.kylin.job.dao.ExecutablePO;
 
 @Data
 public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
@@ -64,4 +65,8 @@ public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("yarn_queue")
     private String yarnQueue;
+
+    @JsonProperty("tag")
+    private Object tag;
+
 }

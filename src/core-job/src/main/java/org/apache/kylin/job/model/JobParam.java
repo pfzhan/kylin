@@ -79,6 +79,8 @@ public class JobParam {
 
     private String yarnQueue;
 
+    private Object tag;
+
     /**
      * Some additional params in different jobTypes
      */
@@ -172,6 +174,11 @@ public class JobParam {
 
     public JobParam withYarnQueue(String yarnQueue) {
         this.yarnQueue = yarnQueue;
+        return this;
+    }
+
+    public JobParam withTag(Object tag) {
+        this.tag = tag;
         return this;
     }
 

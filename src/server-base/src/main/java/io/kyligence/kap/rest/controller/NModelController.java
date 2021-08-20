@@ -443,7 +443,7 @@ public class NModelController extends NBasicController {
         modelService.validateCCType(modelId, request.getProject());
 
         val response = modelService.buildIndicesManually(modelId, request.getProject(), request.getPriority(),
-                request.getYarnQueue());
+                request.getYarnQueue(), request.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -881,11 +881,10 @@ public class NModelController extends NBasicController {
             }
             jobInfos = modelService.refreshSegmentById(
                     new RefreshSegmentParams(request.getProject(), modelId, segIds, request.isRefreshAllIndexes())
-                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables()) //
-                            .withPriority(request.getPriority()) //
-                            .withPartialBuild(request.isPartialBuild()) //
-                            .withBatchIndexIds(request.getBatchIndexIds())
-                            .withYarnQueue(request.getYarnQueue()));
+                            .withIgnoredSnapshotTables(request.getIgnoredSnapshotTables())
+                            .withPriority(request.getPriority()).withPartialBuild(request.isPartialBuild())
+                            .withBatchIndexIds(request.getBatchIndexIds()).withYarnQueue(request.getYarnQueue())
+                            .withTag(request.getTag()));
         } else {
             if (ArrayUtils.isEmpty(segIds) || segIds.length < 2) {
                 throw new KylinException(FAILED_MERGE_SEGMENT,
@@ -893,7 +892,7 @@ public class NModelController extends NBasicController {
             }
             val jobInfo = modelService.mergeSegmentsManually(
                     new MergeSegmentParams(request.getProject(), modelId, segIds).withPriority(request.getPriority())
-                            .withYarnQueue(request.getYarnQueue()));
+                            .withYarnQueue(request.getYarnQueue()).withTag(request.getTag()));
             if (jobInfo != null) {
                 jobInfos.add(jobInfo);
             }
@@ -931,9 +930,9 @@ public class NModelController extends NBasicController {
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.isBuildAllIndexes(), buildSegmentsRequest.getIgnoredSnapshotTables(),
                 buildSegmentsRequest.getSubPartitionValues(), buildSegmentsRequest.getPriority(),
-                buildSegmentsRequest.isBuildAllSubPartitions(), //
-                buildSegmentsRequest.getBatchIndexIds(), //
-                buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue());
+                buildSegmentsRequest.isBuildAllSubPartitions(), buildSegmentsRequest.getBatchIndexIds(),
+                buildSegmentsRequest.isPartialBuild(), buildSegmentsRequest.getYarnQueue(),
+                buildSegmentsRequest.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -955,7 +954,7 @@ public class NModelController extends NBasicController {
                         .withIgnoredSnapshotTables(buildSegmentsRequest.getIgnoredSnapshotTables())
                         .withPriority(buildSegmentsRequest.getPriority())
                         .withBuildAllSubPartitions(buildSegmentsRequest.isBuildAllSubPartitions())
-                        .withYarnQueue(buildSegmentsRequest.getYarnQueue());
+                        .withYarnQueue(buildSegmentsRequest.getYarnQueue()).withTag(buildSegmentsRequest.getTag());
 
         JobInfoResponse response = fusionModelService.incrementBuildSegmentsManually(incrParams);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
@@ -1045,7 +1044,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
         val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
                 param.getSubPartitionValues(), param.isParallelBuildBySegment(), param.isBuildAllSubPartitions(),
-                param.getPriority(), param.getYarnQueue());
+                param.getPriority(), param.getYarnQueue(), param.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 

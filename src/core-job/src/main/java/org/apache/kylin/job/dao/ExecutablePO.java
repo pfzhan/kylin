@@ -119,6 +119,9 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("priority")
     private int priority = DEFAULT_PRIORITY;
 
+    @JsonProperty("tag")
+    private Object tag;
+
     public void setPriority(int p) {
         priority = isPriorityValid(p) ? p : DEFAULT_PRIORITY;
     }

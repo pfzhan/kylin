@@ -69,4 +69,9 @@ public class FullBuildSegmentParams extends BasicSegmentParams {
         this.yarnQueue = yarnQueue;
         return this;
     }
+
+    public FullBuildSegmentParams withTag(Object tag) {
+        this.tag = tag;
+        return this;
+    }
 }

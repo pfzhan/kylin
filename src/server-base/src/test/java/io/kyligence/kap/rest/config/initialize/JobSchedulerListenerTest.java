@@ -62,7 +62,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
     static JobSyncListener.JobInfo modelInfo = new JobSyncListener.JobInfo(
             "f26641d7-2094-473b-972a-4e1cebe55091", "test_project", "9f85e8a0-3971-4012-b0e7-70763c471a01",
             Sets.newHashSet("061e2862-7a41-4516-977b-28045fcc57fe"), Sets.newHashSet(1L), 1000L, "SUCCEED",
-            "INDEX_BUILD", new ArrayList<>(), new ArrayList<>(), 1626135824000L, 1626144908000L);
+            "INDEX_BUILD", new ArrayList<>(), new ArrayList<>(), 1626135824000L, 1626144908000L, null);
     static boolean assertMeet = false;
 
     @Before
@@ -162,7 +162,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         long startTime = 1626135824000L;
         long endTime = 1626144908000L;
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, Collections.emptySet(), waitTime, "", "", true, startTime, endTime);
+                segIds, layoutIds, Collections.emptySet(), waitTime, "", "", true, startTime, endTime, null);
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
         Assert.assertEquals(jobId, jobInfo.getJobId());
         Assert.assertEquals(project, jobInfo.getProject());
@@ -199,7 +199,7 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
         long startTime = 1626135824000L;
         long endTime = 1626144908000L;
         JobFinishedNotifier notifier = new JobFinishedNotifier(jobId, project, subject, duration, jobState, jobType,
-                segIds, layoutIds, partitionIds, 0L, null, "", true, startTime, endTime);
+                segIds, layoutIds, partitionIds, 0L, null, "", true, startTime, endTime, null);
         JobSyncListener.JobInfo jobInfo = JobSyncListener.extractJobInfo(notifier);
         Assert.assertTrue(jobInfo.getSegmentIds().containsAll(segIds));
         Assert.assertEquals(segIds.size(), jobInfo.getSegmentIds().size());

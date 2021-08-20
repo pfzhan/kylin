@@ -189,7 +189,8 @@ public class JobSyncListener {
         }
         return new JobInfo(notifier.getJobId(), notifier.getProject(), notifier.getSubject(), notifier.getSegmentIds(),
                 notifier.getLayoutIds(), notifier.getDuration(), notifier.getJobState(), notifier.getJobType(),
-                segRangeList, segmentPartitionsInfoList, notifier.getStartTime(), notifier.getEndTime());
+                segRangeList, segmentPartitionsInfoList, notifier.getStartTime(), notifier.getEndTime(),
+                notifier.getTag());
     }
 
     @Getter
@@ -232,9 +233,12 @@ public class JobSyncListener {
         @JsonProperty("end_time")
         private long endTime;
 
+        @JsonProperty("tag")
+        private Object tag;
+
         public JobInfo(String jobId, String project, String subject, Set<String> segmentIds, Set<Long> layoutIds,
                 long duration, String jobState, String jobType, List<SegRange> segRanges,
-                List<SegmentPartitionsInfo> segmentPartitionInfoList, long startTime, long endTime) {
+                List<SegmentPartitionsInfo> segmentPartitionInfoList, long startTime, long endTime, Object tag) {
             this.jobId = jobId;
             this.project = project;
             this.modelId = subject;
@@ -251,6 +255,7 @@ public class JobSyncListener {
             this.segmentPartitionInfoList = segmentPartitionInfoList;
             this.startTime = startTime;
             this.endTime = endTime;
+            this.tag = tag;
         }
 
     }

@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.DataResult;
@@ -64,6 +63,7 @@ import io.kyligence.kap.rest.response.SnapshotCheckResponse;
 import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.SnapshotService;
 import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
 import io.swagger.annotations.ApiOperation;
@@ -139,7 +139,7 @@ public class NSnapshotController extends NBasicController {
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), false,
-                snapshotsRequest.getPriority(), snapshotsRequest.getYarnQueue());
+                snapshotsRequest.getPriority(), snapshotsRequest.getYarnQueue(), snapshotsRequest.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -155,9 +155,8 @@ public class NSnapshotController extends NBasicController {
         }
         JobInfoResponse response = snapshotService.buildSnapshots(snapshotsRequest.getProject(),
                 snapshotsRequest.getDatabases(), snapshotsRequest.getTables(), snapshotsRequest.getOptions(), true,
-                snapshotsRequest.getPriority(), snapshotsRequest.getYarnQueue());
+                snapshotsRequest.getPriority(), snapshotsRequest.getYarnQueue(), snapshotsRequest.getTag());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
-
     }
 
     @ApiOperation(value = "checkBeforeDelete", tags = { "AI" }, notes = "check before delete snapshots")

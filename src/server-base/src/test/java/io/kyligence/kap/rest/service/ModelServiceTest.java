@@ -4337,7 +4337,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "Can’t manually build indexes in model \"all_fixed_length\" under the current project settings.");
-        modelService.buildIndicesManually(modelId, project, 3, null);
+        modelService.buildIndicesManually(modelId, project, 3, null, null);
     }
 
     @Test
@@ -4357,7 +4357,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 0, null);
+        val response = modelService.buildIndicesManually(modelId, project, 0, null, null);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(1, executables.size());
@@ -4373,7 +4373,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 3, null);
+        val response = modelService.buildIndicesManually(modelId, project, 3, null, null);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_LAYOUT, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(0, executables.size());
@@ -4391,7 +4391,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         modelManager.updateDataModel(modelId,
                 copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
-        val response = modelService.buildIndicesManually(modelId, project, 3, null);
+        val response = modelService.buildIndicesManually(modelId, project, 3, null, null);
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NO_SEGMENT, response.getType());
         val executables = getRunningExecutables(project, modelId);
         Assert.assertEquals(0, executables.size());
@@ -5730,7 +5730,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val multiPartition1 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         Assert.assertEquals(3, multiPartition1.getPartitions().size());
         modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false, 0,
-                null);
+                null, null);
         val multiPartition2 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         // add two new partitions
         Assert.assertEquals(5, multiPartition2.getPartitions().size());
@@ -5739,14 +5739,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val segmentId2 = "0db919f3-1359-496c-aab5-b6f3951adc0e";
         modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false, 0,
-                null);
+                null, null);
         val jobs2 = getRunningExecutables(getProject(), modelId);
         Assert.assertEquals(4, jobs2.size());
 
         val segmentId3 = "d2edf0c5-5eb2-4968-9ad5-09efbf659324";
         try {
             modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true, false,
-                    0, null);
+                    0, null, null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5765,7 +5765,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             buildPartitions2.add(new String[] { "MOROCCO" });
             buildPartitions2.add(new String[] { "INDONESIA" });
             modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true, false,
-                    0, null);
+                    0, null, null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5775,7 +5775,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(4, getRunningExecutables(getProject(), modelId).size());
         }
 
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, null, false, true, 0, null);
+        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, null, false, true, 0, null, null);
         val jobs4 = getRunningExecutables(getProject(), modelId);
         Assert.assertEquals(3, jobs4.get(0).getTargetPartitions().size());
     }
@@ -5793,18 +5793,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // refresh partition by id
         PartitionsRefreshRequest param1 = new PartitionsRefreshRequest(getProject(), segmentId1,
-                Sets.newHashSet(7L, 8L), null, null, 0, null);
+                Sets.newHashSet(7L, 8L), null, null, 0, null, null);
         modelService.refreshSegmentPartition(param1, modelId);
 
         // refresh partition by value
         val partitionValues = Lists.<String[]> newArrayList(new String[] { "usa" }, new String[] { "un" });
         PartitionsRefreshRequest param2 = new PartitionsRefreshRequest(getProject(), segmentId2, null, partitionValues,
-                null, 0, null);
+                null, 0, null, null);
         modelService.refreshSegmentPartition(param2, modelId);
 
         // no target partition id in segment
         PartitionsRefreshRequest param3 = new PartitionsRefreshRequest(getProject(), segmentId1, Sets.newHashSet(99L),
-                null, null, 0, null);
+                null, null, 0, null, null);
         try {
             modelService.refreshSegmentPartition(param3, modelId);
             Assert.fail();
@@ -5817,7 +5817,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // no target partition value in segment
         partitionValues.add(new String[] { "nodata" });
         PartitionsRefreshRequest param4 = new PartitionsRefreshRequest(getProject(), segmentId1, null, partitionValues,
-                null, 0, null);
+                null, 0, null, null);
         try {
             modelService.refreshSegmentPartition(param4, modelId);
             Assert.fail();
@@ -5829,7 +5829,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // no target partition value or partition id
         PartitionsRefreshRequest param5 = new PartitionsRefreshRequest(getProject(), segmentId1, null, null, null, 0,
-                null);
+                null, null);
         try {
             modelService.refreshSegmentPartition(param5, modelId);
             Assert.fail();

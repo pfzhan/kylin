@@ -83,6 +83,7 @@ public abstract class AbstractJobHandler {
         }
         job.setSparkYarnQueueIfEnabled(jobParam.getProject(), jobParam.getYarnQueue());
         job.setPriority(jobParam.getPriority());
+        job.setTag(jobParam.getTag());
         log.info("Job {} creates job {}", jobParam, job);
         String project = jobParam.getProject();
         val po = NExecutableManager.toPO(job, project);

@@ -1289,7 +1289,8 @@ public class TableService extends BasicService {
 
     public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
             int maxRows, boolean needBuild) {
-        return reloadTable(projectName, tableIdentity, needSample, maxRows, needBuild, ExecutablePO.DEFAULT_PRIORITY, null);
+        return reloadTable(projectName, tableIdentity, needSample, maxRows, needBuild, ExecutablePO.DEFAULT_PRIORITY,
+                null);
     }
 
     public Pair<String, List<String>> reloadTable(String projectName, String tableIdentity, boolean needSample,
@@ -1301,7 +1302,7 @@ public class TableService extends BasicService {
             pair.setSecond(buildingJobs);
             if (needSample && maxRows > 0) {
                 List<String> jobIds = tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName,
-                        maxRows, priority, yarnQueue);
+                        maxRows, priority, yarnQueue, null);
                 if (CollectionUtils.isNotEmpty(jobIds)) {
                     pair.setFirst(jobIds.get(0));
                 }

@@ -27,12 +27,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -114,6 +114,12 @@ public class IncrementBuildSegmentParams extends FullBuildSegmentParams implemen
     @Override
     public IncrementBuildSegmentParams withYarnQueue(String yarnQueue) {
         this.yarnQueue = yarnQueue;
+        return this;
+    }
+
+    @Override
+    public IncrementBuildSegmentParams withTag(Object tag) {
+        this.tag = tag;
         return this;
     }
 

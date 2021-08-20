@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
@@ -101,7 +99,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setTables(needBuildSnapshotTables);
 
         Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables,
-                Maps.newHashMap(), false, 3, null);
+                Maps.newHashMap(), false, 3, null, null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
@@ -117,7 +115,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
         Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables,
-                Maps.newHashMap(), false, 3, null);
+                Maps.newHashMap(), false, 3, null, null);
         final MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
@@ -138,7 +136,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setTables(needBuildSnapshotTables);
 
         Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables,
-                Maps.newHashMap(), false, 3, null);
+                Maps.newHashMap(), false, 3, null, null);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
@@ -154,7 +152,7 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setTables(needBuildSnapshotTables);
         Mockito.doAnswer(x -> null).when(snapshotService).buildSnapshots(project, needBuildSnapshotTables,
-                Maps.newHashMap(), false, 3, null);
+                Maps.newHashMap(), false, 3, null, null);
         final MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.put("/api/snapshots").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
