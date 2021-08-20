@@ -141,7 +141,7 @@ public class NAsyncQueryController extends NBasicController {
                 queryIdRef.set(queryId);
                 try {
                     asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
-                    SQLResponse response = queryService.doQueryWithCache(sqlRequest);
+                    SQLResponse response = queryService.queryWithCache(sqlRequest);
                     if (response.isException()) {
                         AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
                                 response.getExceptionMessage());

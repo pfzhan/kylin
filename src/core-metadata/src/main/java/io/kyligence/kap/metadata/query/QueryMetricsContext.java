@@ -110,8 +110,12 @@ public class QueryMetricsContext extends QueryMetrics {
         if (QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
             QueryContext.currentTrace().endLastSpan();
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
+            this.queryDuration = System.currentTimeMillis() - queryTime;
+        } else if (QueryContext.current().getQueryTagInfo().isStorageCacheUsed()) {
+            this.queryDuration = 0;
+        } else {
+            this.queryDuration = QueryContext.currentMetrics().duration();
         }
-        this.queryDuration = System.currentTimeMillis() - queryTime;
         this.totalScanBytes = context.getMetrics().getTotalScanBytes();
         this.totalScanCount = context.getMetrics().getTotalScanRows();
         this.isPushdown = context.getQueryTagInfo().isPushdown();

@@ -137,6 +137,7 @@ public class QueryContext implements Closeable {
         // use QueryContext.current() instead
         queryId = UUID.randomUUID().toString();
         recordMillis = System.currentTimeMillis();
+        metrics.queryStartTime = recordMillis;
     }
 
     public static QueryContext current() {
@@ -210,6 +211,10 @@ public class QueryContext implements Closeable {
     @Setter
     private Metrics metrics = new Metrics();
 
+    public static Metrics currentMetrics() {
+        return current().metrics;
+    }
+
     @Getter
     @Setter
     public class Metrics {
@@ -222,6 +227,7 @@ public class QueryContext implements Closeable {
         private int segCount;
         public int fileCount;
         private long queryStartTime;
+        private long queryEndTime;
         private String server;
         private long resultRowCount;
 
@@ -260,6 +266,13 @@ public class QueryContext implements Closeable {
 
         public long getTotalScanRows() {
             return calValueWithDefault(scanRows);
+        }
+
+        public long duration() {
+            if (queryStartTime == 0) {
+                return 0;
+            }
+            return queryEndTime == 0 ? System.currentTimeMillis() - queryStartTime : queryEndTime - queryStartTime;
         }
     }
 

@@ -54,6 +54,7 @@ public class KEFilter extends OncePerRequestFilter {
         ErrorCode.setMsg(lang);
 
         if (request != null && "/kylin/api/query".equals(request.getRequestURI())) {
+            QueryContext.reset(); // reset it anyway
             QueryContext.current(); // init query context to set the timer
             QueryContext.currentTrace().startSpan(QueryTrace.HTTP_RECEPTION);
         }

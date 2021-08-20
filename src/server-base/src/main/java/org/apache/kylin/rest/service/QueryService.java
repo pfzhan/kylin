@@ -80,7 +80,6 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
@@ -114,7 +113,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryLimiter;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.query.util.TempStatementUtil;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -126,6 +124,7 @@ import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.kylin.rest.util.QueryRequestLimits;
+import org.apache.kylin.rest.util.QueryUtils;
 import org.apache.kylin.rest.util.SparderUIUtil;
 import org.apache.kylin.rest.util.TableauInterceptor;
 import org.slf4j.Logger;
@@ -160,7 +159,6 @@ import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import io.kyligence.kap.metadata.query.StructField;
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.QueryRoutingEngine;
 import io.kyligence.kap.query.engine.SchemaMetaData;
@@ -222,7 +220,7 @@ public class QueryService extends BasicService {
             QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(sqlRequest.getProject()),
                     sqlRequest.getSql(), sqlRequest.getProject(), sqlRequest.getLimit(), sqlRequest.getOffset(), true,
                     sqlRequest.getExecuteAs(), sqlRequest.isForcedToPushDown(), sqlRequest.isForcedToIndex(),
-                    isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),
+                    QueryUtils.isPrepareStatementWithParams(sqlRequest), sqlRequest.isPartialMatchIndex(),
                     sqlRequest.isAcceptPartial(), true);
             if (queryParams.isPrepareStatementWithParams()) {
                 queryParams.setPrepareSql(PrepareSQLUtils.fillInParams(queryParams.getSql(),
@@ -406,13 +404,11 @@ public class QueryService extends BasicService {
         return log;
     }
 
-    public SQLResponse doQueryWithCache(SQLRequest sqlRequest) {
-        sqlRequest.setQueryStartTime(System.currentTimeMillis());
+    public SQLResponse queryWithCache(SQLRequest sqlRequest) {
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         checkIfExecuteUserValid(sqlRequest);
         final QueryContext queryContext = QueryContext.current();
         queryContext.setProject(sqlRequest.getProject());
-        queryContext.getMetrics().setQueryStartTime(sqlRequest.getQueryStartTime());
         queryContext.setLimit(sqlRequest.getLimit());
         queryContext.setOffset(sqlRequest.getOffset());
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
@@ -426,7 +422,7 @@ public class QueryService extends BasicService {
             else
                 sqlRequest.setUsername(getUsername());
             QueryLimiter.tryAcquire();
-            SQLResponse response = queryWithCache(sqlRequest);
+            SQLResponse response = doQueryWithCache(sqlRequest);
             response.setTraces(QueryContext.currentTrace().spans().stream()
                     .map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration()))
                     .collect(Collectors.toList()));
@@ -484,7 +480,7 @@ public class QueryService extends BasicService {
         }
     }
 
-    public SQLResponse queryWithCache(SQLRequest sqlRequest) {
+    public SQLResponse doQueryWithCache(SQLRequest sqlRequest) {
         checkSqlRequest(sqlRequest);
 
         if (sqlRequest.getBackdoorToggles() != null)
@@ -495,104 +491,46 @@ public class QueryService extends BasicService {
 
         SQLResponse sqlResponse = null;
         try {
-            long startTime = System.currentTimeMillis();
             QueryContext.currentTrace().startSpan(GET_ACL_INFO);
             queryContext.setAclInfo(getExecuteAclInfo(sqlRequest.getProject(), sqlRequest.getExecuteAs()));
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_TRANSFORMATION);
             queryContext.getMetrics().setServer(clusterManager.getLocalServer());
 
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
 
-            String userSQL = sqlRequest.getSql();
-            queryContext.setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
-            String sql = QueryUtil.removeCommentInSql(userSQL);
-            queryContext.setUserSQL(userSQL);
+            // remove comment
+            removeComment(sqlRequest, queryContext);
 
-            Pair<Boolean, String> result = TempStatementUtil.handleTempStatement(sql, kylinConfig);
-            boolean isCreateTempStatement = result.getFirst();
-            sql = result.getSecond();
-            sqlRequest.setSql(sql);
+            // convert CREATE ... to WITH ...
+            sqlResponse = QueryUtils.handleTempStatement(sqlRequest, kylinConfig);
 
-            if (isCreateTempStatement) {
-                sqlResponse = new SQLResponse(null, null, 0, false, null);
-            }
-
-            if (sqlResponse == null && isQueryCacheEnabled
-                    && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
-                logger.info("[query cache log] try to search query cache");
-                sqlResponse = queryCacheManager.searchQuery(sqlRequest);
-                if (sqlResponse != null) {
-                    collectToQueryContext(queryContext, sqlResponse);
-                }
-            }
+            // search cache
+            sqlResponse = searchCache(sqlRequest, sqlResponse, kylinConfig);
 
             // real execution if required
             if (sqlResponse == null) {
-                try (QueryRequestLimits limit = new QueryRequestLimits(sqlRequest.getProject())) {
-                    sqlResponse = queryAndUpdateCache(sqlRequest, startTime, isQueryCacheEnabled);
+                try (QueryRequestLimits ignored = new QueryRequestLimits(sqlRequest.getProject())) {
+                    sqlResponse = queryAndUpdateCache(sqlRequest, kylinConfig);
+
+                    QueryUtils.fillInPrepareStatParams(sqlRequest, sqlResponse.isQueryPushDown());
                 }
-            } else {
-                QueryContext.currentTrace().clear();
-                QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
-                QueryContext.currentTrace().endLastSpan();
             }
-            sqlResponse.setServer(clusterManager.getLocalServer());
-            sqlResponse.setQueryId(QueryContext.current().getQueryId());
+
+            QueryUtils.updateQueryContextSQLMetrics();
             QueryContext.currentTrace().endLastSpan();
             QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
-            if (isPrepareStatementWithParams(sqlRequest)
-                    && !(KapConfig.getInstanceFromEnv().enableReplaceDynamicParams()
-                            || sqlResponse.isQueryPushDown())) {
-                PrepareSqlStateParam[] params = ((PrepareSqlRequest) sqlRequest).getParams();
-                String filledSql = queryContext.getMetrics().getCorrectedSql();
-                try {
-                    filledSql = PrepareSQLUtils.fillInParams(filledSql, params);
-                } catch (IllegalStateException e) {
-                    logger.error(e.getMessage(), e);
-                }
-                queryContext.getMetrics().setCorrectedSql(filledSql);
+            QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
+
+            sqlResponse.setServer(clusterManager.getLocalServer());
+            sqlResponse.setQueryId(QueryContext.current().getQueryId());
+            if (sqlResponse.isStorageCacheUsed()) {
+                sqlResponse.setDuration(0);
+            } else {
+                sqlResponse.setDuration(QueryContext.currentMetrics().duration());
             }
-            sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             logQuery(sqlRequest, sqlResponse);
 
-            if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())
-                    && queryContext.getQueryTagInfo().isStorageCacheUsed()) {
-                String defaultSchema = "DEFAULT";
-                try {
-                    defaultSchema = new QueryExec(queryContext.getProject(), KylinConfig.getInstanceFromEnv())
-                            .getSchema();
-                } catch (Exception e) {
-                    logger.warn("Failed to get connection, project: {}", queryContext.getProject(), e);
-                }
-                QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(queryContext.getProject()),
-                        queryContext.getUserSQL(), queryContext.getProject(), queryContext.getLimit(),
-                        queryContext.getOffset(), defaultSchema, false);
-                queryParams.setAclInfo(queryContext.getAclInfo());
-                queryContext.getMetrics().setCorrectedSql(QueryUtil.massageSql(queryParams));
-            }
-            if (StringUtils.isEmpty(queryContext.getMetrics().getCorrectedSql())) {
-                queryContext.getMetrics().setCorrectedSql(queryContext.getUserSQL());
-            }
-            queryContext.getMetrics()
-                    .setSqlPattern(queryContext.getMetrics().getCorrectedSql());
-
-            KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(sqlRequest.getProject()).getConfig();
-
-            if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
-                    && projectKylinConfig.isUniqueAsyncQueryYarnQueue())) {
-                try {
-                    if (!sqlResponse.isPrepare() && QueryMetricsContext.isStarted()) {
-                        val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
-                        QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
-                        queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
-                        EventBusFactory.getInstance().postAsync(queryMetricsContext);
-                    }
-                } catch (Throwable th) {
-                    logger.warn("Write metric error.", th);
-                }
-            }
+            addToQueryHistory(sqlResponse, sqlRequest);
 
             //check query result row count
             NCircuitBreaker.verifyQueryResultRowCount(sqlResponse.getResultRowCount());
@@ -616,7 +554,48 @@ public class QueryService extends BasicService {
         }
     }
 
-    private void collectToQueryContext(QueryContext queryContext, SQLResponse sqlResponse) {
+    private void removeComment(SQLRequest sqlRequest, QueryContext queryContext) {
+        String userSQL = sqlRequest.getSql();
+        queryContext.setModelPriorities(QueryModelPriorities.getModelPrioritiesFromComment(userSQL));
+        queryContext.setUserSQL(userSQL);
+        sqlRequest.setSql(QueryUtil.removeCommentInSql(userSQL));
+    }
+
+    private SQLResponse searchCache(SQLRequest sqlRequest, SQLResponse sqlResponse, KylinConfig kylinConfig) {
+        if (sqlResponse == null && isQueryCacheEnabled(kylinConfig)
+                && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
+            logger.info("[query cache log] try to search query cache");
+            sqlResponse = queryCacheManager.searchQuery(sqlRequest);
+            if (sqlResponse != null) {
+                collectToQueryContext(sqlResponse);
+                QueryContext.currentTrace().clear();
+                QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
+                QueryContext.currentTrace().endLastSpan();
+            }
+        }
+        return sqlResponse;
+    }
+
+    private void addToQueryHistory(SQLResponse sqlResponse, SQLRequest sqlRequest) {
+        KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(sqlRequest.getProject()).getConfig();
+        if (!(QueryContext.current().getQueryTagInfo().isAsyncQuery()
+                && projectKylinConfig.isUniqueAsyncQueryYarnQueue())) {
+            try {
+                if (!sqlResponse.isPrepare() && QueryMetricsContext.isStarted()) {
+                    val queryMetricsContext = QueryMetricsContext.collect(QueryContext.current());
+                    QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
+                    queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
+                    EventBusFactory.getInstance().postAsync(queryMetricsContext);
+                }
+            } catch (Throwable th) {
+                logger.warn("Write metric error.", th);
+            }
+        }
+    }
+
+    private void collectToQueryContext(SQLResponse sqlResponse) {
+        QueryContext queryContext = QueryContext.current();
         if (sqlResponse.getEngineType() != null) {
             queryContext.setEngineType(sqlResponse.getEngineType());
         }
@@ -640,7 +619,8 @@ public class QueryService extends BasicService {
     }
 
     @VisibleForTesting
-    protected SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, long startTime, boolean queryCacheEnabled) {
+    protected SQLResponse queryAndUpdateCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {
+        boolean queryCacheEnabled = isQueryCacheEnabled(kylinConfig);
         SQLResponse sqlResponse;
         try {
             final boolean isSelect = QueryUtil.isSelectStatement(sqlRequest.getSql());
@@ -649,8 +629,9 @@ public class QueryService extends BasicService {
             } else {
                 throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getNOT_SUPPORTED_SQL());
             }
-            sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
+                // set duration for caching condition checking
+                sqlResponse.setDuration(QueryContext.currentMetrics().duration());
                 queryCacheManager.cacheSuccessQuery(sqlRequest, sqlResponse);
             }
         } catch (Throwable e) { // calcite may throw AssertError
@@ -1035,13 +1016,6 @@ public class QueryService extends BasicService {
 
     protected String makeErrorMsgUserFriendly(Throwable e) {
         return QueryUtil.makeErrorMsgUserFriendly(e);
-    }
-
-    private boolean isPrepareStatementWithParams(SQLRequest sqlRequest) {
-        if (sqlRequest instanceof PrepareSqlRequest && ((PrepareSqlRequest) sqlRequest).getParams() != null
-                && ((PrepareSqlRequest) sqlRequest).getParams().length > 0)
-            return true;
-        return false;
     }
 
     private SQLResponse buildSqlResponse(boolean isPushDown, Iterable<List<String>> results, int resultSize,

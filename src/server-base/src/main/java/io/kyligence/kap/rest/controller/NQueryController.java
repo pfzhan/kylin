@@ -145,7 +145,7 @@ public class NQueryController extends NBasicController {
         checkProjectName(sqlRequest.getProject());
         sqlRequest.setUserAgent(userAgent != null ? userAgent : "");
         QueryContext.current().record("end_http_proc");
-        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
+        SQLResponse sqlResponse = queryService.queryWithCache(sqlRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponse, "");
     }
 
@@ -171,7 +171,7 @@ public class NQueryController extends NBasicController {
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.queryWithCache(sqlRequest), "");
     }
 
     @ApiOperation(value = "savedQueries", tags = { "QE" })
@@ -402,7 +402,7 @@ public class NQueryController extends NBasicController {
             throw new ForbiddenException(msg.getEXPORT_RESULT_NOT_ALLOWED());
         }
 
-        SQLResponse result = queryService.doQueryWithCache(sqlRequest);
+        SQLResponse result = queryService.queryWithCache(sqlRequest);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault(Locale.Category.FORMAT));
         String nowStr = sdf.format(new Date());

@@ -63,7 +63,7 @@ public class NQueryControllerV2 extends NBasicController {
     public SQLResponse query4JDBC(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         String projectName = checkProjectName(sqlRequest.getProject());
         sqlRequest.setProject(projectName);
-        return queryService.doQueryWithCache(sqlRequest);
+        return queryService.queryWithCache(sqlRequest);
     }
 
 
@@ -73,7 +73,7 @@ public class NQueryControllerV2 extends NBasicController {
     public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         String projectName = checkProjectName(sqlRequest.getProject());
         sqlRequest.setProject(projectName);
-        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
+        SQLResponse sqlResponse = queryService.queryWithCache(sqlRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, sqlResponse, "");
     }
 
@@ -89,6 +89,6 @@ public class NQueryControllerV2 extends NBasicController {
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.queryWithCache(sqlRequest), "");
     }
 }
