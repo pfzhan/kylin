@@ -730,17 +730,16 @@ public class JobService extends BasicService {
     private void stopBatchJobByModel(String project, String modelId) {
 
         NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
-
-        if (!model.isFusionModel()) {
-            logger.warn("model is not fusion model, {}", modelId);
+        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
+        if (!model.isFusionModel() || Objects.isNull(fusionModel)) {
+            logger.warn("model is not fusion model or fusion model is null, {}", modelId);
             return;
         }
 
         NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
-        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
         executableManager.getJobs().stream().map(executableManager::getJob).filter(
                 job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
                 .forEach(job -> {
