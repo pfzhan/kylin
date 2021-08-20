@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.streaming.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Logger;
 import org.apache.kylin.common.util.ShellException;
@@ -31,12 +34,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class JobKillerTest extends StreamingTestCase {
     private static String PROJECT = "streaming_test";
@@ -161,6 +162,28 @@ public class JobKillerTest extends StreamingTestCase {
         val id = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
         val mgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
         val streamingJobMeta = mgr.getStreamingJobByUuid(id);
+        JobKiller.killProcess(streamingJobMeta);
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", false);
+    }
+
+    @Test
+    public void testKillYarnProcess1() {
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", true);
+        val id = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        val mgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
+        val streamingJobMeta = mgr.getStreamingJobByUuid(id);
+        streamingJobMeta.setNodeInfo("127.0.0.1:7070");
+        JobKiller.killProcess(streamingJobMeta);
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", false);
+    }
+
+    @Test
+    public void testKillYarnProcess2() {
+        ReflectionUtils.setField(JobKiller.class, "isYarnEnv", true);
+        val id = "e78a89dd-847f-4574-8afa-8768b4228b72_merge";
+        val mgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
+        val streamingJobMeta = mgr.getStreamingJobByUuid(id);
+        streamingJobMeta.setNodeInfo(AddressUtil.getLocalInstance());
         JobKiller.killProcess(streamingJobMeta);
         ReflectionUtils.setField(JobKiller.class, "isYarnEnv", false);
     }

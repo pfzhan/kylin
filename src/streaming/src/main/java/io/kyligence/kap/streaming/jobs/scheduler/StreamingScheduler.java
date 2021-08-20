@@ -64,7 +64,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
@@ -100,7 +99,6 @@ public class StreamingScheduler {
             JobStatusEnum.NEW);
 
     private static StreamingJobStatusWatcher jobStatusUpdater = new StreamingJobStatusWatcher();
-    private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
 
     public StreamingScheduler(String project) {
         Preconditions.checkNotNull(project);
@@ -133,9 +131,6 @@ public class StreamingScheduler {
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
-        if (!config.isUTEnv()) {
-            epochId = EpochManager.getInstance(config).getEpochId(project);
-        }
         int maxPoolSize = config.getMaxStreamingConcurrentJobLimit();
         ThreadFactory executorThreadFactory = new BasicThreadFactory.Builder()
                 .namingPattern("StreamingJobWorker(project:" + project + ")").uncaughtExceptionHandler((t, e) -> {
@@ -153,10 +148,8 @@ public class StreamingScheduler {
     public synchronized void submitJob(String project, String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
-        if (checkEpochIdFailed(project)) {
-            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, jobId);
-        }
+        var jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
+
         checkJobStartStatus(jobMeta, jobId);
         int code = JobKiller.killProcess(jobMeta);
         if (code != 1) {
@@ -222,15 +215,11 @@ public class StreamingScheduler {
     }
 
     public static synchronized void shutdownByProject(String project) {
-        val instance = getInstanceByProject(project);
+        val instance = INSTANCE_MAP.get(project);
         if (instance != null) {
             INSTANCE_MAP.remove(project);
             instance.forceShutdown();
         }
-    }
-
-    public static synchronized StreamingScheduler getInstanceByProject(String project) {
-        return INSTANCE_MAP.get(project);
     }
 
     public void forceShutdown() {
@@ -243,6 +232,7 @@ public class StreamingScheduler {
                 .collect(Collectors.toList());
         jobMetaList.forEach(meta -> killJob(meta.getModelId(), meta.getJobType(), JobStatusEnum.STOPPED));
         releaseResources();
+        ExecutorServiceUtil.forceShutdown(scheduledExecutorService);
         ExecutorServiceUtil.forceShutdown(jobPool);
     }
 
@@ -407,12 +397,4 @@ public class StreamingScheduler {
         }, project);
     }
 
-    public boolean checkEpochIdFailed(String project) {
-        if (!KylinConfig.getInstanceFromEnv().isUTEnv()
-                && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
-            getInstance(project).forceShutdown();
-            return true;
-        }
-        return false;
-    }
 }

@@ -94,23 +94,7 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         }
         streamingScheduler.forceShutdown();
     }
-
-    @Test
-    public void testSubmitJobCheckEpochFail() {
-        val streamingScheduler = Mockito.spy(new StreamingScheduler(PROJECT));
-        streamingScheduler.init();
-        Assert.assertEquals(true, streamingScheduler.getInitialized().get());
-        Assert.assertEquals(true, streamingScheduler.getHasStarted().get());
-        Mockito.when(streamingScheduler.checkEpochIdFailed(PROJECT)).thenReturn(true);
-        thrown.expect(KylinException.class);
-        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
-        val testConfig = getTestConfig();
-        val mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
-        val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
-        val buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
-        Assert.assertEquals(JobStatusEnum.STOPPED, buildJobMeta.getCurrentStatus());
-    }
-
+    
     @Test
     public void testSubmitJob() {
         val streamingScheduler = new StreamingScheduler(PROJECT);
@@ -403,12 +387,6 @@ public class StreamingSchedulerTest extends StreamingTestCase {
         instance.skipJobListener(PROJECT, buildJobId, false);
         buildJobMeta = mgr.getStreamingJobByUuid(buildJobId);
         Assert.assertFalse(buildJobMeta.isSkipListener());
-    }
-
-    @Test
-    public void testGetInstanceByProject() {
-        val instance = StreamingScheduler.getInstanceByProject(PROJECT + "_not_exist");
-        Assert.assertNull(instance);
     }
 
     @Test

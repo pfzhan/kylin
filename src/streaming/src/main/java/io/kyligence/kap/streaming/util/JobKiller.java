@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.util.concurrent.UncheckedTimeoutException;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.app.StreamingEntry;
@@ -114,6 +115,18 @@ public class JobKiller {
         } else {
             val strLogger = new StringLogger();
             val exec = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
+            val config = KylinConfig.getInstanceFromEnv();
+            if (!StringUtils.isEmpty(jobMeta.getNodeInfo())) {
+                String host = jobMeta.getNodeInfo().split(":")[0];
+                if (!host.equals(AddressUtil.getLocalInstance().split(":")[0])
+                        && !host.equals(AddressUtil.getZkLocalInstance().split(":")[0])) {
+                    exec.setRunAtRemote(host, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
+                            config.getRemoteSSHPassword());
+                } else {
+                    exec.setRunAtRemote(null, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
+                            config.getRemoteSSHPassword());
+                }
+            }
             return killYarnEnvProcess(exec, jobMeta, strLogger);
         }
     }
