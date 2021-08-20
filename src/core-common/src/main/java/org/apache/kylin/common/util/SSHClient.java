@@ -231,13 +231,9 @@ public class SSHClient {
                 }
                 long modTime = getModifyTime(out, in, buf);
 
-
-                while (true) {
+                do {
                     c = checkAck(in);
-                    if (c == 'C') {
-                        break;
-                    }
-                }
+                } while (c != 'C');
 
                 long fileSize = 0L;
                 fileSize = getFilesize(out, in, buf, fileSize);
@@ -257,8 +253,7 @@ public class SSHClient {
                 try (FileOutputStream fos = new FileOutputStream(prefix == null ? remoteFile : prefix + file)) {
                     int foo;
                     while (true) {
-                        if (buf.length < fileSize) foo = buf.length;
-                        else foo = (int) fileSize;
+                        foo = buf.length < fileSize ? buf.length : (int) fileSize;
                         foo = in.read(buf, 0, foo);
                         if (foo < 0) {
                             // error
@@ -266,7 +261,9 @@ public class SSHClient {
                         }
                         fos.write(buf, 0, foo);
                         fileSize -= foo;
-                        if (fileSize == 0L) break;
+                        if (fileSize == 0L) {
+                            break;
+                        }
                     }
 
                     if (checkAck(in) != 0) {
@@ -274,7 +271,10 @@ public class SSHClient {
                     }
 
                     File tempFile = new File(prefix + file);
-                    tempFile.setLastModified(modTime * 1000);
+
+                    if (!tempFile.setLastModified(modTime * 1000)) {
+                        logger.warn("update {} modify time failed", file);
+                    }
 
                     // send '\0'
                     buf[0] = 0;
@@ -285,8 +285,6 @@ public class SSHClient {
 
             channel.disconnect();
             session.disconnect();
-        } catch (Exception e) {
-            throw e;
         } finally {
             IOUtils.closeQuietly(fis);
         }
