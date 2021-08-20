@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import com.alibaba.ttl.TtlRunnable;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
@@ -120,48 +122,45 @@ public class NAsyncQueryController extends NBasicController {
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();
         final SecurityContext context = SecurityContextHolder.getContext();
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                String format = sqlRequest.getFormat().toLowerCase(Locale.ROOT);
-                String encode = sqlRequest.getEncode().toLowerCase(Locale.ROOT);
-                SecurityContextHolder.setContext(context);
+        executorService.submit(Objects.requireNonNull(TtlRunnable.get(() -> {
+            String format = sqlRequest.getFormat().toLowerCase(Locale.ROOT);
+            String encode = sqlRequest.getEncode().toLowerCase(Locale.ROOT);
+            SecurityContextHolder.setContext(context);
 
-                SparderEnv.setSeparator(sqlRequest.getSeparator());
+            SparderEnv.setSeparator(sqlRequest.getSeparator());
 
-                QueryContext queryContext = QueryContext.current();
-                sqlRequest.setQueryId(queryContext.getQueryId());
-                queryContext.getQueryTagInfo().setAsyncQuery(true);
-                queryContext.getQueryTagInfo().setFileFormat(format);
-                queryContext.getQueryTagInfo().setFileEncode(encode);
-                queryContext.getQueryTagInfo().setFileName(sqlRequest.getFileName());
-                queryContext.setProject(sqlRequest.getProject());
-                logger.info("Start a new async query with queryId: {}", queryContext.getQueryId());
-                String queryId = queryContext.getQueryId();
-                queryIdRef.set(queryId);
-                try {
-                    asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
-                    SQLResponse response = queryService.queryWithCache(sqlRequest);
-                    if (response.isException()) {
-                        AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
-                                response.getExceptionMessage());
-                        exceptionHandle.set(response.getExceptionMessage());
-                    }
-                } catch (Exception e) {
-                    try {
-                        logger.error("failed to run query {}", queryContext.getQueryId(), e);
-                        AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
-                                e.getMessage());
-                        exceptionHandle.set(e.getMessage());
-                    } catch (Exception e1) {
-                        exceptionHandle.set(exceptionHandle.get() + "\n" + e.getMessage());
-                        throw new RuntimeException(e1);
-                    }
-                } finally {
-                    QueryContext.current().close();
+            QueryContext queryContext = QueryContext.current();
+            sqlRequest.setQueryId(queryContext.getQueryId());
+            queryContext.getQueryTagInfo().setAsyncQuery(true);
+            queryContext.getQueryTagInfo().setFileFormat(format);
+            queryContext.getQueryTagInfo().setFileEncode(encode);
+            queryContext.getQueryTagInfo().setFileName(sqlRequest.getFileName());
+            queryContext.setProject(sqlRequest.getProject());
+            logger.info("Start a new async query with queryId: {}", queryContext.getQueryId());
+            String queryId = queryContext.getQueryId();
+            queryIdRef.set(queryId);
+            try {
+                asyncQueryService.saveQueryUsername(sqlRequest.getProject(), queryId);
+                SQLResponse response = queryService.queryWithCache(sqlRequest);
+                if (response.isException()) {
+                    AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
+                            response.getExceptionMessage());
+                    exceptionHandle.set(response.getExceptionMessage());
                 }
+            } catch (Exception e) {
+                try {
+                    logger.error("failed to run query {}", queryContext.getQueryId(), e);
+                    AsyncQueryUtil.createErrorFlag(sqlRequest.getProject(), queryContext.getQueryId(),
+                            e.getMessage());
+                    exceptionHandle.set(e.getMessage());
+                } catch (Exception e1) {
+                    exceptionHandle.set(exceptionHandle.get() + "\n" + e.getMessage());
+                    throw new RuntimeException(e1);
+                }
+            } finally {
+                QueryContext.current().close();
             }
-        });
+        })));
 
         while (queryIdRef.get() == null) {
             Thread.sleep(200);
