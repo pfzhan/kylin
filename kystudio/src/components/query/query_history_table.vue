@@ -97,10 +97,10 @@
                       <span v-else>{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
                     </span>
                   </p>
-                  <p class="list" :class="{'active': props.row.hightlight_realizations}" v-if="props.row.realizations && getRealizations2(props.row.realizations).length">
+                  <p class="list" :class="{'active': props.row.hightlight_realizations}" v-if="!(props.row.engine_type === 'NATIVE'&&!(props.row.realizations && getRealizations2(props.row.realizations).length))">
                     <span class="label">{{$t('kylinLang.query.answered_by')}}</span>
                     <span class="text">
-                      <span class="realization-tags">
+                      <span class="realization-tags" v-if="props.row.realizations && getRealizations2(props.row.realizations).length">
                         <span v-for="(item, index) in getRealizations2(props.row.realizations)" :key="item.modelId">
                           <template v-if="'visible' in item && !item.visible">
                             <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
@@ -110,7 +110,7 @@
                           </template>
                         </span>
                       </span>
-                      <!-- <span v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></span> -->
+                      <span v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></span>
                     </span>
                   </p>
                   <p class="list" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
@@ -204,7 +204,7 @@
               <a v-if="checkIsShowMore(getRealizations2(props.row.realizations))" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: getRealizations2(props.row.realizations).length - checkShowCount(getRealizations2(props.row.realizations))})}}</a>
             </template>
             <template v-else>
-              <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
+              <el-tag type="warning" size="small" v-if="props.row.engine_type&&props.row.engine_type!=='NATIVE'">{{props.row.engine_type}}</el-tag>
             </template>
           </div>
         </template>
