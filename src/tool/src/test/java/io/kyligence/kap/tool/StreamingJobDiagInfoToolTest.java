@@ -90,8 +90,8 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
     public void createStreamingDriverLog(String project, String jobId) throws IOException {
 
-        File file = temporaryFolder.newFile("driver." + System.currentTimeMillis() + ".log");
-        File file2 = temporaryFolder.newFile("driver." + (System.currentTimeMillis() - 10L) + ".log");
+        File file = temporaryFolder.newFile("driver." + 1628560620000L + ".log");
+        File file2 = temporaryFolder.newFile("driver." + 1628477820000L + ".log");
 
         String jobLogDir = KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath(project, jobId);
 
