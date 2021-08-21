@@ -105,7 +105,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -221,7 +220,6 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.model.util.MultiPartitionUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.aspect.Transaction;
@@ -1579,13 +1577,13 @@ public class ModelService extends BasicService {
             return;
         }
         try {
-            ProjectInstance project = getProjectManager().getProject(dataModel.getProject());
-            if (project.getSourceType() == ISourceAware.ID_SPARK
+            ProjectInstance projectInstance = getProjectManager().getProject(dataModel.getProject());
+            if (projectInstance.getSourceType() == ISourceAware.ID_SPARK
                     && dataModel.getModelType() == NDataModel.ModelType.BATCH) {
                 SparkSession ss = SparderEnv.getSparkSession();
                 String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
                 QueryParams queryParams = new QueryParams(dataModel.getProject(), flatTableSql, "default", false);
-                queryParams.setKylinConfig(QueryUtil.getKylinConfig(dataModel.getProject()));
+                queryParams.setKylinConfig(projectInstance.getConfig());
                 queryParams.setAclInfo(
                         AclPermissionUtil.prepareQueryContextACLInfo(dataModel.getProject(), getCurrentUserGroups()));
                 String pushdownSql = QueryUtil.massagePushDownSql(queryParams);
@@ -1919,8 +1917,8 @@ public class ModelService extends BasicService {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
-
-        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(kylinConfig, project,
                 sqls.toArray(new String[0]));
         ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
@@ -1936,10 +1934,9 @@ public class ModelService extends BasicService {
         return CollectionUtils.isNotEmpty(couldAnsweredByExistedModels(project, sqls));
     }
 
-    private void checkBatchSqlSize(List<String> sqls) {
-        KylinConfig kylinConfig1 = KylinConfig.getInstanceFromEnv();
+    private void checkBatchSqlSize(KylinConfig kylinConfig, List<String> sqls) {
         val msg = MsgPicker.getMsg();
-        int limit = kylinConfig1.getSuggestModelSqlLimit();
+        int limit = kylinConfig.getSuggestModelSqlLimit();
         if (sqls.size() > limit) {
             throw new KylinException(SQL_NUMBER_EXCEEDS_LIMIT,
                     String.format(Locale.ROOT, msg.getSQL_NUMBER_EXCEEDS_LIMIT(), limit));
@@ -1952,16 +1949,13 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
         }
-        checkBatchSqlSize(sqls);
-        KylinConfig originConfig = KylinConfig.getInstanceFromEnv();
-        KylinConfigExt kylinConfigExt = NProjectManager.getInstance(originConfig).getProject(project).getConfig();
-        KylinConfig kylinConfig = KylinConfigExt.createInstance(originConfig, kylinConfigExt.getExtendedOverrides());
-        SmartConfig smartConfig = SmartConfig.wrap(kylinConfig);
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        checkBatchSqlSize(kylinConfig, sqls);
         AbstractContext proposeContext;
         String[] sqlArray = sqls.toArray(new String[0]);
         if (reuseExistedModel) {
             proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, createNewModel);
-        } else if (smartConfig.getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
+        } else if (SmartConfig.wrap(kylinConfig).getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
             proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, true);
         } else {
             proposeContext = new ModelCreateContextOfSemiV2(kylinConfig, project, sqlArray);
@@ -2249,8 +2243,8 @@ public class ModelService extends BasicService {
     public void checkModelDimensions(ModelRequest request) {
         Set<String> dimensionNames = new HashSet<>();
 
-        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv()
-                .getMaxModelDimensionMeasureNameLength();
+        KylinConfig kylinConfig = getProjectManager().getProject(request.getProject()).getConfig();
+        int maxModelDimensionMeasureNameLength = kylinConfig.getMaxModelDimensionMeasureNameLength();
 
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
             dimension.setName(StringUtils.trim(dimension.getName()));
@@ -2274,8 +2268,8 @@ public class ModelService extends BasicService {
     public void checkModelMeasures(ModelRequest request) {
         Set<String> measureNames = new HashSet<>();
         Set<SimplifiedMeasure> measures = new HashSet<>();
-        int maxModelDimensionMeasureNameLength = KylinConfig.getInstanceFromEnv()
-                .getMaxModelDimensionMeasureNameLength();
+        KylinConfig kylinConfig = getProjectManager().getProject(request.getProject()).getConfig();
+        int maxModelDimensionMeasureNameLength = kylinConfig.getMaxModelDimensionMeasureNameLength();
 
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             measure.setName(StringUtils.trim(measure.getName()));
@@ -2457,7 +2451,8 @@ public class ModelService extends BasicService {
 
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end,
             boolean needBuild, Set<String> ignoredSnapshotTables, List<String[]> multiPartitionValues, int priority,
-            boolean buildAllSubPartitions, List<Long> batchIndexIds, boolean partialBuild, String yarnQueue) throws Exception {
+            boolean buildAllSubPartitions, List<Long> batchIndexIds, boolean partialBuild, String yarnQueue)
+            throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.isMultiPartitionModel() && !CollectionUtils.isEmpty(multiPartitionValues)) {
             throw new KylinException(PARTITION_VALUE_NOT_SUPPORT, String.format(Locale.ROOT,
@@ -2466,18 +2461,19 @@ public class ModelService extends BasicService {
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
             return fullBuildSegmentsManually(new FullBuildSegmentParams(project, modelId, needBuild)
-                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority)
+                    .withIgnoredSnapshotTables(ignoredSnapshotTables) //
+                    .withPriority(priority) //
                     .withPartialBuild(partialBuild) //
-                    .withBatchIndexIds(batchIndexIds)
-                    .withYarnQueue(yarnQueue));
+                    .withBatchIndexIds(batchIndexIds).withYarnQueue(yarnQueue));
         } else {
             return incrementBuildSegmentsManually(
                     new IncrementBuildSegmentParams(project, modelId, start, end, modelDesc.getPartitionDesc(),
                             modelDesc.getMultiPartitionDesc(), Lists.newArrayList(), needBuild, multiPartitionValues)
-                                    .withIgnoredSnapshotTables(ignoredSnapshotTables).withPriority(priority)
+                                    .withIgnoredSnapshotTables(ignoredSnapshotTables) //
+                                    .withPriority(priority) //
                                     .withBuildAllSubPartitions(buildAllSubPartitions) //
                                     .withPartialBuild(partialBuild) //
-                                    .withBatchIndexIds(batchIndexIds)
+                                    .withBatchIndexIds(batchIndexIds) //
                                     .withYarnQueue(yarnQueue));
         }
     }
@@ -2516,8 +2512,9 @@ public class ModelService extends BasicService {
                 return new LinkedList<>();
             }
             JobParam jobParam = new JobParam(newSegment, modelId, getUsername())
-                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                    .withPriority(params.getPriority()).withYarnQueue(params.getYarnQueue());
+                    .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
+                    .withPriority(params.getPriority()) //
+                    .withYarnQueue(params.getYarnQueue());
             addJobParamExtParams(jobParam, params);
             return Lists
                     .newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(), getSourceUsageManager()
@@ -2534,7 +2531,7 @@ public class ModelService extends BasicService {
                 true).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
                         .withPriority(params.getPriority()) //
                         .withPartialBuild(params.isPartialBuild()) //
-                        .withBatchIndexIds(params.getBatchIndexIds())
+                        .withBatchIndexIds(params.getBatchIndexIds()) //
                         .withYarnQueue(params.getYarnQueue());
         res.addAll(refreshSegmentById(refreshSegmentParams));
         return res;
@@ -2575,8 +2572,8 @@ public class ModelService extends BasicService {
         }
         // TODO
         JobParam jobParam = new JobParam(newSegment, modelId, getUsername())
-                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables())
-                .withPriority(params.getPriority()).withYarnQueue(params.getYarnQueue());
+                .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()).withPriority(params.getPriority())
+                .withYarnQueue(params.getYarnQueue());
         addJobParamExtParams(jobParam, params);
         if (modelDescInTransaction.isMultiPartitionModel()) {
             val model = getDataModelManager(project).getDataModelDesc(modelId);
@@ -2614,7 +2611,8 @@ public class ModelService extends BasicService {
 
     public JobInfoResponseWithFailure addIndexesToSegments(String project, String modelId, List<String> segmentIds,
             List<Long> indexIds, boolean parallelBuildBySegment, int priority) {
-        return addIndexesToSegments(project, modelId, segmentIds, indexIds, parallelBuildBySegment, priority, false, null);
+        return addIndexesToSegments(project, modelId, segmentIds, indexIds, parallelBuildBySegment, priority, false,
+                null);
     }
 
     @Transaction(project = 0)
@@ -2626,7 +2624,8 @@ public class ModelService extends BasicService {
         NDataflow dataflow = dfManger.getDataflow(modelId);
         checkSegmentsExistById(modelId, project, segmentIds.toArray(new String[0]));
         if (parallelBuildBySegment) {
-            return addIndexesToSegmentsParallelly(project, modelId, segmentIds, indexIds, dataflow, priority, yarnQueue);
+            return addIndexesToSegmentsParallelly(project, modelId, segmentIds, indexIds, dataflow, priority,
+                    yarnQueue);
         } else {
             val jobManager = getJobManager(project);
             JobInfoResponseWithFailure result = new JobInfoResponseWithFailure();
@@ -2661,7 +2660,8 @@ public class ModelService extends BasicService {
                         getSourceUsageManager().licenseCheckWrap(project,
                                 () -> jobManager.addRelatedIndexJob(new JobParam(Sets.newHashSet(segmentId),
                                         indexIds == null ? null : new HashSet<>(indexIds), modelId, getUsername())
-                                        .withPriority(priority).withYarnQueue(yarnQueue))));
+                                                .withPriority(priority) //
+                                                .withYarnQueue(yarnQueue))));
                 jobs.add(jobInfo);
             } catch (JobSubmissionException e) {
                 result.addFailedSeg(dataflow, e);
@@ -2722,7 +2722,7 @@ public class ModelService extends BasicService {
                             .withPriority(params.getPriority())
                             .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
                             .withPartialBuild(params.isPartialBuild()) //
-                            .withBatchIndexIds(params.getBatchIndexIds())
+                            .withBatchIndexIds(params.getBatchIndexIds()) //
                             .withYarnQueue(params.getYarnQueue());
             return innerIncrementBuild(buildSegmentParams);
         }, project);
@@ -2763,16 +2763,17 @@ public class ModelService extends BasicService {
                             .withPriority(params.getPriority())
                             .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
                             .withPartialBuild(params.isPartialBuild()) //
-                            .withBatchIndexIds(params.getBatchIndexIds())
+                            .withBatchIndexIds(params.getBatchIndexIds()) //
                             .withYarnQueue(params.getYarnQueue())));
         }
         res.add(constructIncrementBuild(new IncrementBuildSegmentParams(params.getProject(), params.getModelId(),
                 params.getStart(), params.getEnd(), params.getPartitionColFormat(), params.isNeedBuild(),
-                params.getMultiPartitionValues()).withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
+                params.getMultiPartitionValues()) //
+                        .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
                         .withPriority(params.getPriority()) //
                         .withBuildAllSubPartitions(params.isBuildAllSubPartitions()) //
                         .withPartialBuild(params.isPartialBuild()) //
-                        .withBatchIndexIds(params.getBatchIndexIds())
+                        .withBatchIndexIds(params.getBatchIndexIds()) //
                         .withYarnQueue(params.getYarnQueue())));
         return res;
     }
@@ -3309,8 +3310,8 @@ public class ModelService extends BasicService {
                 df, new SegmentRange.TimePartitionedSegmentRange(startAndEnd.getFirst(), startAndEnd.getSecond()),
                 true);
 
-        String jobId = getSourceUsageManager().licenseCheckWrap(project, () -> jobManager
-                .mergeSegmentJob(new JobParam(mergeSeg, modelId, getUsername())
+        String jobId = getSourceUsageManager().licenseCheckWrap(project,
+                () -> jobManager.mergeSegmentJob(new JobParam(mergeSeg, modelId, getUsername())
                         .withPriority(params.getPriority()).withYarnQueue(params.getYarnQueue())));
 
         return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), jobId);
@@ -3362,7 +3363,7 @@ public class ModelService extends BasicService {
 
             JobParam jobParam = new JobParam(newSeg, params.getModelId(), getUsername())
                     .withIgnoredSnapshotTables(params.getIgnoredSnapshotTables()) //
-                    .withPriority(params.getPriority())
+                    .withPriority(params.getPriority()) //
                     .withYarnQueue(params.getYarnQueue());
             addJobParamExtParams(jobParam, params);
             String jobId = getSourceUsageManager().licenseCheckWrap(params.getProject(),
@@ -3878,7 +3879,8 @@ public class ModelService extends BasicService {
         }
 
         String jobId = getSourceUsageManager().licenseCheckWrap(project,
-                () -> getJobManager(project).addIndexJob(new JobParam(modelId, getUsername()).withPriority(priority)
+                () -> getJobManager(project).addIndexJob(new JobParam(modelId, getUsername()) //
+                        .withPriority(priority) //
                         .withYarnQueue(yarnQueue)));
 
         return new BuildIndexResponse(StringUtils.isBlank(jobId) //
@@ -4402,7 +4404,8 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public JobInfoResponse buildSegmentPartitionByValue(String project, String modelId, String segmentId,
-            List<String[]> partitionValues, boolean parallelBuild, boolean buildAllPartitions, int priority, String yarnQueue) {
+            List<String[]> partitionValues, boolean parallelBuild, boolean buildAllPartitions, int priority,
+            String yarnQueue) {
         aclEvaluate.checkProjectOperationPermission(project);
         checkModelPermission(project, modelId);
         checkSegmentsExistById(modelId, project, new String[] { segmentId });
@@ -4431,7 +4434,8 @@ public class ModelService extends BasicService {
         dfm.appendPartitions(df.getId(), segment.getId(), partitionValues);
         Set<Long> targetPartitions = getDataModelManager(project).getDataModelDesc(modelId).getMultiPartitionDesc()
                 .getPartitionIdsByValues(partitionValues);
-        return parallelBuildPartition(parallelBuild, project, modelId, segmentId, targetPartitions, priority, yarnQueue);
+        return parallelBuildPartition(parallelBuild, project, modelId, segmentId, targetPartitions, priority,
+                yarnQueue);
     }
 
     private JobInfoResponse parallelBuildPartition(boolean parallelBuild, String project, String modelId,
@@ -4484,8 +4488,8 @@ public class ModelService extends BasicService {
         }
         val jobManager = getJobManager(project);
         JobParam jobParam = new JobParam(Sets.newHashSet(segment.getId()), null, modelId, getUsername(), partitions,
-                null).withIgnoredSnapshotTables(param.getIgnoredSnapshotTables())
-                .withPriority(param.getPriority()).withYarnQueue(param.getYarnQueue());
+                null).withIgnoredSnapshotTables(param.getIgnoredSnapshotTables()).withPriority(param.getPriority())
+                        .withYarnQueue(param.getYarnQueue());
 
         val jobId = getSourceUsageManager().licenseCheckWrap(project, () -> jobManager.refreshSegmentJob(jobParam));
         return JobInfoResponse.of(Lists.newArrayList(jobId), JobTypeEnum.SUB_PARTITION_REFRESH.toString());

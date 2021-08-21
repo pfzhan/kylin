@@ -316,6 +316,24 @@ public class JdbcRawRecStore {
         }
     }
 
+    public List<RawRecItem> queryNonLayoutRecItems(String project) {
+        long start = System.currentTimeMillis();
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            RawRecItemMapper mapper = session.getMapper(RawRecItemMapper.class);
+            SelectStatementProvider statementProvider = select(getSelectFields(table)) //
+                    .from(table) //
+                    .where(table.project, isEqualTo(project)) //
+                    .and(table.state, isNotEqualTo(RawRecItem.RawRecState.BROKEN)) //
+                    .and(table.type,
+                            isNotIn(RawRecItem.RawRecType.ADDITIONAL_LAYOUT, RawRecItem.RawRecType.REMOVAL_LAYOUT)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            List<RawRecItem> recItems = mapper.selectMany(statementProvider);
+            log.info("Query non-index raw recommendations of project({}) takes {} ms", //
+                    project, System.currentTimeMillis() - start);
+            return recItems;
+        }
+    }
+
     private int getSemanticVersion(String project, String model) {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataModel dataModel = modelManager.getDataModelDesc(model);

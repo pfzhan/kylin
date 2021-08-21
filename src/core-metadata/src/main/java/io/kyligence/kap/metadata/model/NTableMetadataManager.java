@@ -139,13 +139,9 @@ public class NTableMetadataManager {
     }
 
     public Map<String, TableDesc> getAllTablesMap() {
-        //        ProjectInstance pi = getProjectManager().getProject(project);
-        //        Set<String> prjTableNames = pi.getTables();
-
         Map<String, TableDesc> ret = new LinkedHashMap<>();
         for (TableDesc table : listAllTables()) {
-            String tableIdentity = table.getIdentity();
-            ret.put(tableIdentity, getTableDesc(tableIdentity));
+            ret.put(table.getIdentity(), table);
         }
         return ret;
     }

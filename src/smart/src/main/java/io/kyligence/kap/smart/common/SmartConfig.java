@@ -100,6 +100,10 @@ public class SmartConfig implements Serializable, IKeep {
         return getOptional("model-opt-rule", "");
     }
 
+    public boolean skipUselessMetadata() {
+        return getOptional("skip-useless-metadata", true);
+    }
+
     public String getProposeRunnerImpl() {
         return getOptional("propose-runner-type", "fork");
     }

@@ -33,7 +33,6 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 
 public abstract class AbstractSemiContextV2 extends AbstractContext {
@@ -45,7 +44,7 @@ public abstract class AbstractSemiContextV2 extends AbstractContext {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels().stream()
+        return getRelatedModels().stream() //
                 .filter(model -> getExtraMeta().getOnlineModelIds().contains(model.getUuid()))
                 .collect(Collectors.toList());
     }

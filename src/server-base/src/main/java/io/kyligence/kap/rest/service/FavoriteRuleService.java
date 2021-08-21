@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -89,7 +90,8 @@ public class FavoriteRuleService extends BasicService {
     }
 
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
-        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(getConfig(), project, new MockupQueryExecutor());
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(kylinConfig, project, new MockupQueryExecutor());
         return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
 
@@ -119,7 +121,8 @@ public class FavoriteRuleService extends BasicService {
             }
         }
         SQLParserResponse result = new SQLParserResponse();
-        if (sqls.size() > getConfig().getFavoriteImportSqlMaxSize()) {
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        if (sqls.size() > kylinConfig.getFavoriteImportSqlMaxSize()) {
             result.setSize(sqls.size());
             result.setWrongFormatFile(wrongFormatFiles);
             return result;
@@ -182,12 +185,12 @@ public class FavoriteRuleService extends BasicService {
         if (sqlLists.isEmpty()) {
             return sqls;
         }
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
         for (String sql : sqlLists) {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
             }
-            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0,
-                    DEFAULT_SCHEMA, false);
+            QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
             queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
             // massage sql and expand CC columns
             String correctedSql = QueryUtil.massageSqlAndExpandCC(queryParams);
@@ -199,8 +202,8 @@ public class FavoriteRuleService extends BasicService {
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
         aclEvaluate.checkProjectWritePermission(project);
-        QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(project), sql, project, 0, 0, DEFAULT_SCHEMA,
-                false);
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        QueryParams queryParams = new QueryParams(kylinConfig, sql, project, 0, 0, DEFAULT_SCHEMA, false);
         queryParams.setAclInfo(AclPermissionUtil.prepareQueryContextACLInfo(project, getCurrentUserGroups()));
         String correctedSql = QueryUtil.massageSql(queryParams);
         // sql validation

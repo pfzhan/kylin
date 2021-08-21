@@ -112,9 +112,9 @@ public class RawRecService {
             sqlList.add(queryHistory.getSql());
             queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
-
-        AbstractContext semiContextV2 = ProposerJob.propose(new ModelReuseContextOfSemiV2(
-                KylinConfig.getInstanceFromEnv(), project, sqlList.toArray(new String[0])));
+        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+        AbstractContext semiContextV2 = ProposerJob
+                .propose(new ModelReuseContextOfSemiV2(kylinConfig, project, sqlList.toArray(new String[0])));
 
         Map<String, RawRecItem> nonLayoutRecItemMap = semiContextV2.getExistingNonLayoutRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutRecItemMap);
@@ -184,15 +184,14 @@ public class RawRecService {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochMgr = EpochManager.getInstance(kylinConfig);
 
-        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         List<ProjectInstance> projectList = Lists.newArrayList();
         if (StringUtils.isEmpty(projectName)) {
-            List<ProjectInstance> instances = projectManager.listAllProjects().stream() //
+            List<ProjectInstance> instances = getProjectManager().listAllProjects().stream() //
                     .filter(projectInstance -> !projectInstance.isExpertMode()) //
                     .collect(Collectors.toList());
             projectList.addAll(instances);
         } else {
-            ProjectInstance instance = projectManager.getProject(projectName);
+            ProjectInstance instance = getProjectManager().getProject(projectName);
             projectList.add(instance);
         }
 
@@ -443,4 +442,7 @@ public class RawRecService {
         RawRecManager.getInstance(project).saveOrUpdate(layoutRecItems);
     }
 
+    private NProjectManager getProjectManager() {
+        return NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+    }
 }

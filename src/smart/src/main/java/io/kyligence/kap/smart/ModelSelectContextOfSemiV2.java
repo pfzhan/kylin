@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
@@ -70,7 +69,7 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels().stream()
+        return getRelatedModels().stream() //
                 .filter(model -> getExtraMeta().getOnlineModelIds().contains(model.getUuid()))
                 .collect(Collectors.toList());
 

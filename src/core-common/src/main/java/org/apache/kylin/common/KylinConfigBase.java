@@ -1683,6 +1683,13 @@ public abstract class KylinConfigBase implements Serializable {
         return pushdownRunner;
     }
 
+    public String[] getTableDetectorTransformers() {
+        String value = getOptional("kylin.query.table-detect-transformers");
+        return value == null ? new String[] { "org.apache.kylin.query.util.PowerBIConverter",
+                "org.apache.kylin.query.util.DefaultQueryTransformer", "io.kyligence.kap.query.util.EscapeTransformer" }
+                : getOptionalStringArray("kylin.query.table-detect-transformers", new String[0]);
+    }
+
     public String[] getQueryTransformers() {
         String value = getOptional("kylin.query.transformers");
         return value == null ? new String[] { "io.kyligence.kap.query.util.ReplaceStringWithVarchar",

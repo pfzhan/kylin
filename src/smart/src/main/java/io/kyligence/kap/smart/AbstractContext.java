@@ -29,8 +29,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -44,17 +49,22 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.entity.CCRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.DimensionRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.LayoutRecItemV2;
 import io.kyligence.kap.metadata.recommendation.entity.MeasureRecItemV2;
+import io.kyligence.kap.query.util.SqlNodeExtractor;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Getter
 public abstract class AbstractContext implements IKeep {
 
@@ -64,6 +74,12 @@ public abstract class AbstractContext implements IKeep {
     private final ChainedProposer preProcessProposers;
     private final ChainedProposer processProposers;
     private final ExtraMetaInfo extraMeta = new ExtraMetaInfo();
+
+    private final List<NDataModel> relatedModels = Lists.newArrayList();
+    private final Set<String> relatedTables = Sets.newHashSet();
+
+    @Setter
+    private boolean isRestoredProposeContext;
 
     @Setter
     protected boolean canCreateNewModel;
@@ -86,6 +102,7 @@ public abstract class AbstractContext implements IKeep {
         this.preProcessProposers = createPreProcessProposers();
         this.processProposers = createTransactionProposers();
         this.partialMatch = false;
+        filterSqlRelatedModelsAndTables();
     }
 
     public ModelContext createModelContext(ModelTree modelTree) {
@@ -105,6 +122,80 @@ public abstract class AbstractContext implements IKeep {
     public abstract void saveMetadata();
 
     public abstract String getIdentifier();
+
+    private void filterSqlRelatedModelsAndTables() {
+        Set<NDataModel> models = Sets.newHashSet();
+        Set<String> tableIdentities = Sets.newHashSet();
+        Map<String, Set<NDataModel>> tableToModelsMap = Maps.newHashMap();
+        getAllModels().forEach(model -> {
+            if (model.isBroken()) {
+                return;
+            }
+            for (TableRef tableRef : model.getAllTables()) {
+                tableToModelsMap.putIfAbsent(tableRef.getTableIdentity(), Sets.newHashSet());
+                tableToModelsMap.get(tableRef.getTableIdentity()).add(model);
+            }
+        });
+
+        Map<String, Set<String>> allTableMap = getProjectTableMap();
+        if (!smartConfig.skipUselessMetadata() || isRestoredProposeContext) {
+            tableToModelsMap.forEach((k, modelSet) -> getRelatedModels().addAll(modelSet));
+            allTableMap.forEach((k, tableSet) -> getRelatedTables().addAll(tableSet));
+            return;
+        }
+
+        // related tables from sql + related tables from baseModels
+        Preconditions.checkNotNull(sqlArray);
+        for (String sql : sqlArray) {
+            Set<String> sqlRelatedTableIdentities = extractTables(sql, allTableMap);
+            tableIdentities.addAll(sqlRelatedTableIdentities);
+            sqlRelatedTableIdentities.forEach(tableIdentity -> {
+                Set<NDataModel> relatedModels = tableToModelsMap.getOrDefault(tableIdentity, Sets.newHashSet());
+                relatedModels.forEach(model -> {
+                    Set<TableRef> allTables = model.getAllTables();
+                    allTables.forEach(tableRef -> tableIdentities.add(tableRef.getTableIdentity()));
+                });
+                models.addAll(relatedModels);
+            });
+        }
+        getRelatedModels().addAll(models);
+        getRelatedTables().addAll(tableIdentities);
+    }
+
+    private Map<String, Set<String>> getProjectTableMap() {
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(smartConfig.getKylinConfig(), project);
+        List<TableDesc> tableList = tableMgr.listAllTables();
+        Map<String, Set<String>> tableNameMap = Maps.newHashMap();
+        tableList.forEach(table -> {
+            tableNameMap.putIfAbsent(table.getName(), Sets.newHashSet());
+            tableNameMap.putIfAbsent(table.getIdentity(), Sets.newHashSet());
+            tableNameMap.get(table.getName()).add(table.getIdentity());
+            tableNameMap.get(table.getIdentity()).add(table.getIdentity());
+        });
+        return tableNameMap;
+    }
+
+    private Set<String> extractTables(String sql, Map<String, Set<String>> tableNameMap) {
+        String normalizedSql = QueryUtil.normalizeForTableDetecting(project, sql);
+        Set<String> allRelatedTables = Sets.newHashSet();
+        try {
+            List<SqlIdentifier> allSqlIdentifier = SqlNodeExtractor.getAllSqlIdentifier(normalizedSql);
+            allSqlIdentifier.forEach(id -> {
+                Set<String> orDefault = tableNameMap.getOrDefault(id.toString(), Sets.newHashSet());
+                allRelatedTables.addAll(orDefault);
+            });
+        } catch (SqlParseException e) {
+            log.info("extract error, sql is: {}", sql, e);
+            AccelerateInfo accelerateInfo = new AccelerateInfo();
+            accelerateInfo.setFailedCause(e);
+            accelerateInfoMap.put(sql, accelerateInfo);
+        }
+        return allRelatedTables;
+    }
+
+    protected List<NDataModel> getAllModels() {
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels();
+    }
 
     public void recordException(ModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {

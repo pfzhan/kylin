@@ -67,14 +67,27 @@ public class RawRecManager {
      * If models not given, load these RawRecItems of the whole project.
      */
     public Map<String, RawRecItem> queryNonLayoutRecItems(Set<String> modelIdSet) {
-        Set<String> allModelList = modelIdSet;
-        if (modelIdSet == null || modelIdSet.isEmpty()) {
-            allModelList = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllModelIds();
+        if (CollectionUtils.isNotEmpty(modelIdSet) && modelIdSet.size() == 1) {
+            return queryNonLayoutRecItems(modelIdSet.iterator().next());
         }
+
+        Map<String, NDataModel> allModelMap = Maps.newHashMap();
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<NDataModel> models = modelManager.listAllModels();
+        models.removeIf(NDataModel::isBroken);
+        models.forEach(model -> allModelMap.put(model.getUuid(), model));
+        if (CollectionUtils.isNotEmpty(modelIdSet)) {
+            allModelMap.entrySet().removeIf(entry -> modelIdSet.contains(entry.getKey()));
+        }
+
+        List<RawRecItem> rawRecItems = jdbcRawRecStore.queryNonLayoutRecItems(project);
         Map<String, RawRecItem> allRecItems = Maps.newHashMap();
-        for (String model : allModelList) {
-            allRecItems.putAll(queryNonLayoutRecItems(model));
-        }
+        rawRecItems.forEach(recItem -> {
+            NDataModel model = allModelMap.get(recItem.getModelID());
+            if (model != null && !recItem.isOutOfDate(model.getSemanticVersion())) {
+                allRecItems.put(recItem.getUniqueFlag(), recItem);
+            }
+        });
         return allRecItems;
     }
 

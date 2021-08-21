@@ -65,6 +65,7 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import io.kyligence.kap.query.util.CommentParser;
 import io.kyligence.kap.query.util.RestoreFromComputedColumn;
 import lombok.extern.slf4j.Slf4j;
@@ -77,9 +78,30 @@ public class QueryUtil {
 
     static List<IQueryTransformer> queryTransformers = Collections.emptyList();
     static List<IPushDownConverter> pushDownConverters = Collections.emptyList();
+    static List<IQueryTransformer> tableDetectTransformers = Collections.emptyList();
 
     public interface IQueryTransformer {
         String transform(String sql, String project, String defaultSchema);
+    }
+
+    public static String normalizeForTableDetecting(String project, String sql) {
+        KylinConfig kylinConfig = QueryUtil.getKylinConfig(project);
+        String convertedSql = normalMassageSql(kylinConfig, sql, 1, 1);
+        String defaultSchema = "DEFAULT";
+        try {
+            ProjectSchemaFactory schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
+            defaultSchema = schemaFactory.getDefaultSchema();
+        } catch (Exception e) {
+            log.error("Get project default schema failed.", e);
+        }
+
+        String[] detectorTransformers = kylinConfig.getTableDetectorTransformers();
+        List<IQueryTransformer> transformerList = initTransformers(false, detectorTransformers);
+        tableDetectTransformers = Collections.unmodifiableList(transformerList);
+        for (IQueryTransformer t : tableDetectTransformers) {
+            convertedSql = t.transform(convertedSql, project, defaultSchema);
+        }
+        return convertedSql;
     }
 
     public static String massageSql(QueryParams queryParams) {
@@ -146,12 +168,19 @@ public class QueryUtil {
         String[] currentTransformers = queryTransformers.stream().map(Object::getClass).map(Class::getCanonicalName)
                 .toArray(String[]::new);
         String[] configTransformers = kylinConfig.getQueryTransformers();
-        boolean containsCCTransformer = Arrays.asList(configTransformers).contains("io.kyligence.kap.query.util.ConvertToComputedColumn");
+        boolean containsCCTransformer = Arrays.asList(configTransformers)
+                .contains("io.kyligence.kap.query.util.ConvertToComputedColumn");
         boolean transformersEqual = Objects.deepEquals(currentTransformers, configTransformers);
         if (transformersEqual && (isCCNeeded || !containsCCTransformer)) {
             return;
         }
 
+        List<IQueryTransformer> transformers = initTransformers(isCCNeeded, configTransformers);
+        queryTransformers = Collections.unmodifiableList(transformers);
+        log.debug("SQL transformer: {}", queryTransformers);
+    }
+
+    private static List<IQueryTransformer> initTransformers(boolean isCCNeeded, String[] configTransformers) {
         List<IQueryTransformer> transformers = Lists.newArrayList();
         for (String clz : configTransformers) {
             if (!isCCNeeded && clz.equals("io.kyligence.kap.query.util.ConvertToComputedColumn"))
@@ -165,9 +194,7 @@ public class QueryUtil {
                 throw new IllegalStateException("Failed to init query transformer", e);
             }
         }
-
-        queryTransformers = Collections.unmodifiableList(transformers);
-        log.debug("SQL transformer: {}", queryTransformers);
+        return transformers;
     }
 
     public static String massagePushDownSql(QueryParams queryParams) {
@@ -184,7 +211,8 @@ public class QueryUtil {
                 }
                 QueryContext.current().getQueryTagInfo().setTimeout(true);
                 throw new KylinTimeoutException("The query exceeds the set time limit of "
-                        + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds() + "s. Current step: Massage push-down sql. ");
+                        + KylinConfig.getInstanceFromEnv().getQueryTimeoutSeconds()
+                        + "s. Current step: Massage push-down sql. ");
             }
             sql = converter.convert(sql, queryParams.getProject(), queryParams.getDefaultSchema());
         }
