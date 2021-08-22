@@ -33,11 +33,11 @@ import org.apache.kylin.source.SourceFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -75,7 +75,6 @@ public class TestStreaming extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
-    @Ignore
     @Test
     public void testBuild() {
         val config = KylinConfig.getInstanceFromEnv();
@@ -92,6 +91,8 @@ public class TestStreaming extends StreamingTestCase {
             }
         });
         assert source.supportBuildSnapShotByPartition();
+        source.enableMemoryStream(true);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);
         var df = dfMgr.getDataflow(DATAFLOW_ID);
         // cleanup all segments first
@@ -123,6 +124,7 @@ public class TestStreaming extends StreamingTestCase {
         val jobParams = new HashMap<String, String>();
         jobParams.put(StreamingConstants.STREAMING_KAFKA_STARTING_OFFSETS, "latest");
         val newConfig = StreamingJobUtils.getStreamingKylinConfig(config, jobParams, model.getId(), PROJECT);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         flatTable.generateStreamingDataset(newConfig);
         model = flatTableDesc.getDataModel();
         tableDesc = model.getRootFactTable().getTableDesc();
