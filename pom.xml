@@ -257,6 +257,7 @@
         <springfox.version>2.9.2</springfox.version>
         <swagger2markup.version>1.3.3</swagger2markup.version>
         <rhino.version>1.7.13</rhino.version>
+        <jsoup.version>1.14.2</jsoup.version>
 
         <!-- oshi -->
         <oshi.version>3.13.2</oshi.version>
@@ -1866,6 +1867,11 @@
                 <groupId>org.mozilla</groupId>
                 <artifactId>rhino</artifactId>
                 <version>${rhino.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>${jsoup.version}</version>
             </dependency>
             <!--spark 2.4-->
             <dependency>
