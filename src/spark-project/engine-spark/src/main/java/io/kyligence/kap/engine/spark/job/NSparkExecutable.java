@@ -83,7 +83,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
-import lombok.var;
 
 /**
  *
@@ -178,11 +177,6 @@ public class NSparkExecutable extends AbstractExecutable {
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = getConfig();
 
-        String jobId = getId();
-        if (!config.isDevOrUT()) {
-            setDistMetaUrl(config.getJobTmpMetaStoreUrl(project, jobId));
-        }
-
         String sparkHome = KylinConfigBase.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
             throw new RuntimeException("Missing spark home");
@@ -227,7 +221,7 @@ public class NSparkExecutable extends AbstractExecutable {
                 return 0;
             }, context.getEpochId(), project);
         }
-
+        String jobId = getId();
         String argsPath = createArgsFileOnHDFS(config, jobId);
         if (config.isUTEnv()) {
             return runLocalMode(argsPath);
@@ -288,11 +282,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     @Override
     protected KylinConfig getConfig() {
-        var originalConfig = KylinConfig.getInstanceFromEnv();
-        if (!originalConfig.isDevOrUT()) {
-            originalConfig = KylinConfig.createKylinConfig(originalConfig);
-            originalConfig.reloadFromSiteProperties();
-        }
+        val originalConfig = KylinConfig.getInstanceFromEnv();
         KylinConfigExt kylinConfigExt = null;
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
@@ -327,8 +317,6 @@ public class NSparkExecutable extends AbstractExecutable {
                 jobOverrides.put("kylin.engine.spark-conf." + SPARK_YARN_QUEUE, yarnQueue);
             }
         }
-        originalConfig.clearManagers();
-        ResourceStore.clearCache(originalConfig);
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
