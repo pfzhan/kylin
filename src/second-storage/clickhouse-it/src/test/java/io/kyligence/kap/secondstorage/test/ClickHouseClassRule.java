@@ -28,21 +28,14 @@ import io.kyligence.kap.newten.clickhouse.ClickHouseUtils;
 import lombok.SneakyThrows;
 import org.junit.Assert;
 import org.junit.rules.ExternalResource;
-import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-
-import java.net.ServerSocket;
 
 public class ClickHouseClassRule extends ExternalResource {
     private final JdbcDatabaseContainer<?>[] clickhouse;
-    private final int port;
 
     @SneakyThrows
     public ClickHouseClassRule(int n) {
         clickhouse = new JdbcDatabaseContainer<?>[n];
-        ServerSocket s = new ServerSocket(0);
-        port = s.getLocalPort();
-        s.close();
     }
 
     public JdbcDatabaseContainer<?>[] getClickhouse() {
@@ -54,14 +47,9 @@ public class ClickHouseClassRule extends ExternalResource {
         return clickhouse[index];
     }
 
-    public int getExposePort() {
-        return port;
-    }
-
     @Override
     protected void before() throws Throwable {
         super.before();
-        Testcontainers.exposeHostPorts(port);
         //setup clickhouse
         for (int i = 0; i < clickhouse.length; i++) {
             clickhouse[i] = ClickHouseUtils.startClickHouse();

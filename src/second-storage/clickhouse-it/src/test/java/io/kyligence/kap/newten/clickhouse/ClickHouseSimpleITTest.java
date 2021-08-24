@@ -53,6 +53,7 @@ import io.kyligence.kap.secondstorage.metadata.TableEntity;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
@@ -173,7 +174,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         doSetup();
 
         if (needHttpServer()) {
-            _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory(), 0);
+            _httpServer = EmbeddedHttpServer.startNginx(getLocalWorkingDirectory());
         }
 
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
@@ -247,8 +248,9 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
 
+    @SneakyThrows
     protected void checkHttpServer() throws IOException {
-        SimpleRequest sr = new SimpleRequest(_httpServer.serverUri);
+        SimpleRequest sr = new SimpleRequest(_httpServer.getBaseUrl().toURI());
         final String content = sr.getString("/");
         Assert.assertTrue(content.length() > 0);
     }
@@ -431,7 +433,7 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     }
 
     protected String getSourceUrl() {
-        return _httpServer.uriAccessedByDocker.toString();
+        return _httpServer.getDockerAccessURL();
     }
 
 

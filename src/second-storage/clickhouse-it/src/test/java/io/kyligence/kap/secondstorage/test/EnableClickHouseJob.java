@@ -53,15 +53,13 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
     private final SecondStorageService secondStorageService = new SecondStorageService();
 
     private EmbeddedHttpServer _httpServer;
-    private final int exposedPort;
 
-    public EnableClickHouseJob(JdbcDatabaseContainer<?>[] clickhouse,
-                               int replica, int exposedPort, String project, List<String> modelName, String... extraMeta) {
+    public EnableClickHouseJob(JdbcDatabaseContainer<?>[] clickhouse, int replica, String project,
+                               List<String> modelName, String... extraMeta) {
         super(project, extraMeta);
         this.modelNames = modelName;
         this.replica = replica;
         this.clickhouse = clickhouse;
-        this.exposedPort = exposedPort;
     }
 
     @Override
@@ -71,8 +69,8 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
             _httpServer.stopServer();
         }
         // setup http server
-        _httpServer = EmbeddedHttpServer.startServer(getLocalWorkingDirectory(), exposedPort);
-        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, _httpServer.uriAccessedByDocker.toString());
+        _httpServer = EmbeddedHttpServer.startNginx(getLocalWorkingDirectory());
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, _httpServer.getDockerAccessURL());
         Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
         overwriteSystemProp("kylin.second-storage.class", ClickHouseStorage.class.getCanonicalName());
         ClickHouseUtils.internalConfigClickHouse(clickhouse, replica);
@@ -99,8 +97,9 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
         }
     }
 
+    @SneakyThrows
     public void checkHttpServer() throws IOException {
-        SimpleRequest sr = new SimpleRequest(_httpServer.serverUri);
+        SimpleRequest sr = new SimpleRequest(_httpServer.getBaseUrl().toURI());
         final String content = sr.getString("/");
         Assert.assertTrue(content.length() > 0);
     }

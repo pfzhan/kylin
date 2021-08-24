@@ -52,6 +52,7 @@ import org.apache.spark.sql.execution.datasources.v2.pushdown.sql.SingleSQLState
 import org.junit.Assert;
 import org.testcontainers.containers.ClickHouseContainer;
 import org.testcontainers.containers.JdbcDatabaseContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 import scala.collection.JavaConverters;
 import scala.runtime.AbstractFunction1;
@@ -87,6 +88,8 @@ import static org.awaitility.Awaitility.await;
 @Slf4j
 public class ClickHouseUtils {
 
+    static final Network TEST_NETWORK = Network.newNetwork();
+    static final String NetworkAliases = "nginx_test_container";
     private static final Pattern _extraQuotes = Pattern.compile("([\"]*)([^\"]*)([\"]*)");
     static public String DEFAULT_VERSION = "21.1.2.15";//"20.8.2.3"; //"20.10.3.30";"20.10.2.20";
     static public String DEFAULT_TAG = "yandex/clickhouse-server:" + DEFAULT_VERSION;
@@ -114,10 +117,11 @@ public class ClickHouseUtils {
         } else if (jdbcClassesArePresent("com.github.housepower.jdbc.ClickHouseDriver")) {
             clickhouse = new ClickHouseContainerWithNativeJDBC(CLICKHOUSE_IMAGE);
         }
+
         Assert.assertNotNull("Can not find JDBC Driver", clickhouse);
 
         try {
-            clickhouse.start();
+            clickhouse.withNetwork(TEST_NETWORK).start();
             //check clickhouse version
             final String url = clickhouse.getJdbcUrl();
             await().atMost(60, TimeUnit.SECONDS).until(() -> checkClickHouseAlive(url));

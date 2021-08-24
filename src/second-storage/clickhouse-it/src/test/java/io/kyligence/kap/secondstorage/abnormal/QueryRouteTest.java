@@ -90,7 +90,7 @@ public class QueryRouteTest {
     public EnableTestUser enableTestUser = new EnableTestUser();
     public EnableClickHouseJob test =
             new EnableClickHouseJob(clickHouseClassRule.getClickhouse(), 1,
-                    clickHouseClassRule.getExposePort(), project, Collections.singletonList(cubeName), "src/test/resources/ut_meta");
+                    project, Collections.singletonList(cubeName), "src/test/resources/ut_meta");
     @Rule
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
     private final SparkSession sparkSession = sharedSpark.getSpark();

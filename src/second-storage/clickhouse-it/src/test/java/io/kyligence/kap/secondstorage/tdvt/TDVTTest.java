@@ -99,8 +99,7 @@ public class TDVTTest {
     public static ClickHouseClassRule clickHouse = new ClickHouseClassRule(clickhouseNumber);
     public static EnableClickHouseJob test =
             new EnableClickHouseJob(clickHouse.getClickhouse(),
-                    1, clickHouse.getExposePort(),
-                    project, modelList, "src/test/resources/ut_meta");
+                    1, project, modelList, "src/test/resources/ut_meta");
     public static SetTimeZone timeZone = new SetTimeZone("UTC"); // default timezone of clickhouse docker is UTC
 
     @ClassRule
