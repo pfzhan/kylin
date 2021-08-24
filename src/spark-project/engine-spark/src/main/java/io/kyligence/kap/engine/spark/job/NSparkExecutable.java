@@ -327,6 +327,8 @@ public class NSparkExecutable extends AbstractExecutable {
                 jobOverrides.put("kylin.engine.spark-conf." + SPARK_YARN_QUEUE, yarnQueue);
             }
         }
+        originalConfig.clearManagers();
+        ResourceStore.clearCache(originalConfig);
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
