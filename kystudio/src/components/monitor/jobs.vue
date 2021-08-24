@@ -490,6 +490,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SECOND_STORAGE_MODEL_CLEAN: 'Delete Tiered Storage - Model',
       SECOND_STORAGE_NODE_CLEAN: 'Delete Tiered Storage - Project',
       SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Tiered Storage - Segment',
+      clearUpIntermediateTable: 'Garbage CleanUp',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
@@ -594,6 +595,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       SECOND_STORAGE_MODEL_CLEAN: '删除分层存储 - 模型',
       SECOND_STORAGE_NODE_CLEAN: '删除分层存储 - 项目',
       SECOND_STORAGE_SEGMENT_CLEAN: '删除分层存储 - Segment',
+      clearUpIntermediateTable: '垃圾清理',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
@@ -730,7 +732,8 @@ export default class JobsList extends Vue {
       'STEP_MERGE_SECOND_STORAGE': this.$t('secondaryStorage'),
       'STEP_SECOND_STORAGE_MODEL_CLEAN': this.$t('delSecondaryStorage'),
       'STEP_SECOND_STORAGE_NODE_CLEAN': this.$t('delSecondaryStorage'),
-      'STEP_SECOND_STORAGE_SEGMENT_CLEAN': this.$t('delSecondaryStorage')
+      'STEP_SECOND_STORAGE_SEGMENT_CLEAN': this.$t('delSecondaryStorage'),
+      'Clean Up Intermediate Table': this.$t('clearUpIntermediateTable')
     }
     return stepMap[name]
   }
@@ -934,24 +937,13 @@ export default class JobsList extends Vue {
       return ''
     }
   }
-  isShowJobBtn () {
-    this.$nextTick(() => {
-      // 右侧详情的高度
-      let rightStepDetailH = document.getElementById('stepList') && document.getElementById('stepList').clientHeight
-      // 当前滚动距离
-      let sTop = document.getElementById('scrollContent').scrollTop
-      this.isShowBtn = rightStepDetailH - 50 >= sTop
-      // 可视区宽度
-      let screenW = document.getElementById('jobListPage').offsetWidth
-      // jobBtn 的left 定位
-      let jobBtn = document.getElementById('jobDetailBtn')
-      if (jobBtn) {
-        jobBtn.style.left = (screenW + 158 - 345) + 'px'
-        if (this.$store.state.config.platform === 'iframe') {
-          jobBtn.style.left = (screenW - 30 - 345) + 'px'
-        }
-      }
-    })
+  isShowJobBtn (e) {
+    if (!e) return
+    const sTop = e.target.scrollTop
+    let jobBtn = document.getElementById('jobDetailBtn')
+    if (jobBtn) {
+      jobBtn.style.cssText = `top: ${sTop + 20}px;`
+    }
   }
   // setRightBarTop () {
   //   // 默认右侧详情的位移为 0
@@ -1537,6 +1529,7 @@ export default class JobsList extends Vue {
     }
     #rightDetail {
       width: 348px;
+      position: relative;
     }
     #leftTableBox {
       width: 100%;
@@ -1549,6 +1542,7 @@ export default class JobsList extends Vue {
       min-height: calc(~'100vh - 167px');
       box-sizing: border-box;
       position: relative;
+      overflow: initial;
       // z-index: 100;
       // position: absolute;
       // top: 0;
@@ -1616,9 +1610,10 @@ export default class JobsList extends Vue {
         font-weight: @font-medium;
       }
       .job-btn {
-        position: fixed;
-        right: 345px;
-        top: 230px;
+        position: absolute;
+        // right: 345px;
+        left: -9px;
+        top: 20px;
         height: 24px;
         width: 24px;
         border-radius: 100%;
@@ -1626,6 +1621,7 @@ export default class JobsList extends Vue {
         cursor: pointer;
         text-align: center;
         background-color: @fff;
+        z-index: 10;
         &.is-filter-list {
           top: 270px;
         }
