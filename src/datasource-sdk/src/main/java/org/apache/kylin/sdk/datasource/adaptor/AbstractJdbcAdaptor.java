@@ -23,20 +23,10 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-
-import javax.sql.rowset.CachedRowSet;
-
-import org.apache.commons.dbcp.BasicDataSource;
+import com.google.common.base.Joiner;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.sdk.datasource.framework.FixedCachedRowSetImpl;
 import org.apache.kylin.sdk.datasource.framework.conv.DefaultConfigurer;
 import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
@@ -45,9 +35,18 @@ import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import javax.sql.DataSource;
+import javax.sql.rowset.CachedRowSet;
+import java.io.Closeable;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Extends this Abstract class to create Adaptors for new jdbc data source.
@@ -55,7 +54,7 @@ import com.google.common.cache.CacheBuilder;
 public abstract class AbstractJdbcAdaptor implements Closeable {
 
     protected static final Logger logger = LoggerFactory.getLogger(DefaultAdaptor.class);
-    protected final BasicDataSource dataSource;
+    protected final DataSource dataSource;
     protected final AdaptorConfig config;
     protected final DataSourceDef dataSourceDef;
     protected SqlConverter.IConfigurer configurer;
@@ -85,24 +84,21 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
         this.config = config;
         this.dataSourceDef = DataSourceDefProvider.getInstance().getById(config.datasourceId);
 
-        dataSource = new BasicDataSource();
-
         Class.forName(config.driver);
-        dataSource.setDriverClassName(config.driver);
-        dataSource.setUrl(config.url);
-        dataSource.setUsername(config.username);
-        dataSource.setPassword(config.password);
-        dataSource.setMaxActive(config.poolMaxTotal);
-        dataSource.setMaxIdle(config.poolMaxIdle);
-        dataSource.setTimeBetweenEvictionRunsMillis(config.timeBetweenEvictionRunsMillis);
-        dataSource.setMaxWait(config.maxWait);
-        dataSource.setMinIdle(config.poolMinIdle);
+        Properties props = new Properties();
+        props.setProperty("driverClassName", config.driver);
+        props.setProperty("url", config.url);
+        props.setProperty("username", config.username);
+        props.setProperty("password", config.password);
+        props.setProperty("maxActive", String.valueOf(config.maxActive));
+        props.setProperty("maxIdle", String.valueOf(config.poolMaxIdle));
+        props.setProperty("maxWait", String.valueOf(config.maxWait));
+        props.setProperty("removeAbandoned", String.valueOf(config.removeAbandoned));
+        props.setProperty("removeAbandonedTimeout", String.valueOf(config.removeAbandonedTimeout));
+        props.setProperty("timeBetweenEvictionRunsMillis", String.valueOf(config.timeBetweenEvictionRunsMillis));
+        props.setProperty("validationQuery", getSourceValidationSql());
 
-        // Default settings
-        dataSource.setTestOnBorrow(true);
-        dataSource.setValidationQuery(getSourceValidationSql());
-        dataSource.setRemoveAbandoned(true);
-        dataSource.setRemoveAbandonedTimeout(300);
+        dataSource = BasicDataSourceFactory.createDataSource(props);
 
         DataSourceDefProvider provider = DataSourceDefProvider.getInstance();
         DataSourceDef jdbcDs = provider.getById(getDataSourceId());
@@ -198,13 +194,11 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
 
     /**
      * To close the adaptor, because we need to close all connections on this JDBC source.
-     *
-     * @throws IOException If close failed.
      */
     @Override
-    public void close() throws IOException {
+    public void close() {
         try {
-            dataSource.close();
+            this.getConnection().close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -246,42 +240,6 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
             close(statement);
             close(connection);
         }
-    }
-
-    /**
-     * Get JDBC Url for JDBC source, usually it's from the <C>AdaptorConfig</C> passed to constructor.
-     *
-     * @return The JDBC Url.
-     */
-    public String getJdbcUrl() {
-        return dataSource.getUrl();
-    }
-
-    /**
-     * Get JDBC Driver class name for JDBC source, usually it's from the <C>AdaptorConfig</C> passed to constructor.
-     *
-     * @return JDBC Driver class name.
-     */
-    public String getJdbcDriver() {
-        return dataSource.getDriverClassName();
-    }
-
-    /**
-     * Get JDBC Username for JDBC source, usually it's from the <C>AdaptorConfig</C> passed to constructor.
-     *
-     * @return The JDBC Username.
-     */
-    public String getJdbcUser() {
-        return dataSource.getUsername();
-    }
-
-    /**
-     * Get JDBC Password for JDBC source, usually it's from the <C>AdaptorConfig</C> passed to constructor.
-     *
-     * @return The JDBC password.
-     */
-    public String getJdbcPassword() {
-        return dataSource.getPassword();
     }
 
     /**

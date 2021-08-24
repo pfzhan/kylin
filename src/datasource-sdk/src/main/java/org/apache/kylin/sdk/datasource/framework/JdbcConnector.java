@@ -36,7 +36,6 @@ import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
 
 import javax.sql.rowset.CachedRowSet;
 import java.io.Closeable;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
@@ -59,22 +58,6 @@ public class JdbcConnector implements Closeable {
         convMaster = new ConvMaster(kylinDs, jdbcDs);
         SqlConverter.IConfigurer configurer = new DefaultConfigurer(this.adaptor, jdbcDs);
         this.sqlConverter = new SqlConverter(configurer, convMaster);
-    }
-
-    public String getJdbcUrl() {
-        return adaptor.getJdbcUrl();
-    }
-
-    public String getJdbcDriver() {
-        return adaptor.getJdbcDriver();
-    }
-
-    public String getJdbcUser() {
-        return adaptor.getJdbcUser();
-    }
-
-    public String getJdbcPassword() {
-        return adaptor.getJdbcPassword();
     }
 
     @VisibleForTesting
@@ -213,7 +196,7 @@ public class JdbcConnector implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         if (adaptor != null)
             adaptor.close();
     }

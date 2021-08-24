@@ -23,12 +23,7 @@
  */
 package org.apache.kylin.sdk.datasource.framework;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.LinkedHashMap;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -37,7 +32,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.LinkedHashMap;
 
 public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
     protected static JdbcConnector connector = null;
@@ -68,10 +66,6 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
     public void testBasics() throws SQLException {
         connector = SourceConnectorFactory.getJdbcConnector(getTestConfig());
         Assert.assertNotNull(connector);
-        Assert.assertNotNull(connector.getJdbcDriver());
-        Assert.assertNotNull(connector.getJdbcUrl());
-        Assert.assertNotNull(connector.getJdbcUser());
-        Assert.assertNotNull(connector.getJdbcPassword());
 
         try (Connection conn = connector.getConnection()) {
             Assert.assertNotNull(conn);
@@ -105,8 +99,8 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(Types.VARCHAR, connector.toKylinTypeId("CHARACTER VARYING", 0));
     }
 
-    @Test(expected = SQLException.class)
-    public void testRetryAndClose() throws IOException, SQLException {
+    @Test
+    public void testRetryAndClose() throws SQLException {
         getTestConfig().setProperty("kylin.source.jdbc.dialect", "testing");
         getTestConfig().setProperty("kylin.source.jdbc.connect-retry-times", "2");
         getTestConfig().setProperty("kylin.source.jdbc.connect-retry-sleep-time", "100ms");
@@ -116,7 +110,7 @@ public class JdbcConnectorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testWithCache() throws SQLException, IOException {
+    public void testWithCache() throws SQLException {
         getTestConfig().setProperty("kylin.source.jdbc.dialect", "testing_withcache");
 
         connector = SourceConnectorFactory.getJdbcConnector(getTestConfig());
