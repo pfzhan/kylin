@@ -110,11 +110,6 @@ public class InfluxDBInstance {
                 influxDB.setDatabase(getDatabase());
                 influxDB.setRetentionPolicy(getRetentionPolicyName());
 
-                // enable async write. max batch size 1000, flush duration 3s.
-                // when bufferLimit > actions，#RetryCapableBatchWriter will be used
-                influxDB.enableBatch(BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000)
-                        .flushDuration(config.getInfluxDBFlushDuration()).jitterDuration(500));
-
                 if (!influxDB.databaseExists(getDatabase())) {
                     logger.info("Create influxDB database {}", getDatabase());
                     influxDB.createDatabase(getDatabase());
@@ -124,11 +119,20 @@ public class InfluxDBInstance {
                     influxDB.createRetentionPolicy(getRetentionPolicyName(), getDatabase(), getRetentionDuration(),
                             getShardDuration(), getReplicationFactor(), isUseDefault());
                 }
+
+                // enable async write. max batch size 1000, flush duration 3s.
+                // when bufferLimit > actions，#RetryCapableBatchWriter will be used
+                influxDB.enableBatch(BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000)
+                        .flushDuration(config.getInfluxDBFlushDuration()).jitterDuration(500));
+
             } else {
                 final Pong pong = influxDB.ping();
                 logger.trace("Connected to influxDB successfully. [{}]", pong);
             }
         } catch (Exception ex) {
+            if (influxDB != null && influxDB.isBatchEnabled()) {
+                influxDB.disableBatch();
+            }
             influxDB = null;
             if (Throwables.getCausalChain(ex).stream().anyMatch(t -> t instanceof InfluxDBIOException)) {
                 logger.warn("Check influxDB Instance error, database: {}, retentionPolicy: {} ex: {}", getDatabase(),
