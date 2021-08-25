@@ -548,6 +548,7 @@ public class OpenModelController extends NBasicController {
         request.setProject(projectName);
         checkProjectNotSemiAuto(request.getProject());
         request.setForce2CreateNewModel(true);
+        request.setAcceptRecommendation(true);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestOrOptimizeModels(request), "");
     }
 

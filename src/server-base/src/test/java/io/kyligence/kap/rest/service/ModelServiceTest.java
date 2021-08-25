@@ -25,9 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.request.MultiPartitionMappingRequest.MappingRequest;
-
-import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
-
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -211,6 +208,7 @@ import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.PartitionsRefreshRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.BuildBaseIndexResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.CheckSegmentResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
@@ -292,9 +290,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
-    private final static String[] timeZones = {"GMT+8", "CST", "PST", "UTC"};
+    private final static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
 
     private StreamingJobListener eventListener = new StreamingJobListener();
+
+    private JdbcRawRecStore jdbcRawRecStore;
 
     @Before
     public void setup() {
@@ -773,7 +773,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // loading
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
         val segment1Id = segments.get(0).getId();
-        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]>newArrayList(new String[]{"4"}));
+        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]> newArrayList(new String[] { "4" }));
         segments = modelService.getSegmentsResponse(dataflowId, project, "0", "" + Long.MAX_VALUE, "", "", false);
         Assert.assertEquals(SegmentStatusEnumToDisplay.LOADING, segments.get(0).getStatusToDisplay());
 
@@ -796,7 +796,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // append a new partition to segment1
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]>newArrayList(new String[]{"4"}));
+        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]> newArrayList(new String[] { "4" }));
         // make the first partition in segment2 to refresh status
         val segment2 = dataflowManager.getDataflow(dataflowId).copy().getSegment(segment2Id);
         segment2.getMultiPartitions().get(0).setStatus(PartitionStatusEnum.REFRESH);
@@ -808,12 +808,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 false);
         Assert.assertEquals(5, partitions1.size());
         Assert.assertEquals(0, partitions1.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"0"}, partitions1.get(0).getValues());
+        Assert.assertArrayEquals(new String[] { "0" }, partitions1.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions1.get(0).getStatus());
         Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(1397, partitions1.get(0).getBytesSize());
         Assert.assertEquals(4, partitions1.get(4).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"4"}, partitions1.get(4).getValues());
+        Assert.assertArrayEquals(new String[] { "4" }, partitions1.get(4).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.LOADING, partitions1.get(4).getStatus());
         Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(0, partitions1.get(4).getBytesSize());
@@ -822,12 +822,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 false);
         Assert.assertEquals(3, partitions2.size());
         Assert.assertEquals(0, partitions2.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"0"}, partitions2.get(0).getValues());
+        Assert.assertArrayEquals(new String[] { "0" }, partitions2.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.REFRESHING, partitions2.get(0).getStatus());
         Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(1397, partitions2.get(0).getBytesSize());
         Assert.assertEquals(1, partitions2.get(1).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"1"}, partitions2.get(1).getValues());
+        Assert.assertArrayEquals(new String[] { "1" }, partitions2.get(1).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, partitions2.get(1).getStatus());
         Assert.assertEquals(42, partitions1.get(0).getSourceCount());
         Assert.assertEquals(1397, partitions2.get(1).getBytesSize());
@@ -837,7 +837,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 Lists.newArrayList("ONLINE"), "last_modified_time", true);
         Assert.assertEquals(2, onlinePartitions2.size());
         Assert.assertEquals(2, onlinePartitions2.get(0).getPartitionId());
-        Assert.assertArrayEquals(new String[]{"2"}, onlinePartitions2.get(0).getValues());
+        Assert.assertArrayEquals(new String[] { "2" }, onlinePartitions2.get(0).getValues());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, onlinePartitions2.get(0).getStatus());
         Assert.assertEquals(1, onlinePartitions2.get(1).getPartitionId());
         Assert.assertEquals(PartitionStatusEnumToDisplay.ONLINE, onlinePartitions2.get(1).getStatus());
@@ -870,7 +870,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // update mapping
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_site_id"));
         mappingRequest.setAliasCols(Lists.newArrayList("test_kylin_fact.leaf_categ_id"));
-        val valueMappings = Lists.<MappingRequest<List<String>, List<String>>>newArrayList();
+        val valueMappings = Lists.<MappingRequest<List<String>, List<String>>> newArrayList();
         valueMappings.add(new MappingRequest<>(Lists.newArrayList("0"), Lists.newArrayList("10")));
         valueMappings.add(new MappingRequest<>(Lists.newArrayList("1"), Lists.newArrayList("10")));
         valueMappings.add(new MappingRequest<>(Lists.newArrayList("2"), Lists.newArrayList("11")));
@@ -883,16 +883,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, mapping.getAliasColumns().size());
         Assert.assertEquals(aliasColumn, mapping.getAliasColumns().get(0));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("0")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("10")),
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("10")),
                 mapping.getAliasValue(Lists.newArrayList("0")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("1")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("10")),
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("10")),
                 mapping.getAliasValue(Lists.newArrayList("1")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("2")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("11")),
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("11")),
                 mapping.getAliasValue(Lists.newArrayList("2")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("3")));
-        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("11")),
+        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("11")),
                 mapping.getAliasValue(Lists.newArrayList("3")));
 
         // invalid request
@@ -950,55 +950,55 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         var values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[]{"0"}, values.get(0).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "0" }, values.get(0).getPartitionValue());
         Assert.assertEquals(3, values.get(0).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(0).getTotalSegmentCount());
 
-        Assert.assertArrayEquals(new String[]{"1"}, values.get(1).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "1" }, values.get(1).getPartitionValue());
         Assert.assertEquals(4, values.get(1).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(1).getTotalSegmentCount());
 
-        Assert.assertArrayEquals(new String[]{"2"}, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
         Assert.assertEquals(4, values.get(2).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(2).getTotalSegmentCount());
 
-        Assert.assertArrayEquals(new String[]{"3"}, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
         Assert.assertEquals(3, values.get(3).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(3).getTotalSegmentCount());
 
         // add a new value and a existed value
         modelService.addMultiPartitionValues(project, modelId,
-                Lists.<String[]>newArrayList(new String[]{"13"}, new String[]{"3"}));
+                Lists.<String[]> newArrayList(new String[] { "13" }, new String[] { "3" }));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(5, values.size());
-        Assert.assertArrayEquals(new String[]{"13"}, values.get(4).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "13" }, values.get(4).getPartitionValue());
         Assert.assertEquals(0, values.get(4).getBuiltSegmentCount());
         Assert.assertEquals(5, values.get(4).getTotalSegmentCount());
         // delete a existed value and a non-exist value
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(4L, 5L));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[]{"0"}, values.get(0).getPartitionValue());
-        Assert.assertArrayEquals(new String[]{"1"}, values.get(1).getPartitionValue());
-        Assert.assertArrayEquals(new String[]{"2"}, values.get(2).getPartitionValue());
-        Assert.assertArrayEquals(new String[]{"3"}, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "0" }, values.get(0).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "1" }, values.get(1).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
 
-        List<String[]> partitionValues = Lists.<String[]>newArrayList(new String[]{"2"});
+        List<String[]> partitionValues = Lists.<String[]> newArrayList(new String[] { "2" });
         modelService.deletePartitionsByValues(project, null, modelId, partitionValues);
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(3, values.size());
         Assert.assertEquals(3L, values.get(2).getId());
-        Assert.assertArrayEquals(new String[]{"3"}, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "3" }, values.get(2).getPartitionValue());
 
         // add a empty value and a value with part of blank
         modelService.addMultiPartitionValues(project, modelId,
-                Lists.<String[]>newArrayList(new String[]{"  14  "}, new String[]{"  "}));
+                Lists.<String[]> newArrayList(new String[] { "  14  " }, new String[] { "  " }));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[]{"14"}, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[] { "14" }, values.get(3).getPartitionValue());
 
         try {
-            partitionValues = Lists.<String[]>newArrayList(new String[]{"not-exist-value"});
+            partitionValues = Lists.<String[]> newArrayList(new String[] { "not-exist-value" });
             modelService.deletePartitionsByValues(project, null, modelId, partitionValues);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof KylinException);
@@ -1671,7 +1671,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // prepare initial model
         String sql = "select lstg_format_name, cal_dt, sum(price) from test_kylin_fact "
                 + "where cal_dt = '2012-01-02' group by lstg_format_name, cal_dt";
-        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project, new String[]{sql});
+        AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(smartContext);
         smartMaster.runUtWithContext(null);
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
@@ -1762,7 +1762,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String project = "newten";
         // prepare initial model
         AbstractContext smartContext = ProposerJob.proposeForAutoMode(getTestConfig(), project,
-                new String[]{"select price from test_kylin_fact"});
+                new String[] { "select price from test_kylin_fact" });
         smartContext.saveMetadata();
         List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
@@ -1890,7 +1890,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.displayIdName()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment.getId()}, false);
+                new String[] { dataSegment.getId() }, false);
     }
 
     @Test
@@ -1905,7 +1905,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{"not_exist_01"}, false);
+                new String[] { "not_exist_01" }, false);
     }
 
     @Test
@@ -1926,7 +1926,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
         val df1 = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         Assert.assertEquals(df1.getStatus(), RealizationStatusEnum.ONLINE);
-        modelService.deleteSegmentById(modelId, project, new String[]{"ef783e4d-e35f-4bd9-8afd-efd64336f04d"},
+        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
                 false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
@@ -1986,7 +1986,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(
                 "Can’t delete the segment(s) in model \"nmodel_basic_inner\" under the current project settings.");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{dataSegment.getId()}, false);
+                new String[] { dataSegment.getId() }, false);
     }
 
     @Test
@@ -2127,7 +2127,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
-                    new String[]{dataSegment1.getId(), dataSegment3.getId()}));
+                    new String[] { dataSegment1.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -2137,7 +2137,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
         modelService.mergeSegmentsManually(new MergeSegmentParams("default", dfId,
-                new String[]{dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId()}));
+                new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() }));
         val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val executables = getRunningExecutables("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(1, executables.size());
@@ -2152,7 +2152,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             //refresh exception
             modelService.mergeSegmentsManually(
-                    new MergeSegmentParams("default", dfId, new String[]{dataSegment2.getId()}));
+                    new MergeSegmentParams("default", dfId, new String[] { dataSegment2.getId() }));
             Assert.fail();
         } catch (KylinException e) {
             Assert.assertEquals("Can’t remove, refresh or merge segment \"" + dataSegment2.displayIdName()
@@ -2201,7 +2201,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
                 dataSegment1.displayIdName()));
         modelService.mergeSegmentsManually(
-                new MergeSegmentParams("default", dfId, new String[]{dataSegment1.getId(), dataSegment2.getId()}));
+                new MergeSegmentParams("default", dfId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
 
         // clear segments
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -2241,13 +2241,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.updateDataflow(update);
         //refresh normally
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
-                new String[]{dataSegment2.getId()}));
+                new String[] { dataSegment2.getId() }));
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 String.format(Locale.ROOT, MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.displayIdName()));
         //refresh exception
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
-                new String[]{dataSegment2.getId()}));
+                new String[] { dataSegment2.getId() }));
     }
 
     private NDataLayout[] generateAllDataLayout(String project, String modelId, List<NDataSegment> segments) {
@@ -2268,7 +2268,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can’t find the segment by ID \"not_exist_01\". Please check and try again.");
         //refresh exception
         modelService.refreshSegmentById(new RefreshSegmentParams("default", "741ca86a-1f13-46da-a59f-95fb68615e3a",
-                new String[]{"not_exist_01"}));
+                new String[] { "not_exist_01" }));
     }
 
     @Test
@@ -2303,11 +2303,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.updateDataflow(update);
         //remove normally
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{segments.get(0).getId()}, false);
+                new String[] { segments.get(0).getId() }, false);
         //2 dataflows
         val df2 = dataflowManager.getDataflow(dataModel.getUuid());
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[]{segments.get(2).getId(), segments.get(3).getId()}, false);
+                new String[] { segments.get(2).getId(), segments.get(3).getId() }, false);
         Assert.assertEquals(6, df2.getSegments().size());
     }
 
@@ -2482,11 +2482,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id,buyer_id";
         OpenSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        Assert.assertEquals(1, normalResponse.getModels().size());
 
         normSql = "select test_order.order_id,sum(price) from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
                 + "group by test_order.order_id";
         normalResponse = modelService.suggestOrOptimizeModels(rewriteReq.apply(smartRequest(project, normSql)));
+        Assert.assertEquals(1, normalResponse.getModels().size());
 
         normSql = "select test_order.order_id,buyer_id,max(price) from test_order "
                 + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
@@ -2495,6 +2497,61 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(3,
                 indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
+    }
+
+    @Test
+    public void testOptimizeModelWithProposingJoin() {
+        String project = "newten";
+        NProjectManager projectMgr = NProjectManager.getInstance(getTestConfig());
+        NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(getTestConfig(), project);
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        projectMgr.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        });
+
+        // create a base model
+        String normSql = "select test_order.order_id,buyer_id from test_order "
+                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id";
+        OpenSuggestionResponse normalResponse = modelService.suggestOrOptimizeModels(smartRequest(project, normSql));
+        Assert.assertEquals(1, normalResponse.getModels().size());
+        String modelId = normalResponse.getModels().get(0).getUuid();
+        final NDataModel model1 = modelManager.getDataModelDesc(modelId);
+        Assert.assertEquals(1, model1.getJoinTables().size());
+        Assert.assertEquals(17, model1.getAllNamedColumns().size());
+
+        // without proposing new join, accelerate failed
+        normSql = "select test_order.order_id,sum(price) from test_order "
+                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "left join edw.test_cal_dt on test_kylin_fact.cal_dt=test_cal_dt.cal_dt "
+                + "group by test_order.order_id";
+        OpenSqlAccelerateRequest request1 = smartRequest(project, normSql);
+        request1.setForce2CreateNewModel(false);
+        normalResponse = modelService.suggestOrOptimizeModels(request1);
+        Assert.assertEquals(0, normalResponse.getModels().size());
+        Assert.assertEquals(1, normalResponse.getErrorSqlList().size());
+
+        // with proposing new join, accelerate success
+        projectMgr.updateProject(project, copyForWrite -> {
+            copyForWrite.getConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+        });
+        OpenSqlAccelerateRequest request2 = smartRequest(project, normSql);
+        request2.setForce2CreateNewModel(false);
+        normalResponse = modelService.suggestOrOptimizeModels(request2);
+        Assert.assertEquals(1, normalResponse.getModels().size());
+        NDataModel model2 = modelManager.getDataModelDesc(modelId);
+        Assert.assertEquals(2, model2.getJoinTables().size());
+        Assert.assertEquals(117, model2.getAllNamedColumns().size());
+
+        // proposing new index
+        normSql = "select test_order.order_id,buyer_id,max(price) from test_order "
+                + "left join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id,LSTG_FORMAT_NAME";
+        OpenSqlAccelerateRequest request3 = smartRequest(project, normSql);
+        request3.setForce2CreateNewModel(false);
+        normalResponse = modelService.suggestOrOptimizeModels(request3);
+        Assert.assertEquals(1, normalResponse.getModels().size());
+        Assert.assertEquals(3, indexMgr.getIndexPlan(modelId).getAllLayouts().size());
     }
 
     @Test
@@ -2779,10 +2836,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
-                                + "model 'nmodel_basic_inner', and the expression is "
-                                + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
+                                        + "model 'nmodel_basic_inner', and the expression is "
+                                        + "'TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
 
             }
         });
@@ -2913,8 +2970,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
-                                + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
+                                        + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2961,7 +3018,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
 
@@ -3013,10 +3070,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
-                                + "in model 'nmodel_cc_test', and the expression is "
-                                + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
+                                        + "in model 'nmodel_cc_test', and the expression is "
+                                        + "'UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -3109,7 +3166,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -3157,10 +3214,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage()
-                        .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
-                                + "has already been used in model 'nmodel_basic', and the expression is "
-                                + "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -3197,10 +3254,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
-                                + "has already been used in model 'nmodel_basic', and the expression is "
-                                + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -3237,9 +3294,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                        "The expression of computed column has already been used in model 'nmodel_basic' as "
-                                + "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, "
-                                + "or use a different expression.");
+                                "The expression of computed column has already been used in model 'nmodel_basic' as "
+                                        + "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, "
+                                        + "or use a different expression.");
             }
         });
 
@@ -3308,10 +3365,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
-                                + "has already been used in model 'nmodel_basic', and the expression is "
-                                + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -3395,10 +3452,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
-                                + "has already been used in model 'nmodel_basic', and the expression is "
-                                + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -3440,10 +3497,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
-                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
-                                + "has already been used in model 'nmodel_basic', and the expression is "
-                                + "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. "
-                                + "Please modify the expression to keep consistent, or use a different name.");
+                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
+                                        + "has already been used in model 'nmodel_basic', and the expression is "
+                                        + "'CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)'. "
+                                        + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -3475,7 +3532,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 copyForWrite -> copyForWrite.getComputedColumnDescs().get(0).setDatatype("date"));
         thrown.expect(KylinException.class);
         thrown.expectMessage(new MessageFormat(MsgPicker.getMsg().getCheckCCType(), Locale.ROOT)
-                .format(new String[]{"LINEORDER.CC_CNAME", "DOUBLE", "date"}));
+                .format(new String[] { "LINEORDER.CC_CNAME", "DOUBLE", "date" }));
         modelService.validateCCType(modelId, project);
     }
 
@@ -3501,7 +3558,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "This name has already been used by other computed columns in this model. Please modify it.");
+                                "This name has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3541,7 +3598,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "This expression has already been used by other computed columns in this model. Please modify it.");
+                                "This expression has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3582,7 +3639,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                        "This expression has already been used by other computed columns in this model. Please modify it.");
+                                "This expression has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3894,7 +3951,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testBuildSegmentManually_PartitionValue_Not_Support() throws Exception {
         List<String[]> multiPartitionValues = Lists.newArrayList();
-        multiPartitionValues.add(new String[]{"cn"});
+        multiPartitionValues.add(new String[] { "cn" });
         try {
             modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "", true,
                     Sets.newHashSet(), multiPartitionValues);
@@ -4234,8 +4291,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         joinTableDesc.setTable("DEFAULT.TEST_ACCOUNT");
         JoinDesc joinDesc = new JoinDesc();
         joinDesc.setType("INNER");
-        joinDesc.setPrimaryKey(new String[]{"TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID"});
-        joinDesc.setForeignKey(new String[]{"TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID"});
+        joinDesc.setPrimaryKey(new String[] { "TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID" });
+        joinDesc.setForeignKey(new String[] { "TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID" });
 
         joinTableDesc.setJoin(joinDesc);
         modelRequest.setJoinTables(Lists.newArrayList(joinTableDesc));
@@ -4738,16 +4795,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setRootFactTableAlias(dataModel.getRootFactTableAlias());
         modelRequest.setRootFactTableName(dataModel.getRootFactTableName());
         Mockito.when(modelRequest.getDimensionNameIdMap()).thenReturn(new HashMap<>(0));
-        try{
+        try {
             modelRequest.setModelType(NDataModel.ModelType.BATCH);
             modelService.validateFusionModelDimension(modelRequest);
-        }catch (Exception e) {
+        } catch (Exception e) {
             Assert.fail();
         }
-        try{
+        try {
             modelRequest.setModelType(NDataModel.ModelType.STREAMING);
             modelService.validateFusionModelDimension(modelRequest);
-        }catch (Exception e) {
+        } catch (Exception e) {
             Assert.fail();
         }
     }
@@ -5161,35 +5218,35 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "Can’t find the segment by name \"not exist name1,not exist name2\". Please check and try again.");
 
         modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
-                new String[]{"not exist name1", "not exist name2"});
+                new String[] { "not exist name1", "not exist name2" });
     }
 
     @Test
     public void testConvertSegmentIdWithName_ByName() {
         String[] segIds = modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
-                new String[]{"20171104141833_20171105141833"});
-        String[] originSegIds = {"11124840-b3e3-43db-bcab-2b78da666d00"};
+                new String[] { "20171104141833_20171105141833" });
+        String[] originSegIds = { "11124840-b3e3-43db-bcab-2b78da666d00" };
         Assert.assertTrue(ArrayUtils.isEquals(segIds, originSegIds));
     }
 
     @Test
     public void testCheckSegmentsExistById() {
         boolean existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[]{"11124840-b3e3-43db-bcab-2b78da666d00"}, false);
+                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00" }, false);
         Assert.assertTrue(existed);
 
         existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[]{"11124840-b3e3-43db-bcab-2b78da666d00_not"}, false);
+                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
         Assert.assertFalse(existed);
     }
 
     @Test
     public void testCheckSegmentsExistByName() {
         boolean existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[]{"20171104141833_20171105141833"}, false);
+                new String[] { "20171104141833_20171105141833" }, false);
         Assert.assertTrue(existed);
         existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[]{"20171104141833_20171105141833_not"}, false);
+                new String[] { "20171104141833_20171105141833_not" }, false);
         Assert.assertFalse(existed);
     }
 
@@ -5466,10 +5523,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val buildPartitions = Lists.<String[]>newArrayList();
-        buildPartitions.add(new String[]{"usa"});
-        buildPartitions.add(new String[]{"Austria"});
-        val segmentTimeRequests = Lists.<SegmentTimeRequest>newArrayList();
+        val buildPartitions = Lists.<String[]> newArrayList();
+        buildPartitions.add(new String[] { "usa" });
+        buildPartitions.add(new String[] { "Austria" });
+        val segmentTimeRequests = Lists.<SegmentTimeRequest> newArrayList();
         segmentTimeRequests.add(new SegmentTimeRequest("1630425600000", "1630512000000"));
 
         IncrementBuildSegmentParams incrParams = new IncrementBuildSegmentParams(project, modelId, "1633017600000",
@@ -5491,7 +5548,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // build all partition values
         IncrementBuildSegmentParams incrParams2 = new IncrementBuildSegmentParams(project, modelId, "1633104000000",
                 "1633190400000", model.getPartitionDesc(), model.getMultiPartitionDesc(), null, true, null)
-                .withBuildAllSubPartitions(true);
+                        .withBuildAllSubPartitions(true);
         val jobInfo2 = modelService.incrementBuildSegmentsManually(incrParams2);
         Assert.assertEquals(1, jobInfo2.getJobs().size());
         Assert.assertEquals(jobInfo2.getJobs().get(0).getJobName(), JobTypeEnum.INC_BUILD.name());
@@ -5512,7 +5569,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
         val project = "default";
         val segmentId = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        val refreshSegmentParams = new RefreshSegmentParams(project, modelId, new String[]{segmentId});
+        val refreshSegmentParams = new RefreshSegmentParams(project, modelId, new String[] { segmentId });
         modelService.refreshSegmentById(refreshSegmentParams);
 
         val jobs = getRunningExecutables(getProject(), modelId);
@@ -5574,14 +5631,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 dataSegment6);
 
         val update2 = new NDataflowUpdate(df.getUuid());
-        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[]{}));
-        update2.setToUpdateSegs(segments.toArray(new NDataSegment[]{}));
+        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[] {}));
+        update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
         dfManager.updateDataflow(update2);
 
         // empty layout in segment4
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[]{dataSegment5.getId(), dataSegment6.getId()}));
+                    new String[] { dataSegment5.getId(), dataSegment6.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5593,7 +5650,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // index is not aligned in segment3, segment4
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[]{dataSegment3.getId(), dataSegment4.getId()}));
+                    new String[] { dataSegment3.getId(), dataSegment4.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5605,7 +5662,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // partitions are not aligned in segment2, segment3
         try {
             modelService.mergeSegmentsManually(new MergeSegmentParams(project, modelId,
-                    new String[]{dataSegment2.getId(), dataSegment3.getId()}));
+                    new String[] { dataSegment2.getId(), dataSegment3.getId() }));
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5616,15 +5673,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         // success
         modelService.mergeSegmentsManually(
-                new MergeSegmentParams(project, modelId, new String[]{dataSegment1.getId(), dataSegment2.getId()}));
+                new MergeSegmentParams(project, modelId, new String[] { dataSegment1.getId(), dataSegment2.getId() }));
     }
 
     private NDataSegment generateSegmentForMultiPartition(String modelId, List<String> partitionValues, String start,
-                                                          String end, SegmentStatusEnum status) {
+            String end, SegmentStatusEnum status) {
         val dfm = NDataflowManager.getInstance(getTestConfig(), getProject());
-        val partitions = Lists.<String[]>newArrayList();
+        val partitions = Lists.<String[]> newArrayList();
         partitionValues.forEach(value -> {
-            partitions.add(new String[]{value});
+            partitions.add(new String[] { value });
         });
         long startTime = SegmentRange.dateToLong(start);
         long endTime = SegmentRange.dateToLong(end);
@@ -5638,15 +5695,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private NDataLayout generateLayoutForMultiPartition(String modelId, String segmentId, List<String> partitionValues,
-                                                        long layoutId) {
+            long layoutId) {
         val dfm = NDataflowManager.getInstance(getTestConfig(), getProject());
         val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
 
         val model = modelManager.getDataModelDesc(modelId);
         val df = dfm.getDataflow(modelId);
-        val partitions = Lists.<String[]>newArrayList();
+        val partitions = Lists.<String[]> newArrayList();
         partitionValues.forEach(value -> {
-            partitions.add(new String[]{value});
+            partitions.add(new String[] { value });
         });
         val partitionIds = model.getMultiPartitionDesc().getPartitionIdsByValues(partitions);
         NDataLayout layout = NDataLayout.newDataLayout(df, segmentId, layoutId);
@@ -5666,13 +5723,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val dataflow = dataflowManager.getDataflow(modelId);
         val dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowManager.updateDataflow(dataflowUpdate);
-        val buildPartitions = Lists.<String[]>newArrayList();
-        buildPartitions.add(new String[]{"un"});
-        buildPartitions.add(new String[]{"Africa"});
-        buildPartitions.add(new String[]{"Austria"});
+        val buildPartitions = Lists.<String[]> newArrayList();
+        buildPartitions.add(new String[] { "un" });
+        buildPartitions.add(new String[] { "Africa" });
+        buildPartitions.add(new String[] { "Austria" });
         val multiPartition1 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         Assert.assertEquals(3, multiPartition1.getPartitions().size());
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false, 0, null);
+        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId1, buildPartitions, false, false, 0,
+                null);
         val multiPartition2 = modelManager.getDataModelDesc(modelId).getMultiPartitionDesc();
         // add two new partitions
         Assert.assertEquals(5, multiPartition2.getPartitions().size());
@@ -5680,13 +5738,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, jobs1.size());
 
         val segmentId2 = "0db919f3-1359-496c-aab5-b6f3951adc0e";
-        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false, 0, null);
+        modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId2, buildPartitions, true, false, 0,
+                null);
         val jobs2 = getRunningExecutables(getProject(), modelId);
         Assert.assertEquals(4, jobs2.size());
 
         val segmentId3 = "d2edf0c5-5eb2-4968-9ad5-09efbf659324";
         try {
-            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true, false, 0, null);
+            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId3, buildPartitions, true, false,
+                    0, null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5697,14 +5757,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val segmentId4 = "ff839b0b-2c23-4420-b332-0df70e36c343";
         try {
             overwriteSystemProp("kylin.job.max-concurrent-jobs", "1");
-            val buildPartitions2 = Lists.<String[]>newArrayList();
-            buildPartitions2.add(new String[]{"ASIA"});
-            buildPartitions2.add(new String[]{"EUROPE"});
-            buildPartitions2.add(new String[]{"MIDDLE EAST"});
-            buildPartitions2.add(new String[]{"AMERICA"});
-            buildPartitions2.add(new String[]{"MOROCCO"});
-            buildPartitions2.add(new String[]{"INDONESIA"});
-            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true, false, 0, null);
+            val buildPartitions2 = Lists.<String[]> newArrayList();
+            buildPartitions2.add(new String[] { "ASIA" });
+            buildPartitions2.add(new String[] { "EUROPE" });
+            buildPartitions2.add(new String[] { "MIDDLE EAST" });
+            buildPartitions2.add(new String[] { "AMERICA" });
+            buildPartitions2.add(new String[] { "MOROCCO" });
+            buildPartitions2.add(new String[] { "INDONESIA" });
+            modelService.buildSegmentPartitionByValue(getProject(), modelId, segmentId4, buildPartitions2, true, false,
+                    0, null);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
@@ -5736,7 +5797,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.refreshSegmentPartition(param1, modelId);
 
         // refresh partition by value
-        val partitionValues = Lists.<String[]>newArrayList(new String[]{"usa"}, new String[]{"un"});
+        val partitionValues = Lists.<String[]> newArrayList(new String[] { "usa" }, new String[] { "un" });
         PartitionsRefreshRequest param2 = new PartitionsRefreshRequest(getProject(), segmentId2, null, partitionValues,
                 null, 0, null);
         modelService.refreshSegmentPartition(param2, modelId);
@@ -5754,7 +5815,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
         // no target partition value in segment
-        partitionValues.add(new String[]{"nodata"});
+        partitionValues.add(new String[] { "nodata" });
         PartitionsRefreshRequest param4 = new PartitionsRefreshRequest(getProject(), segmentId1, null, partitionValues,
                 null, 0, null);
         try {
@@ -5767,7 +5828,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }
 
         // no target partition value or partition id
-        PartitionsRefreshRequest param5 = new PartitionsRefreshRequest(getProject(), segmentId1, null, null, null, 0, null);
+        PartitionsRefreshRequest param5 = new PartitionsRefreshRequest(getProject(), segmentId1, null, null, null, 0,
+                null);
         try {
             modelService.refreshSegmentPartition(param5, modelId);
             Assert.fail();
@@ -5805,8 +5867,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataLayout> toAddCuboIds = Lists.newArrayList(layout1, layout2, layout3);
         val segments = Lists.newArrayList(dataSegment1, dataSegment2);
         val update2 = new NDataflowUpdate(df.getUuid());
-        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[]{}));
-        update2.setToUpdateSegs(segments.toArray(new NDataSegment[]{}));
+        update2.setToAddOrUpdateLayouts(toAddCuboIds.toArray(new NDataLayout[] {}));
+        update2.setToUpdateSegs(segments.toArray(new NDataSegment[] {}));
         dfManager.updateDataflow(update2);
 
         modelService.addIndexesToSegments(project, modelId,
@@ -5888,7 +5950,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // Multi Partition column change
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
         dfm.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
-        val columns = Lists.<String>newLinkedList();
+        val columns = Lists.<String> newLinkedList();
         columns.add("location");
 
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
@@ -6033,9 +6095,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         // PartitionDesc change. Multi Partition column change or from none to have or from have to none.
 
         List<String[]> partitionValues = new ArrayList<>();
-        partitionValues.add(new String[]{"p1"});
-        partitionValues.add(new String[]{"p2"});
-        partitionValues.add(new String[]{"p3"});
+        partitionValues.add(new String[] { "p1" });
+        partitionValues.add(new String[] { "p2" });
+        partitionValues.add(new String[] { "p3" });
         var dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
 
         List<List<String>> expectPartitionValues = new ArrayList<>();
@@ -6047,9 +6109,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 .map(MultiPartitionDesc.PartitionInfo::getValues).map(Arrays::asList).collect(Collectors.toList()));
 
         partitionValues = new ArrayList<>();
-        partitionValues.add(new String[]{"p2"});
-        partitionValues.add(new String[]{"p1"});
-        partitionValues.add(new String[]{"p5"});
+        partitionValues.add(new String[] { "p2" });
+        partitionValues.add(new String[] { "p1" });
+        partitionValues.add(new String[] { "p5" });
         dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
 
         expectPartitionValues = new ArrayList<>();
@@ -6066,9 +6128,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "1";
 
         List<String[]> partitionValues = new ArrayList<>();
-        partitionValues.add(new String[]{"p1"});
-        partitionValues.add(new String[]{"p2"});
-        partitionValues.add(new String[]{"p3"});
+        partitionValues.add(new String[] { "p1" });
+        partitionValues.add(new String[] { "p2" });
+        partitionValues.add(new String[] { "p3" });
         thrown.expect(KylinException.class);
         thrown.expectMessage("Can’t find model named \"1\". Please check and try again.");
         modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
@@ -6245,8 +6307,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetModelWithMeasureRemark() {
         String project = "default";
         String modelName = "nmodel_basic";
-        NDataModelResponse model = modelService.getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null,
-                null, true)
+        NDataModelResponse model = modelService
+                .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)
                 .get(0);
         Assert.assertEquals(model.getMeasures().size(), model.getSimplifiedMeasures().size());
         Assert.assertEquals("TRANS_CNT", model.getMeasures().get(0).getName());

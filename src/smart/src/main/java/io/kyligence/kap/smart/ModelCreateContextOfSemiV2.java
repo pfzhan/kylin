@@ -39,7 +39,7 @@ public class ModelCreateContextOfSemiV2 extends AbstractSemiContextV2 {
 
     public ModelCreateContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqlArray) {
         super(kylinConfig, project, sqlArray);
-
+        this.canCreateNewModel = true;
     }
 
     @Override

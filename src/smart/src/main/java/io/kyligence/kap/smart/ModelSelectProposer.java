@@ -253,7 +253,7 @@ public class ModelSelectProposer extends AbstractProposer {
                 modelTree.getOlapContexts().addAll(retainedOLAPContexts);
                 modelContext.setSnapshotSelected(false);
                 return model;
-            } else if (joinSelectOptRule.isCompatible(model, modelTree)) {
+            } else if (proposeContext.isCanCreateNewModel() && joinSelectOptRule.isCompatible(model, modelTree)) {
                 return model;
             }
 

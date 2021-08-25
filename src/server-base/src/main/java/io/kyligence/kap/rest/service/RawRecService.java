@@ -359,7 +359,7 @@ public class RawRecService {
                     item.setRecEntity(measureItem);
                 }
                 item.setDependIDs(measureItem.genDependIds(nonLayoutUniqueFlagRecMap, measureItem.getUniqueContent(),
-                        modelContext.getOriginModel()));
+                        getOriginModel(semiContextV2.getProject(), modelContext)));
                 rawRecItems.add(item);
             });
         }
@@ -390,7 +390,7 @@ public class RawRecService {
                     item.setRecEntity(dimItem);
                 }
                 item.setDependIDs(dimItem.genDependIds(uniqueRecItemMap, dimItem.getUniqueContent(),
-                        modelContext.getOriginModel()));
+                        getOriginModel(semiContextV2.getProject(), modelContext)));
                 rawRecItems.add(item);
             });
         }
@@ -420,11 +420,18 @@ public class RawRecService {
                     item.setRecEntity(ccItem);
                     item.setState(RawRecItem.RawRecState.INITIAL);
                 }
-                item.setDependIDs(ccItem.genDependIds(modelContext.getOriginModel()));
+                item.setDependIDs(ccItem.genDependIds(getOriginModel(semiContextV2.getProject(), modelContext)));
                 rawRecItems.add(item);
             });
         }
         return rawRecItems;
+    }
+
+    private NDataModel getOriginModel(String project, AbstractContext.ModelContext modelContext) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return modelContext.getOriginModel().getJoinTables().size() == modelContext.getTargetModel().getJoinTables()
+                .size() ? modelContext.getOriginModel()
+                        : modelManager.getDataModelDesc(modelContext.getOriginModel().getUuid());
     }
 
     private void saveCCRawRecItems(List<RawRecItem> ccRawRecItems, String project) {

@@ -44,6 +44,7 @@ public class SmartContext extends AbstractContext {
 
     public SmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
+        this.canCreateNewModel = true;
     }
 
     @Override

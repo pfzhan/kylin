@@ -1728,6 +1728,7 @@ public class ModelService extends BasicService {
             // update model
             List<LayoutRecDetailResponse> recItems = modelRequest.getRecItems();
             modelManager.updateDataModel(modelRequest.getId(), copyForWrite -> {
+                copyForWrite.setJoinTables(modelRequest.getJoinTables());
                 List<NDataModel.NamedColumn> allNamedColumns = copyForWrite.getAllNamedColumns();
                 Map<Integer, NDataModel.NamedColumn> namedColumnMap = Maps.newHashMap();
                 allNamedColumns.forEach(col -> namedColumnMap.put(col.getId(), col));
@@ -1826,6 +1827,29 @@ public class ModelService extends BasicService {
         }, project);
     }
 
+    void saveProposedJoinRelations(List<ModelRecResponse> reusedModels, AbstractContext proposeContext) {
+        if (!proposeContext.isCanCreateNewModel()) {
+            return;
+        }
+
+        String project = proposeContext.getProject();
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            for (ModelRecResponse response : reusedModels) {
+                NDataModelManager modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                modelMgr.updateDataModel(response.getId(), copyForWrite -> {
+                    List<JoinTableDesc> newJoinTables = response.getJoinTables();
+                    if (newJoinTables.size() != copyForWrite.getJoinTables().size()) {
+                        copyForWrite.setJoinTables(newJoinTables);
+                        copyForWrite.setAllNamedColumns(response.getAllNamedColumns());
+                        copyForWrite.setAllMeasures(response.getAllMeasures());
+                        copyForWrite.setComputedColumnDescs(response.getComputedColumnDescs());
+                    }
+                });
+            }
+            return null;
+        }, project);
+    }
+
     public OpenSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
         AbstractContext proposeContext = suggestModel(request.getProject(), request.getSqls(),
                 !request.getForce2CreateNewModel(), false);
@@ -1833,7 +1857,7 @@ public class ModelService extends BasicService {
 
         OpenSuggestionResponse result = new OpenSuggestionResponse();
         SmartConfig config = proposeContext.getSmartConfig();
-        if (config.getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
+        if (config.getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND) && request.isAcceptRecommendation()) {
             saveNewModel(request.getProject(), innerResponse.getNewModels(), request.isWithEmptySegment(),
                     request.isWithModelOnline(), request.isWithBaseIndex());
             saveRecResult(innerResponse, request.getProject());
@@ -1850,6 +1874,7 @@ public class ModelService extends BasicService {
             if (request.isAcceptRecommendation()) {
                 saveRecResult(innerResponse, request.getProject());
             } else {
+                saveProposedJoinRelations(innerResponse.getReusedModels(), proposeContext);
                 rawRecService.transferAndSaveRecommendations(proposeContext);
             }
         }
@@ -1953,10 +1978,10 @@ public class ModelService extends BasicService {
         checkBatchSqlSize(kylinConfig, sqls);
         AbstractContext proposeContext;
         String[] sqlArray = sqls.toArray(new String[0]);
-        if (reuseExistedModel) {
-            proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, createNewModel);
-        } else if (SmartConfig.wrap(kylinConfig).getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
+        if (SmartConfig.wrap(kylinConfig).getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND)) {
             proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, true);
+        } else if (reuseExistedModel) {
+            proposeContext = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray, createNewModel);
         } else {
             proposeContext = new ModelCreateContextOfSemiV2(kylinConfig, project, sqlArray);
         }
