@@ -513,10 +513,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         } else {
             newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
         }
+        // for streaming merge
         if (fileLayer != null) {
             newSegment.getAdditionalInfo().put("file_layer", String.valueOf(fileLayer));
+        } else {
+            validateNewSegments(dataflowCopy, newSegment);
         }
-        validateNewSegments(dataflowCopy, newSegment);
         checkAndMergeMultiPartitions(dataflow, newSegment, mergingSegments);
 
         update.setToAddSegs(newSegment);
@@ -568,15 +570,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         segment.setSegmentRange(segRange);
         segment.validate();
         return segment;
-    }
-
-    private void containsNewSegment(NDataflow df, NDataSegment newSegment) {
-        Segments<NDataSegment> tobe = df.calculateToBeSegments(newSegment);
-        List<NDataSegment> newList = Arrays.asList(newSegment);
-        if (!tobe.containsAll(newList)) {
-            throw new IllegalStateException("For NDataflow " + df + ", the new segments " + newList
-                    + " do not fit in its current " + df.getSegments() + "; the resulted tobe is " + tobe);
-        }
     }
 
     private void validateNewSegments(NDataflow df, NDataSegment newSegments) {

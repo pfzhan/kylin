@@ -327,6 +327,55 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testMergeKafkaSegments() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+
+        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 2L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(seg1);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(1, df.getSegments().size());
+
+        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 2L,
+                createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 300L)));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(seg2);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(2, df.getSegments().size());
+
+        NDataSegment seg3 = mgr.appendSegment(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 2L,
+                createKafkaPartitionOffset(0, 400L), createKafkaPartitionOffset(0, 500L)));
+        seg3.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getUuid());
+        update.setToUpdateSegs(seg3);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(3, df.getSegments().size());
+
+        String newSegId = UUID.randomUUID().toString();
+        NDataSegment mergedSeg1 = mgr.mergeSegments(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 2L,
+                createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)), true, 1, newSegId);
+        Assert.assertEquals(SegmentStatusEnum.NEW, mergedSeg1.getStatus());
+    }
+
+    @Test
     public void testGetDataflow() {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
