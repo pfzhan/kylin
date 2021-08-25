@@ -112,7 +112,8 @@ public class RawRecService {
             sqlList.add(queryHistory.getSql());
             queryHistoryMap.put(queryHistory.getSql(), queryHistory);
         });
-        KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
+
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         AbstractContext semiContextV2 = ProposerJob
                 .propose(new ModelReuseContextOfSemiV2(kylinConfig, project, sqlList.toArray(new String[0])));
 
