@@ -60,7 +60,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
@@ -70,8 +71,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.ImageDesc;
@@ -79,6 +82,7 @@ import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import io.kyligence.kap.common.persistence.metadata.EpochStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -132,7 +136,15 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
 
     private static final String KYLIN_PROPS = "kylin.properties";
 
-    private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
+    private static final Cache<KylinConfig, ResourceStore> META_CACHE = CacheBuilder.newBuilder().maximumSize(20)
+            .expireAfterAccess(10, TimeUnit.MINUTES) //
+            .build(new CacheLoader<KylinConfig, ResourceStore>() {
+                @Override
+                public ResourceStore load(KylinConfig config) {
+                    return createResourceStore(config);
+                }
+            });
+
     @Getter
     protected MetadataStore metadataStore;
     @Setter
@@ -146,22 +158,11 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
      * Get a resource store for Kylin's metadata.
      */
     public static ResourceStore getKylinMetaStore(KylinConfig config) {
-        ResourceStore store = META_CACHE.get(config);
-        if (store != null)
-            return store;
-
-        synchronized (ResourceStore.class) {
-            store = META_CACHE.get(config);
-            if (store == null) {
-                store = createResourceStore(config);
-                META_CACHE.put(config, store);
-
-                if (isPotentialMemoryLeak()) {
-                    logger.warn("Cached {} kylin meta stores, memory leak?", META_CACHE.size(), new RuntimeException());
-                }
-            }
+        try {
+            return META_CACHE.get(config, () -> createResourceStore(config));
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
         }
-        return store;
     }
 
     public static boolean isPotentialMemoryLeak() {
@@ -169,11 +170,11 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     }
 
     public static void clearCache() {
-        META_CACHE.clear();
+        META_CACHE.invalidateAll();
     }
 
     public static void clearCache(KylinConfig config) {
-        META_CACHE.remove(config);
+        META_CACHE.invalidate(config);
     }
 
     public static void setRS(KylinConfig config, ResourceStore rs) {
