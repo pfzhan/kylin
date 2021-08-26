@@ -25,12 +25,12 @@ package io.kyligence.kap.newten;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -491,7 +491,7 @@ public class PartialBuildJobTest extends SemiAutoTestBase {
         String s = JsonUtil.writeValueAsIndentString(tableDesc);
 
         TableDesc newTable = JsonUtil.readValue(s, TableDesc.class);
-        newTable.setUuid(UUID.randomUUID().toString());
+        newTable.setUuid(RandomUtil.randomUUIDStr());
         newTable.setName("SSB.LINEORDER".split("\\.")[1]);
         newTable.setMvcc(-1);
         tableMgr.saveSourceTable(newTable);

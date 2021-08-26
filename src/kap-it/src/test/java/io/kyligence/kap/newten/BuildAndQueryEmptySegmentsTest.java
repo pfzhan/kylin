@@ -25,10 +25,10 @@ package io.kyligence.kap.newten;
 
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -147,7 +147,7 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
         NDataSegment emptyMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong(start), SegmentRange.dateToLong(end)), force);
         NSparkMergingJob emptyMergeJob = NSparkMergingJob.merge(emptyMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
-                UUID.randomUUID().toString());
+                RandomUtil.randomUUIDStr());
         execMgr.addJob(emptyMergeJob);
         Assert.assertEquals(ExecutableState.SUCCEED, wait(emptyMergeJob));
         AfterMergeOrRefreshResourceMerger merger = new AfterMergeOrRefreshResourceMerger(config, getProject());

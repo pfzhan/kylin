@@ -27,12 +27,12 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.util.QueryUtil;
@@ -311,7 +311,7 @@ public abstract class AbstractContext implements IKeep {
             item.setLayout(layout);
             item.setCreateTime(System.currentTimeMillis());
             item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
-            item.setUuid(UUID.randomUUID().toString());
+            item.setUuid(RandomUtil.randomUUIDStr());
             getIndexRexItemMap().put(layout.genUniqueContent(), item);
         }
     }

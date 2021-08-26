@@ -27,12 +27,12 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -98,7 +98,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         if (Shell.MAC)
             overwriteSystemPropBeforeClass("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
 
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
@@ -129,7 +129,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
-        dataLoadingRange.setUuid(UUID.randomUUID().toString());
+        dataLoadingRange.setUuid(RandomUtil.randomUUIDStr());
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(df.getModel().getPartitionDesc().getPartitionDateColumn());
         dataLoadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(

@@ -31,11 +31,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 
-import io.kyligence.kap.rest.request.BatchAccessRequest;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -69,6 +68,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.AccessRequest;
+import io.kyligence.kap.rest.request.BatchAccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ProjectService;
 
@@ -253,7 +253,7 @@ public class NAccessControllerTest extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/available/{entity_type:.+}", type)
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .param("model", UUID.randomUUID().toString()).param("name", "").param("is_case_sensitive", "false")
+                .param("model", RandomUtil.randomUUIDStr()).param("name", "").param("is_case_sensitive", "false")
                 .param("page_offset", "0").param("page_size", "10")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());

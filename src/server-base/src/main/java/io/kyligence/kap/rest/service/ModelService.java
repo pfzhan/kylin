@@ -87,7 +87,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -112,6 +111,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.InMemoryJobRunner;
 import org.apache.kylin.job.JoinedFlatTable;
@@ -1268,7 +1268,7 @@ public class ModelService extends BasicService {
             NDataModel dataModelDesc = getModelById(modelId, project);
             //copyForWrite nDataModel do init,but can not set new modelname
             NDataModel nDataModel = semanticUpdater.deepCopyModel(dataModelDesc);
-            nDataModel.setUuid(UUID.randomUUID().toString());
+            nDataModel.setUuid(RandomUtil.randomUUIDStr());
             nDataModel.setAlias(newModelName);
             nDataModel.setLastModified(System.currentTimeMillis());
             nDataModel.setRecommendationsCount(0);

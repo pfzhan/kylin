@@ -32,10 +32,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.Segments;
@@ -827,7 +827,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     private Segments<NDataSegmentResponse> mockSegments() {
         final Segments<NDataSegmentResponse> nDataSegments = new Segments<>();
         NDataSegmentResponse segment = new NDataSegmentResponse();
-        segment.setId(UUID.randomUUID().toString());
+        segment.setId(RandomUtil.randomUUIDStr());
         segment.setName("seg1");
         nDataSegments.add(segment);
         return nDataSegments;
@@ -882,7 +882,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateModelOwner() {
         String project = "default";
         String owner = "test";
-        String modelId = UUID.randomUUID().toString();
+        String modelId = RandomUtil.randomUUIDStr();
 
         OwnerChangeRequest ownerChangeRequest = new OwnerChangeRequest();
         ownerChangeRequest.setProject(project);

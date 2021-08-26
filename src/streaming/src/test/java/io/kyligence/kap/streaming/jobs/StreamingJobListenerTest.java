@@ -27,11 +27,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.UUID;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
-import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.spark.launcher.SparkAppHandle;
@@ -42,7 +39,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.event.StreamingJobDropEvent;
+import io.kyligence.kap.streaming.event.StreamingJobKillEvent;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
@@ -248,7 +248,7 @@ public class StreamingJobListenerTest extends StreamingTestCase {
 
         @Override
         public String getAppId() {
-            return "local-" + UUID.randomUUID();
+            return "local-" + RandomUtil.randomUUID();
         }
 
         @Override

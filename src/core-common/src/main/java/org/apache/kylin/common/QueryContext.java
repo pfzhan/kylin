@@ -49,8 +49,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.kylin.common.util.RandomUtil;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
 import com.google.common.collect.Lists;
@@ -135,7 +136,7 @@ public class QueryContext implements Closeable {
 
     private QueryContext() {
         // use QueryContext.current() instead
-        queryId = UUID.randomUUID().toString();
+        queryId = RandomUtil.randomUUIDStr();
         recordMillis = System.currentTimeMillis();
         metrics.queryStartTime = recordMillis;
     }

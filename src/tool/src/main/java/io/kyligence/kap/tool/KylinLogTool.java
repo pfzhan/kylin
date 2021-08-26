@@ -46,7 +46,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,6 +60,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -540,7 +540,7 @@ public class KylinLogTool {
             return;
         }
         logger.info("hide license file {}", file.getAbsolutePath());
-        File tempFile = new File(file.getParent(), UUID.randomUUID().toString());
+        File tempFile = new File(file.getParent(), RandomUtil.randomUUIDStr());
         try {
             FileUtils.moveFile(file, tempFile);
             try (BufferedReader br = new BufferedReader(

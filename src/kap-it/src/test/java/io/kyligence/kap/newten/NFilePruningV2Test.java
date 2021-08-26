@@ -26,11 +26,11 @@ package io.kyligence.kap.newten;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -47,6 +47,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sparkproject.guava.collect.Sets;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -55,7 +56,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
-import org.sparkproject.guava.collect.Sets;
 import scala.runtime.AbstractFunction1;
 
 @RunWith(TimeZoneTestRunner.class)
@@ -71,7 +71,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
         }
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");

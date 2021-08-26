@@ -25,9 +25,9 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -79,7 +79,7 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
 
         log.info("start creating a table sampling job on table {}", tableDesc.getIdentity());
         NTableSamplingJob job = new NTableSamplingJob();
-        job.setId(UUID.randomUUID().toString());
+        job.setId(RandomUtil.randomUUIDStr());
         job.setName(JobTypeEnum.TABLE_SAMPLING.toString());
         job.setProject(project);
         job.setJobType(JobTypeEnum.TABLE_SAMPLING);

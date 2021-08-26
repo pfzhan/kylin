@@ -27,7 +27,6 @@ package io.kyligence.kap.query.util;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
@@ -48,6 +47,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.util.Util;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -74,7 +74,7 @@ public class KapQueryUtil {
 
     public static String massageExpression(NDataModel model, String project, String expression,
             QueryContext.AclInfo aclInfo, boolean massageToPushdown) {
-        String tempConst = "'" + UUID.randomUUID().toString() + "'";
+        String tempConst = "'" + RandomUtil.randomUUIDStr() + "'";
         StringBuilder forCC = new StringBuilder();
         forCC.append("select ");
         forCC.append(expression);

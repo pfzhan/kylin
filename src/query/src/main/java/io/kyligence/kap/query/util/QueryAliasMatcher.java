@@ -28,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -52,6 +51,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -323,7 +323,7 @@ public class QueryAliasMatcher {
         private TblColRef resolveComputedColumnRef(SqlCall call, String... tableCandidates) {
             foundCC = true;
             String table = findComputedColumnTable(call, tableCandidates);
-            ColumnDesc columnDesc = new ColumnDesc("-1", UUID.randomUUID().toString(), "string", "", null, null,
+            ColumnDesc columnDesc = new ColumnDesc("-1", RandomUtil.randomUUIDStr(), "string", "", null, null,
                     call.toSqlString(SqlDialect.CALCITE).getSql());
             TableRef tableRef = alias2CRT.get(table).getColumnByIndex(0).getTableRef();
             columnDesc.setTable(tableRef.getTableDesc());

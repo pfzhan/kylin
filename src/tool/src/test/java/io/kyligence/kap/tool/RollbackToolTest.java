@@ -33,13 +33,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -239,7 +239,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(true).when(tool).checkClusterStatus();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         MetadataTool.backup(kylinConfig);
-        val jobId = UUID.randomUUID().toString();
+        val jobId = RandomUtil.randomUUIDStr();
         UnitOfWork.doInTransactionWithRetry(() -> {
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
             mockJob("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", jobId, SegmentRange.dateToLong("2012-01-01"),

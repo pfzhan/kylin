@@ -44,10 +44,10 @@ package org.apache.kylin.common.persistence;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -77,7 +77,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     private static final long serialVersionUID = 0L;
 
     @JsonProperty("uuid")
-    protected String uuid = UUID.randomUUID().toString();
+    protected String uuid = RandomUtil.randomUUIDStr();
 
     @JsonProperty("last_modified")
     protected long lastModified;
@@ -147,7 +147,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     }
 
     public void updateRandomUuid() {
-        setUuid(UUID.randomUUID().toString());
+        setUuid(RandomUtil.randomUUIDStr());
     }
 
     public boolean isCachedAndShared() {

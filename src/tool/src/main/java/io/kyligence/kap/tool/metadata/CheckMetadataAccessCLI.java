@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.tool.metadata;
 
-import java.util.UUID;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -46,7 +45,7 @@ public class CheckMetadataAccessCLI implements IKeep {
 
     public boolean testAccessMetadata() {
 
-        String projectName = UUID.randomUUID().toString();
+        String projectName = RandomUtil.randomUUIDStr();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore store = ResourceStore.getKylinMetaStore(config);
 

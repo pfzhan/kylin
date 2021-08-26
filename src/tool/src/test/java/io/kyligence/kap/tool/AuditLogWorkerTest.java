@@ -29,13 +29,13 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.IntStream;
 
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.RandomUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -151,7 +151,7 @@ public class AuditLogWorkerTest extends NLocalFileMetadataTestCase {
         });
         t1.start();
 
-        val unitId = UUID.randomUUID().toString();
+        val unitId = RandomUtil.randomUUIDStr();
         Map<String, Long> versions = Maps.newHashMap();
         int size = 200;
         IntStream.range(1000, 1000 + size).forEach(id -> {

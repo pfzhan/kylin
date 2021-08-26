@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.query.engine.mask
 
-import java.util.UUID
-
 import com.google.common.collect.Lists
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
 import io.kyligence.kap.metadata.acl.{DependentColumn, DependentColumnInfo, SensitiveDataMask, SensitiveDataMaskInfo}
 import io.kyligence.kap.query.engine.QueryExec
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.RandomUtil
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.{Row, SparkSession}
@@ -63,7 +62,7 @@ class CompositeDataMaskDFTest extends org.scalatest.funsuite.AnyFunSuite with Be
 
     mask = new CompositeQueryResultMasks(sensitiveMask, dependentMask)
 
-    val sparkConf = new SparkConf().setAppName(UUID.randomUUID.toString).setMaster("local[1]")
+    val sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr).setMaster("local[1]")
     ss = SparkSession.builder.config(sparkConf).getOrCreate
   }
 

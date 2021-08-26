@@ -34,15 +34,15 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.RandomUtil;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.Unsafe;
 
 public class DumpHadoopSystemProps implements IKeep {
-    private static final String NO_PARAMETER = UUID.randomUUID().toString();
+    private static final String NO_PARAMETER = RandomUtil.randomUUIDStr();
     private static final String UTF8 = "UTF-8";
 
     public static void main(String[] args) throws Exception {

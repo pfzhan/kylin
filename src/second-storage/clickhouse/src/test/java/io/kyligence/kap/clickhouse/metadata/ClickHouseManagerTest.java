@@ -23,6 +23,18 @@
  */
 package io.kyligence.kap.clickhouse.metadata;
 
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
@@ -34,17 +46,6 @@ import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.TableEntity;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
-import org.apache.kylin.common.KylinConfig;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-import java.util.UUID;
 
 public class ClickHouseManagerTest {
     private static final String DEFAULT_PROJECT = "default";
@@ -84,7 +85,7 @@ public class ClickHouseManagerTest {
         final Manager<TablePlan> refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
         Assert.assertNotNull(refectionManage);
 
-        final String cubeName = UUID.randomUUID().toString();
+        final String cubeName = RandomUtil.randomUUIDStr();
 
         TablePlan cube = TablePlan.builder()
                 .setModel(cubeName)

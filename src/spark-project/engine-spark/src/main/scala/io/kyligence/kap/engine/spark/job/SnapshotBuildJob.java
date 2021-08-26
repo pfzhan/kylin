@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
@@ -38,6 +37,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -92,7 +92,7 @@ public class SnapshotBuildJob extends SparkApplication {
         }
         Set<String> partitions = getTablePartitions(table, selectedPartCol);
         Set<String> curPartitions = table.getSnapshotPartitions().keySet();
-        String resourcePath = FileNames.snapshotFile(table) + "/" + UUID.randomUUID();
+        String resourcePath = FileNames.snapshotFile(table) + "/" + RandomUtil.randomUUID();
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             NTableMetadataManager tableMetadataManager = NTableMetadataManager

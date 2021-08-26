@@ -21,33 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.metadata;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
+package org.apache.kylin.common.util;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.RandomUtil;
+import java.util.UUID;
 
-import io.kyligence.kap.common.util.AddressUtil;
-import lombok.val;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class JdbcAuditLogStoreTool {
+public class RandomUtilTest {
 
-    public static JdbcAuditLogStore prepareJdbcAuditLogStore(KylinConfig config) throws Exception {
+    @Test
+    public void testRandomUUID() {
+        Assert.assertEquals(RandomUtil.randomUUID().toString().length(), UUID.randomUUID().toString().length());
+        Assert.assertNotEquals(RandomUtil.randomUUID().toString(), RandomUtil.randomUUID().toString());
+    }
 
-        val url = config.getMetadataUrl();
-        val auditLogStore = new JdbcAuditLogStore(config);
-
-        val jdbcTemplate = auditLogStore.getJdbcTemplate();
-        for (int i = 0; i < 100; i++) {
-            val projectName = "p" + i;
-            String unitId = RandomUtil.randomUUIDStr();
-            jdbcTemplate.update(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
-                    "/" + projectName + "/aa", "aa".getBytes(StandardCharsets.UTF_8), System.currentTimeMillis(), 0,
-                    unitId, null, AddressUtil.getLocalInstance());
-        }
-
-        return auditLogStore;
+    @Test
+    public void testRandomUUIDStr() {
+        Assert.assertEquals(RandomUtil.randomUUIDStr().length(), UUID.randomUUID().toString().length());
+        Assert.assertNotEquals(RandomUtil.randomUUIDStr(), RandomUtil.randomUUIDStr());
     }
 }

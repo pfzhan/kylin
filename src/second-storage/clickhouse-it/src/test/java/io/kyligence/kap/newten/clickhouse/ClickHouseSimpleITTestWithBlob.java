@@ -23,16 +23,14 @@
  */
 package io.kyligence.kap.newten.clickhouse;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkContext;
 import org.junit.After;
@@ -44,11 +42,15 @@ import org.junit.runners.JUnit4;
 import org.sparkproject.guava.collect.Sets;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.extern.slf4j.Slf4j;
 
 @Ignore("disable this suite, since it only works on hadoop 3.2")
 @Slf4j
@@ -60,7 +62,7 @@ public class ClickHouseSimpleITTestWithBlob extends ClickHouseSimpleITTest {
     @Override
     protected void doSetup() throws Exception {
         File tempRoot = FileUtils.getTempDirectory();
-        File tempDir = new File(tempRoot, UUID.randomUUID().toString());
+        File tempDir = new File(tempRoot, RandomUtil.randomUUIDStr());
         if (!tempDir.mkdir()) {
             throw new IllegalStateException("temp blob directory create failed");
         }

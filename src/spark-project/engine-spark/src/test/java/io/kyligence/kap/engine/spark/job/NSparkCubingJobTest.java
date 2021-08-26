@@ -36,7 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -47,6 +46,7 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -459,7 +459,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);
         NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
-                UUID.randomUUID().toString());
+                RandomUtil.randomUUIDStr());
         execMgr.addJob(firstMergeJob);
         await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, firstMergeJob.getStatus()));
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -655,11 +655,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round1.add(layouts.get(1));
         // Round1. Build new segment
         NSparkCubingJob job1 = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN",
-                JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet(), null, null);
+                JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         NSparkCubingJob job2 = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
-                "ADMIN", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet(), null, null);
+                "ADMIN", JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         NSparkCubingJob refreshJob = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
-                "ADMIN", JobTypeEnum.INDEX_REFRESH, UUID.randomUUID().toString(), Sets.newHashSet(), null, null);
+                "ADMIN", JobTypeEnum.INDEX_REFRESH, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job1);
         execMgr.addJob(job2);
         execMgr.addJob(refreshJob);
@@ -671,7 +671,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         NDataSegment thirdSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(20L, 22L));
         NSparkCubingJob job3 = NSparkCubingJob.create(Sets.newHashSet(thirdSeg), Sets.newLinkedHashSet(round1), "ADMIN",
-                JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet(), null, null);
+                JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job3);
         execMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING);
         Assert.assertTrue(job1.safetyIfDiscard());
@@ -694,7 +694,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round2.add(layouts2.get(0));
 
         NSparkCubingJob job4 = NSparkCubingJob.create(Sets.newHashSet(singleSeg), Sets.newLinkedHashSet(round2),
-                "ADMIN", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet(), null, null);
+                "ADMIN", JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), Sets.newHashSet(), null, null);
         execMgr.addJob(job4);
         execMgr.updateJobOutput(job4.getId(), ExecutableState.RUNNING);
 

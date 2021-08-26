@@ -26,14 +26,11 @@ package io.kyligence.kap.rest.service;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
-import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.constant.Constant;
@@ -62,9 +59,12 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.Range;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.FusionRuleDataResult;
 import lombok.val;
 import lombok.var;
 
@@ -169,7 +169,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val df = dfMgr.getDataflow(modelId);
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        dfMgr.appendSegmentForStreaming(df, segRange, RandomUtil.randomUUIDStr());
         val rule1 = fusionIndexService.getRule("streaming_test", modelId);
         Assert.assertEquals(1, rule1.getAggregationGroups().size());
         Assert.assertEquals(false, rule1.getIndexUpdateEnabled());
@@ -600,7 +600,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         NDataflow df = dfMgr.getDataflow(modelId);
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        dfMgr.appendSegmentForStreaming(df, segRange, RandomUtil.randomUUIDStr());
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
         var saved = indexPlanManager.getIndexPlan(batchId);
@@ -643,7 +643,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         NDataflow df = dfMgr.getDataflow(modelId);
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        dfMgr.appendSegmentForStreaming(df, segRange, RandomUtil.randomUUIDStr());
 
         try {
             fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
@@ -704,7 +704,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         NDataflow df = dfMgr.getDataflow(modelId);
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        dfMgr.appendSegmentForStreaming(df, segRange, RandomUtil.randomUUIDStr());
 
         try {
             fusionIndexService.createTableIndex("streaming_test", CreateTableIndexRequest.builder()
@@ -764,7 +764,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val df = dfMgr.getDataflow(modelId);
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        dfMgr.appendSegmentForStreaming(df, segRange, RandomUtil.randomUUIDStr());
 
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "streaming_test");
         val indexPlan = indexPlanManager.getIndexPlan(modelId);
@@ -803,7 +803,7 @@ public class FusionIndexServiceTest extends CSVSourceTestCase {
         val df = dfMgr.getDataflow(modelId);
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        dfMgr.appendSegmentForStreaming(df, segRange, UUID.randomUUID().toString());
+        dfMgr.appendSegmentForStreaming(df, segRange, RandomUtil.randomUUIDStr());
 
         val indexes = fusionIndexService.getIndexes("streaming_test", modelId, "",
                 Lists.newArrayList(IndexEntity.Status.NO_BUILD), "data_size", false, null, null, null);

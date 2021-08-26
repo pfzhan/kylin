@@ -30,8 +30,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
 
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -222,7 +222,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             item.setDataType(tblColRef.getDatatype());
             item.setCreateTime(System.currentTimeMillis());
             item.setUniqueContent(uniqueContent);
-            item.setUuid(String.format(Locale.ROOT, "dimension_%s", UUID.randomUUID().toString()));
+            item.setUuid(String.format(Locale.ROOT, "dimension_%s", RandomUtil.randomUUIDStr()));
             modelContext.getDimensionRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 
@@ -282,7 +282,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             item.setMeasure(measure);
             item.setCreateTime(System.currentTimeMillis());
             item.setUniqueContent(uniqueContent);
-            item.setUuid(String.format(Locale.ROOT, "measure_%s", UUID.randomUUID().toString()));
+            item.setUuid(String.format(Locale.ROOT, "measure_%s", RandomUtil.randomUUIDStr()));
             modelContext.getMeasureRecItemMap().putIfAbsent(item.getUuid(), item);
         }
 

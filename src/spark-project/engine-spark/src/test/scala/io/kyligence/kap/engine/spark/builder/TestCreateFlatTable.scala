@@ -27,6 +27,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.RandomUtil
 import org.apache.kylin.metadata.model.SegmentRange
 import org.apache.spark.InfoHelper
 import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession, SparderBaseFunSuite}
@@ -34,7 +35,7 @@ import org.apache.spark.sql.{Dataset, Row}
 import org.junit.Assert
 
 import java.text.SimpleDateFormat
-import java.util.{Locale, TimeZone, UUID}
+import java.util.{Locale, TimeZone}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -119,7 +120,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
 
-    val groupId = UUID.randomUUID().toString
+    val groupId = RandomUtil.randomUUID().toString
     spark.sparkContext.setJobGroup(groupId, "test", false)
     val seg1 = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1356019200000L))
     val afterJoin1 = generateFlatTable(seg1, df, true)

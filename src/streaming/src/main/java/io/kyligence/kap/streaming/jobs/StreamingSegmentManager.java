@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.streaming.jobs;
 
-import java.util.UUID;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.RestResponse;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.kafka010.OffsetRangeManager;
@@ -75,7 +74,7 @@ public class StreamingSegmentManager {
             RestSupport rest = new RestSupport(config);
             StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
             req.setSegmentRange(sr);
-            req.setNewSegId(UUID.randomUUID().toString());
+            req.setNewSegId(RandomUtil.randomUUIDStr());
             try {
                 RestResponse<String> restResponse = rest.execute(rest.createHttpPost(SEGMENT_POST_URL), req);
                 String newSegId = restResponse.getData();

@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Exchanger;
 
 import javax.servlet.ServletOutputStream;
@@ -54,6 +53,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.exception.NAsyncQueryIllegalParamException;
 import org.apache.kylin.query.util.AsyncQueryUtil;
@@ -114,8 +114,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
         when(sqlResponse.isException()).thenReturn(true);
         when(sqlResponse.getExceptionMessage()).thenReturn("some error!!!");
 
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         if (sqlResponse.isException()) {
             AsyncQueryUtil.createErrorFlag(PROJECT, queryId, sqlResponse.getExceptionMessage());
         }
@@ -126,8 +125,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testCreateErrorFlagWhenMessageIsNull() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         AsyncQueryUtil.createErrorFlag(PROJECT, queryId, null);
     }
 
@@ -135,8 +133,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSuccessQueryAndDownloadResult() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         assertTrue(asyncQueryService.queryStatus(PROJECT, queryId) == AsyncQueryService.QueryStatus.SUCCESS);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -161,8 +158,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSuccessQueryAndDownloadResultIncludeHeader() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockMetadata(queryId);
         mockResultFile(queryId, false, true);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
@@ -185,8 +181,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSuccessQueryAndDownloadJsonResult() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockJsonResultFile(queryId);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -212,8 +207,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     public void testSuccessQueryAndDownloadXlsxResult() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(false);
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         assertSame(AsyncQueryService.QueryStatus.SUCCESS, asyncQueryService.queryStatus(PROJECT, queryId));
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -234,8 +228,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testCleanFolder() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(PROJECT, queryId));
         assertTrue(AsyncQueryUtil.getFileSystem().exists(resultPath));
@@ -245,8 +238,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testDeleteByQueryId() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
 
         // before delete
@@ -277,8 +269,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testDeleteByTime() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         long time = System.currentTimeMillis();
         mockResultFile(queryId, false, true);
 
@@ -308,16 +299,14 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testCleanOldQueryResult() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         Assert.assertTrue(asyncQueryService.cleanOldQueryResult(PROJECT, 1));
     }
 
     @Test
     public void testQueryStatus() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        final String queryId = uuid.toString();
+        final String queryId = RandomUtil.randomUUIDStr();
         final Exchanger<Boolean> exchanger = new Exchanger<Boolean>();
 
         Thread queryThread = new Thread(new Runnable() {
@@ -360,23 +349,20 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testQueryStatusMiss() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        final String queryId = uuid.toString();
+        final String queryId = RandomUtil.randomUUIDStr();
         Assert.assertEquals(AsyncQueryService.QueryStatus.MISS, asyncQueryService.queryStatus(PROJECT, queryId));
     }
 
     @Test
     public void testCheckStatusSuccessHappyPass() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, PROJECT, "");
     }
 
     @Test
     public void testCheckStatusFailedHappyPass() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.isException()).thenReturn(true);
         when(sqlResponse.getExceptionMessage()).thenReturn("some error!!!");
@@ -389,8 +375,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testCheckStatusException() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         try {
             asyncQueryService.checkStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS, PROJECT, "");
         } catch (Exception e) {
@@ -400,29 +385,26 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testSaveAndGetUserName() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals("ADMIN", asyncQueryService.getQueryUsername(queryId, PROJECT));
     }
 
     @Test
     public void testGetUserNameNoResult() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         Assert.assertEquals(null, asyncQueryService.getQueryUsername(queryId, PROJECT));
     }
 
     @Test
     public void testHasPermissionWhenIsAdmin() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         Assert.assertEquals(true, asyncQueryService.hasPermission(queryId, PROJECT));
     }
 
     @Test
     public void testDeleteAllWhenRunning() throws IOException, InterruptedException {
-        String queryId = UUID.randomUUID().toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, false);
         asyncQueryService.deleteAllFolder();
 
@@ -446,7 +428,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testQueryStatusWhenRunning() throws IOException, InterruptedException {
-        String queryId = UUID.randomUUID().toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, false);
 
         Assert.assertEquals(RUNNING, asyncQueryService.queryStatus(PROJECT, queryId));
@@ -463,15 +445,14 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetQueryUserNameWhenUserNameNotSaved() throws IOException, InterruptedException {
-        String queryId = UUID.randomUUID().toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         asyncQueryService.hasPermission(queryId, PROJECT);
     }
 
     @Test
     public void testHasPermissionWhenIsSelf() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals(true, asyncQueryService.hasPermission(queryId, PROJECT));
     }
@@ -483,16 +464,14 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testBatchDeleteOlderResult() throws Exception {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals(true, asyncQueryService.batchDelete(PROJECT, "2011-11-11 11:11:11"));
     }
 
     @Test
     public void testBatchDeleteOlderFalse() throws Exception {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
         Assert.assertEquals(false, asyncQueryService.batchDelete(PROJECT, null));
         Assert.assertEquals(false, asyncQueryService.batchDelete(null, "2011-11-11 11:11:11"));
@@ -500,8 +479,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testSaveMetadata() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
         SQLResponse sqlResponse = new SQLResponse();
         sqlResponse.setColumnMetas(
@@ -512,8 +490,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testSaveFileInfo() throws IOException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         asyncQueryService.saveQueryUsername(PROJECT, queryId);
         AsyncQueryUtil.saveFileInfo(PROJECT, formatDefault, encodeDefault, fileNameDefault, queryId);
         AsyncQueryService.FileInfo fileInfo = asyncQueryService.getFileInfo(PROJECT, queryId);
@@ -524,8 +501,7 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testGetMetadata() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        String queryId = uuid.toString();
+        String queryId = RandomUtil.randomUUIDStr();
         mockResultFile(queryId, false, true);
         mockMetadata(queryId);
         List<List<String>> metaData = asyncQueryService.getMetaData(PROJECT, queryId);

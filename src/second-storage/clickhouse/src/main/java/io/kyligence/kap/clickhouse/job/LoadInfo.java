@@ -31,9 +31,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 
 import com.google.common.base.Preconditions;
@@ -180,7 +180,7 @@ public class LoadInfo {
                             .map(Objects::toString).collect(Collectors.toList()));
         }
         return TablePartition.builder().setSegmentId(segmentId).setShardNodes(Arrays.asList(nodeNames))
-                .setId(UUID.randomUUID().toString()).setNodeFileMap(nodeFileMap).setSizeInNode(sizeInNode).build();
+                .setId(RandomUtil.randomUUIDStr()).setNodeFileMap(nodeFileMap).setSizeInNode(sizeInNode).build();
     }
 
     public void upsertTableData(TableFlow copied, String database, String table, PartitionType partitionType) {

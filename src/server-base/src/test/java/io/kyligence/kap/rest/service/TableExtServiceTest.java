@@ -29,10 +29,10 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -112,13 +112,13 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRemoveJobIdFromTableExt() throws Exception {
         TableExtDesc tableExtDesc = new TableExtDesc();
-        tableExtDesc.setUuid(UUID.randomUUID().toString());
+        tableExtDesc.setUuid(RandomUtil.randomUUIDStr());
         tableExtDesc.setIdentity("DEFAULT.TEST_REMOVE");
         tableExtDesc.setJodID("test");
         TableDesc tableDesc = new TableDesc();
         tableDesc.setName("TEST_REMOVE");
         tableDesc.setDatabase("DEFAULT");
-        tableDesc.setUuid(UUID.randomUUID().toString());
+        tableDesc.setUuid(RandomUtil.randomUUIDStr());
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         tableMetadataManager.saveTableExt(tableExtDesc);

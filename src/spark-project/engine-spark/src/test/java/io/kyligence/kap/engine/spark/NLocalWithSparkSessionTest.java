@@ -31,7 +31,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -40,6 +39,7 @@ import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -107,7 +107,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected static void ensureSparkConf() {
         if (sparkConf == null) {
-            sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+            sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
         }
     }
 
@@ -399,7 +399,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2011-01-01 00:00:00"), SegmentRange.dateToLong("2015-01-01 00:00:00")), false);
         NSparkMergingJob job = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(toBuildLayouts), "ADMIN",
-                UUID.randomUUID().toString());
+                RandomUtil.randomUUIDStr());
         NSparkMergingStep sparkStep = job.getSparkMergingStep();
         NExecutableManager execMgr = NExecutableManager.getInstance(getTestConfig(), getProject());
         // launch the job

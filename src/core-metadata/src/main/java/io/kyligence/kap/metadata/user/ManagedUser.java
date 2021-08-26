@@ -30,10 +30,9 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 
-import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
@@ -55,6 +54,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.annotation.ThirdPartyDependencies;
 import io.kyligence.kap.metadata.insensitive.UserInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
@@ -117,7 +117,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
 
         caterLegacy();
 
-        this.setUuid(UUID.randomUUID().toString());
+        this.setUuid(RandomUtil.randomUUIDStr());
     }
 
     public ManagedUser(String username, String password, Boolean defaultPassword, String... authoritiesStr) {
@@ -135,7 +135,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
         }
         caterLegacy();
 
-        this.setUuid(UUID.randomUUID().toString());
+        this.setUuid(RandomUtil.randomUUIDStr());
     }
 
     public ManagedUser(String username, String password, Boolean defaultPassword,
@@ -150,7 +150,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
         }
         caterLegacy();
 
-        this.setUuid(UUID.randomUUID().toString());
+        this.setUuid(RandomUtil.randomUUIDStr());
     }
 
     @Override

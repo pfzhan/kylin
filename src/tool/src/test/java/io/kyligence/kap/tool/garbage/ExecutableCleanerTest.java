@@ -24,8 +24,7 @@
 
 package io.kyligence.kap.tool.garbage;
 
-import java.util.UUID;
-
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -58,7 +57,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCleanupWithUnexpiredJob() {
-        String jobId = UUID.randomUUID().toString();
+        String jobId = RandomUtil.randomUUIDStr();
         createUnexpiredJob(jobId);
         Assert.assertEquals(1, manager.getJobs().size());
         manager.discardJob(jobId);
@@ -68,7 +67,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCleanupWithRunningJob() {
-        createExpiredJob(UUID.randomUUID().toString());
+        createExpiredJob(RandomUtil.randomUUIDStr());
         Assert.assertEquals(1, manager.getJobs().size());
         new ExecutableCleaner().cleanup(DEFAULT_PROJECT);
         Assert.assertEquals(1, manager.getJobs().size());
@@ -77,7 +76,7 @@ public class ExecutableCleanerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCleanupWithCleanableJob() {
-        String jobId = UUID.randomUUID().toString();
+        String jobId = RandomUtil.randomUUIDStr();
         createExpiredJob(jobId);
         manager.discardJob(jobId);
         Assert.assertEquals(1, manager.getJobs().size());

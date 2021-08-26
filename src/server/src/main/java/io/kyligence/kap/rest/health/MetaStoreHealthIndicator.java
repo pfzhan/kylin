@@ -24,7 +24,6 @@
 package io.kyligence.kap.rest.health;
 
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.common.util.RandomUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
@@ -105,7 +105,7 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
                         throw new RuntimeException("Failed to get meta store", e);
                     }
 
-                    String uuid = UUID.randomUUID().toString();
+                    String uuid = RandomUtil.randomUUIDStr();
                     String resourcePath = HEALTH_ROOT_PATH + "/" + uuid;
                     long start;
                     String op;

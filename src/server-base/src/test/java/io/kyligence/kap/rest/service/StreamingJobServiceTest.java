@@ -40,7 +40,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,6 +48,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -465,7 +465,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     public void testAddSegmentForMerge() throws Exception {
         val rangeToMerge = new SegmentRange.KafkaOffsetPartitionedSegmentRange(1613957110000L, 1613957130000L,
                 createKafkaPartitionsOffset(3, 100L), createKafkaPartitionsOffset(3, 300L));
-        val newSegId = UUID.randomUUID().toString();
+        val newSegId = RandomUtil.randomUUIDStr();
         streamingJobService.addSegment(PROJECT, DATAFLOW_ID, rangeToMerge, "0", newSegId);
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, PROJECT);
@@ -481,7 +481,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     public void testAppendSegment() throws Exception {
         val rangeToMerge = new SegmentRange.KafkaOffsetPartitionedSegmentRange(1613957140000L, 1613957150000L,
                 createKafkaPartitionsOffset(3, 500L), createKafkaPartitionsOffset(3, 600L));
-        val newSegId = UUID.randomUUID().toString();
+        val newSegId = RandomUtil.randomUUIDStr();
         streamingJobService.addSegment(PROJECT, DATAFLOW_ID, rangeToMerge, null, newSegId);
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, PROJECT);

@@ -24,19 +24,19 @@
 
 package io.kyligence.kap.streaming.jobs;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
+
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.DFMergeJob;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
-
 import io.kyligence.kap.streaming.metadata.BuildLayoutWithRestUpdate;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
 
 public class StreamingDFMergeJob extends DFMergeJob {
 
@@ -53,7 +53,7 @@ public class StreamingDFMergeJob extends DFMergeJob {
         this.project = mergeJobEntry.project();
         ss.sparkContext().setLocalProperty("spark.sql.execution.id", null);
         val specifiedCuboids = mergeJobEntry.afterMergeSegment().getLayoutsMap().keySet();
-        this.jobId = UUID.randomUUID().toString();
+        this.jobId = RandomUtil.randomUUIDStr();
         if (this.infos == null) {
             this.infos = new BuildJobInfos();
         } else {

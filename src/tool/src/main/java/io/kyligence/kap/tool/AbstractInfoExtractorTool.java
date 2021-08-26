@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -66,11 +65,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinTimeoutException;
-import io.kyligence.kap.tool.restclient.RestClient;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +84,7 @@ import io.kyligence.kap.tool.obf.KylinConfObfuscator;
 import io.kyligence.kap.tool.obf.MappingRecorder;
 import io.kyligence.kap.tool.obf.ObfLevel;
 import io.kyligence.kap.tool.obf.ResultRecorder;
+import io.kyligence.kap.tool.restclient.RestClient;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
@@ -270,7 +270,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         // compress to zip package
         if (shouldCompress) {
             stage = StageEnum.COMPRESS;
-            File tempZipFile = new File(UUID.randomUUID().toString() + ".zip");
+            File tempZipFile = new File(RandomUtil.randomUUIDStr() + ".zip");
             ZipFileUtil.compressZipFile(exportDir.getAbsolutePath(), tempZipFile.getAbsolutePath());
             FileUtils.cleanDirectory(exportDir);
             String sha256Sum = DatatypeConverter.printHexBinary((HashFunction.SHA256.checksum(tempZipFile)));

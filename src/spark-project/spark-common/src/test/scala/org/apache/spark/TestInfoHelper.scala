@@ -22,14 +22,13 @@
 
 package org.apache.spark
 
-import java.util.UUID
-
+import org.apache.kylin.common.util.RandomUtil
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 
 class TestInfoHelper extends SparderBaseFunSuite with SharedSparkSession {
   private var helper: InfoHelper = _
-  private val queryId1 = UUID.randomUUID().toString
-  private val queryId2 = UUID.randomUUID().toString
+  private val queryId1 = RandomUtil.randomUUID().toString
+  private val queryId2 = RandomUtil.randomUUID().toString
 
   override def beforeAll(): Unit = {
     super.beforeAll()

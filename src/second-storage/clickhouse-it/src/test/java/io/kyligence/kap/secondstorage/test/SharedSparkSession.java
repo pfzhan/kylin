@@ -23,26 +23,27 @@
  */
 package io.kyligence.kap.secondstorage.test;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
+import static org.apache.kylin.common.util.AbstractTestCase.overwriteSystemPropBeforeClass;
+import static org.apache.kylin.common.util.AbstractTestCase.restoreSystemPropsOverwriteBeforeClass;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.rules.ExternalResource;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.apache.kylin.common.util.AbstractTestCase.overwriteSystemPropBeforeClass;
-import static org.apache.kylin.common.util.AbstractTestCase.restoreSystemPropsOverwriteBeforeClass;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 
 public class SharedSparkSession extends ExternalResource {
 
-    final protected SparkConf sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+    final protected SparkConf sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
     protected SparkSession ss;
 
     final private Map<String, String> extraConf;

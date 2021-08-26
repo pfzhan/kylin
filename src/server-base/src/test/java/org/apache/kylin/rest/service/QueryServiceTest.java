@@ -58,7 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,6 +74,7 @@ import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -1150,7 +1150,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testQueryWithSpecificQueryId() throws Exception {
         final String sql = "select * from test";
         final String project = "default";
-        final String queryId = UUID.randomUUID().toString();
+        final String queryId = RandomUtil.randomUUIDStr();
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
@@ -1318,7 +1318,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLRequest request = new SQLRequest();
         request.setProject("default");
         request.setSql(testSql);
-        request.setQueryId(UUID.randomUUID().toString());
+        request.setQueryId(RandomUtil.randomUUIDStr());
 
         Predicate<SQLResponse> scannedRows = (s -> s.getTotalScanRows() == 0);
         Predicate<SQLResponse> scannedBytes = (s -> s.getTotalScanBytes() == 0);
@@ -1403,7 +1403,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             request.setSql("select 2");
             request.setExecuteAs("ADMIN");
             getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
-            request.setQueryId(UUID.randomUUID().toString());
+            request.setQueryId(RandomUtil.randomUUIDStr());
             thrown.expect(KylinException.class);
             thrown.expectMessage("User [testuser] does not have permissions for all tables, rows, "
                     + "and columns in the project [default] and cannot use the executeAs parameter");
@@ -1420,7 +1420,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setSql("select 2");
         getTestConfig().setProperty("kylin.query.query-with-execute-as", "true");
-        request.setQueryId(UUID.randomUUID().toString());
+        request.setQueryId(RandomUtil.randomUUIDStr());
         userService.createUser(new ManagedUser("testuser", "KYLIN", false, Arrays.asList()));
         userService.userExists("testuser");
         request.setExecuteAs("testuser");
@@ -1481,7 +1481,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             SQLRequest request = new SQLRequest();
             request.setProject("default");
             request.setSql(sql);
-            request.setQueryId(UUID.randomUUID().toString());
+            request.setQueryId(RandomUtil.randomUUIDStr());
 
             final SQLResponse response = queryService.queryWithCache(request);
             Assert.assertEquals(0, response.getResultRowCount());

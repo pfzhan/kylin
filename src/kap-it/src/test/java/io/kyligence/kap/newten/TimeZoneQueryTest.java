@@ -23,18 +23,18 @@
  */
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.query.engine.PrepareSqlStateParam;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import static org.junit.Assert.fail;
+
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -54,16 +54,17 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sparkproject.guava.collect.Sets;
+
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.query.engine.PrepareSqlStateParam;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import scala.collection.JavaConversions;
-
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.junit.Assert.fail;
 
 @RunWith(TimeZoneTestRunner.class)
 public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
@@ -77,7 +78,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         if (ss != null && !ss.sparkContext().isStopped()) {
             ss.stop();
         }
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
@@ -123,7 +124,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Row> rows = NExecAndComp.queryCube(getProject(), sql).collectAsList();
         List<List<String>> calciteDf = transformToString(rows);
-        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject()).getFirst();
+        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), getProject()).getFirst();
         List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
         Assert.assertTrue(jdbc.size() == calciteDf.size());
         for (int i = 0; i < jdbc.size(); i++) {
@@ -166,7 +167,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 new PrepareSqlStateParam(Timestamp.class.getCanonicalName(), paramString)};
         String sqlPushDown = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params);
         List<List<String>> setTimestampPushdownResults = SparkSqlClient
-                .executeSql(ss, sqlPushDown, UUID.randomUUID(), getProject()).getFirst();
+                .executeSql(ss, sqlPushDown, RandomUtil.randomUUID(), getProject()).getFirst();
         // setString
         List<Row> rows2 = NExecAndComp
                 .queryCube(getProject(), sqlWithPlaceholder, Arrays.asList(new String[]{paramString}))
@@ -177,7 +178,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 new PrepareSqlStateParam(String.class.getCanonicalName(), paramString)};
         String sqlPushDown2 = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params2);
         List<List<String>> setStringPushdownResults = SparkSqlClient
-                .executeSql(ss, sqlPushDown2, UUID.randomUUID(), getProject()).getFirst();
+                .executeSql(ss, sqlPushDown2, RandomUtil.randomUUID(), getProject()).getFirst();
 
         Assert.assertEquals(benchmark.size(), setTimestampResults.size());
         Assert.assertEquals(benchmark.size(), setTimestampPushdownResults.size());
@@ -203,7 +204,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
     @Test
     public void testConstantDate() throws Exception {
         String sql = "select date'2020-01-01', current_date";
-        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject()).getFirst();
+        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), getProject()).getFirst();
         List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
         for (int i = 0; i < jdbc.size(); i++) {
             Assert.assertEquals("Date literal doesn't match", pushDown.get(i), jdbc.get(i));
@@ -219,7 +220,7 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 // try matching timestamp to minutes mutilple times
                 int max_try = 10;
                 while (max_try-- > 0) {
-                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject())
+                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), getProject())
                             .getFirst();
                     List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
 

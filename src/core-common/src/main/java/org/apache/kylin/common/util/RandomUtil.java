@@ -21,33 +21,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.metadata;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
+package org.apache.kylin.common.util;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.RandomUtil;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
-import io.kyligence.kap.common.util.AddressUtil;
-import lombok.val;
+public class RandomUtil {
 
-public class JdbcAuditLogStoreTool {
+    public static UUID randomUUID() {
+        return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong());
+    }
 
-    public static JdbcAuditLogStore prepareJdbcAuditLogStore(KylinConfig config) throws Exception {
-
-        val url = config.getMetadataUrl();
-        val auditLogStore = new JdbcAuditLogStore(config);
-
-        val jdbcTemplate = auditLogStore.getJdbcTemplate();
-        for (int i = 0; i < 100; i++) {
-            val projectName = "p" + i;
-            String unitId = RandomUtil.randomUUIDStr();
-            jdbcTemplate.update(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
-                    "/" + projectName + "/aa", "aa".getBytes(StandardCharsets.UTF_8), System.currentTimeMillis(), 0,
-                    unitId, null, AddressUtil.getLocalInstance());
-        }
-
-        return auditLogStore;
+    public static String randomUUIDStr() {
+        return randomUUID().toString();
     }
 }

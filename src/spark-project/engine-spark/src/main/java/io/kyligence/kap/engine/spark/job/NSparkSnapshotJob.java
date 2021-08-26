@@ -24,9 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.util.UUID;
-
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnTable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -49,13 +48,13 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, String partitionCol,
             boolean incrementBuild, boolean isRefresh, String yarnQueue, Object tag) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), partitionCol, incrementBuild,
+        return create(tableDesc, submitter, jobType, RandomUtil.randomUUIDStr(), partitionCol, incrementBuild,
                 yarnQueue, tag);
     }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, boolean isRefresh, String yarnQueue) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-        return create(tableDesc, submitter, jobType, UUID.randomUUID().toString(), null, false, yarnQueue, null);
+        return create(tableDesc, submitter, jobType, RandomUtil.randomUUIDStr(), null, false, yarnQueue, null);
     }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, JobTypeEnum jobType, String jobId,

@@ -27,13 +27,13 @@ package io.kyligence.kap.query;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
@@ -81,7 +81,7 @@ public class NKapQueryTest extends KylinTestBase {
         config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
 
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");

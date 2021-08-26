@@ -23,16 +23,16 @@
  */
 package io.kyligence.kap.secondstorage;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.UUID;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 
 
 @RunWith(PowerMockRunner.class)
@@ -44,7 +44,7 @@ public class NameUtilTest {
 
     @Test
     public void testNameUtilInUT() {
-        final String uuid = UUID.randomUUID().toString();
+        final String uuid = RandomUtil.randomUUIDStr();
         Mockito.when(dataflow.getConfig()).thenReturn(config);
         Mockito.when(dataflow.getProject()).thenReturn(PROJECT);
         Mockito.when(dataflow.getUuid()).thenReturn(uuid);
@@ -62,7 +62,7 @@ public class NameUtilTest {
 
     @Test
     public void testNameUtil() {
-        final String uuid = UUID.randomUUID().toString();
+        final String uuid = RandomUtil.randomUUIDStr();
         final String metaUrl = "ke_metadata";
         Mockito.when(dataflow.getConfig()).thenReturn(config);
         Mockito.when(dataflow.getProject()).thenReturn(PROJECT);

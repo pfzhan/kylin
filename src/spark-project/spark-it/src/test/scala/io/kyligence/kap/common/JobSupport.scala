@@ -39,6 +39,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.persistence.ResourceStore
+import org.apache.kylin.common.util.RandomUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
 import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, NExecutableManager}
@@ -266,7 +267,7 @@ trait JobSupport
       false)
     val firstMergeJob = NSparkMergingJob.merge(firstMergeSeg,
       Sets.newLinkedHashSet(layouts),
-      "ADMIN", UUID.randomUUID().toString)
+      "ADMIN", RandomUtil.randomUUIDStr)
     execMgr.addJob(firstMergeJob)
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
@@ -282,7 +283,7 @@ trait JobSupport
       false)
     val secondMergeJob = NSparkMergingJob.merge(secondMergeSeg,
       Sets.newLinkedHashSet(layouts),
-      "ADMIN", UUID.randomUUID().toString)
+      "ADMIN", RandomUtil.randomUUIDStr)
     execMgr.addJob(secondMergeJob)
     Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob))
     merger.merge(secondMergeJob.getTask(classOf[NSparkMergingStep]))
@@ -350,7 +351,7 @@ trait JobSupport
       false)
     val firstMergeJob = NSparkMergingJob.merge(firstMergeSeg,
       Sets.newLinkedHashSet(layouts),
-      "ADMIN", UUID.randomUUID().toString)
+      "ADMIN", RandomUtil.randomUUIDStr)
     execMgr.addJob(firstMergeJob)
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))

@@ -45,9 +45,9 @@ package org.apache.kylin.source.hive;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +78,7 @@ public class HiveCmdBuilder {
         String tmpBeelineHqlPath = null;
         StringBuilder beelineHql = new StringBuilder();
         try {
-            tmpBeelineHqlPath = "/tmp/" + UUID.randomUUID().toString() + ".hql";
+            tmpBeelineHqlPath = "/tmp/" + RandomUtil.randomUUIDStr() + ".hql";
             for (String statement : statements) {
                 beelineHql.append(statement.replaceAll("`", "\\\\`"));
                 beelineHql.append("\n");

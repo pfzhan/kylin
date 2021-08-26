@@ -23,16 +23,17 @@
  */
 package io.kyligence.kap.secondstorage;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
+import java.util.Locale;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 
-import java.util.Locale;
-import java.util.UUID;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 
 public class NameUtil {
 
-    private static final int UUID_LENGTH = UUID.randomUUID().toString().length();
+    private static final int UUID_LENGTH = RandomUtil.randomUUIDStr().length();
 
     private NameUtil() {
     }

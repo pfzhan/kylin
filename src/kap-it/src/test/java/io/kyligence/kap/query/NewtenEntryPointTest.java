@@ -24,7 +24,7 @@
 /*
 package io.kyligence.kap.query;
 
-import java.util.UUID;
+import org.apache.kylin.common.util.RandomUtil;
 
 import io.kyligence.kap.spark.NewtenEntryPoint;
 import org.apache.spark.SparkConf;
@@ -46,7 +46,7 @@ public class NewtenEntryPointTest extends NLocalWithSparkSessionTest {
 
     @BeforeClass
     public static void beforeClass() {
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf = new SparkConf().setAppName(RandomUtil.randomUUIDStr()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         ss = new NewtenEntryPoint(SparkContext.getOrCreate(sparkConf));
     }

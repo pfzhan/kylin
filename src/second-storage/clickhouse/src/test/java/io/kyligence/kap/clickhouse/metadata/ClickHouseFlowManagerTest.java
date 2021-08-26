@@ -23,6 +23,19 @@
  */
 package io.kyligence.kap.clickhouse.metadata;
 
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
 import io.kyligence.kap.clickhouse.MockSecondStorage;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
@@ -35,18 +48,6 @@ import io.kyligence.kap.secondstorage.metadata.PartitionType;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
-import org.apache.kylin.common.KylinConfig;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
 
 public class ClickHouseFlowManagerTest {
 
@@ -87,7 +88,7 @@ public class ClickHouseFlowManagerTest {
         final Manager<TableFlow> refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
         Assert.assertNotNull(refectionManage);
 
-        final String cubeName = UUID.randomUUID().toString();
+        final String cubeName = RandomUtil.randomUUIDStr();
 
         TableFlow flow = TableFlow.builder()
                 .setModel(cubeName)

@@ -32,13 +32,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -179,7 +179,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     private Segments<NDataSegmentResponse> mockSegments() {
         final Segments<NDataSegmentResponse> nDataSegments = new Segments<>();
         NDataSegmentResponse segment = new NDataSegmentResponse();
-        segment.setId(UUID.randomUUID().toString());
+        segment.setId(RandomUtil.randomUUIDStr());
         segment.setName("seg1");
         nDataSegments.add(segment);
         return nDataSegments;
@@ -443,7 +443,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testGetModelDesc() throws Exception {
         String project = "default";
         String modelAlias = "model1";
-        mockGetModelName(modelAlias, project, UUID.randomUUID().toString());
+        mockGetModelName(modelAlias, project, RandomUtil.randomUUIDStr());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -454,7 +454,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testGetModelDescForStreaming() throws Exception {
         String project = "streaming_test";
         String modelAlias = "model_streaming";
-        val model = mockGetModelName(modelAlias, project, UUID.randomUUID().toString());
+        val model = mockGetModelName(modelAlias, project, RandomUtil.randomUUIDStr());
         model.setModelType(NDataModel.ModelType.STREAMING);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)

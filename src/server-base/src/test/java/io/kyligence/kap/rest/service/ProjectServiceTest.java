@@ -37,13 +37,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -344,7 +344,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         prepareLayoutHitCount();
         val aclManager = AclManager.getInstance(getTestConfig());
         val record = new AclRecord();
-        record.setUuid(UUID.randomUUID().toString());
+        record.setUuid(RandomUtil.randomUUIDStr());
 
         //project not exist
         val info = new ObjectIdentityImpl("project", PROJECT_ID);

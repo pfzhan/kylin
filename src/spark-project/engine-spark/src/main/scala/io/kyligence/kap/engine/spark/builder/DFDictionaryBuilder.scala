@@ -21,8 +21,8 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil}
-import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, LogEx, Metrics, QueryExecutionCache}
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.common.lock.curator.CuratorDistributedLock
 import org.apache.kylin.common.util.HadoopUtil
@@ -32,14 +32,12 @@ import org.apache.spark.TaskContext
 import org.apache.spark.application.NoRetryException
 import org.apache.spark.dict.NGlobalDictionaryV2
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import java.io.IOException
 import java.util
-import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 

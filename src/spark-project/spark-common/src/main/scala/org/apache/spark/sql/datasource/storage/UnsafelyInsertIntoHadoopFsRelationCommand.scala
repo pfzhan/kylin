@@ -23,6 +23,7 @@
 package org.apache.spark.sql.datasource.storage
 
 import org.apache.hadoop.fs.Path
+import org.apache.kylin.common.util.RandomUtil
 import org.apache.spark.internal.io.FileCommitProtocol
 import org.apache.spark.sql.catalyst.catalog.CatalogTable
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
@@ -49,7 +50,7 @@ case class UnsafelyInsertIntoHadoopFsRelationCommand(
       DataSource.lookupDataSource("parquet", sparkSession.sessionState.conf).newInstance().asInstanceOf[FileFormat],
       FileCommitProtocol.instantiate(
         sparkSession.sessionState.conf.fileCommitProtocolClass,
-        jobId = java.util.UUID.randomUUID().toString,
+        jobId = RandomUtil.randomUUID().toString,
         outputPath = qualifiedOutputPath.toString),
       OutputSpec(
         qualifiedOutputPath.toString, Map.empty, outAttributes),

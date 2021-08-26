@@ -29,7 +29,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -39,6 +38,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
@@ -82,7 +82,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
 
         if (!resourceStore.exists("/UUID")) {
-            resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+            resourceStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                     StringEntity.serializer);
         }
 
@@ -145,7 +145,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
 
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+        resourceStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                 StringEntity.serializer);
 
         val auditLogStore = JdbcAuditLogStoreTool.prepareJdbcAuditLogStore(kylinConfig);

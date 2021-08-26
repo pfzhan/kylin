@@ -26,10 +26,10 @@ package io.kyligence.kap.metadata.model;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -205,7 +205,7 @@ public class SegmentsTest {
 
     public NDataSegment newReadySegment(Long startTime, Long endTime) {
         val seg = new NDataSegment();
-        seg.setId(UUID.randomUUID().toString());
+        seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(startTime, endTime));
         seg.setStatus(SegmentStatusEnum.READY);
         return seg;

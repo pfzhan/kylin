@@ -27,13 +27,13 @@
 package io.kyligence.kap.newten;
 
 import java.io.File;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.query.SlowQueryDetector;
@@ -141,7 +141,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         try {
             String sql = "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
             SparkSqlClient.dfToList(ss, "", mockDf);
-            SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), getProject());
+            SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), getProject());
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(QueryContext.current().getQueryTagInfo().isTimeout());

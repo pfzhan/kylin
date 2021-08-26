@@ -25,18 +25,15 @@
 
 package io.kyligence.kap.engine.spark.utils
 
-import java.util.UUID
-
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.kylin.common.KapConfig
-import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
+import org.apache.kylin.common.util.{HadoopUtil, JsonUtil, RandomUtil}
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
-import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.JavaConverters._
 
@@ -87,7 +84,7 @@ object StorageUtils extends Logging {
   }
 
   def withMetrics(session: SparkSession)(body: => Unit): JobMetrics = {
-    val queryExecutionId = UUID.randomUUID.toString
+    val queryExecutionId = RandomUtil.randomUUIDStr
     session.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, queryExecutionId)
     body
     val metrics = JobMetricsUtils.collectMetrics(queryExecutionId)

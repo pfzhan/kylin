@@ -21,9 +21,6 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import java.util
-import java.util.UUID
-
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.query.StructField
@@ -32,7 +29,7 @@ import io.kyligence.kap.query.engine.exec.ExecuteResult
 import io.kyligence.kap.query.util.SparkJobTrace
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exception.KylinTimeoutException
-import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.common.util.{HadoopUtil, RandomUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.query.SlowQueryDetector
 import org.apache.kylin.query.exception.UserStopQueryException
@@ -42,6 +39,7 @@ import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SaveMode, SparderEnv}
 
+import java.util
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -185,7 +183,7 @@ object ResultPlan extends LogEx {
     SparderEnv.setDF(df)
     val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current().getProject) + "/" +
       QueryContext.current.getQueryId
-    val queryExecutionId = UUID.randomUUID.toString
+    val queryExecutionId = RandomUtil.randomUUIDStr
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     sparkContext.setJobGroup(jobGroup,

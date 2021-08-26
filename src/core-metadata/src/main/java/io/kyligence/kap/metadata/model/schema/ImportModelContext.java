@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -47,6 +46,7 @@ import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -54,9 +54,9 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -166,7 +166,7 @@ public class ImportModelContext implements IKeep {
     private void createNewModel(NDataModel newDataModel, NDataModel importModel) throws IOException {
         newDataModel.setProject(targetProject);
         newDataModel.setAlias(newModels.getOrDefault(importModel.getAlias(), newDataModel.getAlias()));
-        newDataModel.setUuid(UUID.randomUUID().toString());
+        newDataModel.setUuid(RandomUtil.randomUUIDStr());
         newDataModel.setMvcc(-1);
         newDataModel.setLastModified(System.currentTimeMillis());
         targetDataModelManager.createDataModelDesc(newDataModel, "");

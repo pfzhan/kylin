@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -51,6 +50,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -283,7 +283,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         FileUtils.copyDirectory(new File(templateFolder), dstFolder,
                 pathname -> !pathname.getPath().contains("execute"));
         for (int j = 1; j < modelSize; j++) {
-            val newId = UUID.randomUUID().toString();
+            val newId = RandomUtil.randomUUIDStr();
             for (String sub : new String[] { "model_desc", "index_plan", "dataflow" }) {
                 val file = new File(dstFolder, sub + "/" + TEMPLATE_UUID + ".json");
                 val newFile = new File(dstFolder, sub + "/" + newId + ".json");
@@ -294,7 +294,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             FileUtils.copyDirectory(new File(TEMPLATE_FOLDER, "dataflow_details/" + TEMPLATE_UUID),
                     new File(dstFolder, "dataflow_details/" + newId));
             val templateJobs = FileUtils.listFiles(new File(TEMPLATE_FOLDER, "execute"), null, false);
-            val newJobsMap = templateJobs.stream().map(f -> Pair.newPair(f.getName(), UUID.randomUUID().toString()))
+            val newJobsMap = templateJobs.stream().map(f -> Pair.newPair(f.getName(), RandomUtil.randomUUIDStr()))
                     .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
             newJobsMap.forEach((k, v) -> {
                 try {
@@ -328,7 +328,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             File projectJson = new File(dstFolder2 + File.separator, "project.json");
             var projectJsonContent = new String(Files.readAllBytes(projectJson.toPath()), StandardCharsets.UTF_8);
             projectJsonContent = projectJsonContent.replaceAll("958983a5-fad8-4057-9d70-cd6e5a2374af",
-                    UUID.randomUUID().toString());
+                    RandomUtil.randomUUIDStr());
             Files.write(projectJson.toPath(), projectJsonContent.getBytes(StandardCharsets.UTF_8));
 
             val sub = "execute";
@@ -402,7 +402,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
             val end = start.plusMonths(1);
             val seg = new NDataSegment();
             val segRange = new SegmentRange.TimePartitionedSegmentRange(start.toString(), end.toString());
-            seg.setId(UUID.randomUUID().toString());
+            seg.setId(RandomUtil.randomUUIDStr());
             seg.setName(Segments.makeSegmentName(segRange));
             seg.setCreateTimeUTC(System.currentTimeMillis());
             seg.setSegmentRange(segRange);
@@ -416,7 +416,7 @@ public class MetadataPerfTest extends NLocalFileMetadataTestCase {
         for (NDataSegment segment : segments) {
             val detailFile = new File(TEMPLATE_FOLDER,
                     "dataflow_details/" + TEMPLATE_UUID + "/" + segment.getId() + ".json");
-            detailJobMap.put(segment.getId(), UUID.randomUUID().toString());
+            detailJobMap.put(segment.getId(), RandomUtil.randomUUIDStr());
             val detail = new NDataSegDetails();
             detail.setUuid(segment.getId());
             detail.setDataflowId(df.getUuid());

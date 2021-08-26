@@ -30,12 +30,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
@@ -63,6 +62,7 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
@@ -119,7 +119,7 @@ public class MockedDFBuildJob extends SparkApplication {
                     dataCuboid.setRows(123);
                     dataCuboid.setSourceByteSize(123);
                     dataCuboid.setSourceRows(123);
-                    dataCuboid.setBuildJobId(UUID.randomUUID().toString());
+                    dataCuboid.setBuildJobId(RandomUtil.randomUUIDStr());
                     dataCuboid.setFileCount(123);
                     dataCuboid.setByteSize(123);
                     StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)

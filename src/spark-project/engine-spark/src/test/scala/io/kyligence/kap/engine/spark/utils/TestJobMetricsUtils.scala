@@ -22,24 +22,24 @@
 
 package io.kyligence.kap.engine.spark.utils
 
-import java.io.File
-import java.util.UUID
-import java.util.concurrent.{Executors, TimeUnit}
-
 import org.apache.commons.io.FileUtils
+import org.apache.kylin.common.util.RandomUtil
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SaveMode}
 import org.scalatest.BeforeAndAfterAll
 
+import java.io.File
+import java.util.concurrent.{Executors, TimeUnit}
+
 
 class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession with BeforeAndAfterAll {
 
   private val path1 = "./temp1"
-  private val id1 = UUID.randomUUID.toString
+  private val id1 = RandomUtil.randomUUIDStr
   private val path2 = "./temp2"
-  private val id2 = UUID.randomUUID.toString
+  private val id2 = RandomUtil.randomUUIDStr
 
   private var flatTable: DataFrame = _
 
@@ -60,7 +60,7 @@ class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession wi
     JobMetricsUtils.registerListener(spark)
     spark.sparkContext.setLocalProperty("spark.sql.execution.id", id1)
     val afterSort = flatTable.groupBy("key1").agg(count("key3").alias("key3_count")).repartition(2).sort("key1")
-    val metrics = StorageUtils.writeWithMetrics(afterSort, "/tmp/" + UUID.randomUUID().toString)
+    val metrics = StorageUtils.writeWithMetrics(afterSort, "/tmp/" + RandomUtil.randomUUID().toString)
     assert(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT) == 10)
     assert(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == 50)
   }
@@ -97,7 +97,7 @@ class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession wi
     val df1 = generateTable1()
     val df2 = generateTable2().agg(Map( "key3" -> "max", "key4" -> "min"))
     val afterUnion = df1.union(df2)
-    val metrics = StorageUtils.writeWithMetrics(afterUnion, "/tmp/" + UUID.randomUUID().toString)
+    val metrics = StorageUtils.writeWithMetrics(afterUnion, "/tmp/" + RandomUtil.randomUUID().toString)
     assert(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT) == 11)
     assert(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT) == 20)
   }

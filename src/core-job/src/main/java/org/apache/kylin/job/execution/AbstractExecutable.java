@@ -53,7 +53,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -62,6 +61,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailHelper;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
@@ -205,7 +205,7 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public AbstractExecutable() {
-        setId(UUID.randomUUID().toString());
+        setId(RandomUtil.randomUUIDStr());
     }
 
     public AbstractExecutable(Object notSetId) {

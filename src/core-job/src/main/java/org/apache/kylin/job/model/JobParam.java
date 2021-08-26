@@ -27,9 +27,9 @@ package org.apache.kylin.job.model;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
@@ -53,7 +53,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class JobParam {
 
-    private String jobId = UUID.randomUUID().toString();
+    private String jobId = RandomUtil.randomUUIDStr();
 
     @Setter(AccessLevel.NONE)
     private Set<String> targetSegments = Sets.newHashSet();

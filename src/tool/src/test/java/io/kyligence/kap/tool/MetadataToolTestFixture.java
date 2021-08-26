@@ -26,10 +26,10 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceTool;
+import org.apache.kylin.common.util.RandomUtil;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -55,7 +55,7 @@ public class MetadataToolTestFixture {
         dataModelMgr.dropModel(dataModel2);
 
         val dataModel3 = dataModelMgr.copyForWrite(dataModel2);
-        dataModel3.setUuid(UUID.randomUUID().toString());
+        dataModel3.setUuid(RandomUtil.randomUUIDStr());
         dataModel3.setAlias("data_model_3");
         dataModel3.setMvcc(-1L);
         dataModelMgr.createDataModelDesc(dataModel3, "who");

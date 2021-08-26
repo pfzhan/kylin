@@ -23,19 +23,20 @@
  */
 package io.kyligence.kap.rest.util;
 
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_USER;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.util.PasswordEncodeFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -44,7 +45,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.google.common.collect.Lists;
 
-import org.apache.kylin.util.PasswordEncodeFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +66,7 @@ public class CreateAdminUserUtils {
     public static EnvelopeResponse<String> createAdminUser(@RequestBody ManagedUser user, UserService userService,
             Environment env) {
         checkProfile(env);
-        user.setUuid(UUID.randomUUID().toString());
+        user.setUuid(RandomUtil.randomUUIDStr());
         user.setPassword(pwdEncode(user.getPassword()));
         log.info("Creating user: {}", user);
         completeAuthorities(user);

@@ -30,13 +30,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -141,7 +141,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager indePlanManager = NIndexPlanManager.getInstance(testConfig, projectDefault);
         NProjectManager projMgr = NProjectManager.getInstance(testConfig);
 
-        final String name = UUID.randomUUID().toString();
+        final String name = RandomUtil.randomUUIDStr();
         final String owner = "test_owner";
         final ProjectInstance proj = projMgr.getProject(projectDefault);
         final IndexPlan cube = indePlanManager.getIndexPlanByModelAlias("nmodel_basic");
@@ -292,7 +292,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
-        String newSegId = UUID.randomUUID().toString();
+        String newSegId = RandomUtil.randomUUIDStr();
         NDataSegment mergedSeg1 = mgr.mergeSegments(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 3L,
                 createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)), true, 1, newSegId);
         mergedSeg1.setStatus(SegmentStatusEnum.READY);
@@ -673,7 +673,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
 
         val copy = indexPlan.copy();
-        copy.setUuid(UUID.randomUUID().toString());
+        copy.setUuid(RandomUtil.randomUUIDStr());
         CubeTestUtils.createTmpModelAndCube(testConfig, copy);
 
         NDataflow df = mgr.createDataflow(copy, "test_owner");
@@ -709,7 +709,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
 
         val copy = indexPlan.copy();
-        copy.setUuid(UUID.randomUUID().toString());
+        copy.setUuid(RandomUtil.randomUUIDStr());
         CubeTestUtils.createTmpModelAndCube(testConfig, copy);
 
         NDataflow df = mgr.createDataflow(copy, "test_owner");
@@ -750,7 +750,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
 
         val copy = indexPlan.copy();
-        copy.setUuid(UUID.randomUUID().toString());
+        copy.setUuid(RandomUtil.randomUUIDStr());
         CubeTestUtils.createTmpModelAndCube(testConfig, copy);
 
         NDataflow df = mgr.createDataflow(copy, "test_owner");
@@ -759,7 +759,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
                 createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 200L)));
         val segRange = new SegmentRange.KafkaOffsetPartitionedSegmentRange(10L, 100L,
                 createKafkaPartitionOffset(0, 200L), createKafkaPartitionOffset(0, 400L));
-        String newSegId = UUID.randomUUID().toString();
+        String newSegId = RandomUtil.randomUUIDStr();
         df = mgr.getDataflow(df.getId());
         val newSegment1 = mgr.appendSegmentForStreaming(df, segRange, newSegId);
         Assert.assertEquals(newSegId, newSegment1.getId());
@@ -782,7 +782,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
 
         val copy = indexPlan.copy();
-        copy.setUuid(UUID.randomUUID().toString());
+        copy.setUuid(RandomUtil.randomUUIDStr());
         CubeTestUtils.createTmpModelAndCube(testConfig, copy);
 
         NDataflow df = mgr.createDataflow(copy, "test_owner");

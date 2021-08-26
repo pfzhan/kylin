@@ -68,7 +68,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -81,6 +80,7 @@ import org.apache.kylin.common.lock.curator.CuratorDistributedLockFactory;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
@@ -559,7 +559,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public static File getDiagFileName() {
-        String uuid = UUID.randomUUID().toString().toUpperCase(Locale.ROOT).substring(0, 6);
+        String uuid = RandomUtil.randomUUIDStr().toUpperCase(Locale.ROOT).substring(0, 6);
         String packageName = DIAG_ID_PREFIX
                 + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
                         .format(new Date())

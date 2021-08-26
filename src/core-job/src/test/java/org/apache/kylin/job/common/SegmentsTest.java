@@ -24,8 +24,7 @@
 
 package org.apache.kylin.job.common;
 
-import java.util.UUID;
-
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
@@ -84,13 +83,13 @@ public class SegmentsTest {
     public void testGetSegmentStatusToDisplay_Refreshing() {
         Segments segments = new Segments();
         val seg = new NDataSegment();
-        seg.setId(UUID.randomUUID().toString());
+        seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.READY);
         segments.add(seg);
 
         val newSeg = new NDataSegment();
-        newSeg.setId(UUID.randomUUID().toString());
+        newSeg.setId(RandomUtil.randomUUIDStr());
         newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         newSeg.setStatus(SegmentStatusEnum.NEW);
         segments.add(newSeg);
@@ -105,19 +104,19 @@ public class SegmentsTest {
     public void testGetSegmentStatusToDisplay_Merging() {
         Segments segments = new Segments();
         val seg = new NDataSegment();
-        seg.setId(UUID.randomUUID().toString());
+        seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         seg.setStatus(SegmentStatusEnum.READY);
         segments.add(seg);
 
         val seg2 = new NDataSegment();
-        seg2.setId(UUID.randomUUID().toString());
+        seg2.setId(RandomUtil.randomUUIDStr());
         seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
         seg2.setStatus(SegmentStatusEnum.READY);
         segments.add(seg2);
 
         val newSeg = new NDataSegment();
-        newSeg.setId(UUID.randomUUID().toString());
+        newSeg.setId(RandomUtil.randomUUIDStr());
         newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
         newSeg.setStatus(SegmentStatusEnum.NEW);
         segments.add(newSeg);
@@ -135,7 +134,7 @@ public class SegmentsTest {
 
     public NDataSegment newReadySegment(Long startTime, Long endTime) {
         val seg = new NDataSegment();
-        seg.setId(UUID.randomUUID().toString());
+        seg.setId(RandomUtil.randomUUIDStr());
         seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(startTime, endTime));
         seg.setStatus(SegmentStatusEnum.READY);
         return seg;

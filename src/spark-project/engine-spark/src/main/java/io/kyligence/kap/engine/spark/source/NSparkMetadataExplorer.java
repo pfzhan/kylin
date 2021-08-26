@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -42,6 +41,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -153,7 +153,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             tableDesc = new TableDesc();
             tableDesc.setDatabase(database.toUpperCase(Locale.ROOT));
             tableDesc.setName(tableName.toUpperCase(Locale.ROOT));
-            tableDesc.setUuid(UUID.randomUUID().toString());
+            tableDesc.setUuid(RandomUtil.randomUUIDStr());
             tableDesc.setLastModified(0);
         } else {
             tableDesc = new TableDesc(tableDesc);
@@ -202,7 +202,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
         TableExtDesc tableExtDesc = new TableExtDesc();
         tableExtDesc.setIdentity(tableDesc.getIdentity());
-        tableExtDesc.setUuid(UUID.randomUUID().toString());
+        tableExtDesc.setUuid(RandomUtil.randomUUIDStr());
         tableExtDesc.setLastModified(0);
         tableExtDesc.init(prj);
 

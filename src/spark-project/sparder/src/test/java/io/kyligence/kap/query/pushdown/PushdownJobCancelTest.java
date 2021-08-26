@@ -24,7 +24,11 @@
 
 package io.kyligence.kap.query.pushdown;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.spark.scheduler.JobFailed;
@@ -40,10 +44,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class PushdownJobCancelTest extends NLocalFileMetadataTestCase {
 
@@ -107,7 +108,7 @@ public class PushdownJobCancelTest extends NLocalFileMetadataTestCase {
             try {
                 slowQueryDetector.queryStart("foo");
                 String sql = "select * from TEST_KYLIN_FACT";
-                SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), "tpch");
+                SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), "tpch");
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof UserStopQueryException);
             } finally {

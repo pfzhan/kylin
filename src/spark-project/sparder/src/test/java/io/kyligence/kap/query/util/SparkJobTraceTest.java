@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.query.util;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
@@ -37,7 +36,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.UUID;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
 
 public class SparkJobTraceTest extends NLocalFileMetadataTestCase {
     SparkSession ss;
@@ -72,7 +72,7 @@ public class SparkJobTraceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSparkSqlClientTrace() {
         String sql = "select * from TEST_KYLIN_FACT";
-        SparkSqlClient.executeSql(ss, sql, UUID.randomUUID(), "tpch");
+        SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), "tpch");
         Assert.assertEquals(3, QueryContext.currentTrace().spans().size());
         Assert.assertEquals(QueryTrace.WAIT_FOR_EXECUTION, QueryContext.currentTrace().spans().get(0).getName());
         Assert.assertEquals(QueryTrace.EXECUTION, QueryContext.currentTrace().spans().get(1).getName());

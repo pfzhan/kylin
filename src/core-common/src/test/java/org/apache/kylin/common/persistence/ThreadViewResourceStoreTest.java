@@ -31,12 +31,12 @@ import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.util.NavigableSet;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.AbstractTestCase;
 import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.apache.kylin.common.util.RandomUtil;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Before;
@@ -109,7 +109,7 @@ public class ThreadViewResourceStoreTest extends AbstractTestCase {
     public void testOverlay() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
-        underlying.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+        underlying.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                 StringEntity.serializer);
 
         String dir1 = "/cube";

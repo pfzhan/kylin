@@ -58,7 +58,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -83,6 +82,7 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -288,7 +288,7 @@ public class TableService extends BasicService {
             TableDesc origTable = tableMetaMgr.getTableDesc(tableDesc.getIdentity());
             val nTableDesc = new TableDesc(tableDesc);
             if (origTable == null || origTable.getProject() == null) {
-                nTableDesc.setUuid(UUID.randomUUID().toString());
+                nTableDesc.setUuid(RandomUtil.randomUUIDStr());
                 nTableDesc.setLastModified(0);
             } else {
                 nTableDesc.setUuid(origTable.getUuid());
@@ -301,7 +301,7 @@ public class TableService extends BasicService {
                 TableExtDesc origExt = tableMetaMgr.getTableExtIfExists(tableDesc);
                 TableExtDesc nTableExtDesc = new TableExtDesc(extDesc);
                 if (origExt == null || origExt.getProject() == null) {
-                    nTableExtDesc.setUuid(UUID.randomUUID().toString());
+                    nTableExtDesc.setUuid(RandomUtil.randomUUIDStr());
                     nTableExtDesc.setLastModified(0);
                 } else {
                     nTableExtDesc.setUuid(origExt.getUuid());

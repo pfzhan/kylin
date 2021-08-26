@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.fs.FileStatus;
@@ -37,6 +36,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -96,7 +96,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null, null);
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -127,7 +127,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, false, null, null);
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -174,7 +174,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, UUID.randomUUID().toString(), partitionCol, true, null, null);
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());

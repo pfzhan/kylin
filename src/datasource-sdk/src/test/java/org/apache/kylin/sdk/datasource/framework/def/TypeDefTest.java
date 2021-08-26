@@ -24,8 +24,8 @@
 package org.apache.kylin.sdk.datasource.framework.def;
 
 import java.util.Locale;
-import java.util.UUID;
 
+import org.apache.kylin.common.util.RandomUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,7 +52,7 @@ public class TypeDefTest {
 
     private TypeDef defineType(String pattern) {
         TypeDef t = new TypeDef();
-        t.setId(UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
+        t.setId(RandomUtil.randomUUIDStr().toLowerCase(Locale.ROOT));
         t.setExpression(pattern);
         t.init();
         return t;

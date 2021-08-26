@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -53,6 +52,7 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -562,7 +562,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         Preconditions.checkNotNull(segRange);
 
         NDataSegment segment = new NDataSegment();
-        segment.setId(UUID.randomUUID().toString());
+        segment.setId(RandomUtil.randomUUIDStr());
         segment.setName(Segments.makeSegmentName(segRange));
         segment.setCreateTimeUTC(System.currentTimeMillis());
         segment.setDataflow(df);

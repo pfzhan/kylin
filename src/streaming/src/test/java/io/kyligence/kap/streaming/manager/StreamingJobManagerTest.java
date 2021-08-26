@@ -23,12 +23,7 @@
  */
 package io.kyligence.kap.streaming.manager;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import lombok.val;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -42,7 +37,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.UUID;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import lombok.val;
 
 public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
 
@@ -77,7 +78,7 @@ public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCreateStreamingJobForBuild() {
-        val uuid = UUID.randomUUID().toString();
+        val uuid = RandomUtil.randomUUIDStr();
         val model = mockModel(uuid);
         mgr.createStreamingJob(model, JobTypeEnum.STREAMING_BUILD);
         val meta = mgr.getStreamingJobByUuid(uuid + "_build");
@@ -91,7 +92,7 @@ public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCreateStreamingJobForMerge() {
-        val uuid = UUID.randomUUID().toString();
+        val uuid = RandomUtil.randomUUIDStr();
         val model = mockModel(uuid);
         mgr.createStreamingJob(model, JobTypeEnum.STREAMING_MERGE);
         val meta = mgr.getStreamingJobByUuid(uuid + "_merge");
@@ -105,7 +106,7 @@ public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCreateStreamingJob() {
-        val uuid = UUID.randomUUID().toString();
+        val uuid = RandomUtil.randomUUIDStr();
         val model = mockModel(uuid);
         mgr.createStreamingJob(model);
         val buildMeta = mgr.getStreamingJobByUuid(uuid + "_build");

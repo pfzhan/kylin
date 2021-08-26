@@ -28,7 +28,6 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,6 +35,7 @@ import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
+import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,12 +43,11 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
-
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -110,12 +109,12 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
     @Test
     public void testRestore() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
-        workerStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+        workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                 StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();
-        String unitId = UUID.randomUUID().toString();
+        String unitId = RandomUtil.randomUUIDStr();
         jdbcTemplate.batchUpdate(
                 String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                 Arrays.asList(
@@ -157,13 +156,13 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
     @Test
     public void testRestoreWithoutOrder() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
-        workerStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+        workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                 StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
         val url = getTestConfig().getMetadataUrl();
         val jdbcTemplate = getJdbcTemplate();
-        String unitId1 = UUID.randomUUID().toString();
-        String unitId2 = UUID.randomUUID().toString();
+        String unitId1 = RandomUtil.randomUUIDStr();
+        String unitId2 = RandomUtil.randomUUIDStr();
         jdbcTemplate.batchUpdate(
                 String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                 Arrays.asList(
@@ -184,7 +183,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
     @Test
     public void testRestore_WhenOtherAppend() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
-        workerStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+        workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                 StringEntity.serializer);
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
         val url = getTestConfig().getMetadataUrl();
@@ -195,7 +194,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
             int i = 0;
             while (!stopped.get()) {
                 val projectName = "p0";
-                val unitId = UUID.randomUUID().toString();
+                val unitId = RandomUtil.randomUUIDStr();
                 jdbcTemplate.batchUpdate(
                         String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"),
                         Arrays.asList(
@@ -233,7 +232,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         auditLogStore.createIfNotExist();
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
-            String unitId = UUID.randomUUID().toString();
+            String unitId = RandomUtil.randomUUIDStr();
             jdbcTemplate.batchUpdate(String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, "test_audit_log"),
                     Arrays.asList(
                             new Object[] { "/" + projectName + "/abc", "abc".getBytes(charset),

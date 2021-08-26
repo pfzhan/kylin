@@ -43,9 +43,9 @@
 package org.apache.kylin.job;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -70,7 +70,7 @@ public class JoinedFlatTableTest {
 
     @Before
     public void setUp() {
-        dataModel.setUuid(UUID.randomUUID().toString());
+        dataModel.setUuid(RandomUtil.randomUUIDStr());
 
         TableDesc lineOrderTableDesc = new TableDesc();
         lineOrderTableDesc.setUuid("665a66d6-08d6-42b8-9be8-d9a0456ee250");

@@ -28,10 +28,10 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.Assert;
@@ -70,7 +70,7 @@ public class NIndexPlanManagerTest {
             InvocationTargetException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NIndexPlanManager manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
-        final String cubeName = UUID.randomUUID().toString();
+        final String cubeName = RandomUtil.randomUUIDStr();
         //refect
         Class<? extends NIndexPlanManager> managerClass = manager.getClass();
         Constructor<? extends NIndexPlanManager> constructor = managerClass.getDeclaredConstructor(KylinConfig.class,

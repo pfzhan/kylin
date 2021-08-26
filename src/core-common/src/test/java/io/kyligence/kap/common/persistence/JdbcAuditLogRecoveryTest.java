@@ -28,7 +28,6 @@ import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasou
 import java.nio.charset.Charset;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -37,6 +36,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
+import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
@@ -47,7 +47,6 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.google.common.base.Joiner;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
@@ -56,6 +55,7 @@ import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -113,13 +113,13 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
         val txManager = auditLogStore.getTransactionManager();
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/_global/project/p1.json", new StringEntity(UUID.randomUUID().toString()),
+            store.checkAndPutResource("/_global/project/p1.json", new StringEntity(RandomUtil.randomUUIDStr()),
                     StringEntity.serializer);
             return null;
         }, "p1");
         UnitOfWork.doInTransactionWithRetry(() -> {
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            store.checkAndPutResource("/_global/project/p2.json", new StringEntity(UUID.randomUUID().toString()),
+            store.checkAndPutResource("/_global/project/p2.json", new StringEntity(RandomUtil.randomUUIDStr()),
                     StringEntity.serializer);
             return null;
         }, "p2");
@@ -148,7 +148,7 @@ public class JdbcAuditLogRecoveryTest extends NLocalFileMetadataTestCase {
             });
             t1.start();
 
-            val unitId = UUID.randomUUID().toString();
+            val unitId = RandomUtil.randomUUIDStr();
             Map<String, Long> versions = Maps.newHashMap();
             int size = 200;
             IntStream.range(1000, 1000 + size).forEach(id -> {

@@ -26,9 +26,9 @@ package io.kyligence.kap.metadata.favorite;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.RandomUtil;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -94,7 +94,7 @@ public class FavoriteRule extends RootPersistentEntity {
         private long createTime;
 
         public SQLCondition() {
-            this.id = UUID.randomUUID().toString();
+            this.id = RandomUtil.randomUUIDStr();
         }
 
         public SQLCondition(String sqlPattern) {

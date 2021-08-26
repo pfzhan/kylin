@@ -29,9 +29,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.Dataset;
@@ -79,7 +79,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
       ss.sparkContext().setLocalProperty("spark.sql.execution.id", null);
     }
 
-    this.jobId = UUID.randomUUID().toString();
+    this.jobId = RandomUtil.randomUUIDStr();
     if(this.infos == null) {
       this.infos = new BuildJobInfos();
     }

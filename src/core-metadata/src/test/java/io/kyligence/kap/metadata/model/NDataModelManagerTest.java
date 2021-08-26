@@ -27,12 +27,12 @@ package io.kyligence.kap.metadata.model;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.junit.After;
@@ -176,7 +176,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
                 (NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"), NDataModel.class);
 
         nDataModel.setAlias("nmodel_basic2");
-        nDataModel.setUuid(UUID.randomUUID().toString());
+        nDataModel.setUuid(RandomUtil.randomUUIDStr());
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
         mgrDefault.createDataModelDesc(nDataModel, "root");
@@ -195,7 +195,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
                 (NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"), NDataModel.class);
 
         nDataModel.setAlias("nmodel_basic2");
-        nDataModel.setUuid(UUID.randomUUID().toString());
+        nDataModel.setUuid(RandomUtil.randomUUIDStr());
         nDataModel.setLastModified(0L);
 
         //add a duplicate
@@ -214,7 +214,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
                 (NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"), NDataModel.class);
 
         nDataModel.setAlias("nmodel_basic2");
-        nDataModel.setUuid(UUID.randomUUID().toString());
+        nDataModel.setUuid(RandomUtil.randomUUIDStr());
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
 

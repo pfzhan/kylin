@@ -27,13 +27,13 @@ package io.kyligence.kap.metadata.epoch;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 import java.nio.charset.Charset;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.StringEntity;
+import org.apache.kylin.common.util.RandomUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,11 +43,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
-
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
@@ -70,7 +69,7 @@ public class EnhancedUnitOfWorkTest extends NLocalFileMetadataTestCase {
                 + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-            resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+            resourceStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()),
                     StringEntity.serializer);
             return null;
         }, "");

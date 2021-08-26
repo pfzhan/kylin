@@ -24,16 +24,16 @@
 
 package io.kyligence.kap.query.pushdown;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.ClassLoaderUtils;
-import lombok.val;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.util.ClassLoaderUtils;
+import lombok.val;
 
 public class SparkSubmitter {
     public static final Logger logger = LoggerFactory.getLogger(SparkSubmitter.class);
@@ -63,7 +63,7 @@ public class SparkSubmitter {
         }
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         SparkSession ss = getSparkSession();
-        val results = SparkSqlClient.executeSqlToIterable(ss, sql, UUID.randomUUID(), project);
+        val results = SparkSqlClient.executeSqlToIterable(ss, sql, RandomUtil.randomUUID(), project);
         return new PushdownResponse(results._3(), results._1(), (int)results._2());
     }
 

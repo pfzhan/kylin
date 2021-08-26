@@ -27,7 +27,6 @@ package io.kyligence.kap.tool.security;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.util.Locale;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -36,16 +35,16 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.util.PasswordEncodeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
-
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.Unsafe;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.garbage.StorageCleaner;
@@ -94,7 +93,7 @@ public class AdminUserInitCLI {
         ManagedUser managedUser = new ManagedUser(ADMIN_USER_NAME,
                 PasswordEncodeFactory.newUserPasswordEncoder().encode(password), true, ROLE_ADMIN,
                 Constant.GROUP_ALL_USERS);
-        managedUser.setUuid(UUID.randomUUID().toString());
+        managedUser.setUuid(RandomUtil.randomUUIDStr());
 
         val metaStore = ResourceStore.getKylinMetaStore(config).getMetadataStore();
         try {

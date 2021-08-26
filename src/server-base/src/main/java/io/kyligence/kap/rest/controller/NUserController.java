@@ -43,18 +43,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.UnauthorizedException;
@@ -95,6 +93,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
@@ -181,7 +181,7 @@ public class NUserController extends NBasicController {
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
     public EnvelopeResponse<String> createAdminUser(@RequestBody ManagedUser user) {
         checkProfile();
-        user.setUuid(UUID.randomUUID().toString());
+        user.setUuid(RandomUtil.randomUUIDStr());
         user.setPassword(pwdEncode(user.getPassword()));
         logger.info("Creating user: {}", user);
         completeAuthorities(user);

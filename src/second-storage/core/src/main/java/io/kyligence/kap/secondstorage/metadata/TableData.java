@@ -23,19 +23,6 @@
  */
 package io.kyligence.kap.secondstorage.metadata;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
-import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
-import scala.collection.JavaConverters;
-
 import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -46,9 +33,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import org.apache.kylin.common.util.RandomUtil;
+import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.metadata.annotation.DataDefinition;
+import scala.collection.JavaConverters;
 
 @JsonAutoDetect(
         fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -190,7 +192,7 @@ public class TableData implements Serializable, IKeep, WithLayout {
                             Collectors.toMap(node -> node, node -> sizeInNode.getOrDefault(node, 0L))))
                     .setSegmentId(mergeSegId)
                     .setShardNodes(Lists.newArrayList(nodeGroup))
-                    .setId(UUID.randomUUID().toString())
+                    .setId(RandomUtil.randomUUIDStr())
                     .setNodeFileMap(nodeGroup.stream().collect(
                             Collectors.toMap(node -> node, node -> nodeFileMap.getOrDefault(node, Collections.emptyList()))
                     )).build()

@@ -39,7 +39,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -47,6 +46,7 @@ import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -505,7 +505,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         NDataSegment mergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false);
         NSparkMergingJob mergeJob = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
-                UUID.randomUUID().toString());
+                RandomUtil.randomUUIDStr());
         execMgr.addJob(mergeJob);
         Assert.assertEquals(ExecutableState.SUCCEED, wait(mergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());

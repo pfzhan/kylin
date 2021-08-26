@@ -64,7 +64,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -86,6 +85,7 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -1480,7 +1480,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Some segments in model 'all_fixed_length' are not ready, can not online the model!");
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
-        dataLoadingRange.setUuid(UUID.randomUUID().toString());
+        dataLoadingRange.setUuid(RandomUtil.randomUUIDStr());
         dataLoadingRange.setColumnName("CAL_DT");
         NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .createDataLoadingRange(dataLoadingRange);
@@ -3090,7 +3090,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         request.setStart("0");
         request.setEnd("100");
-        request.setUuid(UUID.randomUUID().toString());
+        request.setUuid(RandomUtil.randomUUIDStr());
         modelService.createModel(request.getProject(), request);
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
 
@@ -3738,7 +3738,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
 
             deserialized = serializer.deserialize(new DataInputStream(bais));
-            deserialized.setUuid(UUID.randomUUID().toString());
+            deserialized.setUuid(RandomUtil.randomUUIDStr());
             deserialized.setSeekingCCAdvice(true);
 
             modelService.checkComputedColumn(deserialized, "default", null);
@@ -5151,7 +5151,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ownerChangeRequest3.setProject(project);
         ownerChangeRequest3.setOwner(owner);
 
-        String modelId = UUID.randomUUID().toString();
+        String modelId = RandomUtil.randomUUIDStr();
         thrown.expectMessage(
                 String.format(Locale.ROOT, "Model %s does not exist or broken in project %s", modelId, project));
         modelService.updateModelOwner(project, modelId, ownerChangeRequest3);

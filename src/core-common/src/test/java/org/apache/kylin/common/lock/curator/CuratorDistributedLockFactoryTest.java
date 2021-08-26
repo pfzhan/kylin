@@ -45,7 +45,6 @@ package org.apache.kylin.common.lock.curator;
 import static org.awaitility.Awaitility.await;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +54,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.test.TestingServer;
+import org.apache.kylin.common.util.RandomUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -88,7 +88,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testBasic() throws Exception {
-        String path = "/test/distributed_lock_factory_test/test_basic/" + UUID.randomUUID().toString();
+        String path = "/test/distributed_lock_factory_test/test_basic/" + RandomUtil.randomUUIDStr();
 
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
         CuratorDistributedLock lock = getTestConfig().getDistributedLockFactory().lockForCurrentThread(path);
@@ -102,7 +102,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testInterruptWhenLost() throws Exception {
-        String path = "/test/distributed_lock_factory_test/test_interrupt_lost/" + UUID.randomUUID().toString();
+        String path = "/test/distributed_lock_factory_test/test_interrupt_lost/" + RandomUtil.randomUUIDStr();
         TestingServer zkTestServer2 = new TestingServer(true);
 
         ExecutorService executorService = Executors.newFixedThreadPool(1);
@@ -151,7 +151,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
 
     @Test
     public void testInterruptWhenSuspended() throws Exception {
-        String path = "/test/distributed_lock_factory_test/test_interrupt_suspended/" + UUID.randomUUID().toString();
+        String path = "/test/distributed_lock_factory_test/test_interrupt_suspended/" + RandomUtil.randomUUIDStr();
         TestingServer zkTestServer2 = new TestingServer(true);
 
         ExecutorService executorService = Executors.newFixedThreadPool(1);
@@ -191,7 +191,7 @@ public class CuratorDistributedLockFactoryTest extends NLocalFileMetadataTestCas
     @Test
     public void testConcurrence() throws ExecutionException, InterruptedException {
         overwriteSystemProp("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
-        String path = "/test/distributed_lock_factory_test/test_concurrence/" + UUID.randomUUID().toString();
+        String path = "/test/distributed_lock_factory_test/test_concurrence/" + RandomUtil.randomUUIDStr();
         int threadNum = 10;
         int times = 10;
 

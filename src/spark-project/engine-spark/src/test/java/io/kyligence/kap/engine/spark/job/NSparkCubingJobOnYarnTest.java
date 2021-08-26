@@ -26,9 +26,9 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -117,7 +117,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
                 new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2013-06-01")), false);
 
         NSparkMergingJob mergeJob = NSparkMergingJob.merge(oneSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
-                UUID.randomUUID().toString());
+                RandomUtil.randomUUIDStr());
 
         // launch the job
         execMgr.addJob(mergeJob);

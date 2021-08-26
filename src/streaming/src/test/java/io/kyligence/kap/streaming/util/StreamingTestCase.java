@@ -23,6 +23,18 @@
  */
 package io.kyligence.kap.streaming.util;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.spark.sql.SparkSession;
+import org.junit.Assert;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -35,17 +47,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.spark.sql.SparkSession;
-import org.junit.Assert;
-
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public class StreamingTestCase extends NLocalFileMetadataTestCase {
     protected static String MODEL_ALIAS = "stream_merge1";
@@ -98,7 +99,7 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
         final IndexPlan indexPlan = indexPlanMgr.getIndexPlanByModelAlias(modelAlias);
 
         val copy = indexPlan.copy();
-        copy.setUuid(UUID.randomUUID().toString());
+        copy.setUuid(RandomUtil.randomUUIDStr());
         CubeTestUtils.createTmpModelAndCube(testConfig, copy, project, modelId);
         return copy;
     }

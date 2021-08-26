@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +40,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -278,7 +278,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
             req.setSegmentRange(rangeToMerge);
             req.setLayer(String.valueOf(currLayer));
-            req.setNewSegId(UUID.randomUUID().toString());
+            req.setNewSegId(RandomUtil.randomUUIDStr());
             RestSupport rest = new RestSupport(config);
 
             try {

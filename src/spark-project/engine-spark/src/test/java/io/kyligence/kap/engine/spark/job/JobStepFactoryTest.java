@@ -25,10 +25,10 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -146,13 +146,13 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
         firstSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-02"),
                 SegmentRange.dateToLong("2011-01-01")));
         firstSeg.setStatus(SegmentStatusEnum.READY);
-        firstSeg.setId(UUID.randomUUID().toString());
+        firstSeg.setId(RandomUtil.randomUUIDStr());
 
         NDataSegment secondSeg = new NDataSegment();
         secondSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2011-01-01"),
                 SegmentRange.dateToLong("2013-01-01")));
         secondSeg.setStatus(SegmentStatusEnum.READY);
-        secondSeg.setId(UUID.randomUUID().toString());
+        secondSeg.setId(RandomUtil.randomUUIDStr());
 
         Segments<NDataSegment> mergingSegments = new Segments<>();
         mergingSegments.add(firstSeg);
@@ -166,7 +166,7 @@ public class JobStepFactoryTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), true);
         Set<LayoutEntity> layouts = Sets.newHashSet(flowCopy.getIndexPlan().getAllLayouts());
         NSparkMergingJob job = NSparkMergingJob.merge(mergedSegment, Sets.newLinkedHashSet(layouts), "ADMIN",
-                UUID.randomUUID().toString());
+                RandomUtil.randomUUIDStr());
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", job.getTargetSubject());
 
         NSparkExecutable resourceDetectStep = job.getResourceDetectStep();

@@ -28,9 +28,9 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.util.Objects;
 import java.util.Random;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,8 +100,8 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
     private void addModel(NDataModel model) {
         for (int i = 0; i < 3; i++) {
             model = modelManager.copyForWrite(model);
-            model.setUuid(UUID.randomUUID().toString());
-            model.setAlias(UUID.randomUUID().toString());
+            model.setUuid(RandomUtil.randomUUIDStr());
+            model.setAlias(RandomUtil.randomUUIDStr());
             model.setMvcc(-1);
             modelManager.createDataModelDesc(model, "owner");
         }

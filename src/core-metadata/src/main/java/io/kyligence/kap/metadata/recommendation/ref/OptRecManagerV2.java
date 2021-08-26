@@ -26,12 +26,12 @@ package io.kyligence.kap.metadata.recommendation.ref;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.RandomUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -144,7 +144,7 @@ public class OptRecManagerV2 {
                 item.setLayout(layout);
                 item.setCreateTime(System.currentTimeMillis());
                 item.setAgg(layout.getId() < IndexEntity.TABLE_INDEX_START_ID);
-                item.setUuid(UUID.randomUUID().toString());
+                item.setUuid(RandomUtil.randomUUIDStr());
 
                 recItem = new RawRecItem(project, modelId, model.getSemanticVersion(),
                         RawRecItem.RawRecType.REMOVAL_LAYOUT);

@@ -31,7 +31,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -39,6 +38,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Filter;
@@ -183,7 +183,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
 
     private String getOutPutDir(String rollingDir) {
         if (StringUtils.isBlank(executorId)) {
-            executorId = SparkEnv.get() != null ? SparkEnv.get().executorId() : UUID.randomUUID().toString();
+            executorId = SparkEnv.get() != null ? SparkEnv.get().executorId() : RandomUtil.randomUUIDStr();
             StatusLogger.getLogger().warn("executorId set to " + executorId);
         }
 
