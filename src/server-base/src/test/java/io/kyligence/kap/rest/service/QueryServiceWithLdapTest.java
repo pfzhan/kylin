@@ -142,6 +142,7 @@ public class QueryServiceWithLdapTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetLdapUserACLInfo() {
         {
+            ldapUserService.listUsers();
             ldapUserService.loadUserByUsername("jenny");
             QueryContext.AclInfo info = queryService.getExecuteAclInfo("default", "jenny");
             Assert.assertTrue(info.getGroups().contains("ROLE_ADMIN"));

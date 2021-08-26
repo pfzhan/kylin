@@ -172,8 +172,8 @@ public class LdapUserService implements UserService {
             }
             ldapUsersCache.put(LDAP_USERS, Preconditions.checkNotNull(allUsers,
                     "Failed to load users from ldap server, something went wrong."));
+            logger.info("Get all users size: {}", allUsers.size());
         }
-        logger.info("Get all users size: {}", allUsers.size());
         return Collections.unmodifiableList(new ArrayList<>(allUsers.values()));
     }
 
