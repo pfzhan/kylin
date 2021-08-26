@@ -2,7 +2,7 @@
   <div class="model-aggregate-view" v-loading="isLoading">
     <div class="title-list">
       <div class="title-header">
-        <el-select v-model="aggType" size="small" disabled class="agg-types">
+        <el-select v-model="aggType" size="small" disabled class="agg-types" :class="{'no-advanced': model.model_type !== 'BATCH'}">
           <el-option
             v-for="item in options"
             :key="item"
@@ -13,7 +13,7 @@
         <div class="icon-group ksd-fright" v-if="isShowEditAgg">
           <common-tip :content="!editOrAddIndex ? $t('refuseAddIndexTip') : $t('addAggGroup')">
             <el-button text type="primary" :disabled="!editOrAddIndex" icon-button icon="el-ksd-icon-add_with_border_22" size="small" @click="(e) => handleAggregateGroup(e)"></el-button>
-          </common-tip><common-tip :content="$t('aggAdvanced')">
+          </common-tip><common-tip :content="$t('aggAdvanced')" v-if="model.model_type === 'BATCH'">
             <el-button text type="primary" icon-button icon="el-ksd-icon-setting_old" size="small" @click="openAggAdvancedModal()"></el-button>
           </common-tip>
         </div>
@@ -404,6 +404,9 @@ export default class AggregateView extends Vue {
       line-height: 24px;
       .agg-types {
         width: 140px;
+        &.no-advanced {
+          width: 168px;
+        }
       }
     }
     .agg-title {
