@@ -360,8 +360,8 @@ public class Message {
     }
 
     public String getUSER_IN_LOCKED_STATUS(long leftSeconds, long nextLockSeconds) {
-        return "For security concern, account %s has been locked. Please try again in " + formatSeconds(leftSeconds) + ". "
-                + formatNextLockDuration(nextLockSeconds) + ".";
+        return "For security concern, account %s has been locked. Please try again in " + formatSeconds(leftSeconds)
+                + ". " + formatNextLockDuration(nextLockSeconds) + ".";
     }
 
     protected String formatNextLockDuration(long nextLockSeconds) {
@@ -1662,6 +1662,10 @@ public class Message {
     }
 
     public String getJDBC_CONNECTION_INFO_WRONG() {
-        return "Invalid connection info.Please check and try again";
+        return "Invalid connection info.Please check and try again.";
+    }
+
+    public String getParamTooLarge() {
+        return "the parameter '%s' is too large, maximum %s byte.";
     }
 }

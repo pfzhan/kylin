@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.controller;
 import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -213,6 +215,17 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage("is not a valid value");
         status = Lists.newArrayList("OFF", null, "broken");
         nBasicController.formatStatus(status, ModelStatusToDisplayEnum.class);
+    }
+
+    @Test
+    public void testCheckParamLength() {
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(String.format(Message.getInstance().getParamTooLarge(), "tag", 1000));
+        List param = new ArrayList();
+        param.add(1);
+        param.add(6);
+        param.add(String.join("", Collections.nCopies(1000, "l")));
+        nBasicController.checkParamLength("tag", param, 1000);
     }
 
 }

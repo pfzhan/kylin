@@ -438,6 +438,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model") String modelId,
             @RequestBody BuildIndexRequest request) {
         checkProjectName(request.getProject());
+        checkParamLength("tag", request.getTag(), 1024);
         checkRequiredArg(MODEL_ID, modelId);
 
         modelService.validateCCType(modelId, request.getProject());
@@ -870,6 +871,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> refreshOrMergeSegments(@PathVariable("model") String modelId,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
+        checkParamLength("tag", request.getTag(), 1024);
         checkSegmentParms(request.getIds(), request.getNames());
         List<JobInfoResponse.JobInfo> jobInfos = new ArrayList<>();
         String[] segIds = modelService.convertSegmentIdWithName(modelId, request.getProject(), request.getIds(),
@@ -908,6 +910,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<MergeSegmentCheckResponse> checkMergeSegments(@PathVariable("model") String modelId,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
+        checkParamLength("tag", request.getTag(), 1024);
         if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
             throw new KylinException(FAILED_MERGE_SEGMENT, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
         }
@@ -922,6 +925,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
+        checkParamLength("tag", buildSegmentsRequest.getTag(), 1024);
         String partitionColumnFormat = modelService.getPartitionColumnFormatById(buildSegmentsRequest.getProject(),
                 modelId);
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
@@ -942,6 +946,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
+        checkParamLength("tag", buildSegmentsRequest.getTag(), 1024);
         String partitionColumnFormat = buildSegmentsRequest.getPartitionDesc().getPartitionDateFormat();
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(), partitionColumnFormat);
         modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
@@ -966,6 +971,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponseWithFailure> addIndexesToSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
+        checkParamLength("tag", buildSegmentsRequest.getTag(), 1024);
         val response = fusionModelService.addIndexesToSegments(modelId, buildSegmentsRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
@@ -976,6 +982,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponseWithFailure> addAllIndexesToSegments(@PathVariable("model") String modelId,
             @RequestBody IndexesToSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
+        checkParamLength("tag", buildSegmentsRequest.getTag(), 1024);
         JobInfoResponseWithFailure response = modelService.addIndexesToSegments(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getSegmentIds(), null, buildSegmentsRequest.isParallelBuildBySegment(),
                 buildSegmentsRequest.getPriority());
@@ -1040,6 +1047,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> buildMultiPartition(@PathVariable("model") String modelId,
             @RequestBody PartitionsBuildRequest param) {
         checkProjectName(param.getProject());
+        checkParamLength("tag", param.getTag(), 1024);
         checkRequiredArg("segment_id", param.getSegmentId());
         checkRequiredArg("sub_partition_values", param.getSubPartitionValues());
         val response = modelService.buildSegmentPartitionByValue(param.getProject(), modelId, param.getSegmentId(),
@@ -1054,6 +1062,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> refreshMultiPartition(@PathVariable("model") String modelId,
             @RequestBody PartitionsRefreshRequest param) {
         checkProjectName(param.getProject());
+        checkParamLength("tag", param.getTag(), 1024);
         checkRequiredArg("segment_id", param.getSegmentId());
         val response = modelService.refreshSegmentPartition(param, modelId);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");

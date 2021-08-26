@@ -512,10 +512,11 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "samplingJobs", tags = { "AI" })
-    @PostMapping(value = "/sampling_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON})
+    @PostMapping(value = "/sampling_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
+        checkParamLength("tag", request.getTag(), 1024);
         checkSamplingRows(request.getRows());
         checkSamplingTable(request.getQualifiedTableName());
         validatePriority(request.getPriority());

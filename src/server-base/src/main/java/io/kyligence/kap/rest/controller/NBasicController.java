@@ -119,6 +119,7 @@ import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import io.kyligence.kap.rest.service.ProjectService;
+import lombok.SneakyThrows;
 import lombok.val;
 
 public class NBasicController {
@@ -135,7 +136,7 @@ public class NBasicController {
     @Autowired
     protected UserService userService;
 
-    protected Logger getLogger(){
+    protected Logger getLogger() {
         return logger;
     }
 
@@ -371,6 +372,18 @@ public class NBasicController {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         return prjInstance.getName();
+    }
+
+    @SneakyThrows
+    public void checkParamLength(String paramName, Object param, int length) {
+        if (param == null) {
+            return;
+        }
+        String paramStr = JsonUtil.writeValueAsString(param);
+        if (paramStr.length() * 2 > length) {
+            throw new KylinException(INVALID_PARAMETER,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getParamTooLarge(), paramName, length));
+        }
     }
 
     public List<String> checkSqlIsNotNull(List<String> rawSqls) {

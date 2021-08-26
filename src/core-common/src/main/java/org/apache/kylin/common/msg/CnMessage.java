@@ -1886,6 +1886,11 @@ public class CnMessage extends Message {
 
     @Override
     public String getJDBC_CONNECTION_INFO_WRONG() {
-        return "连接信息错误，请检查后重试";
+        return "连接信息错误，请检查后重试。";
+    }
+
+    @Override
+    public String getParamTooLarge() {
+        return "参数 '%s' 太长， 最大 %s 字节。";
     }
 }

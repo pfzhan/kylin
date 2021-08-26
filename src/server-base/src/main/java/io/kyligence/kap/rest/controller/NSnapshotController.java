@@ -134,6 +134,7 @@ public class NSnapshotController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> buildSnapshotsManually(@RequestBody SnapshotRequest snapshotsRequest) {
         checkProjectName(snapshotsRequest.getProject());
         validatePriority(snapshotsRequest.getPriority());
+        checkParamLength("tag", snapshotsRequest.getTag(), 1024);
         if (snapshotsRequest.getTables().isEmpty() && snapshotsRequest.getDatabases().isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
         }
@@ -149,6 +150,7 @@ public class NSnapshotController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> refreshSnapshotsManually(@RequestBody SnapshotRequest snapshotsRequest)
             throws Exception {
         checkProjectName(snapshotsRequest.getProject());
+        checkParamLength("tag", snapshotsRequest.getTag(), 1024);
         validatePriority(snapshotsRequest.getPriority());
         if (snapshotsRequest.getTables().isEmpty() && snapshotsRequest.getDatabases().isEmpty()) {
             throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
