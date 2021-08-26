@@ -120,7 +120,9 @@ public abstract class SegmentJob extends SparkApplication {
 
     @Override
     protected void extraDestroy() {
-        runtime.shutdown();
+        if (runtime != null) {
+            runtime.shutdown();
+        }
     }
 
     protected KylinConfig getConfig() {

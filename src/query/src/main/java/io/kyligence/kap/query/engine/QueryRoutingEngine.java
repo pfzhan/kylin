@@ -195,7 +195,7 @@ public class QueryRoutingEngine {
             logger.error("Pushdown engine failed current query too", e2);
             //exception in pushdown, throw it instead of exception in calcite
             throw new RuntimeException(
-                    "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage(), e2);
+                    "[" + QueryContext.current().getPushdownEngine() + " Exception] " + e2.getMessage());
         }
 
         if (result == null)
