@@ -45,6 +45,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.AbstractContext;
@@ -1130,6 +1131,32 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, targetModel.getComputedColumnDescs().size());
         val cc = targetModel.getComputedColumnDescs().get(0);
         Assert.assertEquals("CBRT(" + PRICE_COLUMN + ")", cc.getExpression());
+    }
+
+    @Test
+    public void testNoColIdRepeat() {
+        String sql = "select count((test_kylin_fact.price+'')) from test_kylin_fact";
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), getProject(), new String[] { sql });
+        val smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(null);
+        context.saveMetadata();
+        AccelerationContextUtil.onlineModel(context);
+        Assert.assertEquals(1, context.getModelContexts().size());
+        val targetModel = context.getModelContexts().get(0).getTargetModel();
+
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.updateDataModel(targetModel.getId(), model -> {
+            model.getAllNamedColumns().get(model.getAllNamedColumns().size() - 1) //
+                    .setStatus(NDataModel.ColumnStatus.TOMB);
+        });
+        val model = modelManager.getDataModelDesc(targetModel.getId());
+        val namedColumn = model.getAllNamedColumns().get(model.getAllNamedColumns().size() - 1);
+        Assert.assertFalse(namedColumn.isExist());
+        val tombId = namedColumn.getId();
+        smartMaster.runUtWithContext(null);
+        val newTargetModel = context.getModelContexts().get(0).getTargetModel();
+        val newNamedColumn = newTargetModel.getAllNamedColumns().get(newTargetModel.getAllNamedColumns().size() - 1);
+        Assert.assertEquals(newNamedColumn.getId(), tombId + 1);
     }
 
     private void mockTableExtDesc(String tableIdentity, String proj, String[] colNames, int[] cardinalityList) {

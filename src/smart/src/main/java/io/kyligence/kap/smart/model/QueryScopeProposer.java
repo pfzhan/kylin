@@ -143,12 +143,12 @@ public class QueryScopeProposer extends AbstractModelProposer {
         private void inheritCandidateNamedColumns(NDataModel dataModel) {
             List<NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
             for (NamedColumn column : allNamedColumns) {
+                maxColId = Math.max(maxColId, column.getId());
                 // Forward compatibility, ensure col name is unique
                 if (!column.isExist()) {
                     continue;
                 }
                 column.setName(column.getName());
-                maxColId = Math.max(maxColId, column.getId());
                 candidateNamedColumns.put(column.getAliasDotColumn(), column);
             }
         }
