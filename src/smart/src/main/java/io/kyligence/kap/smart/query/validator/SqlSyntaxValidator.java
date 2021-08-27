@@ -27,23 +27,20 @@ package io.kyligence.kap.smart.query.validator;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.QueryRunnerFactory;
+import io.kyligence.kap.smart.query.QueryRunnerBuilder;
 import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 
 public class SqlSyntaxValidator extends AbstractSQLValidator {
 
-    private String project;
-
-    public SqlSyntaxValidator(KylinConfig kylinConfig, String project, AbstractQueryExecutor queryExecutor) {
-        super(kylinConfig, queryExecutor);
-        this.project = project;
+    public SqlSyntaxValidator(String project, KylinConfig kylinConfig, AbstractQueryExecutor queryExecutor) {
+        super(project, kylinConfig, queryExecutor);
         this.sqlAdvisor = new SqlSyntaxAdvisor();
     }
 
     @Override
     AbstractQueryRunner createQueryRunner(String[] sqls) {
-        return QueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls, threadCount);
+        return new QueryRunnerBuilder(project, kylinConfig, sqls).build();
     }
 
 }

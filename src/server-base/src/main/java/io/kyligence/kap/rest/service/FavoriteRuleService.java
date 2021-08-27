@@ -27,17 +27,12 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.service.BasicService;
@@ -51,7 +46,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.ImportSqlResponse;
@@ -64,39 +58,20 @@ import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
 
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
-    private static final Logger logger = LoggerFactory.getLogger("query");
+    private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
 
     private static final String DEFAULT_SCHEMA = "DEFAULT";
 
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {
-        aclEvaluate.checkProjectWritePermission(project);
-        FavoriteRule blacklist = getFavoriteRuleManager(project).getByName(FavoriteRule.BLACKLIST_NAME);
-        if (blacklist == null) {
-            return Lists.newArrayList();
-        }
-        String formattedSql = formatSql(sql);
-        return blacklist.getConds().stream().map(cond -> (FavoriteRule.SQLCondition) cond)
-                .filter(sqlCondition -> StringUtils.isEmpty(sql)
-                        || formatSql(sqlCondition.getSqlPattern()).contains(formattedSql))
-                .sorted(Comparator.comparingLong(FavoriteRule.SQLCondition::getCreateTime).reversed())
-                .collect(Collectors.toList());
-    }
-
-    private String formatSql(String sql) {
-        return sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ").toUpperCase(Locale.ROOT);
-    }
-
     public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
         KylinConfig kylinConfig = getProjectManager().getProject(project).getConfig();
-        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(kylinConfig, project, new MockupQueryExecutor());
+        AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(project, kylinConfig, new MockupQueryExecutor());
         return sqlValidator.batchValidate(sqls.toArray(new String[0]));
     }
 
     public SQLParserResponse importSqls(MultipartFile[] files, String project) {
-        Message msg = MsgPicker.getMsg();
         aclEvaluate.checkProjectWritePermission(project);
         List<String> sqls = Lists.newArrayList();
         List<String> wrongFormatFiles = Lists.newArrayList();

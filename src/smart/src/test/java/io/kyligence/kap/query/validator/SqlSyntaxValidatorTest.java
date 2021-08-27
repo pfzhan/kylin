@@ -27,7 +27,6 @@ package io.kyligence.kap.query.validator;
 import java.util.Map;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
@@ -38,7 +37,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
 
     private MockupQueryExecutor queryExecutor;
 
-    @Before
+    @Test
     public void setUp() throws Exception {
         super.setUp();
         queryExecutor = new MockupQueryExecutor();
@@ -56,7 +55,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 "select part_dt, sum(item_count) from kylin_sales group by part_dt" };
 
-        SqlSyntaxValidator validator = new SqlSyntaxValidator(getTestConfig(), proj, queryExecutor);
+        SqlSyntaxValidator validator = new SqlSyntaxValidator(proj, getTestConfig(), queryExecutor);
         final Map<String, SQLValidateResult> goodResults = validator.batchValidate(goodSqls);
         printSqlValidateResults(goodResults);
         goodResults.forEach((key, sqlValidateResult) -> Assert.assertTrue(sqlValidateResult.isCapable()));
@@ -72,7 +71,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
                 "select sum(lstg_format_name) from kylin_sales" // can not apply sum to 'lstg_format_name'
         };
 
-        SqlSyntaxValidator validator = new SqlSyntaxValidator(getTestConfig(), proj, queryExecutor);
+        SqlSyntaxValidator validator = new SqlSyntaxValidator(proj, getTestConfig(), queryExecutor);
         final Map<String, SQLValidateResult> badResults = validator.batchValidate(badSqls);
         printSqlValidateResults(badResults);
         badResults.forEach((key, sqlValidateResult) -> Assert.assertFalse(sqlValidateResult.isCapable()));

@@ -37,23 +37,22 @@ import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MockupQueryExecutor extends AbstractQueryExecutor {
 
     private final boolean queryNonEquiJoinEnabled;
-    private final SmartConfig smartConfig;
 
     public MockupQueryExecutor() {
         this.queryNonEquiJoinEnabled = BackdoorToggles.getIsQueryNonEquiJoinModelEnabled();
-        this.smartConfig = SmartConfig.wrap(KylinConfig.getInstanceFromEnv());
     }
 
-    public QueryRecord execute(String projectName, String sql) {
+    public QueryRecord execute(String projectName, KylinConfig kylinConfig, String sql) {
         OLAPContext.clearThreadLocalContexts();
         //set to check all models, rather than skip models when finding a realization in RealizationChooser#attemptSelectRealization
         BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_CHECK_ALL_MODELS, "true");
@@ -78,11 +77,8 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
 
         try {
             // execute and discard the result data
-            KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(projectName).getConfig();
-            QueryExec queryExec = new QueryExec(projectName, projectKylinConfig);
-            QueryParams queryParams = new QueryParams(QueryUtil.getKylinConfig(projectName), sql, projectName, 0, 0,
-                    queryExec.getSchema(), true);
+            QueryExec queryExec = new QueryExec(projectName, kylinConfig);
+            QueryParams queryParams = new QueryParams(kylinConfig, sql, projectName, 0, 0, queryExec.getSchema(), true);
             queryExec.executeQuery(QueryUtil.massageSql(queryParams));
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
@@ -101,7 +97,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
                     ? String.format(Locale.ROOT, "%s, check kylin.log for details", e.getClass().toString())
                     : QueryUtil.makeErrorMsgUserFriendly(e);
             if (printException) {
-                logger.debug("Failed to run in MockupQueryExecutor.", e);
+                log.debug("Failed to run in MockupQueryExecutor.", e);
             }
 
             sqlResult.setStatus(SQLResult.Status.FAILED);
@@ -111,7 +107,7 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             Collection<OLAPContext> ctxs = OLAPContext.getThreadLocalContexts();
             if (ctxs != null) {
                 ctxs.forEach(OLAPContext::clean);
-                if (smartConfig.startMemoryTuning()) {
+                if (SmartConfig.wrap(kylinConfig).startMemoryTuning()) {
                     ctxs.forEach(OLAPContext::simplify);
                 }
             }

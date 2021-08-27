@@ -59,7 +59,7 @@ public abstract class MetadataStore {
 
     public static MetadataStore createMetadataStore(KylinConfig config) {
         StorageURL url = config.getMetadataUrl();
-        log.info("Creating metadata store by KylinConfig {}", config);
+        log.info("Creating metadata store by KylinConfig {} from {}", config, url.toString());
         String clsName = config.getMetadataStoreImpls().get(url.getScheme());
         try {
             Class<? extends MetadataStore> cls = ClassUtil.forName(clsName, MetadataStore.class);

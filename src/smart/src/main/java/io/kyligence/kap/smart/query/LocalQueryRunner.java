@@ -29,28 +29,28 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class LocalQueryRunner extends AbstractQueryRunner {
 
-    private static final Logger logger = LoggerFactory.getLogger(LocalQueryRunner.class);
     private final Set<String> dumpResources;
     private final Map<String, RootPersistentEntity> mockupResources;
 
     LocalQueryRunner(KylinConfig srcKylinConfig, String projectName, String[] sqls, Set<String> dumpResources,
-            Map<String, RootPersistentEntity> mockupResources, int threads) {
-
-        super(projectName, sqls, threads);
+                     Map<String, RootPersistentEntity> mockupResources) {
+        super(projectName, sqls);
         this.kylinConfig = srcKylinConfig;
         this.dumpResources = dumpResources;
         this.mockupResources = mockupResources;
@@ -60,9 +60,9 @@ class LocalQueryRunner extends AbstractQueryRunner {
     public KylinConfig prepareConfig() throws IOException {
         File tmp = File.createTempFile("kylin_job_meta", "");
         FileUtils.forceDelete(tmp);
-        val properties = KylinConfig.getInstanceFromEnv().exportToProperties();
+        val properties = kylinConfig.exportToProperties();
         properties.setProperty("kylin.metadata.url", tmp.getAbsolutePath());
-        ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), tmp, dumpResources, properties);
+        ResourceStore.dumpResources(kylinConfig, tmp, dumpResources, properties);
 
         for (Map.Entry<String, RootPersistentEntity> mockupResource : mockupResources.entrySet()) {
             File dumpFile = new File(tmp, mockupResource.getKey());
@@ -89,9 +89,18 @@ class LocalQueryRunner extends AbstractQueryRunner {
         File metaDir = new File(config.getMetadataUrl().getIdentifier());
         if (metaDir.exists() && metaDir.isDirectory()) {
             FileUtils.forceDelete(metaDir);
-            logger.debug("Deleted the meta dir: {}", metaDir);
+            log.debug("Deleted the meta dir: {}", metaDir);
         }
 
+        if (MapUtils.isNotEmpty(mockupResources)) {
+            mockupResources.clear();
+        }
+        if (CollectionUtils.isNotEmpty(dumpResources)) {
+            dumpResources.clear();
+        }
+
+        config.clearManagers();
+        config.clearManagersByProject(project);
         ResourceStore.clearCache(config);
     }
 }

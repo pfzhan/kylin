@@ -28,14 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
-import com.google.common.collect.Lists;
+import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -45,75 +44,58 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
-class LocalQueryRunnerBuilder {
+public class QueryRunnerBuilder {
 
-    private KylinConfig srcKylinConfig;
-    private String[] sqls;
-    private int nThreads;
+    private final KylinConfig kylinConfig;
+    private final String[] sqls;
+    private final String project;
+    private List<NDataModel> models = Lists.newArrayList();
 
-    LocalQueryRunnerBuilder(KylinConfig srcKylinConfig, String[] sqls, int nThreads) {
-        this.srcKylinConfig = srcKylinConfig;
+    public QueryRunnerBuilder(String project, KylinConfig kylinConfig, String[] sqls) {
+        this.kylinConfig = kylinConfig;
         this.sqls = sqls;
-        this.nThreads = nThreads;
+        this.project = project;
     }
 
-    LocalQueryRunner buildBasic(String projectName) {
+    public QueryRunnerBuilder of(List<NDataModel> models) {
+        this.models = models;
+        return this;
+    }
+
+    public LocalQueryRunner build() {
         Set<String> dumpResources = Sets.newHashSet();
         Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
-        prepareResources(projectName, dumpResources, mockupResources, Lists.newArrayList(), true);
-        return new LocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
+        prepareResources(dumpResources, mockupResources, models);
+        return new LocalQueryRunner(kylinConfig, project, sqls, dumpResources, mockupResources);
     }
 
-    LocalQueryRunner buildPureMetaOnlyWithTables(String projectName) {
-        Set<String> dumpResources = Sets.newHashSet();
-        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
-        prepareResources(projectName, dumpResources, mockupResources, Lists.newArrayList(), false);
-        return new LocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
-    }
-
-    LocalQueryRunner buildWithModelDescs(String projectName, List<NDataModel> modelDescs) {
-        Set<String> dumpResources = Sets.newHashSet();
-        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
-        prepareResources(projectName, dumpResources, mockupResources, modelDescs, true);
-        return new LocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
-    }
-
-    private void prepareResources(String projectName, Set<String> dumpResources,
-            Map<String, RootPersistentEntity> mockupResources, List<NDataModel> dataModels, boolean containModel) {
+    private void prepareResources(Set<String> dumpResources, Map<String, RootPersistentEntity> mockupResources,
+            List<NDataModel> dataModels) {
 
         ProjectInstance dumpProj = new ProjectInstance();
-        dumpProj.setName(projectName);
-        dumpProj.setDefaultDatabase(
-                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getDefaultDatabase(projectName));
-        dumpProj.init(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(projectName).getConfig(),
-                true);
+        dumpProj.setName(project);
+        dumpProj.setDefaultDatabase(NProjectManager.getInstance(kylinConfig).getDefaultDatabase(project));
+        dumpProj.init(kylinConfig, true);
         mockupResources.put(dumpProj.getResourcePath(), dumpProj);
 
-        NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
+        NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(kylinConfig, project);
         metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
-
-        KafkaConfigManager kafkaConfigManager = KafkaConfigManager.getInstance(srcKylinConfig, projectName);
-        kafkaConfigManager.listAllKafkaConfigs().forEach(kafkaConfig -> dumpResources.add(kafkaConfig.getResourcePath()));
-
-        if (!containModel)
-            return;
 
         dataModels.forEach(dataModel -> {
             mockupResources.put(dataModel.getResourcePath(), dataModel);
             // now get healthy model list through NDataflowManager.listUnderliningDataModels,
             // then here mockup the dataflow and indexPlan for the dataModel
-            mockupDataflowAndIndexPlan(dataModel.getId(), projectName, mockupResources);
+            mockupDataflowAndIndexPlan(dataModel, mockupResources);
         });
     }
 
-    private void mockupDataflowAndIndexPlan(String dataflowId, String projectName,
-            Map<String, RootPersistentEntity> mockupResources) {
+    private void mockupDataflowAndIndexPlan(NDataModel dataModel, Map<String, RootPersistentEntity> mockupResources) {
         IndexPlan indexPlan = new IndexPlan();
-        indexPlan.setUuid(dataflowId);
-        indexPlan.setProject(projectName);
+        indexPlan.setUuid(dataModel.getUuid());
+        indexPlan.setProject(project);
         indexPlan.setDescription(StringUtils.EMPTY);
         NDataflow dataflow = NDataflow.create(indexPlan, RealizationStatusEnum.ONLINE);
-        dataflow.setProject(projectName);
+        dataflow.setProject(project);
         mockupResources.put(indexPlan.getResourcePath(), indexPlan);
         mockupResources.put(dataflow.getResourcePath(), dataflow);
     }

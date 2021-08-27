@@ -106,7 +106,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
         }
         super.cleanupTestMetadata();
-        ResourceStore.clearCache(kylinConfig);
+        ResourceStore.clearCache();
         excludedSqlPatterns.clear();
 
         FileUtils.deleteQuietly(new File("../kap-it/metastore_db"));

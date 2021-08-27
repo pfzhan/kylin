@@ -38,7 +38,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.QueryRunnerFactory;
+import io.kyligence.kap.smart.query.QueryRunnerBuilder;
 import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
@@ -47,8 +47,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SQLAnalysisProposer extends AbstractProposer {
-
-    private static final int DEFAULT_THREAD_NUM = 6;
 
     private final String[] sqls;
 
@@ -61,8 +59,8 @@ public class SQLAnalysisProposer extends AbstractProposer {
     public void execute() {
         initAccelerationInfo(sqls);
         List<NDataModel> models = proposeContext.getOriginModels();
-        try (AbstractQueryRunner extractor = QueryRunnerFactory.createForModelSuggestion(
-                KylinConfig.getInstanceFromEnv(), project, sqls, models, getDefaultThreadNum())) {
+        try (AbstractQueryRunner extractor = new QueryRunnerBuilder(project, KylinConfig.getInstanceFromEnv(), sqls)
+                .of(models).build()) {
             extractor.execute();
             logFailedQuery(extractor);
 
@@ -117,12 +115,5 @@ public class SQLAnalysisProposer extends AbstractProposer {
     @Override
     public String getIdentifierName() {
         return "SQLAnalysisProposer";
-    }
-
-    public static int getDefaultThreadNum() {
-        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            return 6;
-        }
-        return SQLAnalysisProposer.DEFAULT_THREAD_NUM;
     }
 }

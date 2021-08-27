@@ -34,11 +34,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.query.relnode.OLAPContext;
 
@@ -56,6 +54,7 @@ import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -64,7 +63,7 @@ public abstract class AbstractQueryRunner implements Closeable {
     @Getter
     private final String[] sqls;
     protected KylinConfig kylinConfig;
-    protected final String projectName;
+    protected final String project;
     @Setter
     protected boolean needCollectOlapContext;
 
@@ -73,20 +72,21 @@ public abstract class AbstractQueryRunner implements Closeable {
     private final ConcurrentNavigableMap<Integer, SQLResult> queryResults = new ConcurrentSkipListMap<>();
     @Getter
     private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
-    private final ExecutorService executorService;
 
-    AbstractQueryRunner(String projectName, String[] sqls, int threads) {
-        this.projectName = projectName;
+    private static final ExecutorService SUGGESTION_EXECUTOR_POOL = Executors.newFixedThreadPool(
+            KylinConfig.getInstanceFromEnv().getProposingThreadNum(), new NamedThreadFactory("SuggestRunner"));
+
+    AbstractQueryRunner(String project, String[] sqls) {
+        this.project = project;
         this.sqls = sqls;
-        this.executorService = Executors.newFixedThreadPool(threads, new NamedThreadFactory("SuggestRunner"));
         this.needCollectOlapContext = true;
     }
 
     private void submitQueryExecute(final CountDownLatch counter, final AbstractQueryExecutor executor,
-            final KylinConfig kylinConfig, final String project, final String sql, final int index) {
+                                    final KylinConfig kylinConfig, final String project, final String sql, final int index) {
 
         Preconditions.checkNotNull(sql, "SQL Statement cannot be null.");
-        executorService.execute(() -> {
+        SUGGESTION_EXECUTOR_POOL.execute(() -> {
             try {
                 long begin = System.currentTimeMillis();
                 boolean isCacheValid = false;
@@ -98,12 +98,12 @@ public abstract class AbstractQueryRunner implements Closeable {
                 if (!isCacheValid) {
                     try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
                             .setAndUnsetThreadLocalConfig(kylinConfig)) {
-                        NTableMetadataManager.getInstance(kylinConfig, project);
-                        NDataModelManager.getInstance(kylinConfig, project);
-                        NDataflowManager.getInstance(kylinConfig, project);
-                        NIndexPlanManager.getInstance(kylinConfig, project);
+                        NTableMetadataManager.getInstance(autoUnset.get(), project);
+                        NDataModelManager.getInstance(autoUnset.get(), project);
+                        NDataflowManager.getInstance(autoUnset.get(), project);
+                        NIndexPlanManager.getInstance(autoUnset.get(), project);
                         NProjectLoader.updateCache(project);
-                        record = executor.execute(project, sql);
+                        record = executor.execute(project, autoUnset.get(), sql);
                     }
                     queryCache.put(sql, record);
                 }
@@ -115,7 +115,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                     // TODO get an empty query context
                     QueryContext queryContext = QueryContext.current();
                     details.enrich(queryContext);
-                    details.enrich(sql, projectName, end - begin);
+                    details.enrich(sql, this.project, end - begin);
                 }
                 Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
                 queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
@@ -124,6 +124,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                 }
             } finally {
                 NProjectLoader.removeCache();
+                OLAPContext.clearThreadLocalContexts();
                 counter.countDown();
             }
         });
@@ -136,11 +137,10 @@ public abstract class AbstractQueryRunner implements Closeable {
             AbstractQueryExecutor queryExecutor = new MockupQueryExecutor();
             CountDownLatch latch = new CountDownLatch(sqls.length);
             for (int i = 0; i < sqls.length; i++) {
-                submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
+                submitQueryExecute(latch, queryExecutor, config, project, sqls[i], i);
             }
             latch.await();
         } finally {
-            queryCache.cleanUp();
             cleanupConfig(config);
         }
     }
@@ -152,7 +152,7 @@ public abstract class AbstractQueryRunner implements Closeable {
             CountDownLatch latch = new CountDownLatch(sqls.length);
             setNeedCollectOlapContext(false);
             for (int i = 0; i < sqls.length; i++) {
-                submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
+                submitQueryExecute(latch, queryExecutor, config, project, sqls[i], i);
             }
             latch.await();
         } finally {
@@ -174,6 +174,8 @@ public abstract class AbstractQueryRunner implements Closeable {
 
     @Override
     public void close() {
-        ExecutorServiceUtil.shutdownGracefully(executorService, 120);
+        queryCache.invalidateAll();
+        queryResults.clear();
+        olapContexts.clear();
     }
 }

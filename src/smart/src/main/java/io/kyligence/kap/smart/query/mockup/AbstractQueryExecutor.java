@@ -24,15 +24,12 @@
 
 package io.kyligence.kap.smart.query.mockup;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
 
 public abstract class AbstractQueryExecutor {
-
-    static final Logger logger = LoggerFactory.getLogger(AbstractQueryExecutor.class);
 
     private static final ThreadLocal<QueryRecord> CURRENT_RECORD = new ThreadLocal<>();
 
@@ -59,7 +56,7 @@ public abstract class AbstractQueryExecutor {
      * @return a <code>QueryRecord</code> object that contains the data
      * produced by the given query; never null
      */
-    public abstract QueryRecord execute(String projectName, String sql);
+    public abstract QueryRecord execute(String projectName, KylinConfig kylinConfig, String sql);
 
     /**
      * if stack trace elements contains LookupTableEnumerator, update the status of SQLResult and return true

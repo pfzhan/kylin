@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -41,26 +39,22 @@ import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class AbstractSQLValidator {
 
-    private static final Logger logger = LoggerFactory.getLogger(AbstractSQLValidator.class);
-
-    private static final int DEFAULT_THREAD_COUNT = 4;
-
+    @Getter
+    protected final String project;
     protected KylinConfig kylinConfig;
     private final AbstractQueryExecutor queryExecutor;
     ISqlAdvisor sqlAdvisor;
-    int threadCount;
 
-    private AbstractSQLValidator(KylinConfig kylinConfig, AbstractQueryExecutor queryExecutor, int threadCount) {
+    AbstractSQLValidator(String project, KylinConfig kylinConfig, AbstractQueryExecutor queryExecutor) {
+        this.project = project;
         this.kylinConfig = kylinConfig;
         this.queryExecutor = queryExecutor;
-        this.threadCount = threadCount;
-    }
-
-    AbstractSQLValidator(KylinConfig kylinConfig, AbstractQueryExecutor queryExecutor) {
-        this(kylinConfig, queryExecutor, DEFAULT_THREAD_COUNT);
     }
 
     abstract AbstractQueryRunner createQueryRunner(String[] sqls);
@@ -70,16 +64,17 @@ public abstract class AbstractSQLValidator {
         if (sqls == null || sqls.length == 0) {
             return Maps.newHashMap();
         }
-
-        final AbstractQueryRunner queryRunner = createQueryRunner(sqls);
-        try {
-            queryRunner.execute(queryExecutor);
-        } catch (Exception e) {
-            logger.error("batch validate sql error" + Arrays.toString(sqls), e);
+        Map<String, SQLValidateResult> resultMap;
+        try (AbstractQueryRunner queryRunner = createQueryRunner(sqls)) {
+            try {
+                queryRunner.execute(queryExecutor);
+            } catch (Exception e) {
+                log.error("batch validate sql error" + Arrays.toString(sqls), e);
+            }
+            List<SQLResult> queryResults = queryRunner.getQueryResultList();
+            resultMap = doBatchValidate(sqls, queryResults);
         }
-
-        List<SQLResult> queryResults = queryRunner.getQueryResultList();
-        return doBatchValidate(sqls, queryResults);
+        return resultMap;
     }
 
     private Map<String, SQLValidateResult> doBatchValidate(String[] sqls, List<SQLResult> queryResults) {

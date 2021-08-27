@@ -542,9 +542,7 @@ public abstract class KylinConfigBase implements Serializable {
         val url = getMetadataUrl();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(url.getIdentifier());
-        Optional.ofNullable(url.getParameter("url"))
-                .map(value -> value.split("\\?")[0])
-                .map(value -> "_" + value)
+        Optional.ofNullable(url.getParameter("url")).map(value -> value.split("\\?")[0]).map(value -> "_" + value)
                 .ifPresent(stringBuilder::append);
         String instanceId = stringBuilder.toString().replaceAll("\\W", "_");
         return instanceId;
@@ -2310,6 +2308,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Boolean isSmartModelEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.env.smart-mode-enabled", FALSE));
+    }
+
+    public Integer getProposingThreadNum() {
+        return Integer.parseInt(getOptional("kylin.env.smart-thread-num", "10"));
     }
 
     public String getEngineWriteFs() {

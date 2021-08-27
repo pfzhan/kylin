@@ -67,7 +67,7 @@ public class BackdoorToggles {
     public static void addToggle(String key, String value) {
         Map<String, String> map = _backdoorToggles.get();
         if (map == null) {
-            setToggles(Maps.<String, String> newHashMap());
+            setToggles(Maps.newHashMap());
         }
         _backdoorToggles.get().put(key, value);
     }
@@ -75,7 +75,7 @@ public class BackdoorToggles {
     public static void addToggles(Map<String, String> toggles) {
         Map<String, String> map = _backdoorToggles.get();
         if (map == null) {
-            setToggles(Maps.<String, String> newHashMap());
+            setToggles(Maps.newHashMap());
         }
         _backdoorToggles.get().putAll(toggles);
     }

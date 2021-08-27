@@ -49,10 +49,9 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelOptProposer;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
-import io.kyligence.kap.smart.SQLAnalysisProposer;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.QueryRunnerFactory;
+import io.kyligence.kap.smart.query.QueryRunnerBuilder;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -168,9 +167,7 @@ public class ModelMaster {
         List<String> originQueryList = Lists.newArrayList();
         modelContext.getModelTree().getOlapContexts().stream() //
                 .filter(context -> !StringUtils.isEmpty(context.sql)) //
-                .forEach(context -> {
-                    originQueryList.add(context.sql);
-                });
+                .forEach(context -> originQueryList.add(context.sql));
         if (originQueryList.isEmpty()) {
             log.warn("Failed to replace cc expression in original sql with proposed computed columns, "
                     + "early termination of the method of updateContextWithCC");
@@ -178,15 +175,14 @@ public class ModelMaster {
         }
 
         // Rebuild modelTrees and find match one to replace original
-        try (AbstractQueryRunner extractor = QueryRunnerFactory.createForModelSuggestion(
-                KylinConfig.getInstanceFromEnv(), project, originQueryList.toArray(new String[0]),
-                Lists.newArrayList(dataModel), SQLAnalysisProposer.getDefaultThreadNum())) {
+        try (AbstractQueryRunner extractor = new QueryRunnerBuilder(project, KylinConfig.getInstanceFromEnv(),
+                originQueryList.toArray(new String[0])).of(Lists.newArrayList(dataModel)).build()) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             final AbstractContext proposeContext = modelContext.getProposeContext();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project,
                     proposeContext) //
-                            .build(originQueryList, extractor.getAllOLAPContexts(), null);
+                    .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
                 boolean match = proposeContext instanceof SmartContext //
