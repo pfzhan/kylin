@@ -85,9 +85,10 @@ public class KapAggJoinTransposeRule extends RelOptRule {
 
     @Override
     public boolean matches(RelOptRuleCall call) {
+        final KapAggregateRel aggregate = call.rel(0);
         final KapJoinRel joinRel = call.rel(1);
         //Only one agg child of join is accepted
-        return KapQueryUtil.isJoinOnlyOneAggChild(joinRel);
+        return !aggregate.isContainCountDistinct() && KapQueryUtil.isJoinOnlyOneAggChild(joinRel);
     }
 
     @Override

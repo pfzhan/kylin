@@ -508,4 +508,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         return getGroupType() == Group.SIMPLE;
     }
 
+    public boolean isContainCountDistinct() {
+        return aggCalls.stream().anyMatch(agg -> agg.getAggregation().getKind() == SqlKind.COUNT && agg.isDistinct());
+    }
+
 }

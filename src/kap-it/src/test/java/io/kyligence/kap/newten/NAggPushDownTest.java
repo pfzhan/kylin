@@ -72,7 +72,7 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testPushDown() throws Exception {
+    public void testBasic() throws Exception {
         fullBuildCube("a749e414-c40e-45b7-92e4-bbfe63af705d", getProject());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NExecAndComp.CompareLevel compareLevel = NExecAndComp.CompareLevel.SAME;
@@ -81,6 +81,24 @@ public class NAggPushDownTest extends NLocalWithSparkSessionTest {
         try {
             List<Pair<String, String>> queries = NExecAndComp
                     .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
+            NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
+        } catch (Throwable th) {
+            logger.error("Query fail on: {}", identity);
+            Assert.error();
+        }
+        logger.info("Query succeed on: {}", identity);
+    }
+
+    @Test
+    public void testAggPushDown() throws Exception {
+        fullBuildCube("ce2057da-54c8-4e05-b0bf-d225a6bbb62c", getProject());
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NExecAndComp.CompareLevel compareLevel = NExecAndComp.CompareLevel.SAME;
+        populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
+        String identity = "sqlFolder:" + "sql_agg_pushdown" + ", joinType:" + joinType + ", compareLevel:" + compareLevel;
+        try {
+            List<Pair<String, String>> queries = NExecAndComp
+                    .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_agg_pushdown");
             NExecAndComp.execAndCompare(queries, getProject(), compareLevel, joinType);
         } catch (Throwable th) {
             logger.error("Query fail on: {}", identity);

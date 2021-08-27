@@ -181,6 +181,7 @@ public class QueryExec {
      */
     @VisibleForTesting
     public RelNode parseAndOptimize(String sql) throws SqlParseException {
+        beforeQuery();
         RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
         return queryOptimizer.optimize(relRoot).rel;
     }

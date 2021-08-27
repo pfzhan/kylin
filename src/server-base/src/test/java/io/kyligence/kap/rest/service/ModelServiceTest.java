@@ -6486,4 +6486,33 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         modelService.couldAnsweredByExistedModels("not_existed_project", sqlList);
     }
+
+    @Test
+    public void testProposeWhenAggPushdown() {
+        // before agg push down, propose table index and agg index
+        val sqls = Lists.newArrayList("SELECT \"自定义 SQL 查询\".\"CAL_DT\" ,\n"
+                + "       SUM (\"自定义 SQL 查询\".\"SELLER_ID\") AS \"TEMP_Calculation_54915774428294\",\n"
+                + "               COUNT (DISTINCT \"自定义 SQL 查询\".\"CAL_DT\") AS \"TEMP_Calculation_97108873613918\",\n"
+                + "                     COUNT (DISTINCT (CASE\n"
+                + "                                          WHEN (\"t0\".\"x_measure__0\" > 0) THEN \"t0\".\"LSTG_FORMAT_NAME\"\n"
+                + "                                          ELSE CAST (NULL AS VARCHAR (1))\n"
+                + "                                      END)) AS \"TEMP_Calculation_97108873613911\"\n" + "FROM\n"
+                + "  (SELECT *\n" + "   FROM TEST_KYLIN_FACT) \"自定义 SQL 查询\"\n" + "INNER JOIN\n"
+                + "     (SELECT LSTG_FORMAT_NAME, ORDER_ID, SUM (\"PRICE\") AS \"X_measure__0\"\n"
+                + "      FROM TEST_KYLIN_FACT  GROUP  BY LSTG_FORMAT_NAME, ORDER_ID) \"t0\" ON \"自定义 SQL 查询\".\"ORDER_ID\" = \"t0\".\"ORDER_ID\"\n"
+                + "GROUP  BY \"自定义 SQL 查询\".\"CAL_DT\"");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
+        SuggestionResponse response = modelService.buildModelSuggestionResponse(proposeContext);
+        Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
+        Assert.assertTrue(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).isTableIndex());
+        Assert.assertTrue(IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
+
+        // after agg push down, propose two agg index
+        overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "TRUE");
+        proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
+        response = modelService.buildModelSuggestionResponse(proposeContext);
+        Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
+        Assert.assertTrue(IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).getId()));
+        Assert.assertTrue(IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
+    }
 }

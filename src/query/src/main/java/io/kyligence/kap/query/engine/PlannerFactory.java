@@ -28,6 +28,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.optrule.KapCountDistinctJoinRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -284,6 +285,7 @@ public class PlannerFactory {
             planner.addRule(KapAggProjectTransposeRule.AGG_PROJECT_JOIN);
             planner.addRule(KapAggFilterTransposeRule.AGG_FILTER_JOIN);
             planner.addRule(KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG);
+            planner.addRule(KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG);
         }
     }
 

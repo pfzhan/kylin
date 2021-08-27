@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -193,13 +194,37 @@ public class KapQueryUtil {
             return false;
         }
 
-        if (!(joinLeftChild instanceof Aggregate) && !(joinRightChild instanceof Aggregate)) {
+        if (!isContainAggregate(joinLeftChild) && !isContainAggregate(joinRightChild)) {
             return false;
         }
-        if (joinLeftChild instanceof Aggregate && joinRightChild instanceof Aggregate) {
+        if (isContainAggregate(joinLeftChild) && isContainAggregate(joinRightChild)) {
             return false;
         }
         return true;
+    }
+
+    private static boolean isContainAggregate(RelNode node) {
+        boolean[] isContainAggregate = new boolean[] { false };
+        new RelVisitor() {
+            @Override
+            public void visit(RelNode node, int ordinal, RelNode parent) {
+                if (isContainAggregate[0]) {
+                    // pruning
+                    return;
+                }
+                RelNode relNode = node;
+                if (node instanceof RelSubset) {
+                    relNode = Util.first(((RelSubset) node).getBest(), ((RelSubset) node).getOriginal());
+                } else if (node instanceof HepRelVertex) {
+                    relNode = ((HepRelVertex) node).getCurrentRel();
+                }
+                if (relNode instanceof Aggregate) {
+                    isContainAggregate[0] = true;
+                }
+                super.visit(relNode, ordinal, parent);
+            }
+        }.go(node);
+        return isContainAggregate[0];
     }
 
     public static boolean isCast(RexNode rexNode) {

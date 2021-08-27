@@ -112,10 +112,11 @@ public class KapAggProjectTransposeRule extends RelOptRule {
             return false;
         }
 
-        for (RexNode rexNode : project.getProjects()) {
+        for (int i = 0; i < project.getProjects().size(); i++) {
+            RexNode rexNode = project.getProjects().get(i);
             // Only handle "GROUP BY expression"
             // If without expression, see KapAggProjectMergeRule
-            if (rexNode instanceof RexCall) {
+            if (rexNode instanceof RexCall && aggregate.getRewriteGroupKeys().contains(i)) {
                 return true;
             }
         }

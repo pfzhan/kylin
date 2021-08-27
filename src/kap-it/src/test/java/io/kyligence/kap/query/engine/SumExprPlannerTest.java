@@ -26,6 +26,15 @@ package io.kyligence.kap.query.engine;
 import java.io.IOException;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+import io.kyligence.kap.query.optrule.KapAggFilterTransposeRule;
+import io.kyligence.kap.query.optrule.KapAggJoinTransposeRule;
+import io.kyligence.kap.query.optrule.KapAggProjectMergeRule;
+import io.kyligence.kap.query.optrule.KapAggProjectTransposeRule;
+import io.kyligence.kap.query.optrule.KapAggregateRule;
+import io.kyligence.kap.query.optrule.KapCountDistinctJoinRule;
+import io.kyligence.kap.query.optrule.KapJoinRule;
+import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.kylin.common.KylinConfig;
@@ -164,5 +173,29 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
         String SQL = "SELECT SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE LEAF_CATEG_ID END), "
                 + "LSTG_FORMAT_NAME FROM TEST_KYLIN_FACT group by LSTG_FORMAT_NAME";
         checkSQL(defaultProject, SQL, null, null);
+    }
+
+    @Test
+    public void testAggPushdown() {
+
+        String SQL = "SELECT \"自定义 SQL 查询\".\"CAL_DT\" ,\n"
+                + "       SUM (\"自定义 SQL 查询\".\"SELLER_ID\") AS \"TEMP_Calculation_54915774428294\",\n"
+                + "            COUNT (\"自定义 SQL 查询\".\"CAL_DT\") AS \"TEMP_Calculation_97108873613918\",\n"
+                + "               COUNT (DISTINCT \"自定义 SQL 查询\".\"CAL_DT\") AS \"TEMP_Calculation_97108873613918\",\n"
+                + "                     COUNT (DISTINCT (CASE\n"
+                + "                                          WHEN (\"t0\".\"x_measure__0\" > 0) THEN \"t0\".\"LSTG_FORMAT_NAME\"\n"
+                + "                                          ELSE CAST (NULL AS VARCHAR (1))\n"
+                + "                                      END)) AS \"TEMP_Calculation_97108873613911\"\n" + "FROM\n"
+                + "  (SELECT *\n" + "   FROM TEST_KYLIN_FACT) \"自定义 SQL 查询\"\n" + "INNER JOIN\n"
+                + "     (SELECT LSTG_FORMAT_NAME, ORDER_ID, SUM (\"PRICE\") AS \"X_measure__0\"\n"
+                + "      FROM TEST_KYLIN_FACT  GROUP  BY LSTG_FORMAT_NAME, ORDER_ID) \"t0\" ON \"自定义 SQL 查询\".\"ORDER_ID\" = \"t0\".\"ORDER_ID\"\n"
+                + "GROUP  BY \"自定义 SQL 查询\".\"CAL_DT\"\n";
+        super.checkSQLPostOptimize(defaultProject, SQL, null, null,
+                ImmutableList.of(KapAggProjectMergeRule.AGG_PROJECT_JOIN,
+                        KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
+                        KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN, KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
+                        KapAggFilterTransposeRule.AGG_FILTER_JOIN, KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
+                        KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG, KapAggregateRule.INSTANCE,
+                        KapJoinRule.INSTANCE, KapProjectRule.INSTANCE));
     }
 }
