@@ -231,7 +231,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 val zipFile = new ZipFile(file2);
                 zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_")))
                         .forEach(appFiles::add);
-                Assert.assertEquals(11, appFiles.size());
+                Assert.assertEquals(9, appFiles.size());
             }
         }
     }
