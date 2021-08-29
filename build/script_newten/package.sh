@@ -50,6 +50,56 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.1 release note
+
+**Enhancement**
+
+- Optimize SQL modeling interface performance
+- Job callback API supports https protocol
+- Increase the number of records in the snapshot list page
+- Allow spark view to lose precision when loading tables and queries
+- Allow the computed column name to be the same as the column name of the dimension table
+- Completion index API adds priority request parameters
+- Inaccurate time-consuming segmentation of the query
+- Hide "add base indexes" checkbox when using the function of building model from SQLs for streaming models
+- The cast function supports string type conversion
+- Build Job API to add "start time" and "end time" return values
+- Enhanced build job API, abnormal return specific error information
+- Disable Spark canary by default
+- The number of scanned segments field is added to the query result Summary
+- Eventlog is not included in the diagnostic package occasionally
+- Print all the fields required to cache the key in the log
+- Job API supports specifying Yarn queue
+- The "Index List" API interface increases the table used by the index
+- Add diagnosis package for streaming jobs
+- Support to build/refresh a single index
+- Index recommendation optimization: add optimization suggestions of left join relationship to colleague real table model
+- Optimize the statistical efficiency of lookup tables when building models
+- In fusion model, time partition column is taken from Hive table in patch model
+- LDAP User fetching time is too long, causing users to be unable to log in to the user interface
+- Optimize the log in the query process
+- Iterative processing of query result sets to prevent OOM
+- Optimize query Executor log
+
+**Bugfix**
+
+- too much small objects leads to OOM when use recommend suggestion for about 2000 models
+- Streaming merge job throws exception when running
+- Queries beyond the range of segments show that they hit the model, but they are not actually saved to the query history
+- When the query hits the snapshot, the front end shows that it hits native
+- Auditlog synchronization error, causing the epoch to be released
+- Failed to use scientific notation in SQL
+- query_histories changed when using jdbc or odbc to query data
+- Failed to call some methods under broken fusion model
+- The SPACE function reports an error when the column is used as input
+- Out of memory when using recommend suggestions
+- During the index building process, the model changed in relation, causing the build to fail
+- Fix the problem that the Query instance cannot detect the Job instance
+- During the indexing process, the dataflow failed to update and the building continued, resulting in the index number being empty after the construction was completed.
+- The project is not bound to the resource group, and the error message is not clear when querying
+- The system has been stuck occasionally after execution of the start command
+- The pushdown query of a specific SQL is inconsistent with the Hive results
+
 #### Kyligence Enterprise 4.5.0 release note
 In this new version, Kyligence Enterprise not only supports real-time data analysis, but also supports fusion analysis of historical data and real-time data under a unified model and query portal. Under the broadening of the analysis scenario, the simple architecture reduces the operation and maintenance cost. At the same time, the introduction of Smart Tiered Storage functions can support flexible ad hoc query scenarios with random combinations of multiple dimensions, bringing users more possibilities for analysis and exploration based on massive data. In addition, Spark, which is the core component of Kyligence Enterprise has been greatly upgraded, which greatly improves the stability of building and query; Kyligence Enterprise supports the automatic creation and maintenance of base indexes, which increases the model's coverage of queries. 
 **Smart Tiered Storage**
