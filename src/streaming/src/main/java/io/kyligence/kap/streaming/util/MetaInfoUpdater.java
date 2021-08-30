@@ -35,6 +35,7 @@ import io.kyligence.kap.metadata.streaming.StreamingJobRecordManager;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 
@@ -74,6 +75,12 @@ public class MetaInfoUpdater {
                     record.setProject(project);
                     record.setCreateTime(System.currentTimeMillis());
                     switch (state) {
+                    case STARTING:
+                        if (!StringUtils.isEmpty(copyForWrite.getYarnAppUrl())) {
+                            copyForWrite.setYarnAppId(StringUtils.EMPTY);
+                            copyForWrite.setYarnAppUrl(StringUtils.EMPTY);
+                        }
+                        break;
                     case RUNNING:
                         copyForWrite.setLastStartTime(format.format(date));
                         copyForWrite.setSkipListener(false);

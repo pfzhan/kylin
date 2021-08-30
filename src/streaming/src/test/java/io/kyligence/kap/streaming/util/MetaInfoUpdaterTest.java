@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.streaming.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -38,6 +39,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
 import lombok.var;
@@ -106,5 +108,25 @@ public class MetaInfoUpdaterTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(jobMeta.getLastEndTime());
         Assert.assertNotNull(jobMeta.getLastUpdateTime());
 
+        mgr.updateStreamingJob(jobId, copyForWrite -> {
+            copyForWrite.setYarnAppId("application_1626786933603_1752");
+            copyForWrite
+                    .setYarnAppUrl("http://sandbox.hortonworks.com:8088/cluster/app/application_1626786933603_1752");
+        });
+        MetaInfoUpdater.updateJobState(PROJECT, jobId, JobStatusEnum.STARTING);
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(StringUtils.EMPTY, jobMeta.getYarnAppId());
+        Assert.assertEquals(StringUtils.EMPTY, jobMeta.getYarnAppUrl());
+    }
+
+    @Test
+    public void testMarkGracefulShutdown() {
+        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        val jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.toString());
+        val testConfig = getTestConfig();
+        MetaInfoUpdater.markGracefulShutdown(PROJECT, jobId);
+        var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        var jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(StreamingConstants.ACTION_GRACEFUL_SHUTDOWN, jobMeta.getAction());
     }
 }
