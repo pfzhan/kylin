@@ -23,11 +23,12 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.rest.request.StreamingRequest;
-import io.kyligence.kap.rest.service.KafkaService;
-import lombok.val;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -50,7 +51,11 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.rest.request.StreamingRequest;
+import io.kyligence.kap.rest.service.KafkaService;
+import lombok.val;
 
 public class KafkaControllerTest extends NLocalFileMetadataTestCase {
 
@@ -63,7 +68,7 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
-    private KafkaService kafkaService;
+    private KafkaService kafkaService = Mockito.spy(KafkaService.class);
 
     @InjectMocks
     private KafkaController kafkaController = Mockito.spy(new KafkaController());
@@ -95,6 +100,15 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetHistoryKafkaCluster() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/kafka/history_cluster").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(kafkaController).getHistoryKafkaCluster();
+    }
+
+    @Test
     public void testGetTopics() throws Exception {
         val request = mockStreamingRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/kafka/topics").contentType(MediaType.APPLICATION_JSON)
@@ -114,6 +128,27 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(kafkaController).getMessages(Mockito.any(StreamingRequest.class));
+    }
+
+    @Test
+    public void testGetMessages1() throws Exception {
+        val request = mockStreamingRequest();
+        val kafkaConfig = new KafkaConfig();
+        kafkaConfig.setKafkaBootstrapServers("127.0.0.1:9092");
+        kafkaConfig.setSubscribe("ssb_topic");
+        kafkaConfig.setStartingOffsets("latest");
+        request.setKafkaConfig(kafkaConfig);
+        val messages = Arrays.asList(ByteBuffer.allocate(10));
+        Mockito.when(
+                kafkaService.getMessages(request.getKafkaConfig(), request.getProject(), request.getClusterIndex()))
+                .thenReturn(messages);
+        Mockito.when(kafkaService.getMessageTypeAndDecodedMessages(messages)).thenReturn(new HashMap<String, Object>());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/kafka/messages").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(kafkaController).getMessages(request);
     }
 
     @Test

@@ -102,6 +102,7 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
     public static final String USER_GROUP_ROOT = GLOBAL_PROJECT + "/user_group";
     public static final String ACL_ROOT = GLOBAL_PROJECT + "/acl";
     public static final String PROJECT_ROOT = GLOBAL_PROJECT + "/project";
+    public static final String CLUSTER_RESOURCE_ROOT = GLOBAL_PROJECT + "/cluster";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
     public static final String FUSION_MODEL_RESOURCE_ROOT = "/fusion_model";

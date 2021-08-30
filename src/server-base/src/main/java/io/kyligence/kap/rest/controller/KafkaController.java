@@ -32,9 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.rest.request.StreamingRequest;
-import io.kyligence.kap.rest.service.KafkaService;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.slf4j.Logger;
@@ -42,10 +39,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.rest.request.StreamingRequest;
+import io.kyligence.kap.rest.service.KafkaService;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/kafka", produces = {HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
@@ -57,12 +60,21 @@ public class KafkaController extends NBasicController {
     @Qualifier("kafkaService")
     private KafkaService kafkaService;
 
+    @GetMapping(value = "history_cluster", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @ResponseBody
+    public EnvelopeResponse getHistoryKafkaCluster() {
+        val historyKafkaBrokers = kafkaService.getHistoryKafkaBrokers();
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, historyKafkaBrokers, "");
+    }
+
     @PostMapping(value = "topics", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse getTopics(@RequestBody StreamingRequest streamingRequest) throws IOException {
         KafkaConfig kafkaConfig = streamingRequest.getKafkaConfig();
-        return new EnvelopeResponse(KylinException.CODE_SUCCESS,
-                kafkaService.getTopics(kafkaConfig, streamingRequest.getProject(), streamingRequest.getFuzzyKey()), "");
+        val topics = kafkaService.getTopics(kafkaConfig, streamingRequest.getProject(), streamingRequest.getFuzzyKey());
+        kafkaService.appendKafkaBroker(kafkaConfig.getKafkaBootstrapServers());
+        return new EnvelopeResponse(KylinException.CODE_SUCCESS, topics, "");
     }
 
     @PostMapping(value = "messages", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })

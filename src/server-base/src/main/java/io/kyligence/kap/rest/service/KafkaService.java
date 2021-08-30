@@ -25,31 +25,37 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.BROKER_TIMEOUT_MESSAGE;
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_BROKER_DEFINITION;
 import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_TIMEOUT_MESSAGE;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.source.kafka.KafkaTableUtil;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.errors.TimeoutException;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.streaming.KafkaCluster;
+import io.kyligence.kap.metadata.streaming.KafkaClusterManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.source.kafka.KafkaTableUtil;
+import lombok.val;
+import lombok.var;
 
 @Component("kafkaService")
 public class KafkaService extends BasicService {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaService.class);
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -64,6 +70,47 @@ public class KafkaService extends BasicService {
         brokenBrokersMap.put("failed_servers", brokenBrokers);
         throw new KylinException(BROKER_TIMEOUT_MESSAGE, MsgPicker.getMsg().getBROKER_TIMEOUT_MESSAGE())
                 .withData(brokenBrokersMap);
+    }
+
+    public List<String> getHistoryKafkaBrokers() {
+        val mgr = KafkaClusterManager.getInstance(KylinConfig.getInstanceFromEnv());
+        val kafkaCluster = mgr.getKafkaCluster();
+        if (kafkaCluster == null) {
+            return Collections.emptyList();
+        } else {
+            return kafkaCluster.getHistoryKafkaBrokers();
+        }
+    }
+
+    @Transaction
+    public KafkaCluster appendKafkaBroker(String kafkaBroker) {
+        if (StringUtils.isEmpty(kafkaBroker)) {
+            throw new KylinException(INVALID_BROKER_DEFINITION, MsgPicker.getMsg().getINVALID_BROKER_DEFINITION());
+        }
+        val mgr = KafkaClusterManager.getInstance(KylinConfig.getInstanceFromEnv());
+        var cluster = mgr.getKafkaCluster();
+        if (cluster == null) {
+            cluster = new KafkaCluster();
+        }
+        if (cluster.getHistoryKafkaBrokers().isEmpty()) {
+            cluster.getHistoryKafkaBrokers().add(kafkaBroker);
+            return mgr.updateKafkaBroker(cluster);
+        } else {
+            if (kafkaBroker.equals(cluster.getHistoryKafkaBrokers().get(0))) {
+                return cluster;
+            } else {
+                // remove the earliest kafka broker, keep the latest
+                if (cluster.getHistoryKafkaBrokers().contains(kafkaBroker)) {
+                    cluster.getHistoryKafkaBrokers().remove(kafkaBroker);
+                }
+                cluster.getHistoryKafkaBrokers().addFirst(kafkaBroker);
+                while (cluster.getHistoryKafkaBrokers().size() > 5) {
+                    cluster.getHistoryKafkaBrokers().removeLast();
+                }
+                return mgr.updateKafkaBroker(cluster);
+            }
+        }
+
     }
 
     public Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, String project, final String fuzzyTopic) {

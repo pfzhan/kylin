@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.metadata.streaming.ReflectionUtils;
-import lombok.val;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.response.ErrorResponse;
@@ -42,9 +44,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Collections;
-import java.util.Map;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.ReflectionUtils;
+import io.kyligence.kap.source.kafka.CollectKafkaStats;
+import lombok.val;
 
 public class KafkaServiceTest extends NLocalFileMetadataTestCase {
 
@@ -86,19 +90,66 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckBrokerStatus() {
-
         try {
             kafkaService.checkBrokerStatus(kafkaConfig);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             KylinException kylinException = (KylinException) e;
-            ErrorResponse errorResponse = new ErrorResponse("http://localhost:7070/kylin/api/kafka/topics", kylinException);
+            ErrorResponse errorResponse = new ErrorResponse("http://localhost:7070/kylin/api/kafka/topics",
+                    kylinException);
             Assert.assertEquals("http://localhost:7070/kylin/api/kafka/topics", errorResponse.url);
             val dataMap = (Map<String, Object>) errorResponse.getData();
             Assert.assertEquals(1, dataMap.size());
             Assert.assertEquals(Collections.singletonList(brokerServer), dataMap.get("failed_servers"));
         }
+    }
+
+    @Test
+    public void testGetHistoryKafkaBrokers() {
+        val broker = "192.168.1.100";
+        val emptyBroker = kafkaService.getHistoryKafkaBrokers();
+        Assert.assertTrue(emptyBroker.isEmpty());
+        kafkaService.appendKafkaBroker(broker);
+
+        val brokers = kafkaService.getHistoryKafkaBrokers();
+        Assert.assertEquals(broker, brokers.get(0));
+
+        val broker1 = "192.168.1.101";
+        kafkaService.appendKafkaBroker(broker1);
+    }
+
+    @Test
+    public void testAppendKafkaBrokerException() {
+        expectedException.expect(KylinException.class);
+        expectedException.expectMessage(Message.getInstance().getINVALID_BROKER_DEFINITION());
+        kafkaService.appendKafkaBroker("");
+    }
+
+    @Test
+    public void testAppendKafkaBroker() {
+        kafkaService.appendKafkaBroker("192.169.1.100:9092");
+
+        kafkaService.appendKafkaBroker("192.169.1.100:9092");
+        Assert.assertEquals(1, kafkaService.getHistoryKafkaBrokers().size());
+
+        kafkaService.appendKafkaBroker("192.169.1.100:9092");
+        kafkaService.appendKafkaBroker("192.169.1.101:9092");
+        kafkaService.appendKafkaBroker("192.169.1.102:9092");
+        kafkaService.appendKafkaBroker("192.169.1.103:9092");
+        kafkaService.appendKafkaBroker("192.169.1.104:9092");
+        kafkaService.appendKafkaBroker("192.169.1.105:9092");
+        Assert.assertEquals(5, kafkaService.getHistoryKafkaBrokers().size());
+        Assert.assertFalse(kafkaService.getHistoryKafkaBrokers().contains("192.169.1.100:9092"));
+
+        kafkaService.appendKafkaBroker("192.169.1.101:9092");
+        Assert.assertEquals(5, kafkaService.getHistoryKafkaBrokers().size());
+        Assert.assertEquals("192.169.1.101:9092", kafkaService.getHistoryKafkaBrokers().get(0));
+
+        kafkaService.appendKafkaBroker("192.169.1.105:9092");
+        Assert.assertEquals(5, kafkaService.getHistoryKafkaBrokers().size());
+        Assert.assertEquals("192.169.1.105:9092", kafkaService.getHistoryKafkaBrokers().get(0));
+
     }
 
     @Test
@@ -115,4 +166,21 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
         kafkaService.getMessages(kafkaConfig, PROJECT, 1);
     }
 
+    @Test
+    public void testGetMessageTypeAndDecodedMessages() {
+        val value = ByteBuffer.allocate(10);
+        value.put("msg-1".getBytes());
+        value.flip();
+        val messages = Arrays.asList(value);
+        val decoded = kafkaService.getMessageTypeAndDecodedMessages(messages);
+        val decodedMessages = (List) decoded.get("message");
+        Assert.assertEquals(1, decodedMessages.size());
+    }
+
+    @Test
+    public void testConvertSampleMessageToFlatMap() {
+        val result = kafkaService.convertSampleMessageToFlatMap(kafkaConfig, CollectKafkaStats.JSON_MESSAGE,
+                "{\"a\": 2, \"b\": 2, \"timestamp\": \"2000-01-01 05:06:12\"}");
+        Assert.assertEquals(3, result.size());
+    }
 }
