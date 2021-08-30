@@ -181,9 +181,9 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 }
                 HashSet<String> appFiles = new HashSet<>();
                 val zipFile = new ZipFile(file2);
-                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_")))
+                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_") && !file.endsWith(".crc")))
                         .forEach(appFiles::add);
-                Assert.assertEquals(9, appFiles.size());
+                Assert.assertEquals(6, appFiles.size());
             }
         }
 
@@ -229,9 +229,9 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 }
                 HashSet<String> appFiles = new HashSet<>();
                 val zipFile = new ZipFile(file2);
-                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_")))
+                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_") && !file.endsWith(".crc")))
                         .forEach(appFiles::add);
-                Assert.assertEquals(9, appFiles.size());
+                Assert.assertEquals(6, appFiles.size());
             }
         }
     }
