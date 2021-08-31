@@ -43,7 +43,9 @@
 
 package org.apache.kylin.metadata.querymeta;
 
+import org.apache.kylin.common.KylinConfig;
 import java.io.Serializable;
+import java.sql.Types;
 
 /**
  */
@@ -97,6 +99,11 @@ public class SelectedColumnMeta implements Serializable {
     }
 
     public int getDisplaySize() {
+        if (!KylinConfig.getInstanceFromEnv().isCharDisplaySizeEnabled()) {
+            if (columnType == Types.CHAR || columnType == Types.VARCHAR) {
+                return -1;
+            }
+        }
         return displaySize;
     }
 

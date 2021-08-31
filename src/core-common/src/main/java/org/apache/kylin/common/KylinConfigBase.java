@@ -2819,6 +2819,10 @@ public abstract class KylinConfigBase implements Serializable {
                 "io.kyligence.kap.tool.LightningSystemProfileExtractor");
     }
 
+    public boolean isCharDisplaySizeEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.char-display-size-enabled", TRUE));
+    }
+
     public boolean isPrometheusMetricsEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metrics.prometheus-enabled", TRUE));
     }
