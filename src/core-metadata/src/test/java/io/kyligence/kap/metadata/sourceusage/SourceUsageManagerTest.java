@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.common.KylinConfig;
@@ -51,7 +52,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
-        this.createTestMetadata();
+        this.createTestMetadata("src/test/resources/ut_meta/heterogeneous_segment_2");
         overwriteSystemProp(Constants.KE_LICENSE_VOLUME, Constants.UNLIMITED);
         overwriteSystemProp("kylin.env", "DEV");
     }
@@ -74,7 +75,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(1264957L, usage.getCurrentCapacity());
+            Assert.assertEquals(1622027L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -346,5 +347,50 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
                     .setPartitioned(partitioned);
         }
 
+    }
+
+    @Test
+    public void testMeasureIncludedUpdateSourceUsage() {
+        String project = "heterogeneous_segment_2";
+        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
+        SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            KylinConfig testConfig = getTestConfig();
+            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(testConfig);
+            sourceUsageManager.updateSourceUsage(record);
+            NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+            NDataflow dataflow = dfManager.getDataflow("3f2860d5-0a4c-4f52-b27b-2627caafe769");
+
+            NDataSegment dataSegment1 = dataflow.getSegment("2805396d-4fe5-4541-8bc0-944caacaa1a3");
+            Set<TblColRef> usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment1);
+            /**
+             *  from measure cc DEFAULT.KYLIN_SALES.BUYER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID
+             *  from measure DEFAULT.KYLIN_SALES.SELLER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,
+             *      DEFAULT.KYLIN_SALES.ITEM_COUNT
+             *  DEFAULT.KYLIN_SALES.PART_DT,
+             */
+            Assert.assertEquals(6, usedColumns.size());
+            Assert.assertEquals("DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
+                    + "DEFAULT.KYLIN_SALES.BUYER_ID,DEFAULT.KYLIN_SALES.ITEM_COUNT,DEFAULT.KYLIN_SALES.PART_DT,"
+                    + "DEFAULT.KYLIN_SALES.SELLER_ID", usedColumns.stream().map(TblColRef::getCanonicalName)
+                    .sorted().collect(Collectors.joining(",")));
+
+            NDataSegment dataSegment2 = dataflow.getSegment("a7cef448-34e9-4acf-8632-0a3db101cef4");
+            usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment2);
+
+            /**
+             *  from measure cc DEFAULT.KYLIN_SALES.BUYER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID
+             *  from measure DEFAULT.KYLIN_SALES.SELLER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,
+             *      DEFAULT.KYLIN_SALES.ITEM_COUNT
+             *  DEFAULT.KYLIN_SALES.PART_DT, DEFAULT.KYLIN_SALES.PRICE
+             */
+            Assert.assertEquals(7, usedColumns.size());
+            Assert.assertEquals("DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
+                            + "DEFAULT.KYLIN_SALES.BUYER_ID,DEFAULT.KYLIN_SALES.ITEM_COUNT,DEFAULT.KYLIN_SALES.PART_DT,"
+                            + "DEFAULT.KYLIN_SALES.PRICE,DEFAULT.KYLIN_SALES.SELLER_ID",
+                    usedColumns.stream().map(TblColRef::getCanonicalName)
+                            .sorted().collect(Collectors.joining(",")));
+            return null;
+        }, UnitOfWork.GLOBAL_UNIT);
     }
 }

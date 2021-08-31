@@ -28,6 +28,8 @@ import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAP
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -792,13 +795,27 @@ public class SourceUsageManager {
         return 0d;
     }
 
-    // for ut
+    // public for ut
     public static Set<TblColRef> getSegmentUsedColumns(NDataSegment segment) {
-        return segment.getLayoutsMap().values().stream().map(layout -> layout.getLayout().getColumns())
+        NDataModel dataModel = segment.getModel();
+
+        return segment.getLayoutsMap().values().stream().map(layout -> layout.getLayout().getColOrder())
                 .flatMap(Collection::stream)
+                .map(colOrderId -> {
+                    if (colOrderId < NDataModel.MEASURE_ID_BASE) {
+                        return Optional.ofNullable(dataModel.getEffectiveCols().get(colOrderId))
+                                .map(Arrays::asList).orElseGet(ArrayList::new);
+                    } else {
+                        return Optional.ofNullable(dataModel.getEffectiveMeasures().get(colOrderId)
+                                .getFunction().getColRefs()).orElseGet(ArrayList::new);
+                    }
+                })
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(tblColRef -> {
-                    if (tblColRef.getColumnDesc().isComputedColumn() && KapConfig.getInstanceFromEnv().isSourceUsageUnwrapComputedColumn()) {
-                        return ComputedColumnDesc.unwrap(segment.getModel(), tblColRef.getExpressionInSourceDB());
+                    if (tblColRef.getColumnDesc().isComputedColumn()
+                            && KapConfig.getInstanceFromEnv().isSourceUsageUnwrapComputedColumn()) {
+                        return ComputedColumnDesc.unwrap(dataModel, tblColRef.getExpressionInSourceDB());
                     }
                     return Collections.singletonList(tblColRef);
                 })
