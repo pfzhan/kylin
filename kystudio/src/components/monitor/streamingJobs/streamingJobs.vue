@@ -146,8 +146,18 @@
                 <common-tip :content="$t('configurations')">
                   <i class="el-ksd-icon-controller_22 ksd-fs-22 ksd-ml-4" @click.stop="configJob(scope.row)"></i>
                 </common-tip>
-                <common-tip :content="$t('logInfoTip')" v-if="!scope.row.launching_error&&scope.row.job_status!=='STARTING'">
-                  <i name="file" class="el-ksd-icon-log_22 ksd-fs-22" @click="clickFile(scope.row)"></i>
+                <common-tip :content="$t('kylinLang.common.moreActions')" v-if="(!scope.row.launching_error&&scope.row.job_status!=='STARTING')||scope.row.yarn_app_url" >
+                   <el-dropdown trigger="click">
+                    <span class="el-dropdown-link" @click.stop>
+                      <common-tip :content="$t('kylinLang.common.moreActions')">
+                        <i class="el-icon-ksd-table_others ksd-fs-16"></i>
+                      </common-tip>
+                    </span>
+                    <el-dropdown-menu slot="dropdown">
+                      <el-dropdown-item v-if="!scope.row.launching_error&&scope.row.job_status!=='STARTING'" @click.native="clickFile(scope.row)">{{$t('logInfoTip')}}</el-dropdown-item>
+                      <el-dropdown-item v-if="scope.row.yarn_app_url" @click.native="skipToSparkDetail(scope.row)">{{$t('sparkTaskDetails')}}<i class="el-icon-ksd-export ksd-ml-4"></i></el-dropdown-item>
+                    </el-dropdown-menu>
+                   </el-dropdown>
                 </common-tip>
               </template>
             </el-table-column>
@@ -511,6 +521,9 @@ export default class StreamingJobsList extends Vue {
       this.dialogVisible = false
       this.showOutputJob = null
     }
+  }
+  skipToSparkDetail (row) {
+    window.open(row.yarn_app_url)
   }
   handleCloseOutputDialog () {
     this.showOutputJob = null

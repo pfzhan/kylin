@@ -59,7 +59,8 @@ export default {
     disableStartJobTips: 'Can\'t be used. Please add streaming indexes first.',
     borkenModelDisableStartJobTips: 'Can\'t be used. Model {modelName} is currently broken.',
     noPartitonColumnDisableStartJobTips: 'Can\'t be used. Please specify a timestamp field as the time partition column of this model.',
-    logInfoTip: 'Log Output',
+    logInfoTip: 'Log',
+    sparkTaskDetails: 'Spark Info',
     output: 'Output',
     jobDiagnosis: 'Download Job Diagnostic Package'
   },
@@ -124,6 +125,7 @@ export default {
     borkenModelDisableStartJobTips: '无法使用，模型 {modelName} 当前为 Broken 状态。',
     noPartitonColumnDisableStartJobTips: '无法使用，请先指定一个 timestamp 类型的字段作为该模型的时间分区列。',
     logInfoTip: '日志详情',
+    sparkTaskDetails: 'Spark 任务详情',
     output: '输出',
     jobDiagnosis: '下载任务诊断包'
   }
