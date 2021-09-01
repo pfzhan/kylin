@@ -50,6 +50,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1376,6 +1377,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         }
     }
 
+    @Ignore
     @Test
     public void testSCD2ModelWithAlias() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "scd2");

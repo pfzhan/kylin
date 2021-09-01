@@ -43,6 +43,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 
 public class QueryRunnerBuilder {
 
@@ -80,6 +81,9 @@ public class QueryRunnerBuilder {
 
         NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(kylinConfig, project);
         metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
+
+        KafkaConfigManager kafkaConfigManager = KafkaConfigManager.getInstance(kylinConfig, project);
+        kafkaConfigManager.listAllKafkaConfigs().forEach(kafkaConfig -> dumpResources.add(kafkaConfig.getResourcePath()));
 
         dataModels.forEach(dataModel -> {
             mockupResources.put(dataModel.getResourcePath(), dataModel);
