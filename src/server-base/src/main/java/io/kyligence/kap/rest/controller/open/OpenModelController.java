@@ -152,6 +152,7 @@ public class OpenModelController extends NBasicController {
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model_id", required = false) String modelId, //
             @RequestParam(value = "model_name", required = false) String modelAlias, //
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "owner", required = false) String owner, //
@@ -166,8 +167,8 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo,
             @RequestParam(value = "only_normal_dim", required = false, defaultValue = "true") boolean onlyNormalDim) {
         String projectName = checkProjectName(project);
-        return modelController.getModels(modelAlias, exactMatch, projectName, owner, status, table, offset, limit,
-                sortBy, reverse, modelAliasOrOwner, Arrays.asList(ModelAttributeEnum.BATCH), lastModifyFrom,
+        return modelController.getModels(modelId, modelAlias, exactMatch, projectName, owner, status, table, offset,
+                limit, sortBy, reverse, modelAliasOrOwner, Arrays.asList(ModelAttributeEnum.BATCH), lastModifyFrom,
                 lastModifyTo, onlyNormalDim);
     }
 
@@ -274,7 +275,11 @@ public class OpenModelController extends NBasicController {
 
     @VisibleForTesting
     public NDataModel getModel(String modelAlias, String project) {
-        NDataModel model = modelService.getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        NDataModel model = modelService.getDataModelManager(project).listAllModels().stream() //
+                .filter(dataModel -> dataModel.getUuid().equals(modelAlias) //
+                        || dataModel.getAlias().equalsIgnoreCase(modelAlias))
+                .findFirst().orElse(null);
+
         if (model == null) {
             throw new KylinException(MODEL_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));

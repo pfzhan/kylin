@@ -557,20 +557,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 null, null, true)).thenReturn(mockedModels);
         doReturn(new ArrayList<>()).when(modelService).addOldParams(anyString(), any());
 
-        DataResult<List<NDataModel>> modelResult1 = modelService.getModels("", true, "default", "ADMIN",
+        DataResult<List<NDataModel>> modelResult1 = modelService.getModels(null, "", true, "default", "ADMIN",
                 Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH,
                         ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
                 null, null, true);
 
-        DataResult<List<NDataModel>> modelResult2 = modelService.getModels("", true, "default", "ADMIN",
+        DataResult<List<NDataModel>> modelResult2 = modelService.getModels(null, "", true, "default", "ADMIN",
                 Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
                 Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING), null, null, true);
 
-        DataResult<List<NDataModel>> modelResult3 = modelService.getModels("", true, "default", "ADMIN",
+        DataResult<List<NDataModel>> modelResult3 = modelService.getModels(null, "", true, "default", "ADMIN",
                 Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
                 Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
 
-        DataResult<List<NDataModel>> modelResult4 = modelService.getModels("", true, "default", "ADMIN",
+        DataResult<List<NDataModel>> modelResult4 = modelService.getModels(null, "", true, "default", "ADMIN",
                 Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
                 Arrays.asList(ModelAttributeEnum.SECOND_STORAGE), null, null, true);
 
@@ -6274,9 +6274,10 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0, model1.getSource());
 
         String modelName2 = "model_streaming";
-        DataResult<List<NDataModel>> modelResult2 = modelService.getModels(modelName2, true, project, "ADMIN",
-                Lists.newArrayList(), "", 0, 10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH,
-                        ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
+        DataResult<List<NDataModel>> modelResult2 = modelService.getModels("4965c827-fbb4-4ea1-a744-3f341a3b030d",
+                modelName2, true, project, "ADMIN", Lists.newArrayList(), "", 0, 10, "last_modify", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID,
+                        ModelAttributeEnum.SECOND_STORAGE),
                 null, null, true);
         List<NDataModel> models2 = modelResult2.getValue();
         FusionModelResponse model2 = (FusionModelResponse) models2.get(0);

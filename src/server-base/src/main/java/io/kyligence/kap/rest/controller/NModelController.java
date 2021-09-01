@@ -173,6 +173,7 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(
+            @RequestParam(value = "model_id", required = false) String modelId, //
             @RequestParam(value = "model_name", required = false) String modelAlias,
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "project") String project, //
@@ -191,9 +192,9 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         status = formatStatus(status, ModelStatusToDisplayEnum.class);
 
-        DataResult<List<NDataModel>> filterModels = modelService.getModels(modelAlias, exactMatch, project, owner,
-                status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes, lastModifyFrom,
-                lastModifyTo, onlyNormalDim);
+        DataResult<List<NDataModel>> filterModels = modelService.getModels(modelId, modelAlias, exactMatch, project,
+                owner, status, table, offset, limit, sortBy, reverse, modelAliasOrOwner, modelAttributes,
+                lastModifyFrom, lastModifyTo, onlyNormalDim);
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, filterModels, "");
     }

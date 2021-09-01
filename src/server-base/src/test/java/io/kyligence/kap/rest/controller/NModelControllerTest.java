@@ -244,9 +244,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("model_attributes", "BATCH,STREAMING,HYBRID,SECOND_STORAGE")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"), "", 0,
-                10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING,
-                        ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
+        Mockito.verify(nModelController).getModels(null, "model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
+                "", 0, 10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH,
+                        ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
                 null, null, true);
     }
 
@@ -260,7 +260,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
+        Mockito.verify(nModelController).getModels(null, "model1", true, "default", "ADMIN", Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 
@@ -274,7 +274,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("ONLINE"),
+        Mockito.verify(nModelController).getModels(null, "", true, "default", "ADMIN", Arrays.asList("ONLINE"),
                 "TEST_KYLIN_FACT", 0, 10, "last_modify", true, null, null, null, null, true);
     }
 

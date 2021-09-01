@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -194,18 +195,18 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModels() throws Exception {
-        Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
-                "last_modify", false, null, null, null, null, true)).thenReturn(
+        Mockito.when(nModelController.getModels("model1", "model1", true, "default", "ADMIN", Arrays.asList("NEW"), "",
+                1, 5, "last_modify", false, null, null, null, null, true)).thenReturn(
                         new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                .param("page_offset", "1").param("project", "default").param("model_name", "model1")
-                .param("page_size", "5").param("exact", "true").param("table", "").param("owner", "ADMIN")
-                .param("status", "NEW").param("sortBy", "last_modify").param("reverse", "true")
+                .param("page_offset", "1").param("project", "default").param("model_id", "model1")
+                .param("model_name", "model1").param("page_size", "5").param("exact", "true").param("table", "")
+                .param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", Arrays.asList("NEW"), "", 1,
-                5, "last_modify", true, null, null, null, true);
+        Mockito.verify(openModelController).getModels("default", "model1", "model1", true, "ADMIN",
+                Arrays.asList("NEW"), "", 1, 5, "last_modify", true, null, null, null, true);
     }
 
     @Test
@@ -232,7 +233,13 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String project = "default";
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         String modelName = "default_model_name";
-        mockGetModelName(modelName, project, modelId);
+        NDataModel model = new NDataModel();
+        model.setUuid(modelId);
+        model.setAlias(modelName);
+        val modelManager = Mockito.mock(NDataModelManager.class);
+        Mockito.when(modelService.getDataModelManager(Mockito.anyString())).thenReturn(modelManager);
+        Mockito.when(modelManager.listAllModels()).thenReturn(Lists.newArrayList(model));
+
         Mockito.when(fusionIndexService.getIndexesWithRelatedTables(Mockito.any(), Mockito.any(), Mockito.any(),
                 Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(getIndexResponses());
@@ -245,6 +252,19 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
                 null, "last_modified", "", true, ids).getData();
         Assert.assertArrayEquals(response.getAbsentBatchIndexIds().toArray(),
                 Lists.newArrayList(20000020001L).toArray());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/indexes", modelId)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project) //
+                .param("batch_index_ids", "1,20000020001")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/indexes", modelId + modelName)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project) //
+                .param("batch_index_ids", "1,20000020001")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError());
+
     }
 
     private List<IndexResponse> getIndexResponses() throws Exception {

@@ -114,7 +114,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.InMemoryJobRunner;
-import io.kyligence.kap.metadata.model.JoinedFlatTable;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -209,6 +208,7 @@ import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ExcludedLookupChecker;
 import io.kyligence.kap.metadata.model.FusionModel;
 import io.kyligence.kap.metadata.model.FusionModelManager;
+import io.kyligence.kap.metadata.model.JoinedFlatTable;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
@@ -667,10 +667,10 @@ public class ModelService extends BasicService {
                 .filter(NDataModel::isMultiPartitionModel).collect(Collectors.toList());
     }
 
-    public DataResult<List<NDataModel>> getModels(String modelAlias, boolean exactMatch, String project, String owner,
-            List<String> status, String table, Integer offset, Integer limit, String sortBy, boolean reverse,
-            String modelAliasOrOwner, List<ModelAttributeEnum> modelAttributes, Long lastModifyFrom, Long lastModifyTo,
-            boolean onlyNormalDim) {
+    public DataResult<List<NDataModel>> getModels(String modelId, String modelAlias, boolean exactMatch, String project,
+            String owner, List<String> status, String table, Integer offset, Integer limit, String sortBy,
+            boolean reverse, String modelAliasOrOwner, List<ModelAttributeEnum> modelAttributes, Long lastModifyFrom,
+            Long lastModifyTo, boolean onlyNormalDim) {
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
             models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
@@ -683,6 +683,9 @@ public class ModelService extends BasicService {
 
         if (CollectionUtils.isNotEmpty(modelAttributes)) {
             models = models.stream().filter(filteredModels::contains).collect(Collectors.toList());
+        }
+        if (StringUtils.isNotEmpty(modelId)) {
+            models.removeIf(model -> !model.getUuid().equals(modelId));
         }
 
         DataResult<List<NDataModel>> filterModels = DataResult.get(models, offset, limit);
