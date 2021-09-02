@@ -337,4 +337,8 @@ public class ColumnDesc implements Serializable {
         return "ColumnDesc{" + "id='" + id + '\'' + ", name='" + name + '\'' + ", datatype='" + datatype + '\''
                 + ", comment='" + comment + '\'' + '}';
     }
+
+    public ColumnDesc copy() {
+        return new ColumnDesc(this);
+    }
 }

@@ -868,6 +868,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getFlatTableStorageFormat", new PropertiesEntity("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE", "SEQUENCEFILE"));
         map.put("getFlatTableFieldDelimiter", new PropertiesEntity("kylin.source.hive.flat-table-field-delimiter", "\u001F", "\u001F"));
         map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
+        map.put("getAutoModelViewEnabled", new PropertiesEntity("kylin.query.auto-model-view-enabled", "false", false));
     }
 
     @Before

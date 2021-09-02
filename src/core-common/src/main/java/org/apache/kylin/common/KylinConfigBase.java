@@ -1605,6 +1605,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.max-dimension-count-distinct", "5000000"));
     }
 
+    public boolean getAutoModelViewEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.auto-model-view-enabled", FALSE));
+    }
+
     public Map<String, String> getUDFs() {
         Map<String, String> udfMap = Maps.newLinkedHashMap();
         udfMap.put("regexp_like", "org.apache.kylin.query.udf.otherUdf.RegexpLikeUDF");

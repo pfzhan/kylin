@@ -22,21 +22,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine;
+package io.kyligence.kap.query.engine.view;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.kylin.common.exception.KylinException;
 
-public class TypeSystem {
+import java.util.List;
 
-    public static RelDataTypeSystem relDataTypeSystem() {
-        return new KylinRelDataTypeSystem();
+import static org.apache.kylin.query.exception.QueryErrorCode.FAILED_PARSE_ERROR;
+
+/**
+ * A thin wrapper of ViewExpander
+ * No nested views are allowed
+ */
+public interface SimpleViewExpander extends RelOptTable.ViewExpander {
+
+    RelRoot parseSQL(String sql) throws SqlParseException;
+
+    @Override
+    default RelRoot expandView(RelDataType rowType, String queryString, List<String> schemaPath, List<String> viewPath) {
+        try {
+            return parseSQL(queryString);
+        } catch (Exception e) {
+            throw new KylinException(FAILED_PARSE_ERROR, "View expansion failed", e);
+        }
     }
-
-    public static JavaTypeFactory javaTypeFactory() {
-        return new JavaTypeFactoryImpl(relDataTypeSystem());
-    }
-
 }

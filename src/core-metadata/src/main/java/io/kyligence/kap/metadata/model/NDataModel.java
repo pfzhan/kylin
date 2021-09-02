@@ -1170,6 +1170,10 @@ public class NDataModel extends RootPersistentEntity {
         return effectiveCols.get(colId);
     }
 
+    public TblColRef getColRef(String columnName) {
+        return getColRef(getColumnIdByColumnName(columnName));
+    }
+
     public void initComputedColumns(List<NDataModel> otherModels) {
         Preconditions.checkNotNull(otherModels);
 

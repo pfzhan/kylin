@@ -114,7 +114,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.InMemoryJobRunner;
-import org.apache.kylin.job.JoinedFlatTable;
+import io.kyligence.kap.metadata.model.JoinedFlatTable;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.dao.ExecutablePO;

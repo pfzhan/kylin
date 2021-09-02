@@ -31,9 +31,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -45,11 +47,13 @@ import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.engine.view.ViewSchema;
 import io.kyligence.kap.query.schema.KapOLAPSchema;
 
 /**
  * factory that create and construct schemas within a project
  */
+@Slf4j
 public class ProjectSchemaFactory {
 
     private final String projectName;
@@ -90,9 +94,16 @@ public class ProjectSchemaFactory {
     }
 
     public CalciteSchema createProjectRootSchema() {
-        CalciteSchema calciteSchema = CalciteSchema.createRootSchema(true);
-        addProjectSchemas(calciteSchema);
-        return calciteSchema;
+        CalciteSchema rootSchema = CalciteSchema.createRootSchema(true);
+        addProjectSchemas(rootSchema);
+        if (kylinConfig.getAutoModelViewEnabled()) {
+            addModelViewSchemas(rootSchema);
+        }
+        return rootSchema;
+    }
+
+    public void setDefaultSchemaName(String defaultSchemaName) {
+        this.defaultSchemaName = defaultSchemaName;
     }
 
     public String getDefaultSchema() {
@@ -105,6 +116,34 @@ public class ProjectSchemaFactory {
             CalciteSchema added = parentSchema.add(schemaName, createSchema(schemaName));
             addUDFs(added);
         }
+    }
+
+    private void addModelViewSchemas(CalciteSchema parentSchema) {
+        final String viewSchemaName = projectName;
+
+        ViewSchema viewSchema = new ViewSchema(viewSchemaName);
+        CalciteSchema schema = getOrCreateViewSchema(parentSchema, viewSchema);
+        SchemaPlus plus = schema.plus();
+
+        List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, projectName).listOnlineDataModels();
+        for (NDataModel model : models) {
+            if (schema.getTable(model.getAlias(), false) == null) {
+                viewSchema.addModel(plus, model);
+            } else {
+                log.warn("Auto model view creation for {}.{} failed, name collision with source tables",
+                        viewSchemaName, viewSchemaName);
+            }
+        }
+    }
+
+    private CalciteSchema getOrCreateViewSchema(CalciteSchema parentSchema, ViewSchema viewSchema) {
+        String schemaName = viewSchema.getSchemaName();
+        CalciteSchema existingSchema = parentSchema.getSubSchema(schemaName, false);
+        if (existingSchema != null) {
+            return existingSchema;
+        }
+
+        return parentSchema.add(schemaName, viewSchema);
     }
 
     private Schema createSchema(String schemaName) {

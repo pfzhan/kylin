@@ -22,25 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package org.apache.kylin.job;
+package io.kyligence.kap.metadata.model;
 
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,8 +47,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
 
 public class JoinedFlatTable {
 
@@ -104,25 +85,28 @@ public class JoinedFlatTable {
         return quoteIdentifierInSqlExpr(modelDesc, ccMap.get(col.getName()).getInnerExpression(), QUOTE);
     }
 
-    private static String appendEffectiveColumnsStatement(NDataModel modelDesc, boolean singleLine) {
+    private static String appendEffectiveColumnsStatement(
+            NDataModel modelDesc, List<TblColRef> effectiveColumns,
+            boolean singleLine, boolean includeCC, Function<TblColRef, String> namingFunction) {
         final String sep = getSepBySingleLineTag(singleLine);
 
         StringBuilder subSql = new StringBuilder();
-        if (modelDesc.getEffectiveCols().isEmpty()) {
+        if (effectiveColumns.isEmpty()) {
             subSql.append("1");
             return subSql.toString();
         }
 
-        modelDesc.getEffectiveCols().forEach((id, col) -> {
-            if (!col.getColumnDesc().isComputedColumn()) {
+        effectiveColumns.forEach(col -> {
+            if (includeCC || !col.getColumnDesc().isComputedColumn()) {
                 if (subSql.length() > 0) {
                     subSql.append(",").append(sep);
                 }
 
-                String colName = colName(col);
+                String colName = namingFunction != null ? namingFunction.apply(col) : colName(col);
                 subSql.append(quotedColExpressionInSourceDB(modelDesc, col)).append(" as ").append(quote(colName));
             }
         });
+
         return subSql.toString();
     }
 
@@ -193,16 +177,25 @@ public class JoinedFlatTable {
     }
 
     public static String generateSelectDataStatement(NDataModel modelDesc, boolean singleLine) {
+        return generateSelectDataStatement(
+                modelDesc, Lists.newArrayList(modelDesc.getEffectiveCols().values()), singleLine, false, true, null);
+    }
+
+    public static String generateSelectDataStatement(
+            NDataModel modelDesc, List<TblColRef> effectiveColumns, boolean singleLine,
+            boolean includeCC, boolean includeFilter, Function<TblColRef, String> namingFunction) {
         final String sep = getSepBySingleLineTag(singleLine);
 
         StringBuilder sql = new StringBuilder("SELECT ").append(sep);
-        String columnsStatement = appendEffectiveColumnsStatement(modelDesc, singleLine);
+        String columnsStatement = appendEffectiveColumnsStatement(modelDesc, effectiveColumns, singleLine, includeCC, namingFunction);
         sql.append(columnsStatement.endsWith(sep) ? columnsStatement : columnsStatement + sep);
         sql.append("FROM ").append(sep);
         String joinStatement = appendJoinStatement(modelDesc, singleLine);
         sql.append(joinStatement.endsWith(sep) ? joinStatement : joinStatement + sep);
-        sql.append("WHERE ").append(sep);
-        sql.append(appendWhereStatement(modelDesc, singleLine));
+        if (includeFilter) {
+            sql.append("WHERE ").append(sep);
+            sql.append(appendWhereStatement(modelDesc, singleLine));
+        }
         return sql.toString();
     }
 
@@ -240,7 +233,7 @@ public class JoinedFlatTable {
     }
 
     @VisibleForTesting
-    static String quoteIdentifier(String sqlExpr, String quotation, String identifier,
+    public static String quoteIdentifier(String sqlExpr, String quotation, String identifier,
             List<String> identifierPatterns) {
         String quotedIdentifier = quotation + identifier.trim() + quotation;
 
@@ -267,7 +260,7 @@ public class JoinedFlatTable {
     }
 
     @VisibleForTesting
-    static List<String> getTableNameOrAliasPatterns(String tableName) {
+    public static List<String> getTableNameOrAliasPatterns(String tableName) {
         Preconditions.checkNotNull(tableName);
         // Pattern must contain these regex groups, and place identifier in sec group ($2)
         List<String> patterns = Lists.newArrayList();
@@ -281,7 +274,7 @@ public class JoinedFlatTable {
     }
 
     @VisibleForTesting
-    static List<String> getColumnNameOrAliasPatterns(String colName) {
+    public static List<String> getColumnNameOrAliasPatterns(String colName) {
         Preconditions.checkNotNull(colName);
         // Pattern must contain these regex groups, and place identifier in sec group ($2)
         List<String> patterns = Lists.newArrayList();
@@ -329,7 +322,7 @@ public class JoinedFlatTable {
      * @return
      */
     @VisibleForTesting
-    static String quoteIdentifierInSqlExpr(NDataModel modelDesc, String sqlExpr, String quotation) {
+    public static String quoteIdentifierInSqlExpr(NDataModel modelDesc, String sqlExpr, String quotation) {
         Map<String, String> tabToAliasMap = buildTableToTableAliasMap(modelDesc);
         Map<String, Map<String, String>> tabToColsMap = buildTableToColumnsMap(modelDesc);
 

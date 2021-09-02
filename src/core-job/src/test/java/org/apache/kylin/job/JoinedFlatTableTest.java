@@ -61,6 +61,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableBiMap;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.JoinedFlatTable;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class JoinedFlatTableTest {

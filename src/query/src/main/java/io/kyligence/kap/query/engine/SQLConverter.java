@@ -34,6 +34,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollations;
@@ -59,6 +60,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.schema.KylinSqlValidator;
 
+import io.kyligence.kap.query.engine.view.SimpleViewExpander;
+
 /**
  * converter that parse, validate sql and convert to relNodes
  */
@@ -70,7 +73,12 @@ public class SQLConverter {
     private final SqlToRelConverter sqlToRelConverter;
     private final CalciteConnectionConfig connectionConfig;
 
-    public SQLConverter(KECalciteConfig connectionConfig, RelOptPlanner planner, Prepare.CatalogReader catalogReader) {
+    private SQLConverter(KECalciteConfig connectionConfig, RelOptPlanner planner, Prepare.CatalogReader catalogReader) {
+        this(connectionConfig, planner, catalogReader, null);
+    }
+
+    private SQLConverter(KECalciteConfig connectionConfig, RelOptPlanner planner,
+                        Prepare.CatalogReader catalogReader, RelOptTable.ViewExpander viewExpander) {
         this.connectionConfig = connectionConfig;
         parserConfig = SqlParser.configBuilder().setQuotedCasing(connectionConfig.quotedCasing())
                 .setUnquotedCasing(connectionConfig.unquotedCasing()).setQuoting(connectionConfig.quoting())
@@ -81,7 +89,29 @@ public class SQLConverter {
         sqlOperatorTable = createOperatorTable(connectionConfig, catalogReader);
         validator = createValidator(connectionConfig, catalogReader, sqlOperatorTable);
 
-        sqlToRelConverter = createSqlToRelConverter(planner, validator, catalogReader);
+        sqlToRelConverter = createSqlToRelConverter(viewExpander, planner, validator, catalogReader);
+    }
+
+    public static SQLConverter createConverter(
+            KECalciteConfig connectionConfig, RelOptPlanner planner, Prepare.CatalogReader catalogReader) {
+        // this could be a bit awkward that SQLConverter and ViewExpander seem to have a cyclical reference
+        SQLConverter sqlConverter = new SQLConverter(connectionConfig, planner, catalogReader);
+        return new SQLConverter(connectionConfig, planner, catalogReader, (SimpleViewExpander) sqlConverter::convertSqlToRelNode);
+    }
+
+
+    /**
+     * parse, validate and convert sql into RelNodes
+     * Note that the output relNodes are not optimized
+     * @param sql
+     * @return
+     * @throws SqlParseException
+     */
+    public RelRoot convertSqlToRelNode(String sql) throws SqlParseException {
+        SqlNode sqlNode = parseSQL(sql);
+        QueryContext.current().record("end calcite parse sql");
+
+        return convertToRelNode(sqlNode);
     }
 
     private SqlValidator createValidator(CalciteConnectionConfig connectionConfig, Prepare.CatalogReader catalogReader,
@@ -120,40 +150,26 @@ public class SQLConverter {
         );
     }
 
-    private SqlToRelConverter createSqlToRelConverter(RelOptPlanner planner, SqlValidator sqlValidator,
-            Prepare.CatalogReader catalogReader) {
+    private SqlToRelConverter createSqlToRelConverter(RelOptTable.ViewExpander viewExpander, RelOptPlanner planner,
+                                                      SqlValidator sqlValidator, Prepare.CatalogReader catalogReader) {
         SqlToRelConverter.Config config = SqlToRelConverter.configBuilder().withTrimUnusedFields(true)
                 .withExpand(Prepare.THREAD_EXPAND.get()).withExplain(false).build();
 
         final RelOptCluster cluster = RelOptCluster.create(planner, new RexBuilder(javaTypeFactory()));
 
-        return new SqlToRelConverter(null, sqlValidator, catalogReader, cluster, StandardConvertletTable.INSTANCE,
-                config);
+        return new SqlToRelConverter(
+                viewExpander, sqlValidator, catalogReader, cluster, StandardConvertletTable.INSTANCE, config);
     }
 
-    public JavaTypeFactory javaTypeFactory() {
-        return new TypeSystem().javaTypeFactory();
+    private JavaTypeFactory javaTypeFactory() {
+        return TypeSystem.javaTypeFactory();
     }
 
-    /**
-     * parse, validate and convert sql into RelNodes
-     * Note that the output relNodes are not optimized
-     * @param sql
-     * @return
-     * @throws SqlParseException
-     */
-    public RelRoot convertSqlToRelNode(String sql) throws SqlParseException {
-        SqlNode sqlNode = parseSQL(sql);
-        QueryContext.current().record("end calcite parse sql");
-
-        return convertToRelNode(sqlNode);
-    }
-
-    public SqlNode parseSQL(String sql) throws SqlParseException {
+    private SqlNode parseSQL(String sql) throws SqlParseException {
         return SqlParser.create(sql, parserConfig).parseQuery();
     }
 
-    public RelRoot convertToRelNode(SqlNode sqlNode) {
+    private RelRoot convertToRelNode(SqlNode sqlNode) {
         RelRoot root = sqlToRelConverter.convertQuery(sqlNode, true, true);
 
         if (connectionConfig.forceDecorrelate()) {

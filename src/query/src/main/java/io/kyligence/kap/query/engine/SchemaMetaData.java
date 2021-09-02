@@ -24,10 +24,14 @@
 
 package io.kyligence.kap.query.engine;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.schema.Table;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
@@ -44,15 +48,29 @@ public class SchemaMetaData {
 
     public List<TableSchema> getTables() {
         return projectSchemaFactory.createProjectRootSchema().getSubSchemaMap().values().stream()
-                .flatMap(schema -> schema.getTableNames().stream().map(tableName -> {
-                    Table table = schema.getTable(tableName, false).getTable();
-                    return convertToTableSchema(
-                            Constant.FakeCatalogName,
-                            schema.getName() == null ? Constant.FakeSchemaName : schema.getName(),
-                            tableName,
-                            table);
-                })).collect(Collectors.toList());
+                .flatMap(schema -> getTables(schema).stream())
+                .collect(Collectors.toList());
     }
+
+    private List<TableSchema> getTables(CalciteSchema schema) {
+        Map<String, Table> tables = new HashMap<>();
+        String schemaName = schema.getName() == null ? Constant.FakeSchemaName : schema.getName();
+
+        for (String tableName : schema.getTableNames()) {
+            tables.put(tableName, schema.getTable(tableName, false).getTable());
+        }
+        tables.putAll(schema.getTablesBasedOnNullaryFunctions());
+
+        List<TableSchema> tableSchemas = new LinkedList<>();
+        tables.forEach((tableName, table) -> tableSchemas.add(convertToTableSchema(
+                Constant.FakeCatalogName,
+                schemaName,
+                tableName,
+                table
+        )));
+        return tableSchemas;
+    }
+
 
     private TableSchema convertToTableSchema(String catalogName, String schemaName, String tableName, Table table) {
         return new TableSchema(catalogName, schemaName, tableName, table.getJdbcTableType().toString(), null,

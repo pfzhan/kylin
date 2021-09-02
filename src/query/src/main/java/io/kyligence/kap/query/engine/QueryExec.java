@@ -95,7 +95,7 @@ public class QueryExec {
         String defaultSchemaName = schemaFactory.getDefaultSchema();
         catalogReader = createCatalogReader(config, rootSchema, defaultSchemaName);
         planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
-        sqlConverter = new SQLConverter(config, planner, catalogReader);
+        sqlConverter = SQLConverter.createConverter(config, planner, catalogReader);
         dataContext = createDataContext(rootSchema);
         planner.setExecutor(new RexExecutorImpl(dataContext));
         queryOptimizer = new QueryOptimizer(planner);
@@ -302,7 +302,7 @@ public class QueryExec {
     }
 
     private SimpleDataContext createDataContext(CalciteSchema rootSchema) {
-        return new SimpleDataContext(rootSchema.plus(), sqlConverter.javaTypeFactory(), kylinConfig);
+        return new SimpleDataContext(rootSchema.plus(), TypeSystem.javaTypeFactory(), kylinConfig);
     }
 
     private boolean routeToCalciteEngine(RelNode rel) {
