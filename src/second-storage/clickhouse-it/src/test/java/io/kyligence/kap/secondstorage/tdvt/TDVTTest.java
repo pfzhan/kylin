@@ -159,9 +159,6 @@ public class TDVTTest {
                 "spark.sql.catalog." + queryCatalog,
                 "org.apache.spark.sql.execution.datasources.jdbc.v2.SecondStorageCatalog");
         sparkSession.sessionState().conf().setConfString(
-                "spark.sql.catalog." + queryCatalog + ".url",
-                clickhouse.getJdbcUrl());
-        sparkSession.sessionState().conf().setConfString(
                 "spark.sql.catalog." + queryCatalog + ".driver",
                 clickhouse.getDriverClassName());
     }

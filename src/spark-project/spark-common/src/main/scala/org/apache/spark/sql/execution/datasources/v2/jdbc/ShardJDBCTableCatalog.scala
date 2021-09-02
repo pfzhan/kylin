@@ -35,6 +35,7 @@ import java.sql.SQLException
 import scala.collection.JavaConverters._
 
 class ShardJDBCTableCatalog extends  JDBCTableCatalog with SupportsSQL {
+  private val DEFAULT_CLICKHOUSE_URL = "jdbc:clickhouse://localhost:9000"
 
   // TODO: remove these two variables
   protected var options2: JDBCOptions = _
@@ -48,9 +49,16 @@ class ShardJDBCTableCatalog extends  JDBCTableCatalog with SupportsSQL {
   }
 
   override def initialize(name: String, options: CaseInsensitiveStringMap): Unit = {
-    super.initialize(name, options)
+    // when url is empty, use default url
+    val urlKey = "url"
+    var modifiedOptions = options.asCaseSensitiveMap().asScala.toMap
+    if (!options.containsKey(urlKey)) {
+      modifiedOptions += (urlKey -> DEFAULT_CLICKHOUSE_URL)
+    }
+    val newOptions = new CaseInsensitiveStringMap(modifiedOptions.asJava)
+    super.initialize(name, newOptions)
 
-    val map = options.asCaseSensitiveMap().asScala.toMap
+    val map = newOptions.asCaseSensitiveMap().asScala.toMap
     // The `JDBCOptions` checks the existence of the table option. This is required by JDBC v1, but
     // JDBC V2 only knows the table option when loading a table. Here we put a table option with a
     // fake value, so that it can pass the check of `JDBCOptions`.
