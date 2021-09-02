@@ -51,7 +51,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.AbstractJoinRule;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
@@ -116,8 +115,7 @@ public class ModelSelectProposer extends AbstractProposer {
             }
 
             if (selectedModel.containsKey(model.getUuid()) && !modelContext.isSnapshotSelected()) {
-                if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).getConfig()
-                        .isQueryMatchPartialInnerJoinModel()) {
+                if (proposeContext.getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel()) {
                     AbstractContext.ModelContext anotherModelContext = selectedModel.get(model.getUuid());
                     AbstractContext.ModelContext newModelContext = new GreedyModelTreesBuilder.TreeBuilder(
                             model.getRootFactTable().getTableDesc(),

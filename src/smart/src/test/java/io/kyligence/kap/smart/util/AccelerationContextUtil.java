@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
@@ -55,12 +56,14 @@ public class AccelerationContextUtil {
     }
 
     public static AbstractContext newSmartContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
-        return new SmartContext(kylinConfig, project, sqlArray);
+        KylinConfigExt config = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig();
+        return new SmartContext(config, project, sqlArray);
     }
 
     public static AbstractSemiContextV2 newModelReuseContext(KylinConfig kylinConfig, String project,
             String[] sqlArray) {
-        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(kylinConfig, project, sqlArray);
+        KylinConfigExt config = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig();
+        ModelReuseContextOfSemiV2 context = new ModelReuseContextOfSemiV2(config, project, sqlArray);
         context.getExtraMeta().setOnlineModelIds(getOnlineModelIds(project));
         return context;
     }

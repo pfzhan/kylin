@@ -50,7 +50,6 @@ import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1377,9 +1376,9 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         }
     }
 
-    @Ignore
     @Test
     public void testSCD2ModelWithAlias() throws Exception {
+        getTestConfig().setProperty("kylin.query.non-equi-join-model-enabled", "true");
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "scd2");
         val model = modelMgr.getDataModelDescByAlias("same_scd2_dim_tables");
         val req = newSemanticRequest(model.getId(), "scd2");

@@ -262,7 +262,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore
     public void testCCWithSelectStar() throws Exception {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig()

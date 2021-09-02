@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.model.AbstractJoinRule;
 
 public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
@@ -42,8 +41,7 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
     public ModelSelectContextOfSemiV2(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
         this.canCreateNewModel = getSmartConfig().getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND);
-        this.partialMatch = NProjectManager.getInstance(kylinConfig).getProject(project).getConfig()
-                .isQueryMatchPartialInnerJoinModel();
+        this.partialMatch = getSmartConfig().getKylinConfig().isQueryMatchPartialInnerJoinModel();
     }
 
     @Override

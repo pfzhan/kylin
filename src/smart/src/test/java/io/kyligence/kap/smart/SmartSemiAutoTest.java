@@ -31,7 +31,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -43,7 +42,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.util.AccelerationContextUtil;
 import lombok.val;
 
-@Ignore
 public class SmartSemiAutoTest extends NLocalFileMetadataTestCase {
 
     @Before

@@ -59,8 +59,8 @@ public class SQLAnalysisProposer extends AbstractProposer {
     public void execute() {
         initAccelerationInfo(sqls);
         List<NDataModel> models = proposeContext.getOriginModels();
-        try (AbstractQueryRunner extractor = new QueryRunnerBuilder(project, KylinConfig.getInstanceFromEnv(), sqls)
-                .of(models).build()) {
+        try (AbstractQueryRunner extractor = new QueryRunnerBuilder(project,
+                getProposeContext().getSmartConfig().getKylinConfig(), sqls).of(models).build()) {
             extractor.execute();
             logFailedQuery(extractor);
 

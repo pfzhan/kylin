@@ -175,13 +175,13 @@ public class ModelMaster {
         }
 
         // Rebuild modelTrees and find match one to replace original
-        try (AbstractQueryRunner extractor = new QueryRunnerBuilder(project, KylinConfig.getInstanceFromEnv(),
+        KylinConfig kylinConfig = modelContext.getProposeContext().getSmartConfig().getKylinConfig();
+        try (AbstractQueryRunner extractor = new QueryRunnerBuilder(project, kylinConfig,
                 originQueryList.toArray(new String[0])).of(Lists.newArrayList(dataModel)).build()) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             final AbstractContext proposeContext = modelContext.getProposeContext();
-            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(KylinConfig.getInstanceFromEnv(), project,
-                    proposeContext) //
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
                     .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelTree : modelTrees) {
