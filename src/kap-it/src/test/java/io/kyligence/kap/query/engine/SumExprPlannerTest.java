@@ -91,7 +91,6 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
         openSumCaseWhen();
         List<Pair<String, String>> queries = readALLSQLs(KylinConfig.getInstanceFromEnv(), defaultProject,
                 "query/sql_sum_expr");
-        Assert.assertEquals("Please adjust expected value, if SQLs are added or removed ", 31, queries.size());
         queries.forEach(e -> checkSQL(defaultProject, e.getSecond(), e.getFirst(), null));
     }
 

@@ -244,7 +244,7 @@ public class KapSumTransCastToThenRule extends RelOptRule {
         for (int i = 0; i < aggCalls.size(); i++) {
             if ((castInfo = needCastForSum(i + offset, castInfos)) != null) {
                 projectRexNodes.add(rexBuilder.makeCall(castInfo.getCastType(), new SqlCastFunction(),
-                        Lists.newArrayList(rexBuilder.makeInputRef(peekedRelNodes, i))));
+                        Lists.newArrayList(rexBuilder.makeInputRef(peekedRelNodes, castInfo.getIndex()))));
             } else {
                 projectRexNodes.add(rexBuilder.makeInputRef(peekedRelNodes, i + offset));
             }
