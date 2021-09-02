@@ -82,10 +82,6 @@ public abstract class GridTableMapping {
         return gtPrimaryKey;
     }
 
-    public ImmutableBitSet[] getColumnBlocks() {
-        return gtColBlocks.toArray(new ImmutableBitSet[gtColBlocks.size()]);
-    }
-
     public int getIndexOf(TblColRef dimension) {
         Integer i = dim2gt.get(dimension);
         return i == null ? -1 : i.intValue();

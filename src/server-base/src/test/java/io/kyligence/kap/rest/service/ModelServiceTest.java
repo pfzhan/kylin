@@ -5454,6 +5454,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setSimplifiedMeasures(measures);
         modelRequest.setProject("default");
 
+        modelRequest.setProject(getProject());
         modelService.checkModelDimensions(modelRequest);
         modelService.checkModelMeasures(modelRequest);
     }

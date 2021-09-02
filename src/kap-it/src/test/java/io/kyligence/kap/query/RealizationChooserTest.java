@@ -359,7 +359,6 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
                 .get(0);
         context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
         RealizationChooser.attemptSelectCandidate(context);
-        Assert.assertEquals(30001L, context.storageContext.getCuboidLayoutId().longValue());
-        Assert.assertEquals(30001L, context.storageContext.getCuboidLayoutId().longValue());
+        Assert.assertEquals(30001L, context.storageContext.getStreamingLayoutId().longValue());
     }
 }

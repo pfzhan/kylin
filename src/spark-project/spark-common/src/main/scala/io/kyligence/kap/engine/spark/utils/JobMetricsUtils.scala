@@ -116,7 +116,7 @@ object JobMetricsUtils extends Logging with AdaptiveSparkPlanHelper {
           if (nExecutionId != "" && e.queryExecution != null) {
             QueryExecutionCache.setQueryExecution(nExecutionId, e.queryExecution)
           } else {
-            logWarning("executionIdStr is null, can't get QueryExecution from SQLExecution.")
+            logDebug("executionIdStr is null, can't get QueryExecution from SQLExecution.")
           }
         case _ => // Ignore
       }

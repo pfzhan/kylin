@@ -23,7 +23,6 @@ package org.apache.spark.sql.common
 
 import java.sql.Types
 import java.util.{List, TimeZone}
-
 import io.kyligence.kap.metadata.query.StructField
 import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.spark.internal.Logging
@@ -32,6 +31,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+
+import java.util
 
 object SparderQueryTest extends Logging {
 
@@ -228,7 +229,7 @@ object SparderQueryTest extends Logging {
     false
   }
 
-  def compareColumnTypeWithCalcite(cubeSchema: List[StructField], sparkSchema: StructType): Unit = {
+  def compareColumnTypeWithCalcite(cubeSchema: util.List[StructField], sparkSchema: StructType): Unit = {
     val cubeSize = cubeSchema.size
     val sparkSize = sparkSchema.size
     assert(cubeSize == sparkSize, s"$cubeSize did not equal $sparkSize")

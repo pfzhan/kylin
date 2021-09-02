@@ -64,11 +64,11 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
       case rel: KapTableScan =>
         rel.genExecFunc() match {
           case "executeLookupTableQuery" =>
-            logTime("createLookupTable") { TableScanPlan.createLookupTable(rel, dataContext) }
+            logTime("createLookupTable") { TableScanPlan.createLookupTable(rel) }
           case "executeOLAPQuery" =>
-            logTime("createOLAPTable") { TableScanPlan.createOLAPTable(rel, dataContext) }
+            logTime("createOLAPTable") { TableScanPlan.createOLAPTable(rel) }
           case "executeSimpleAggregationQuery" =>
-            logTime("createSingleRow") { TableScanPlan.createSingleRow(rel, dataContext) }
+            logTime("createSingleRow") { TableScanPlan.createSingleRow() }
         }
       case rel: KapFilterRel =>
         logTime("filter") { FilterPlan.filter(Lists.newArrayList(stack.pop()), rel, dataContext) }
@@ -92,7 +92,7 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
         }
       case rel: KapJoinRel =>
         if (!rel.isRuntimeJoin) {
-          logTime("join with table scan") { TableScanPlan.createOLAPTable(rel, dataContext) }
+          logTime("join with table scan") { TableScanPlan.createOLAPTable(rel) }
         } else {
           val right = stack.pop()
           val left = stack.pop()
@@ -101,7 +101,7 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
       case rel: KapNonEquiJoinRel =>
         if (!rel.isRuntimeJoin) {
           logTime("join with table scan") {
-            TableScanPlan.createOLAPTable(rel, dataContext)
+            TableScanPlan.createOLAPTable(rel)
           }
         } else {
           val right = stack.pop()

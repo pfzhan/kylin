@@ -29,7 +29,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.STREAMING_TABLE_
 import java.util.List;
 import java.util.Locale;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -46,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapRel;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class QueryContextCutter {
@@ -156,8 +156,8 @@ public class QueryContextCutter {
                 TableDesc tableDesc = tableScan.getTableRef().getTableDesc();
                 if (ISourceAware.ID_STREAMING == tableDesc.getSourceType()
                         && tableDesc.getKafkaConfig().hasBatchTable()) {
-                    throw new NoStreamingRealizationFoundException(STREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING,
-                            String.format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING()));
+                    throw new NoStreamingRealizationFoundException(STREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING, String
+                            .format(Locale.ROOT, MsgPicker.getMsg().getSTREAMING_TABLE_NOT_SUPPORT_AUTO_MODELING()));
                 }
             }
         }

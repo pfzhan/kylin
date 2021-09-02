@@ -67,8 +67,12 @@
       "name": "TEST_DATE_ENC",
       "column": "TEST_ORDER_STRING_TS.TEST_DATE_ENC",
       "status": "DIMENSION"
+    },
+    {
+      "id": 8,
+      "name": "ORDER_ID2",
+      "column": "TEST_KYLIN_FACT.ORDER_ID"
     }
-
   ],
   "all_measures": [
     {

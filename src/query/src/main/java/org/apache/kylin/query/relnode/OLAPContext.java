@@ -353,7 +353,7 @@ public class OLAPContext {
 
     private static NativeQueryRealization getBatchNativeRealization(OLAPContext ctx, String realizationType,
             String modelId, String modelAlias, List<String> snapshots) {
-        val realization = new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
+        val realization = new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getLayoutId(),
                 realizationType, ctx.storageContext.isPartialMatchModel(), snapshots);
         realization.setSecondStorage(
                 QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
@@ -361,8 +361,9 @@ public class OLAPContext {
     }
 
     private static void addTableSnapshots(Set<String> tableSets, OLAPContext ctx) {
+        val dimensions = ctx.storageContext.getCandidate().getLayoutEntity().getOrderedDimensions();
         for (val entry : ctx.storageContext.getCandidate().getDerivedToHostMap().keySet()) {
-            tableSets.add(entry.getTable());
+            tableSets.add(dimensions.get(entry).getTable());
         }
     }
 

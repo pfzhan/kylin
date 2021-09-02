@@ -29,7 +29,6 @@ import static io.kyligence.kap.smart.model.GreedyModelTreesBuilderTest.smartUtHo
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Assert;
@@ -46,7 +45,6 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -162,7 +160,6 @@ public class IndexSuggesterTest extends AutoTestOnLearnKylinData {
     @Test
     public void testComplicateSuggestColOrder() {
         String project = "newten";
-        KylinConfig kylinConfig = getTestConfig();
 
         String[] sqls = new String[] { "SELECT test_cal_dt.week_beg_dt, test_category_groupings.meta_categ_name, "
                 + "test_category_groupings.categ_lvl2_name, test_category_groupings.categ_lvl3_name\n"
@@ -180,11 +177,6 @@ public class IndexSuggesterTest extends AutoTestOnLearnKylinData {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), project, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
 
-        val tableManager = NTableMetadataManager.getInstance(kylinConfig, project);
-        val tableTestKylinFact = tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        tableTestKylinFact.setIncrementLoading(true);
-        tableManager.updateTableDesc(tableTestKylinFact);
-
         smartMaster.runUtWithContext(smartUtHook);
 
         AbstractContext ctx = smartMaster.getContext();
@@ -192,7 +184,7 @@ public class IndexSuggesterTest extends AutoTestOnLearnKylinData {
         final ImmutableBiMap<Integer, TblColRef> effectiveDimensions = mdCtx.getTargetModel().getEffectiveDimensions();
 
         String[] expectedColOrder = new String[] { "DEFAULT.TEST_KYLIN_FACT.LEAF_CATEG_ID",
-                "DEFAULT.TEST_KYLIN_FACT.PRICE", "EDW.TEST_CAL_DT.WEEK_BEG_DT",
+                "EDW.TEST_CAL_DT.WEEK_BEG_DT", "DEFAULT.TEST_KYLIN_FACT.PRICE",
                 "DEFAULT.TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "DEFAULT.TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
                 "DEFAULT.TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME", "DEFAULT.TEST_CATEGORY_GROUPINGS.META_CATEG_NAME" };
 
@@ -208,9 +200,6 @@ public class IndexSuggesterTest extends AutoTestOnLearnKylinData {
         Assert.assertEquals(expectedColOrder[5], effectiveDimensions.get(colOrder.get(5)).getCanonicalName());
         Assert.assertEquals(expectedColOrder[6], effectiveDimensions.get(colOrder.get(6)).getCanonicalName());
         Assert.assertTrue(layout.getUpdateTime() > 0);
-
-        tableTestKylinFact.setIncrementLoading(false);
-        tableManager.updateTableDesc(tableTestKylinFact);
     }
 
     @Test

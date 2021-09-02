@@ -639,7 +639,7 @@ public class HeterogeneousSegmentPruningTest extends NLocalWithSparkSessionTest 
 
         if (expectedLayoutId == -1L) {
             Assert.assertTrue(context.storageContext.isEmptyLayout());
-            Assert.assertNull(context.storageContext.getCuboidLayoutId());
+            Assert.assertNull(context.storageContext.getLayoutId());
             return;
         }
 

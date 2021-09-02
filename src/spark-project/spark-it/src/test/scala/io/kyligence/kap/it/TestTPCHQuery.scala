@@ -74,7 +74,7 @@ class TestTPCHQuery
         OLAPContext.getThreadLocalContexts.asScala
           .map(_.realization.getUuid)
           .zip(OLAPContext.getThreadLocalContexts.asScala.map(
-            _.storageContext.getCuboidLayoutId))
+            _.storageContext.getLayoutId))
           .mkString(",")
       }
     val kylinEnd = System.currentTimeMillis()

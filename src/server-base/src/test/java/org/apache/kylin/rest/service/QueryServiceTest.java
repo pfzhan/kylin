@@ -403,7 +403,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         mock.realization = mockRealization1;
         mock.storageContext.setEmptyLayout(true);
         mock.storageContext.setCandidate(NLayoutCandidate.EMPTY);
-        mock.storageContext.setCuboidLayoutId(null);
+        mock.storageContext.setLayoutId(null);
         mock.storageContext.setPrunedSegments(Lists.newArrayList());
         OLAPContext.registerContext(mock);
 
@@ -429,7 +429,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         LayoutEntity mockLayout1 = new LayoutEntity();
         mockLayout1.setIndex(mockIndexEntity1);
         aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
-        aggMock.storageContext.setCuboidLayoutId(1L);
+        aggMock.storageContext.setLayoutId(1L);
         aggMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(aggMock);
 
@@ -447,7 +447,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         LayoutEntity mockLayout2 = new LayoutEntity();
         mockLayout2.setIndex(mockIndexEntity2);
         tableMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout2));
-        tableMock.storageContext.setCuboidLayoutId(1L);
+        tableMock.storageContext.setLayoutId(1L);
         tableMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(tableMock);
 
@@ -480,7 +480,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         LayoutEntity mockLayout1 = new LayoutEntity();
         mockLayout1.setIndex(mockIndexEntity1);
         aggMock.storageContext.setCandidate(new NLayoutCandidate(mockLayout1));
-        aggMock.storageContext.setCuboidLayoutId(20001L);
+        aggMock.storageContext.setLayoutId(20001L);
         aggMock.storageContext.setStreamingLayoutId(10001L);
         aggMock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
         OLAPContext.registerContext(aggMock);
@@ -536,7 +536,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final LayoutEntity mockLayout = new LayoutEntity();
         mockLayout.setIndex(mockIndexEntity);
         mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
-        mock.storageContext.setCuboidLayoutId(layoutId);
+        mock.storageContext.setLayoutId(layoutId);
         mock.storageContext.setPrunedSegments(Lists.newArrayList(new NDataSegment()));
 
         OLAPContext.registerContext(mock);

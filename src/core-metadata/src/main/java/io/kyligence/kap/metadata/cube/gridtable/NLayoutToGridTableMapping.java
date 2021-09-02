@@ -70,7 +70,7 @@ public class NLayoutToGridTableMapping extends GridTableMapping {
         BitSet pk = new BitSet();
         List<TblColRef> columns = new ArrayList<>();
         if (isBatchOfHybrid) {
-            columns.addAll(layoutEntity.getStreamingColumns());
+            columns.addAll(layoutEntity.getStreamingColumns().values());
         } else {
             columns.addAll(layoutEntity.getColumns());
         }
@@ -97,7 +97,7 @@ public class NLayoutToGridTableMapping extends GridTableMapping {
         int mColBlock = 0;
         List<NDataModel.Measure> measureDescs = new ArrayList<>();
         if (isBatchOfHybrid) {
-            measureDescs.addAll(layoutEntity.getStreamingMeasures());
+            measureDescs.addAll(layoutEntity.getStreamingMeasures().values());
         } else {
             measureDescs.addAll(layoutEntity.getOrderedMeasures().values());
         }

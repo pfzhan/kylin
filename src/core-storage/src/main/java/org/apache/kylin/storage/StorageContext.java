@@ -65,7 +65,7 @@ public class StorageContext {
 
     @Getter
     @Setter
-    private Long cuboidLayoutId = -1L;
+    private Long layoutId = -1L;
 
     @Getter
     @Setter

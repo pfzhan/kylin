@@ -254,6 +254,56 @@
       "id": 26,
       "name": "TEST_COUNT_DISTINCT_BITMAP",
       "column": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP"
+    },
+    {
+      "id": 27,
+      "name": "ORDER_ID2",
+      "column": "TEST_ORDER.ORDER_ID"
+    },
+    {
+      "id": 28,
+      "name": "SELLER_TYPE_CD",
+      "column": "TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD"
+    },
+    {
+      "id": 29,
+      "name": "CAL_DT2",
+      "column": "TEST_CAL_DT.CAL_DT"
+    },
+    {
+      "id": 30,
+      "name": "LEAF_CATEG_ID2",
+      "column": "TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID"
+    },
+    {
+      "id": 31,
+      "name": "SITE_ID2",
+      "column": "TEST_CATEGORY_GROUPINGS.SITE_ID"
+    },
+    {
+      "id": 32,
+      "name": "SITE_ID3",
+      "column": "TEST_SITES.SITE_ID"
+    },
+    {
+      "id": 33,
+      "name": "COUNTRY1",
+      "column": "BUYER_COUNTRY.COUNTRY"
+    },
+    {
+      "id": 34,
+      "name": "COUNTRY2",
+      "column": "SELLER_COUNTRY.COUNTRY"
+    },
+    {
+      "id": 35,
+      "name": "ACCOUNT_ID1",
+      "column": "BUYER_ACCOUNT.ACCOUNT_ID"
+    },
+    {
+      "id": 36,
+      "name": "ACCOUNT_ID2",
+      "column": "SELLER_ACCOUNT.ACCOUNT_ID"
     }
   ],
   "all_measures": [

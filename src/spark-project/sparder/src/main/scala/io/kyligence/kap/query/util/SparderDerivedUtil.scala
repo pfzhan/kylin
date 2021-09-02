@@ -27,7 +27,7 @@ package io.kyligence.kap.query.util
 import com.google.common.collect.Maps
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.model.NDataSegment
-import io.kyligence.kap.metadata.model.NTableMetadataManager
+import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification
 import org.apache.calcite.sql.SqlKind
 import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
@@ -50,12 +50,13 @@ case class SparderDerivedUtil(gtInfoTableName: String,
                               gtColIdx: Array[Int],
                               tupleInfo: TupleInfo,
                               layoutCandidate: NLayoutCandidate) {
-  val hostToDerivedInfo: util.Map[org.apache.kylin.common.util.Array[TblColRef],
-    util.List[DeriveInfo]] =
+  val hostToDerivedInfo: util.Map[util.List[Integer], util.List[DeriveInfo]] =
     layoutCandidate.makeHostToDerivedMap
 
   var hasDerived = false
   var hostToDeriveds: List[DerivedInfo] = List.empty
+
+  val model: NDataModel = layoutCandidate.getLayoutEntity.getModel
 
   //  make hostToDerivedInfo with two keys prior to one keys
   //  so that joinDerived will choose LOOKUP prior to PK_FK derive
@@ -63,19 +64,20 @@ case class SparderDerivedUtil(gtInfoTableName: String,
     .flatMap(pair => {
       pair._2.asScala.map(di => (pair._1, di))
     })
-    .sortBy(p => p._1.data.length)
+    .sortBy(p => p._1.size())
     .reverse
-    .foreach(entry => findDerivedColumn(entry._1.data, entry._2))
+    .foreach(entry => findDerivedColumn(entry._1, entry._2))
 
   val derivedColumnNameMapping: util.HashMap[DerivedInfo, Array[String]] =
     Maps.newHashMap[DerivedInfo, Array[String]]()
 
-  def findDerivedColumn(hostCols: Array[TblColRef], deriveInfo: DeriveInfo): Unit = {
+  def findDerivedColumn(hostColIds: util.List[Integer], deriveInfo: DeriveInfo): Unit = {
 
     //  for PK_FK derive on composite join keys, hostCols may be incomplete
+    val hostCols = hostColIds.asScala.map(model.getColRef).toArray
     var hostFkCols: Array[TblColRef] = null
     if (deriveInfo.`type` == DeriveType.PK_FK) {
-      if (deriveInfo.join.getForeignKeyColumns.contains(hostCols.apply(0))) {
+      if (deriveInfo.join.getForeignKeyColumns.contains(hostCols(0))) {
         // FK -> PK, most cases
         hostFkCols = deriveInfo.join.getForeignKeyColumns
       } else {
@@ -96,14 +98,16 @@ case class SparderDerivedUtil(gtInfoTableName: String,
       return
     }
 
-    val calciteIdx = deriveInfo.columns
-      .map(column =>
+    val calciteIdx = deriveInfo.columns.asScala
+      .map(colId => {
+        val column = model.getColRef(colId)
         if (tupleInfo.hasColumn(column)) {
           tupleInfo.getColumnIndex(column)
         } else {
           -1
-        })
-      .filter(_ >= 0)
+        }
+      })
+      .filter(_ >= 0).toArray
 
     if (calciteIdx.isEmpty) {
       return
@@ -112,7 +116,7 @@ case class SparderDerivedUtil(gtInfoTableName: String,
     val (path, tableName, aliasTableName, pkIndex) =
       getLookupTablePathAndPkIndex(deriveInfo)
 
-    val lookupIdx = deriveInfo.columns.map(_.getColumnDesc.getZeroBasedIndex)
+    val lookupIdx = deriveInfo.columns.asScala.map(model.getColRef).map(_.getColumnDesc.getZeroBasedIndex).toArray
     hostToDeriveds ++= List(
       DerivedInfo(hostIndex,
         hostFkIdx,

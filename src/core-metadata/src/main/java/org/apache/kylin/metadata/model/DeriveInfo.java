@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,15 +42,15 @@
 
 package org.apache.kylin.metadata.model;
 
-import java.util.Arrays;
+import java.util.List;
 
 public class DeriveInfo implements java.io.Serializable {
     public DeriveType type;
     public JoinDesc join;
-    public TblColRef[] columns;
+    public List<Integer> columns;
     public boolean isOneToOne; // only used when ref from derived to host
 
-    public DeriveInfo(DeriveType type, JoinDesc join, TblColRef[] columns, boolean isOneToOne) {
+    public DeriveInfo(DeriveType type, JoinDesc join, List<Integer> columns, boolean isOneToOne) {
         this.type = type;
         this.join = join;
         this.columns = columns;
@@ -60,8 +59,8 @@ public class DeriveInfo implements java.io.Serializable {
 
     @Override
     public String toString() {
-        return "DeriveInfo [type=" + type + ", join=" + join + ", columns=" + Arrays.toString(columns) + ", isOneToOne="
-                + isOneToOne + "]";
+        return "DeriveInfo [type=" + type + ", join=" + join + ", columns=" + columns + ", isOneToOne=" + isOneToOne
+                + "]";
     }
 
     public enum DeriveType implements java.io.Serializable {

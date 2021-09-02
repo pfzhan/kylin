@@ -41,6 +41,26 @@
       "name": "WEEK_BEG_DT",
       "column": "TEST_CAL_DT.WEEK_BEG_DT",
       "status": "DIMENSION"
+    },
+    {
+      "id": 4,
+      "name": "CAL_DT2",
+      "column": "TEST_CAL_DT.CAL_DT"
+    },
+    {
+      "id": 5,
+      "name": "LEAF_CATEG_ID",
+      "column": "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+    },
+    {
+      "id": 6,
+      "name": "SELLER_ID",
+      "column": "TEST_KYLIN_FACT.SELLER_ID"
+    },
+    {
+      "id": 7,
+      "name": "LSTG_SITE_ID",
+      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID"
     }
   ],
   "all_measures": [

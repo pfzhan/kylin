@@ -29,14 +29,12 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.kylin.common.util.Array;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealizationCandidate;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -52,10 +50,11 @@ public class NLayoutCandidate implements IRealizationCandidate {
     @Getter
     private CapabilityResult capabilityResult;
 
-    public static final NLayoutCandidate EMPTY = new NLayoutCandidate(new LayoutEntity(), Double.MAX_VALUE, new CapabilityResult());
+    public static final NLayoutCandidate EMPTY = new NLayoutCandidate(new LayoutEntity(), Double.MAX_VALUE,
+            new CapabilityResult());
 
     // derived
-    private @Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap = Maps.newHashMap();
+    private @Nonnull Map<Integer, DeriveInfo> derivedToHostMap = Maps.newHashMap();
 
     public NLayoutCandidate(@Nonnull LayoutEntity layoutEntity) {
         this.layoutEntity = layoutEntity;
@@ -81,48 +80,43 @@ public class NLayoutCandidate implements IRealizationCandidate {
     }
 
     @Nonnull
-    public Map<TblColRef, DeriveInfo> getDerivedToHostMap() {
+    public Map<Integer, DeriveInfo> getDerivedToHostMap() {
         return derivedToHostMap;
     }
 
-    public void setDerivedToHostMap(@Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap) {
+    public void setDerivedToHostMap(@Nonnull Map<Integer, DeriveInfo> derivedToHostMap) {
         this.derivedToHostMap = derivedToHostMap;
     }
 
-    public Map<Array<TblColRef>, List<DeriveInfo>> makeHostToDerivedMap() {
-        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedMap = Maps.newHashMap();
+    public Map<List<Integer>, List<DeriveInfo>> makeHostToDerivedMap() {
+        Map<List<Integer>, List<DeriveInfo>> hostToDerivedMap = Maps.newHashMap();
 
-        for (Map.Entry<TblColRef, DeriveInfo> entry : derivedToHostMap.entrySet()) {
+        for (Map.Entry<Integer, DeriveInfo> entry : derivedToHostMap.entrySet()) {
 
-            TblColRef derCol = entry.getKey();
-            TblColRef[] hostCols = entry.getValue().columns;
+            Integer derCol = entry.getKey();
+            List<Integer> hostCols = entry.getValue().columns;
             DeriveInfo.DeriveType type = entry.getValue().type;
             JoinDesc join = entry.getValue().join;
 
-            Array<TblColRef> hostColArray = new Array<>(hostCols);
-            List<DeriveInfo> infoList = hostToDerivedMap.get(hostColArray);
-            if (infoList == null) {
-                infoList = new ArrayList<DeriveInfo>();
-                hostToDerivedMap.put(hostColArray, infoList);
-            }
+            List<DeriveInfo> infoList = hostToDerivedMap.computeIfAbsent(hostCols, k -> new ArrayList<>());
 
             // Merged duplicated derived column
             boolean merged = false;
             for (DeriveInfo existing : infoList) {
                 if (existing.type == type && existing.join.getPKSide().equals(join.getPKSide())) {
-                    if (ArrayUtils.contains(existing.columns, derCol)) {
+                    if (existing.columns.contains(derCol)) {
                         merged = true;
                         break;
                     }
                     if (type == DeriveInfo.DeriveType.LOOKUP || type == DeriveInfo.DeriveType.LOOKUP_NON_EQUI) {
-                        existing.columns = (TblColRef[]) ArrayUtils.add(existing.columns, derCol);
+                        existing.columns.add(derCol);
                         merged = true;
                         break;
                     }
                 }
             }
             if (!merged)
-                infoList.add(new DeriveInfo(type, join, new TblColRef[] { derCol }, false));
+                infoList.add(new DeriveInfo(type, join, Lists.newArrayList(derCol), false));
         }
 
         return hostToDerivedMap;
@@ -135,7 +129,7 @@ public class NLayoutCandidate implements IRealizationCandidate {
 
     @Override
     public String toString() {
-        return "NLayoutCandidate{" + "cuboidLayout=" + layoutEntity + ", indexEntity=" + layoutEntity.getIndex()
+        return "LayoutCandidate{" + "cuboidLayout=" + layoutEntity + ", indexEntity=" + layoutEntity.getIndex()
                 + ", cost=" + cost + '}';
     }
 }

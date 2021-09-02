@@ -216,8 +216,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public boolean isStreaming() {
-        return getModel().getModelType() == NDataModel.ModelType.STREAMING
-                || getModel().getModelType() == NDataModel.ModelType.HYBRID;
+        return getModel().isStreaming();
     }
 
     @Override

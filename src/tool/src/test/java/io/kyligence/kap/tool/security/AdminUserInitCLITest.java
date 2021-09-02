@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
@@ -58,6 +59,7 @@ public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testInitAdminUser() throws Exception {
+        overwriteSystemProp("kylin.security.user-password-encoder", BCryptPasswordEncoder.class.getName());
         // before create admin user
         val config = KylinConfig.getInstanceFromEnv();
         NKylinUserManager beforeCreateAdminManager = NKylinUserManager.getInstance(config);

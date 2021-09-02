@@ -29,7 +29,6 @@ import static io.kyligence.kap.metadata.cube.model.IndexEntity.TABLE_INDEX_START
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +55,6 @@ import io.kyligence.kap.guava20.shaded.common.base.MoreObjects;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -142,6 +140,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
     private ImmutableBiMap<Integer, Measure> orderedMeasures;
 
+    private ImmutableBiMap<Integer, TblColRef> orderedStreamingDimensions;
+    private ImmutableBiMap<Integer, Measure> orderedStreamingMeasures;
+
     @Setter
     @Getter
     private boolean toBeDeleted = false;
@@ -188,23 +189,6 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         }
     }
 
-    public Set<TblColRef> getStreamingColumns() {
-        NDataModel model = getModel();
-        if (model.isFusionModel()) {
-            NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataModelDesc(model.getFusionId());
-            ImmutableBiMap<Integer, TblColRef> streamingEffectiveCols = streamingModel.getEffectiveCols();
-            ImmutableBiMap.Builder<Integer, TblColRef> dimsBuilder = ImmutableBiMap.builder();
-            for (int colId : colOrder) {
-                if (colId < NDataModel.MEASURE_ID_BASE)
-                    dimsBuilder.put(colId, streamingEffectiveCols.get(colId));
-            }
-
-            return dimsBuilder.build().values();
-        } else {
-            return Collections.emptySet();
-        }
-    }
-
     public ImmutableBiMap<Integer, Measure> getOrderedMeasures() { // measure order abides by column family
         if (orderedMeasures != null)
             return orderedMeasures;
@@ -225,20 +209,46 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         }
     }
 
-    public Set<Measure> getStreamingMeasures() {
-        NDataModel model = getModel();
-        if (model.isFusionModel()) {
-            NDataModel streamingModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject()).getDataModelDesc(model.getFusionId());
-            ImmutableBiMap<Integer, Measure> streamingEffectiveMeasures = streamingModel.getEffectiveMeasures();
-            ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
-            for (int colId : colOrder) {
-                if (colId >= NDataModel.MEASURE_ID_BASE)
-                    measuresBuilder.put(colId, streamingEffectiveMeasures.get(colId));
+    public ImmutableBiMap<Integer, TblColRef> getStreamingColumns() {
+        if (orderedStreamingDimensions != null) {
+            return orderedStreamingDimensions;
+        }
+        synchronized (this) {
+            NDataModel model = getModel();
+            ImmutableBiMap.Builder<Integer, TblColRef> dimsBuilder = ImmutableBiMap.builder();
+            if (model.isFusionModel()) {
+                NDataModel streamingModel = NDataModelManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+                        .getDataModelDesc(model.getFusionId());
+                ImmutableBiMap<Integer, TblColRef> streamingEffectiveCols = streamingModel.getEffectiveCols();
+                for (int colId : colOrder) {
+                    if (colId < NDataModel.MEASURE_ID_BASE)
+                        dimsBuilder.put(colId, streamingEffectiveCols.get(colId));
+                }
             }
+            orderedStreamingDimensions = dimsBuilder.build();
+            return orderedStreamingDimensions;
+        }
+    }
 
-            return measuresBuilder.build().values();
-        } else {
-            return Collections.emptySet();
+    public ImmutableBiMap<Integer, Measure> getStreamingMeasures() {
+        if (orderedStreamingMeasures != null)
+            return orderedStreamingMeasures;
+        synchronized (this) {
+            NDataModel model = getModel();
+            ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
+            if (model.isFusionModel()) {
+                NDataModel streamingModel = NDataModelManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+                        .getDataModelDesc(model.getFusionId());
+                ImmutableBiMap<Integer, Measure> streamingEffectiveMeasures = streamingModel.getEffectiveMeasures();
+                for (int colId : colOrder) {
+                    if (colId >= NDataModel.MEASURE_ID_BASE)
+                        measuresBuilder.put(colId, streamingEffectiveMeasures.get(colId));
+                }
+            }
+            orderedStreamingMeasures = measuresBuilder.build();
+            return orderedStreamingMeasures;
         }
     }
 
@@ -431,7 +441,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public void setBase(boolean base) {
         checkIsNotCachedAndShared();
         isBase = base;
-        if(!base){
+        if (!base) {
             setAuto(true);
         }
     }

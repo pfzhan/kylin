@@ -72,6 +72,7 @@ public class KapPasswordResetCLITest extends LogOutputTestCase {
     @Test
     public void testResetAdminPassword() throws Exception {
         val pwdEncoder = new BCryptPasswordEncoder();
+        overwriteSystemProp("kylin.security.user-password-encoder", pwdEncoder.getClass().getName());
         val user = new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS);
         user.setPassword(pwdEncoder.encode(user.getPassword()));
         val config = KylinConfig.getInstanceFromEnv();

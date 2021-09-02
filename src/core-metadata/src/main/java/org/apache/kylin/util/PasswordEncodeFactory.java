@@ -49,9 +49,9 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 
-@Log4j
+@Slf4j
 public class PasswordEncodeFactory {
     public static PasswordEncoder newUserPasswordEncoder() {
         String userPasswordEncode = KylinConfig.getInstanceFromEnv().getUserPasswordEncoder();

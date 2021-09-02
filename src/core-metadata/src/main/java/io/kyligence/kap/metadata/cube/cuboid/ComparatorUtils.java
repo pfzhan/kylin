@@ -26,16 +26,12 @@ package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.util.Comparator;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc.ColumnStats;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.TblColRef.FilterColEnum;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
-
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 /**
  * Used for select the best-cost candidate for query or auto-modeling
@@ -64,8 +60,8 @@ public class ComparatorUtils {
     /**
      * Return comparator for filter column
      */
-    public static Comparator<TblColRef> filterColComparator(KylinConfig config, String project) {
-        return Ordering.from(filterLevelComparator()).compound(cardinalityComparator(config, project));
+    public static Comparator<TblColRef> filterColComparator(ChooserContext chooserContext) {
+        return Ordering.from(filterLevelComparator()).compound(cardinalityComparator(chooserContext));
     }
 
     /**
@@ -84,24 +80,16 @@ public class ComparatorUtils {
         };
     }
 
-    public static Comparator<TblColRef> cardinalityComparator(KylinConfig config, String project) {
-        NTableMetadataManager tblMetaMgr = NTableMetadataManager.getInstance(config, project);
+    public static Comparator<TblColRef> cardinalityComparator(ChooserContext chooserContext) {
         return (col1, col2) -> {
             if (col1 == null || col2 == null)
                 return 0;
 
-            final ColumnStats ret1 = ColumnStats.getColumnStats(tblMetaMgr, col1);
-            final ColumnStats ret2 = ColumnStats.getColumnStats(tblMetaMgr, col2);
+            final ColumnStats ret1 = chooserContext.getColumnStats(col1);
+            final ColumnStats ret2 = chooserContext.getColumnStats(col2);
             //null last
             if (ret2 == null && ret1 == null) {
-                // column of incremental loading table ahead of its counterpart
-                final TableDesc table1 = col1.getTableRef().getTableDesc();
-                final TableDesc table2 = col2.getTableRef().getTableDesc();
-                if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
-                    return col1.getIdentity().compareToIgnoreCase(col2.getIdentity());
-                } else {
-                    return table1.isIncrementLoading() ? -1 : 1;
-                }
+                return col1.getIdentity().compareToIgnoreCase(col2.getIdentity());
             } else if (ret2 == null) {
                 return -1;
             } else if (ret1 == null) {

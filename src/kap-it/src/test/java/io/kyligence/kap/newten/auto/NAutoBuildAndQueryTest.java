@@ -51,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * get right result from the pre-calculate layout.
  *
  */
+@Ignore
 @Slf4j
 public class NAutoBuildAndQueryTest extends NAutoTestBase {
 

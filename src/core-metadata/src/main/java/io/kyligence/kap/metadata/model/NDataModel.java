@@ -84,7 +84,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -254,9 +253,6 @@ public class NDataModel extends RootPersistentEntity {
     private ImmutableBiMap<Integer, TblColRef> effectiveDimensions; // including DIMENSION cols
 
     private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED measures, only after init() is called
-
-    //private Map<TableRef, BitSet> effectiveDerivedCols;
-    private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
 
     private List<TblColRef> mpCols;
 
@@ -483,6 +479,10 @@ public class NDataModel extends RootPersistentEntity {
         this.joinTables = joinTables;
     }
 
+    public JoinDesc getJoinByPKSide(Integer columnId) {
+        return getJoinByPKSide(effectiveCols.get(columnId).getTableRef());
+    }
+
     public JoinDesc getJoinByPKSide(TableRef table) {
         return joinsGraph.getJoinByPKSide(table);
     }
@@ -502,6 +502,10 @@ public class NDataModel extends RootPersistentEntity {
         this.dataCheckDesc = dataCheckDesc;
     }
 
+    public boolean isLookupTable(int columnId) {
+        return isLookupTable(effectiveCols.get(columnId).getTableRef());
+    }
+
     public boolean isLookupTable(TableRef t) {
         if (t == null)
             return false;
@@ -509,12 +513,12 @@ public class NDataModel extends RootPersistentEntity {
             return lookupTableRefs.contains(t);
     }
 
-    public boolean isQueryDerivedEnabled(TableRef t) {
-        if (Objects.isNull(t)) {
+    public boolean isQueryDerivedEnabled(int columnId) {
+        val ref = effectiveCols.get(columnId);
+        if (ref == null) {
             return false;
-        } else {
-            return !queryDerivedDisabledRefs.contains(t);
         }
+        return !queryDerivedDisabledRefs.contains(ref.getTableRef());
     }
 
     public boolean isJoinTable(String fullTableName) {
@@ -1010,7 +1014,6 @@ public class NDataModel extends RootPersistentEntity {
         this.effectiveCols = initAllNamedColumns(NamedColumn::isExist);
         this.effectiveDimensions = initAllNamedColumns(NamedColumn::isDimension);
         initAllMeasures();
-        initFk2Pk();
         checkSingleIncrementingLoadingTable();
         setDependencies(calcDependencies());
         keepColumnOrder();
@@ -1123,20 +1126,6 @@ public class NDataModel extends RootPersistentEntity {
 
         this.effectiveMeasures = mapBuilder.build();
         checkNoDupAndEffective(effectiveMeasures);
-    }
-
-    private void initFk2Pk() {
-        ImmutableMultimap.Builder<TblColRef, TblColRef> builder = ImmutableMultimap.builder();
-        for (JoinTableDesc joinTable : this.getJoinTables()) {
-            JoinDesc join = joinTable.getJoin();
-            int n = join.getForeignKeyColumns().length;
-            for (int i = 0; i < n; i++) {
-                TblColRef pk = join.getPrimaryKeyColumns()[i];
-                TblColRef fk = join.getForeignKeyColumns()[i];
-                builder.put(fk, pk);
-            }
-        }
-        this.fk2Pk = builder.build();
     }
 
     private void checkNoDupAndEffective(ImmutableBiMap<Integer, Measure> effectiveMeasures) {
@@ -1302,10 +1291,6 @@ public class NDataModel extends RootPersistentEntity {
         this.allMeasures = allMeasures;
     }
 
-    public ImmutableMultimap<TblColRef, TblColRef> getFk2Pk() {
-        return fk2Pk;
-    }
-
     public Map<Integer, NamedColumn> getEffectiveNamedColumns() {
         return allNamedColumns.stream().filter(NamedColumn::isExist)
                 .collect(Collectors.toMap(NamedColumn::getId, Function.identity()));
@@ -1466,10 +1451,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public boolean isStreaming() {
-        if (getModelType() == NDataModel.ModelType.STREAMING || getModelType() == NDataModel.ModelType.HYBRID) {
-            return true;
-        }
-        return false;
+        return getModelType() == ModelType.STREAMING || getModelType() == ModelType.HYBRID;
     }
 
 }

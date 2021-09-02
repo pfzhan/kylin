@@ -2518,7 +2518,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getUserPasswordEncoder() {
         return getOptional("kylin.security.user-password-encoder",
-                "org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder");
+                "io.kyligence.kap.rest.security.CachedBCryptPasswordEncoder");
     }
 
     public int getRecommendationPageSize() {

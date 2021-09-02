@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.index;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,6 +52,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.cuboid.ChooserContext;
 import io.kyligence.kap.metadata.cube.cuboid.ComparatorUtils;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
@@ -70,6 +70,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.exception.PendingException;
 import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.util.EntityBuilder;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -310,14 +311,15 @@ class IndexSuggester {
             Collection<TblColRef> nonFilterColumnsCollection) {
         List<TblColRef> filterColumns = new ArrayList<>(filterColumnsCollection);
         List<TblColRef> nonFilterColumns = new ArrayList<>(nonFilterColumnsCollection);
-        final Comparator<TblColRef> filterColComparator = ComparatorUtils
-                .filterColComparator(KylinConfig.getInstanceFromEnv(), proposeContext.getProject());
+
+        val chooserContext = new ChooserContext(model);
+        val filterColComparator = ComparatorUtils.filterColComparator(chooserContext);
         filterColumns.sort(filterColComparator);
         nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
 
-        List<TblColRef> resultSet = new LinkedList<>(filterColumns);
-        resultSet.addAll(nonFilterColumns);
-        return resultSet;
+        List<TblColRef> result = new LinkedList<>(filterColumns);
+        result.addAll(nonFilterColumns);
+        return result;
     }
 
     private List<Integer> generateDimensionIds(List<TblColRef> dimCols, ImmutableBiMap<TblColRef, Integer> colIdMap) {

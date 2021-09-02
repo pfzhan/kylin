@@ -226,13 +226,11 @@ object QueryToExecutionIDCache extends LogEx {
 
   def getQueryExecutionID(queryID: String): String = {
     val executionID = queryID2ExecutionID.getIfPresent(queryID)
-//    logWarningIf(executionID == null)(s"Can not get execution ID by query ID $queryID")
     executionID
   }
 
   def setQueryExecutionID(queryID: String, executionID: String): Unit = {
     val hasQueryID = queryID != null && queryID.nonEmpty
-//    logWarningIf(!hasQueryID)(s"Can not get query ID.")
     if (hasQueryID) {
       queryID2ExecutionID.put(queryID, executionID)
     }
@@ -240,13 +238,11 @@ object QueryToExecutionIDCache extends LogEx {
 
   def getQueryExecution(executionID: String): QueryExecution = {
     val execution = executionIDToQueryExecution.getIfPresent(executionID)
-//    logWarningIf(execution == null)(s"Can not get execution by execution ID $executionID")
     execution
   }
 
   def setQueryExecution(executionID: String, execution: QueryExecution): Unit = {
     val hasQueryID = executionID != null && executionID.nonEmpty
-//    logWarningIf(!hasQueryID)(s"Can not get execution ID.")
     if (hasQueryID) {
       executionIDToQueryExecution.put(executionID, execution)
     }

@@ -29,12 +29,13 @@ import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.BitSets;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -147,14 +148,24 @@ public class IndexEntity implements Serializable, IKeep {
     private final ImmutableSet<Measure> measureSet = initMeasureSet();
 
     private ImmutableSet<Measure> initMeasureSet() {
-        // TODO: all layouts' measure order must follow cuboid_desc's define ?
         return getEffectiveMeasures().values();
     }
 
-    public boolean dimensionsDerive(TblColRef... dimensions) {
-        Map<TblColRef, Integer> colIdMap = getEffectiveDimCols().inverse();
-        for (TblColRef fk : dimensions) {
-            if (!colIdMap.containsKey(fk)) {
+    public boolean dimensionsDerive(Collection<Integer> columnIds) {
+        if (CollectionUtils.isEmpty(columnIds)) {
+            return true;
+        }
+        for (int fk : columnIds) {
+            if (!getEffectiveDimCols().containsKey(fk)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean dimensionsDerive(Integer... columnIds) {
+        for (int fk : columnIds) {
+            if (!getEffectiveDimCols().containsKey(fk)) {
                 return false;
             }
         }

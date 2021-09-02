@@ -429,7 +429,7 @@ public class RealizationChooser {
         val prunedSegments = candidate.getPrunedSegments();
         val prunedPartitions = candidate.getPrunedPartitions();
         if (layoutCandidate.isEmptyCandidate()) {
-            context.setCuboidLayoutId(null);
+            context.setLayoutId(null);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;
@@ -438,7 +438,7 @@ public class RealizationChooser {
         context.setCandidate(layoutCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
-        context.setCuboidLayoutId(cuboidLayout.getId());
+        context.setLayoutId(cuboidLayout.getId());
         context.setPrunedSegments(prunedSegments);
         context.setPrunedPartitions(prunedPartitions);
         val segmentIds = prunedSegments.stream().map(NDataSegment::getId).collect(Collectors.toList());
@@ -472,7 +472,7 @@ public class RealizationChooser {
         }
 
         if (layoutCandidate == NLayoutCandidate.EMPTY && layoutStreamingCandidate == NLayoutCandidate.EMPTY) {
-            context.setCuboidLayoutId(-1L);
+            context.setLayoutId(-1L);
             context.setStreamingLayoutId(-1L);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
@@ -481,7 +481,7 @@ public class RealizationChooser {
 
         // TODO: support the case when the type of streaming index and batch index is different
         if (differentTypeofIndex(layoutCandidate, layoutStreamingCandidate)) {
-            context.setCuboidLayoutId(null);
+            context.setLayoutId(null);
             context.setStreamingLayoutId(null);
             context.setEmptyLayout(true);
             logger.error("The case when the type of stream and batch index different is not supported yet.");
@@ -494,7 +494,7 @@ public class RealizationChooser {
         context.setCandidate(layoutCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
-        context.setCuboidLayoutId(layoutCandidate == null ? -1L : layoutCandidate.getLayoutEntity().getId());
+        context.setLayoutId(layoutCandidate == null ? -1L : layoutCandidate.getLayoutEntity().getId());
         context.setPrunedSegments(prunedSegments);
         context.setPrunedPartitions(prunedPartitions);
         if (layoutCandidate != null && !layoutCandidate.isEmptyCandidate()) {
@@ -686,30 +686,4 @@ public class RealizationChooser {
         return kylinConfig.isQueryMatchPartialInnerJoinModel();
     }
 
-    private static class RealizationCost implements Comparable<RealizationCost> {
-
-        public static final int COST_WEIGHT_MEASURE = 1;
-        public static final int COST_WEIGHT_DIMENSION = 10;
-        public static final int COST_WEIGHT_INNER_JOIN = 100;
-
-        final int cost;
-
-        public RealizationCost(IRealization real) {
-
-            // ref CubeInstance.getCost()
-            int countedDimensionNum;
-            countedDimensionNum = real.getAllDimensions().size();
-            int c = countedDimensionNum * COST_WEIGHT_DIMENSION + real.getMeasures().size() * COST_WEIGHT_MEASURE;
-            for (JoinTableDesc join : real.getModel().getJoinTables()) {
-                if (join.getJoin().isInnerJoin())
-                    c += COST_WEIGHT_INNER_JOIN;
-            }
-            this.cost = c;
-        }
-
-        @Override
-        public int compareTo(RealizationCost o) {
-            return this.cost - o.cost;
-        }
-    }
 }
