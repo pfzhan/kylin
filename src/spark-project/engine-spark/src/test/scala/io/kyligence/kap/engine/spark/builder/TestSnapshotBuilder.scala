@@ -22,8 +22,7 @@
 package io.kyligence.kap.engine.spark.builder
 
 import java.util.concurrent.TimeoutException
-
-import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager}
+import io.kyligence.kap.metadata.model.{NDataModel, NDataModelManager, NTableMetadataManager}
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
@@ -107,6 +106,13 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
     for (fst <- statuses) {
       val list = fs.listStatus(fst.getPath)
       Assert.assertEquals(expectedSize, list.size)
+    }
+
+    val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, dm.getProject)
+    for (table <- snapshotBuilder.distinctTableDesc(dm, ignoredSnapshotTables)) {
+      val tableMeta = tableMetadataManager.getTableDesc(table.getIdentity)
+      Assert.assertNotNull(tableMeta.getLastSnapshotPath)
+      Assert.assertNotEquals(tableMeta.getLastSnapshotSize, 0)
     }
   }
 

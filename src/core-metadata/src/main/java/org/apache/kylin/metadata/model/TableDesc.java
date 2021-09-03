@@ -226,6 +226,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.database.setName(other.getDatabase());
         this.identity = other.identity;
         this.lastSnapshotPath = other.lastSnapshotPath;
+        this.lastSnapshotSize = other.lastSnapshotSize;
         this.partitionColumn = other.partitionColumn;
         this.snapshotPartitions = other.snapshotPartitions;
         this.selectedSnapshotPartitionCol = other.selectedSnapshotPartitionCol;
@@ -510,6 +511,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public void copySnapshotFrom(TableDesc originTable) {
         setLastSnapshotPath(originTable.getLastSnapshotPath());
+        setLastSnapshotSize(originTable.getLastSnapshotSize());
         setSnapshotPartitions(originTable.getSnapshotPartitions());
         setSnapshotPartitionCol(originTable.getSnapshotPartitionCol());
         setSelectedSnapshotPartitionCol(originTable.getSelectedSnapshotPartitionCol());

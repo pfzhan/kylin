@@ -123,8 +123,18 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
 
   private def updateTableSnapshot(project: String, table: TableDesc, resultMap: util.Map[String, Result]): Unit = {
     val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
-    val copy = tableMetadataManager.copyForWrite(table);
+    val copy = tableMetadataManager.copyForWrite(table)
     copy.setLastSnapshotPath(resultMap.get(copy.getIdentity).path)
+    val fs = HadoopUtil.getWorkingFileSystem
+    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
+    var snapshotSize = 0L
+    val fullSnapShotPath = baseDir + copy.getLastSnapshotPath
+    try {
+      snapshotSize = HadoopUtil.getContentSummary(fs, new Path(fullSnapShotPath)).getLength
+    } catch {
+      case e: Throwable => logWarning(s"Fetch snapshot size for ${copy.getIdentity} from ${fullSnapShotPath}", e)
+    }
+    copy.setLastSnapshotSize(snapshotSize)
 
     // define the updating operations
     class TableUpdateOps extends UnitOfWork.Callback[TableDesc] {
