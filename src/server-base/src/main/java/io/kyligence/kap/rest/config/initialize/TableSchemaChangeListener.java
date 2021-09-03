@@ -51,12 +51,12 @@ public class TableSchemaChangeListener implements EventListenerRegistry.Resource
         if (Objects.isNull(rawResource)) {
             return;
         }
-        getProjectName(rawResource.getResPath()).ifPresent(this::clearSchemaCache);
+        getProjectName(rawResource.getResPath()).ifPresent(project -> clearSchemaCache(config, project));
     }
 
     @Override
     public void onDelete(KylinConfig config, String resPath) {
-        getProjectName(resPath).ifPresent(this::clearSchemaCache);
+        getProjectName(resPath).ifPresent(project -> clearSchemaCache(config, project));
     }
 
     private Optional<String> getProjectName(String resourcePath) {
@@ -75,7 +75,9 @@ public class TableSchemaChangeListener implements EventListenerRegistry.Resource
         return Optional.of(elements[1]);
     }
 
-    private void clearSchemaCache(String project) {
-        queryCacheManager.clearSchemaCache(project);
+    private void clearSchemaCache(KylinConfig config, String project) {
+        if (!config.isRedisEnabled()) {
+            queryCacheManager.clearSchemaCache(project);
+        }
     }
 }

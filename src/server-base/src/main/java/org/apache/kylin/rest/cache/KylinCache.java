@@ -22,40 +22,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.query;
+package org.apache.kylin.rest.cache;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class QueryHistoryInfoResponse implements Serializable {
-    @JsonProperty("exactly_match")
-    private boolean exactlyMatch;
-    @JsonProperty("scan_segment_num")
-    private int scanSegmentNum;
-    @JsonProperty("state")
-    private QueryHistoryInfo.HistoryState state;
-    @JsonProperty("execution_error")
-    private boolean executionError;
-    @JsonProperty("error_msg")
-    private String errorMsg;
-    @JsonProperty("query_snapshots")
-    private List<List<String>> querySnapshots = new ArrayList<>();
-    @JsonProperty("realization_metrics")
-    protected List<QueryMetrics.RealizationMetrics> realizationMetrics = new ArrayList<>();
-    @JsonProperty("traces")
-    private List<QueryHistoryInfo.QueryTraceSpan> traces = new ArrayList<>();
-    @JsonProperty("cache_type")
-    private String cacheType;
+public interface KylinCache {
+    void put(String type, String project, Object key, Object value);
+    void update(String type, String project, Object key, Object value);
+    Object get(String type, String project, Object key);
+    boolean remove(String type, String project, Object key);
+    void clearAll();
+    void clearByType(String type, String project);
 }

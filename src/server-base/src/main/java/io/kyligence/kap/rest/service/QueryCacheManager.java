@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
+import static org.apache.kylin.rest.cache.RedisCache.checkRedisClient;
 
 import java.util.List;
 import java.util.Locale;
@@ -36,34 +37,33 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.rest.cache.KylinCache;
+import org.apache.kylin.rest.cache.KylinEhCache;
+import org.apache.kylin.rest.cache.RedisCache;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.response.TableMetaCacheResult;
+import org.apache.kylin.rest.response.TableMetaCacheResultV2;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
 
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Ehcache;
-import net.sf.ehcache.Element;
-import net.sf.ehcache.config.CacheConfiguration;
 
 /**
  * query cache manager that
  * 1. holding query cache - <SQlRequest, SQLResponse> pairs
- * 2. holding scheam cache - <UserName, Schema> pairs
+ * 2. holding schema cache - <UserName, Schema> pairs
  */
 @Component("queryCacheManager")
 public class QueryCacheManager {
 
-    enum Type {
+    public enum Type {
         SUCCESS_QUERY_CACHE("StorageCache"), EXCEPTION_QUERY_CACHE("ExceptionQueryCache"), SCHEMA_CACHE("SchemaCache");
 
-        private String rootCacheName;
+        public String rootCacheName;
 
         Type(String rootCacheName) {
             this.rootCacheName = rootCacheName;
@@ -72,25 +72,22 @@ public class QueryCacheManager {
 
     private static final Logger logger = LoggerFactory.getLogger("query");
 
-    @Autowired
-    private CacheManager cacheManager;
+    private KylinCache kylinCache;
 
     @PostConstruct
     public void init() {
-        Preconditions.checkNotNull(cacheManager, "cacheManager is not injected yet");
-    }
-
-    private Ehcache getProjectCache(QueryCacheManager.Type type, String project) {
-        final String projectCacheName = String.format(Locale.ROOT, "%s-%s", type.rootCacheName, project);
-        // make sure project cache exists
-        // cacheManager maintains a concurrentHashMap for caches, so that we can simply call its addCacheIfAbsent method
-        if (cacheManager.getEhcache(projectCacheName) == null) {
-            CacheConfiguration cacheConfiguration = cacheManager.getEhcache(type.rootCacheName).getCacheConfiguration()
-                    .clone();
-            cacheConfiguration.setName(projectCacheName);
-            cacheManager.addCacheIfAbsent(new Cache(cacheConfiguration));
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        String type = "Ehcache";
+        if (kylinConfig.isRedisEnabled()) {
+            kylinCache = RedisCache.getInstance();
+            type = "Redis";
+        } else {
+            kylinCache = KylinEhCache.getInstance();
         }
-        return cacheManager.getEhcache(projectCacheName);
+        Preconditions.checkNotNull(kylinCache, String.format(Locale.ROOT, "%s Kylin Cache is not initiated yet!", type));
+        if (kylinCache instanceof RedisCache && checkRedisClient()) {
+            logger.info("Redis cache connect successfully!");
+        }
     }
 
     /**
@@ -120,11 +117,11 @@ public class QueryCacheManager {
                         "query response is too large: {} ({})", responseSize, kylinConfig.getLargeQueryThreshold());
     }
 
-    void doCacheSuccessQuery(SQLRequest sqlRequest, SQLResponse sqlResponse) {
+    public void doCacheSuccessQuery(SQLRequest sqlRequest, SQLResponse sqlResponse) {
         try {
             sqlResponse.readAllRows();
-            getProjectCache(Type.SUCCESS_QUERY_CACHE, sqlRequest.getProject())
-                    .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
+            kylinCache.put(Type.SUCCESS_QUERY_CACHE.rootCacheName, sqlRequest.getProject(),
+                    sqlRequest.getCacheKey(), sqlResponse);
         } catch (Exception e) {
             logger.error("[query cache log] Error caching result of success query {}", sqlRequest.getSql(), e);
         }
@@ -144,21 +141,21 @@ public class QueryCacheManager {
             return;
         }
         try {
-            getProjectCache(Type.EXCEPTION_QUERY_CACHE, sqlRequest.getProject())
-                    .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
+            kylinCache.put(Type.EXCEPTION_QUERY_CACHE.rootCacheName, sqlRequest.getProject(),
+                    sqlRequest.getCacheKey(), sqlResponse);
         } catch (Exception e) {
             logger.error("[query cache log] Error caching result of failed query {}", sqlRequest.getSql(), e);
         }
     }
 
-    SQLResponse doSearchQuery(QueryCacheManager.Type type, SQLRequest sqlRequest) {
-        Ehcache successCache = getProjectCache(type, sqlRequest.getProject());
+    public SQLResponse doSearchQuery(QueryCacheManager.Type type, SQLRequest sqlRequest) {
+        Object response = kylinCache.get(type.rootCacheName, sqlRequest.getProject(),
+                sqlRequest.getCacheKey());
         logger.info("[query cache log] The cache key is: {}", sqlRequest.getCacheKey());
-        Element element = successCache.get(sqlRequest.getCacheKey());
-        if (element == null) {
+        if (response == null) {
             return null;
         }
-        return (SQLResponse) element.getObjectValue();
+        return (SQLResponse) response;
     }
 
     private SQLResponse searchSuccessCache(SQLRequest sqlRequest) {
@@ -177,6 +174,9 @@ public class QueryCacheManager {
 
         cached.setStorageCacheUsed(true);
         QueryContext.current().getQueryTagInfo().setStorageCacheUsed(true);
+        String cacheType = KylinConfig.getInstanceFromEnv().isRedisEnabled() ? "Redis" : "Ehcache";
+        cached.setStorageCacheType(cacheType);
+        QueryContext.current().getQueryTagInfo().setStorageCacheType(cacheType);
         return cached;
     }
 
@@ -207,43 +207,86 @@ public class QueryCacheManager {
 
     @SuppressWarnings("unchecked")
     public List<TableMeta> getSchemaCache(String project, String userName) {
-        Element element = getProjectCache(Type.SCHEMA_CACHE, project).get(userName);
-        if (element == null) {
+        TableMetaCacheResult cacheResult = doGetSchemaCache(project, userName);
+        if (QueryCacheSignatureUtil.checkCacheExpired(cacheResult.getTables(), cacheResult.getSignature(), project)) {
+            logger.info("[schema cache log] cache has expired, cache key is {}", userName);
+            clearSchemaCache(project, userName);
             return null;
         }
-        return (List<TableMeta>) element.getObjectValue();
+        return cacheResult.getTableMetaList();
     }
 
-    public void putSchemaCache(String project, String userName, List<TableMeta> schemas) {
-        getProjectCache(Type.SCHEMA_CACHE, project).put(new Element(userName, schemas));
+    public TableMetaCacheResult doGetSchemaCache(String project, String userName) {
+        Object metaList = kylinCache.get(Type.SCHEMA_CACHE.rootCacheName, project, userName);
+        if (metaList == null) {
+            return null;
+        }
+        return (TableMetaCacheResult) metaList;
+    }
+
+    public void putSchemaCache(String project, String userName, TableMetaCacheResult schemas) {
+        kylinCache.put(Type.SCHEMA_CACHE.rootCacheName, project, userName, schemas);
     }
 
     @SuppressWarnings("unchecked")
     public List<TableMetaWithType> getSchemaV2Cache(String project, String userName) {
-        Element element = getProjectCache(Type.SCHEMA_CACHE, project).get(userName + "v2");
-        if (element == null) {
+        TableMetaCacheResultV2 cacheResult = doGetSchemaCacheV2(project, userName);
+        if (QueryCacheSignatureUtil.checkCacheExpired(cacheResult.getTables(), cacheResult.getSignature(), project)) {
+            logger.info("[schema cache log] cache has expired, cache key is {}", userName);
+            clearSchemaCacheV2(project, userName);
             return null;
         }
-        return (List<TableMetaWithType>) element.getObjectValue();
+
+        return cacheResult.getTableMetaList();
     }
 
-    public void putSchemaV2Cache(String project, String userName, List<TableMetaWithType> schemas) {
-        getProjectCache(Type.SCHEMA_CACHE, project).put(new Element(userName + "v2", schemas));
+    public TableMetaCacheResultV2 doGetSchemaCacheV2(String project, String userName) {
+        Object metaList = kylinCache.get(Type.SCHEMA_CACHE.rootCacheName, project, userName + "v2");
+        if (metaList == null) {
+            return null;
+        }
+        return (TableMetaCacheResultV2) metaList;
+    }
+
+    public void putSchemaV2Cache(String project, String userName, TableMetaCacheResultV2 schemas) {
+        kylinCache.put(Type.SCHEMA_CACHE.rootCacheName, project, userName + "v2", schemas);
+    }
+
+    public void clearSchemaCacheV2(String project, String userName) {
+        kylinCache.remove(Type.SCHEMA_CACHE.rootCacheName, project, userName + "v2");
+    }
+
+    public void clearSchemaCache(String project, String userName) {
+        kylinCache.remove(Type.SCHEMA_CACHE.rootCacheName, project, userName);
     }
 
     public void clearSchemaCache(String project) {
-        getProjectCache(Type.SCHEMA_CACHE, project).removeAll();
+        kylinCache.clearByType(Type.SCHEMA_CACHE.rootCacheName, project);
     }
 
     public void clearQueryCache(SQLRequest request) {
-        getProjectCache(Type.SUCCESS_QUERY_CACHE, request.getProject()).remove(request.getCacheKey());
-        getProjectCache(Type.EXCEPTION_QUERY_CACHE, request.getProject()).remove(request.getCacheKey());
+        kylinCache.remove(Type.SUCCESS_QUERY_CACHE.rootCacheName,
+                request.getProject(), request.getCacheKey());
+        kylinCache.remove(Type.EXCEPTION_QUERY_CACHE.rootCacheName,
+                request.getProject(), request.getCacheKey());
     }
 
     public void clearProjectCache(String project) {
-        logger.debug("[query cache log] clear query cache for {}", project);
-        getProjectCache(Type.SUCCESS_QUERY_CACHE, project).removeAll();
-        getProjectCache(Type.EXCEPTION_QUERY_CACHE, project).removeAll();
-        getProjectCache(Type.SCHEMA_CACHE, project).removeAll();
+        if (project == null) {
+            logger.debug("[query cache log] clear query cache for all projects.");
+            kylinCache.clearAll();
+        } else {
+            logger.debug("[query cache log] clear query cache for {}", project);
+            kylinCache.clearByType(Type.SUCCESS_QUERY_CACHE.rootCacheName, project);
+            kylinCache.clearByType(Type.EXCEPTION_QUERY_CACHE.rootCacheName, project);
+            kylinCache.clearByType(Type.SCHEMA_CACHE.rootCacheName, project);
+        }
+    }
+
+    public void recoverCache() {
+        if (kylinCache instanceof RedisCache) {
+            ((RedisCache) kylinCache).recoverInstance();
+            logger.info("[query cache log] Redis client recover successfully.");
+        }
     }
 }

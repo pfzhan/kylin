@@ -889,7 +889,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(505, methodsCount);
+        Assert.assertEquals(521, methodsCount);
     }
 
     @Test
@@ -1028,6 +1028,17 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
             return null;
         }
     }
+
+    @Test
+    public void testRedisSettings() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.cache.redis.expire-time-unit", "INVALID");
+        assertEquals(config.getRedisExpireTimeUnit(), "EX");
+        assertEquals(config.getRedisConnectionTimeout(), 2000);
+        assertEquals(config.getRedisSoTimeout(), 2000);
+        assertEquals(config.getRedisMaxAttempts(), 20);
+    }
+
 }
 
 class EnvironmentUpdateUtils {

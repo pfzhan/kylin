@@ -115,6 +115,8 @@ public class SQLResponse implements Serializable {
 
     protected boolean storageCacheUsed = false;
 
+    protected String storageCacheType;
+
     @JsonProperty("pushDown")
     protected boolean queryPushDown = false;
 

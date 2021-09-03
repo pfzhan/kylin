@@ -74,7 +74,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
+import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.rest.service.AclTCRService;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.commons.collections.CollectionUtils;
@@ -118,6 +121,8 @@ import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.response.SQLResponseTrace;
+import org.apache.kylin.rest.response.TableMetaCacheResult;
+import org.apache.kylin.rest.response.TableMetaCacheResultV2;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -200,6 +205,9 @@ public class QueryService extends BasicService {
 
     @Autowired
     private AppConfig appConfig;
+
+    @Autowired
+    private AclTCRService aclTCRService;
 
     protected QueryRoutingEngine queryRoutingEngine;
 
@@ -382,6 +390,7 @@ public class QueryService extends BasicService {
                 .put(LogReport.PARTIAL_RESULT, response.isPartial())
                 .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
                 .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
+                .put(LogReport.STORAGE_CACHE_TYPE, response.getStorageCacheType())
                 .put(LogReport.PUSH_DOWN, response.isQueryPushDown()).put(LogReport.IS_PREPARE, response.isPrepare())
                 .put(LogReport.TIMEOUT, response.isTimeout())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
@@ -738,18 +747,24 @@ public class QueryService extends BasicService {
     }
 
     public List<TableMeta> getMetadata(String project) {
-        if (!KylinConfig.getInstanceFromEnv().isSchemaCacheEnabled()) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!NProjectManager.getInstance(kylinConfig).getProject(project).getConfig().isSchemaCacheEnabled()) {
             return doGetMetadata(project);
         }
 
         String userName = AclPermissionUtil.getCurrentUsername();
         List<TableMeta> cached = queryCacheManager.getSchemaCache(project, userName);
         if (cached != null) {
+            logger.info("[schema cache log] Get meta data from cache, project: {}, username: {}.", project, userName);
             return cached;
         }
 
         List<TableMeta> tableMetas = doGetMetadata(project);
-        queryCacheManager.putSchemaCache(project, userName, tableMetas);
+        List<String> tables = tableMetas.stream().map(meta -> meta.getTABLE_SCHEM() + "." + meta.getTABLE_NAME())
+                .collect(Collectors.toList());
+        val cacheResult = new TableMetaCacheResult(tableMetas,
+                QueryCacheSignatureUtil.createCacheSignature(tables, project));
+        queryCacheManager.putSchemaCache(project, userName, cacheResult);
         return tableMetas;
     }
 
@@ -796,18 +811,24 @@ public class QueryService extends BasicService {
     }
 
     public List<TableMetaWithType> getMetadataV2(String project) {
-        if (!KylinConfig.getInstanceFromEnv().isSchemaCacheEnabled()) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!NProjectManager.getInstance(kylinConfig).getProject(project).getConfig().isSchemaCacheEnabled()) {
             return doGetMetadataV2(project);
         }
 
         String userName = AclPermissionUtil.getCurrentUsername();
         List<TableMetaWithType> cached = queryCacheManager.getSchemaV2Cache(project, userName);
         if (cached != null) {
+            logger.info("[schema cache log] Get meta data v2 from cache, project: {}, username: {}.", project, userName);
             return cached;
         }
 
         List<TableMetaWithType> tableMetas = doGetMetadataV2(project);
-        queryCacheManager.putSchemaV2Cache(project, userName, tableMetas);
+        List<String> tables = tableMetas.stream().map(meta -> meta.getTABLE_SCHEM() + "." + meta.getTABLE_NAME())
+                .collect(Collectors.toList());
+        val cacheResult = new TableMetaCacheResultV2(tableMetas,
+                QueryCacheSignatureUtil.createCacheSignature(tables, project));
+        queryCacheManager.putSchemaV2Cache(project, userName, cacheResult);
         return tableMetas;
     }
 
@@ -1141,6 +1162,7 @@ public class QueryService extends BasicService {
         static final String PARTIAL_RESULT = "is_partial_result";
         static final String HIT_EXCEPTION_CACHE = "hit_exception_cache";
         static final String STORAGE_CACHE_USED = "storage_cache_used";
+        static final String STORAGE_CACHE_TYPE = "storage_cache_type";
         static final String PUSH_DOWN = "push_down";
         static final String IS_PREPARE = "is_prepare";
         static final String TIMEOUT = "timeout";
@@ -1165,7 +1187,8 @@ public class QueryService extends BasicService {
                 .put(TOTAL_SCAN_BYTES, "Total Scan Bytes: ").put(RESULT_ROW_COUNT, "Result Row Count: ")
                 .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ").put(ACCEPT_PARTIAL, "Accept Partial: ")
                 .put(PARTIAL_RESULT, "Is Partial Result: ").put(HIT_EXCEPTION_CACHE, "Hit Exception Cache: ")
-                .put(STORAGE_CACHE_USED, "Storage Cache Used: ").put(PUSH_DOWN, "Is Query Push-Down: ")
+                .put(STORAGE_CACHE_USED, "Storage Cache Used: ").put(STORAGE_CACHE_TYPE, "Storage Cache Type: ")
+                .put(PUSH_DOWN, "Is Query Push-Down: ")
                 .put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ").put(TRACE_URL, "Trace URL: ")
                 .put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ").put(ERROR_MSG, "Message: ")
                 .put(USER_TAG, "User Defined Tag: ").put(PUSH_DOWN_FORCED, "Is forced to Push-Down: ")
@@ -1218,6 +1241,7 @@ public class QueryService extends BasicService {
                     + O2N.get(PARTIAL_RESULT) + get(PARTIAL_RESULT) + newLine //
                     + O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine //
                     + O2N.get(STORAGE_CACHE_USED) + get(STORAGE_CACHE_USED) + newLine //
+                    + O2N.get(STORAGE_CACHE_TYPE) + get(STORAGE_CACHE_TYPE) + newLine //
                     + O2N.get(PUSH_DOWN) + get(PUSH_DOWN) + newLine //
                     + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine //
                     + O2N.get(TIMEOUT) + get(TIMEOUT) + newLine //
@@ -1237,6 +1261,28 @@ public class QueryService extends BasicService {
         public String jsonStyleLog() {
             return "[QUERY SUMMARY]: ".concat(new Gson().toJson(logs));
         }
+    }
+
+    public String createAclSignature(String project) throws IOException {
+        List<Long> aclTimes = Lists.newLinkedList();
+        List<String> aclNames = Lists.newLinkedList();
+        QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
+        if (aclInfo == null) {
+            aclInfo = getExecuteAclInfo(project);
+        }
+        String username = aclInfo.getUsername();
+        if (aclTCRService.hasAdminPermissionInProject(username, true, project)) {
+            return "ADMIN";
+        }
+        val aclManager = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        Set<String> userGroups = aclInfo.getGroups();
+        List<AclTCR> aclGroups = aclManager.getAclTCRs(username, userGroups);
+        for (AclTCR group : aclGroups) {
+            aclNames.add(group.resourceName());
+            aclTimes.add(group.getLastModified());
+        }
+
+        return Joiner.on(";").join(Joiner.on("_").join(aclNames), Joiner.on("_").join(aclTimes));
     }
 
 }

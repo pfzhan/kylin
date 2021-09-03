@@ -42,17 +42,25 @@
 
 package org.apache.kylin.rest.util;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.QueryService;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import com.google.common.collect.Lists;
 
@@ -66,6 +74,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     private String project = "cache";
     private String modelId = "8c670664-8d05-466a-802f-83c023b56c77";
@@ -76,10 +86,18 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+        PowerMockito.mockStatic(SpringContext.class);
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
         this.createTestMetadata("src/test/resources/ut_cache");
         List<NativeQueryRealization> nativeRealizations = Lists
                 .newArrayList(new NativeQueryRealization(modelId, layoutId, "TEST"));
         response.setNativeRealizations(nativeRealizations);
+        QueryService queryService = PowerMockito.mock(QueryService.class);
+        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
         dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         dataflow = dataflowManager.getDataflow(modelId);
@@ -98,8 +116,8 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 new NativeQueryRealization(modelId, 10002L, "TEST"));
         response.setNativeRealizations(multiRealizations);
         String cacheSignature = QueryCacheSignatureUtil.createCacheSignature(response, project);
-        Assert.assertEquals("1538323200000_1538323200000", cacheSignature.split(",")[0].split(";")[0]);
-        Assert.assertEquals("1538323300000_1538323300000", cacheSignature.split(",")[1].split(";")[0]);
+        Assert.assertEquals("1538323200000_1538323200000", cacheSignature.split(",")[1].split(";")[0]);
+        Assert.assertEquals("1538323300000_1538323300000", cacheSignature.split(",")[2].split(";")[0]);
     }
 
     @Test
@@ -119,7 +137,7 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCreateCacheSignature() {
-        Assert.assertEquals("1538323200000_1538323200000", response.getSignature().split(";")[0]);
+        Assert.assertEquals("1538323200000_1538323200000", response.getSignature().split(",")[1].split(";")[0]);
     }
 
     @Test
@@ -160,13 +178,16 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCacheSignatureWhenHitSnapshotBasic() {
+    public void testCacheSignatureWhenHitSnapshotBasic() throws IOException {
         String project = "default";
         SQLResponse sqlResponse = new SQLResponse();
         List<NativeQueryRealization> nativeRealizations = Lists.newArrayList(new NativeQueryRealization(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", -1L, QueryMetricsContext.TABLE_SNAPSHOT,
                 Lists.newArrayList("DEFAULT.TEST_ORDER")));
         sqlResponse.setNativeRealizations(nativeRealizations);
+        QueryService queryService = PowerMockito.mock(QueryService.class);
+        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
         sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
 
@@ -178,13 +199,16 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCacheSignatureWhenHitMultiSnapshot() {
+    public void testCacheSignatureWhenHitMultiSnapshot() throws IOException {
         String project = "default";
         SQLResponse sqlResponse = new SQLResponse();
         List<NativeQueryRealization> nativeRealizations = Lists.newArrayList(new NativeQueryRealization(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", -1L, QueryMetricsContext.TABLE_SNAPSHOT,
                 Lists.newArrayList("DEFAULT.TEST_ORDER", "DEFAULT.TEST_ACCOUNT")));
         sqlResponse.setNativeRealizations(nativeRealizations);
+        QueryService queryService = PowerMockito.mock(QueryService.class);
+        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
         sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
 
@@ -196,7 +220,7 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCacheSignatureWhenHitSnapshotMultiModel() {
+    public void testCacheSignatureWhenHitSnapshotMultiModel() throws IOException {
         String project = "default";
         SQLResponse sqlResponse = new SQLResponse();
         List<NativeQueryRealization> nativeRealizations = Lists.newArrayList(new NativeQueryRealization(
@@ -204,6 +228,9 @@ public class QueryCacheSignatureUtilTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList("DEFAULT.TEST_ORDER")), new NativeQueryRealization(
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 1000001L, QueryMetricsContext.AGG_INDEX));
         sqlResponse.setNativeRealizations(nativeRealizations);
+        QueryService queryService = PowerMockito.mock(QueryService.class);
+        PowerMockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        PowerMockito.when(queryService.createAclSignature(project)).thenReturn("root");
         sqlResponse.setSignature(QueryCacheSignatureUtil.createCacheSignature(sqlResponse, project));
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(sqlResponse, project));
 

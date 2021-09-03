@@ -1578,6 +1578,79 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.schema-cache-enabled", FALSE));
     }
 
+    // ============================================================================
+    // Cache
+    // ============================================================================
+
+    public boolean isRedisEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.cache.redis.enabled", FALSE));
+    }
+
+    public boolean isRedisClusterEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.cache.redis.cluster-enabled", FALSE));
+    }
+
+    public String getRedisHosts() {
+        return getOptional("kylin.cache.redis.hosts", "localhost:6379");
+    }
+
+    public String getRedisPassword() {
+        return getOptional("kylin.cache.redis.password", "");
+    }
+
+    //EX is second and PX is milliseconds
+    public String getRedisExpireTimeUnit() {
+        String expireTimeUnit = getOptional("kylin.cache.redis.expire-time-unit", "EX");
+        if (!expireTimeUnit.equals("EX") && !expireTimeUnit.equals("PX")) {
+            expireTimeUnit = "EX";
+        }
+        return expireTimeUnit;
+    }
+
+    public long getRedisExpireTime() {
+        return Long.parseLong(getOptional("kylin.cache.redis.expire-time", "86400"));
+    }
+
+    public long getRedisExpireTimeForException() {
+        return Long.parseLong(getOptional("kylin.cache.redis.exception-expire-time", "600"));
+    }
+
+    public int getRedisConnectionTimeout() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.connection-timeout", "2000"));
+    }
+
+    public int getRedisSoTimeout() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.so-timeout", "2000"));
+    }
+
+    public int getRedisMaxAttempts() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.max-attempts", "20"));
+    }
+
+    public int getRedisMaxTotal() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.max-total", "8"));
+    }
+
+    public int getRedisMaxIdle() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.max-idle", "8"));
+    }
+
+    public int getRedisMinIdle() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.min-idle", "0"));
+    }
+
+    public int getRedisScanKeysBatchCount() {
+        return Integer.parseInt(getOptional("kylin.cache.redis.batch-count", "100000"));
+    }
+
+    public long getMaxWaitMillis() {
+        return Long.parseLong(getOptional("kylin.cache.redis.max-wait", "300000"));
+    }
+
+    public String getEhCacheConfigPath() {
+        return getOptional("kylin.cache.config", "classpath:ehcache.xml");
+    }
+
     public boolean isQueryIgnoreUnknownFunction() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.ignore-unknown-function", FALSE));
     }

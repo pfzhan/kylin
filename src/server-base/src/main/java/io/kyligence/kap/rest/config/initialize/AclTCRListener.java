@@ -51,12 +51,12 @@ public class AclTCRListener implements EventListenerRegistry.ResourceEventListen
         if (Objects.isNull(rawResource)) {
             return;
         }
-        getProjectName(rawResource.getResPath()).ifPresent(this::clearCache);
+        getProjectName(rawResource.getResPath()).ifPresent(project -> clearCache(config, project));
     }
 
     @Override
     public void onDelete(KylinConfig config, String resPath) {
-        getProjectName(resPath).ifPresent(this::clearCache);
+        getProjectName(resPath).ifPresent(project -> clearCache(config, project));
     }
 
     private Optional<String> getProjectName(String resourcePath) {
@@ -71,7 +71,9 @@ public class AclTCRListener implements EventListenerRegistry.ResourceEventListen
         return Optional.of(elements[1]);
     }
 
-    private void clearCache(String project) {
-        queryCacheManager.clearProjectCache(project);
+    private void clearCache(KylinConfig config, String project) {
+        if (!config.isRedisEnabled()) {
+            queryCacheManager.clearProjectCache(project);
+        }
     }
 }

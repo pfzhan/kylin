@@ -22,40 +22,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.query;
+package org.apache.kylin.rest.response;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import org.apache.kylin.metadata.querymeta.TableMetaWithType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class QueryHistoryInfoResponse implements Serializable {
-    @JsonProperty("exactly_match")
-    private boolean exactlyMatch;
-    @JsonProperty("scan_segment_num")
-    private int scanSegmentNum;
-    @JsonProperty("state")
-    private QueryHistoryInfo.HistoryState state;
-    @JsonProperty("execution_error")
-    private boolean executionError;
-    @JsonProperty("error_msg")
-    private String errorMsg;
-    @JsonProperty("query_snapshots")
-    private List<List<String>> querySnapshots = new ArrayList<>();
-    @JsonProperty("realization_metrics")
-    protected List<QueryMetrics.RealizationMetrics> realizationMetrics = new ArrayList<>();
-    @JsonProperty("traces")
-    private List<QueryHistoryInfo.QueryTraceSpan> traces = new ArrayList<>();
-    @JsonProperty("cache_type")
-    private String cacheType;
+public class TableMetaCacheResultV2 implements Serializable {
+    protected static final long serialVersionUID = 1L;
+
+    private static final Logger logger = LoggerFactory.getLogger(TableMetaCacheResultV2.class);
+
+    @Getter
+    private List<TableMetaWithType> tableMetaList = new ArrayList<>();
+
+    @Getter
+    private String signature;
+
+    public TableMetaCacheResultV2() {
+    }
+
+    public TableMetaCacheResultV2(List<TableMetaWithType> tableMetaList, String signature) {
+        this.tableMetaList = tableMetaList;
+        this.signature = signature;
+    }
+
+    public List<String> getTables() {
+        return tableMetaList.stream().map(meta -> meta.getTABLE_SCHEM() + "." + meta.getTABLE_NAME())
+                .collect(Collectors.toList());
+    }
 }

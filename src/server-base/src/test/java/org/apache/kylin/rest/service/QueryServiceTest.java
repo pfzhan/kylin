@@ -65,6 +65,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -94,6 +95,7 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.adhocquery.PushdownResult;
 import org.junit.After;
 import org.junit.Assert;
@@ -102,9 +104,13 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -139,6 +145,7 @@ import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
+import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import lombok.val;
@@ -147,6 +154,8 @@ import net.sf.ehcache.CacheManager;
 /**
  * @author xduo
  */
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ SpringContext.class, UserGroupInformation.class })
 public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
@@ -159,7 +168,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private QueryService origin;
 
-    @InjectMocks
+    @Mock
     private QueryService queryService;
 
     @InjectMocks
@@ -180,10 +189,17 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     protected AclService aclService = Mockito.spy(AclService.class);
 
+    @Mock
+    protected AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
+
     private int pushdownCount;
 
     @Before
     public void setup() throws Exception {
+        PowerMockito.mockStatic(SpringContext.class);
+        PowerMockito.mockStatic(UserGroupInformation.class);
+        UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
+        PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
         overwriteSystemProp("kylin.query.transaction-enable", "true");
         overwriteSystemProp("kylin.query.cache-threshold-duration", String.valueOf(-1));
         overwriteSystemProp("HADOOP_USER_NAME", "root");
@@ -195,20 +211,22 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryService = Mockito.spy(origin);
         queryService.queryRoutingEngine = Mockito.spy(QueryRoutingEngine.class);
 
-        ReflectionTestUtils.setField(queryCacheManager, "cacheManager", cacheManager);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
         ReflectionTestUtils.setField(queryService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(queryService, "accessService", accessService);
+        ReflectionTestUtils.setField(queryService, "aclTCRService", aclTCRService);
         ReflectionTestUtils.setField(accessService, "userService", userService);
         ReflectionTestUtils.setField(accessService, "aclService", aclService);
+        ReflectionTestUtils.setField(aclTCRService, "accessService", accessService);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
         pushdownCount = 0;
 
         userService.createUser(
                 new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(new UserGrantedAuthority("ROLE_ADMIN"))));
+        queryCacheManager.init();
     }
 
     @After
@@ -358,6 +376,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // case of not hitting cache
         String expectedQueryID = QueryContext.current().getQueryId();
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         final SQLResponse firstSuccess = queryService.queryWithCache(request);
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
         Assert.assertEquals(2, firstSuccess.getNativeRealizations().size());
@@ -900,6 +919,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLRequest request = new SQLRequest();
         request.setProject("default");
         request.setSql(sql);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         SQLResponse response = queryService.queryWithCache(request);
         Assert.assertEquals(1, response.getNativeRealizations().size());
         NativeQueryRealization realization = response.getNativeRealizations().get(0);
@@ -952,11 +972,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse response = new SQLResponse();
         response.setNativeRealizations(
                 Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         String signature = QueryCacheSignatureUtil.createCacheSignature(response, project);
         Assert.assertEquals(
                 String.valueOf(
                         dataflowManager.getDataflow(modelId).getLastSegment().getLayout(layoutId).getCreateTime()),
-                signature.split(";")[0]);
+                signature.split(",")[1].split(";")[0]);
         response.setSignature(signature);
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
@@ -974,6 +995,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse response = new SQLResponse();
         response.setNativeRealizations(
                 Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(response, project));
@@ -992,6 +1014,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse response = new SQLResponse();
         response.setNativeRealizations(
                 Lists.newArrayList(new NativeQueryRealization(modelId, layoutId, QueryMetricsContext.AGG_INDEX)));
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
         Assert.assertFalse(QueryCacheSignatureUtil.checkCacheExpired(response, project));
@@ -1019,6 +1042,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
 
         // case of not hitting cache
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         final SQLResponse firstSuccess = queryService.queryWithCache(request);
 
         // case of hitting cache
@@ -1047,6 +1071,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
 
         // case of not hitting cache
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         final SQLResponse firstSuccess = queryService.queryWithCache(request);
 
         dataflowManager.updateDataflow(modelId, copyForWrite -> {
@@ -1071,7 +1096,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
-
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         SQLResponse sqlResponse = queryService.doQueryWithCache(request);
         Assert.assertNull(QueryContext.current().getEngineType());
         Assert.assertEquals(-1, QueryContext.current().getMetrics().getTotalScanBytes());
@@ -1104,6 +1129,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         QueryMetricsContext.start(request.getQueryId(), "");
 
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         SQLResponse sqlResponse = queryService.doQueryWithCache(request);
         Assert.assertTrue(sqlResponse.isException());
         Assert.assertTrue(QueryContext.current().getMetrics().isException());
@@ -1121,7 +1147,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setSql(sql);
         final SQLResponse response = Mockito.mock(SQLResponse.class);
         Mockito.doReturn(2L).when(response).getResultRowCount();
-
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         getTestConfig().setProperty("kylin.circuit-breaker.threshold.query-result-row-count", "1");
 
         Mockito.doReturn(response).when(queryService).queryAndUpdateCache(Mockito.any(SQLRequest.class),
@@ -1181,7 +1207,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryContext.current().setUserSQL(sql);
         String log = queryService.logQuery(request, response);
         //
-        final int groupCnt = 32;
+        final int groupCnt = 33;
         String matchNewLine = "\\n";
         String s = "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine + "SQL:\\s(.*?)" + matchNewLine
                 + "User:\\s(.*?)" + matchNewLine + "Success:\\s(.*?)" + matchNewLine + "Duration:\\s(.*?)"
@@ -1192,6 +1218,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "Result Row Count:\\s(.*?)" + matchNewLine + "Shuffle partitions:\\s(.*?)" + matchNewLine
                 + "Accept Partial:\\s(.*?)" + matchNewLine + "Is Partial Result:\\s(.*?)" + matchNewLine
                 + "Hit Exception Cache:\\s(.*?)" + matchNewLine + "Storage Cache Used:\\s(.*?)" + matchNewLine
+                + "Storage Cache Type:\\s(.*?)" + matchNewLine
                 + "Is Query Push-Down:\\s(.*?)" + matchNewLine + "Is Prepare:\\s(.*?)" + matchNewLine
                 + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)" + matchNewLine
                 + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
@@ -1211,11 +1238,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(sql, matcher.group(2));
         Assert.assertEquals(project, matcher.group(6));
         Assert.assertFalse(Boolean.parseBoolean(matcher.group(4)));
-        Assert.assertEquals("null", matcher.group(23)); //Trace URL
-        Assert.assertEquals(tag, matcher.group(27));
-        Assert.assertEquals(pushDownForced, matcher.group(28));
-        Assert.assertEquals("Chrome/89.0.4389.82 Safari/537.36", matcher.group(29));
-        Assert.assertEquals("{DEBUG_TOGGLE_HTRACE_ENABLED=false}", matcher.group(30));
+        Assert.assertEquals("null", matcher.group(24)); //Trace URL
+        Assert.assertEquals(tag, matcher.group(28));
+        Assert.assertEquals(pushDownForced, matcher.group(29));
+        Assert.assertEquals("Chrome/89.0.4389.82 Safari/537.36", matcher.group(30));
+        Assert.assertEquals("{DEBUG_TOGGLE_HTRACE_ENABLED=false}", matcher.group(31));
     }
 
     @Test
@@ -1237,6 +1264,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final QueryContext queryContext = QueryContext.current();
 
         overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "true");
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         queryService.doQueryWithCache(request);
         Assert.assertEquals(queryContext.getUserSQL(), sql);
         Assert.assertEquals(queryContext.getMetrics().getCorrectedSql(), filledSql);
@@ -1499,6 +1527,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         SQLResponse sqlResponse = queryService.doQueryWithCache(request);
 
         Assert.assertEquals(2, sqlResponse.getNativeRealizations().size());
@@ -1527,6 +1556,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
         SQLResponse sqlResponse = queryService.doQueryWithCache(request);
 
         Assert.assertEquals(1, sqlResponse.getNativeRealizations().size());

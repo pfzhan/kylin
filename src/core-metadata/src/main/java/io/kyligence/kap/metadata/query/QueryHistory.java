@@ -244,4 +244,8 @@ public class QueryHistory implements IKeep {
     public enum EngineType {
         NATIVE, CONSTANTS, RDBMS, HIVE
     }
+
+    public enum CacheType {
+        EHCACHE, REDIS
+    }
 }

@@ -317,6 +317,7 @@ public class QueryContext implements Closeable {
         private boolean isPushdown;
         private boolean isPartial = false;
         private boolean isStorageCacheUsed = false;
+        private String storageCacheType;
         private boolean hitExceptionCache = false;
         private boolean isConstantQuery = false;
         private String fileFormat;

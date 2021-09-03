@@ -41,6 +41,7 @@
  */
 package org.apache.kylin.rest.util;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -48,8 +49,10 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,8 +69,17 @@ import lombok.val;
 public class QueryCacheSignatureUtil {
     private static final Logger logger = LoggerFactory.getLogger("query");
 
+    // Query Cache
     public static String createCacheSignature(SQLResponse response, String project) {
         List<String> signature = Lists.newArrayList();
+        // TODO need rewrite
+        QueryService queryService = SpringContext.getBean(QueryService.class);
+        try {
+            signature.add(queryService.createAclSignature(project));
+        } catch (IOException e) {
+            logger.error("Fail to get acl signature: ", e);
+            return "";
+        }
         val realizations = response.getNativeRealizations();
         Preconditions.checkState(CollectionUtils.isNotEmpty(realizations));
         for (NativeQueryRealization realization : realizations) {
@@ -76,17 +88,54 @@ public class QueryCacheSignatureUtil {
         return Joiner.on(",").join(signature);
     }
 
+    // Schema Cache
+    public static String createCacheSignature(List<String> tables, String project) {
+        val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<String> signature = Lists.newArrayList();
+        // TODO need rewrite
+        QueryService queryService = SpringContext.getBean(QueryService.class);
+        try {
+            signature.add(queryService.createAclSignature(project));
+        } catch (IOException e) {
+            logger.error("Fail to get acl signature: ", e);
+            return "";
+        }
+        for (val table : tables) {
+            TableDesc tableDesc = tableManager.getTableDesc(table);
+            if (tableDesc == null) {
+                return "";
+            }
+            signature.add(String.valueOf(tableDesc.getLastModified()));
+        }
+        return Joiner.on(",").join(signature);
+    }
+
+    // Query Cache
     public static boolean checkCacheExpired(SQLResponse sqlResponse, String project) {
         val signature = sqlResponse.getSignature();
         if (StringUtils.isBlank(signature)) {
             // pushdown cache is not supported by default because checkCacheExpired always return true
             return true;
         }
-        if (signature.split(",").length != sqlResponse.getNativeRealizations().size()) {
+        // acl,realization1,realization2 ...
+        if (signature.split(",").length != sqlResponse.getNativeRealizations().size() + 1) {
             return true;
         }
         val lastSignature = createCacheSignature(sqlResponse, project);
         return !signature.equals(lastSignature);
+    }
+
+    // Schema Cache
+    public static boolean checkCacheExpired(List<String> tables, String prevSignature, String project) {
+        if (StringUtils.isBlank(prevSignature)) {
+            return true;
+        }
+        // acl,table1,table2 ...
+        if (prevSignature.split(",").length != tables.size() + 1) {
+            return true;
+        }
+        val currSignature = createCacheSignature(tables, project);
+        return !prevSignature.equals(currSignature);
     }
 
     private static String generateSignature(NativeQueryRealization realization, String project, long sqlDuration) {

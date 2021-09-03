@@ -101,6 +101,7 @@
         <powermock.version>1.7.1</powermock.version>
         <assertj-core.version>3.11.1</assertj-core.version>
         <awaitility.version>3.0.0</awaitility.version>
+        <embedded-redis.version>0.6</embedded-redis.version>
 
         <!-- Commons -->
         <commons-lang3.version>3.10</commons-lang3.version>
@@ -117,6 +118,7 @@
         <apache-log4j.version>2.12.1</apache-log4j.version>
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
+        <redis.version>3.6.0</redis.version>
         <apache-httpclient.version>4.5.13</apache-httpclient.version>
         <beanutils.version>1.9.4</beanutils.version>
         <snakeyaml.version>1.26</snakeyaml.version>
@@ -492,6 +494,13 @@
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>${dropwizard.version}</version>
+            </dependency>
+
+            <!-- Redis -->
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>${redis.version}</version>
             </dependency>
 
             <!--KAP test scope-->
@@ -1310,6 +1319,12 @@
                 <groupId>org.opensaml</groupId>
                 <artifactId>opensaml</artifactId>
                 <version>${opensaml.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.kstyrc</groupId>
+                <artifactId>embedded-redis</artifactId>
+                <version>${embedded-redis.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>

@@ -29,6 +29,7 @@ import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLI
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -128,6 +130,9 @@ public class NQueryController extends NBasicController {
     @Autowired
     private ClusterManager clusterManager;
 
+    @Autowired
+    private QueryCacheManager queryCacheManager;
+
     @Override
     protected Logger getLogger() {
         return logger;
@@ -155,6 +160,30 @@ public class NQueryController extends NBasicController {
     public EnvelopeResponse<String> stopQuery(@PathVariable("id") String id) {
         queryService.stopQuery(id);
         EventBusFactory.getInstance().postAsync(new StopQueryBroadcastEventNotifier(id));
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "clearCache", tags = { "QE" })
+    @DeleteMapping(value = "/cache")
+    @ResponseBody
+    public EnvelopeResponse<String> clearCache(@RequestParam(value = "project", required = false) String project) {
+        if (!isAdmin()) {
+            throw new KylinException(PERMISSION_DENIED,
+                    "Please make sure you have the admin authority to clear project cache.");
+        }
+        queryCacheManager.clearProjectCache(project);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "recoverCache", tags = { "QE" })
+    @PostMapping(value = "/cache/recovery")
+    @ResponseBody
+    public EnvelopeResponse<String> recoverCache() {
+        if (!isAdmin()) {
+            throw new KylinException(PERMISSION_DENIED,
+                    "Please make sure you have the admin authority to recover cache.");
+        }
+        queryCacheManager.recoverCache();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

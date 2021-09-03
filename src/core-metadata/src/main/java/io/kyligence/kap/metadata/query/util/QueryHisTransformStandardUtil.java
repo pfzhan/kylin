@@ -92,7 +92,7 @@ public class QueryHisTransformStandardUtil {
         }
         QueryHistoryInfoResponse queryHistoryInfoResponse = new QueryHistoryInfoResponse(
                 qh.isExactlyMatch(), qh.getScanSegmentNum(), qh.getState(), qh.isExecutionError(), qh.getErrorMsg(),
-                qh.getQuerySnapshots(), qh.getRealizationMetrics(), qh.getTraces());
+                qh.getQuerySnapshots(), qh.getRealizationMetrics(), qh.getTraces(), qh.getCacheType());
         return queryHistoryInfoResponse;
     }
 }
