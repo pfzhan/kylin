@@ -58,7 +58,9 @@ import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -86,6 +88,7 @@ public class KylinConfig extends KylinConfigBase {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(KylinConfig.class);
 
+    final transient ReentrantLock lock = new ReentrantLock();
     /**
      * Kylin properties file name
      */
@@ -340,6 +343,7 @@ public class KylinConfig extends KylinConfigBase {
         return createKylinConfig(another.getRawAllProperties());
     }
 
+    /** If use createKylinConfig to create a new config,remember to release this config */
     public static KylinConfig createKylinConfig(Properties prop) {
         KylinConfig kylinConfig = new KylinConfig();
         kylinConfig.reloadKylinConfig(prop);
@@ -380,7 +384,7 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     // build kylin properties from site deployment, a.k.a KYLIN_HOME/conf/kylin.properties
-    private static Properties buildSiteProperties() {
+    public static Properties buildSiteProperties() {
         Properties conf = new Properties();
 
         OrderedProperties orderedProperties = buildSiteOrderedProps();
@@ -617,8 +621,115 @@ public class KylinConfig extends KylinConfigBase {
         return SYS_ENV_INSTANCE == this;
     }
 
+    /** sometimes in Multithreading will happen ConcurrentModificationException */
     public synchronized void reloadFromSiteProperties() {
         reloadKylinConfig(buildSiteProperties());
+    }
+
+    public void reloadKylinConfigPropertiesFromSiteProperties() {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            final Properties newProperties = reloadKylinConfig2Properties(buildSiteProperties());
+            this.cachedHdfsWorkingDirectory = null;
+            this.properties = newProperties;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @VisibleForTesting
+    public Properties reloadKylinConfig2Properties(Properties properties) {
+        Properties result = BCC.check(properties);
+        result.setProperty(BCC.check("kylin.metadata.url.identifier"), getMetadataUrlPrefixFromProperties(properties));
+        result.setProperty(BCC.check("kylin.metadata.url.unique-id"), getMetadataUrlUniqueIdFromProperties(properties));
+        result.setProperty(BCC.check("kylin.log.spark-executor-properties-file"), getLogSparkExecutorPropertiesFile());
+        result.setProperty(BCC.check("kylin.log.spark-driver-properties-file"), getLogSparkDriverPropertiesFile());
+        result.setProperty(BCC.check("kylin.log.spark-appmaster-properties-file"),
+                getLogSparkAppMasterPropertiesFile());
+
+        result.put(WORKING_DIR_PROP,
+                makeQualified(new Path(result.getProperty(WORKING_DIR_PROP, KYLIN_ROOT))).toString());
+        if (result.getProperty(DATA_WORKING_DIR_PROP) != null) {
+            result.put(DATA_WORKING_DIR_PROP,
+                    makeQualified(new Path(result.getProperty(DATA_WORKING_DIR_PROP))).toString());
+        }
+        return result;
+    }
+
+    @VisibleForTesting
+    public String getMetadataUrlPrefixFromProperties(Properties properties) {
+        return getMetadataUrlFromProperties(properties).getIdentifier();
+    }
+
+    @VisibleForTesting
+    public StorageURL getMetadataUrlFromProperties(Properties properties) {
+        return StorageURL.valueOf(getOptionalFromProperties("kylin.metadata.url", "kylin_metadata@jdbc", properties));
+    }
+
+    @VisibleForTesting
+    public String getOptionalFromProperties(String prop, String dft, Properties properties) {
+        final String property = System.getProperty(prop);
+        return property != null ? getSubstitutor().replace(property)
+                : getSubstitutor().replace(properties.getProperty(prop, dft));
+    }
+
+    @VisibleForTesting
+    public String getChannelFromProperties(Properties properties) {
+        return getOptionalFromProperties("kylin.env.channel", "on-premises", properties);
+    }
+
+    @VisibleForTesting
+    public String getMetadataUrlUniqueIdFromProperties(Properties properties) {
+        if (KapConfig.CHANNEL_CLOUD.equalsIgnoreCase(getChannelFromProperties(properties))) {
+            return getMetadataUrlPrefixFromProperties(properties);
+        }
+        StorageURL url = getMetadataUrlFromProperties(properties);
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(url.getIdentifier());
+        Optional.ofNullable(url.getParameter("url")).map(value -> value.split("\\?")[0]).map(value -> "_" + value)
+                .ifPresent(stringBuilder::append);
+        String instanceId = stringBuilder.toString().replaceAll("\\W", "_");
+        return instanceId;
+    }
+
+    @VisibleForTesting
+    public String getHdfsWorkingDirectoryFromProperties(Properties properties) {
+        String root = getOptionalFromProperties(DATA_WORKING_DIR_PROP, null, properties);
+        boolean compriseMetaId = false;
+
+        if (root == null) {
+            root = getOptionalFromProperties(WORKING_DIR_PROP, KYLIN_ROOT, properties);
+            compriseMetaId = true;
+        }
+
+        Path path = new Path(root);
+        if (!path.isAbsolute()) {
+            throw new IllegalArgumentException("kylin.env.hdfs-working-dir must be absolute, but got " + root);
+        }
+
+        // make sure path is qualified
+        path = makeQualified(path);
+
+        if (compriseMetaId) {
+            // if configuration WORKING_DIR_PROP_V2 dose not exist, append metadata-url prefix
+            String metaId = getMetadataUrlPrefixFromProperties(properties).replace(':', '-').replace('/', '-');
+            path = new Path(path, metaId);
+        }
+
+        root = path.toString();
+        if (!root.endsWith("/")) {
+            root += "/";
+        }
+
+        String hdfsWorkingDirectory = root;
+        if (hdfsWorkingDirectory.startsWith("file:")) {
+            hdfsWorkingDirectory = hdfsWorkingDirectory.replace("file:", "file://");
+        } else if (hdfsWorkingDirectory.startsWith("maprfs:")) {
+            hdfsWorkingDirectory = hdfsWorkingDirectory.replace("maprfs:", "maprfs://");
+        }
+        logger.info("Hdfs data working dir is {} in properties", hdfsWorkingDirectory);
+        return hdfsWorkingDirectory;
     }
 
     public KylinConfig base() {

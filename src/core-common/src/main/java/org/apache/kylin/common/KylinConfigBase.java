@@ -112,9 +112,9 @@ public abstract class KylinConfigBase implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(KylinConfigBase.class);
 
-    private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
-    private static final String DATA_WORKING_DIR_PROP = "kylin.env.hdfs-data-working-dir";
-    private static final String KYLIN_ROOT = "/kylin";
+    protected static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
+    protected static final String DATA_WORKING_DIR_PROP = "kylin.env.hdfs-data-working-dir";
+    protected static final String KYLIN_ROOT = "/kylin";
 
     public static final long REJECT_SIMILARITY_THRESHOLD = 100_000_000L;
     public static final double SIMILARITY_THRESHOLD = 0.9;
@@ -342,13 +342,13 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.env", "PROD");
     }
 
-    private String cachedHdfsWorkingDirectory;
+    protected String cachedHdfsWorkingDirectory;
 
     public String getHdfsWorkingDirectoryWithoutScheme() {
         return HadoopUtil.getPathWithoutScheme(getHdfsWorkingDirectory());
     }
 
-    private Path makeQualified(Path path) {
+    protected Path makeQualified(Path path) {
         try {
             FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
             return fs.makeQualified(path);

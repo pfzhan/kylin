@@ -177,6 +177,11 @@ public class NSparkExecutable extends AbstractExecutable {
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = getConfig();
 
+        String jobId = getId();
+        if (!config.isDevOrUT()) {
+            setDistMetaUrl(config.getJobTmpMetaStoreUrl(project, jobId));
+        }
+
         String sparkHome = KylinConfigBase.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
             throw new RuntimeException("Missing spark home");
@@ -221,7 +226,7 @@ public class NSparkExecutable extends AbstractExecutable {
                 return 0;
             }, context.getEpochId(), project);
         }
-        String jobId = getId();
+
         String argsPath = createArgsFileOnHDFS(config, jobId);
         if (config.isUTEnv()) {
             return runLocalMode(argsPath);
@@ -280,9 +285,22 @@ public class NSparkExecutable extends AbstractExecutable {
                 System.currentTimeMillis());
     }
 
+    private Boolean checkHadoopWorkingDir() {
+        // read hdfs.working.dir in kylin config
+        final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        final String hdfsWorkingDirectory = kylinConfig.getHdfsWorkingDirectory();
+        // read hdfs.working.dir
+        final Properties properties = KylinConfig.buildSiteProperties();
+        final String hdfsWorkingDirectoryFromProperties = kylinConfig.getHdfsWorkingDirectoryFromProperties(properties);
+        return StringUtils.equals(hdfsWorkingDirectory, hdfsWorkingDirectoryFromProperties);
+    }
+
     @Override
     protected KylinConfig getConfig() {
         val originalConfig = KylinConfig.getInstanceFromEnv();
+        if (!originalConfig.isDevOrUT() && !checkHadoopWorkingDir()) {
+            KylinConfig.getInstanceFromEnv().reloadKylinConfigPropertiesFromSiteProperties();
+        }
         KylinConfigExt kylinConfigExt = null;
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
