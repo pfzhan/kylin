@@ -1950,7 +1950,8 @@ public class ModelService extends BasicService {
                 sqls.toArray(new String[0]));
         ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
-        return proposeContext.getProposedModels();
+        return proposeContext.getProposedModels().stream().filter(model -> !model.isStreaming())
+                .collect(Collectors.toList());
     }
 
     public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
@@ -2007,6 +2008,7 @@ public class ModelService extends BasicService {
                 collectResponseOfNewModels(context, modelContext, responseOfNewModels);
             }
         }
+        responseOfReusedModels.removeIf(ModelRecResponse::isStreaming);
         return new SuggestionResponse(responseOfReusedModels, responseOfNewModels);
     }
 

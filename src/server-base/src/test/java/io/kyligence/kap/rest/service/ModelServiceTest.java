@@ -6467,4 +6467,23 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("SUM_LINEORDER_LO_TAX",
                 response.getNewModels().get(0).getIndexes().get(0).getMeasures().get(2).getMeasure().getName());
     }
+
+    @Test
+    public void testCouldAnsweredByExistedModels() {
+        val project = "streaming_test";
+        val emptyLists = modelService.couldAnsweredByExistedModels(project, Arrays.asList());
+        Assert.assertTrue(emptyLists.isEmpty());
+
+        val sqlList = Arrays.asList("SELECT * FROM SSB.P_LINEORDER_STR");
+        val modelLists = modelService.couldAnsweredByExistedModels(project, sqlList);
+        Assert.assertTrue(modelLists.isEmpty());
+
+        val sqls = Lists.newArrayList("select * from SSB.LINEORDER");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
+        val response = modelService.buildModelSuggestionResponse(proposeContext);
+        Assert.assertTrue(response.getReusedModels().isEmpty());
+
+        thrown.expect(KylinException.class);
+        modelService.couldAnsweredByExistedModels("not_existed_project", sqlList);
+    }
 }
