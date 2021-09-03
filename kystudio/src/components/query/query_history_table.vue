@@ -147,6 +147,10 @@
                     <span class="label">{{$t('kylinLang.query.cache_hit')}}</span>
                     <span class="text">{{props.row.cache_hit}}</span>
                   </p>
+                  <p class="list" v-if="!!props.row.query_history_info.cache_type">
+                    <span class="label">{{$t('kylinLang.query.cache_type')}}</span>
+                    <span class="text">{{props.row.query_history_info.cache_type}}</span>
+                  </p>
                 </div>
               </el-col>
             </el-row>

@@ -389,6 +389,7 @@ exports.default = {
     total_scan_count: '查询扫描记录数',
     total_scan_bytes: '查询扫描字节数',
     cache_hit: '是否击中缓存',
+    cache_type: '缓存类型',
     query_id: '查询 ID',
     index_id: '索引 ID',
     snapshot: '快照',

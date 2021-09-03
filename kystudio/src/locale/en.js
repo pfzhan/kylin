@@ -392,6 +392,7 @@ exports.default = {
     total_scan_bytes: 'Total Scan Bytes',
     total_scan_count: 'Total Scan Count',
     cache_hit: 'If Hit Cache',
+    cache_type: 'Cache Type',
     query_id: 'Query ID',
     index_id: 'Index ID',
     snapshot: 'Snapshot',
