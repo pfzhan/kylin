@@ -37,6 +37,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -49,6 +50,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 
+@Ignore
 public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
