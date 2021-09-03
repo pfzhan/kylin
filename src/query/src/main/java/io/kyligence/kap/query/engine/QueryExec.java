@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -230,6 +231,16 @@ public class QueryExec {
             return RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType);
         } catch (Exception e) {
             throw new SQLException(e);
+        } finally {
+            afterQuery();
+        }
+    }
+
+    @VisibleForTesting
+    public <T> T wrapSqlTest(Function<QueryExec, T> testFunc) {
+        try {
+            beforeQuery();
+            return testFunc.apply(this);
         } finally {
             afterQuery();
         }
