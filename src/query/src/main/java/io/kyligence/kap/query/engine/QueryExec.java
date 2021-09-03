@@ -280,12 +280,18 @@ public class QueryExec {
             QueryContext.current().getQueryTagInfo().setConstantQuery(true);
             return new CalciteQueryPlanExec().executeToIterable(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
-            NoRealizationFoundException lastException = null;
+            RuntimeException lastException = null;
             for (RelNode rel : rels) {
                 try {
                     return new SparderQueryPlanExec().executeToIterable(rel, dataContext);
                 } catch (NoRealizationFoundException e) {
                     lastException = e;
+                } catch (IllegalArgumentException e) {
+                    if (e.getMessage().contains("Unsupported function name BITMAP_UUID")) {
+                        lastException = e;
+                    } else {
+                        throw e;
+                    }
                 }
             }
             assert lastException != null;

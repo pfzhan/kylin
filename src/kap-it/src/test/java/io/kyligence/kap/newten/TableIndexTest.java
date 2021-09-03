@@ -115,4 +115,25 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
 
         NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null);
     }
+
+    @Test
+    public void testUseTableIndexAnswerCountDistinctWithConvertRuleOn() throws Exception {
+        overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+        overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "true");
+        fullBuildCube("acfde546-2cc9-4eec-bc92-e3bd46d4e2ee", getProject());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("query_count_distinct", "select\n"
+                + "count(\n"
+                + "    distinct(\n"
+                + "        case when (a.ORDER_ID > 0)\n"
+                + "        THEN a.ORDER_ID\n"
+                + "        ELSE NULL\n"
+                + "        end)\n"
+                + "        )\n"
+                + "from (\n"
+                + "select ORDER_ID from TEST_KYLIN_FACT\n"
+                + ") a"));
+        NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null);
+    }
 }
