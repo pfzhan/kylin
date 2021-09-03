@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -572,8 +573,8 @@ public class NTableController extends NBasicController {
             val result = tableService.preProcessBeforeReloadWithFailFast(project, table);
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
         } catch (Exception e) {
-            logger.error("Reload Table Failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            logger.error("Reload Table Failed,{}...", table, root);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
     }
@@ -595,8 +596,8 @@ public class NTableController extends NBasicController {
                     request.getMaxRows(), request.isNeedBuild(), request.getPriority(), request.getYarnQueue());
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
         } catch (Exception e) {
-            logger.error("Reload Table Failed...", e);
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            logger.error("Reload Table Failed,{}...", Optional.of(request.getTable()).orElse("null"), root);
             throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
     }
