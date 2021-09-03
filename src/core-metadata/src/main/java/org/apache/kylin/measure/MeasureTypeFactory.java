@@ -131,7 +131,7 @@ abstract public class MeasureTypeFactory<T> {
 
         List<MeasureTypeFactory<?>> factoryInsts = Lists.newArrayList();
 
-        // five built-in advanced measure types
+        // built-in advanced measure types
         factoryInsts.add(new HLLCMeasureType.Factory());
         factoryInsts.add(new BitmapMeasureType.Factory());
         factoryInsts.add(new TopNMeasureType.Factory());

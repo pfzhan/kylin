@@ -71,6 +71,7 @@ public class RoaringBitmapCounter implements BitmapCounter, Serializable {
     }
 
     RoaringBitmapCounter(long counter) {
+        this.bitmap = new Roaring64NavigableMap();
         this.counter = counter;
     }
 

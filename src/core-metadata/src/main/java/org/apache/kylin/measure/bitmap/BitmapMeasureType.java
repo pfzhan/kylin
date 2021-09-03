@@ -196,7 +196,8 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
     static final Map<String, Class<?>> UDAF_MAP = ImmutableMap.of(
             FunctionDesc.FUNC_COUNT_DISTINCT, BitmapDistinctCountAggFunc.class,
             FunctionDesc.FUNC_BITMAP_UUID, BitmapAggFunc.class,
-            FunctionDesc.FUNC_BITMAP_COUNT, BitmapCountAggFunc.class
+            FunctionDesc.FUNC_BITMAP_COUNT, BitmapCountAggFunc.class,
+            FunctionDesc.FUNC_BITMAP_BUILD, BitmapBuildAggFunc.class
     );
 
     @Override
@@ -213,8 +214,10 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
         Iterator<FunctionDesc> iterator = unmatchedAggregations.iterator();
         while (iterator.hasNext()) {
             FunctionDesc functionDesc = iterator.next();
-            if (functionDesc.getExpression().equals(FunctionDesc.FUNC_INTERSECT_COUNT)
-                    || functionDesc.getExpression().equals(FunctionDesc.FUNC_BITMAP_UUID)) {
+            String expression = functionDesc.getExpression();
+            if (expression.equals(FunctionDesc.FUNC_INTERSECT_COUNT)
+                    || expression.equals(FunctionDesc.FUNC_BITMAP_UUID)
+                    || expression.equals(FunctionDesc.FUNC_BITMAP_BUILD)) {
                 TblColRef countDistinctCol = functionDesc.getParameters().get(0).getColRef();
                 boolean equals = bitmap.getFunction().getParameters().get(0).getColRef().equals(countDistinctCol);
                 if (equals) {

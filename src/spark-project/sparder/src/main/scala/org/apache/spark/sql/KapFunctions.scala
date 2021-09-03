@@ -28,8 +28,8 @@ import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.apache.spark.sql.catalyst.expressions.{ApproxCountDistinctDecode, CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, PercentileDecode, PreciseCountDistinctDecode, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
-import org.apache.spark.sql.types.{ArrayType, BinaryType, DoubleType, LongType}
-import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, Percentile, PreciseCardinality, PreciseCountDistinct, PreciseCountDistinctAndArray, PreciseCountDistinctAndValue, ReusePreciseCountDistinct}
+import org.apache.spark.sql.types.{ArrayType, BinaryType, DoubleType, LongType, StringType}
+import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, Percentile, PreciseBitmapBuildBase64Decode, PreciseBitmapBuildBase64WithIndex, PreciseBitmapBuildPushDown, PreciseCardinality, PreciseCountDistinct, PreciseCountDistinctAndArray, PreciseCountDistinctAndValue, ReusePreciseCountDistinct}
 
 object KapFunctions {
 
@@ -80,6 +80,15 @@ object KapFunctions {
 
   def precise_bitmap_uuid(column: Column): Column =
     Column(PreciseCountDistinct(column.expr, BinaryType).toAggregateExpression())
+
+  def precise_bitmap_build(column: Column): Column =
+    Column(PreciseBitmapBuildBase64WithIndex(column.expr, StringType).toAggregateExpression())
+
+  def precise_bitmap_build_decode(column: Column): Column =
+    Column(PreciseBitmapBuildBase64Decode(column.expr))
+
+  def precise_bitmap_build_pushdown(column: Column): Column =
+    Column(PreciseBitmapBuildPushDown(column.expr).toAggregateExpression())
 
   def approx_count_distinct(column: Column, precision: Int): Column =
     Column(ApproxCountDistinct(column.expr, precision).toAggregateExpression())
@@ -165,7 +174,8 @@ object KapFunctions {
     FunctionEntity(expression[PreciseCountDistinctAndArray]("bitmap_and_ids")),
     FunctionEntity(expression[PreciseCountDistinctDecode]("precise_count_distinct_decode")),
     FunctionEntity(expression[ApproxCountDistinctDecode]("approx_count_distinct_decode")),
-    FunctionEntity(expression[PercentileDecode]("percentile_decode"))
+    FunctionEntity(expression[PercentileDecode]("percentile_decode")),
+    FunctionEntity(expression[PreciseBitmapBuildPushDown]("bitmap_build"))
   )
 }
 

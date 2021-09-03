@@ -48,7 +48,7 @@ import scala.collection.JavaConverters._
 // scalastyle:off
 object AggregatePlan extends LogEx {
   val binaryMeasureType =
-    List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT", "BITMAP_UUID")
+    List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT", "BITMAP_UUID", FunctionDesc.FUNC_BITMAP_BUILD)
 
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel): DataFrame = logTime("aggregate", debug = true) {
@@ -85,6 +85,9 @@ object AggregatePlan extends LogEx {
             case FunctionDesc.FUNC_PERCENTILE =>
               val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, "PERCENTILE_DECODE", hash, argNames: _*)
               KapFunctions.k_percentile_decode(columnName.head, columnName(1), dataType.getPrecision).alias(aggName)
+            case FunctionDesc.FUNC_BITMAP_BUILD =>
+              val aggName = SchemaProcessor.replaceToAggravateSchemaName(index, "BITMAP_BUILD_DECODE", hash, argNames: _*)
+              KapFunctions.precise_bitmap_build_decode(columnName.head).alias(aggName)
             case _ =>
               col(schemaNames.apply(call.getArgList.get(0)))
           }
@@ -165,6 +168,8 @@ object AggregatePlan extends LogEx {
           }
         } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_BITMAP_UUID)) {
           KapFunctions.precise_bitmap_uuid(columnName.head).alias(aggName)
+        } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_BITMAP_BUILD)) {
+          KapFunctions.precise_bitmap_build(columnName.head).alias(aggName)
         } else if (funcName.equalsIgnoreCase(FunctionDesc.FUNC_INTERSECT_COUNT)) {
           require(columnName.size >= 3, s"Input columns size ${columnName.size} don't greater than or equal to 3.")
           val columns = columnName.slice(0, 3).zipWithIndex.map {
@@ -192,6 +197,7 @@ object AggregatePlan extends LogEx {
         val funcName = OLAPAggregateRel.getAggrFuncName(call)
         val schemaNames = schema.names
         val argNames = call.getArgList.asScala.map(id => schemaNames.apply(id))
+        val columnName = argNames.map(col)
         val inputType = call.getType
         val aggName = SchemaProcessor.replaceToAggravateSchemaName(index,
           funcName,
@@ -243,6 +249,8 @@ object AggregatePlan extends LogEx {
           case FunctionDesc.FUNC_COUNT_DISTINCT =>
             countDistinct(argNames.head, argNames.drop(1): _*)
               .alias(aggName)
+          case FunctionDesc.FUNC_BITMAP_BUILD =>
+            KapFunctions.precise_bitmap_build_pushdown(columnName.head).alias(aggName)
           // Issue 4337: Supported select (select '2012-01-02') as data, xxx from table group by xxx
           case SqlKind.SINGLE_VALUE.sql =>
             SingleValueAgg(schema.head).apply(col(argNames.head)).alias(aggName)

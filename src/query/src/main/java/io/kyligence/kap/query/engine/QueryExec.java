@@ -32,13 +32,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.query.engine.exec.ExecuteResult;
-import io.kyligence.kap.query.engine.mask.QueryResultMasks;
-import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
-import io.kyligence.kap.query.util.HepUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -60,17 +53,26 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.ReadFsSwitch;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.engine.exec.ExecuteResult;
 import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
+import io.kyligence.kap.query.engine.mask.QueryResultMasks;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import io.kyligence.kap.query.util.CalcitePlanRouterVisitor;
+import io.kyligence.kap.query.util.HepUtils;
 
 /**
  * Entrance for query execution
@@ -355,6 +357,14 @@ public class QueryExec {
             Project projectRelNode = (Project) rel;
             if (projectRelNode.getChildExps().stream().filter(pRelNode -> pRelNode instanceof RexCall)
                     .anyMatch(pRelNode -> pRelNode.accept(new CalcitePlanRouterVisitor()))) {
+                return false;
+            }
+        }
+
+        if (rel instanceof KapAggregateRel) {
+            KapAggregateRel aggregateRel = (KapAggregateRel) rel;
+            if(aggregateRel.getAggCallList().stream().anyMatch(
+                    aggCall -> FunctionDesc.FUNC_BITMAP_BUILD.equalsIgnoreCase(aggCall.getAggregation().getName()))) {
                 return false;
             }
         }

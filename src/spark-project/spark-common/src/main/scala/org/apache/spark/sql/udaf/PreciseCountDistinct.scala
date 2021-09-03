@@ -26,11 +26,12 @@ package org.apache.spark.sql.udaf
 
 import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Expression, _}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.catalyst.expressions.{Expression, _}
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 // scalastyle:off
@@ -294,4 +295,91 @@ case class PreciseCardinality(override val child: Expression)
     val data = input.asInstanceOf[Array[Byte]]
     BitmapSerAndDeSerObj.deserialize(data).getLongCardinality
   }
+}
+
+@SerialVersionUID(1)
+case class PreciseBitmapBuildBase64WithIndex(
+                                 child: Expression,
+                                 dataType: DataType,
+                                 mutableAggBufferOffset: Int = 0,
+                                 inputAggBufferOffset: Int = 0)
+  extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
+
+  def this(child: Expression, dataType: DataType) = this(child, dataType, 0, 0)
+
+  override def update(buffer: Roaring64NavigableMap, input: InternalRow): Roaring64NavigableMap = {
+    val colValue = child.eval(input)
+    buffer.naivelazyor(deserialize(colValue.asInstanceOf[Array[Byte]]))
+    buffer
+  }
+
+  override def eval(buffer: Roaring64NavigableMap): Any = {
+    buffer.repairAfterLazy()
+    val encodeValue = org.apache.commons.codec.binary.Base64.encodeBase64String(serialize(buffer))
+    UTF8String.fromString(encodeValue)
+  }
+
+  override def withNewMutableAggBufferOffset(newMutableAggBufferOffset: Int): ImperativeAggregate =
+    copy(mutableAggBufferOffset = newMutableAggBufferOffset)
+
+  override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
+    copy(inputAggBufferOffset = newInputAggBufferOffset)
+
+  override val prettyName: String = "bitmap_build_with_index"
+}
+
+@SerialVersionUID(1)
+case class PreciseBitmapBuildBase64Decode(override val child: Expression)
+  extends UnaryExpression with ExpectsInputTypes with CodegenFallback {
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(BinaryType)
+  override def dataType: DataType = StringType
+  override def prettyName: String = "bitmap_build_decode"
+
+  override def nullSafeEval(input: Any): UTF8String = {
+    val data = input.asInstanceOf[Array[Byte]]
+    val encodeValue = org.apache.commons.codec.binary.Base64.encodeBase64String(data)
+    UTF8String.fromString(encodeValue)
+  }
+}
+
+@SerialVersionUID(1)
+case class PreciseBitmapBuildPushDown(child: Expression,
+                                       mutableAggBufferOffset: Int = 0,
+                                       inputAggBufferOffset: Int = 0)
+  extends BasicPreciseCountDistinct(child, mutableAggBufferOffset, inputAggBufferOffset) {
+
+  def this(child: Expression) = this(child, 0, 0)
+
+  override val prettyName: String = "bitmap_build"
+
+  override def dataType: DataType = StringType
+
+  override def update(buffer: Roaring64NavigableMap, input: InternalRow): Roaring64NavigableMap = {
+    val inputValue = child.eval(input)
+    if (inputValue != null) {
+      var colValue = 0L
+      inputValue match {
+        case value: Integer =>
+          colValue = value.longValue()
+        case value: Long =>
+          colValue = value.longValue()
+        case _ => throw new UnsupportedOperationException("Unsupported data type in bitmap_build")
+      }
+      buffer.add(colValue)
+    }
+    buffer
+  }
+
+  override def eval(buffer: Roaring64NavigableMap): Any = {
+    val bitmapBytes = serialize(buffer)
+    val encodeValue = org.apache.commons.codec.binary.Base64.encodeBase64String(bitmapBytes)
+    UTF8String.fromString(encodeValue)
+  }
+
+  override def withNewMutableAggBufferOffset(newMutableAggBufferOffset: Int): ImperativeAggregate =
+    copy(mutableAggBufferOffset = newMutableAggBufferOffset)
+
+  override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate =
+    copy(inputAggBufferOffset = newInputAggBufferOffset)
 }

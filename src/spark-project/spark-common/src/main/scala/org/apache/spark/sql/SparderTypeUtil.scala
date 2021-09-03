@@ -45,7 +45,6 @@ import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float =
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp, Types}
 import java.time.ZoneId
-import java.util.regex.Pattern
 import java.util.{GregorianCalendar, TimeZone}
 import scala.collection.{immutable, mutable}
 

@@ -100,6 +100,40 @@ public class NBitmapFunctionTest extends NLocalWithSparkSessionTest {
         testSubtractBitmapValue();
 
         testSubtractBitmapUUID();
+
+        testBitmapBuild();
+    }
+
+    private void testBitmapBuild() throws SQLException {
+        List<String> result;
+
+        //================= constant case
+        String query1 = "select bitmap_build(1)";
+        result = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("AAAAAAEAAAAAOjAAAAEAAAAAAAAAEAAAAAEA", result.get(0));
+
+        //================= normal case
+        String query2 = "select CAL_DT, "
+                + "bitmap_build(TEST_COUNT_DISTINCT_BITMAP) as first_day "
+                + "from test_kylin_fact " + "where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
+                + "group by CAL_DT " + "order by CAL_DT ";
+        result = NExecAndComp.queryCube(getProject(), query2).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("2012-01-01,AAAAAAEAAAAAOzAAAAEAAA0AAQABAA0A", result.get(0));
+        Assert.assertEquals("2012-01-02,AAAAAAEAAAAAOzAAAAEAAAkAAgAFAAAADwAIAA==", result.get(1));
+        Assert.assertEquals("2012-01-03,AAAAAAEAAAAAOjAAAAEAAAAAAAQAEAAAABMAGAAZABoAGwA=", result.get(2));
+
+        //================= pushdown case
+        String query3 = "select CAL_DT, "
+                + "bitmap_build(LEAF_CATEG_ID)"
+                + "from test_kylin_fact " + "where CAL_DT in (date'2012-01-01',date'2012-01-02',date'2012-01-03') "
+                + "group by CAL_DT " + "order by CAL_DT";
+        result = NExecAndComp.querySparkSql(query3).collectAsList().stream()
+                .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
+        Assert.assertEquals("2012-01-01,AAAAAAEAAAAAOjAAAAMAAAAAAAUAAQABAAIAAwAgAAAALAAAADAAAADDA0UFIi0FUPKK4/LFc7h1yiVkQ05shq4=", result.get(0));
+        Assert.assertEquals("2012-01-02,AAAAAAEAAAAAOjAAAAIAAAAAAAYAAQACABgAAAAmAAAATQVKJ31ABVDdX3uckfmRJ7h1CpM=", result.get(1));
+        Assert.assertEquals("2012-01-03,AAAAAAEAAAAAOjAAAAMAAAAAAAEAAQAAAAIAAQAgAAAAJAAAACYAAADSJIFRkSdaXuWn", result.get(2));
     }
 
     private void testDateType() throws SQLException {

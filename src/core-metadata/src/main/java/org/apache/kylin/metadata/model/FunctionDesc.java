@@ -166,6 +166,7 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_INTERSECT_COUNT_V2 = "INTERSECT_COUNT_V2";
     public static final String FUNC_INTERSECT_VALUE_V2 = "INTERSECT_VALUE_V2";
     public static final String FUNC_INTERSECT_BITMAP_UUID_V2 = "INTERSECT_BITMAP_UUID_V2";
+    public static final String FUNC_BITMAP_BUILD = "BITMAP_BUILD";
     public static final String FUNC_CORR = "CORR";
     public static final String FUNC_COUNT_DISTINCT_HLLC10 = "hllc(10)";
     public static final String FUNC_COUNT_DISTINCT_BIT_MAP = "bitmap";

@@ -544,7 +544,8 @@ public class RealizationChooser {
                                     .getParameters().get(0).equals(measureDesc.getFunction().getParameters().get(0)))
                             .forEach(measureDesc -> metrics.add(measureDesc.getFunction()));
                     dimensions.add(func.getParameters().get(1).getColRef());
-                } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase(func.getExpression())) {
+                } else if (FunctionDesc.FUNC_BITMAP_UUID.equalsIgnoreCase(func.getExpression())
+                        || FunctionDesc.FUNC_BITMAP_BUILD.equalsIgnoreCase(func.getExpression())) {
                     realization.getMeasures().stream()
                             .filter(measureDesc -> measureDesc.getFunction().getReturnType().equals("bitmap") && func
                                     .getParameters().get(0).equals(measureDesc.getFunction().getParameters().get(0)))
