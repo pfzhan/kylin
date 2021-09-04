@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -440,8 +441,17 @@ public abstract class SparkApplication implements Application, IKeep {
             logger.info("Sleep {} seconds to avoid submitting too many spark job at the same time.", sleepSeconds);
             infos.startWait();
             Thread.sleep(sleepSeconds * 1000);
+            // Set check resource timeout limit, otherwise tasks will remain in an endless loop, default is 10 min.
+            long timeoutLimitNs = TimeUnit.NANOSECONDS.convert(config.getCheckResourceTimeLimit(), TimeUnit.MINUTES);
+            logger.info("CheckResource timeout limit was set: {} minutes.", config.getCheckResourceTimeLimit());
+            long startTime = System.nanoTime();
+            long timeTaken;
             try {
                 while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
+                    timeTaken = System.nanoTime();
+                    if (timeTaken - startTime > timeoutLimitNs) {
+                        throw new NoRetryException("CheckResource exceed timeout limit: " + TimeUnit.MINUTES.convert(timeTaken - startTime, TimeUnit.NANOSECONDS) + " minutes.");
+                    }
                     long waitTime = (long) (Math.random() * 10 * 60);
                     logger.info("Current available resource in cluster is not sufficient, wait {} seconds.", waitTime);
                     Thread.sleep(waitTime * 1000L);

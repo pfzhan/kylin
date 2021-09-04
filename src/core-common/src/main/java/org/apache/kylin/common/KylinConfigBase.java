@@ -2915,4 +2915,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getFlatTableFieldDelimiter() {
         return this.getOptional("kylin.source.hive.flat-table-field-delimiter", "\u001F");
     }
+
+    public long getCheckResourceTimeLimit() {
+        return Long.parseLong(getOptional("kylin.build.resource.check-retry-limit-minutes", "10"));
+    }
 }
