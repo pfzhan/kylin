@@ -870,6 +870,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
         map.put("getAutoModelViewEnabled", new PropertiesEntity("kylin.query.auto-model-view-enabled", "false", false));
         map.put("getCheckResourceTimeLimit", new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
+        map.put("getSourceNameCaseSensitiveEnabled", new PropertiesEntity("kylin.source.name-case-sensitive-enabled", "", false));
     }
 
     @Before
@@ -890,7 +891,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(522, methodsCount);
+        Assert.assertEquals(523, methodsCount);
     }
 
     @Test
