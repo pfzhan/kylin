@@ -1314,6 +1314,62 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testMetaDataColumnCaseSensitive() throws IOException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
+        final List<TableMeta> tableMetas = queryService.getMetadata("default");
+        TableMeta tableToCheck = tableMetas.stream()
+                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
+                .findFirst().get();
+        ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
+                .findFirst().get();
+        Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "account_id");
+    }
+
+    @Test
+    public void testMetaDataColumnCaseNotSensitive() throws IOException {
+        final List<TableMeta> tableMetas = queryService.getMetadata("default");
+        TableMeta tableToCheck = tableMetas.stream()
+                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
+                .findFirst().get();
+        ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
+                .findFirst().get();
+        Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "ACCOUNT_ID");
+    }
+
+    @Test
+    public void testMetaDataV2ColumnCaseSensitive() throws IOException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        TableMeta tableToCheck = tableMetas.stream()
+                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
+                .findFirst().get();
+        ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
+                .findFirst().get();
+        Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "account_id");
+    }
+
+    @Test
+    public void testMetaDataV2ColumnCaseNotSensitive() throws IOException {
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        TableMeta tableToCheck = tableMetas.stream()
+                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
+                .findFirst().get();
+        ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
+                .findFirst().get();
+        Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "ACCOUNT_ID");
+    }
+
+    @Test
     public void testMetaDataV2() throws IOException {
         final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
         // TEST_MEASURE table has basically all possible column types

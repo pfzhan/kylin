@@ -52,6 +52,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.After;
@@ -216,4 +217,29 @@ public class CalciteParserTest extends NLocalFileMetadataTestCase {
             fail("can't parse row construction");
         }
     }
+
+    @Test
+    public void testQueryParseCaseSensitive() throws Throwable {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
+        final String[] select_sqls = { "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
+                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL"};
+        final String[] select_columns = {"account_buyer_level", "ACCOUNT_BUYER_LEVEL"};
+        for (int i = 0; i < select_sqls.length; i++) {
+            SqlNode sqlNode = CalciteParser.parse(select_sqls[i]);
+            Assert.assertEquals(true, sqlNode.toString().contains(select_columns[i]));
+        }
+    }
+
+    @Test
+    public void testQueryParseCaseNotSensitive() throws Throwable {
+        final String[] select_sqls = { "select count(1), TEST_ACCOUNT.account_buyer_level from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.account_buyer_level",
+                "select count(1), TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL from TEST_KYLIN_FACT inner join TEST_ACCOUNT on TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID group by TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL"};
+        final String[] select_columns = {"ACCOUNT_BUYER_LEVEL", "ACCOUNT_BUYER_LEVEL"};
+        for (int i = 0; i < select_sqls.length; i++) {
+            SqlNode sqlNode = CalciteParser.parse(select_sqls[i]);
+            Assert.assertEquals(true, sqlNode.toString().contains(select_columns[i]));
+        }
+    }
+
 }

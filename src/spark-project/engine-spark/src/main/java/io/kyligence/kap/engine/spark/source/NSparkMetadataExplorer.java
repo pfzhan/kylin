@@ -175,6 +175,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             NSparkTableMeta.SparkTableColumnMeta field = tableMeta.allColumns.get(i);
             ColumnDesc cdesc = new ColumnDesc();
             cdesc.setName(field.name.toUpperCase(Locale.ROOT));
+            cdesc.setCaseSensitiveName(field.name);
             // use "double" in kylin for "float"
             if ("float".equalsIgnoreCase(field.dataType)) {
                 cdesc.setDatatype("double");

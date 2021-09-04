@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -88,6 +89,9 @@ public class CalciteParser {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder()
                 .setIdentifierMaxLength(kylinConfig.getMaxModelDimensionMeasureNameLength());
+        if (kylinConfig.getSourceNameCaseSensitiveEnabled()) {
+            parserBuilder.setCaseSensitive(false).setUnquotedCasing(Casing.UNCHANGED);
+        }
         SqlParser sqlParser = SqlParser.create(sql, parserBuilder.build());
         return sqlParser.parseQuery();
     }

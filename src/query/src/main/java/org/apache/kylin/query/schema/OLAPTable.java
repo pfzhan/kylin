@@ -84,6 +84,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -187,11 +189,14 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             RelDataType sqlType = createSqlType(kylinRelDataTypeFactory, column.getUpgradedType(), column.isNullable());
             sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, kylinRelDataTypeFactory);
             typeList.add(sqlType);
+            String columnName = KylinConfig.getInstanceFromEnv().getSourceNameCaseSensitiveEnabled()
+                    ? StringUtils.isNotEmpty(column.getCaseSensitiveName()) ? column.getCaseSensitiveName()
+                    : column.getName() : column.getName();
             if (column.isComputedColumn()) {
-                fieldNameList.add(column.getName());
+                fieldNameList.add(columnName);
                 colTypes.add(KylinRelDataTypeFieldImpl.ColumnType.CC_FIELD);
             } else {
-                fieldNameList.add(column.getName());
+                fieldNameList.add(columnName);
                 colTypes.add(KylinRelDataTypeFieldImpl.ColumnType.ORIGIN_FILED);
             }
         }

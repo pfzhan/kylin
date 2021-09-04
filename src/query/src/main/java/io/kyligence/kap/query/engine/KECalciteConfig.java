@@ -27,6 +27,7 @@ package io.kyligence.kap.query.engine;
 import java.util.Locale;
 import java.util.Properties;
 
+import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
@@ -60,6 +61,11 @@ public class KECalciteConfig extends CalciteConnectionConfigImpl {
     @Override
     public boolean caseSensitive() {
         return false;
+    }
+
+    @Override
+    public Casing unquotedCasing() {
+        return this.kylinConfig.getSourceNameCaseSensitiveEnabled() ? Casing.UNCHANGED : super.unquotedCasing();
     }
 
     public boolean exposeComputedColumn() {

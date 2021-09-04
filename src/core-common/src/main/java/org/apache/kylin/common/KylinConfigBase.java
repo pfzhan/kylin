@@ -1084,6 +1084,13 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.source.hive.beeline-params", "");
     }
 
+    /**
+     * Source Name Case Sensitive
+     */
+    public Boolean getSourceNameCaseSensitiveEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.source.name-case-sensitive-enabled", "false"));
+    }
+
     public int getDefaultVarcharPrecision() {
         int v = Integer.parseInt(getOptional("kylin.source.hive.default-varchar-precision", "4096"));
         if (v < 1) {
