@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -46,10 +49,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.streaming.jobs.StreamingJobListener;
-import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -94,6 +93,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -106,6 +106,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
@@ -118,12 +119,11 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.source.NHiveSourceInfo;
 import io.kyligence.kap.rest.source.NHiveTableName;
+import io.kyligence.kap.streaming.jobs.StreamingJobListener;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @Slf4j
 public class TableServiceTest extends CSVSourceTestCase {
@@ -1182,7 +1182,47 @@ public class TableServiceTest extends CSVSourceTestCase {
         NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
         sourceInfo.setTables(testData);
         UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-        NHiveTableName.getInstance().setAllTablesForTest(sourceInfo, ugi.getUserName());
+        NHiveTableName.getInstance().setAllTablesForTest(sourceInfo, "ugi#" + ugi.getUserName());
+        List<?> tables = tableService.getTableNameResponsesInCache("default", "t", "a");
+        Assert.assertEquals(tables.size(), 2);
+    }
+
+    @Test
+    public void testloadProjectHiveTableNameToCacheImmediately() throws Exception {
+        List<?> tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
+        Assert.assertEquals(tables.size(), 0);
+        tableService.loadProjectHiveTableNameToCacheImmediately("default", true);
+        tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
+        Assert.assertEquals(tables.size(), 6);
+    }
+
+    @Test
+    public void testloadProjectHiveTableNameToCacheImmediatelyCase2() throws Exception {
+        List<?> tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
+        Assert.assertEquals(tables.size(), 0);
+        tableService.loadProjectHiveTableNameToCacheImmediately("default", false);
+        tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
+        Assert.assertEquals(tables.size(), 0);
+    }
+
+    @Test
+    public void testGetTableNameResponsesInCacheJdbc() throws Exception {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = projectManager.getProject("default");
+        LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
+        overrideKylinProps.put("kylin.query.force-limit", "-1");
+        overrideKylinProps.put("kylin.source.default", "8");
+        ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
+                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
+                MaintainModelType.AUTO_MAINTAIN);
+        projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
+                projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
+        Map<String, List<String>> testData = new HashMap<>();
+        testData.put("t", Arrays.asList("aa", "ab", "bc"));
+        NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
+        sourceInfo.setTables(testData);
+        UserGroupInformation ugi = UserGroupInformation.getLoginUser();
+        NHiveTableName.getInstance().setAllTablesForTest(sourceInfo, "project#default");
         List<?> tables = tableService.getTableNameResponsesInCache("default", "t", "a");
         Assert.assertEquals(tables.size(), 2);
     }
@@ -1203,7 +1243,6 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableService.checkTableExistOrLoad(response3, new TableDesc());
         Assert.assertTrue(response3.isLoaded());
     }
-
 
     @Test
     public void testIsSqlContainsColumns() {
@@ -1364,6 +1403,22 @@ public class TableServiceTest extends CSVSourceTestCase {
             Assert.assertEquals(1, tableDescs2.size());
             val tableDesc2 = tableDescs2.get(0);
             Assert.assertEquals(tableDesc2.getTableAlias(), tableDesc2.getIdentity());
+        } catch (Exception e) {
+            Assert.fail();
+        }
+
+    }
+
+    @Test
+    public void testGetTableDescByTypes() {
+        String project = "streaming_test";
+        try {
+            List<Integer> sourceTypes = Arrays.asList(1, 9);
+            val tableDescs2 = tableService.getTableDescByTypes(project, true, "", "SSB", false, sourceTypes);
+            assert tableDescs2.stream().filter(tableDesc -> tableDesc.getSourceType() == 1).collect(Collectors.toList())
+                    .size() > 0;
+            assert tableDescs2.stream().filter(tableDesc -> tableDesc.getSourceType() == 9).collect(Collectors.toList())
+                    .size() > 0;
         } catch (Exception e) {
             Assert.fail();
         }

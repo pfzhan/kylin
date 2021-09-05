@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
@@ -166,6 +164,19 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nTableController).getTableDesc(false, "default", "", "DEFAULT", true, 0, 10, 9);
+    }
+
+    @Test
+    public void testGetProjectTables() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/project_tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("ext", "false") //
+                .param("project", "default") //
+                .param("table", "") //
+                .param("database", "DEFAULT") //
+                .param("source_type", "9") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
     }
 
     @Test

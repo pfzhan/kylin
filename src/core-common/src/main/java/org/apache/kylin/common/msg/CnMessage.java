@@ -1890,6 +1890,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getJDBC_NOT_SUPPORT_PARTITION_COLUMN_IN_SNAPSHOT() {
+        return "当前数据源的 Snapshot 无法使用分区设置。";
+    }
+
+    @Override
     public String getParamTooLarge() {
         return "参数 '%s' 太长， 最大 %s 字节。";
     }

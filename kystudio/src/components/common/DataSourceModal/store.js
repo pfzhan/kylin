@@ -6,7 +6,8 @@ export const types = {
   SET_MODAL: 'SET_MODAL',
   SET_MODAL_FORM: 'SET_MODAL_FORM',
   CALL_MODAL: 'CALL_MODAL',
-  INIT_FORM: 'INIT_FORM'
+  INIT_FORM: 'INIT_FORM',
+  UPDATE_JDBC_CONFIG: 'UPDATE_JDBC_CONFIG'
 }
 
 const initialState = JSON.stringify({
@@ -56,7 +57,13 @@ const initialState = JSON.stringify({
     convertData: null,
     sampleData: null,
     treeData: [],
-    columnData: null
+    columnData: null,
+    connectGbaseSetting: {
+      connectionString: '',
+      username: '',
+      password: '',
+      synced: false
+    }
   },
   datasource: null,
   project: null
@@ -83,6 +90,25 @@ export default {
       state.form = JSON.parse(initialState).form
       state.form.project = _getEmptySourceProject(state.project, state.editType)
       state.datasource && _getDatasourceSettings(state)
+    },
+    [types.UPDATE_JDBC_CONFIG] (state, sourceType) {
+      console.log(sourceType, 333)
+      const { override_kylin_properties } = state.project
+      if (!override_kylin_properties) return
+      if (+override_kylin_properties['kylin.source.default'] === sourceType &&
+        override_kylin_properties['kylin.source.jdbc.dialect'] === 'gbase8a' &&
+        override_kylin_properties['kylin.source.jdbc.connection-url'] &&
+        override_kylin_properties['kylin.source.jdbc.pass'] &&
+        override_kylin_properties['kylin.source.jdbc.user']
+      ) {
+        state.form.connectGbaseSetting = {
+          ...state.form.connectGbaseSetting,
+          connectionString: override_kylin_properties['kylin.source.jdbc.connection-url'],
+          username: override_kylin_properties['kylin.source.jdbc.user'],
+          password: override_kylin_properties['kylin.source.jdbc.pass'],
+          synced: true
+        }
+      }
     }
   },
   actions: {

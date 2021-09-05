@@ -1665,7 +1665,11 @@ public class Message {
         return "Invalid connection info.Please check and try again.";
     }
 
+    public String getJDBC_NOT_SUPPORT_PARTITION_COLUMN_IN_SNAPSHOT() {
+        return "Snapshot can’t use partition column for the current data source.";
+    }
+
     public String getParamTooLarge() {
-        return "the parameter '%s' is too large, maximum %s byte.";
+        return "The parameter '%s' is too large, maximum %s byte.";
     }
 }

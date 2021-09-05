@@ -100,7 +100,8 @@ export default class Setting extends Vue {
             cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
             closeOnClickModal: false,
             closeOnPressEscape: false,
-            type: 'warning'
+            type: 'warning',
+            width: '400px'
           }).then(() => {
             if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
               next()

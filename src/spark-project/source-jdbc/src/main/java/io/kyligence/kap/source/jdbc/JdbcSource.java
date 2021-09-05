@@ -23,10 +23,14 @@
  */
 package io.kyligence.kap.source.jdbc;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_JDBC_SOURCE_CONFIG;
+
 import java.io.IOException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -51,7 +55,8 @@ public class JdbcSource implements ISource, IKeepNames {
         try {
             dataSource = SourceConnectorFactory.getJdbcConnector(config);
         } catch (Exception e) {
-            log.warn("DataSource cannot be connected.", e);
+            log.error("DataSource cannot be connected.");
+            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJDBC_CONNECTION_INFO_WRONG(), e);
         }
     }
 

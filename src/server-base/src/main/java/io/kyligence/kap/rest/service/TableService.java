@@ -234,6 +234,12 @@ public class TableService extends BasicService {
                 .filter(tableDesc -> sourceType == tableDesc.getSourceType()).collect(Collectors.toList());
     }
 
+    public List<TableDesc> getTableDescByTypes(String project, boolean withExt, final String tableName,
+            final String database, boolean isFuzzy, List sourceType) throws IOException {
+        return getTableDesc(project, withExt, tableName, database, isFuzzy).stream()
+                .filter(tableDesc -> sourceType.contains(tableDesc.getSourceType())).collect(Collectors.toList());
+    }
+
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
         aclEvaluate.checkProjectReadPermission(project);
@@ -1905,8 +1911,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         List<TableNameResponse> responses = new ArrayList<>();
         NTableMetadataManager tableManager = getTableManager(project);
-        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
-        List<String> tables = NHiveTableName.getInstance().getTables(ugi, project, database);
+        List<String> tables = NHiveTableName.getInstance().getTables(project, database);
         for (String tableName : tables) {
             if (StringUtils.isEmpty(table)
                     || tableName.toUpperCase(Locale.ROOT).contains(table.toUpperCase(Locale.ROOT))) {

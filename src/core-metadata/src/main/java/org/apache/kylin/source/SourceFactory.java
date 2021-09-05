@@ -42,11 +42,15 @@
 
 package org.apache.kylin.source;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_JDBC_SOURCE_CONFIG;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
 
@@ -115,8 +119,8 @@ public class SourceFactory {
             return ClassUtil.forName(clazz, ISource.class).getDeclaredConstructor(KylinConfig.class)
                     .newInstance(aware.getConfig());
         } catch (Exception e) {
-            log.error("Failed to create source: SourceType={}", aware.getSourceType(), e);
-            return null;
+            log.error("Failed to create source: SourceType={}", aware.getSourceType());
+            throw new KylinException(INVALID_JDBC_SOURCE_CONFIG, MsgPicker.getMsg().getJDBC_CONNECTION_INFO_WRONG(), e);
         }
     }
 

@@ -164,13 +164,13 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "is_fuzzy", required = false, defaultValue = "true") boolean isFuzzy,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
+            @RequestParam(value = "source_type", required = false, defaultValue = "9") List<Integer> sourceType)
             throws Exception {
 
         checkProjectName(project);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 tableService.getProjectTables(project, table, offset, limit, false, (databaseName, tableName) -> {
-                    return tableService.getTableDescByType(project, withExt, tableName, databaseName, isFuzzy,
+                    return tableService.getTableDescByTypes(project, withExt, tableName, databaseName, isFuzzy,
                             sourceType);
                 }), "");
     }

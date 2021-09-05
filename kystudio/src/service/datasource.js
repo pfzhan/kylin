@@ -41,6 +41,9 @@ export default {
   loadDataSource: (ext, project, database) => {
     return Vue.resource(apiUrl + 'tables').get({ext, project, database})
   },
+  checkGbaseConfig: (para) => {
+    return Vue.resource(apiUrl + `projects/${para.project}/jdbc_source_info_config`).update(para)
+  },
   reloadDataSource: (data) => {
     return Vue.resource(apiUrl + 'tables/reload').save(data)
   },

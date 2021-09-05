@@ -34,8 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -62,10 +64,12 @@ import lombok.val;
 
 public class NHiveTableName implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(NHiveTableName.class);
-    private Map<String, NHiveSourceInfo> sourceInfos;//Map<UGI,NHiveSourceInfo>
+    private Map<String, NHiveSourceInfo> sourceInfos;//Map<UGI/projectName,NHiveSourceInfo>
     private volatile Map<String, Boolean> isRunnings;
     private volatile Map<String, Long> lastLoadTimes;
     private ISourceMetadataExplorer explr;
+    //only jdbc source use project name as key
+    private static final Set<Integer> USE_PROJECT_AS_KEY_SOURCE_TYPE = Stream.of(8).collect(Collectors.toSet());
 
     public static NHiveTableName getInstance() {
         return Singletons.getInstance(NHiveTableName.class);
@@ -94,7 +98,7 @@ public class NHiveTableName implements Runnable {
                 .forEach(project -> {
                     try {
                         UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project.getName());
-                        ugiInfos.put(ugi.getUserName(), ugi);
+                        ugiInfos.put(geHiveInfoKeyByProjectName(project.getName()), ugi);
                     } catch (Exception e) {
                         logger.error("The kerberos information of the project {} is incorrect.", project.getName());
                     }
@@ -149,22 +153,22 @@ public class NHiveTableName implements Runnable {
         this.explr = SourceFactory.getSource(projectManager.getProject(project)).getSourceMetadataExplorer();
         logger.info("Use source explorer {}", explr.getClass().getCanonicalName());
         NHiveTableNameResponse response = new NHiveTableNameResponse();
-        String ugiName = ugi.getUserName();
-        if (isRunnings.get(ugiName) == null || lastLoadTimes.get(ugiName) == null) {
-            isRunnings.put(ugiName, false);
-            lastLoadTimes.put(ugiName, 0L);
+        String keyName = geHiveInfoKeyByProjectName(project);
+        if (isRunnings.get(keyName) == null || lastLoadTimes.get(keyName) == null) {
+            isRunnings.put(keyName, false);
+            lastLoadTimes.put(keyName, 0L);
         }
 
-        if (force && !isRunnings.get(ugiName)) {
-            isRunnings.put(ugiName, true);
+        if (force && !isRunnings.get(keyName)) {
+            isRunnings.put(keyName, true);
             NHiveSourceInfo sourceInfo = fetchUGITables(ugi);
-            setAllTables(sourceInfo, ugiName);
-            isRunnings.put(ugiName, false);
-            lastLoadTimes.put(ugiName, System.currentTimeMillis());
+            setAllTables(sourceInfo, keyName);
+            isRunnings.put(keyName, false);
+            lastLoadTimes.put(keyName, System.currentTimeMillis());
         }
 
-        response.setIsRunning(isRunnings.get(ugiName));
-        response.setTime(System.currentTimeMillis() - lastLoadTimes.get(ugiName));
+        response.setIsRunning(isRunnings.get(keyName));
+        response.setTime(System.currentTimeMillis() - lastLoadTimes.get(keyName));
 
         return response;
     }
@@ -224,10 +228,11 @@ public class NHiveTableName implements Runnable {
         return newTables;
     }
 
-    public synchronized List<String> getTables(UserGroupInformation ugi, String currName, String db) {
+    public synchronized List<String> getTables(String project, String db) {
+        String keyName = geHiveInfoKeyByProjectName(project);
         List<String> result = null;
-        if (sourceInfos.get(ugi.getUserName()) != null) {
-            result = sourceInfos.get(ugi.getUserName()).getDatabaseInfo(db);
+        if (sourceInfos.get(keyName) != null) {
+            result = sourceInfos.get(keyName).getDatabaseInfo(db);
         }
 
         return result != null ? result : new ArrayList<>();
@@ -240,6 +245,16 @@ public class NHiveTableName implements Runnable {
     @VisibleForTesting
     public synchronized void setAllTablesForTest(NHiveSourceInfo sourceInfo, String currName) {
         sourceInfos.put(currName, sourceInfo);
+    }
+
+    private String geHiveInfoKeyByProjectName(String project) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        Integer souceType = projectManager.getProject(project).getSourceType();
+        if (USE_PROJECT_AS_KEY_SOURCE_TYPE.contains(souceType)) {
+            return "project#" + project;
+        } else {
+            return "ugi#" + KerberosLoginManager.getInstance().getProjectUGI(project).getUserName();
+        }
     }
 
     @Override

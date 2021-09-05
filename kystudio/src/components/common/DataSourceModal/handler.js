@@ -31,6 +31,7 @@ export const titleMaps = {
   [editTypes.RDBMS2]: 'loadTables',
   [editTypes.KAFKA]: 'loadTables',
   [editTypes.KAFKA2]: 'loadTables',
+  // [editTypes.GBASE]: 'configGBaseSetting',
   [editTypes.GBASE]: 'loadTables'
 }
 
@@ -48,6 +49,7 @@ export const cancelMaps = {
   [editTypes.KAFKA]: 'kylinLang.common.prev',
   [editTypes.KAFKA2]: 'kylinLang.common.prev',
   [editTypes.GBASE]: 'kylinLang.common.prev'
+  // [editTypes.GBASE2]: 'kylinLang.common.prev'
 }
 
 export const confirmMaps = {
@@ -65,6 +67,7 @@ export const confirmMaps = {
   [editTypes.KAFKA2]: 'kylinLang.common.load',
   [editTypes.SETTING]: 'kylinLang.common.save',
   [editTypes.GBASE]: 'kylinLang.common.loadMetadata'
+  // [editTypes.GBASE2]: 'kylinLang.common.loadMetadata'
 }
 
 function _getSelectSourceSubmitData (form) {
@@ -118,6 +121,7 @@ export function getSubmitData (form, editType) {
   switch (editType) {
     case editTypes.SELECT_SOURCE:
       return _getSelectSourceSubmitData(form)
+    case editTypes.GBASE:
     case editTypes.HIVE:
     case editTypes.RDBMS:
     case editTypes.RDBMS2:

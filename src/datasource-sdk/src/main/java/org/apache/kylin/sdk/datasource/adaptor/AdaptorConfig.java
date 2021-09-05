@@ -33,9 +33,6 @@ public class AdaptorConfig {
     public int poolMaxIdle = 10;
     public int poolMaxTotal = 10;
     public int poolMinIdle = 2;
-    public int maxActive = 50;
-    public boolean removeAbandoned = true;
-    public long removeAbandonedTimeout = 300;
     public long timeBetweenEvictionRunsMillis = 15000;
     public long maxWait = 60000;
 
@@ -58,8 +55,6 @@ public class AdaptorConfig {
 
         AdaptorConfig that = (AdaptorConfig) o;
 
-        if (maxActive != that.maxActive)
-            return false;
         if (poolMaxIdle != that.poolMaxIdle)
             return false;
         if (poolMaxTotal != that.poolMaxTotal)
@@ -84,7 +79,6 @@ public class AdaptorConfig {
         result = 31 * result + username.hashCode();
         result = 31 * result + (password != null ? password.hashCode() : 0);
         result = 31 * result + (datasourceId != null ? datasourceId.hashCode() : 0);
-        result = 31 * result + maxActive;
         result = 31 * result + poolMaxIdle;
         result = 31 * result + poolMaxTotal;
         result = 31 * result + poolMinIdle;

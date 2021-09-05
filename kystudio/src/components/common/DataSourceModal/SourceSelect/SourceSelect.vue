@@ -3,14 +3,16 @@
   <div class="ksd-title-label-small ksd-ml-20 ksd-mt-20">{{$t('dataSourceTypeCheckTip')}}</div>
   <div class="source-new">
     <ul>
-      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.HIVE])" @click="clickHandler(sourceTypes.HIVE)">
-        <div class="datasource-icon" v-guide.selectHive>
-          <!-- <i class="el-icon-ksd-hive"></i> -->
-          <img src="../../../../assets/img/Hive_logo.png" alt="">
-        </div>
-        <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
-        <div class="datasource-name">Hive</div>
-      </li>
+      <el-tooltip :content="$t('disabledHiveOrKafkaTips', {jdbcName: jdbcSourceName})" placement="top" :disabled="!disabledSelectDataSource([sourceTypes.HIVE])">
+        <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.HIVE])" @click="!disabledSelectDataSource([sourceTypes.HIVE]) && clickHandler(sourceTypes.HIVE)">
+          <div class="datasource-icon" v-guide.selectHive>
+            <!-- <i class="el-icon-ksd-hive"></i> -->
+            <img src="../../../../assets/img/Hive_logo.png" alt="">
+          </div>
+          <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
+          <div class="datasource-name">Hive</div>
+        </li>
+      </el-tooltip>
       <!-- <li class="datasouce ksd-center disabled"> -->
         <!-- 暂时屏蔽该功能 -->
         <!-- <li class="datasouce ksd-center disabled" :class="getSourceClass([sourceTypes.CSV])"> -->
@@ -25,27 +27,32 @@
         </div>
         -->
       <!-- </li> -->
-     
-      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.KAFKA])" @click="clickHandler(sourceTypes.KAFKA)">
-        <div class="datasource-icon">
-          <!-- <i class="el-icon-ksd-kafka"></i> -->
-          <img src="../../../../assets/img/Kafka_logo.png" alt="">
-        </div>
-        <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
-        <div class="datasource-name">Kafka</div>
-        <!-- <div class="status">
-          <span>{{$t('upcoming')}}</span>
-        </div> -->
-      </li>
 
-      <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.GBASE])" @click="clickHandler(sourceTypes.GBASE)" v-if="showGbaseData">
-        <div class="datasource-icon">
-          <!-- <i class="el-icon-ksd-mysql"></i> -->
-          <img src="../../../../assets/img/datasource.png" alt="">
-        </div>
-        <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
-        <div class="datasource-name">JDBC(Beta)</div>
-      </li>
+      <el-tooltip :content="$t('disabledHiveOrKafkaTips', {jdbcName: jdbcSourceName})" placement="top" :disabled="!disabledSelectDataSource([sourceTypes.KAFKA])">
+        <li class="datasouce ksd-center" :class="getSourceClass([sourceTypes.KAFKA])" @click="!disabledSelectDataSource([sourceTypes.KAFKA]) && clickHandler(sourceTypes.KAFKA)">
+          <div class="datasource-icon">
+            <!-- <i class="el-icon-ksd-kafka"></i> -->
+            <img src="../../../../assets/img/Kafka_logo.png" alt="">
+          </div>
+          <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
+          <div class="datasource-name">Kafka</div>
+          <!-- <div class="status">
+            <span>{{$t('upcoming')}}</span>
+          </div> -->
+        </li>
+      </el-tooltip>
+
+      <!-- jdbc 数据源的 sourceType 都为 8 -->
+      <el-tooltip :content="$t('disabledJDBCTips', {jdbcName: jdbcSourceName})" placement="top" :disabled="!disabledSelectDataSource([8])">
+        <li class="datasouce ksd-center" :class="getSourceClass([8])" @click="!disabledSelectDataSource([8]) && clickHandler(8)" v-if="showJDBCEnter">
+          <div class="datasource-icon">
+            <!-- <i class="el-icon-ksd-mysql"></i> -->
+            <img src="../../../../assets/img/datasource.png" alt="">
+          </div>
+          <i class="el-ksd-icon-confirm_16 ksd-fs-12 checked-icon"></i>
+          <div class="datasource-name">{{jdbcSourceName}}</div>
+        </li>
+      </el-tooltip>
     </ul>
     <!--
     <ul>
@@ -88,7 +95,8 @@ import * as config from '../../../../config'
     ]),
     ...mapState({
       allProject: state => state.project.allProject,
-      currentProject: state => state.project.selected_project
+      currentProject: state => state.project.selected_project,
+      dataSource: state => state.datasource.dataSource
     })
   },
   methods: {
@@ -101,14 +109,40 @@ import * as config from '../../../../config'
 export default class SourceSelect extends Vue {
   sourceTypes = config.sourceTypes
 
-  get showGbaseData () {
+  get isOpenJDBCSource () {
+    if (this.dataSource[this.currentProject] && this.dataSource[this.currentProject].length) {
+      return this.dataSource[this.currentProject].filter(it => it.source_type !== 1 && it.source_type !== 9).length > 0
+    } else {
+      return false
+    }
+  }
+
+  get haveHiveDataSource () {
+    if (this.dataSource[this.currentProject] && this.dataSource[this.currentProject].length) {
+      return this.dataSource[this.currentProject].filter(it => it.source_type === 1 || it.source_type === 9).length > 0
+    } else {
+      return false
+    }
+  }
+
+  get showJDBCEnter () {
     const [{override_kylin_properties}] = this.allProject.filter(it => it.name === this.currentProject)
-    return 'kylin.source.default' in override_kylin_properties && override_kylin_properties['kylin.source.default'] === '8'
+    return override_kylin_properties['kylin.source.jdbc.source.name'] && override_kylin_properties['kylin.source.jdbc.source.enable'] === 'true'
+  }
+
+  get jdbcSourceName () {
+    const [{override_kylin_properties}] = this.allProject.filter(it => it.name === this.currentProject)
+    return override_kylin_properties['kylin.source.jdbc.source.name'] ? override_kylin_properties['kylin.source.jdbc.source.name'].replace(/^\w{1}/, ($1) => $1.toLocaleUpperCase()) : ''
+  }
+
+  disabledSelectDataSource (sourceTypes = []) {
+    return sourceTypes.includes(9) || sourceTypes.includes(1) ? this.isOpenJDBCSource : this.haveHiveDataSource
   }
 
   getSourceClass (sourceTypes = []) {
     return {
-      active: sourceTypes.includes(this.sourceType)
+      active: sourceTypes.includes(this.sourceType) && (this.sourceType === 8 ? !this.haveHiveDataSource : !this.isOpenJDBCSource),
+      'is-disabled': this.disabledSelectDataSource(sourceTypes)
     }
   }
 
@@ -122,7 +156,7 @@ export default class SourceSelect extends Vue {
     // this.clickHandler(this.globalDefaultDatasource)
     // for newten 设置CSV为默认数据源
     document.activeElement && document.activeElement.blur()
-    this.clickHandler(this.sourceTypes.HIVE)
+    // this.clickHandler()
   }
 }
 </script>
@@ -167,6 +201,15 @@ export default class SourceSelect extends Vue {
     .datasource-icon {
       img {
         width: 62px;
+      }
+    }
+    &.is-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      .datasource-icon {
+        img {
+          cursor: not-allowed;
+        }
       }
     }
   }

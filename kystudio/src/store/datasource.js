@@ -132,6 +132,9 @@ export default {
         return response
       })
     },
+    [types.CHECK_BASE_CONFIG] (_, para) {
+      return api.datasource.checkGbaseConfig(para)
+    },
     [types.GET_RELOAD_INFLUENCE]: function ({commit}, para) {
       return api.datasource.getReloadInfluence(para)
     },

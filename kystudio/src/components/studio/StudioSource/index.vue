@@ -105,7 +105,7 @@
 
 <script>
 import Vue from 'vue'
-import { mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapActions, mapMutations } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
@@ -151,6 +151,9 @@ import { getFormattedTable } from '../../../util/UtilTable'
     }),
     ...mapActions('ReloadTableModal', {
       callReloadModal: 'CALL_MODAL'
+    }),
+    ...mapMutations({
+      refreshTableCache: 'REPLACE_TABLE_CACHE'
     })
   },
   locales
@@ -280,6 +283,7 @@ export default class StudioSource extends Vue {
       try {
         await this.showDeleteTableConfirm(hasModel, hasJob)
         await this.deleteTable({ projectName, databaseName, tableName })
+        this.refreshTableCache({data: this.selectedTable, project: projectName})
         this.$message({ type: 'success', message: this.$t('unloadSuccess') })
         await this.handleFreshTable({ isSetToDefault: true })
         this.delBtnLoading = false
@@ -316,6 +320,7 @@ export default class StudioSource extends Vue {
       const tableName = this.selectedTable.name
       cascade && await this.showDeleteTableConfirm(true) // 选择全部删除时，再次comfirm
       await this.deleteTable({ projectName, databaseName, tableName, cascade })
+      this.refreshTableCache({data: this.selectedTable, project: projectName})
       this.$message({ type: 'success', message: this.$t('unloadSuccess') })
       await this.handleFreshTable({ isSetToDefault: true })
       this.isDelAllDepVisible = false

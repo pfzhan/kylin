@@ -684,7 +684,7 @@ public class SnapshotService extends BasicService {
         ISource source = SourceFactory.getSource(sourceAware);
         if (!source.supportBuildSnapShotByPartition()) {
             throw new KylinException(INVALID_PARAMETER,
-                    "not support build snapshot by partition column in current datasource");
+                    MsgPicker.getMsg().getJDBC_NOT_SUPPORT_PARTITION_COLUMN_IN_SNAPSHOT());
         }
     }
 
