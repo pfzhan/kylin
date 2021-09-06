@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -73,6 +72,7 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.MultiPartitionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -487,6 +487,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateParatitionDesc() throws Exception {
         String project = "default";
         String modelAlias = "model1";
+        mockGetModelName(modelAlias, project, "modelId");
         ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();
         modelParatitionDescRequest.setPartitionDesc(null);
         Mockito.doNothing().when(modelService).updateDataModelParatitionDesc(project, modelAlias,
@@ -622,6 +623,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckSegments() throws Exception {
+        mockGetModelName("test", "default", "modelId");
         Mockito.doAnswer(x -> null).when(modelService).checkSegments(Mockito.any(), Mockito.anyString(),
                 Mockito.anyString(), Mockito.anyString());
         CheckSegmentRequest request = new CheckSegmentRequest();

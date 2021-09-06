@@ -409,7 +409,7 @@ public class OpenModelController extends NBasicController {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
                     MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
         }
-        NModelDescResponse result = modelService.getModelDesc(modelAlias, projectName);
+        NModelDescResponse result = modelService.getModelDesc(dataModel.getAlias(), projectName);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, result, "");
     }
 
@@ -430,7 +430,8 @@ public class OpenModelController extends NBasicController {
         }
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd(),
                 partitionDateFormat);
-        modelService.updateDataModelParatitionDesc(projectName, modelAlias, modelParatitionDescRequest);
+        val dataModel = getModel(modelAlias, projectName);
+        modelService.updateDataModelParatitionDesc(projectName, dataModel.getAlias(), modelParatitionDescRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
@@ -593,8 +594,9 @@ public class OpenModelController extends NBasicController {
         checkRequiredArg("start", request.getStart());
         checkRequiredArg("end", request.getEnd());
         validateDataRange(request.getStart(), request.getEnd());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
-                modelService.checkSegments(request.getProject(), modelAlias, request.getStart(), request.getEnd()), "");
+        NDataModel model = getModel(modelAlias, projectName);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.checkSegments(request.getProject(),
+                model.getAlias(), request.getStart(), request.getEnd()), "");
     }
 
     @ApiOperation(value = "updateMultiPartitionMapping", tags = { "QE" })
