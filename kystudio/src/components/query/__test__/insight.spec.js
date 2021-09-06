@@ -158,8 +158,6 @@ describe('Component Insight', () => {
     expect(mockApi.mockSetQueryTabs.mock.calls[0][1]).toEqual({"tabs": {"Kyligence": [{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}]}})
 
     wrapper.vm.addTab('query', {
-      acceptPartial: true,
-      backdoorToggles: { DEBUG_TOGGLE_HTRACE_ENABLED: false },
       limit: 500,
       offset: 0,
       project: "xm_test",
@@ -172,7 +170,7 @@ describe('Component Insight', () => {
     expect(wrapper.vm.activeSubMenu).toBe('query1')
 
     wrapper.vm.delTab('query1')
-    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}])
+    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}])
     expect(wrapper.vm.activeSubMenu).toEqual('WorkSpace')
 
     wrapper.vm.delTab('WorkSpace')
@@ -191,8 +189,6 @@ describe('Component Insight', () => {
       name: "WorkSpace",
       queryErrorInfo: undefined,
       queryObj: {
-        acceptPartial: true,
-        backdoorToggles: null,
         limit: 500,
         offset: 0,
         project: "xm_test",
@@ -207,7 +203,7 @@ describe('Component Insight', () => {
     wrapper.vm.closeAllTabs()
     expect(mockApi.mockStopQueryBuild.mock.calls[0][1]).toEqual({"id": "query_1eiqct9fm"})
     expect(wrapper.vm.activeSubMenu).toBe('WorkSpace')
-    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}])
+    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}])
 
     wrapper.vm.pageCurrentChange()
     expect(wrapper.vm.queryCurrentPage).toBe(2)
@@ -316,7 +312,7 @@ describe('Component Insight', () => {
     expect(mockApi.mockSetQueryTabs.mock.calls[10][1]).toEqual({"tabs": {"Kyligence": [{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}]}})
   })
   it('router', async () => {
-    const _data1 = [{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "el-icon-loading", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}]
+    const _data1 = [{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "el-icon-loading", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}]
     await wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, ..._data1]})
     await wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, route.to, route.from, route.next)
     jest.runAllTimers()

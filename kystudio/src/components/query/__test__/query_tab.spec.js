@@ -95,8 +95,6 @@ const wrapper = shallowMount(queryTab, {
       name: "query1",
       queryErrorInfo: undefined,
       queryObj: {
-        acceptPartial: true,
-        backdoorToggles: {DEBUG_TOGGLE_HTRACE_ENABLED: false},
         limit: 500,
         offset: 0,
         project: "xm_test",
@@ -156,7 +154,6 @@ describe('Component queryTab', () => {
     expect(wrapper.vm.sourceSchema).toBe('select * from SSB.DATES')
     expect(wrapper.vm.isWorkspace).toBeFalsy()
     expect(wrapper.vm.tabsItem.queryObj.stopId).toBe('query_1ejc0c1m5')
-    // expect(mockApi.queryBuildTables.mock.calls[0][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES", "stopId": "query_1ejc0c1m5"})
     expect(mockHandleSuccess).toBeCalled()
     expect(wrapper.emitted().changeView).not.toEqual([])
   })
@@ -178,8 +175,7 @@ describe('Component queryTab', () => {
     wrapper.vm.handleForGuide({action: 'inputSql', data: {}})
     expect(wrapper.vm.sourceSchema).toEqual({})
     wrapper.vm.handleForGuide({action: 'requestSql', data: {}})
-    // expect(mockApi.queryBuildTables.mock.calls[1][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": {}})
-
+    
     wrapper.vm.changeLimit()
     expect(wrapper.vm.queryForm.listRows).toBe(500)
 
@@ -281,7 +277,6 @@ describe('Component queryTab', () => {
     }
     wrapper.vm.$options.methods.onTabsItemChange.call(_data1, true)
     expect(_data1.isWorkspace).toBeFalsy()
-    // expect(mockApi.queryBuildTables.mock.calls[2][1]).toEqual({"acceptPartial": true, "backdoorToggles": {"DEBUG_TOGGLE_HTRACE_ENABLED": false}, "limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES", "stopId": "query_1ejc0c1m5"})
 
     _data1.tabsItem.index = 0
     wrapper.vm.$options.methods.onTabsItemChange.call(_data1, true)

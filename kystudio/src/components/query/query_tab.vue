@@ -234,15 +234,11 @@ export default class QueryTab extends Vue {
         }
         this.activeQueryId = this.uniqueId()
         const queryObj = {
-          acceptPartial: true,
           limit: this.queryForm.listRows,
           offset: 0,
           project: this.currentSelectedProject,
           sql: querySql,
-          stopId: this.activeQueryId,
-          backdoorToggles: {
-            DEBUG_TOGGLE_HTRACE_ENABLED: this.queryForm.isHtrace
-          }
+          stopId: this.activeQueryId
         }
         this.$emit('addTab', 'query', queryObj)
       } else {
