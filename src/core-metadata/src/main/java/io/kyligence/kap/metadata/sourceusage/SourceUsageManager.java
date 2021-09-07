@@ -28,23 +28,15 @@ import static org.apache.kylin.common.exception.CommonErrorCode.LICENSE_OVER_CAP
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -55,33 +47,21 @@ import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.CapacityStatus;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ColumnCapacityDetail;
 import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.ProjectCapacityDetail;
-import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord.TableCapacityDetail;
-import lombok.val;
 
 public class SourceUsageManager {
 
@@ -175,326 +155,9 @@ public class SourceUsageManager {
         return columnSourceBytes;
     }
 
-    @VisibleForTesting
-    public Map<String, Long> sumDataflowColumnSourceMap(NDataflow dataflow) {
-        Map<String, Long> dataflowSourceMap = new HashMap<>();
-        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        List<NDataSegment> oldSegments = Lists.newArrayList();
-        for (NDataSegment segment : segments) {
-            Set<String> usedColumns = getSegmentUsedColumns(segment).stream().map(TblColRef::getCanonicalName).collect(Collectors.toSet());
-            Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
-            if (MapUtils.isEmpty(columnSourceBytesMap)) {
-                oldSegments.add(segment);
-            } else {
-                for (Map.Entry<String, Long> sourceMap : columnSourceBytesMap.entrySet()) {
-                    String column = sourceMap.getKey();
-                    if (usedColumns.contains(column)) {
-                        long value = dataflowSourceMap.getOrDefault(column, 0L);
-                        dataflowSourceMap.put(column, sourceMap.getValue() + value);
-                    }
-                }
-            }
-        }
-        if (!oldSegments.isEmpty()) {
-            List<NDataSegment> evaluations = isPartitioned(dataflow) ? oldSegments // all old segments
-                    : Lists.newArrayList(oldSegments.get(oldSegments.size() - 1)); // last old segment
-            for (NDataSegment segment : evaluations) {
-                Map<String, Long> estimateSourceMap = calcAvgColumnSourceBytes(segment);
-                for (Map.Entry<String, Long> sourceMap : estimateSourceMap.entrySet()) {
-                    String column = sourceMap.getKey();
-                    long value = dataflowSourceMap.getOrDefault(column, 0L);
-                    dataflowSourceMap.put(column, sourceMap.getValue() + value);
-                }
-            }
-        }
-        return dataflowSourceMap;
-    }
-
-    private boolean isPartitioned(NDataflow dataflow) {
-        val partDesc = dataflow.getModel().getPartitionDesc();
-        if (Objects.isNull(partDesc)) {
-            return false;
-        }
-        val colRef = partDesc.getPartitionDateColumnRef();
-        if (Objects.isNull(colRef)) {
-            return false;
-        }
-        return colRef.getColumnDesc().isPartitioned();
-    }
-
-    private long calculateTableInputBytes(TableCapacityDetail tableDetail) {
-        long sumBytes = 0;
-        for (ColumnCapacityDetail column : tableDetail.getColumns()) {
-            sumBytes += column.getMaxSourceBytes();
-        }
-        return sumBytes;
-    }
-
-    private long getLookupTableSource(TableCapacityDetail table, ProjectCapacityDetail project) {
-        String projectName = project.getName();
-        String tableName = table.getName();
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, projectName);
-        TableDesc tableDesc = tableManager.getTableDesc(tableName);
-        if (tableManager.existsSnapshotTableByName(tableName)) {
-            TableExtDesc tableExtDesc = tableManager.getOrCreateTableExt(tableDesc);
-            long originalSize = tableExtDesc.getOriginalSize();
-            if (originalSize == -1) {
-                // for 4.1 upgrade to 4.2
-                return 0;
-                //logger.warn("Original size of table:{} is -1, set table status to TENTATIVE", tableName);
-                //table.setStatus(CapacityStatus.TENTATIVE);
-            }
-            return originalSize;
-        } else {
-            return getLookupTableSourceByScale(table, projectName);
-        }
-    }
-
-    // for calculating lookup table without snapshot source usage
-    private long getLookupTableSourceByScale(TableCapacityDetail table, String projectName) {
-        String tableName = table.getName();
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, projectName);
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, projectName);
-        TableExtDesc tableExtDesc = tableManager.getOrCreateTableExt(tableName);
-        long tableBytes = 0L;
-        try {
-            double rowBytes = 0;
-            for (ColumnCapacityDetail column : table.getColumns()) {
-                long recordCount = 0;
-                long columnBytes = 0;
-                for (String dataflow : column.getSourceBytesMap().keySet()) {
-                    val sourceCount = dataflowManager.getDataflow(dataflow).getSourceCount();
-                    if (sourceCount == -1)
-                        continue;
-
-                    recordCount += sourceCount;
-                    columnBytes += column.getDataflowSourceBytes(dataflow);
-                }
-
-                if (recordCount <= 0)
-                    continue;
-
-                rowBytes += (double) columnBytes / (double) recordCount;
-            }
-            long tableTotalRows = tableExtDesc.getTotalRows();
-            if (tableTotalRows == 0L) {
-                logger.debug("Total rows for table: {} is zero.", tableName);
-            }
-            tableBytes = (long) (rowBytes * tableTotalRows);
-        } catch (Exception e) {
-            logger.error("Failed to calculate lookup table: {} source usage.", tableName, e);
-            table.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
-            return 0;
-        }
-        return tableBytes;
-    }
-
-    private void checkTableKind(TableCapacityDetail tableDetail, NDataModel model) {
-        String tableName = tableDetail.getName();
-        if (tableName.equals(model.getRootFactTableName())
-                && SourceUsageRecord.TableKind.FACT != tableDetail.getTableKind()) {
-            tableDetail.setTableKind(SourceUsageRecord.TableKind.FACT);
-        } else if (model.isLookupTable(tableName) && SourceUsageRecord.TableKind.FACT != tableDetail.getTableKind()) {
-            tableDetail.setTableKind(SourceUsageRecord.TableKind.WITHSNAP);
-        } else if (model.isFactTable(tableName) && SourceUsageRecord.TableKind.FACT != tableDetail.getTableKind()
-                && SourceUsageRecord.TableKind.WITHSNAP != tableDetail.getTableKind()) {
-            tableDetail.setTableKind(SourceUsageRecord.TableKind.WITHOUTSNAP);
-        }
-    }
-
-    private long calculateTableSourceBytes(TableCapacityDetail table, ProjectCapacityDetail project) {
-        long sourceBytes;
-        if (SourceUsageRecord.TableKind.FACT == table.getTableKind()) {
-            sourceBytes = Long.MAX_VALUE - 1;
-        } else {
-            sourceBytes = getLookupTableSource(table, project);
-        }
-        return sourceBytes;
-    }
-
-    private void updateProjectSourceUsage(ProjectCapacityDetail project) {
-        long sum = 0L;
-        CapacityStatus status = SourceUsageRecord.CapacityStatus.OK;
-        for (TableCapacityDetail table : project.getTables()) {
-            long sourceCapacity = calculateTableSourceBytes(table, project);
-            long inputCapacity = calculateTableInputBytes(table);
-            long capacity = Math.min(sourceCapacity, inputCapacity);
-            table.setCapacity(capacity);
-            sum += capacity;
-            CapacityStatus tableStatus = table.getStatus();
-            if (tableStatus.compareTo(status) > 0) {
-                status = tableStatus;
-            }
-        }
-        project.setStatus(status);
-        project.setCapacity(sum);
-    }
-
-    private void updateProjectUsageRatio(ProjectCapacityDetail project) {
-        long projectCapacity = project.getCapacity();
-        for (TableCapacityDetail table : project.getTables()) {
-            double ratio = calculateRatio(table.getCapacity(), projectCapacity);
-            table.setCapacityRatio(ratio);
-        }
-    }
-
-    private void updateGlobalUsageRatio(SourceUsageRecord sourceUsageRecord) {
-        long currentTotalCapacity = sourceUsageRecord.getCurrentCapacity();
-        ProjectCapacityDetail[] projectCapacityDetails = sourceUsageRecord.getCapacityDetails();
-        for (ProjectCapacityDetail capacityDetail : projectCapacityDetails) {
-            double ratio = calculateRatio(capacityDetail.getCapacity(), currentTotalCapacity);
-            capacityDetail.setCapacityRatio(ratio);
-        }
-    }
-
-    private void getSumOfAllProjectSourceSizeBytes(SourceUsageRecord sourceUsageParams) {
-        long sum = 0L;
-        CapacityStatus status = CapacityStatus.OK;
-        for (ProjectCapacityDetail project : sourceUsageParams.getCapacityDetails()) {
-            sum += project.getCapacity();
-            if (project.getStatus().compareTo(status) > 0) {
-                status = project.getStatus();
-            }
-        }
-        sourceUsageParams.setCapacityStatus(status);
-        sourceUsageParams.setCurrentCapacity(sum);
-    }
-
-    private void calculateTableInProject(NDataflow dataflow, ProjectCapacityDetail projectDetail) {
-        NDataModel model = dataflow.getModel();
-        if (dataflow.checkBrokenWithRelatedInfo()) {
-            logger.debug("Current model: {} is broken, skip calculate source usage", model);
-            return;
-        }
-        // source usage is first captured by column, then sum up to table and project
-        Map<String, Long> dataflowColumnsBytes = sumDataflowColumnSourceMap(dataflow);
-
-        Set<TblColRef> allColumns = Sets.newHashSet();
-        try {
-            allColumns = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING).stream()
-                    .map(SourceUsageManager::getSegmentUsedColumns)
-                    .flatMap(Collection::stream).collect(Collectors.toSet());
-        } catch (Exception e) {
-            logger.error("Failed to get all columns' TblColRef for dataflow: {}", dataflow.getId(), e);
-            projectDetail.setStatus(CapacityStatus.ERROR);
-        }
-        for (TblColRef column : allColumns) {
-            String tableName = column.getTableRef().getTableIdentity();
-            String columnName = column.getCanonicalName();
-            TableCapacityDetail tableDetail = projectDetail.getTableByName(tableName) == null
-                    ? new TableCapacityDetail(tableName)
-                    : projectDetail.getTableByName(tableName);
-            ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(columnName) == null
-                    ? new ColumnCapacityDetail(columnName)
-                    : tableDetail.getColumnByName(columnName);
-            // simply return 0 for missing cols in flat table
-            // as the cols in model definition may be different from segment flat table
-            long sourceBytes = dataflowColumnsBytes.getOrDefault(columnName, 0L);
-            columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
-            tableDetail.updateColumn(columnDetail);
-            checkTableKind(tableDetail, model);
-            projectDetail.updateTable(tableDetail);
-        }
-    }
-
-    /**
-     * Update source usage based on latest metadata.
-     *
-     * This is a fast operation that DOES NOT read from external data source.
-     */
-    public SourceUsageRecord updateSourceUsage() {
-        if (!KapConfig.wrap(config).isRecordSourceUsage())
-            return null;
-
-        logger.info("Updating source usage..");
-        try {
-            SourceUsageRecord sourceUsageRecord = refreshLatestSourceUsageRecord();
-            return updateSourceUsage(sourceUsageRecord);
-        } catch (Exception ex) {
-            // swallow exception, source usage problem is not as critical as daily operations
-            logger.error("Failed to update source usage", ex);
-            return null;
-        }
-    }
-
     public SourceUsageRecord updateSourceUsage(SourceUsageRecord sourceUsageRecord) {
         createOrUpdate(sourceUsageRecord);
         return sourceUsageRecord;
-    }
-
-    public SourceUsageRecord refreshLatestSourceUsageRecord() {
-        SourceUsageRecord usage = new SourceUsageRecord();
-        // for each project, collect source usage
-        for (ProjectInstance project : NProjectManager.getInstance(config).listAllProjects()) {
-            String projectName = project.getName();
-            ProjectCapacityDetail projectDetail = new ProjectCapacityDetail(projectName);
-
-            // for each dataflow in project, collect table details
-
-            for (NDataModel model : NDataflowManager.getInstance(config, projectName).listUnderliningDataModels()) {
-                try {
-                    val dataflow = NDataflowManager.getInstance(config, projectName).getDataflow(model.getId());
-                    if (!isAllSegmentsEmpty(dataflow)) {
-                        calculateTableInProject(dataflow, projectDetail);
-                    }
-                } catch (Exception e) {
-                    logger.error("Failed to get dataflow for {} in project: {}", model.getId(), projectName, e);
-                }
-            }
-            updateProjectSourceUsage(projectDetail);
-            updateProjectUsageRatio(projectDetail);
-            if (projectDetail.getCapacity() > 0) {
-                usage.appendProject(projectDetail);
-            }
-            CapacityStatus defaultStatus = CapacityStatus.OK;
-            CapacityStatus projectStatus = projectDetail.getStatus();
-            if (projectStatus.compareTo(defaultStatus) > 0) {
-                usage.setCapacityStatus(projectStatus);
-            }
-        }
-
-        getSumOfAllProjectSourceSizeBytes(usage);
-
-        updateGlobalUsageRatio(usage);
-        usage.setCheckTime(System.currentTimeMillis());
-
-        String capacity = System.getProperty(Constants.KE_LICENSE_VOLUME);
-        if (Constants.UNLIMITED.equals(capacity)) {
-            usage.setLicenseCapacity(-1L);
-        } else if (!StringUtils.isEmpty(capacity)) {
-            try {
-                long licenseCapacity = Long.parseLong(capacity);
-                usage.setLicenseCapacity(licenseCapacity);
-                CapacityStatus currentStatus = usage.getCapacityStatus();
-                if (isNotOk(currentStatus)) {
-                    logger.debug("Current capacity status: {} is not ok, will skip overcapacity check", currentStatus);
-                } else if (licenseCapacity < usage.getCurrentCapacity()) {
-                    usage.setCapacityStatus(OVERCAPACITY);
-                }
-            } catch (NumberFormatException e) {
-                logger.error("ke.license.volume occurred java.lang.NumberFormatException: For input string:" + capacity,
-                        e);
-            }
-        }
-        return usage;
-    }
-
-    private boolean isAllSegmentsEmpty(NDataflow dataflow) {
-        if (dataflow == null) {
-            return true;
-        }
-        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        if (segments.isEmpty()) {
-            return true;
-        }
-        boolean isAllEmpty = true;
-        for (NDataSegment segment : segments) {
-            if (segment.getSourceBytesSize() > 0) {
-                isAllEmpty = false;
-                break;
-            }
-        }
-        return isAllEmpty;
     }
 
     private void createOrUpdate(SourceUsageRecord usageRecord) {
@@ -793,33 +456,5 @@ public class SourceUsageManager {
             return ((double) Math.round(((double) amount) / totalAmount * 100d)) / 100d;
         }
         return 0d;
-    }
-
-    // public for ut
-    public static Set<TblColRef> getSegmentUsedColumns(NDataSegment segment) {
-        NDataModel dataModel = segment.getModel();
-
-        return segment.getLayoutsMap().values().stream().map(layout -> layout.getLayout().getColOrder())
-                .flatMap(Collection::stream)
-                .map(colOrderId -> {
-                    if (colOrderId < NDataModel.MEASURE_ID_BASE) {
-                        return Optional.ofNullable(dataModel.getEffectiveCols().get(colOrderId))
-                                .map(Arrays::asList).orElseGet(ArrayList::new);
-                    } else {
-                        return Optional.ofNullable(dataModel.getEffectiveMeasures().get(colOrderId)
-                                .getFunction().getColRefs()).orElseGet(ArrayList::new);
-                    }
-                })
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(tblColRef -> {
-                    if (tblColRef.getColumnDesc().isComputedColumn()
-                            && KapConfig.getInstanceFromEnv().isSourceUsageUnwrapComputedColumn()) {
-                        return ComputedColumnDesc.unwrap(dataModel, tblColRef.getExpressionInSourceDB());
-                    }
-                    return Collections.singletonList(tblColRef);
-                })
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
     }
 }

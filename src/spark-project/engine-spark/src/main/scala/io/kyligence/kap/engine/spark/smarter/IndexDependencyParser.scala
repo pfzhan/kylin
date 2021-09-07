@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.engine.spark.smarter
 
-import java.util
-import java.util.Collections
-
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
@@ -38,6 +35,8 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.{Dataset, Row, SparderEnv, SparkSession}
 
+import java.util
+import java.util.Collections
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -154,6 +153,26 @@ class IndexDependencyParser(val model: NDataModel) {
     initPartitionColumnTableNames()
     initJoinTableName()
     allTablesAlias.add(model.getRootFactTable.getAlias)
+  }
+
+
+  def unwrapComputeColumn(ccInnerExpression: String): java.util.Set[TblColRef] = {
+    val result: util.Set[TblColRef] = Sets.newHashSet()
+    val originDf = generateFullFlatTableDF(SparderEnv.getSparkSession, model)
+    val colFields = originDf.schema.fields
+    val ccDs = originDf.selectExpr(NSparkCubingUtil.convertFromDot(ccInnerExpression))
+    ccDs.schema.fields.foreach(fieldName => {
+      colFields.foreach(col => {
+        if (StringUtils.containsIgnoreCase(fieldName.name, col.name)) {
+          val tableAndCol = col.name.split(NSparkCubingUtil.SEPARATOR)
+          val ref = model.findColumn(tableAndCol(0), tableAndCol(1))
+          if (ref != null) {
+            result.add(ref)
+          }
+        }
+      })
+    })
+    result
   }
 
   private def initFilterConditionTableNames(originDf: Dataset[Row], colFields: Array[StructField]): Unit =

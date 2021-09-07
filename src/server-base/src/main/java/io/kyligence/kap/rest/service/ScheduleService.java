@@ -56,6 +56,9 @@ public class ScheduleService {
     @Autowired
     RawRecService rawRecService;
 
+    @Autowired
+    SourceUsageService sourceUsageService;
+
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
 
@@ -103,8 +106,7 @@ public class ScheduleService {
     public void updateHistorySourceUsage() {
         if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {
             log.info("Start to update history source usage.");
-            val sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-            val sourceUsageRecord = sourceUsageManager.refreshLatestSourceUsageRecord();
+            val sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
 
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 log.debug("Start to update source usage...");

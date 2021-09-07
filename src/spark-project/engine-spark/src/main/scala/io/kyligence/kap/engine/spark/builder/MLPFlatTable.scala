@@ -23,7 +23,7 @@
 package io.kyligence.kap.engine.spark.builder
 
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.{Statistics, changeSchemeToColumnId}
-import io.kyligence.kap.metadata.cube.model.MLPFlatTableDesc
+import io.kyligence.kap.engine.spark.model.MLPFlatTableDesc
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 

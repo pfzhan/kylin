@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.metadata.sourceusage;
+package io.kyligence.kap.rest.service;
 
 import java.util.List;
 import java.util.Map;
@@ -30,7 +30,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -41,17 +40,24 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
 import io.kyligence.kap.common.constant.Constants;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageManager;
+import io.kyligence.kap.metadata.sourceusage.SourceUsageRecord;
 
 @Ignore
-public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
+public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
+
+    private SourceUsageService sourceUsageService = Mockito.spy(SourceUsageService.class);
+
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata("src/test/resources/ut_meta/heterogeneous_segment_2");
@@ -69,15 +75,14 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateSourceUsage() {
-        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
-        SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+        SourceUsageRecord record = sourceUsageService.refreshLatestSourceUsageRecord();
         UnitOfWork.doInTransactionWithRetry(() -> {
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
             SourceUsageRecord sourceUsageRecord = sourceUsageManager.getLatestRecord();
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(1622027L, usage.getCurrentCapacity());
+            Assert.assertEquals(1709748L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -100,8 +105,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     public void testCCIncludedInSourceUsage() {
         overwriteSystemProp("kylin.metadata.history-source-usage-unwrap-computed-column", "false");
         String project = "cc_test";
-        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
-        SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+        SourceUsageRecord record = sourceUsageService.refreshLatestSourceUsageRecord();
         UnitOfWork.doInTransactionWithRetry(() -> {
             KylinConfig testConfig = getTestConfig();
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(testConfig);
@@ -112,10 +116,11 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Map<String, Long> columnSourceBytesMap = dataSegment.getColumnSourceBytes();
             Assert.assertEquals(7, columnSourceBytesMap.size());
 
-            Set<TblColRef> usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment);
+            Set<TblColRef> usedColumns = SourceUsageService.getSegmentUsedColumns(dataSegment);
             Assert.assertEquals(7, usedColumns.size());
             String ccName = "SSB.LINEORDER.CC_TOTAL_TAX";
-            TblColRef tblColRef = usedColumns.stream().filter(colRef -> colRef.getCanonicalName().equals(ccName)).findAny().get();
+            TblColRef tblColRef = usedColumns.stream().filter(colRef -> colRef.getCanonicalName().equals(ccName))
+                    .findAny().get();
             Assert.assertNotNull(tblColRef);
             Assert.assertTrue(tblColRef.getColumnDesc().isComputedColumn());
             Assert.assertEquals(ccName, tblColRef.getCanonicalName());
@@ -142,12 +147,10 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
         }, UnitOfWork.GLOBAL_UNIT);
     }
 
-
     @Test
     public void testCCNotIncludedInSourceUsage() {
         String project = "cc_test";
-        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
-        SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+        SourceUsageRecord record = sourceUsageService.refreshLatestSourceUsageRecord();
         UnitOfWork.doInTransactionWithRetry(() -> {
             KylinConfig testConfig = getTestConfig();
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(testConfig);
@@ -158,10 +161,11 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             Map<String, Long> columnSourceBytesMap = dataSegment.getColumnSourceBytes();
             Assert.assertEquals(7, columnSourceBytesMap.size());
 
-            Set<TblColRef> usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment);
+            Set<TblColRef> usedColumns = SourceUsageService.getSegmentUsedColumns(dataSegment);
             Assert.assertEquals(8, usedColumns.size());
             String ccName = "SSB.LINEORDER.CC_TOTAL_TAX";
-            TblColRef tblColRef = dataflow.getAllColumns().stream().filter(colRef -> colRef.getCanonicalName().equals(ccName)).findAny().get();
+            TblColRef tblColRef = dataflow.getAllColumns().stream()
+                    .filter(colRef -> colRef.getCanonicalName().equals(ccName)).findAny().get();
             Assert.assertNotNull(tblColRef);
             Assert.assertEquals(ccName, tblColRef.getCanonicalName());
 
@@ -179,16 +183,18 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             SourceUsageRecord.ColumnCapacityDetail ccColumnCapacityDetail = tableCapacityDetail.getColumnByName(ccName);
             Assert.assertNull(ccColumnCapacityDetail);
             // assert CC is unwrapped
-            List<TblColRef> unwrappedTblColRefs = ComputedColumnDesc.unwrap(dataflow.getModel(), tblColRef.getExpressionInSourceDB());
+            Set<TblColRef> unwrappedTblColRefs = new IndexDependencyParser(dataflow.getModel())
+                    .unwrapComputeColumn(tblColRef.getExpressionInSourceDB());
             Assert.assertEquals(2, unwrappedTblColRefs.size());
-            Assert.assertTrue(unwrappedTblColRefs.stream().anyMatch(colRef ->
-                    colRef.getColumnDesc().getIdentity().equals("LINEORDER.LO_QUANTITY")));
-            SourceUsageRecord.ColumnCapacityDetail columnCapacityDetail = tableCapacityDetail.getColumnByName("SSB.LINEORDER.LO_QUANTITY");
+            Assert.assertTrue(unwrappedTblColRefs.stream()
+                    .anyMatch(colRef -> colRef.getColumnDesc().getIdentity().equals("LINEORDER.LO_QUANTITY")));
+            SourceUsageRecord.ColumnCapacityDetail columnCapacityDetail = tableCapacityDetail
+                    .getColumnByName("SSB.LINEORDER.LO_QUANTITY");
             Assert.assertNotNull(columnCapacityDetail);
             Assert.assertEquals(0L, columnCapacityDetail.getMaxSourceBytes());
 
-            Assert.assertTrue(unwrappedTblColRefs.stream().anyMatch(colRef ->
-                    colRef.getColumnDesc().getIdentity().equals("LINEORDER.LO_TAX")));
+            Assert.assertTrue(unwrappedTblColRefs.stream()
+                    .anyMatch(colRef -> colRef.getColumnDesc().getIdentity().equals("LINEORDER.LO_TAX")));
             columnCapacityDetail = tableCapacityDetail.getColumnByName("SSB.LINEORDER.LO_TAX");
             Assert.assertNotNull(columnCapacityDetail);
             Assert.assertEquals(0L, columnCapacityDetail.getMaxSourceBytes());
@@ -240,8 +246,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     class TestSourceUsage implements Runnable {
         @Override
         public void run() {
-            SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
-            SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+            SourceUsageRecord record = sourceUsageService.refreshLatestSourceUsageRecord();
             UnitOfWork.doInTransactionWithRetry(() -> {
                 SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(getTestConfig());
                 sourceUsageManager.updateSourceUsage(record);
@@ -334,14 +339,13 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     public void testPartitioned() {
         NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow dataflow = dfManager.getDataflow("b780e4e4-69af-449e-b09f-05c90dfa04b6");
-        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
-        Map<String, Long> summed = usageManager.sumDataflowColumnSourceMap(dataflow);
+        Map<String, Long> summed = sourceUsageService.sumDataflowColumnSourceMap(dataflow);
         Assert.assertEquals(11702L, summed.entrySet().iterator().next().getValue().longValue());
         boolean partitioned = dataflow.getModel().getPartitionDesc() //
                 .getPartitionDateColumnRef().getColumnDesc().isPartitioned();
         try {
             dataflow.getModel().getPartitionDesc().getPartitionDateColumnRef().getColumnDesc().setPartitioned(true);
-            summed = usageManager.sumDataflowColumnSourceMap(dataflow);
+            summed = sourceUsageService.sumDataflowColumnSourceMap(dataflow);
             Assert.assertEquals(16089L, summed.entrySet().iterator().next().getValue().longValue());
         } finally {
             // set back
@@ -354,8 +358,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMeasureIncludedUpdateSourceUsage() {
         String project = "heterogeneous_segment_2";
-        SourceUsageManager usageManager = SourceUsageManager.getInstance(getTestConfig());
-        SourceUsageRecord record = usageManager.refreshLatestSourceUsageRecord();
+        SourceUsageRecord record = sourceUsageService.refreshLatestSourceUsageRecord();
         UnitOfWork.doInTransactionWithRetry(() -> {
             KylinConfig testConfig = getTestConfig();
             SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(testConfig);
@@ -364,7 +367,7 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
             NDataflow dataflow = dfManager.getDataflow("3f2860d5-0a4c-4f52-b27b-2627caafe769");
 
             NDataSegment dataSegment1 = dataflow.getSegment("2805396d-4fe5-4541-8bc0-944caacaa1a3");
-            Set<TblColRef> usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment1);
+            Set<TblColRef> usedColumns = SourceUsageService.getSegmentUsedColumns(dataSegment1);
             /**
              *  from measure cc DEFAULT.KYLIN_SALES.BUYER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID
              *  from measure DEFAULT.KYLIN_SALES.SELLER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,
@@ -372,13 +375,14 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
              *  DEFAULT.KYLIN_SALES.PART_DT,
              */
             Assert.assertEquals(6, usedColumns.size());
-            Assert.assertEquals("DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
-                    + "DEFAULT.KYLIN_SALES.BUYER_ID,DEFAULT.KYLIN_SALES.ITEM_COUNT,DEFAULT.KYLIN_SALES.PART_DT,"
-                    + "DEFAULT.KYLIN_SALES.SELLER_ID", usedColumns.stream().map(TblColRef::getCanonicalName)
-                    .sorted().collect(Collectors.joining(",")));
+            Assert.assertEquals(
+                    "DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
+                            + "DEFAULT.KYLIN_SALES.BUYER_ID,DEFAULT.KYLIN_SALES.ITEM_COUNT,DEFAULT.KYLIN_SALES.PART_DT,"
+                            + "DEFAULT.KYLIN_SALES.SELLER_ID",
+                    usedColumns.stream().map(TblColRef::getCanonicalName).sorted().collect(Collectors.joining(",")));
 
             NDataSegment dataSegment2 = dataflow.getSegment("a7cef448-34e9-4acf-8632-0a3db101cef4");
-            usedColumns = SourceUsageManager.getSegmentUsedColumns(dataSegment2);
+            usedColumns = SourceUsageService.getSegmentUsedColumns(dataSegment2);
 
             /**
              *  from measure cc DEFAULT.KYLIN_SALES.BUYER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID
@@ -387,11 +391,27 @@ public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
              *  DEFAULT.KYLIN_SALES.PART_DT, DEFAULT.KYLIN_SALES.PRICE
              */
             Assert.assertEquals(7, usedColumns.size());
-            Assert.assertEquals("DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
+            Assert.assertEquals(
+                    "DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
                             + "DEFAULT.KYLIN_SALES.BUYER_ID,DEFAULT.KYLIN_SALES.ITEM_COUNT,DEFAULT.KYLIN_SALES.PART_DT,"
                             + "DEFAULT.KYLIN_SALES.PRICE,DEFAULT.KYLIN_SALES.SELLER_ID",
-                    usedColumns.stream().map(TblColRef::getCanonicalName)
-                            .sorted().collect(Collectors.joining(",")));
+                    usedColumns.stream().map(TblColRef::getCanonicalName).sorted().collect(Collectors.joining(",")));
+
+            NDataSegment dataSegment3 = dataflow.getSegment("2b0b5bb9-df78-5817-5245-2a28c451035d");
+            usedColumns = SourceUsageService.getSegmentUsedColumns(dataSegment3);
+
+            /**
+             *  from measure cc DEFAULT.KYLIN_SALES.BUYER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID
+             *  from measure DEFAULT.KYLIN_SALES.SELLER_ID, DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,
+             *      DEFAULT.KYLIN_SALES.ITEM_COUNT
+             *  DEFAULT.KYLIN_SALES.PART_DT, DEFAULT.KYLIN_SALES.PRICE
+             */
+            Assert.assertEquals(7, usedColumns.size());
+            Assert.assertEquals(
+                    "DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID,DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL,"
+                            + "DEFAULT.KYLIN_SALES.BUYER_ID,DEFAULT.KYLIN_SALES.ITEM_COUNT,DEFAULT.KYLIN_SALES.PART_DT,"
+                            + "DEFAULT.KYLIN_SALES.PRICE,DEFAULT.KYLIN_SALES.SELLER_ID",
+                    usedColumns.stream().map(TblColRef::getCanonicalName).sorted().collect(Collectors.joining(",")));
             return null;
         }, UnitOfWork.GLOBAL_UNIT);
     }

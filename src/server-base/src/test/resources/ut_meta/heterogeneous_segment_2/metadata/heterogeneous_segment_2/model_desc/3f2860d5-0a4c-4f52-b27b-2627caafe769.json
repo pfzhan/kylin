@@ -1,6 +1,6 @@
 {
   "uuid" : "3f2860d5-0a4c-4f52-b27b-2627caafe769",
-  "last_modified" : 1630401850843,
+  "last_modified" : 1630935628050,
   "create_time" : 1630401850282,
   "version" : "4.0.0.0",
   "alias" : "model_1",
@@ -121,6 +121,11 @@
     "name" : "CC1",
     "column" : "KYLIN_SALES.CC1",
     "status" : "DIMENSION"
+  }, {
+    "id" : 18,
+    "name" : "CC2",
+    "column" : "KYLIN_SALES.CC2",
+    "status" : "DIMENSION"
   } ],
   "all_measures" : [ {
     "name" : "COUNT_ALL",
@@ -176,6 +181,15 @@
     "expression" : "KYLIN_SALES.BUYER_ID + KYLIN_ACCOUNT.ACCOUNT_ID",
     "innerExpression" : "`KYLIN_SALES`.`BUYER_ID` + `KYLIN_ACCOUNT`.`ACCOUNT_ID`",
     "datatype" : "BIGINT",
+    "comment" : null,
+    "rec_uuid" : null
+  }, {
+    "tableIdentity" : "DEFAULT.KYLIN_SALES",
+    "tableAlias" : "KYLIN_SALES",
+    "columnName" : "CC2",
+    "expression" : "\"date\"(KYLIN_SALES.PART_DT)",
+    "innerExpression" : "`date`(`KYLIN_SALES`.`PART_DT`)",
+    "datatype" : "DATE",
     "comment" : null,
     "rec_uuid" : null
   } ],

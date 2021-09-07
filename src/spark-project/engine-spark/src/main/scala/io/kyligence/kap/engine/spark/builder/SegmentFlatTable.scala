@@ -27,9 +27,10 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.engine.spark.job.{FiltersUtil, TableMetaManager}
+import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.commons.lang3.StringUtils

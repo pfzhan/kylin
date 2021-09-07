@@ -25,10 +25,10 @@
 package io.kyligence.kap.engine.spark.job
 
 import java.io.IOException
-
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
+import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.hadoop.fs.Path
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils

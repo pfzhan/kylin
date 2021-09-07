@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.model;
+package io.kyligence.kap.engine.spark.model;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -45,10 +44,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class SegmentFlatTableDesc {
     protected final KylinConfig config;
     protected final NDataSegment dataSegment;
@@ -60,6 +63,8 @@ public class SegmentFlatTableDesc {
     protected final NDataModel dataModel;
     protected final IndexPlan indexPlan;
 
+    private final IndexDependencyParser parser;
+
     // By design. Historical debt, wait for reconstruction.
     private final Map<String, Integer> columnIndexMap = Maps.newHashMap();
 
@@ -67,8 +72,11 @@ public class SegmentFlatTableDesc {
     private final List<Integer> columnIds = Lists.newArrayList();
     private final Map<Integer, String> columnId2Canonical = Maps.newHashMap();
 
-    @Getter
     private final List<String> relatedTables = Lists.newArrayList();
+
+    public List<String> getRelatedTables() {
+        return relatedTables;
+    }
 
     public boolean isPartialBuild() {
         return !relatedTables.isEmpty();
@@ -88,6 +96,7 @@ public class SegmentFlatTableDesc {
         this.segmentId = dataSegment.getId();
         this.dataflowId = dataSegment.getDataflow().getId();
         this.dataModel = dataSegment.getModel();
+        this.parser = new IndexDependencyParser(dataModel);
         this.indexPlan = dataSegment.getIndexPlan();
         this.relatedTables.addAll(relatedTables);
 
@@ -274,7 +283,12 @@ public class SegmentFlatTableDesc {
         columnId2Canonical.put(id, colRef.getCanonicalName());
 
         if (colRef.getColumnDesc().isComputedColumn()) {
-            ComputedColumnDesc.unwrap(this.dataModel, colRef.getExpressionInSourceDB()).forEach(this::addColumn);
+            try {
+                parser.unwrapComputeColumn(colRef.getExpressionInSourceDB()).forEach(this::addColumn);
+            } catch (Exception e) {
+                log.warn("UnWrap computed column {} in project {} model {} exception", colRef.getExpressionInSourceDB(),
+                        dataModel.getProject(), dataModel.getAlias(), e);
+            }
         }
     }
 }

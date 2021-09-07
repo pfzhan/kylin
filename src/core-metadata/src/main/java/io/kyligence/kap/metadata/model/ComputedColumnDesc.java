@@ -27,8 +27,6 @@ package io.kyligence.kap.metadata.model;
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -40,15 +38,12 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -198,42 +193,6 @@ public class ComputedColumnDesc implements Serializable {
         };
 
         sqlNode.accept(sqlVisitor);
-    }
-
-    public static List<TblColRef> unwrap(final NDataModel model, String expr) {
-        final List<TblColRef> result = new ArrayList<>();
-
-        SqlNode sqlNode;
-        try {
-            sqlNode = CalciteParser.getReadonlyExpNode(CalciteParser.transformDoubleQuote(expr));
-        } catch (SqlParseException e) {
-            logger.warn("Failed to unwrap {} in model {}", expr, model.getUuid(), e);
-            return result;
-        }
-
-        SqlVisitor<Object> sqlVisitor = new SqlBasicVisitor<Object>() {
-            @Override
-            public Object visit(SqlIdentifier id) {
-                if (id.names.size() != 2) {
-                    throw new KylinException(ServerErrorCode.COLUMN_NOT_EXIST, String.format(Locale.ROOT, MsgPicker.getMsg().getCOLUMN_UNRECOGNIZED(), id));
-                } else {
-                    try {
-                        TblColRef ref = model.findColumn(id.toString());
-                        if (ref.getColumnDesc().isComputedColumn()) {
-                            result.addAll(ComputedColumnDesc.unwrap(model, ref.getExpressionInSourceDB()));
-                        } else {
-                            result.add(ref);
-                        }
-                    } catch (Exception e) {
-                        logger.warn("Failed to find column {} in model {}", id, model.getUuid(), e);
-                    }
-
-                    return null;
-                }
-            }
-        };
-        sqlNode.accept(sqlVisitor);
-        return result;
     }
 
     public String getFullName() {

@@ -28,6 +28,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{MLPBuildSource, MLPFlatTable, SegmentBuildSource}
+import io.kyligence.kap.engine.spark.model.MLPFlatTableDesc
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil

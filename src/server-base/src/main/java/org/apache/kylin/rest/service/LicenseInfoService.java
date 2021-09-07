@@ -57,6 +57,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.service.SourceUsageService;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -161,6 +162,9 @@ public class LicenseInfoService extends BasicService {
 
     @Autowired
     private ClusterManager clusterManager;
+
+    @Autowired
+    private SourceUsageService sourceUsageService;
 
     @EventListener(AfterMetadataReadyEvent.class)
     public void init() {
@@ -794,8 +798,7 @@ public class LicenseInfoService extends BasicService {
 
     public void updateSourceUsage() {
         if (EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(EpochManager.GLOBAL)) {
-            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-            SourceUsageRecord sourceUsageRecord = sourceUsageManager.refreshLatestSourceUsageRecord();
+            SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage(sourceUsageRecord);
                 return 0;
