@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.cube.cuboid;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -122,7 +123,13 @@ public class AggIndexMatcher extends IndexMatcher {
     }
 
     private void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity cuboidLayout) {
-        for (MeasureDesc measureDesc : cuboidLayout.getOrderedMeasures().values()) {
+        List<MeasureDesc> functionDescs = new ArrayList<>();
+        if (isBatchFusionModel) {
+            functionDescs.addAll(cuboidLayout.getStreamingMeasures().values());
+        }
+        functionDescs.addAll(cuboidLayout.getOrderedMeasures().values());
+
+        for (MeasureDesc measureDesc : functionDescs) {
             aggregations.remove(measureDesc.getFunction());
         }
     }

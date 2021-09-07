@@ -192,7 +192,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
     @Test
     public void testHybridStreaming() {
         String project = "streaming_test";
-        String sql = "select count(*) from SSB_STREAMING";
+        String sql = "select count(*), sum(LO_LINENUMBER) from SSB_STREAMING";
         val proposeContext = new SmartContext(KylinConfig.getInstanceFromEnv(), project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(proposeContext);
         smartMaster.runUtWithContext(null);
