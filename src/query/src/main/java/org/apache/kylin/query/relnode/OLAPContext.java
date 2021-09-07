@@ -361,10 +361,7 @@ public class OLAPContext {
     }
 
     private static void addTableSnapshots(Set<String> tableSets, OLAPContext ctx) {
-        val dimensions = ctx.storageContext.getCandidate().getLayoutEntity().getOrderedDimensions();
-        for (val entry : ctx.storageContext.getCandidate().getDerivedToHostMap().keySet()) {
-            tableSets.add(dimensions.get(entry).getTable());
-        }
+        tableSets.addAll(ctx.storageContext.getCandidate().getDerivedTableSnapshots());
     }
 
     SQLDigest sqlDigest;

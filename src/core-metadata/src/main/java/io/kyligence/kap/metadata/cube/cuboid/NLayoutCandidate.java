@@ -24,8 +24,10 @@
 package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -55,6 +57,10 @@ public class NLayoutCandidate implements IRealizationCandidate {
 
     // derived
     private @Nonnull Map<Integer, DeriveInfo> derivedToHostMap = Maps.newHashMap();
+
+    @Getter
+    @Setter
+    Set<String> derivedTableSnapshots = new HashSet<>();
 
     public NLayoutCandidate(@Nonnull LayoutEntity layoutEntity) {
         this.layoutEntity = layoutEntity;

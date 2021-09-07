@@ -122,6 +122,8 @@ public class NQueryLayoutChooser {
             candidate.setCost(dataLayout.getRows() * (tempResult.influences.size() + 1.0));
             if (!matchResult.getNeedDerive().isEmpty()) {
                 candidate.setDerivedToHostMap(matchResult.getNeedDerive());
+                candidate.setDerivedTableSnapshots(candidate.getDerivedToHostMap().keySet().stream()
+                        .map(i -> chooserContext.convertToRef(i).getTable()).collect(Collectors.toSet()));
             }
             candidate.setCapabilityResult(tempResult);
             candidates.add(candidate);
