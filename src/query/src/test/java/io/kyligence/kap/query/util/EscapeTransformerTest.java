@@ -299,10 +299,17 @@ public class EscapeTransformerTest {
 
     @Test
     public void testRemoveCommentQuery() throws Exception {
-        String originalSQL = "select --test comment will remove\n \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
+        String originalSQL =
+                "--a single line comment\r"
+                + "select 'a---b'+\"a--b\", 'ab''cd', \"abc\"\"cd\" "
+                + ", 'abc\"def', \"abc'def\""
+                + " --test comment will remove\n \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) }"
+                + " from tbl where a in ('a--b') and c in (\"a---b\", 'a--b', '')";
         String transformedSQL = new CommentParser(originalSQL).Input();
 
-        String expectedSQL = "select \n \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl";
+        String expectedSQL =
+                "\rselect 'a---b'+\"a--b\", 'ab''cd', \"abc\"\"cd\" , 'abc\"def', \"abc'def\" \n"
+                + " \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl where a in ('a--b') and c in (\"a---b\", 'a--b', '')";
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 

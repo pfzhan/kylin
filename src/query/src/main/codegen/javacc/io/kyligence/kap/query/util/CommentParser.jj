@@ -73,15 +73,27 @@ MORE :
   < ~[] >
 }
 
+<WITHIN_QUOTE>
+TOKEN :
+{
+  <QUOTED_STRING : (~["'"])+ >
+| <END_QUOTE: "'"> : DEFAULT
+}
+
+<WITHIN_DOUBLE_QUOTE>
+TOKEN :
+{
+  <DOUBLE_QUOTE_STRING : (~["\""])+ >
+| <END_DOUBLE_QUOTE: "\"" > : DEFAULT
+}
+
 < DEFAULT >
 TOKEN :
 {
- < REMAIN_TOKEN : [" ", "\t","\n", "\r", ",", "/", "-" ] >
-| < QUOTE: "'" >
-| < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
-| < DOUBLE_QUOTE: "\"" >
-| < DOUBLE_QUOTE_STRING: <DOUBLE_QUOTE> ( (~["\""]) | ("\"\""))* <DOUBLE_QUOTE> >
-| < ANY : (~[" ", ",", "\t", "\n", "\r", "/", "-" ])+ >
+  < QUOTE: "'" > : WITHIN_QUOTE
+| < DOUBLE_QUOTE: "\"" > : WITHIN_DOUBLE_QUOTE
+| < REMAIN_TOKEN : [" ", "\t","\n", "\r", ",", "/", "-" ] >
+| < ANY : (~[" ", ",", "\t", "\n", "\r", "/", "-", "'", "\"" ])+ >
 | < HINT_BEG: "/*+" >
 | < COMMENT_END: "*/" >
 | < HINT: <HINT_BEG> (~["\n", "\r", "*", "/"])* <COMMENT_END> >
@@ -154,26 +166,48 @@ String RemainToken() :
 
 String QuotedString() :
 {
-    String s;
+    String str;
 }
 {
-    <QUOTED_STRING>
-    {
-        logger.trace("meet token in <QUOTED_STRING>: " + getToken(0).image);
-        return getToken(0).image;
-    }
+    <QUOTE>
+    (
+        <END_QUOTE>
+        {
+          return "''";
+        }
+    |   <QUOTED_STRING>
+        {
+            str = getToken(0).image;
+            logger.trace("meet token in <QUOTED_STRING>: " + getToken(0).image);
+        }
+        <END_QUOTE>
+        {
+            return "'" + str + "'";
+        }
+    )
 }
 
 String DoubleQuoteString() :
 {
-    String s;
+    String str;
 }
 {
-    <DOUBLE_QUOTE_STRING>
-    {
-        logger.trace("meet token in <QUOTED2_STRING>: " + getToken(0).image);
-        return getToken(0).image;
-    }
+    <DOUBLE_QUOTE>
+    (
+        <END_DOUBLE_QUOTE>
+        {
+            return "\"\"";
+        }
+        | <DOUBLE_QUOTE_STRING>
+          {
+            str = getToken(0).image;
+            logger.trace("meet token in <QUOTED2_STRING>: " + getToken(0).image);
+          }
+          <END_DOUBLE_QUOTE>
+          {
+            return "\"" + str + "\"";
+          }
+    )
 }
 
 String Any() :
