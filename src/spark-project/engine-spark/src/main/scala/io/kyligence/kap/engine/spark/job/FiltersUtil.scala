@@ -27,6 +27,7 @@ import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import org.apache.kylin.metadata.model.{JoinTableDesc, TblColRef}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Dataset, Row}
+import org.apache.kylin.metadata.model.PartitionDesc
 
 import scala.collection.mutable
 import scala.collection.mutable.Set
@@ -84,7 +85,7 @@ object FiltersUtil extends Logging {
       case Some(col) =>
         var afterFilter = ds
         val model = flatTable.getDataModel
-        val partDesc = model.getPartitionDesc
+        val partDesc = PartitionDesc.getCopyOf(model.getPartitionDesc)
         partDesc.setPartitionDateColumnRef(model.findColumn(col))
         if (partDesc != null && partDesc.getPartitionDateColumn != null) {
           val segRange = flatTable.getSegmentRange

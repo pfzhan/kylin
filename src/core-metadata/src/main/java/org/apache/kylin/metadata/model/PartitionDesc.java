@@ -341,6 +341,7 @@ public class PartitionDesc implements Serializable {
         ret.partitionDateFormat = orig.partitionDateFormat;
         ret.partitionType = orig.partitionType;
         ret.partitionConditionBuilderClz = orig.partitionConditionBuilderClz;
+        ret.partitionConditionBuilder = orig.partitionConditionBuilder;
         return ret;
     }
 
