@@ -164,6 +164,23 @@ public class StreamingSchedulerTest extends StreamingTestCase {
     }
 
     @Test
+    public void testSubmitMergeJobException() {
+        val streamingScheduler = new StreamingScheduler(PROJECT);
+        val jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.toString());
+        val testConfig = getTestConfig();
+
+        var mgr = StreamingJobManager.getInstance(testConfig, PROJECT);
+        var jobMeta = mgr.getStreamingJobByUuid(jobId);
+        mgr.updateStreamingJob(jobId, updater -> updater.setCurrentStatus(JobStatusEnum.LAUNCHING_ERROR));
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
+        jobMeta = mgr.getStreamingJobByUuid(jobId);
+        Assert.assertEquals(JobStatusEnum.RUNNING, jobMeta.getCurrentStatus());
+
+        thrown.expect(KylinException.class);
+        streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
+    }
+
+    @Test
     public void testStopJob() {
         val streamingScheduler = new StreamingScheduler(PROJECT);
         streamingScheduler.submitJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);

@@ -62,13 +62,12 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
-
 import lombok.val;
 import lombok.var;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.BoxedUnit;
 
-abstract public class StreamingApplication {
+public abstract class StreamingApplication {
     private static final Logger logger = LoggerFactory.getLogger(StreamingApplication.class);
 
     private Map<String, Pair<String, Long>> removeSegIds = new HashMap<>();
@@ -82,15 +81,16 @@ abstract public class StreamingApplication {
         val hdfsFileScanStartTime = startTime.get();
         long now = System.currentTimeMillis();
         val intervals = KylinConfig.getInstanceFromEnv().getStreamingSegmentCleanInterval() * 60 * 60 * 1000;
-        if (now - hdfsFileScanStartTime > intervals) {
+        if (intervals >= 0 && now - hdfsFileScanStartTime > intervals) {
             val iter = removeSegIds.keySet().iterator();
             while (iter.hasNext()) {
                 String segId = iter.next();
                 if (dataflow.getSegment(segId) == null) {
                     if ((now - removeSegIds.get(segId).getValue()) > intervals) {
                         try {
-                            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(),
-                                    new Path(removeSegIds.get(segId).getKey()));
+                            val path = removeSegIds.get(segId).getKey();
+                            logger.info("clear invalid segment: {}", path);
+                            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
                             iter.remove();
                         } catch (IOException e) {
                             logger.warn(e.getMessage());
@@ -104,7 +104,7 @@ abstract public class StreamingApplication {
         }
     }
 
-    protected void getOrCreateSparkSession(SparkConf sparkConf) {
+    public void getOrCreateSparkSession(SparkConf sparkConf) {
         SparkSession.Builder sessionBuilder = SparkSession.builder()
                 .withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
                     @Override
@@ -141,7 +141,7 @@ abstract public class StreamingApplication {
         }
     }
 
-    protected void closeAuditLogStore(SparkSession ss) {
+    public void closeAuditLogStore(SparkSession ss) {
         if (isJobOnCluster()) {
             JobMetricsUtils.unRegisterListener(ss);
             val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
@@ -153,10 +153,15 @@ abstract public class StreamingApplication {
         }
     }
 
-    public void reportApplicationInfo(KylinConfig config, String projectId, String modelId, String jobType,
+    public void reportApplicationInfo(KylinConfig config, String project, String modelId, String jobType, String pid) {
+        val buildEnv = getOrCreateKylinBuildEnv(config);
+        reportApplicationInfo(buildEnv, project, modelId, jobType, pid);
+    }
+
+    public void reportApplicationInfo(KylinBuildEnv buildEnv, String project, String modelId, String jobType,
             String pid) {
-        val buildEnv = KylinBuildEnv.getOrCreate(config);
         val appId = ss.sparkContext().applicationId();
+        val config = buildEnv.kylinConfig();
         var trackingUrl = StringUtils.EMPTY;
         if (isJobOnCluster()) {
             val cm = buildEnv.clusterManager();
@@ -172,16 +177,20 @@ abstract public class StreamingApplication {
             } catch (Exception e) {
                 logger.error("get tracking url failed!", e);
             }
-            val request = new StreamingJobUpdateRequest(projectId, modelId, jobType, appId, trackingUrl);
+            val request = new StreamingJobUpdateRequest(project, modelId, jobType, appId, trackingUrl);
             request.setProcessId(pid);
             request.setNodeInfo(AddressUtil.getZkLocalInstance());
-            val rest = new RestSupport(config);
+            val rest = createRestSupport(config);
             try {
                 rest.execute(rest.createHttpPut("/streaming_jobs/spark"), request);
             } finally {
                 rest.close();
             }
         }
+    }
+
+    public KylinBuildEnv getOrCreateKylinBuildEnv(KylinConfig config) {
+        return KylinBuildEnv.getOrCreate(config);
     }
 
     /**
@@ -194,7 +203,7 @@ abstract public class StreamingApplication {
         return cm.getBuildTrackingUrl(sparkSession);
     }
 
-    private String tryReplaceHostAddress(String url) {
+    public String tryReplaceHostAddress(String url) {
         String originHost = null;
         try {
             val uri = URI.create(url);
@@ -242,5 +251,9 @@ abstract public class StreamingApplication {
         val mgr = StreamingJobManager.getInstance(config, project);
         val meta = mgr.getStreamingJobByUuid(uuid);
         return StreamingConstants.ACTION_GRACEFUL_SHUTDOWN.equals(meta.getAction());
+    }
+
+    public RestSupport createRestSupport(KylinConfig config) {
+        return new RestSupport(config);
     }
 }

@@ -95,8 +95,8 @@ public class StreamingScheduler {
 
     private static final Map<String, StreamingScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
     private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    private static List<JobStatusEnum> STARTABLE_STATUS_LIST = Arrays.asList(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,
-            JobStatusEnum.NEW);
+    private static final List<JobStatusEnum> STARTABLE_STATUS_LIST = Arrays.asList(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,
+            JobStatusEnum.NEW, JobStatusEnum.LAUNCHING_ERROR);
 
     private static StreamingJobStatusWatcher jobStatusUpdater = new StreamingJobStatusWatcher();
 

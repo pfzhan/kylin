@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.streaming.app;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -35,10 +36,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.response.RestResponse;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
@@ -99,9 +103,9 @@ public class StreamingMergeEntry extends StreamingApplication {
         entry.schedule(args[0], args[1]);
     }
 
-    public void schedule(String project, String dataflowId) throws Exception {
+    public void schedule(String project, String dataflowId) throws ExecuteException {
         shutdown.set(false);
-        logger.info("StreamingMergeEntry:" + project + "," + dataflowId + "," + thresholdOfSegSize + "," + numberOfSeg);
+        logger.info("{},{},{},{}", project, dataflowId, thresholdOfSegSize, numberOfSeg);
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
 
         val modelId = dataflowId;
@@ -122,7 +126,7 @@ public class StreamingMergeEntry extends StreamingApplication {
                     StreamingUtils.sleep(config.getStreamingSegmentMergeInterval() * 1000);
                 } else if (!config.isUTEnv()) {
                     shutdown.set(true);
-                    logger.info("begin to shutdown streaming merge job (" + (project + ":" + dataflowId + ")"));
+                    logger.info("begin to shutdown streaming merge job ({}:{})", project, dataflowId);
                 }
             }
             closeSparkSession();
@@ -130,7 +134,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             logger.error(e.getMessage(), e);
             isError = true;
             JobKiller.killApplication(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-            throw new ExecuteException("streaming merging segment error occured: ", e);
+            throw new ExecuteException("streaming merging segment error occurred: ", e);
         } finally {
             // add a stop method
             merger.shutdown();
@@ -142,11 +146,13 @@ public class StreamingMergeEntry extends StreamingApplication {
         }
     }
 
-    public void process(String project, String dataflowId) throws ExecuteException {
+    public void process(String project, String dataflowId) throws IOException {
         // Step1. catch up metadata
         StreamingUtils.replayAuditlog();
-        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val config = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
         NDataflow dataflow = dfMgr.getDataflow(dataflowId);
+        removeHdfsFiles(dataflow);
         Segments<NDataSegment> segments = dataflow.getSegments().getSegments(SegmentStatusEnum.READY,
                 SegmentStatusEnum.WARNING);
         // step2. sort segment
@@ -172,10 +178,9 @@ public class StreamingMergeEntry extends StreamingApplication {
                 break;
             }
             if (seg.getStorageBytesSize() > thresholdOfSegSize) {
-                logger.info("SegmentId=" + seg.getId() + " size （" + seg.getStorageBytesSize() + ") exceeds threshold"
-                        + "] ");
+                logger.info("SegmentId={} size ({}) exceeds threshold", seg.getId(), seg.getStorageBytesSize());
                 break;
-            } else {
+            } else if (config.getStreamingSegmentCleanInterval() >= 0) {
                 for (NDataSegment item : segList) {
                     putHdfsFile(item.getId(),
                             new Pair<>(dataflow.getSegmentHdfsPath(item.getId()), System.currentTimeMillis()));
@@ -186,7 +191,34 @@ public class StreamingMergeEntry extends StreamingApplication {
         }
     }
 
-    private NDataSegment mergeSegments(String project, String dataflowId, List<NDataSegment> retainSegments,
+    /**
+     * remove invalid segment from hdfs file
+     */
+    public void removeHdfsFiles(NDataflow dataflow) throws IOException {
+        val config = KylinConfig.getInstanceFromEnv();
+
+        if (config.getStreamingSegmentCleanInterval() >= 0) {
+            String hdfsWorkingDir = KapConfig.wrap(dataflow.getConfig()).getMetadataWorkingDirectory();
+            val dirPath = new Path(hdfsWorkingDir + StreamingConstants.SLASH + dataflow.getProject()
+                    + StreamingConstants.SLASH + "parquet" + StreamingConstants.SLASH + dataflow.getId());
+            val fs = HadoopUtil.getFileSystem(hdfsWorkingDir);
+            if (!fs.exists(dirPath)) {
+                return;
+            }
+            val segments = dataflow.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+            val files = fs.listStatus(dirPath,
+                    segPath -> !segPath.getName().equals(dataflow.getId()) && !segments.contains(segPath.getName()));
+            Arrays.sort(files, (file1, file2) -> (int) (file1.getModificationTime() - file2.getModificationTime()));
+            // skip last build & merge job's segment
+            for (int i = 0; i < files.length - 2; i++) {
+                putHdfsFile(files[i].getPath().getName(),
+                        new Pair<>(files[i].getPath().toString(), files[i].getModificationTime()));
+            }
+            clearHdfsFiles(dataflow, new AtomicLong(0));
+        }
+    }
+
+    public NDataSegment mergeSegments(String project, String dataflowId, List<NDataSegment> retainSegments,
             int currLayer) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         int retry = 0;
@@ -201,7 +233,7 @@ public class StreamingMergeEntry extends StreamingApplication {
         throw new KylinException(ServerErrorCode.SEGMENT_MERGE_FAILURE, project + "/" + dataflowId);
     }
 
-    private NDataSegment getSegment(Segments<NDataSegment> segments, NDataSegment afterMergeSeg, String project,
+    public NDataSegment getSegment(Segments<NDataSegment> segments, NDataSegment afterMergeSeg, String project,
             String dataflowId) {
         NDataSegment seg = segments.getSegment(afterMergeSeg.getName(), SegmentStatusEnum.READY);
         if (seg == null) {
@@ -211,22 +243,27 @@ public class StreamingMergeEntry extends StreamingApplication {
             seg = segments.getSegment(afterMergeSeg.getName(), SegmentStatusEnum.NEW);
             val config = KylinConfig.getInstanceFromEnv();
             if (seg != null && !config.isUTEnv()) {
-                RestSupport rest = new RestSupport(config);
-                String url = "/streaming_jobs/dataflow/segment/deletion";
-                StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
-                req.setRemoveSegment(Arrays.asList(seg));
-                try {
-                    rest.execute(rest.createHttpPost(url), req);
-                } finally {
-                    rest.close();
-                }
-                StreamingUtils.replayAuditlog();
+                removeSegment(project, dataflowId, seg);
             }
         }
         if (seg == null) {
             throw new KylinException(ServerErrorCode.SEGMENT_MERGE_FAILURE, "segment is null");
         }
         return seg;
+    }
+
+    public void removeSegment(String project, String dataflowId, NDataSegment seg) {
+        val config = KylinConfig.getInstanceFromEnv();
+        RestSupport rest = createRestSupport(config);
+        String url = "/streaming_jobs/dataflow/segment/deletion";
+        StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
+        req.setRemoveSegment(Arrays.asList(seg));
+        try {
+            rest.execute(rest.createHttpPost(url), req);
+        } finally {
+            rest.close();
+        }
+        StreamingUtils.replayAuditlog();
     }
 
     public NDataSegment allocateSegment(String project, String dataflowId, List<NDataSegment> retainSegments,
@@ -274,24 +311,7 @@ public class StreamingMergeEntry extends StreamingApplication {
                 return dfMgr.mergeSegments(dfMgr.getDataflow(dataflowId), rangeToMerge, true, currLayer + 1, null);
             }, project);
         } else {
-            String url = "/streaming_jobs/dataflow/segment";
-            StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
-            req.setSegmentRange(rangeToMerge);
-            req.setLayer(String.valueOf(currLayer));
-            req.setNewSegId(RandomUtil.randomUUIDStr());
-            RestSupport rest = new RestSupport(config);
-
-            try {
-                RestResponse<String> restResponse = rest.execute(rest.createHttpPost(url), req);
-                String newSegId = restResponse.getData();
-                // catch up local metadata
-                StreamingUtils.replayAuditlog();
-                NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                afterMergeSeg = dfMgr.getDataflow(dataflowId).getSegment(newSegId);
-            } finally {
-                rest.close();
-            }
-
+            afterMergeSeg = doMergeStreamingSegment(project, dataflowId, rangeToMerge, currLayer);
         }
 
         // step3. execute merge segment action!
@@ -300,16 +320,37 @@ public class StreamingMergeEntry extends StreamingApplication {
         List<NDataSegment> updatedSegments = null;
         val dfMgr = NDataflowManager.getInstance(config, project);
         final NDataflow df = dfMgr.getDataflow(dataflowId);
-        updatedSegments = retainSegments.stream().map(seg -> {
-            return df.getSegment(seg.getId());
-        }).collect(Collectors.toList());
+        updatedSegments = retainSegments.stream().map(seg -> df.getSegment(seg.getId())).collect(Collectors.toList());
         long afterMergeSegSourceCount = retainSegments.stream().mapToLong(NDataSegment::getSourceCount).sum();
         logger.info("afterMergeSegment[{}] layer={}  from {}", afterMergeSeg, currLayer, updatedSegments);
 
-        val mergeJobEntry = new MergeJobEntry(ss, project, dataflowId, afterMergeSegSourceCount, globalMergeTime, updatedSegments, afterMergeSeg);
+        val mergeJobEntry = new MergeJobEntry(ss, project, dataflowId, afterMergeSegSourceCount, globalMergeTime,
+                updatedSegments, afterMergeSeg);
         SyncMerger syncMerge = new SyncMerger(mergeJobEntry);
         syncMerge.run(merger);
         return afterMergeSeg;
+    }
+
+    public NDataSegment doMergeStreamingSegment(String project, String dataflowId,
+            SegmentRange.KafkaOffsetPartitionedSegmentRange rangeToMerge, int currLayer) {
+        val config = KylinConfig.getInstanceFromEnv();
+        String url = "/streaming_jobs/dataflow/segment";
+        StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
+        req.setSegmentRange(rangeToMerge);
+        req.setLayer(String.valueOf(currLayer));
+        req.setNewSegId(RandomUtil.randomUUIDStr());
+        RestSupport rest = createRestSupport(config);
+
+        try {
+            RestResponse<String> restResponse = rest.execute(rest.createHttpPost(url), req);
+            String newSegId = restResponse.getData();
+            // catch up local metadata
+            StreamingUtils.replayAuditlog();
+            NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            return dfMgr.getDataflow(dataflowId).getSegment(newSegId);
+        } finally {
+            rest.close();
+        }
     }
 
     private MergePolicy selectPolicy(Segments<NDataSegment> segments, int layer) {
@@ -327,7 +368,7 @@ public class StreamingMergeEntry extends StreamingApplication {
     }
 
     private void removeLastL0Segment(Segments<NDataSegment> segments) {
-        if (segments.size() > 0) {
+        if (!segments.isEmpty()) {
             val additionInfo = segments.get(segments.size() - 1).getAdditionalInfo();
             if (additionInfo != null && !additionInfo.containsKey(StreamingConstants.FILE_LAYER))
                 segments.remove(segments.size() - 1);

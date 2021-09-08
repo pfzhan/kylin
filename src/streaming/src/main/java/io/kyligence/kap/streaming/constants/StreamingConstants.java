@@ -59,7 +59,7 @@ public class StreamingConstants {
 
     // hadoop conf
     public static final String HADOOP_CONF_DIR = "HADOOP_CONF_DIR";
-    public static final String JOB_SHUTDOWN_FILE_PATH = "/shutdown/%s_%s";
+    public static final String SLASH = "/";
 
     // streaming job
     public static final String STREAMING_DURATION = "kylin.streaming.duration";

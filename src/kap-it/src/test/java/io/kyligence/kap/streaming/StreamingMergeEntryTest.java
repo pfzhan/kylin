@@ -23,30 +23,46 @@
  */
 package io.kyligence.kap.streaming;
 
-import io.kyligence.kap.streaming.util.ReflectionUtils;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.hadoop.fs.Path;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.common.response.RestResponse;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.spark.sql.SparkSession;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.rest.RestSupport;
+import io.kyligence.kap.streaming.util.ReflectionUtils;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
-
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
+import lombok.var;
 
 public class StreamingMergeEntryTest extends StreamingTestCase {
     private static final Logger logger = LoggerFactory.getLogger(StreamingMergeEntryTest.class);
@@ -77,7 +93,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         StreamingMergeEntry streamingMergeEntry = new StreamingMergeEntry();
         streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
         streamingMergeEntry.setNumberOfSeg(10);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -109,7 +125,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         StreamingMergeEntry streamingMergeEntry = new StreamingMergeEntry();
         streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
         streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -144,7 +160,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         StreamingMergeEntry streamingMergeEntry = new StreamingMergeEntry();
         streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
         streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -172,7 +188,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
         StreamingMergeEntry streamingMergeEntry = new StreamingMergeEntry();
         streamingMergeEntry.setThresholdOfSegSize(20 * 1024);
         streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -204,7 +220,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
 
         streamingMergeEntry.setThresholdOfSegSize(14 * 1024);
         streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -238,7 +254,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
 
         streamingMergeEntry.setThresholdOfSegSize(30 * 1024);
         streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -278,7 +294,7 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
 
         streamingMergeEntry.setThresholdOfSegSize(16 * 1024);
         streamingMergeEntry.setNumberOfSeg(3);
-        streamingMergeEntry.setSparkSession(SparkSession.builder().master("local").appName("mergejob").getOrCreate());
+        streamingMergeEntry.setSparkSession(createSparkSession());
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow df = mgr.getDataflow(DATAFLOW_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
@@ -364,6 +380,122 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     }
 
     @Test
+    public void testScheduleException() {
+        val config = getTestConfig();
+        config.setProperty("kylin.engine.streaming-segment-merge-interval", "1");
+        val args = new String[] { PROJECT, DATAFLOW_ID + "-err", "5k", "5" };
+        try {
+            createSparkSession();
+            StreamingMergeEntry.main(args);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof ExecuteException);
+        }
+    }
+
+    @Test
+    public void testRemoveHdfsFiles() {
+        val entry = Mockito.spy(new StreamingMergeEntry());
+        val config = getTestConfig();
+        config.setProperty("kylin.engine.streaming-segment-clean-interval", "-1h");
+        val mgr = NDataflowManager.getInstance(config, PROJECT);
+        var dataflow = mgr.getDataflow(DATAFLOW_ID);
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getUuid());
+        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+        mgr.updateDataflow(update);
+        dataflow = mgr.getDataflow(DATAFLOW_ID);
+        try {
+            String hdfsWorkingDir = KapConfig.wrap(dataflow.getConfig()).getMetadataWorkingDirectory();
+            val dataflowPath = hdfsWorkingDir + "/" + dataflow.getProject() + "/parquet/" + dataflow.getId();
+            val dirPath = new Path(dataflowPath);
+            val fs = HadoopUtil.getFileSystem(hdfsWorkingDir);
+            if (!fs.exists(dirPath)) {
+                fs.mkdirs(dirPath);
+            }
+            fs.mkdirs(new Path(dataflowPath + "/abcd-123"));
+            fs.mkdirs(new Path(dataflowPath + "/abcd-124"));
+            fs.mkdirs(new Path(dataflowPath + "/abcd-125"));
+            fs.mkdirs(new Path(dataflowPath + "/abcd-126"));
+            entry.removeHdfsFiles(dataflow);
+            Assert.assertEquals(4, fs.listStatus(dirPath).length);
+
+            config.setProperty("kylin.engine.streaming-segment-clean-interval", "0h");
+            entry.removeHdfsFiles(dataflow);
+            Assert.assertEquals(2, fs.listStatus(dirPath).length);
+
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void testGetSegment() {
+        val entry = Mockito.spy(new StreamingMergeEntry());
+        val config = getTestConfig();
+        val mgr = NDataflowManager.getInstance(config, PROJECT);
+        var dataflow = mgr.getDataflow(DATAFLOW_ID);
+        val mergedSeg = "c380dd2a-43b8-4268-b73d-2a5f76236633";
+
+        mgr.updateDataflow(dataflow.getId(), updater -> {
+            updater.getSegment(mergedSeg).setStatus(SegmentStatusEnum.WARNING);
+        });
+        dataflow = mgr.getDataflow(DATAFLOW_ID);
+        val warningSeg = entry.getSegment(dataflow.getSegments(), dataflow.getSegment(mergedSeg), PROJECT, DATAFLOW_ID);
+        Assert.assertEquals(SegmentStatusEnum.WARNING, warningSeg.getStatus());
+
+        mgr.updateDataflow(dataflow.getId(), updater -> {
+            updater.getSegment(mergedSeg).setStatus(SegmentStatusEnum.NEW);
+        });
+        dataflow = mgr.getDataflow(DATAFLOW_ID);
+        val newSeg = entry.getSegment(dataflow.getSegments(), dataflow.getSegment(mergedSeg), PROJECT, DATAFLOW_ID);
+        Assert.assertEquals(SegmentStatusEnum.NEW, newSeg.getStatus());
+
+        thrown.expect(KylinException.class);
+        val empSeg = new NDataSegment();
+        entry.getSegment(dataflow.getSegments(), empSeg, PROJECT, DATAFLOW_ID);
+    }
+
+    @Test
+    public void testRemoveSegment() {
+        val entry = Mockito.spy(new StreamingMergeEntry());
+        val config = getTestConfig();
+        Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
+            public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+                return RestResponse.ok("new-seg-123456");
+            }
+        });
+        val seg = new NDataSegment();
+        entry.removeSegment(PROJECT, DATAFLOW_ID, seg);
+    }
+
+    @Test
+    public void testMergeSegmentsException() {
+        val config = getTestConfig();
+        config.setProperty("kylin.engine.streaming-segment-merge-interval", "0s");
+        val entry = Mockito.spy(new StreamingMergeEntry() {
+            public NDataSegment allocateSegment(String project, String dataflowId, List<NDataSegment> retainSegments,
+                    int currLayer) {
+                throw new KylinException(ServerErrorCode.SEGMENT_MERGE_FAILURE, "merge Exception");
+            }
+        });
+        val retainSegments = Arrays.asList(new NDataSegment());
+        thrown.expect(KylinException.class);
+        entry.mergeSegments(PROJECT, DATAFLOW_ID, retainSegments, 1);
+    }
+
+    @Test
+    public void testDoMergeStreamingSegment() {
+        val entry = Mockito.spy(new StreamingMergeEntry());
+        val config = getTestConfig();
+        Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
+            public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+                return RestResponse.ok("new-seg-123456");
+            }
+        });
+        val result = entry.doMergeStreamingSegment(PROJECT, DATAFLOW_ID, null, 1);
+        Assert.assertNull(result);
+    }
+
+    @Test
     public void testNoClearHdfsFiles() {
         val config = getTestConfig();
         val mgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
@@ -404,15 +536,101 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
     }
 
     @Test
+    public void testCloseAuditLogStore() {
+        StreamingMergeEntry entry = Mockito.spy(new StreamingMergeEntry());
+        Mockito.when(entry.isJobOnCluster()).thenReturn(true);
+        entry.closeAuditLogStore(createSparkSession());
+    }
+
+    @Test
+    public void testReportApplicationInfo() {
+        StreamingMergeEntry entry = Mockito.spy(new StreamingMergeEntry());
+        val config = getTestConfig();
+        val targetPid = new AtomicLong(-1);
+        Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
+            public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+                targetPid.set(Long.parseLong(StreamingUtils.getProcessId()));
+                return RestResponse.ok();
+            }
+        });
+        entry.setSparkSession(createSparkSession());
+        val pid = StreamingUtils.getProcessId();
+        entry.reportApplicationInfo(config, PROJECT, DATAFLOW_ID, JobTypeEnum.STREAMING_MERGE.name(), pid);
+        Assert.assertEquals(-1, targetPid.get());
+    }
+
+    @Test
+    public void testReportYarnApplicationInfo() {
+        val entry = Mockito.spy(new StreamingMergeEntry());
+        Mockito.when(entry.isJobOnCluster()).thenReturn(true);
+        val config = getTestConfig();
+        val targetPid = new AtomicLong();
+        val env = KylinBuildEnv.getOrCreate(config);
+        entry.setSparkSession(createSparkSession());
+        Mockito.when(entry.createRestSupport(env.kylinConfig())).thenReturn(new RestSupport(config) {
+            public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+                targetPid.set(Long.parseLong(StreamingUtils.getProcessId()));
+                return RestResponse.ok();
+            }
+        });
+        val pid = StreamingUtils.getProcessId();
+        entry.reportApplicationInfo(env, PROJECT, DATAFLOW_ID, JobTypeEnum.STREAMING_MERGE.name(), pid);
+        Assert.assertEquals(pid, String.valueOf(targetPid.get()));
+    }
+
+    @Test
+    public void tryReplaceHostAddress() {
+        val url = "http://localhost:8080";
+        StreamingMergeEntry entry = new StreamingMergeEntry();
+        val host = entry.tryReplaceHostAddress(url);
+        Assert.assertEquals("http://127.0.0.1:8080", host);
+
+        val url1 = "http://unknow-host-9345:8080";
+        val host1 = entry.tryReplaceHostAddress(url1);
+        Assert.assertEquals(url1, host1);
+    }
+
+    @Test
     public void testIsJobOnCluster() {
         StreamingMergeEntry streamingMergeEntry = new StreamingMergeEntry();
         Assert.assertFalse(streamingMergeEntry.isJobOnCluster());
     }
 
-    @Ignore
+    @Test
+    public void testGetJobParams() {
+        val jobId = StreamingUtils.getJobId(DATAFLOW_ID, JobTypeEnum.STREAMING_MERGE.name());
+        val streamingJobMgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
+
+        val jobMeta = streamingJobMgr.getStreamingJobByUuid(jobId);
+        val entry = new StreamingMergeEntry();
+        val jobParams = entry.getJobParams(jobMeta);
+        Assert.assertTrue(!jobParams.isEmpty());
+    }
+
+    @Test
+    public void testIsGracefulShutdown() {
+        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+
+        val entry = new StreamingMergeEntry();
+        val buildJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_BUILD.name());
+        Assert.assertFalse(entry.isGracefulShutdown(PROJECT, buildJobId));
+    }
+
+    @Test
+    public void testCreateRestSupport() {
+        val config = getTestConfig();
+        val entry = new StreamingMergeEntry();
+        val rest = entry.createRestSupport(config);
+        Assert.assertNotNull(rest);
+        rest.close();
+    }
+
     @Test
     public void testShutdown() {
-        val result = StreamingMergeEntry.shutdown();
-        Assert.assertFalse(result);
+        try {
+            StreamingMergeEntry.shutdown();
+        } catch (Exception e) {
+            Assert.fail();
+        }
     }
 }
