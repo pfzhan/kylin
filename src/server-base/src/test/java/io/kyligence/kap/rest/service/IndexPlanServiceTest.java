@@ -335,6 +335,59 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testUpdateIndexPlanWithToBeDelete() {
+        val id = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val origin = indexPlanManager.getIndexPlan(id);
+        var aggregationGroup = getNAggregationGroup(new Integer[] { 100000 });
+
+        val saved = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default").modelId(id).isLoadData(true)
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                .getFirst();
+        Assert.assertEquals(origin.getAllLayouts().size() + 3, saved.getAllLayouts().size());
+
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val readySegs = dfManager.getDataflow(id).getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
+        val last = readySegs.getLatestReadySegment().getSegDetails();
+        List<NDataLayout> lists = Lists.newArrayList(last.getLayouts());
+        saved.getRuleBasedIndex().getLayoutIdMapping().forEach(layoutId -> {
+            if (saved.getLayoutEntity(layoutId).getDimsIds().size() > 1) {
+                lists.add(NDataLayout.newDataLayout(last, layoutId));
+            }
+        });
+        dfManager.updateDataflowDetailsLayouts(readySegs.getLatestReadySegment(), lists);
+        aggregationGroup = getNAggregationGroup(new Integer[] { 100000, 100005 });
+        var res = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default").modelId(id).isLoadData(true)
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                .getFirst();
+        Assert.assertEquals(1, res.getToBeDeletedIndexes().size());
+        aggregationGroup = getNAggregationGroup(new Integer[] { 100000 });
+        res = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default")
+                                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup)).build())
+                .getFirst();
+        Assert.assertEquals(0, res.getToBeDeletedIndexes().size());
+    }
+
+    private NAggregationGroup getNAggregationGroup(Integer[] measures) {
+        NAggregationGroup aggregationGroup = new NAggregationGroup();
+        aggregationGroup.setIncludes(new Integer[] { 1, 2 });
+        aggregationGroup.setMeasures(measures);
+        val selectRule = new SelectRule();
+        selectRule.mandatoryDims = new Integer[] {};
+        selectRule.hierarchyDims = new Integer[0][0];
+        selectRule.jointDims = new Integer[0][0];
+        aggregationGroup.setSelectRule(selectRule);
+        return aggregationGroup;
+    }
+
+    @Test
     public void testUpdateRuleBasedIndexWithDifferentMeasure() {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");

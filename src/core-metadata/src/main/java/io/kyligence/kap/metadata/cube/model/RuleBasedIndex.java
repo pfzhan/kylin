@@ -271,17 +271,18 @@ public class RuleBasedIndex implements Serializable, IKeep {
         Set<LayoutEntity> genLayouts = Sets.newHashSet();
 
         Map<LayoutEntity, Long> existLayouts = Maps.newHashMap();
-        for (LayoutEntity layout : previousLayouts) {
-            existLayouts.put(layout, layout.getId());
-        }
-        for (LayoutEntity layout : indexPlan.getWhitelistLayouts()) {
-            existLayouts.put(layout, layout.getId());
-        }
+        previousLayouts.forEach(layout -> existLayouts.put(layout, layout.getId()));
+        indexPlan.getWhitelistLayouts().forEach(layout -> existLayouts.put(layout, layout.getId()));
 
         Map<LayoutEntity, Long> delLayouts = Maps.newHashMap();
-        for (LayoutEntity layout : needDelLayouts) {
-            delLayouts.put(layout, layout.getId());
-        }
+        needDelLayouts.forEach(layout -> delLayouts.put(layout, layout.getId()));
+
+        Map<LayoutEntity, Long> toBeDeletedLayouts = Maps.newHashMap();
+        Map<IndexIdentifier, IndexEntity> toBeDeletedIndexesMap = Maps.newHashMap();
+        indexPlan.getToBeDeletedIndexes().forEach(index -> {
+            toBeDeletedIndexesMap.put(index.createIndexIdentifier(), index);
+            index.getLayouts().forEach(layout -> toBeDeletedLayouts.put(layout, layout.getId()));
+        });
 
         Map<IndexIdentifier, IndexEntity> identifierIndexMap = existLayouts.keySet().stream()
                 .map(LayoutEntity::getIndex).collect(Collectors.groupingBy(IndexEntity::createIndexIdentifier,
@@ -301,18 +302,19 @@ public class RuleBasedIndex implements Serializable, IKeep {
             // if a cuboid is same as the layout's one, then reuse it
             val indexIdentifier = new IndexEntity.IndexIdentifier(dimensionsInLayout, measuresInLayout, false);
             var layoutIndex = identifierIndexMap.get(indexIdentifier);
-            // if two layout is equal, the id should be same
-            Long prevId = existLayouts.get(layout);
+            IndexEntity toBeDelLayoutIndex = toBeDeletedIndexesMap.get(indexIdentifier);
+            long nextLayoutId = getNextLayoutId(layoutIndex, toBeDelLayoutIndex);
 
             if (needAllocationId) {
+                // if two layout is equal, the id should be same
+                Long prevId = getExistLayoutId(layout, toBeDelLayoutIndex, existLayouts, toBeDeletedLayouts);
                 if (prevId != null) {
-                    layout.setId(existLayouts.get(layout));
+                    layout.setId(prevId);
                 } else if (delLayouts.containsKey(layout)) {
                     layout.setId(delLayouts.get(layout));
                     layoutBlackList.add(delLayouts.get(layout));
-                } else if (layoutIndex != null) {
-                    val id = layoutIndex.getId() + layoutIndex.getNextLayoutOffset();
-                    layout.setId(id);
+                } else if (nextLayoutId > 0) {
+                    layout.setId(nextLayoutId);
                 } else {
                     layout.setId(proposalId);
                     proposalId += IndexEntity.INDEX_ID_STEP;
@@ -346,6 +348,33 @@ public class RuleBasedIndex implements Serializable, IKeep {
             genLayouts.removeIf(layout -> layoutBlackList.contains(layout.getId()));
         }
         return genLayouts;
+    }
+
+    private Long getExistLayoutId(LayoutEntity layout, IndexEntity toBeDelLayoutIndex,
+            Map<LayoutEntity, Long> existLayouts, Map<LayoutEntity, Long> toBeDeletedLayouts) {
+        Long prevId = existLayouts.get(layout);
+        if (prevId == null && toBeDelLayoutIndex != null) {
+            prevId = toBeDeletedLayouts.get(layout);
+            if (prevId != null) {
+                indexPlan.getToBeDeletedIndexes().remove(toBeDelLayoutIndex);
+                toBeDelLayoutIndex.getLayouts().remove(layout);
+                if (!toBeDelLayoutIndex.getLayouts().isEmpty()) {
+                    indexPlan.getToBeDeletedIndexes().add(toBeDelLayoutIndex);
+                }
+            }
+        }
+        return prevId;
+    }
+
+    private long getNextLayoutId(IndexEntity layoutIndex, IndexEntity toBeDelLayoutIndex) {
+        long id = 0;
+        if (layoutIndex != null) {
+            id = layoutIndex.getId() + layoutIndex.getNextLayoutOffset();
+        }
+        if (toBeDelLayoutIndex != null) {
+            id = Math.max(id, toBeDelLayoutIndex.getId() + toBeDelLayoutIndex.getNextLayoutOffset());
+        }
+        return id;
     }
 
     private LayoutEntity createLayout(ColOrder colOrder) {
