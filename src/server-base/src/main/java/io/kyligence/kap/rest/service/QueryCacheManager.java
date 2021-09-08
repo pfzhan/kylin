@@ -24,14 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.util.CheckUtil.checkCondition;
-import static org.apache.kylin.rest.cache.RedisCache.checkRedisClient;
-
-import java.util.List;
-import java.util.Locale;
-
-import javax.annotation.PostConstruct;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.TableMeta;
@@ -49,7 +41,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Preconditions;
+import javax.annotation.PostConstruct;
+import java.util.List;
+
+import static org.apache.kylin.common.util.CheckUtil.checkCondition;
+import static org.apache.kylin.rest.cache.RedisCache.checkRedisClient;
 
 
 /**
@@ -77,14 +73,11 @@ public class QueryCacheManager {
     @PostConstruct
     public void init() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        String type = "Ehcache";
         if (kylinConfig.isRedisEnabled()) {
             kylinCache = RedisCache.getInstance();
-            type = "Redis";
         } else {
             kylinCache = KylinEhCache.getInstance();
         }
-        Preconditions.checkNotNull(kylinCache, String.format(Locale.ROOT, "%s Kylin Cache is not initiated yet!", type));
         if (kylinCache instanceof RedisCache && checkRedisClient()) {
             logger.info("Redis cache connect successfully!");
         }
@@ -284,8 +277,9 @@ public class QueryCacheManager {
     }
 
     public void recoverCache() {
-        if (kylinCache instanceof RedisCache) {
-            ((RedisCache) kylinCache).recoverInstance();
+        boolean isRedisEnabled = KylinConfig.getInstanceFromEnv().isRedisEnabled();
+        if (isRedisEnabled) {
+            RedisCache.recoverInstance();
             logger.info("[query cache log] Redis client recover successfully.");
         }
     }

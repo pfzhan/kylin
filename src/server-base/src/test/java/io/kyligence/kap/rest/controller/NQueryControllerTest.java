@@ -26,16 +26,15 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.hamcrest.CoreMatchers.containsString;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
-import javax.servlet.http.HttpServletResponse;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.rest.service.QueryCacheManager;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -60,16 +59,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import redis.clients.jedis.exceptions.JedisException;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryInfo;
-import io.kyligence.kap.metadata.query.QueryHistoryRequest;
-import io.kyligence.kap.rest.service.QueryHistoryService;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.hamcrest.CoreMatchers.containsString;
 
 /**
  * @author xduo
@@ -84,6 +84,9 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private QueryHistoryService queryHistoryService;
+
+    @Mock
+    private QueryCacheManager queryCacheManager;
 
     @InjectMocks
     private NQueryController nQueryController = Mockito.spy(new NQueryController());
@@ -138,6 +141,65 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).stopQuery(Mockito.any());
+    }
+
+    @Test
+    public void testClearCache() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/cache").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).clearCache(Mockito.any());
+    }
+
+    @Test
+    public void testClearCacheNotAdmin() throws Exception {
+        try {
+            final Authentication authentication2 = new TestingAuthenticationToken("MODELER", "MODELER", Constant.ROLE_MODELER);
+            SecurityContextHolder.getContext().setAuthentication(authentication2);
+            mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/cache").contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+
+            Mockito.verify(nQueryController).clearCache(Mockito.any());
+        } finally {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+    }
+
+    @Test
+    public void testClearCacheThrow() throws Exception {
+        Mockito.doThrow(new JedisException("for test")).when(queryCacheManager).clearProjectCache(Mockito.anyString());
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/cache").contentType(MediaType.APPLICATION_JSON)
+                .param("project", Mockito.anyString())
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+
+        Mockito.verify(nQueryController).clearCache(Mockito.anyString());
+    }
+
+    @Test
+    public void testRecoverCache() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/cache/recovery").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).recoverCache();
+    }
+
+    @Test
+    public void testRecoverCacheNotAdmin() throws Exception {
+        try {
+            final Authentication authentication2 = new TestingAuthenticationToken("MODELER", "MODELER", Constant.ROLE_MODELER);
+            SecurityContextHolder.getContext().setAuthentication(authentication2);
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/query/cache/recovery").contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().is5xxServerError());
+
+            Mockito.verify(nQueryController).recoverCache();
+        } finally {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
     }
 
     @Test

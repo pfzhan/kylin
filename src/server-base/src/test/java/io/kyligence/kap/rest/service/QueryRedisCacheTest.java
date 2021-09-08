@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.kylin.rest.cache.KylinCache;
 import org.apache.kylin.rest.cache.RedisCache;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -42,8 +39,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
-
 import redis.embedded.RedisServer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryRedisCacheTest extends LocalFileMetadataTestCase {
@@ -126,5 +125,7 @@ public class QueryRedisCacheTest extends LocalFileMetadataTestCase {
         Assert.assertEquals(resp1.getResultRowCount(), queryCacheManager.searchQuery(req1).getResultRowCount());
         queryCacheManager.clearProjectCache(project);
         Assert.assertNull(queryCacheManager.searchQuery(req1));
+
+        queryCacheManager.recoverCache();
     }
 }

@@ -30,6 +30,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.REDIS_CLEAR_ERROR;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -106,6 +107,7 @@ import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
+import redis.clients.jedis.exceptions.JedisException;
 
 /**
  * Handle query requests.
@@ -171,7 +173,12 @@ public class NQueryController extends NBasicController {
             throw new KylinException(PERMISSION_DENIED,
                     "Please make sure you have the admin authority to clear project cache.");
         }
-        queryCacheManager.clearProjectCache(project);
+        try {
+            queryCacheManager.clearProjectCache(project);
+        } catch (JedisException e) {
+            throw new KylinException(REDIS_CLEAR_ERROR,
+                    "Please make sure your redis service is online.");
+        }
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

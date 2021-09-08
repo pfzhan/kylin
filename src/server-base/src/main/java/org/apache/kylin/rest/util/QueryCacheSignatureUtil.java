@@ -122,7 +122,13 @@ public class QueryCacheSignatureUtil {
             return true;
         }
         val lastSignature = createCacheSignature(sqlResponse, project);
-        return !signature.equals(lastSignature);
+        if (!signature.equals(lastSignature)) {
+            logger.debug("[Signature error] old signature: " + signature);
+            logger.debug("[Signature error] new signature: " + lastSignature);
+            return true;
+        }
+
+        return false;
     }
 
     // Schema Cache

@@ -286,7 +286,10 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
 
     // 10039XXX jdbc source
 
-    INVALID_JDBC_SOURCE_CONFIG("KE-010039001"); //
+    INVALID_JDBC_SOURCE_CONFIG("KE-010039001"), //
+
+    // 10040XXX cache
+    REDIS_CLEAR_ERROR("KE-010040001"); //
 
     private final ErrorCode errorCode;
 

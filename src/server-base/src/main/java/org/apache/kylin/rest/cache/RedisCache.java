@@ -89,16 +89,17 @@ public class RedisCache implements KylinCache {
     private static final AtomicBoolean isRecovering = new AtomicBoolean(false);
 
     public static KylinCache getInstance() {
-        return Singletons.getInstance(RedisCache.class);
+        try {
+            return Singletons.getInstance(RedisCache.class);
+        } catch (RuntimeException e) {
+            logger.error("Jedis init failed: ", e);
+        }
+        return null;
     }
 
     public static boolean checkRedisClient() {
         Jedis jedis = null;
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        // For redis-embedded ut in cluster mode
-        if (kylinConfig.isUTEnv()) {
-            return true;
-        }
         try {
             String result = "";
             if (kylinConfig.isRedisClusterEnabled()) {
@@ -163,7 +164,7 @@ public class RedisCache implements KylinCache {
 
     // ============================================================================
 
-    private RedisCache() {
+    private RedisCache() throws JedisException {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         redisClusterEnabled = kylinConfig.isRedisClusterEnabled();
         redisExpireTimeUnit = kylinConfig.getRedisExpireTimeUnit();
@@ -179,62 +180,61 @@ public class RedisCache implements KylinCache {
             throw new RuntimeException("redis client init failed because there are some errors in kylin.properties for 'kylin.cache.redis.hosts'");
         }
         logger.info("The 'kylin.cache.redis.cluster-enabled' is {}", redisClusterEnabled);
-        try {
-            if (kylinConfig.isRedisClusterEnabled()) {
-                logger.info("ke will use redis cluster");
-                Set<HostAndPort> hosts = Sets.newHashSet();
-                for (String hostAndPort : hostAndPorts) {
-                    String host = hostAndPort.substring(0, hostAndPort.lastIndexOf(":"));
-                    int port = Integer.parseInt(hostAndPort.substring(hostAndPort.lastIndexOf(":") + 1));
-                    hosts.add(new HostAndPort(host, port));
-                }
-                GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-                config.setMaxTotal(kylinConfig.getRedisMaxTotal());
-                config.setMaxIdle(kylinConfig.getRedisMaxIdle());
-                config.setMinIdle(kylinConfig.getRedisMinIdle());
-                config.setMaxWaitMillis(kylinConfig.getMaxWaitMillis());
-                if (StringUtils.isNotBlank(redisPassword)) {
-                    jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(), kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), redisPassword, config);
-                } else {
-                    jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(), kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), config);
-                }
-                logger.warn("jedis cluster is not support ping");
-            } else {
-                logger.info("ke will use redis pool. The redis host ke will connect to is {}", hostAndPorts[0]);
-                String host = hostAndPorts[0].substring(0, hostAndPorts[0].lastIndexOf(":"));
-                int port = Integer.parseInt(hostAndPorts[0].substring(hostAndPorts[0].lastIndexOf(":") + 1));
-                JedisPoolConfig config = new JedisPoolConfig();
-                config.setMaxTotal(kylinConfig.getRedisMaxTotal());
-                config.setMaxIdle(kylinConfig.getRedisMaxIdle());
-                config.setMinIdle(kylinConfig.getRedisMinIdle());
-                config.setTestOnBorrow(true);
-                if (!StringUtils.isEmpty(redisPassword)) {
-                    this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout(), redisPassword);
-                } else {
-                    this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout());
-                }
+        if (kylinConfig.isRedisClusterEnabled()) {
+            logger.info("ke will use redis cluster");
+            Set<HostAndPort> hosts = Sets.newHashSet();
+            for (String hostAndPort : hostAndPorts) {
+                String host = hostAndPort.substring(0, hostAndPort.lastIndexOf(":"));
+                int port = Integer.parseInt(hostAndPort.substring(hostAndPort.lastIndexOf(":") + 1));
+                hosts.add(new HostAndPort(host, port));
             }
-            logger.info("Jedis init success.");
-        } catch (JedisException e) {
-            logger.error("Jedis init failed: ", e);
+            GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+            config.setMaxTotal(kylinConfig.getRedisMaxTotal());
+            config.setMaxIdle(kylinConfig.getRedisMaxIdle());
+            config.setMinIdle(kylinConfig.getRedisMinIdle());
+            config.setMaxWaitMillis(kylinConfig.getMaxWaitMillis());
+            if (StringUtils.isNotBlank(redisPassword)) {
+                jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(), kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), redisPassword, config);
+            } else {
+                jedisCluster = new JedisCluster(hosts, kylinConfig.getRedisConnectionTimeout(), kylinConfig.getRedisSoTimeout(), kylinConfig.getRedisMaxAttempts(), config);
+            }
+            logger.warn("jedis cluster is not support ping");
+        } else {
+            logger.info("ke will use redis pool. The redis host ke will connect to is {}", hostAndPorts[0]);
+            String host = hostAndPorts[0].substring(0, hostAndPorts[0].lastIndexOf(":"));
+            int port = Integer.parseInt(hostAndPorts[0].substring(hostAndPorts[0].lastIndexOf(":") + 1));
+            JedisPoolConfig config = new JedisPoolConfig();
+            config.setMaxTotal(kylinConfig.getRedisMaxTotal());
+            config.setMaxIdle(kylinConfig.getRedisMaxIdle());
+            config.setMinIdle(kylinConfig.getRedisMinIdle());
+            config.setTestOnBorrow(true);
+            if (!StringUtils.isEmpty(redisPassword)) {
+                this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout(), redisPassword);
+            } else {
+                this.jedisPool = new JedisPool(config, host, port, kylinConfig.getRedisConnectionTimeout());
+            }
         }
+        logger.info("Jedis init success.");
     }
 
-    public KylinCache recoverInstance() {
+    public static KylinCache recoverInstance() {
         isRecovering.set(true);
         KylinCache cache;
-        synchronized (RedisCache.class) {
-            logger.info("Destroy RedisCache.");
-            if (jedisCluster != null) {
-                jedisCluster.close();
+        try {
+            synchronized (RedisCache.class) {
+                logger.info("Destroy RedisCache.");
+                if (jedisCluster != null) {
+                    jedisCluster.close();
+                }
+                if (jedisPool != null) {
+                    jedisPool.close();
+                }
+                logger.info("Initiate RedisCache.");
+                cache = new RedisCache();
             }
-            if (jedisPool != null) {
-                jedisPool.close();
-            }
-            logger.info("Initiate RedisCache.");
-            cache = new RedisCache();
+        } finally {
+            isRecovering.set(false);
         }
-        isRecovering.set(false);
         return cache;
     }
 
@@ -280,6 +280,10 @@ public class RedisCache implements KylinCache {
         byte[] realKey = convertKeyToByte(type, key);
         byte[] valueBytes = convertValueToByte(value);
         if (redisClusterEnabled) {
+            if (jedisCluster == null) {
+                logger.error("[Redis cache log] Jedis Cluster failed to initiate.");
+                return;
+            }
             jedisCluster.set(realKey, valueBytes, getJedisSetParams(nx, expireTimeUnit, expireTime));
         } else {
             singleRedisPut(realKey, valueBytes, expireTimeUnit, expireTime);
@@ -320,6 +324,10 @@ public class RedisCache implements KylinCache {
         byte[] sqlResp = null;
         try {
             if (redisClusterEnabled) {
+                if (jedisCluster == null) {
+                    logger.error("[Redis cache log] Jedis Cluster failed to initiate.");
+                    return null;
+                }
                 if (jedisCluster.getClusterNodes().isEmpty()) {
                     recoverInstance();
                 }
@@ -374,6 +382,10 @@ public class RedisCache implements KylinCache {
 
     private void clusterRedisClearByPattern(String pattern) {
         Map<Integer, List<byte[]>> slotToKeys;
+        if (masters.isEmpty()) {
+            logger.error("[Redis cache log] No masters in the cluster, fail to clear by pattern.");
+            return;
+        }
         for (String host : masters) {
             slotToKeys = Maps.newHashMap();
             Jedis master = null;

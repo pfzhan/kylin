@@ -506,6 +506,8 @@ public class QueryService extends BasicService {
             queryContext.getMetrics().setServer(clusterManager.getLocalServer());
 
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(sqlRequest.getProject());
+            kylinConfig = projectInstance.getConfig();
 
             // remove comment
             removeComment(sqlRequest, queryContext);
