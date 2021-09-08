@@ -138,9 +138,6 @@ public class NSparkTableMetaExplorer implements Serializable {
         if (tableMetadata.properties().contains("numFiles")) {
             builder.setFileNum(Long.parseLong(tableMetadata.properties().get("numFiles").get()));
         }
-        if (tableMetadata.properties().contains("transactional")) {
-            builder.setIsTransactional(Boolean.parseBoolean(tableMetadata.properties().get("transactional").get()));
-        }
         return builder.createSparkTableMeta();
     }
 

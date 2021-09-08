@@ -864,9 +864,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("isPrometheusMetricsEnabled", new PropertiesEntity("kylin.metrics.prometheus-enabled", "true", true));
         map.put("isSetYarnQueueInTaskEnabled", new PropertiesEntity("kylin.engine-yarn.queue.in.task.enabled", "false", false));
         map.put("getYarnQueueInTaskAvailable", new PropertiesEntity("kylin.engine-yarn.queue.in.task.available", "default", Lists.newArrayList("default")));
-        map.put("isReadTransactionalTableEnabled", new PropertiesEntity("kylin.build.resource.read-transactional-table-enabled", "true", true));
-        map.put("getFlatTableStorageFormat", new PropertiesEntity("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE", "SEQUENCEFILE"));
-        map.put("getFlatTableFieldDelimiter", new PropertiesEntity("kylin.source.hive.flat-table-field-delimiter", "\u001F", "\u001F"));
         map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
         map.put("getAutoModelViewEnabled", new PropertiesEntity("kylin.query.auto-model-view-enabled", "false", false));
         map.put("getCheckResourceTimeLimit", new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
@@ -891,7 +888,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(523, methodsCount);
+        Assert.assertEquals(519, methodsCount);
     }
 
     @Test

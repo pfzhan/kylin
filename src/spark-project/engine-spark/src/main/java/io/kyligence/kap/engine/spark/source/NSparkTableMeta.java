@@ -68,7 +68,6 @@ public class NSparkTableMeta {
     boolean isNative;
     List<SparkTableColumnMeta> allColumns;
     List<SparkTableColumnMeta> partitionColumns;
-    boolean isTransactional;
 
     public List<SparkTableColumnMeta> getAllColumns() {
         return allColumns;
@@ -77,7 +76,7 @@ public class NSparkTableMeta {
     public NSparkTableMeta(String tableName, String sdLocation, String sdInputFormat, String sdOutputFormat,
             String owner, String provider, String tableType, String createTime, String lastAccessTime, long fileSize,
             long fileNum, boolean isNative, List<SparkTableColumnMeta> allColumns,
-            List<SparkTableColumnMeta> partitionColumns, boolean isTransactional) {
+            List<SparkTableColumnMeta> partitionColumns) {
         this.tableName = tableName;
         this.sdLocation = sdLocation;
         this.sdInputFormat = sdInputFormat;
@@ -92,7 +91,6 @@ public class NSparkTableMeta {
         this.isNative = isNative;
         this.allColumns = allColumns;
         this.partitionColumns = partitionColumns;
-        this.isTransactional = isTransactional;
     }
 
     @Override
@@ -102,6 +100,6 @@ public class NSparkTableMeta {
                 + ", owner='" + owner + ", provider='" + provider + '\'' + ", tableType='" + tableType
                 + ", createTime='" + createTime + '\'' + ", lastAccessTime=" + lastAccessTime + ", fileSize=" + fileSize
                 + ", fileNum=" + fileNum + ", isNative=" + isNative + ", allColumns=" + allColumns
-                + ", partitionColumns=" + partitionColumns + ", isTransactional=" + isTransactional + '}';
+                + ", partitionColumns=" + partitionColumns + '}';
     }
 }
