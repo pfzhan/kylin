@@ -51,17 +51,17 @@ public class OBIEEConverter implements QueryUtil.IQueryTransformer, IPushDownCon
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        return doConvert(sql);
+        return doConvert(sql, project);
     }
 
     @Override
     public String convert(String originSql, String project, String defaultSchema) {
-        return doConvert(originSql);
+        return doConvert(originSql, project);
     }
 
-    public String doConvert(String originSql) {
+    public String doConvert(String originSql, String project) {
         try {
-            SqlNode sqlNode = CalciteParser.parse(originSql);
+            SqlNode sqlNode = CalciteParser.parse(originSql, project);
             List<SqlNumericLiteral> sqlNumericLiterals = new ArrayList<>(numbersToTrim(sqlNode));
             CalciteParser.descSortByPosition(sqlNumericLiterals);
             final StringBuilder sb = new StringBuilder(originSql);

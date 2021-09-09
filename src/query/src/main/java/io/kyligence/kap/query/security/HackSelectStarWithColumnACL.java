@@ -76,7 +76,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
 
         SqlNode sqlNode;
         try {
-            sqlNode = CalciteParser.parse(sql);
+            sqlNode = CalciteParser.parse(sql, project);
         } catch (SqlParseException e) {
             throw new RuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid");
         }

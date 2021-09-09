@@ -101,7 +101,8 @@ public class ModelViewGenerator {
                 
         try {
             SqlSelect select = (SqlSelect)
-                    CalciteParser.parse("select " + String.join(",", ccExprs));
+                    CalciteParser.parse("select " + String.join(",", ccExprs),
+                            this.model != null ? this.model.getProject() : null);
 
             return getAllIdentifiers(select).stream()
                     .map(SqlIdentifier::toString)

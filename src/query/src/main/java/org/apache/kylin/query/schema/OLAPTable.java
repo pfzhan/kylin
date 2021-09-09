@@ -189,7 +189,10 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             RelDataType sqlType = createSqlType(kylinRelDataTypeFactory, column.getUpgradedType(), column.isNullable());
             sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, kylinRelDataTypeFactory);
             typeList.add(sqlType);
-            String columnName = KylinConfig.getInstanceFromEnv().getSourceNameCaseSensitiveEnabled()
+            String project = this.sourceTable != null ? this.sourceTable.getProject() : null;
+            KylinConfig projectKylinConfig = StringUtils.isNotEmpty(project) ? NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(project).getConfig() : KylinConfig.getInstanceFromEnv();
+            String columnName = projectKylinConfig.getSourceNameCaseSensitiveEnabled()
                     ? StringUtils.isNotEmpty(column.getCaseSensitiveName()) ? column.getCaseSensitiveName()
                     : column.getName() : column.getName();
             if (column.isComputedColumn()) {

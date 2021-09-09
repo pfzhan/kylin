@@ -46,7 +46,7 @@ public class ReplaceStringWithVarchar implements QueryUtil.IQueryTransformer, IK
     @Override
     public String transform(String sql, String project, String defaultSchema) {
         try {
-            SqlNode sqlNode = CalciteParser.parse(sql);
+            SqlNode sqlNode = CalciteParser.parse(sql, project);
             SqlStringTypeCapturer visitor = new SqlStringTypeCapturer();
             sqlNode.accept(visitor);
             List<SqlNode> stringTypeNodes = visitor.getStringTypeNodes();

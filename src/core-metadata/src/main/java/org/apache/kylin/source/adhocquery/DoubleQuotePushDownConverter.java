@@ -71,12 +71,15 @@ public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
 
         private final String sql;
 
-        public DoubleQuoteSqlIdentifierConvert(String sql) {
+        private final String project;
+
+        public DoubleQuoteSqlIdentifierConvert(String sql, String project) {
             this.sql = sql;
+            this.project = project;
         }
 
         private SqlNode parse() throws SqlParseException {
-            return CalciteParser.parse(this.sql);
+            return CalciteParser.parse(this.sql, this.project);
         }
 
         private Collection<SqlIdentifier> getAllSqlIdentifiers() throws SqlParseException {
@@ -136,14 +139,18 @@ public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
     @Override
     public String convert(String originSql, String project, String defaultSchema) {
 
-        return convertDoubleQuote(originSql);
+        return convertDoubleQuote(originSql, project);
     }
 
     public static String convertDoubleQuote(String originSql) {
+        return convertDoubleQuote(originSql, null);
+    }
+
+    public static String convertDoubleQuote(String originSql, String project) {
         String sqlParsed = originSql;
 
         try {
-            DoubleQuoteSqlIdentifierConvert sqlIdentifierConvert = new DoubleQuoteSqlIdentifierConvert(originSql);
+            DoubleQuoteSqlIdentifierConvert sqlIdentifierConvert = new DoubleQuoteSqlIdentifierConvert(originSql, project);
             sqlParsed = sqlIdentifierConvert.convert();
         } catch (Exception e) {
             log.warn("convert sql:{} with double quoted with exception", originSql, e);

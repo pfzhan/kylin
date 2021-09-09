@@ -83,9 +83,9 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
 
         logger.debug("\nStart to transform SQL with row ACL\n");
         // if origin SQL has where clause, add "()", see KAP#2873
-        sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
+        sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls), project);
 
-        sql = rowFilter(defaultSchema, sql, allWhereCondWithTbls);
+        sql = rowFilter(defaultSchema, sql, allWhereCondWithTbls, project);
 
         logger.debug("\nFinsh transforming SQL with row ACL.\n");
         return sql;
@@ -105,7 +105,11 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
     }
 
     static String whereClauseBracketsCompletion(String schema, String inputSQL, Set<String> candidateTables) {
-        Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
+        return whereClauseBracketsCompletion(schema, inputSQL, candidateTables, null);
+    }
+
+    static String whereClauseBracketsCompletion(String schema, String inputSQL, Set<String> candidateTables, String project) {
+        Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema, project);
         List<Pair<Integer, String>> toBeInsertedPosAndExprs = new ArrayList<>();
 
         for (SqlSelect select : selectClausesWithTbls.keySet()) {
@@ -126,7 +130,11 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
     }
 
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
-        Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
+        return rowFilter(schema, inputSQL, whereCondWithTbls, null);
+    }
+
+    static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls, String project) {
+        Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema, project);
         List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls,
                 selectClausesWithTbls);
         return afterInsertSQL(inputSQL, toBeInsertedPosAndExprs);
@@ -237,10 +245,10 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
     }
 
     //{selectClause1:[DB.TABLE1:ALIAS1, DB.TABLE2:ALIAS2]}
-    private static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema) {
+    private static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema, String project) {
         Map<SqlSelect, List<Table>> selectWithTables = new HashMap<>();
 
-        for (SqlSelect select : SelectClauseFinder.getSelectClauses(inputSQL)) {
+        for (SqlSelect select : SelectClauseFinder.getSelectClauses(inputSQL, project)) {
             List<Table> tblsWithAlias = getTblWithAlias(schema, select);
             if (tblsWithAlias.size() > 0) {
                 selectWithTables.put(select, tblsWithAlias);
@@ -281,10 +289,10 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
             return selects;
         }
 
-        static List<SqlSelect> getSelectClauses(String inputSQL) {
+        static List<SqlSelect> getSelectClauses(String inputSQL, String project) {
             SqlNode node = null;
             try {
-                node = CalciteParser.parse(inputSQL);
+                node = CalciteParser.parse(inputSQL, project);
             } catch (SqlParseException e) {
                 throw new RuntimeException(
                         "Failed to parse SQL \'" + inputSQL + "\', please make sure the SQL is valid");

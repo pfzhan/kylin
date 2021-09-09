@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlDialect;
@@ -64,6 +65,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 
@@ -86,7 +88,12 @@ public class CalciteParser {
 
 
     public static SqlNode parse(String sql) throws SqlParseException {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        return parse(sql, null);
+    }
+
+    public static SqlNode parse(String sql, String project) throws SqlParseException {
+        KylinConfig kylinConfig = StringUtils.isNotEmpty(project) ? NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project).getConfig() : KylinConfig.getInstanceFromEnv();
         SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder()
                 .setIdentifierMaxLength(kylinConfig.getMaxModelDimensionMeasureNameLength());
         if (kylinConfig.getSourceNameCaseSensitiveEnabled()) {

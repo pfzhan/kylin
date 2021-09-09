@@ -39,7 +39,7 @@ public class DialectConverter implements IPushDownConverter, IKeep {
     @Override
     public String convert(String originSql, String project, String defaultSchema) {
         try {
-            SqlNode node = CalciteParser.parse(originSql);
+            SqlNode node = CalciteParser.parse(originSql, project);
             SqlPrettyWriter writer = new SqlPrettyWriter(KEDialect.DEFAULT);
             return writer.format(node);
         } catch (Exception e) {
