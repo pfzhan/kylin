@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration name="Log4j1">
     <Appenders>
-        <RollingRandomAccessFile name="server" fileName="${env:KYLIN_HOME}/logs/kylin.log" append="true"
-                                 filePattern="${env:KYLIN_HOME}/logs/kylin.log.%i" immediateFlush="false" >
+        <RollingFile name="server" fileName="${env:KYLIN_HOME}/logs/kylin.log" append="true"
+                     filePattern="${env:KYLIN_HOME}/logs/kylin.log.%i">
             <Policies>
                 <SizeBasedTriggeringPolicy size="268435456"/>
             </Policies>
             <DefaultRolloverStrategy max="10"/>
             <PatternLayout pattern="%d{ISO8601} %-5p %X{request.project}[%t] %c{2} : %mask{%m}%n"/>
-        </RollingRandomAccessFile>
+        </RollingFile>
         <Routing name="routing">
             <Routes pattern="${ctx:logCategory}">
                 <Route>
