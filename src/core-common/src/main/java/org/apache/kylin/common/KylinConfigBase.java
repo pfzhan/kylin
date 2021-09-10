@@ -1890,6 +1890,14 @@ public abstract class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.mode", "all");
     }
 
+    public String getMetadataStoreType() {
+        if (!isJobNode()) {
+            return this.getOptional("kylin.server.store-type", "hdfs");
+        } else {
+            return "jdbc";
+        }
+    }
+
     public boolean isJobNode() {
         return !StringUtils.equals(ClusterConstant.ServerModeEnum.QUERY.getName(), getServerMode());
     }
