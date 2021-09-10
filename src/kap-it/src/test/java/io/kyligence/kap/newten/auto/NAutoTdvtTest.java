@@ -49,7 +49,6 @@ public class NAutoTdvtTest extends NAutoTestBase {
         new TestScenario(CompareLevel.SAME, "sql_tdvt/same_level").execute();
     }
 
-    @Ignore("blocked by KE-30323")
     @Test
     public void testDateFamily() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "LENIENT");

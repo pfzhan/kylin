@@ -24,18 +24,15 @@
 
 package io.kyligence.kap.query.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.CollectionUtil;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.query.relnode.KapAggregateRel;
-import lombok.val;
-import lombok.var;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -44,31 +41,39 @@ import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.CollectionUtil;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import lombok.val;
+import lombok.var;
 
 public class ComputedColumnRewriter {
 
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnRewriter.class);
 
-    private ComputedColumnRewriter() {
+    public ComputedColumnRewriter() {
     }
 
     public static void rewriteCcInnerCol(OLAPContext context, NDataModel model, QueryAliasMatchInfo matchInfo) {
-        rewriteAggInnerCol(context, model, matchInfo);
-        rewriteTopNInnerCol(context, model, matchInfo);
+        rewriteAggInnerCol(context.aggregations, context.allColumns, model, matchInfo);
+        rewriteTopNInnerCol(context.getSortColumns(), model, matchInfo);
         rewriteGroupByInnerCol(context, model, matchInfo);
         rewriteFilterInnerCol(context, model, matchInfo);
     }
 
-    private static void rewriteAggInnerCol(OLAPContext context, NDataModel model, QueryAliasMatchInfo matchInfo) {
+    protected static void rewriteAggInnerCol(List<FunctionDesc> aggregations, Set<TblColRef> allColumns, NDataModel model,
+            QueryAliasMatchInfo matchInfo) {
         if (!KapConfig.getInstanceFromEnv().isAggComputedColumnRewriteEnabled()
                 || CollectionUtils.isEmpty(model.getComputedColumnDescs())) {
             return;
         }
 
-        context.aggregations.stream().filter(agg -> CollectionUtils.isNotEmpty(agg.getParameters())).forEach(agg -> {
+        aggregations.stream().filter(agg -> CollectionUtils.isNotEmpty(agg.getParameters())).forEach(agg -> {
             List<ParameterDesc> parameters = Lists.newArrayList();
             for (ParameterDesc parameter : agg.getParameters()) {
                 if (!parameter.getColRef().isInnerColumn()) {
@@ -79,7 +84,7 @@ public class ComputedColumnRewriter {
                 TblColRef translatedInnerCol = rewriteInnerColumnToTblColRef(parameter.getColRef().getParserDescription(), model, matchInfo);
                 if (translatedInnerCol != null) {
                     parameters.add(ParameterDesc.newInstance(translatedInnerCol));
-                    context.allColumns.add(translatedInnerCol);
+                    allColumns.add(translatedInnerCol);
                 }
             }
 
@@ -112,11 +117,11 @@ public class ComputedColumnRewriter {
         return null;
     }
 
-    private static void rewriteTopNInnerCol(OLAPContext context, NDataModel model, QueryAliasMatchInfo matchInfo) {
+    protected static void rewriteTopNInnerCol(List<TblColRef> sortColumns, NDataModel model, QueryAliasMatchInfo matchInfo) {
         if (CollectionUtils.isEmpty(model.getComputedColumnDescs()))
             return;
 
-        context.getSortColumns().stream().filter(TblColRef::isInnerColumn).forEach(column -> {
+        sortColumns.stream().filter(TblColRef::isInnerColumn).forEach(column -> {
             if (CollectionUtils.isEmpty(column.getOperands()))
                 return;
 
@@ -141,6 +146,14 @@ public class ComputedColumnRewriter {
         }
 
         // collect all aggRel with candidate CC group keys
+        Map<KapAggregateRel, Map<TblColRef, TblColRef>> relColReplacementMapping = collectAggRelToCCGroupKeys(ctx, model, matchInfo);
+
+        // rebuild aggRel group keys with CC cols
+        rebuildAggRelGroupKeysWithCC(relColReplacementMapping);
+    }
+
+    protected static Map<KapAggregateRel, Map<TblColRef, TblColRef>> collectAggRelToCCGroupKeys(OLAPContext ctx,
+            NDataModel model, QueryAliasMatchInfo matchInfo) {
         Map<KapAggregateRel, Map<TblColRef, TblColRef>> relColReplacementMapping = new HashMap<>();
         for (TableColRefWithRel tableColRefWIthRel : ctx.getInnerGroupByColumns()) {
             SqlNode innerColExpr;
@@ -171,8 +184,10 @@ public class ComputedColumnRewriter {
                 }
             }
         }
+        return relColReplacementMapping;
+    }
 
-        // rebuild aggRel group keys with CC cols
+    private static void rebuildAggRelGroupKeysWithCC(Map<KapAggregateRel, Map<TblColRef, TblColRef>> relColReplacementMapping) {
         for (Map.Entry<KapAggregateRel, Map<TblColRef, TblColRef>> kapAggregateRelMapEntry : relColReplacementMapping.entrySet()) {
             KapAggregateRel aggRel = kapAggregateRelMapEntry.getKey();
             Map<TblColRef, TblColRef> colReplacementMapping = kapAggregateRelMapEntry.getValue();
