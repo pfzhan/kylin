@@ -52,9 +52,10 @@ object StorageUtils extends Logging {
     }
   }
 
+  @deprecated
   // clean intermediate temp path after job or recover from an error job, usually with postfix '_temp'
   def cleanupPotentialTempFiles(fs: FileSystem, targetPath: Path, includeSelf: Boolean): Unit = {
-    if (fs.exists(targetPath)  && includeSelf) {
+    if (fs.exists(targetPath) && includeSelf) {
       fs.delete(targetPath, true)
       logInfo(s"Delete dir $targetPath")
     }

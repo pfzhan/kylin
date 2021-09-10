@@ -21,6 +21,8 @@
  */
 package org.apache.spark.tracker
 
+import java.util.Objects
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
 import io.kyligence.kap.engine.spark.smarter.{BuildAppStatusStore, BuildListener}
@@ -36,6 +38,8 @@ import scala.collection.JavaConverters._
 class BuildAppStatusTracker(val kylinConfig: KylinConfig, val sc: SparkContext,
                             val statusStore: BuildAppStatusStore) extends BuildListener with Logging {
 
+  private val coldStart = new AtomicBoolean(true)
+
   private val buildResourceLoadRateThreshold: Double = kylinConfig.buildResourceLoadRateThreshold
 
   private val buildResourceConsecutiveIdleStateNum: Int = kylinConfig.buildResourceConsecutiveIdleStateNum
@@ -43,6 +47,10 @@ class BuildAppStatusTracker(val kylinConfig: KylinConfig, val sc: SparkContext,
   private var resourceChecker: ScheduledExecutorService = _
 
   override def startMonitorBuildResourceState(): Unit = {
+    if (!kylinConfig.isAdaptiveSpanningTreeEnabled) {
+      // do nothing
+      return
+    }
     val buildResourceStateCheckInterval = kylinConfig.buildResourceStateCheckInterval
     resourceChecker = Executors.newSingleThreadScheduledExecutor
     resourceChecker.scheduleAtFixedRate(new Runnable {
@@ -54,14 +62,18 @@ class BuildAppStatusTracker(val kylinConfig: KylinConfig, val sc: SparkContext,
   }
 
   override def shutdown(): Unit = {
+    if (Objects.isNull(resourceChecker)) {
+      return
+    }
     resourceChecker.shutdown()
   }
 
   def currentResourceState(): ResourceState = {
-    val currState = if (statusStore.resourceStateQueue.asScala
-      .filter(state => ((state._1 / state._2) < buildResourceLoadRateThreshold))
-      .size == buildResourceConsecutiveIdleStateNum) {
-      statusStore.resourceStateQueue.clear()
+    val currState = if (coldStart.compareAndSet(true, false)) ResourceState.Idle
+    else if (statusStore.resourceStateQueue.asScala //
+      .count(state => (state._1 / state._2) < buildResourceLoadRateThreshold) //
+      == buildResourceConsecutiveIdleStateNum) {
+      statusStore.resourceStateQueue.poll()
       ResourceState.Idle
     } else ResourceState.Fulled
     log.info(s"App ip ${sc.applicationId} curr resource state is ${currState}")

@@ -148,17 +148,25 @@ public class NSparkCubingUtil {
         return getStoragePath(nDataSegment, layoutId, null);
     }
 
+    public static String getStoragePath(NDataSegment nDataSegment) {
+        return getStoragePath(nDataSegment, null, null);
+    }
+
     public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId,
-            long layoutId) {
+            Long layoutId) {
         return getStoragePathWithoutPrefix(project, dataflowId, segmentId, layoutId, null);
     }
 
-    public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId, long layoutId,
+    public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId, Long layoutId,
             Long bucketId) {
+        final String parquet = "/parquet/";
+        if (layoutId == null) {
+            return project + parquet + dataflowId + "/" + segmentId;
+        }
         if (bucketId == null) {
-            return project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
+            return project + parquet + dataflowId + "/" + segmentId + "/" + layoutId;
         } else {
-            return project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId + "/" + bucketId;
+            return project + parquet + dataflowId + "/" + segmentId + "/" + layoutId + "/" + bucketId;
         }
     }
 

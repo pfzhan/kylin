@@ -84,7 +84,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   private lazy val needJoin = {
     val join = tableDesc.shouldJoinLookupTables
-    logInfo(s"FLAT-TABLE NEED-JOIN $join")
+    logInfo(s"Segment $segmentId flat table need join: $join")
     join
   }
 
@@ -105,9 +105,11 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   }
 
   def gatherStatistics(): Statistics = {
-    logInfo(s"Segment $segmentId gather statistics FLAT-TABLE")
-    sparkSession.sparkContext.setJobDescription(s"Segment $segmentId gather statistics FLAT-TABLE.")
+    val stepDesc = s"Segment $segmentId collect flat table statistics."
+    logInfo(stepDesc)
+    sparkSession.sparkContext.setJobDescription(stepDesc)
     val statistics = gatherStatistics(FLAT_TABLE)
+    logInfo(s"Segment $segmentId collect flat table statistics $statistics.")
     sparkSession.sparkContext.setJobDescription(null)
     statistics
   }
@@ -138,13 +140,13 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     }
 
     /**
-     * If need to build and encode dict columns, then
-     * 1. try best to build in fact-table.
-     * 2. try best to build in lookup-tables (without cc dict).
-     * 3. try to build in fact-table.
-     *
-     * CC in lookup-tables MUST be built in flat-table.
-     */
+      * If need to build and encode dict columns, then
+      * 1. try best to build in fact-table.
+      * 2. try best to build in lookup-tables (without cc dict).
+      * 3. try to build in fact-table.
+      *
+      * CC in lookup-tables MUST be built in flat-table.
+      */
     val (dictCols, encodeCols, dictColsWithoutCc, encodeColsWithoutCc) = prepareForDict()
     val factTable = buildDictIfNeed(factTableDS, dictCols, encodeCols)
 
@@ -176,8 +178,8 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   }
 
   private def prepareForDict(): (Set[TblColRef], Set[TblColRef], Set[TblColRef], Set[TblColRef]) = {
-    val dictCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(dataSegment, spanningTree).asScala.toSet
-    val encodeCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(dataSegment, spanningTree).asScala.toSet
+    val dictCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(dataSegment, spanningTree.getIndices).asScala.toSet
+    val encodeCols = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(dataSegment, spanningTree.getIndices).asScala.toSet
     val dictColsWithoutCc = dictCols.filter(!_.getColumnDesc.isComputedColumn)
     val encodeColsWithoutCc = encodeCols.filter(!_.getColumnDesc.isComputedColumn)
     (dictCols, encodeCols, dictColsWithoutCc, encodeColsWithoutCc)
@@ -284,11 +286,11 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
       return tableDS
     }
     if (tableDS.schema.isEmpty) {
-      logInfo("No available FLAT-TABLE schema.")
+      logInfo("No available flat table schema.")
       return tableDS
     }
-    logInfo(s"Persist FLAT-TABLE $flatTablePath")
-    sparkSession.sparkContext.setJobDescription("Persist FLAT-TABLE.")
+    logInfo(s"Segment $segmentId persist flat table: $flatTablePath")
+    sparkSession.sparkContext.setJobDescription(s"Segment $segmentId persist flat table.")
     tableDS.write.mode(SaveMode.Overwrite).parquet(flatTablePath.toString)
     DFBuilderHelper.checkPointSegment(dataSegment, (copied: NDataSegment) => {
       copied.setFlatTableReady(true)
@@ -304,10 +306,10 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   private def tryRecoverFTDS(): Option[Dataset[Row]] = {
     if (tableDesc.isPartialBuild) {
-      logInfo(s"No need reuse FLAT-TABLE for partial build segment $segmentId")
+      logInfo(s"Segment $segmentId no need reuse flat table for partial build.")
       return None
     } else if (!isFTReady) {
-      logInfo(s"No available FLAT-TABLE segment $segmentId")
+      logInfo(s"Segment $segmentId  no available flat table.")
       return None
     }
     // +----------+---+---+---+---+-----------+-----------+
@@ -316,7 +318,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     val tableDS: DataFrame = Try(sparkSession.read.parquet(flatTablePath.toString)) match {
       case Success(df) => df
       case Failure(f) =>
-        logInfo(s"Handled AnalysisException: Unable to infer schema for Parquet. Flat table path $flatTablePath is empty", f)
+        logInfo(s"Handled AnalysisException: Unable to infer schema for Parquet. Flat table path $flatTablePath is empty.", f)
         sparkSession.emptyDataFrame
     }
     // ([2_KE_ENCODE,4_KE_ENCODE], [0,1,2,3,4])
@@ -347,12 +349,12 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     if (nones.nonEmpty) {
       // The previous flat table missed some columns.
       // Flat table would be updated at afterwards step.
-      logInfo(s"Update FLAT-TABLE columns should have been included " + //
-        s"${nones.mkString("[", ",", "]")} segment $segmentId")
+      logInfo(s"Segment $segmentId update flat table, columns should have been included " + //
+        s"${nones.mkString("[", ",", "]")}")
       return None
     }
     // The previous flat table could be reusable.
-    logInfo(s"Skip FLAT-TABLE segment $segmentId")
+    logInfo(s"Segment $segmentId skip build flat table.")
     Some(tableDS)
   }
 

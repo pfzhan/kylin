@@ -2930,4 +2930,28 @@ public abstract class KylinConfigBase implements Serializable {
     public long getCheckResourceTimeLimit() {
         return Long.parseLong(getOptional("kylin.build.resource.check-retry-limit-minutes", "10"));
     }
+
+    public boolean isAdaptiveSpanningTreeEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.adaptive-spanning-tree-enabled", FALSE));
+    }
+
+    public double getAdaptiveSpanningTreeThreshold() {
+        return Double.parseDouble(getOptional("kylin.engine.adaptive-spanning-tree-threshold", "0.5d"));
+    }
+
+    public int getAdaptiveSpanningTreeBatchSize() {
+        return Integer.parseInt(getOptional("kylin.engine.adaptive-spanning-tree-batch-size", "11"));
+    }
+
+    public boolean isIndexColumnFlatTableEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.index-column-flattable-enabled", FALSE));
+    }
+
+    public boolean isInferiorFlatTableEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.inferior-flattable-enabled", FALSE));
+    }
+
+    public String getInferiorFlatTableStorageLevel() {
+        return getOptional("kylin.engine.inferior-flattable-storage-level", "DISK_ONLY");
+    }
 }

@@ -114,7 +114,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
   private def checkEncodeAndAggIsMatch(segment: NDataSegment, indexPlan: IndexPlan, indexId: Int): Unit = {
     val indexEntity = segment.getIndexPlan.getAllIndexes.get(indexId)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexEntity.getLayouts, MODEL_ID)
-    val flatTableEncodeSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(segment, nSpanningTree)
+    val flatTableEncodeSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(segment, nSpanningTree.getAllIndexEntities)
 
     val meas = indexEntity.getEffectiveMeasures
 
@@ -153,11 +153,11 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val dsMgr = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     val df = dsMgr.getDataflow(dfName)
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, dfName)
-    val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(seg, nSpanningTree)
+    val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(seg, nSpanningTree.getAllIndexEntities)
     Assert.assertEquals(expectColSize, dictColSet.size())
 
     val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange, true)
-    val encodeColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
+    val encodeColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree.getAllIndexEntities)
     val flatTable = new CreateFlatTable(flatTableDesc, seg, nSpanningTree, spark, null)
     val afterJoin = flatTable.generateDataset(true)
     dictColSet.asScala.foreach(
@@ -185,7 +185,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
         val nSpanningTree = NSpanningTreeFactory.fromLayouts(segment.getIndexPlan.getAllLayouts, MODEL_ID)
         val afterAgg = CuboidAggregator.agg(afterEncode, dimIndexes, measures, segment, nSpanningTree)
         val aggExp = afterAgg.queryExecution.logical.children.head.output
-        val colRefSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(segment, nSpanningTree)
+        val colRefSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDictToBuild(segment, nSpanningTree.getAllIndexEntities)
         val needDictColIdSet = Sets.newHashSet[Integer]()
         for (col <- colRefSet.asScala) {
           needDictColIdSet.add(segment.getDataflow.getIndexPlan.getModel.getColumnIdByColumnName(col.getIdentity))

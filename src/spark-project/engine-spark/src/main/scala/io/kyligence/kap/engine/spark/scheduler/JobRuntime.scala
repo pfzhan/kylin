@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.engine.spark.scheduler
 
-import io.kyligence.kap.engine.spark.utils.ThreadUtils
-
 import java.util.concurrent.TimeUnit
+
+import io.kyligence.kap.engine.spark.utils.ThreadUtils
 
 class JobRuntime(val maxThreadCount: Int) {
 
@@ -39,7 +39,7 @@ class JobRuntime(val maxThreadCount: Int) {
 
   // Drain layout result using single thread.
   private lazy val scheduler = //
-    ThreadUtils.newDaemonSingleThreadScheduledExecutor("drain-thread")
+    ThreadUtils.newDaemonSingleThreadScheduledExecutor("build-scheduler")
 
   def submit(fun: () => Unit): Unit = {
     threadPool.submit(new Runnable {
@@ -47,8 +47,14 @@ class JobRuntime(val maxThreadCount: Int) {
     })
   }
 
-  def schedule(fun: () => Unit): Unit = {
+  def scheduleCheckpoint(fun: () => Unit): Unit = {
     scheduler.scheduleWithFixedDelay(() => fun.apply(), 10L, 10L, TimeUnit.SECONDS)
+  }
+
+  def schedule(func: () => Unit, delay: Long, unit: TimeUnit): Unit = {
+    scheduler.schedule(new Runnable {
+      override def run(): Unit = func.apply()
+    }, delay, unit)
   }
 
   def shutdown(): Unit = {

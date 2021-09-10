@@ -41,6 +41,8 @@ class BuildContext(sparkContext: SparkContext, kylinConfig: KylinConfig) extends
   private var _appStatusTracker: BuildAppStatusTracker = _
   private var _appStatusStore: BuildAppStatusStore = _
 
+  private val adaptive = kylinConfig.isAdaptiveSpanningTreeEnabled
+
   /* ------------------------------------------------------------------------------------- *
  | Accessors and public fields. These provide access to the internal state of the        |
  | context.                                                                              |
@@ -58,7 +60,19 @@ class BuildContext(sparkContext: SparkContext, kylinConfig: KylinConfig) extends
       logError("Error initializing BuildContext.", e)
   }
 
+  def isAvailable: Boolean = {
+    if (adaptive) {
+      appStatusTracker.currentResourceState() == ResourceState.Idle
+    } else {
+      true
+    }
+  }
+
   def stop(): Unit = {
+    if (!adaptive) {
+      // do nothing
+      return
+    }
     if (_appStatusTracker != null) {
       Utils.tryLogNonFatalError {
         _appStatusTracker.shutdown()

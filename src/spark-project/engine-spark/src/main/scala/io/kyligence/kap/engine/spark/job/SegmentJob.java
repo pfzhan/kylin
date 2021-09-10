@@ -46,8 +46,6 @@ import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.scheduler.JobRuntime;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -63,8 +61,6 @@ public abstract class SegmentJob extends SparkApplication {
     private static final String COMMA = ",";
 
     protected IndexPlan indexPlan;
-
-    protected NSpanningTree spanningTree;
 
     protected String dataflowId;
 
@@ -99,8 +95,6 @@ public abstract class SegmentJob extends SparkApplication {
         indexPlan = dataflowManager.getDataflow(dataflowId).getIndexPlan();
 
         readOnlyLayouts = Collections.unmodifiableSet(NSparkCubingUtil.toLayouts(indexPlan, layoutIDs));
-
-        spanningTree = NSpanningTreeFactory.fromLayouts(readOnlyLayouts, dataflowId);
 
         final Predicate<NDataSegment> notSkip = (NDataSegment dataSegment) -> !needSkipSegment(dataSegment);
 
@@ -137,10 +131,6 @@ public abstract class SegmentJob extends SparkApplication {
         return dataflowId;
     }
 
-    protected NSpanningTree getSpanningTree() {
-        return spanningTree;
-    }
-
     protected Path getRdSharedPath() {
         return rdSharedPath;
     }
@@ -174,7 +164,7 @@ public abstract class SegmentJob extends SparkApplication {
         return Boolean.parseBoolean(s);
     }
 
-    protected boolean isMLP() {
+    protected boolean isPartitioned() {
         return Objects.nonNull(indexPlan.getModel().getMultiPartitionDesc());
     }
 

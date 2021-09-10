@@ -59,7 +59,7 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     val df: NDataflow = dsMgr.getDataflow(CUBE_NAME)
     val seg = df.getLastSegment
     val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, df.getUuid)
-    val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
+    val dictColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree.getAllIndexEntities)
     seg.getConfig.setProperty("kylin.dictionary.globalV2-threshold-bucket-size", "100")
     seg.getConfig.setProperty("kylin.engine.global-dict-check-enabled", "TRUE")
 

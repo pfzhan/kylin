@@ -140,11 +140,9 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         map.put("getLDAPGroupMemberSearchFilter", new PropertiesEntity("kylin.security.ldap.group-member-search-filter",
                 "(&(cn={0})(objectClass=groupOfNames))", "(&(cn={0})(objectClass=groupOfNames))"));
 
-        map.put("getLDAPMaxPageSize", new PropertiesEntity("kylin.security.ldap.max-page-size",
-                "1000", 1000));
+        map.put("getLDAPMaxPageSize", new PropertiesEntity("kylin.security.ldap.max-page-size", "1000", 1000));
 
-        map.put("getLDAPMaxValRange", new PropertiesEntity("kylin.security.ldap.max-val-range",
-                "1500", 1500));
+        map.put("getLDAPMaxValRange", new PropertiesEntity("kylin.security.ldap.max-val-range", "1500", 1500));
 
         map.put("getLDAPUserIDAttr", new PropertiesEntity("kylin.security.ldap.user-identifier-attr", "cn", "cn"));
 

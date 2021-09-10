@@ -102,7 +102,7 @@ public class MockedDFBuildJob extends SparkApplication {
                 val needJoin = DFChooser.needJoinLookupTables(seg.getModel(), nSpanningTree);
                 val flatTableDesc = new NCubeJoinedFlatTableDesc(indexPlan, seg.getSegRange(), needJoin);
                 val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexPlan.getAllLayouts(), dfName);
-                for (TblColRef ref : DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)) {
+                for (TblColRef ref : DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree.getAllIndexEntities())) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
                             structType.apply(columnIndex).name() + DFBuilderHelper$.MODULE$.ENCODE_SUFFIX(),

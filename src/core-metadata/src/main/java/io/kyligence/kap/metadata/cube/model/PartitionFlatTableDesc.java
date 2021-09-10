@@ -24,32 +24,42 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree;
 
-public class MLPFlatTableDesc extends SegmentFlatTableDesc {
+public class PartitionFlatTableDesc extends SegmentFlatTableDesc {
 
-    private final Set<Long> partitionIds;
     private final String jobId;
+    private final List<Long> partitions;
 
-    public MLPFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree,
-            Set<Long> partitionIds, String jobId) {
+    public PartitionFlatTableDesc(KylinConfig config, NDataSegment dataSegment, AdaptiveSpanningTree spanningTree, //
+            String jobId, List<Long> partitions) {
         super(config, dataSegment, spanningTree);
-        Preconditions.checkNotNull(partitionIds);
         Preconditions.checkNotNull(jobId);
-        this.partitionIds = partitionIds;
+        Preconditions.checkNotNull(partitions);
         this.jobId = jobId;
+        this.partitions = Collections.unmodifiableList(partitions);
     }
 
-    public Set<Long> getPartitionIDs() {
-        return this.partitionIds;
+    public PartitionFlatTableDesc(KylinConfig config, NDataSegment dataSegment, AdaptiveSpanningTree spanningTree, //
+            List<String> relatedTables, String jobId, List<Long> partitions) {
+        super(config, dataSegment, spanningTree, relatedTables);
+        Preconditions.checkNotNull(jobId);
+        Preconditions.checkNotNull(partitions);
+        this.jobId = jobId;
+        this.partitions = Collections.unmodifiableList(partitions);
+    }
+
+    public List<Long> getPartitions() {
+        return this.partitions;
     }
 
     @Override

@@ -36,16 +36,16 @@ public class RDSegmentBuildJob extends SegmentJob {
     @Override
     protected final void doExecute() throws Exception {
         writeCountDistinct();
-        if (isMLP()) {
-            detectMLP();
+        if (isPartitioned()) {
+            detectPartition();
         } else {
             detect();
         }
     }
 
-    private void detectMLP() throws IOException {
+    private void detectPartition() throws IOException {
         for (NDataSegment dataSegment : readOnlySegments) {
-            RDSegmentBuildExec exec = new RDMLPBuildExec(this, dataSegment);
+            RDSegmentBuildExec exec = new RDPartitionBuildExec(this, dataSegment);
             exec.detectResource();
         }
     }

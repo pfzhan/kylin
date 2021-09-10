@@ -44,7 +44,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -135,8 +134,8 @@ public class DictionaryBuilderHelper {
         return dictColSet;
     }
 
-    public static Set<TblColRef> extractTreeRelatedGlobalDictToBuild(NDataSegment seg, NSpanningTree toBuildTree) {
-        Collection<IndexEntity> toBuildIndexEntities = toBuildTree.getAllIndexEntities();
+    public static Set<TblColRef> extractTreeRelatedGlobalDictToBuild(NDataSegment seg,
+            Collection<IndexEntity> toBuildIndexEntities) {
         List<LayoutEntity> toBuildCuboids = Lists.newArrayList();
         for (IndexEntity desc : toBuildIndexEntities) {
             toBuildCuboids.addAll(desc.getLayouts());
@@ -154,8 +153,9 @@ public class DictionaryBuilderHelper {
         return toBuildColRefSet;
     }
 
-    public static Set<TblColRef> extractTreeRelatedGlobalDicts(NDataSegment seg, NSpanningTree toBuildTree) {
-        List<LayoutEntity> toBuildCuboids = toBuildTree.getAllIndexEntities().stream()
+    public static Set<TblColRef> extractTreeRelatedGlobalDicts(NDataSegment seg,
+            Collection<IndexEntity> toBuildIndexEntities) {
+        List<LayoutEntity> toBuildCuboids = toBuildIndexEntities.stream()
                 .flatMap(entity -> entity.getLayouts().stream()).collect(Collectors.toList());
         return findNeedDictCols(toBuildCuboids);
     }

@@ -27,6 +27,8 @@ package io.kyligence.kap.engine.spark.job
 import java.io.IOException
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBuilder
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
 import org.apache.hadoop.fs.Path
 import org.apache.spark.internal.Logging
@@ -44,45 +46,47 @@ class RDSegmentBuildExec(private val jobContext: RDSegmentBuildJob, //
   protected final val config = jobContext.getConfig
   protected final val dataflowId = jobContext.getDataflowId
   protected final val sparkSession = jobContext.getSparkSession
-  protected final val spanningTree = jobContext.getSpanningTree
   protected final val rdSharedPath = jobContext.getRdSharedPath
+  protected final val readOnlyLayouts = jobContext.getReadOnlyLayouts
 
   // Needed variables from data segment.
   protected final val segmentId = dataSegment.getId
   protected final val project = dataSegment.getProject
 
-  protected lazy val flatTableDesc = new SegmentFlatTableDesc(config, dataSegment, spanningTree)
+  private lazy val spanningTree = new AdaptiveSpanningTree(config, new AdaptiveTreeBuilder(dataSegment, readOnlyLayouts))
 
-  protected lazy val flatTable: SegmentFlatTable = //
-    SegmentSourceUtils.newFlatTable(flatTableDesc, sparkSession)
+  private lazy val flatTableDesc = new SegmentFlatTableDesc(config, dataSegment, spanningTree)
+
+  private lazy val flatTable = new SegmentFlatTable(sparkSession, flatTableDesc)
 
   @throws(classOf[IOException])
   def detectResource(): Unit = {
-    val sources = SegmentSourceUtils.get1stLayerSources(spanningTree, dataSegment)
 
-    val (ftSources, layoutSources) = sources.partition(_.isFlatTable)
+    val flatTableExecutions = if (spanningTree.fromFlatTable()) {
+      Seq((-1L, flatTable.getFlatTablePartDS.queryExecution))
+    } else {
+      Seq.empty
+    }
+
+    val layoutExecutions = spanningTree.getRootNodes.asScala.map { node => //
+      val layout = node.getLayout
+      val execution = StorageStoreUtils.toDF(dataSegment, layout, sparkSession).queryExecution
+      (layout.getId, execution)
+    }
 
     val sourceSize = Maps.newHashMap[String, Long]()
-    val sourceLeaves = Maps.newHashMap[String, java.lang.Integer]()
+    val sourceLeaves = Maps.newHashMap[String, Int]()
 
-    (layoutSources.groupBy(_.getParentId).values.map { grouped =>
-      val head = grouped.head
-      val execution = StorageStoreUtils.toDF(head.getDataSegment, //
-        head.getParent, sparkSession).queryExecution
-      (head.getParentId, execution)
-    } ++ ftSources.groupBy(_.getParentId).values.map { grouped =>
-      val head = grouped.head
-      val execution = flatTable.getFlatTablePartDS.queryExecution
-      (head.getParentId, execution)
-    }).foreach { case (parentId, execution) =>
+    (flatTableExecutions ++ layoutExecutions).foreach { case (parentId, execution) =>
       val sourceName = String.valueOf(parentId)
       val leaves = Integer.parseInt(ResourceDetectUtils.getPartitions(execution.executedPlan))
-      logInfo(s"leaf nodes is: $leaves")
+      logInfo(s"Leaf nodes: $leaves")
       val paths = ResourceDetectUtils.getPaths(execution.sparkPlan).map(_.toString).asJava
-      logInfo(s"Detected SOURCE $sourceName $leaves ${paths.asScala.mkString(",")}")
+      logInfo(s"Detected source: $sourceName $leaves ${paths.asScala.mkString(",")}")
       sourceSize.put(sourceName, ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*))
       sourceLeaves.put(sourceName, leaves)
     }
+
     ResourceDetectUtils.write(new Path(rdSharedPath, //
       s"${segmentId}_${ResourceDetectUtils.fileName()}"), sourceSize)
     ResourceDetectUtils.write(new Path(rdSharedPath, //

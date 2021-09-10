@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
+import org.apache.spark.tracker.BuildContext;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -52,6 +53,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SegmentBuildJob extends SegmentJob {
 
+    private BuildContext buildContext;
+
     @Override
     protected String generateInfo() {
         return LogJobInfoUtils.dfBuildJobInfo();
@@ -63,8 +66,21 @@ public class SegmentBuildJob extends SegmentJob {
             checkDateFormatIfExist(project, dataflowId);
         }
         tryRefreshSnapshots();
-        build();
+
+        buildContext = new BuildContext(ss.sparkContext(), config);
+        buildContext.appStatusTracker().startMonitorBuildResourceState();
+
+        try {
+            build();
+        } finally {
+            buildContext.stop();
+        }
+
         updateSegmentSourceBytesSize();
+    }
+
+    protected BuildContext getBuildContext() {
+        return buildContext;
     }
 
     @Override // Copied from DFBuildJob
@@ -98,7 +114,7 @@ public class SegmentBuildJob extends SegmentJob {
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
-                val exec = isMLP() ? new MLPBuildExec(this, seg) : new SegmentBuildExec(this, seg);
+                val exec = isPartitioned() ? new PartitionBuildExec(this, seg) : new SegmentBuildExec(this, seg);
                 buildSegment(seg, exec);
             } catch (IOException e) {
                 Throwables.propagate(e);
@@ -117,13 +133,11 @@ public class SegmentBuildJob extends SegmentJob {
         if (config.isSnapshotManualManagementEnabled()) {
             log.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);
-            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(),
-                    getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
             return;
         } else if (!needBuildSnapshots()) {
             log.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
-            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(),
-                    getIgnoredSnapshotTables());
+            snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
             return;
         }
         log.info("Refresh SNAPSHOT.");

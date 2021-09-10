@@ -23,7 +23,8 @@
 package io.kyligence.kap.engine.spark.builder
 
 import io.kyligence.kap.engine.spark.job.TableMetaManager
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBuilder
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.SegmentRange
@@ -55,7 +56,7 @@ class TestDimensionTableStat extends SparderBaseFunSuite with SharedSparkSession
     dfMgr.updateDataflow(update)
 
     val seg = dfMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1356019200000L))
-    val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME1)
+    val toBuildTree = new AdaptiveSpanningTree(getTestConfig, new AdaptiveTreeBuilder(seg, seg.getIndexPlan.getAllLayouts))
     val flatTableDesc = new SegmentFlatTableDesc(getTestConfig, seg, toBuildTree)
     val flatTable = new SegmentFlatTable(spark, flatTableDesc)
     flatTable.getFlatTableDS

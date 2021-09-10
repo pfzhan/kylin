@@ -35,9 +35,9 @@ import org.apache.spark.sql.{Dataset, Row}
 
 import scala.collection.JavaConverters._
 
-class MLPMergeExec(private val jobContext: SegmentMergeJob,
-                   private val dataSegment: NDataSegment)
-  extends SegmentMergeExec(jobContext, dataSegment) with MLPExec {
+class PartitionMergeExec(private val jobContext: SegmentMergeJob,
+                         private val dataSegment: NDataSegment)
+  extends SegmentMergeExec(jobContext, dataSegment) with PartitionExec {
 
   protected final val newBuckets = //
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq

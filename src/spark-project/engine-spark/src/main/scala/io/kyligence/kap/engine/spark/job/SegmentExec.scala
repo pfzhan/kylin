@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job
 
+import java.util
+import java.util.Objects
+
 import com.google.common.collect.{Lists, Queues}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.SegmentExec.{LayoutResult, ResultType, SourceStats}
@@ -37,8 +40,6 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.{StorageListener, StorageStoreFactory, WriteTaskStats}
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
-import java.util
-import java.util.Objects
 import scala.collection.JavaConverters._
 
 trait SegmentExec extends Logging {
@@ -69,7 +70,7 @@ trait SegmentExec extends Logging {
       val failure = noneOrFailure.take()
       if (failure.nonEmpty) {
         val t = failure.get
-        logError(s"Fail fast.", t)
+        logError(s"Segment $segmentId fail fast.", t)
         drain()
         throw t
       }
@@ -106,7 +107,8 @@ trait SegmentExec extends Logging {
       results.add(entry.asInstanceOf[LayoutResult])
       entry = pipe.poll()
     }
-    logInfo(s"Drained LAYOUT: ${results.asScala.map(lr => lr.layoutId).mkString(",")} at segment ${segmentId}")
+    logInfo(s"Segment $segmentId drained layouts: " + //
+      s"${results.asScala.map(_.layoutId).mkString("[", ",", "]")}")
 
     class DFUpdate extends UnitOfWork.Callback[Int] {
       override def process(): Int = {
@@ -124,7 +126,7 @@ trait SegmentExec extends Logging {
           dataLayout.setBuildJobId(jobId)
           if (taskStats.numRows == -1) {
             KylinBuildEnv.get().buildJobInfos.recordAbnormalLayouts(layoutId, "Total row count -1.")
-            logWarning(s"Layout $layoutId total row count -1.")
+            logWarning(s"Segment $segmentId layout $layoutId total row count -1.")
           }
           dataLayout.setSourceRows(sourceStats.rows)
 
@@ -139,7 +141,7 @@ trait SegmentExec extends Logging {
       }
     }
     UnitOfWork.doInTransactionWithRetry(new DFUpdate, project)
-    logDebug(s"update metadata for ${results.asScala.map(lr => lr.layoutId).mkString(",")} at segment ${segmentId}")
+    logDebug(s"Segment $segmentId update metadata ${results.asScala.map(_.layoutId).mkString("[", ",", "]")}.")
   }
 
   protected final def updateDataLayouts(manager: NDataflowManager, dataLayouts: Seq[NDataLayout]): Int = {
@@ -149,13 +151,13 @@ trait SegmentExec extends Logging {
     0
   }
 
-  protected def checkpoint(): Unit = {
+  protected def scheduleCheckpoint(): Unit = {
     // Collect and merge layout built results, then checkpoint.
-    runtime.schedule(() => try {
+    runtime.scheduleCheckpoint(() => try {
       setConfig4CurrentThread()
       drain()
     } catch {
-      case t: Throwable => logError("Checkpoint failed", t); throw t
+      case t: Throwable => logError(s"Segment $segmentId checkpoint failed.", t); throw t
     })
   }
 
@@ -175,7 +177,7 @@ trait SegmentExec extends Logging {
     parentDS.select(columns: _*).sortWithinPartitions(columns: _*)
   }
 
-  protected def indexFunc(colRef: TblColRef): Int
+  protected def columnIdFunc(colRef: TblColRef): String
 
   private def wrapAggLayoutDS(layout: LayoutEntity, parentDS: Dataset[Row]): Dataset[Row] = {
     val dimensions = wrapDimensions(layout)
@@ -183,29 +185,29 @@ trait SegmentExec extends Logging {
     val sortColumns = NSparkCubingUtil.getColumns(dimensions)
     val selectColumns = NSparkCubingUtil.getColumns(NSparkCubingUtil.combineIndices(dimensions, measures))
     val aggregated = CuboidAggregator.aggregate(parentDS, //
-      dimensions, layout.getIndex.getEffectiveMeasures, indexFunc)
+      dimensions, layout.getIndex.getEffectiveMeasures, columnIdFunc)
     aggregated.select(selectColumns: _*).sortWithinPartitions(sortColumns: _*)
   }
 
-  protected final def newDataLayout(dataSegment: NDataSegment, //
+  protected final def newDataLayout(segment: NDataSegment, //
                                     layout: LayoutEntity, //
                                     layoutDS: Dataset[Row], //
                                     readableDesc: String,
                                     storageListener: Option[StorageListener]): Unit = {
-    val storagePath = NSparkCubingUtil.getStoragePath(dataSegment, layout.getId)
+    val storagePath = NSparkCubingUtil.getStoragePath(segment, layout.getId)
     val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc, storageListener)
     val sourceStats = newSourceStats(layout, taskStats)
     pipe.offer(LayoutResult(layout.getId, taskStats, sourceStats))
   }
 
   protected def newSourceStats(layout: LayoutEntity, taskStats: WriteTaskStats): SourceStats = {
-    logInfo(s"Layout ${layout.getId} source rows ${taskStats.sourceRows}")
+    logInfo(s"Segment $segmentId layout source rows ${layout.getId} ${taskStats.sourceRows}")
     SourceStats(rows = taskStats.sourceRows)
   }
 
   protected def wrapDimensions(layout: LayoutEntity): util.Set[Integer] = {
     val dimensions = layout.getOrderedDimensions.keySet()
-    logInfo(s"LAYOUT-DIMENSION ${layout.getId}-[${dimensions.asScala.mkString(",")}]")
+    logInfo(s"Segment $segmentId layout dimensions ${layout.getId} ${dimensions.asScala.mkString("[", ",", "]")}")
     dimensions
   }
 
@@ -233,8 +235,8 @@ trait SegmentExec extends Logging {
     val dimRangeInfo = new java.util.HashMap[String, DimensionRangeInfo]
     // Not support multi partition for now
     if (Objects.isNull(segment.getModel.getMultiPartitionDesc)
-            && config.isDimensionRangeFilterEnabled
-            && !dimensions.isEmpty) {
+      && config.isDimensionRangeFilterEnabled
+      && !dimensions.isEmpty) {
       val start = System.currentTimeMillis()
       import org.apache.spark.sql.functions._
 
@@ -247,12 +249,12 @@ trait SegmentExec extends Logging {
       val cols = Array.concat(minCols, maxCols)
       val row = dimDS.agg(cols.head, cols.tail: _*).head.toSeq.splitAt(columns.length)
       (dimensions.asScala.toSeq, row._1, row._2)
-              .zipped.map {
+        .zipped.map {
         case (_, null, null) =>
         case (column, min, max) => dimRangeInfo.put(column.toString, new DimensionRangeInfo(min.toString, max.toString))
       }
       val timeCost = System.currentTimeMillis() - start
-      logInfo(s"Segment: $segmentId, calculate dimension range cost $timeCost ms")
+      logInfo(s"Segment $segmentId calculate dimension range cost $timeCost ms")
     }
     dimRangeInfo
   }

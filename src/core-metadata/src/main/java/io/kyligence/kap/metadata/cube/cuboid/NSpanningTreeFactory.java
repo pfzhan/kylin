@@ -38,6 +38,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 
+@Deprecated
 public class NSpanningTreeFactory {
 
     public static NSpanningTree fromIndexPlan(IndexPlan indexPlan) {

@@ -104,11 +104,9 @@ class StorageStoreV1 extends StorageStore {
   }
 
   private def repartitionWriter(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame) = {
-    // cleanup before writing
     val ss = dataFrame.sparkSession
     val hadoopConf = ss.sparkContext.hadoopConfiguration
     val fs = outputPath.getFileSystem(hadoopConf)
-    StorageUtils.cleanupPotentialTempFiles(fs, outputPath, includeSelf = false)
 
     val tempPath = outputPath.toString + TEMP_FLAG + System.currentTimeMillis()
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath)

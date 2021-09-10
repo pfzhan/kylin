@@ -155,7 +155,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     if (needEncoding && config.isPersistFlatViewEnabled) {
       logInfo(s"Check project:${seg.getProject} seg:${seg.getName} persist view fact table.")
       val fact = flatTableDesc.getDataModel.getRootFactTable
-      val globalDicts = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree)
+      val globalDicts = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree.getAllIndexEntities)
       val existsFactDictCol = globalDicts.asScala.exists(_.getTableRef.getTableIdentity.equals(fact.getTableIdentity))
 
       logInfo(s"Fact table ${fact.getAlias} isView ${fact.getTableDesc.isView} and fact table exists dict col ${existsFactDictCol}")

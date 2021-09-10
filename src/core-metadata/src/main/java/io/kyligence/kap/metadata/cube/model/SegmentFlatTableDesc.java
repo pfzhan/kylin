@@ -44,13 +44,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class SegmentFlatTableDesc {
     protected final KylinConfig config;
     protected final NDataSegment dataSegment;
-    protected final NSpanningTree spanningTree;
+    protected final AdaptiveSpanningTree spanningTree;
 
     protected final String project;
     protected final String segmentId;
@@ -59,7 +60,7 @@ public class SegmentFlatTableDesc {
     protected final IndexPlan indexPlan;
 
     // By design. Historical debt, wait for reconstruction.
-    private final Map<String, Integer> columnIndexMap = Maps.newHashMap();
+    private final Map<String, Integer> columnIdMap = Maps.newHashMap();
 
     private final List<TblColRef> columns = Lists.newLinkedList();
     private final List<Integer> columnIds = Lists.newArrayList();
@@ -75,11 +76,11 @@ public class SegmentFlatTableDesc {
         return !relatedTables.isEmpty();
     }
 
-    public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree) {
+    public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, AdaptiveSpanningTree spanningTree) {
         this(config, dataSegment, spanningTree, Lists.newArrayList());
     }
 
-    public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree,
+    public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, AdaptiveSpanningTree spanningTree,
             List<String> relatedTables) {
         this.config = config;
         this.dataSegment = dataSegment;
@@ -104,7 +105,7 @@ public class SegmentFlatTableDesc {
         return this.dataSegment;
     }
 
-    public NSpanningTree getSpanningTree() {
+    public AdaptiveSpanningTree getSpanningTree() {
         return this.spanningTree;
     }
 
@@ -147,10 +148,10 @@ public class SegmentFlatTableDesc {
         return config.isPersistFlatViewEnabled();
     }
 
-    public int getIndex(TblColRef colRef) {
-        Integer index = columnIndexMap.get(colRef.getIdentity());
+    public String getColumnIdAsString(TblColRef colRef) {
+        Integer index = columnIdMap.get(colRef.getIdentity());
         Preconditions.checkNotNull(index);
-        return index;
+        return index.toString();
     }
 
     public List<TblColRef> getColumns() {
@@ -190,7 +191,7 @@ public class SegmentFlatTableDesc {
         }
 
         final String factTableId = dataModel.getRootFactTable().getTableIdentity();
-        return spanningTree.getRootIndexEntities().stream().anyMatch(index -> index.getEffectiveDimCols().values() //
+        return spanningTree.getLevel0thIndices().stream().anyMatch(index -> index.getEffectiveDimCols().values() //
                 .stream().anyMatch(col -> !col.getTableRef().getTableIdentity().equalsIgnoreCase(factTableId)) //
                 || index.getEffectiveMeasures().values().stream().anyMatch(m -> m.getFunction().getColRefs().stream() //
                         .anyMatch(col -> !col.getTableRef().getTableIdentity().equalsIgnoreCase(factTableId))));
@@ -199,7 +200,11 @@ public class SegmentFlatTableDesc {
     // Check what columns from hive tables are required, and index them
     protected void initColumns() {
         if (shouldPersistFlatTable()) {
-            addModelColumns();
+            if (config.isIndexColumnFlatTableEnabled()) {
+                addIndexPlanColumns();
+            } else {
+                addModelColumns();
+            }
         } else if (isPartialBuild()) {
             addIndexPartialBuildColumns();
         } else {
@@ -222,7 +227,7 @@ public class SegmentFlatTableDesc {
     }
 
     protected void addIndexPartialBuildColumns() {
-        Set<Integer> dimSet = spanningTree.getAllIndexEntities().stream() //
+        Set<Integer> dimSet = spanningTree.getIndices().stream() //
                 .flatMap(layout -> layout.getDimensions().stream()) //
                 .collect(Collectors.toSet());
         indexPlan.getEffectiveDimCols().entrySet().stream() //
@@ -231,7 +236,7 @@ public class SegmentFlatTableDesc {
                 .filter(Objects::nonNull) //
                 .forEach(this::addColumn);
 
-        Set<Integer> measureSet = spanningTree.getAllIndexEntities().stream() //
+        Set<Integer> measureSet = spanningTree.getIndices().stream() //
                 .flatMap(layout -> layout.getMeasures().stream()) //
                 .collect(Collectors.toSet());
 
@@ -259,18 +264,19 @@ public class SegmentFlatTableDesc {
     }
 
     protected final void addColumn(TblColRef colRef) {
-        if (columnIndexMap.containsKey(colRef.getIdentity())) {
+        if (columnIdMap.containsKey(colRef.getIdentity())) {
             return;
         }
         if (dataSegment.getExcludedTables().contains(colRef.getTable())) {
             return;
         }
-        columnIndexMap.put(colRef.getIdentity(), columnIndexMap.size());
+
         columns.add(colRef);
 
         int id = dataModel.getColumnIdByColumnName(colRef.getIdentity());
         Preconditions.checkArgument(id != -1,
                 "Column: " + colRef.getIdentity() + " is not in model: " + dataModel.getUuid());
+        columnIdMap.put(colRef.getIdentity(), id);
         columnIds.add(id);
         columnId2Canonical.put(id, colRef.getCanonicalName());
     }

@@ -43,6 +43,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.Getter;
 
+@Deprecated
 public abstract class NSpanningTree implements Serializable {
     final protected Map<IndexEntity, Collection<LayoutEntity>> cuboids;
     final protected String cacheKey;
@@ -84,8 +85,6 @@ public abstract class NSpanningTree implements Serializable {
     abstract public Collection<IndexEntity> getAllIndexEntities();
 
     abstract public Collection<IndexEntity> decideTheNextBatch(NDataSegment segment);
-
-    abstract public Collection<IndexEntity> getImmediateSuccessors(IndexEntity index);
 
     abstract public void addParentChildRelation(IndexEntity parent, IndexEntity child);
 

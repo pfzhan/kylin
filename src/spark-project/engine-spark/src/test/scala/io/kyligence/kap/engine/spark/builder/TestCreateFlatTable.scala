@@ -142,7 +142,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
 
   private def checkEncodeCols(ds: Dataset[Row], seg: NDataSegment, needEncode: Boolean) = {
     val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME1)
-    val globalDictSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree)
+    val globalDictSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree.getAllIndexEntities)
     val actualEncodeDictSize = ds.schema.count(_.name.endsWith(ENCODE_SUFFIX))
     if (needEncode) {
       Assert.assertEquals(globalDictSet.size(), actualEncodeDictSize)

@@ -65,7 +65,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
 
   @throws(classOf[IOException])
   final def mergeSegment(): Unit = {
-    checkpoint()
+    scheduleCheckpoint()
     mergeFlatTable()
     mergeIndices()
     // Drain results immediately after merging.
@@ -131,12 +131,12 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
 
   protected val sparkSchedulerPool: String = "merge"
 
-  override protected def indexFunc(colRef: TblColRef): Int = //
+  override protected def columnIdFunc(colRef: TblColRef): String = //
     if (config.isUTEnv) {
       val tableDesc = new SegmentFlatTableDesc(config, dataSegment, null)
-      tableDesc.getIndex(colRef)
+      tableDesc.getColumnIdAsString(colRef)
     } else {
-      -1
+      s"-1"
     }
 
   private def mergeFlatTable(): Unit = {
@@ -227,9 +227,9 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
     } else {
       val dimCols = dataflow.getIndexPlan.getEffectiveDimCols
       val mergedDimRange = unmerged.map(seg => JavaConverters.mapAsScalaMap(seg.getDimensionRangeInfoMap).toSeq)
-              .reduce(_ ++ _).groupBy(_._1).mapValues(_.map(_._2).seq).map(dim => {
-         (dim._1, dim._2.reduce(_.merge(_, dimCols.get(Integer.parseInt(dim._1)).getType)))
-       })
+        .reduce(_ ++ _).groupBy(_._1).mapValues(_.map(_._2).seq).map(dim => {
+        (dim._1, dim._2.reduce(_.merge(_, dimCols.get(Integer.parseInt(dim._1)).getType)))
+      })
       JavaConverters.mapAsJavaMap(mergedDimRange)
     }
   }

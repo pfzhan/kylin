@@ -51,7 +51,7 @@ public class SegmentMergeJob extends SegmentJob {
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
-                val exec = isMLP() ? new MLPMergeExec(this, seg) : new SegmentMergeExec(this, seg);
+                val exec = isPartitioned() ? new PartitionMergeExec(this, seg) : new SegmentMergeExec(this, seg);
                 exec.mergeSegment();
             } catch (IOException e) {
                 Throwables.propagate(e);

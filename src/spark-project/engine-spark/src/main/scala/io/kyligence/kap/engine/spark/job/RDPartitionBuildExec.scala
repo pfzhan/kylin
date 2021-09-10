@@ -25,60 +25,60 @@
 package io.kyligence.kap.engine.spark.job
 
 import java.io.IOException
-import com.google.common.collect.{Maps, Sets}
-import io.kyligence.kap.engine.spark.builder.MLPFlatTable
-import io.kyligence.kap.metadata.cube.model.{MLPFlatTableDesc, NDataSegment}
+
+import com.google.common.collect.Maps
+import io.kyligence.kap.engine.spark.builder.PartitionFlatTable
+import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
+import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.{PartitionTreeBuilder, PartitionTreeNode}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, PartitionFlatTableDesc}
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 
 import scala.collection.JavaConverters._
 
-class RDMLPBuildExec(private val jobContext: RDSegmentBuildJob, //
-                     private val dataSegment: NDataSegment) extends RDSegmentBuildExec(jobContext, dataSegment) {
-
-
-  override protected lazy val flatTableDesc = //
-    new MLPFlatTableDesc(config, dataSegment, spanningTree, partitionIDs, jobId)
-
-  override protected lazy val flatTable: MLPFlatTable = //
-    MLPSourceUtils.newFlatTable(flatTableDesc, sparkSession)
+class RDPartitionBuildExec(private val jobContext: RDSegmentBuildJob, //
+                           private val dataSegment: NDataSegment) extends RDSegmentBuildExec(jobContext, dataSegment) {
 
   private val newBuckets =
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
 
-  private val partitionIDs = {
-    val linkedSet = Sets.newLinkedHashSet[java.lang.Long]()
-    newBuckets.map(_.getPartitionId).foreach(id => linkedSet.add(id))
-    logInfo(s"Partition ID ${linkedSet.asScala.mkString(",")}")
-    linkedSet
+  protected final lazy val partitions = {
+    val distincted = newBuckets.map(_.getPartitionId).distinct.sorted
+    logInfo(s"Segment $segmentId partitions: ${distincted.mkString("[", ",", "]")}")
+    scala.collection.JavaConverters.seqAsJavaList(distincted.map(java.lang.Long.valueOf))
   }
+
+  private lazy val spanningTree = new PartitionSpanningTree(config, //
+    new PartitionTreeBuilder(dataSegment, readOnlyLayouts, jobId, partitions))
+
+  private lazy val flatTableDesc = new PartitionFlatTableDesc(config, dataSegment, spanningTree, jobId, partitions)
+
+  private lazy val flatTable = new PartitionFlatTable(sparkSession, flatTableDesc)
 
 
   @throws(classOf[IOException])
   override def detectResource(): Unit = {
-    val sources = MLPSourceUtils.get1stLayerSources(spanningTree, dataSegment, partitionIDs)
 
-    val (ftSources, layoutSources) = sources.partition(_.isFlatTable)
+    val flatTableExecutions = if (spanningTree.fromFlatTable()) {
+      Seq((-1L, Seq(flatTable.getFlatTablePartDS.queryExecution)))
+    } else {
+      Seq.empty
+    }
+
+    val layoutExecutions = spanningTree.getRootNodes.asScala.map(_.asInstanceOf[PartitionTreeNode])
+      .groupBy(_.getLayout.getId)
+      .map { case (layoutId, grouped) => //
+        val executions = grouped.map(node => //
+          StorageStoreUtils.toDF(dataSegment, node.getLayout, node.getPartition, sparkSession).queryExecution)
+          .toSeq
+        (layoutId, executions)
+      }.toSeq
 
     val sourceSize = Maps.newHashMap[String, Long]()
-    val sourceLeaves = Maps.newHashMap[String, java.lang.Integer]()
+    val sourceLeaves = Maps.newHashMap[String, Int]()
 
-    (layoutSources.groupBy(_.getParentId) //
-      .values.map { grouped =>
-      val head = grouped.head
-      val parent = head.getParent
-      val segment = head.getDataSegment
-      val executions = grouped.map { source =>
-        StorageStoreUtils.toDF(segment, //
-          parent, source.getPartitionId, sparkSession).queryExecution
-      }
-      (head.getParentId, executions)
-    } ++ ftSources.groupBy(_.getParentId).values.map { grouped =>
-      val head = grouped.head
-      val executions = Seq(flatTable.getFlatTablePartDS.queryExecution)
-      (head.getParentId, executions)
-    }).foreach { case (parentId, executions) =>
+    (flatTableExecutions ++ layoutExecutions).foreach { case (parentId, executions) =>
       val sourceName = String.valueOf(parentId)
       val leaves = executions.map(execution => //
         Integer.parseInt(ResourceDetectUtils.getPartitions(execution.executedPlan))).sum
@@ -87,7 +87,7 @@ class RDMLPBuildExec(private val jobContext: RDSegmentBuildJob, //
         ResourceDetectUtils.getPaths(execution.sparkPlan).map(_.toString)
       ).asJava
 
-      logInfo(s"Detected SOURCE $sourceName $leaves ${paths.asScala.mkString(",")}")
+      logInfo(s"Detected source: $sourceName $leaves ${paths.asScala.mkString(",")}")
       sourceSize.put(sourceName, ResourceDetectUtils.getResourceSize(paths.asScala.map(path => new Path(path)): _*))
       sourceLeaves.put(sourceName, leaves)
     }

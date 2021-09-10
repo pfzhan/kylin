@@ -26,9 +26,10 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util
 import java.util.Objects
-import com.google.common.collect.{Lists, Maps, Sets}
+
+import com.google.common.collect.{Lists, Maps}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
-import io.kyligence.kap.engine.spark.job.MLPExec.PartitionResult
+import io.kyligence.kap.engine.spark.job.PartitionExec.PartitionResult
 import io.kyligence.kap.engine.spark.job.SegmentExec.ResultType
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.job.JobBucket
@@ -39,18 +40,18 @@ import org.apache.spark.sql.{Dataset, Row}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-private[job] trait MLPExec { this: SegmentExec =>
+private[job] trait PartitionExec {
+  this: SegmentExec =>
 
   protected val newBuckets: Seq[JobBucket]
 
-  protected final lazy val partitionIds = {
-    val linkedSet = Sets.newLinkedHashSet[java.lang.Long]()
-    newBuckets.map(_.getPartitionId).foreach(id => linkedSet.add(id))
-    logInfo(s"Partition id [${linkedSet.asScala.mkString(",")}]")
-    linkedSet
+  protected final lazy val partitions = {
+    val distincted = newBuckets.map(_.getPartitionId).distinct.sorted
+    logInfo(s"Segment $segmentId partitions: ${distincted.mkString("[", ",", "]")}")
+    scala.collection.JavaConverters.seqAsJavaList(distincted.map(java.lang.Long.valueOf))
   }
 
-  protected final lazy val partitionColumnIds = {
+  protected final lazy val partitionColumns = {
     val columns: mutable.Seq[Integer] = //
       dataModel.getMultiPartitionDesc.getColumnRefs.asScala.map { ref => //
         val id = dataModel.getColumnIdByColumnName(ref.getAliasDotName)
@@ -70,7 +71,7 @@ private[job] trait MLPExec { this: SegmentExec =>
     val newBucketId = newBuckets.filter(_.getLayoutId == layout.getId) //
       .filter(_.getPartitionId == partitionId) //
       .head.getBucketId
-    logInfo(s"LAYOUT-PARTITION-BUCKET ${layout.getId}-$partitionId-$newBucketId.")
+    logInfo(s"Layout partition bucket: ${layout.getId} $partitionId $newBucketId.")
     val storagePath = NSparkCubingUtil.getStoragePath(dataSegment, layout.getId, newBucketId)
     val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc, storageListener)
     pipe.offer(PartitionResult(layout.getId, partitionId, newBucketId, taskStats))
@@ -78,8 +79,8 @@ private[job] trait MLPExec { this: SegmentExec =>
 
   override protected def wrapDimensions(layout: LayoutEntity): util.Set[Integer] = {
     // Implicitly included with multi level partition columns
-    val dimensions = NSparkCubingUtil.combineIndices(partitionColumnIds, layout.getOrderedDimensions.keySet())
-    logInfo(s"LAYOUT-DIMENSION ${layout.getId}-[${dimensions.asScala.mkString(",")}]")
+    val dimensions = NSparkCubingUtil.combineIndices(partitionColumns, layout.getOrderedDimensions.keySet())
+    logInfo(s"Layout dimensions: ${layout.getId} ${dimensions.asScala.mkString("[", ",", "]")}")
     dimensions
   }
 
@@ -94,7 +95,8 @@ private[job] trait MLPExec { this: SegmentExec =>
       results.add(entry.asInstanceOf[PartitionResult])
       entry = pipe.poll()
     }
-    logInfo(s"Drained LAYOUT-PARTITION: ${results.asScala.map(lp => s"${lp.layoutId}-${lp.partitionId}").mkString(",")}")
+    logInfo(s"Segment $segmentId drained layout partition: " + //
+      s"${results.asScala.map(lp => s"(${lp.layoutId} ${lp.partitionId})").mkString("[", ",", "]")}")
     class DFUpdate extends UnitOfWork.Callback[Int] {
       override def process(): Int = {
         // Merge into the newest data segment.
@@ -176,7 +178,7 @@ private[job] trait MLPExec { this: SegmentExec =>
 
 }
 
-object MLPExec {
+object PartitionExec {
 
   case class PartitionResult(layoutId: java.lang.Long, //
                              partitionId: java.lang.Long, //

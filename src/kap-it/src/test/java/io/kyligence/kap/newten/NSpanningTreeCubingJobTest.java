@@ -26,7 +26,6 @@ package io.kyligence.kap.newten;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -100,25 +99,6 @@ public class NSpanningTreeCubingJobTest extends NLocalWithSparkSessionTest {
         NSpanningTree spanningTree = NSpanningTreeFactory.fromLayouts(layouts, dataflowId);
         List<IndexEntity> roots = Lists.newArrayList(spanningTree.getRootIndexEntities());
         Assert.assertEquals(2, roots.size());
-        IndexEntity index1 = roots.get(0); // 100000L
-        IndexEntity index2 = roots.get(1); // 200000L
-        // 100000 => 10000, 20000
-        Set<Long> successors1 = spanningTree.getImmediateSuccessors(index1).stream().map(IndexEntity::getId)
-                .collect(Collectors.toSet());
-        Assert.assertEquals(2, successors1.size());
-        Assert.assertTrue(successors1.contains(10000L));
-        Assert.assertTrue(successors1.contains(20000L));
-
-        // 200000 => 10000, 30000
-        List<IndexEntity> successors2 = Lists.newArrayList(spanningTree.getImmediateSuccessors(index2));
-        Assert.assertEquals(10000L, successors2.get(0).getId());
-        Assert.assertEquals(30000L, successors2.get(1).getId());
-        // 30000 => 40000
-        List<IndexEntity> successors3 = Lists.newArrayList(spanningTree.getImmediateSuccessors(successors2.get(1)));
-        Assert.assertEquals(40000L, successors3.get(0).getId());
-        // 40000 => 0
-        List<IndexEntity> successors4 = Lists.newArrayList(spanningTree.getImmediateSuccessors(successors3.get(0)));
-        Assert.assertEquals(0L, successors4.get(0).getId());
     }
 
     @Override

@@ -61,8 +61,11 @@ object CuboidAggregator {
     val flatTableDesc =
       new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
 
+    val columnIndex =
+      dataset.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
+
     aggregate(dataset, dimensions, measures, //
-      (colRef: TblColRef) => flatTableDesc.getColumnIndex(colRef))
+      (colRef: TblColRef) => columnIndex.apply(flatTableDesc.getColumnIndex(colRef)) )
   }
 
   /**
@@ -81,14 +84,18 @@ object CuboidAggregator {
                     measures: util.Map[Integer, Measure],
                     tableDesc: NCubeJoinedFlatTableDesc,
                     isSparkSQL: Boolean = false): DataFrame = {
+
+    val columnIndex =
+      dataset.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
+
     aggregate(dataset, dimensions, measures, //
-      (colRef: TblColRef) => tableDesc.getColumnIndex(colRef), isSparkSQL)
+      (colRef: TblColRef) => columnIndex.apply(tableDesc.getColumnIndex(colRef)), isSparkSQL)
   }
 
   def aggregate(dataset: DataFrame,
                 dimensions: util.Set[Integer],
                 measures: util.Map[Integer, Measure],
-                columnIndexFunc: TblColRef => Int,
+                columnIdFunc: TblColRef => String,
                 isSparkSQL: Boolean = false): DataFrame = {
     if (measures.isEmpty) {
       return dataset
@@ -98,8 +105,6 @@ object CuboidAggregator {
 
     val reuseLayout = dataset.schema.fieldNames
       .contains(measures.keySet().asScala.head.toString)
-    val columnIndex =
-      dataset.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
 
     var taggedColIndex: Int = -1
 
@@ -113,7 +118,7 @@ object CuboidAggregator {
         if (reuseLayout) {
           columns.append(col(measureEntry._1.toString))
         } else {
-          columns.appendAll(parameters.map(p => col(columnIndex.apply(columnIndexFunc(p.getColRef)))))
+          columns.appendAll(parameters.map(p => col(columnIdFunc.apply(p.getColRef))))
         }
       } else {
         if (reuseLayout) {
@@ -153,7 +158,7 @@ object CuboidAggregator {
             if (isBitmap && parameters.size == 2) {
               require(measures.size() == 1, "Opt intersect count can only has one measure.")
               if (!reuseLayout) {
-                taggedColIndex = columnIndex.apply(columnIndexFunc(parameters.last.getColRef)).toInt
+                taggedColIndex = columnIdFunc.apply(parameters.last.getColRef).toInt
                 val tagCol = col(taggedColIndex.toString)
                 val separator = KapConfig.getInstanceFromEnv.getIntersectCountSeparator
                 cdCol = wrapEncodeColumn(columns.head)
