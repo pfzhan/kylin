@@ -51,7 +51,13 @@ export JAVA_VM_TOOL_XMS=${JAVA_VM_TOOL_XMS:-${JAVA_VM_XMS}}
 export JAVA_VM_TOOL_XMX=${JAVA_VM_TOOL_XMX:-${JAVA_VM_XMX}}
 
 export KYLIN_EXTRA_START_OPTS=""
-export KYLIN_JVM_SETTINGS=${KYLIN_JVM_SETTINGS:-"-server -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=16m -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:${KYLIN_HOME}/logs/kylin.gc.%p  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M -XX:-OmitStackTraceInFastThrow"}
+export KYLIN_JVM_SETTINGS=${KYLIN_JVM_SETTINGS:-"-server -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=16m -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:${KYLIN_HOME}/logs/kylin.gc.%p  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M -XX:-OmitStackTraceInFastThrow -Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector -DAsyncLogger.RingBufferSize=8192"}
+
+# add some must have settings
+if [[ ${KYLIN_JVM_SETTINGS} != *"-DAsyncLogger.RingBufferSize="* ]]
+then
+ export KYLIN_JVM_SETTINGS="${KYLIN_JVM_SETTINGS} -DAsyncLogger.RingBufferSize=8192"
+fi
 
 # Newer versions of glibc use an arena memory allocator that causes virtual
 # memory usage to explode. Tune the variable down to prevent vmem explosion.

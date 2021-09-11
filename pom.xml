@@ -112,6 +112,7 @@
         <mysql-connector.version>8.0.16</mysql-connector.version>
         <postgresql.version>42.2.13</postgresql.version>
         <commons-dbcp.version>2.5.0</commons-dbcp.version>
+        <lmax.disruptor.versoin>3.4.2</lmax.disruptor.versoin>
         <log4j2.version>2.14.1</log4j2.version>
         <slf4j.version>1.7.30</slf4j.version>
         <apache-log4j.version>2.12.1</apache-log4j.version>
@@ -1158,6 +1159,11 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lmax</groupId>
+                <artifactId>disruptor</artifactId>
+                <version>${lmax.disruptor.versoin}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
