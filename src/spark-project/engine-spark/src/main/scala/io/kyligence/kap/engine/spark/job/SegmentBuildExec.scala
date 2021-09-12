@@ -469,6 +469,9 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     case class GroupedNodeColumn(nodes: Seq[TreeNode], columns: Seq[String])
 
     def cluster(k: Int, nodes: Seq[TreeNode]): Seq[GroupedNodeColumn] = {
+      if (nodes.isEmpty) {
+        return Seq.empty[GroupedNodeColumn]
+      }
       val kcluster = new KMeansPlusPlusClusterer[ClusterNode](k, -1, new EarthMoversDistance())
       kcluster.cluster( //
         scala.collection.JavaConverters.seqAsJavaList(nodes.map(n => new ClusterNode(n)))).asScala //
@@ -486,17 +489,23 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
 
     def getK(nodes: Seq[TreeNode]): Int = {
       val groupFactor = 30
-      Math.max(nodes.size / groupFactor //
-        , nodes.map(_.getIndex) //
-          .flatMap(_.getEffectiveDimCols.keySet().asScala) //
-          .distinct.size / groupFactor)
+      val k = Math.max(1, //
+        Math.max(nodes.size / groupFactor //
+          , nodes.map(_.getIndex) //
+            .flatMap(_.getEffectiveDimCols.keySet().asScala) //
+            .distinct.size / groupFactor))
+      if (nodes.size < k) {
+        1
+      } else {
+        k
+      }
     }
 
     val tinyClustered = cluster(getK(tinyNodes), tinyNodes)
     val normalClustered = cluster(getK(normalNodes), normalNodes)
     val indexInferiorMap = mutable.HashMap[Long, InferiorCountDownLatch]()
     val inferiors = (tinyClustered ++ normalClustered).map { grouped =>
-      val selectColumns = grouped.columns.map(col => expr(col))
+      val selectColumns = grouped.columns.map(id => expr(s"`$id`"))
 
       logInfo(s"Segment $segmentId inferior index ${grouped.nodes.map(_.getIndex).map(_.getId).sorted.mkString("[", ",", "]")} " +
         s" columns ${grouped.columns.mkString("[", ",", "]")}")
@@ -507,6 +516,11 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       grouped.nodes.foreach(node => indexInferiorMap.put(node.getIndex.getId, ic))
       ic
     }
+
+    if (inferiors.isEmpty) {
+      return
+    }
+
     cachedIndexInferior = indexInferiorMap.toMap
 
     def getStorageLevel: StorageLevel = {
