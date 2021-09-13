@@ -992,7 +992,7 @@ export default class AggregateModal extends Vue {
   editDimCan (aggregateIdx, isEdit) {
     const aggregateArray = get(this.form, 'aggregateArray')
     // 如果没有选具体类型，就不往下执行
-    if (!aggregateArray[aggregateIdx].index_range) {
+    if (this.model.model_type === 'HYBRID' && !aggregateArray[aggregateIdx].index_range) {
       return false
     }
     aggregateArray[aggregateIdx].isEditDim = isEdit
