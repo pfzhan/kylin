@@ -149,9 +149,9 @@ public class SegmentFlatTableDesc {
     }
 
     public String getColumnIdAsString(TblColRef colRef) {
-        Integer index = columnIdMap.get(colRef.getIdentity());
-        Preconditions.checkNotNull(index);
-        return index.toString();
+        Integer id = columnIdMap.get(colRef.getIdentity());
+        Preconditions.checkNotNull(id);
+        return id.toString();
     }
 
     public List<TblColRef> getColumns() {

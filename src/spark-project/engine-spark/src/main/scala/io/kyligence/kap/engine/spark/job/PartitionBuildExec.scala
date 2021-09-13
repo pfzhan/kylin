@@ -31,6 +31,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.builder.PartitionFlatTable
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
+import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.{PartitionTreeBuilder, PartitionTreeNode}

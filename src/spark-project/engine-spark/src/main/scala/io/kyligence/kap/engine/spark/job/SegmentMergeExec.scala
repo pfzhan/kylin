@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job
 import java.io.IOException
 import java.lang
 import java.util.Objects
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
