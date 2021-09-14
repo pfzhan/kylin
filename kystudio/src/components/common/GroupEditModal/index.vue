@@ -93,7 +93,7 @@ export default class GroupEditModal extends Vue {
   // 获取user分页页码
   page_offset = 0
   // 每页请求数量
-  pageSize = 1000
+  pageSize = 100
 
   totalUsersSize = 0
   // 返回的数据总数
@@ -102,7 +102,7 @@ export default class GroupEditModal extends Vue {
   searchValueRight = ''
   clickLoadMore = false
   submitLoading = false
-  autoLoadLimit = 500
+  autoLoadLimit = 100
   timer = null
 
   // Computed: Modal宽度
