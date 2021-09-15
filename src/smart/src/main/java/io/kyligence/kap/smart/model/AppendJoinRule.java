@@ -29,8 +29,6 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 
@@ -69,19 +67,6 @@ public class AppendJoinRule extends AbstractJoinRule {
             return true;
         }
 
-        return isJoinWithFactTable(join, factTableName) //
-                && (joinTable.isToManyJoinRelation() || !join.isLeftJoin());
-    }
-
-    private boolean isJoinWithFactTable(JoinDesc join, String factTable) {
-        TblColRef[] foreignKeyColumns = join.getForeignKeyColumns();
-        if (foreignKeyColumns.length == 0) {
-            return false;
-        }
-        TableRef tableRef = foreignKeyColumns[0].getTableRef();
-        if (tableRef == null) {
-            return false;
-        }
-        return factTable.equalsIgnoreCase(tableRef.getTableIdentity());
+        return join.isJoinWithFactTable(factTableName) && (joinTable.isToManyJoinRelation() || !join.isLeftJoin());
     }
 }

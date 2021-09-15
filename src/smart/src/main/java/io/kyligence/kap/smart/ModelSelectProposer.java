@@ -219,9 +219,15 @@ public class ModelSelectProposer extends AbstractProposer {
         Comparator<NDataModel> joinSorter = (m1, m2) -> {
             List<JoinTableDesc> joinTables2 = m2.getJoinTables() == null ? Lists.newArrayList() : m2.getJoinTables();
             List<JoinTableDesc> joinTables1 = m1.getJoinTables() == null ? Lists.newArrayList() : m1.getJoinTables();
-            return Integer.compare(joinTables2.size(), joinTables1.size());
+            List<JoinTableDesc> filteredJoinTables1 = joinTables1.stream()
+                    .filter(joinTable -> joinTable.getJoin().isJoinWithFactTable(m1.getRootFactTableName()))
+                    .collect(Collectors.toList());
+            List<JoinTableDesc> filteredJoinTables2 = joinTables2.stream()
+                    .filter(joinTable -> joinTable.getJoin().isJoinWithFactTable(m2.getRootFactTableName()))
+                    .collect(Collectors.toList());
+            return Integer.compare(filteredJoinTables2.size(), filteredJoinTables1.size());
         };
-        Comparator<NDataModel> modifiedSorter = Comparator.comparing(NDataModel::getLastModified).reversed();
+        Comparator<NDataModel> modifiedSorter = Comparator.comparing(NDataModel::getCreateTime).reversed();
         return Ordering.from(joinSorter).compound(modifiedSorter);
     }
 

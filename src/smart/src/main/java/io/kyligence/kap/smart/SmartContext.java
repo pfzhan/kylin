@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
@@ -59,7 +60,8 @@ public class SmartContext extends AbstractContext {
 
     @Override
     public List<NDataModel> getOriginModels() {
-        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels();
+        return NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject()).listAllModels().stream()
+                .filter(model -> !model.isBroken()).collect(Collectors.toList());
 
     }
 

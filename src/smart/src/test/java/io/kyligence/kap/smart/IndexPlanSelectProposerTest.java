@@ -49,6 +49,7 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test() {
+        String expectedModelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, DEFAULT_PROJECT, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.analyzeSQLs();
@@ -57,12 +58,12 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
         smartMaster.selectModel();
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.ModelContext mdCtx = ctx.getModelContexts().get(0);
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getTargetModel().getUuid());
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOriginModel().getUuid());
+        Assert.assertEquals(expectedModelId, mdCtx.getTargetModel().getUuid());
+        Assert.assertEquals(expectedModelId, mdCtx.getOriginModel().getUuid());
 
         // validate select the expected CubePlan
         smartMaster.selectIndexPlan();
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getOriginIndexPlan().getUuid());
-        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", mdCtx.getTargetIndexPlan().getUuid());
+        Assert.assertEquals(expectedModelId, mdCtx.getOriginIndexPlan().getUuid());
+        Assert.assertEquals(expectedModelId, mdCtx.getTargetIndexPlan().getUuid());
     }
 }

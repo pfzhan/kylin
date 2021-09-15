@@ -55,6 +55,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -213,6 +214,18 @@ public class JoinDesc implements Serializable {
 
     public boolean isNonEquiJoin() {
         return Objects.nonNull(nonEquiJoinCondition);
+    }
+
+    public boolean isJoinWithFactTable(String factTable) {
+        TblColRef[] foreignKeyColumns = getForeignKeyColumns();
+        if (foreignKeyColumns.length == 0) {
+            return false;
+        }
+        TableRef tableRef = foreignKeyColumns[0].getTableRef();
+        if (tableRef == null) {
+            return false;
+        }
+        return factTable.equalsIgnoreCase(tableRef.getTableIdentity());
     }
 
     public void changeFKTableAlias(String oldAlias, String newAlias) {

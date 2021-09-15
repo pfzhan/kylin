@@ -458,7 +458,7 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testModelOptRuleWorksOnLastModifiedModel() {
+    public void testModelOptRuleWorksOnCreateTime() {
         String sql1 = "SELECT LSTG_FORMAT_NAME\n" //
                 + "FROM test_kylin_fact\n" //
                 + "LEFT JOIN edw.test_cal_dt ON (test_kylin_fact.cal_dt = edw.test_cal_dt.cal_dt)";
@@ -485,8 +485,8 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         String uuidModel1 = context1.getModelContexts().get(0).getTargetModel().getUuid();
         String uuidModel2 = context2.getModelContexts().get(0).getTargetModel().getUuid();
-        modelManager.updateDataModel(uuidModel1, copyForWrite -> copyForWrite.setLastModified(10000));
-        modelManager.updateDataModel(uuidModel2, copyForWrite -> copyForWrite.setLastModified(20000));
+        modelManager.updateDataModel(uuidModel1, copyForWrite -> copyForWrite.setCreateTime(30000));
+        modelManager.updateDataModel(uuidModel2, copyForWrite -> copyForWrite.setCreateTime(20000));
 
         getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
@@ -496,7 +496,7 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         runSuggestModelAndSave(context3);
         Assert.assertEquals(1, context3.getModelContexts().size());
         AbstractContext.ModelContext modelContext3 = context3.getModelContexts().get(0);
-        Assert.assertEquals(uuidModel2, modelContext3.getTargetModel().getUuid());
+        Assert.assertEquals(uuidModel1, modelContext3.getTargetModel().getUuid());
         Assert.assertEquals(2, modelContext3.getTargetModel().getJoinTables().size());
     }
 
@@ -529,8 +529,8 @@ public class ModelSelectProposerTest extends NLocalWithSparkSessionTest {
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         String uuidModel1 = context1.getModelContexts().get(0).getTargetModel().getUuid();
         String uuidModel2 = context2.getModelContexts().get(0).getTargetModel().getUuid();
-        modelManager.updateDataModel(uuidModel1, copyForWrite -> copyForWrite.setLastModified(10000));
-        modelManager.updateDataModel(uuidModel2, copyForWrite -> copyForWrite.setLastModified(20000));
+        modelManager.updateDataModel(uuidModel1, copyForWrite -> copyForWrite.setCreateTime(10000));
+        modelManager.updateDataModel(uuidModel2, copyForWrite -> copyForWrite.setCreateTime(20000));
 
         getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
         AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
