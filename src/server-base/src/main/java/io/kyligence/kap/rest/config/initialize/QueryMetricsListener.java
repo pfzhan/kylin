@@ -129,6 +129,11 @@ public class QueryMetricsListener {
             MetricsGroup.meterMark(MetricsName.QUERY_PUSH_DOWN_RATE, MetricsCategory.PROJECT, project, tags);
         }
 
+        if (queryMetrics.getEngineType().equals("CONSTANTS")) {
+            MetricsGroup.counterInc(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, project, tags);
+            MetricsGroup.meterMark(MetricsName.QUERY_CONSTANTS_RATE, MetricsCategory.PROJECT, project, tags);
+        }
+
         if (queryMetrics.isTimeout()) {
             MetricsGroup.counterInc(MetricsName.QUERY_TIMEOUT, MetricsCategory.PROJECT, project, tags);
             MetricsGroup.meterMark(MetricsName.QUERY_TIMEOUT_RATE, MetricsCategory.PROJECT, project, tags);

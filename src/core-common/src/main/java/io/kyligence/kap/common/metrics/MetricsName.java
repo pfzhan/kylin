@@ -62,11 +62,14 @@ public enum MetricsName {
     QUERY_FAILED("failed_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_PUSH_DOWN("pushdown_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_PUSH_DOWN_RATIO("pushdown_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_CONSTANTS("query_constants_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_CONSTANTS_RATIO("query_constants_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_TIMEOUT("timeout_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_LATENCY("query_latency", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_SLOW_RATE("gt10s_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_FAILED_RATE("failed_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_PUSH_DOWN_RATE("pushdown_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
+    QUERY_CONSTANTS_RATE("query_constants_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_TIMEOUT_RATE("timeout_query_rate", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_CACHE("cache_query_total_times", ClusterConstant.ALL, ClusterConstant.QUERY), //
     QUERY_CACHE_RATIO("cache_query_ratio", ClusterConstant.ALL, ClusterConstant.QUERY), //

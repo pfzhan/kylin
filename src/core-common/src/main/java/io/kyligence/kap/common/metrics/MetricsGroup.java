@@ -284,6 +284,10 @@ public class MetricsGroup {
             numerator = getCounter(MetricsName.QUERY_PUSH_DOWN, MetricsCategory.PROJECT, projectName, tags);
             newGauge(MetricsName.QUERY_PUSH_DOWN_RATIO, MetricsCategory.PROJECT, projectName, tags,
                     new QueryRatioGauge(numerator, denominator));
+            newCounter(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, projectName, tags);
+            numerator = getCounter(MetricsName.QUERY_CONSTANTS, MetricsCategory.PROJECT, projectName, tags);
+            newGauge(MetricsName.QUERY_CONSTANTS_RATIO, MetricsCategory.PROJECT, projectName, tags,
+                    new QueryRatioGauge(numerator, denominator));
             newCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
             numerator = getCounter(MetricsName.QUERY_CACHE, MetricsCategory.PROJECT, projectName, tags);
             newGauge(MetricsName.QUERY_CACHE_RATIO, MetricsCategory.PROJECT, projectName, tags,
@@ -301,6 +305,7 @@ public class MetricsGroup {
             newMeter(MetricsName.QUERY_SLOW_RATE, MetricsCategory.PROJECT, projectName, tags);
             newMeter(MetricsName.QUERY_FAILED_RATE, MetricsCategory.PROJECT, projectName, tags);
             newMeter(MetricsName.QUERY_PUSH_DOWN_RATE, MetricsCategory.PROJECT, projectName, tags);
+            newMeter(MetricsName.QUERY_CONSTANTS_RATE, MetricsCategory.PROJECT, projectName, tags);
             newMeter(MetricsName.QUERY_TIMEOUT_RATE, MetricsCategory.PROJECT, projectName, tags);
             newHistogram(MetricsName.QUERY_LATENCY, MetricsCategory.PROJECT, projectName, tags);
             // job
