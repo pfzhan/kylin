@@ -42,6 +42,16 @@
 
 package org.apache.kylin.metadata.model;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MEASURE_DATA_TYPE;
+import static org.apache.kylin.metadata.datatype.DataType.ANY;
+import static org.apache.kylin.metadata.datatype.DataType.BIGINT;
+import static org.apache.kylin.metadata.datatype.DataType.DECIMAL;
+import static org.apache.kylin.metadata.datatype.DataType.DOUBLE;
+import static org.apache.kylin.metadata.datatype.DataType.FLOAT;
+import static org.apache.kylin.metadata.datatype.DataType.INTEGER;
+import static org.apache.kylin.metadata.datatype.DataType.SMALL_INT;
+import static org.apache.kylin.metadata.datatype.DataType.TINY_INT;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,7 +66,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
@@ -76,17 +85,6 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
-
-import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_MEASURE_DATA_TYPE;
-import static org.apache.kylin.metadata.datatype.DataType.ANY;
-import static org.apache.kylin.metadata.datatype.DataType.BIGINT;
-import static org.apache.kylin.metadata.datatype.DataType.DECIMAL;
-import static org.apache.kylin.metadata.datatype.DataType.DOUBLE;
-import static org.apache.kylin.metadata.datatype.DataType.FLOAT;
-import static org.apache.kylin.metadata.datatype.DataType.INTEGER;
-import static org.apache.kylin.metadata.datatype.DataType.SMALL_INT;
-import static org.apache.kylin.metadata.datatype.DataType.TINY_INT;
-import static org.apache.kylin.metadata.model.TblColRef.UNKNOWN_ALIAS;
 
 /**
  */
@@ -173,10 +171,6 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
     public static final String FUNC_GROUPING = "GROUPING";
     public static final String FUNC_TOP_N = "TOP_N";
-    public static final ImmutableSet<String> DIMENSION_AS_MEASURES = ImmutableSet.<String> builder()
-            .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
-    public static final ImmutableSet<String> BUILT_IN_AGGREGATIONS = ImmutableSet.<String> builder()
-            .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).add(FUNC_COUNT, FUNC_SUM, FUNC_PERCENTILE).build();
     public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder().add(FUNC_CORR)
             .build();
 
@@ -452,14 +446,6 @@ public class FunctionDesc implements Serializable {
         default:
             return true;
         }
-    }
-
-    public boolean isAdvanceDimAsMeasure() {
-        // when kylin.query.implicit-computed-column-convert close
-        // propose dimension as measure to answer count(distinct expr)、min(expr)、max(expr)
-        return !KapConfig.getInstanceFromEnv().isImplicitComputedColumnConvertEnabled()
-                && DIMENSION_AS_MEASURES.contains(expression) && CollectionUtils.isNotEmpty(parameters)
-                && UNKNOWN_ALIAS.equals(parameters.get(0).getColRef().getTableAlias());
     }
 
     @Override

@@ -15,7 +15,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-SELECT max(CASE
+SELECT sum(price+5), max(CASE
 		WHEN ORDER_ID > 0 THEN price
 		WHEN ORDER_ID > 10 THEN SELLER_ID
 		ELSE NULL

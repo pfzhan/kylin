@@ -69,6 +69,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.exception.PendingException;
 import io.kyligence.kap.smart.model.ModelTree;
+import io.kyligence.kap.smart.util.CubeUtils;
 import io.kyligence.kap.smart.util.EntityBuilder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -340,12 +341,6 @@ class IndexSuggester {
         measureIds.add(calcCountOneMeasureId());
 
         ctx.aggregations.forEach(aggFunc -> {
-            if (aggFunc.isAdvanceDimAsMeasure()) {
-                List<Integer> newDimIds = generateDimensionIds(Lists.newArrayList(aggFunc.getSourceColRefs()),
-                        model.getEffectiveDimensions().inverse());
-                dimIds.addAll(newDimIds);
-                return;
-            }
             Integer measureId = aggFuncIdMap.get(aggFunc);
             if (modelContext.getChecker().isMeasureOnLookupTable(aggFunc)) {
                 throw new PendingException(MEASURE_ON_EXCLUDED_LOOKUP_TABLE + aggFunc);
@@ -353,13 +348,21 @@ class IndexSuggester {
             if (measureId != null) {
                 measureIds.add(measureId);
             } else if (CollectionUtils.isNotEmpty(aggFunc.getParameters())) {
-                String measure = String.format(Locale.ROOT, "%s(%s)", aggFunc.getExpression(), aggFunc.getParameters());
-                for (TblColRef tblColRef : aggFunc.getColRefs()) {
-                    if (colIdMap.get(tblColRef) == null) {
-                        throw new PendingException(String.format(Locale.ROOT,
-                                getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE),
-                                model.getAlias(), measure));
+                if (CubeUtils.isValidMeasure(aggFunc)) {
+                    String measure = String.format(Locale.ROOT, "%s(%s)", aggFunc.getExpression(),
+                            aggFunc.getParameters());
+                    for (TblColRef tblColRef : aggFunc.getColRefs()) {
+                        if (colIdMap.get(tblColRef) == null) {
+                            throw new PendingException(String.format(Locale.ROOT,
+                                    getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE),
+                                    model.getAlias(), measure));
+                        }
                     }
+                } else {
+                    List<Integer> newDimIds = generateDimensionIds(Lists.newArrayList(aggFunc.getSourceColRefs()),
+                            model.getEffectiveDimensions().inverse());
+                    newDimIds.removeIf(dimIds::contains);
+                    dimIds.addAll(newDimIds);
                 }
             }
         });

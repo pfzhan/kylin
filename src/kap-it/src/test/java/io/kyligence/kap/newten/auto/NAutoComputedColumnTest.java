@@ -688,9 +688,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("DECIMAL(38,4)", computedColumns.get(0).getDatatype());
 
         val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
-        Assert.assertTrue(accelerationInfoMap.get(sqls[0]).isNotSucceed());
-        Assert.assertEquals("Can’t find table \"UNKNOWN_ALIAS\". Please check and try again.",
-                accelerationInfoMap.get(sqls[0]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
         Assert.assertFalse(accelerationInfoMap.get(sqls[1]).isNotSucceed());
     }
 

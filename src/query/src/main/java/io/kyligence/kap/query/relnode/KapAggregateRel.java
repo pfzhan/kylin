@@ -132,7 +132,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         }
         state.merge(tempState);
 
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
     }
 
     @Override
@@ -147,9 +147,9 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
         olapContextImplementor.visitChild(getInput(), this);
 
-        for (int i = 0; i < aggCalls.size(); i++) {
-            if (FunctionDesc.NOT_SUPPORTED_FUNCTION.contains(aggCalls.get(i).getAggregation().getName())) {
-                context.getContainedNotSupportedFunc().add(aggCalls.get(i).getAggregation().getName());
+        for (AggregateCall aggCall : aggCalls) {
+            if (FunctionDesc.NOT_SUPPORTED_FUNCTION.contains(aggCall.getAggregation().getName())) {
+                context.getContainedNotSupportedFunc().add(aggCall.getAggregation().getName());
             }
         }
         this.columnRowType = buildColumnRowType();
@@ -306,8 +306,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
             }
             getContext().setExactlyAggregate(isExactlyMatched());
             if (getContext().isExactlyAggregate()) {
-                boolean fastBitmapEnabled = getContext().storageContext.getCandidate().getLayoutEntity()
-                        .getIndex().getIndexPlan().isFastBitmapEnabled();
+                boolean fastBitmapEnabled = getContext().storageContext.getCandidate().getLayoutEntity().getIndex()
+                        .getIndexPlan().isFastBitmapEnabled();
                 getContext().setExactlyFastBitmap(fastBitmapEnabled && getContext().isHasBitmapMeasure());
             }
         }

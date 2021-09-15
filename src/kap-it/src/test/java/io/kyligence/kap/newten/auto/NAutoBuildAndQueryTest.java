@@ -73,15 +73,19 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_count_distinct_expr"));
     }
 
-    @Ignore("Let's run it per commit.")
     @Test
-    public void testAdvanceDimAsMeasure() throws Exception {
-        overwriteSystemProp("kylin.query.implicit-computed-column-convert", "FALSE");
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_advance_dim_as_measure"));
+    public void testDimensionAsMeasure() throws Exception {
+        updateProjectConfig("kylin.query.implicit-computed-column-convert", "FALSE");
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure"));
 
-        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "TRUE");
-        overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
-        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_advance_dim_as_measure"));
+        updateProjectConfig("kylin.query.implicit-computed-column-convert", "FALSE");
+        updateProjectConfig("kylin.query.convert-sum-expression-enabled", "TRUE");
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure"));
+
+        updateProjectConfig("kylin.query.implicit-computed-column-convert", "FALSE");
+        updateProjectConfig("kylin.query.convert-sum-expression-enabled", "FALSE");
+        updateProjectConfig("kylin.query.convert-count-distinct-expression-enabled", "TRUE");
+        executeTestScenario(new TestScenario(CompareLevel.SAME, "query/sql_dimension_as_measure"));
     }
 
     @Test
@@ -211,6 +215,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(1, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
     }
 
+    @Ignore("blocked by KE-30323")
     @Test
     public void testUDFs() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");

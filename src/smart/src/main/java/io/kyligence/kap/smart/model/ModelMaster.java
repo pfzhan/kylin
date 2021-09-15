@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -118,7 +117,8 @@ public class ModelMaster {
     public NDataModel proposeComputedColumn(NDataModel dataModel) {
         log.info("Start proposing computed columns.");
         initExcludedLookChecker(modelContext, dataModel);
-        if (isComputedColumnDisable()) {
+        boolean turnOnCC = modelContext.getProposeContext().getKapConfig().isImplicitComputedColumnConvertEnabled();
+        if (!turnOnCC) {
             log.warn("The feature of proposing computed column in Kyligence Enterprise has been turned off.");
             if (modelContext.getChecker() == null) {
                 Set<String> excludedTables = modelContext.getProposeContext().getExtraMeta().getExcludedTables();
@@ -143,11 +143,6 @@ public class ModelMaster {
             dataModel.setComputedColumnDescs(originalCCs);
         }
         return dataModel;
-    }
-
-    private boolean isComputedColumnDisable() {
-        KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
-        return !kapConfig.isImplicitComputedColumnConvertEnabled();
     }
 
     private void initExcludedLookChecker(ModelContext modelContext, NDataModel dataModel) {

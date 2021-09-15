@@ -203,6 +203,12 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     }
 
+    protected void updateProjectConfig(String property, String value) {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(getProject(),
+                copyForWrite -> copyForWrite.getOverrideKylinProps().put(property, value));
+    }
+
     private static DataType convertType(org.apache.kylin.metadata.datatype.DataType type) {
         if (type.isTimeFamily())
             return DataTypes.TimestampType;
@@ -343,9 +349,9 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     public static String firstFailedJobErrorMessage(NExecutableManager execMgr, ChainedExecutable job) {
         return job.getTasks().stream()
-                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR)
-                .findFirst()
-                .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE).getVerboseMsg())
+                .filter(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.ERROR).findFirst()
+                .map(task -> execMgr.getOutputFromHDFSByJobId(job.getId(), task.getId(), Integer.MAX_VALUE)
+                        .getVerboseMsg())
                 .orElse("Unknown Error");
     }
 

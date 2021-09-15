@@ -169,7 +169,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testErrorInNQueryScopeProposer() {
+    public void testDimensionAsMeasure() {
         // we expect sqls can be accelerated will not blocked by its counterpart
         String[] sqls = new String[] { //
                 " SELECT SUM((CASE WHEN 1.1000000000000001 = 0 THEN CAST(NULL AS DOUBLE) "
@@ -195,13 +195,11 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
         Assert.assertEquals(1, modelContexts.size());
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
-        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).isFailed());
-        Assert.assertEquals("Can’t find table \"UNKNOWN_ALIAS\". Please check and try again.",
-                accelerateInfoMap.get(sqls[0]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isFailed());
+        Assert.assertEquals(1, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
 
-        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).isFailed());
-        Assert.assertEquals("Can’t find table \"UNKNOWN_ALIAS\". Please check and try again.",
-                accelerateInfoMap.get(sqls[1]).getFailedCause().getMessage());
+        Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isFailed());
+        Assert.assertEquals(1, accelerateInfoMap.get(sqls[1]).getRelatedLayouts().size());
 
         Assert.assertFalse(accelerateInfoMap.get(sqls[2]).isFailed());
         Assert.assertEquals(1, accelerateInfoMap.get(sqls[2]).getRelatedLayouts().size());

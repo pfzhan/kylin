@@ -31,8 +31,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 
 import io.kyligence.kap.common.obf.IKeep;
+import lombok.Getter;
 
 public class SmartConfig implements Serializable, IKeep {
+    @Getter
     private final KapConfig kapConfig;
 
     private SmartConfig(KapConfig kapConfig) {

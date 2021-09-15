@@ -240,18 +240,17 @@ public class QueryScopeProposer extends AbstractModelProposer {
                     paramNames.add(parameterDesc.getColRef().getIdentity().replaceAll("\\.", "_"));
                 });
                 boolean isNewMeasure = false;
-                if (!candidateMeasures.containsKey(agg) && agg.isAdvanceDimAsMeasure()) {
-                    dimensionAsMeasureColumns.addAll(agg.getSourceColRefs());
-                } else if (!candidateMeasures.containsKey(agg)) {
-                    FunctionDesc fun = copyFunctionDesc(agg);
-                    String name = String.format(Locale.ROOT, "%s_%s", fun.getExpression(),
-                            String.join("_", paramNames));
-                    NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
-                    if (CubeUtils.isValidMeasure(agg)) {
+                if (!candidateMeasures.containsKey(agg)) {
+                    boolean isValidMeasure = CubeUtils.isValidMeasure(agg);
+                    if (isValidMeasure) {
+                        FunctionDesc fun = copyFunctionDesc(agg);
+                        String name = String.format(Locale.ROOT, "%s_%s", fun.getExpression(),
+                                String.join("_", paramNames));
+                        NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                         candidateMeasures.put(fun, measure);
                         isNewMeasure = true;
                     } else {
-                        dimensionAsMeasureColumns.addAll(fun.getColRefs());
+                        dimensionAsMeasureColumns.addAll(agg.getSourceColRefs());
                     }
                 } else if (candidateMeasures.get(agg).isTomb()) {
                     String name = String.format(Locale.ROOT, "%s_%s", agg.getExpression(),

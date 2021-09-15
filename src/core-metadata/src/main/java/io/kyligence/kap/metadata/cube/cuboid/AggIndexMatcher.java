@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.measure.MeasureType;
@@ -51,6 +50,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -81,7 +81,6 @@ public class AggIndexMatcher extends IndexMatcher {
         Set<Integer> unmatchedCols = Sets.newHashSet();
         unmatchedCols.addAll(sqlColumns);
         Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
-
 
         if (isBatchFusionModel) {
             unmatchedCols.removeAll(layout.getStreamingColumns().keySet());
@@ -165,7 +164,7 @@ public class AggIndexMatcher extends IndexMatcher {
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols))
                 continue;
 
-            if (FunctionDesc.DIMENSION_AS_MEASURES.contains(functionDesc.getExpression())) {
+            if (!FunctionDesc.NOT_SUPPORTED_FUNCTION.contains(functionDesc.getExpression())) {
                 influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
                 it.remove();
             }
@@ -186,8 +185,8 @@ public class AggIndexMatcher extends IndexMatcher {
                 continue;
 
             Set<TblColRef> dimRefs = new HashSet<>(chooserContext.convertToRefs(unmatchedDims));
-            CapabilityResult.CapabilityInfluence inf = measureType.influenceCapabilityCheck(
-                    dimRefs, unmatchedMetrics, sqlDigest, measure);
+            CapabilityResult.CapabilityInfluence inf = measureType.influenceCapabilityCheck(dimRefs, unmatchedMetrics,
+                    sqlDigest, measure);
             // remove matched dims which disappears in dimRefs after measure matching
             unmatchedDims.removeIf(dim -> !dimRefs.contains(chooserContext.convertToRef(dim)));
             if (inf != null) {

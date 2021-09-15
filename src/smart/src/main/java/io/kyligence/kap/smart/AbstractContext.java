@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -122,6 +123,10 @@ public abstract class AbstractContext implements IKeep {
     public abstract void saveMetadata();
 
     public abstract String getIdentifier();
+
+    public KapConfig getKapConfig() {
+        return getSmartConfig().getKapConfig();
+    }
 
     private void filterSqlRelatedModelsAndTables() {
         Set<NDataModel> models = Sets.newHashSet();
