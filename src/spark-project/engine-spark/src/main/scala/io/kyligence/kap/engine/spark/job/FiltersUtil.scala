@@ -80,12 +80,13 @@ object FiltersUtil extends Logging {
 
   def inferFilters(pks: Array[TblColRef],
                    ds: Dataset[Row]): Dataset[Row] = {
-    pks.map(_.toString).toSet.filter(pk => allEqualsColSets.contains(pk)).headOption match {
+    // just consider one join key condition
+    pks.filter(pk => allEqualsColSets.contains(pk.toString)).headOption match {
       case Some(col) =>
         var afterFilter = ds
         val model = flatTable.getDataModel
         val partDesc = PartitionDesc.getCopyOf(model.getPartitionDesc)
-        partDesc.setPartitionDateColumnRef(model.findColumn(col))
+        partDesc.setPartitionDateColumnRef(col)
         if (partDesc != null && partDesc.getPartitionDateColumn != null) {
           val segRange = flatTable.getSegmentRange
           if (segRange != null && !segRange.isInfinite) {
@@ -100,7 +101,6 @@ object FiltersUtil extends Logging {
           afterFilter.queryExecution
         }")
         afterFilter
-
       case None =>
         ds
     }
