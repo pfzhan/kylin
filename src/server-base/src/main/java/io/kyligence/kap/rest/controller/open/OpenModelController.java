@@ -405,7 +405,7 @@ public class OpenModelController extends NBasicController {
             @PathVariable("model") String modelAlias) {
         String projectName = checkProjectName(project);
         val dataModel = getModel(modelAlias, projectName);
-        if (dataModel != null && dataModel.isStreaming()) {
+        if (dataModel.isStreaming()) {
             throw new KylinException(UNSUPPORTED_STREAMING_OPERATION,
                     MsgPicker.getMsg().getSTREAMING_OPERATION_NOT_SUPPORT());
         }
