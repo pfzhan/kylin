@@ -30,12 +30,10 @@ import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
-import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
 
@@ -188,7 +186,7 @@ object ExpressionConverter {
                 val reduceCast = (expr: Cast) => extractCastValue(expr.child.asInstanceOf[Literal])
                 scale.expr.getClass.getSimpleName match {
                   case "Cast" =>
-                    return reduceCast(scale.expr.asInstanceOf[Cast])
+                    reduceCast(scale.expr.asInstanceOf[Cast])
                   case _ =>
                     throw new UnsupportedOperationException(s"Scale parameter of round function doesn't support this expression " + scale.expr.toString())
                 }
