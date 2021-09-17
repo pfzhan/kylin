@@ -61,7 +61,6 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import org.springframework.util.CollectionUtils;
 
 public class LdapUserGroupService extends NUserGroupService {
 
@@ -168,7 +167,7 @@ public class LdapUserGroupService extends NUserGroupService {
     @Override
     public List<ManagedUser> getGroupMembersByName(String name) {
         List<ManagedUser> members = ldapGroupsMembersCache.getIfPresent(name);
-        if (CollectionUtils.isEmpty(members)) {
+        if (null == members) {
             logger.info("Can not get the group {}'s all members from cache, ask ldap instead.", name);
             members = new ArrayList<>();
             List<String> usernameList = getGroupUsernameList(name);
