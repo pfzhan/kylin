@@ -46,9 +46,6 @@ class MLPGatherFlatTableStats(jobContext: SegmentJob, dataSegment: NDataSegment,
       logInfo(s"Segment $segmentId collect partitions' flat table dataset and statistics.")
       val fromFlatTablePartitions = spanningTree.getFlatTablePartitions.asScala
 
-      // KE-28810 statistics from flat table or not.
-      val fromFlatTable = KapConfig.getInstanceFromEnv.isCalculateStatisticsFromFlatTable
-
       val parallel = fromFlatTablePartitions.par
       val processors = Runtime.getRuntime.availableProcessors
       val forkJoinPool = new ForkJoinPool(Math.max(processors, fromFlatTablePartitions.size / 8))
@@ -56,8 +53,7 @@ class MLPGatherFlatTableStats(jobContext: SegmentJob, dataSegment: NDataSegment,
         parallel.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
         val collected = parallel.map { partition =>
           val partitionFlatTableDS = flatTable.getPartitionDS(partition)
-          val partitionFactTableDS = if (fromFlatTable) None else Some(flatTable.getFactTablePartitionDS(partition))
-          val stats = buildPartitionStatistics(partition, partitionFlatTableDS, partitionFactTableDS)
+          val stats = buildPartitionStatistics(partition, partitionFlatTableDS)
           (partition, partitionFlatTableDS, stats)
         }.seq
         val cachedPartitionFlatTableDS = collected.map(tpl => (tpl._1, tpl._2)).toMap

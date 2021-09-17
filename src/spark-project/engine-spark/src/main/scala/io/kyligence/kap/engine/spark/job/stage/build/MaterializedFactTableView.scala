@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.job.stage.build
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
-import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
+import io.kyligence.kap.metadata.cube.model.SegmentFlatTableDesc
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBuilder

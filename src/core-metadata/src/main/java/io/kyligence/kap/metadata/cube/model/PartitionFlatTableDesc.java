@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.model;
+package io.kyligence.kap.metadata.cube.model;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +34,6 @@ import org.apache.kylin.common.KylinConfig;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public class PartitionFlatTableDesc extends SegmentFlatTableDesc {
 

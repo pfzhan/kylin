@@ -31,11 +31,9 @@ import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.engine.spark.job.stage.build.BuildStage
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, PartitionExec, SanityChecker, SegmentJob}
-import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.PartitionTreeNode
-import io.kyligence.kap.metadata.cube.model._
-import org.apache.kylin.common.KapConfig
+import io.kyligence.kap.metadata.cube.model.{PartitionFlatTableDesc, _}
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
@@ -126,62 +124,11 @@ abstract class MLPBuildStage(jobContext: SegmentJob, dataSegment: NDataSegment, 
     drain()
   }
 
-  private def beforeBuildLayouts(): Unit = {
-    // Build flat table?
-    if (spanningTree.fromFlatTable()) {
-      // Very very heavy step
-      // Potentially global dictionary building & encoding within.
-      // Materialize flat table.
-      flatTable.getFlatTableDS
-
-      // Collect partitions' flat table dataset and statistics.
-      logInfo(s"Segment $segmentId collect partitions' flat table dataset and statistics.")
-      val fromFlatTablePartitions = spanningTree.getFlatTablePartitions.asScala
-
-      // KE-28810 statistics from flat table or not.
-      val fromFlatTable = KapConfig.getInstanceFromEnv.isCalculateStatisticsFromFlatTable
-
-      val parallel = fromFlatTablePartitions.par
-      val processors = Runtime.getRuntime.availableProcessors
-      val forkJoinPool = new ForkJoinPool(Math.max(processors, fromFlatTablePartitions.size / 8))
-      try {
-        parallel.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
-        val collected = parallel.map { partition =>
-          val partitionFlatTableDS = flatTable.getPartitionDS(partition)
-          val partitionFactTableDS = if (fromFlatTable) None else Some(flatTable.getFactTablePartitionDS(partition))
-          val stats = buildPartitionStatistics(partition, partitionFlatTableDS, partitionFactTableDS)
-          (partition, partitionFlatTableDS, stats)
-        }.seq
-        //        cachedPartitionFlatTableDS = collected.map(tpl => (tpl._1, tpl._2)).toMap
-        //        cachedPartitionFlatTableStats = collected.map(tpl => (tpl._1, tpl._3)).toMap
-      } finally {
-        forkJoinPool.shutdownNow()
-      }
-      logInfo(s"Segment $segmentId finished collect partitions' flat table dataset and statistics $cachedPartitionFlatTableStats.")
-    }
-
-    // Build root node's layout partition sanity cache.
-    buildSanityCache()
-
-    // TODO Cleanup potential temp data.
-  }
-
   protected def buildPartitionStatistics(partition: Long //
-                                         , partitionFlatTableDS: Dataset[Row] //
-                                         , partitionFactTableDS: Option[Dataset[Row]]): Statistics = {
+                                         , partitionFlatTableDS: Dataset[Row]): Statistics = {
     // Maybe exist metadata operations.
     setConfig4CurrentThread()
-    if (partitionFactTableDS.isEmpty) {
-      return flatTable.gatherPartitionStatistics(partition, partitionFlatTableDS)
-    }
-    // KE-28810
-    val stats = flatTable.gatherPartitionColumnBytes(partition, partitionFactTableDS.get)
-    val lookupTableStats = flatTable.generateLookupTablesWithChangeSchemeToId().map(lookupTableDS =>
-      flatTable.gatherColumnBytes(lookupTableDS))
-      .foldLeft(mutable.Map[String, Long]())((a, b) => {
-        a ++ b
-      })
-    Statistics(partitionFlatTableDS.count(), stats ++ lookupTableStats)
+    flatTable.gatherPartitionStatistics(partition, partitionFlatTableDS)
   }
 
   override protected def buildSanityCache(): Unit = {

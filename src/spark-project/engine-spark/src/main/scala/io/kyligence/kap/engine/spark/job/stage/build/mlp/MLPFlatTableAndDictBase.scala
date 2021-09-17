@@ -24,13 +24,11 @@
 
 package io.kyligence.kap.engine.spark.job.stage.build.mlp
 
-import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.changeSchemeToColumnId
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
 import io.kyligence.kap.engine.spark.job.{PartitionExec, SegmentJob}
-import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
-import io.kyligence.kap.metadata.cube.model.NDataSegment
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, PartitionFlatTableDesc}
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row}
 
@@ -67,14 +65,6 @@ abstract class MLPFlatTableAndDictBase(private val jobContext: SegmentJob,
     originDS.where(condition)
   }
 
-  def getPartitionDS(partition: Long): Dataset[Row] = {
-    getPartitionDS(partition, FLAT_TABLE)
-  }
-
-  def getFactTablePartitionDS(partition: Long): Dataset[Row] = {
-    getPartitionDS(partition, changeSchemeToColumnId(fastFactTableWithFilterConditionTableDS, tableDesc))
-  }
-
   def gatherPartitionStatistics(partition: Long, tableDS: Dataset[Row]): Statistics = {
     val desc = s"Segment $segmentId collect partition flat table statistics $partition"
     logInfo(desc)
@@ -85,16 +75,7 @@ abstract class MLPFlatTableAndDictBase(private val jobContext: SegmentJob,
     statistics
   }
 
-  def gatherPartitionColumnBytes(partition: Long, tableDS: Dataset[Row]): Map[String, Long] = {
-    val desc = s"Segment $segmentId collect partition flat table statistics $partition"
-    logInfo(desc)
-    sparkSession.sparkContext.setJobDescription(desc)
-    val statistics = gatherColumnBytes(tableDS)
-    sparkSession.sparkContext.setJobDescription(null)
-    statistics
-  }
-
-  private def getPartitionDS(partition: Long, tableDS: Dataset[Row]): Dataset[Row] = {
+  def getPartitionDS(partition: Long): Dataset[Row] = {
     val columnIds = tableDesc.getColumnIds.asScala
     val columnName2Id = tableDesc.getColumns //
       .asScala //
@@ -111,6 +92,6 @@ abstract class MLPFlatTableAndDictBase(private val jobContext: SegmentJob,
     }.mkString(" and ")
 
     logInfo(s"Segment $segmentId single partition condition: $converted")
-    tableDS.where(converted)
+    FLAT_TABLE.where(converted)
   }
 }

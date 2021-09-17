@@ -22,14 +22,12 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.util.Objects
-import java.{lang, util}
-
-import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.{Statistics, changeSchemeToColumnId}
 import io.kyligence.kap.metadata.cube.model.PartitionFlatTableDesc
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
+import java.util.Objects
+import java.{lang, util}
 import scala.collection.JavaConverters._
 
 class PartitionFlatTable(private val sparkSession: SparkSession, //
@@ -52,34 +50,7 @@ class PartitionFlatTable(private val sparkSession: SparkSession, //
     originDS.where(condition)
   }
 
-  def getPartitionDS(partition: Long): Dataset[Row] = {
-    getPartitionDS(partition, FLAT_TABLE)
-  }
-
-  def getFactTablePartitionDS(partition: Long): Dataset[Row] = {
-    getPartitionDS(partition, changeSchemeToColumnId(fastFactTableWithFilterConditionTableDS, tableDesc))
-  }
-
-  def gatherPartitionStatistics(partition: Long, tableDS: Dataset[Row]): Statistics = {
-    val desc = s"Segment $segmentId collect partition flat table statistics $partition"
-    logInfo(desc)
-    sparkSession.sparkContext.setJobDescription(desc)
-    val statistics = gatherStatistics(tableDS)
-    sparkSession.sparkContext.setJobDescription(null)
-    logInfo(s"$desc $statistics")
-    statistics
-  }
-
-  def gatherPartitionColumnBytes(partition: Long, tableDS: Dataset[Row]): Map[String, Long] = {
-    val desc = s"Segment $segmentId collect partition flat table statistics $partition"
-    logInfo(desc)
-    sparkSession.sparkContext.setJobDescription(desc)
-    val statistics = gatherColumnBytes(tableDS)
-    sparkSession.sparkContext.setJobDescription(null)
-    statistics
-  }
-
-  private def getPartitionDS(partition: Long, tableDS: Dataset[Row]): Dataset[Row] = {
+  def getPartitionDS(partitionId: Long): Dataset[Row] = {
     val columnIds = tableDesc.getColumnIds.asScala
     val columnName2Id = tableDesc.getColumns //
       .asScala //
@@ -89,14 +60,14 @@ class PartitionFlatTable(private val sparkSession: SparkSession, //
 
     val partitionColumnIds = dataModel.getMultiPartitionDesc.getColumnRefs.asScala //
       .map(_.getIdentity).map(x => column2IdMap.apply(x))
-    val values = dataModel.getMultiPartitionDesc.getPartitionInfo(partition).getValues.toSeq
+    val values = dataModel.getMultiPartitionDesc.getPartitionInfo(partitionId).getValues.toSeq
 
     val converted = partitionColumnIds.zip(values).map { case (k, v) =>
       s"`$k` = '$v'"
     }.mkString(" and ")
 
     logInfo(s"Segment $segmentId single partition condition: $converted")
-    tableDS.where(converted)
+    FLAT_TABLE.where(converted)
   }
 
 }

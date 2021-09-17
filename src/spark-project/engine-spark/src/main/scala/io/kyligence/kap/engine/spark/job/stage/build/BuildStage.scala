@@ -38,7 +38,6 @@ import io.kyligence.kap.metadata.cube.model._
 import org.apache.commons.math3.ml.clustering.{Clusterable, KMeansPlusPlusClusterer}
 import org.apache.commons.math3.ml.distance.EarthMoversDistance
 import org.apache.hadoop.fs.{Path, PathFilter}
-import org.apache.kylin.common.KapConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.functions.expr
@@ -191,13 +190,7 @@ abstract class BuildStage(private val jobContext: SegmentJob,
   }
 
   protected def buildStatistics(): Statistics = {
-    var flatTableStats: Statistics = null
-    if (KapConfig.getInstanceFromEnv.isCalculateStatisticsFromFlatTable) {
-      flatTableStats = flatTable.gatherStatistics()
-    } else {
-      flatTableStats = flatTable.gatherStatisticsFromJoinTables()
-    }
-    flatTableStats
+    flatTable.gatherStatistics()
   }
 
   protected def buildSanityCache(): Unit = {

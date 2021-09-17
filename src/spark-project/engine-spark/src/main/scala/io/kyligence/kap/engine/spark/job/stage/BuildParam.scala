@@ -27,8 +27,8 @@ package io.kyligence.kap.engine.spark.job.stage
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
 import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPFlatTableAndDictBase
-import io.kyligence.kap.engine.spark.model.{PartitionFlatTableDesc, SegmentFlatTableDesc}
 import io.kyligence.kap.metadata.cube.cuboid.{AdaptiveSpanningTree, PartitionSpanningTree}
+import io.kyligence.kap.metadata.cube.model.{PartitionFlatTableDesc, SegmentFlatTableDesc}
 import org.apache.spark.sql.{Dataset, Row}
 
 import scala.collection.immutable

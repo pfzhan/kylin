@@ -30,7 +30,7 @@ import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
 import io.kyligence.kap.engine.spark.job.stage.StageExec
 import io.kyligence.kap.engine.spark.job.{SegmentExec, SegmentJob}
-import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
+import io.kyligence.kap.metadata.cube.model.SegmentFlatTableDesc
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager
 import org.apache.hadoop.fs.Path

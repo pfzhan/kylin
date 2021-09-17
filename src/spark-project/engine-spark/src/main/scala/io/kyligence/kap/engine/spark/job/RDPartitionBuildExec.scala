@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.io.IOException
-
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.builder.PartitionFlatTable
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
@@ -35,6 +33,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 
+import java.io.IOException
 import scala.collection.JavaConverters._
 
 class RDPartitionBuildExec(private val jobContext: RDSegmentBuildJob, //

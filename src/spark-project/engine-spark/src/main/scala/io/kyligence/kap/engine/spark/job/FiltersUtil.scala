@@ -23,8 +23,8 @@
 package io.kyligence.kap.engine.spark.job
 
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable
-import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import org.apache.kylin.metadata.model.{JoinTableDesc, PartitionDesc, TblColRef}
+import io.kyligence.kap.metadata.cube.model.SegmentFlatTableDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Dataset, Row}
 

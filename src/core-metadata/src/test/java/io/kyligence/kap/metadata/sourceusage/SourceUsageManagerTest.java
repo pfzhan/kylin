@@ -48,6 +48,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 
+@Ignore
 public class SourceUsageManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
