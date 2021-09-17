@@ -470,8 +470,11 @@ export default class Homepage extends Vue {
     }
     try {
       this.isAcceing = true
+      const requestProject = JSON.parse(JSON.stringify(this.currentSelectedProject))
       const res = await this.accelerateModel({project: this.currentSelectedProject})
       const data = await handleSuccessAsync(res)
+      // 阻止切换项目后上一个项目的提示信息显示在当前项目下
+      if (requestProject !== this.currentSelectedProject) return
       if (data) {
         this.$message({
           dangerouslyUseHTMLString: true,
