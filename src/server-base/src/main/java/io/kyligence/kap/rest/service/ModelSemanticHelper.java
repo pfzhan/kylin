@@ -165,8 +165,8 @@ public class ModelSemanticHelper extends BasicService {
 
         HashSet<JoinDescNonEquiCompBean> scd2NonEquiCondSets = new HashSet<>();
 
-        boolean isScd2Enabled = getProjectManager().getProject(dataModel.getProject()).getConfig()
-                .isQueryNonEquiJoinModelEnabled();
+        val projectKylinConfig = getProjectManager().getProject(dataModel.getProject()).getConfig();
+        boolean isScd2Enabled = projectKylinConfig.isQueryNonEquiJoinModelEnabled();
 
         for (int i = 0; i < requestJoinTableDescs.size(); i++) {
             final JoinDesc modelJoinDesc = dataModel.getJoinTables().get(i).getJoin();
@@ -185,7 +185,8 @@ public class ModelSemanticHelper extends BasicService {
             checkRequestNonEquiJoinConds(requestJoinDesc);
 
             //3. suggest nonEquiModel
-            final JoinDesc suggModelJoin = suggNonEquiJoinModel(dataModel.getProject(), modelJoinDesc, requestJoinDesc);
+            final JoinDesc suggModelJoin = suggNonEquiJoinModel(projectKylinConfig, dataModel.getProject(),
+                    modelJoinDesc, requestJoinDesc);
             // restore table alias in non-equi conditions
             final NonEquiJoinCondition nonEquiCondWithAliasRestored = new NonEquiJoinConditionVisitor() {
                 @Override
@@ -250,14 +251,13 @@ public class ModelSemanticHelper extends BasicService {
         }
     }
 
-    private JoinDesc suggNonEquiJoinModel(final String project, final JoinDesc modelJoinDesc,
-            final SimplifiedJoinDesc requestJoinDesc) {
+    private JoinDesc suggNonEquiJoinModel(final KylinConfig kylinConfig, final String project,
+            final JoinDesc modelJoinDesc, final SimplifiedJoinDesc requestJoinDesc) {
         String nonEquiSql = SCD2SqlConverter.INSTANCE.genSCD2SqlStr(modelJoinDesc,
                 requestJoinDesc.getSimplifiedNonEquiJoinConditions());
 
         BackdoorToggles.addToggle(BackdoorToggles.QUERY_NON_EQUI_JOIN_MODEL_ENABLED, "true");
-        AbstractContext context = new ModelCreateContextOfSemiV2(KylinConfig.getInstanceFromEnv(), project,
-                new String[] { nonEquiSql });
+        AbstractContext context = new ModelCreateContextOfSemiV2(kylinConfig, project, new String[] { nonEquiSql });
         SmartMaster smartMaster = new SmartMaster(context);
         smartMaster.executePropose();
 
