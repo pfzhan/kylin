@@ -27,10 +27,9 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.engine.spark.job.{FiltersUtil, TableMetaManager}
-import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
-import io.kyligence.kap.metadata.cube.model.NDataSegment
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
 import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.commons.lang3.StringUtils
@@ -92,8 +91,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
   protected lazy val factTableDS: Dataset[Row] = newFactTableDS()
   private lazy val fastFactTableDS = newFastFactTableDS()
 
-  protected lazy val fastFactTableWithFilterConditionTableDS = tryApplyFilterConditionFastFactTableDS()
-
   // By design, COMPUTED-COLUMN could only be defined on fact table.
   protected lazy val factTableCCs: Set[TblColRef] = rootFactTable.getColumns.asScala
     .filter(_.getColumnDesc.isComputedColumn)
@@ -105,20 +102,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
 
   def getFlatTableDS: Dataset[Row] = {
     FLAT_TABLE
-  }
-
-  def gatherStatisticsFromJoinTables(): Statistics = {
-    logInfo(s"Segment $segmentId gather statistics from all joined tables")
-    sparkSession.sparkContext.setJobDescription(s"Segment ${segmentId} gather statistics FACT-TABLE.")
-    val factTableColumnBytes = gatherColumnBytes(changeSchemeToColumnId(fastFactTableWithFilterConditionTableDS, tableDesc))
-    sparkSession.sparkContext.setJobDescription(s"Segment ${segmentId} gather statistics from lookup tables.")
-    val columnBytes = generateLookupTablesWithChangeSchemeToId().
-      map(lookupTableDS => gatherColumnBytes(lookupTableDS))
-      .foldLeft(factTableColumnBytes)((a, b) => {
-        a ++ b
-      })
-    sparkSession.sparkContext.setJobDescription(null)
-    Statistics(FLAT_TABLE_PART.count(), columnBytes)
   }
 
   def gatherStatistics(): Statistics = {
@@ -210,16 +193,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     fulfillDS(partDS, factTableCCs, rootFactTable)
   }
 
-  private def tryApplyFilterConditionFastFactTableDS(): Dataset[Row] = {
-    Try(applyFilterCondition(fastFactTableDS)) match {
-      case Success(tableDS) =>
-        tableDS
-      case Failure(exception) =>
-        logInfo(s"Try apply filter condition to failed", exception)
-        fastFactTableDS
-    }
-  }
-
   private def newPartitionedFTDS(needFast: Boolean = false): Dataset[Row] = {
     if (isFTVReady) {
       logInfo(s"Skip FACT-TABLE-VIEW segment $segmentId.")
@@ -233,7 +206,7 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     tryPersistFTVDS(partDS)
   }
 
-  def generateLookupTables(): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
+  protected def generateLookupTables(): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {
     val ret = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
     val normalizedTableSet = mutable.Set[String]()
     dataModel.getJoinTables.asScala
@@ -256,10 +229,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
         }
       }
     ret
-  }
-
-  def generateLookupTablesWithChangeSchemeToId(): Set[Dataset[Row]] = {
-    generateLookupTables().values.map(lookupTableDs => changeSchemeToColumnId(lookupTableDs, tableDesc)).toSet
   }
 
   private def isTableToBuild(joinDesc: JoinTableDesc): Boolean = {
@@ -392,27 +361,6 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     // If fact table is a view and its snapshot exists, that will benefit.
     logInfo(s"Load source table ${tableRef.getTableIdentity}")
     sparkSession.table(tableRef.getTableDesc).alias(tableRef.getAlias)
-  }
-
-  final def gatherColumnBytes(tableDS: Dataset[Row]): Map[String, Long] = {
-    val totalRowCount = tableDS.count()
-    // zipWithIndex before filter
-    val canonicalIndices = tableDS.columns //
-      .zipWithIndex //
-      .filterNot(_._1.endsWith(ENCODE_SUFFIX)) //
-      .map { case (name, index) =>
-        val canonical = tableDesc.getCanonicalName(Integer.parseInt(name))
-        (canonical, index)
-      }.filterNot(t => Objects.isNull(t._1))
-    logInfo(s"CANONICAL INDICES ${canonicalIndices.mkString("[", ", ", "]")}")
-    // By design, action-take is not sampling.
-    val sampled = tableDS.take(sampleRowCount).flatMap(row => //
-      canonicalIndices.map { case (canonical, index) => //
-        val bytes = utf8Length(row.get(index))
-        (canonical, bytes) //
-      }).groupBy(_._1).mapValues(_.map(_._2).sum)
-    val evaluated = evaluateColumnBytes(totalRowCount, sampled)
-    evaluated
   }
 
   protected final def gatherStatistics(tableDS: Dataset[Row]): Statistics = {
@@ -607,7 +555,7 @@ object SegmentFlatTable extends LogEx {
     val columns = columnName2Id.map(tp => expr(tp._1).alias(tp._2.toString))
     logInfo(s"Select model column is ${columns.mkString(",")}")
     logInfo(s"Select model encoding column is ${encodeSeq.mkString(",")}")
-    val selectedColumns = (columns ++ encodeSeq).filter(column => isColumnInTable(column, ds))
+    val selectedColumns = columns ++ encodeSeq
 
     logInfo(s"Select model all column is ${selectedColumns.mkString(",")}")
     ds.select(selectedColumns: _*)

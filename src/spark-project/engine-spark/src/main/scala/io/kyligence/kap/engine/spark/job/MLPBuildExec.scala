@@ -28,9 +28,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
 import io.kyligence.kap.engine.spark.builder.{MLPBuildSource, MLPFlatTable, SegmentBuildSource}
-import io.kyligence.kap.engine.spark.model.MLPFlatTableDesc
 import io.kyligence.kap.metadata.cube.model._
-import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
@@ -87,49 +85,9 @@ class MLPBuildExec(private val jobContext: SegmentBuildJob, //
     val parallel = partitionFTDS.par
     parallel.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(128))
     parallel.foreach({ case (partitionId, tableDS) => //
-      val autoCloseConfig: KylinConfig.SetAndUnsetThreadLocalConfig = KylinConfig
-        .setAndUnsetThreadLocalConfig(config)
-      try {
-        val stats = flatTable.gatherPartitionStatistics(partitionId, tableDS)
-        flatTablePartIdStatsMap.put(partitionId, stats)
-      } finally {
-        autoCloseConfig.close()
-      }
+      val stats = flatTable.gatherPartitionStatistics(partitionId, tableDS)
+      flatTablePartIdStatsMap.put(partitionId, stats)
     })
-  }
-
-  override protected def gatherTableStatsFromJoinTables(): Unit = {
-    val partitionFactTableDS = mutable.HashMap[Long, Dataset[Row]]()
-    layer1Sources.map(_.asInstanceOf[MLPBuildSource]).filter(_.isFlatTable)
-      .foreach(source => {
-        partitionFTDS.put(source.getPartitionId, flatTable.getPartitionDS(source.getPartitionId))
-        partitionFactTableDS.put(source.getPartitionId, flatTable.getFactTablePartitionDS(source.getPartitionId))
-      })
-
-    if (partitionFTDS.isEmpty) {
-      logInfo(s"Skip gather table stats $segmentId")
-      return
-    }
-
-    sparkSession.sparkContext.setJobDescription(s"Segment ${segmentId} gather statistics from all joined tables.")
-    val parallel = partitionFactTableDS.par
-    parallel.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(128))
-    parallel.foreach({ case (partitionId, tableDS) => //
-      val autoCloseConfig: KylinConfig.SetAndUnsetThreadLocalConfig = KylinConfig
-        .setAndUnsetThreadLocalConfig(config)
-      try {
-        val stats = flatTable.gatherPartitionColumnBytes(partitionId, tableDS)
-        val lookupTableStatics = flatTable.generateLookupTablesWithChangeSchemeToId().map(lookupTableDS =>
-          flatTable.gatherColumnBytes(lookupTableDS))
-          .foldLeft(mutable.Map[String, Long]())((a, b) => {
-            a ++ b
-          })
-        flatTablePartIdStatsMap.put(partitionId, Statistics(partitionFTDS(partitionId).count(), stats ++ lookupTableStatics))
-      } finally {
-        autoCloseConfig.close()
-      }
-    })
-    sparkSession.sparkContext.setJobDescription(null)
   }
 
   override protected def buildFromLayout(sources: Seq[SegmentBuildSource]): Unit = {

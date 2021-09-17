@@ -22,12 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.model;
+package io.kyligence.kap.metadata.cube.model;
 
 import java.util.Objects;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 
@@ -41,7 +40,7 @@ public class MLPFlatTableDesc extends SegmentFlatTableDesc {
     private final String jobId;
 
     public MLPFlatTableDesc(KylinConfig config, NDataSegment dataSegment, NSpanningTree spanningTree,
-                            Set<Long> partitionIds, String jobId) {
+            Set<Long> partitionIds, String jobId) {
         super(config, dataSegment, spanningTree);
         Preconditions.checkNotNull(partitionIds);
         Preconditions.checkNotNull(jobId);

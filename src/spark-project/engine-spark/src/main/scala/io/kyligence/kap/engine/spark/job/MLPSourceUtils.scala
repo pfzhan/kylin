@@ -25,9 +25,8 @@
 package io.kyligence.kap.engine.spark.job
 
 import io.kyligence.kap.engine.spark.builder.{MLPBuildSource, MLPFlatTable}
-import io.kyligence.kap.engine.spark.model.MLPFlatTableDesc
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
-import io.kyligence.kap.metadata.cube.model.{IndexEntity, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{IndexEntity, MLPFlatTableDesc, NDataSegment}
 import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._

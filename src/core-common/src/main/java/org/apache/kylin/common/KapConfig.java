@@ -581,14 +581,6 @@ public class KapConfig {
         return Boolean.parseBoolean(config.getOptional("kylin.source.record-source-usage-enabled", "true"));
     }
 
-    public boolean isSourceUsageUnwrapComputedColumn() {
-        return Boolean.parseBoolean(config.getOptional("kylin.metadata.history-source-usage-unwrap-computed-column", TRUE));
-    }
-
-    public boolean isCalculateStatisticsFromFlatTable() {
-        return Boolean.parseBoolean(config.getOptional("kylin.storage.calculate-source-usage-from-flat-table", FALSE));
-    }
-
     /**
      * Kerberos
      */

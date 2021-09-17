@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.model;
+package io.kyligence.kap.metadata.cube.model;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,14 +44,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class SegmentFlatTableDesc {
     protected final KylinConfig config;
     protected final NDataSegment dataSegment;
@@ -62,8 +57,6 @@ public class SegmentFlatTableDesc {
     protected final String dataflowId;
     protected final NDataModel dataModel;
     protected final IndexPlan indexPlan;
-
-    private final IndexDependencyParser parser;
 
     // By design. Historical debt, wait for reconstruction.
     private final Map<String, Integer> columnIndexMap = Maps.newHashMap();
@@ -96,7 +89,6 @@ public class SegmentFlatTableDesc {
         this.segmentId = dataSegment.getId();
         this.dataflowId = dataSegment.getDataflow().getId();
         this.dataModel = dataSegment.getModel();
-        this.parser = new IndexDependencyParser(dataModel);
         this.indexPlan = dataSegment.getIndexPlan();
         this.relatedTables.addAll(relatedTables);
 
@@ -281,14 +273,5 @@ public class SegmentFlatTableDesc {
                 "Column: " + colRef.getIdentity() + " is not in model: " + dataModel.getUuid());
         columnIds.add(id);
         columnId2Canonical.put(id, colRef.getCanonicalName());
-
-        if (colRef.getColumnDesc().isComputedColumn()) {
-            try {
-                parser.unwrapComputeColumn(colRef.getExpressionInSourceDB()).forEach(this::addColumn);
-            } catch (Exception e) {
-                log.warn("UnWrap computed column {} in project {} model {} exception", colRef.getExpressionInSourceDB(),
-                        dataModel.getProject(), dataModel.getAlias(), e);
-            }
-        }
     }
 }

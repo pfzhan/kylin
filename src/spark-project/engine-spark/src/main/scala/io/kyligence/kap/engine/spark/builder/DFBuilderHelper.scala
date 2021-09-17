@@ -79,15 +79,6 @@ object DFBuilderHelper extends Logging {
     }
   }
 
-  def isColumnInTable(col: Column, table: Dataset[Row]): Boolean = {
-    Try(table.select(col)) match {
-      case Success(_) =>
-        true
-      case Failure(_) =>
-        false
-    }
-  }
-
   def chooseSuitableCols(ds: Dataset[Row], needCheckCols: Iterable[TblColRef]): Seq[Column] = {
     needCheckCols
       .filter(ref => isColumnInTable(ref.getExpressionInSourceDB, ds))

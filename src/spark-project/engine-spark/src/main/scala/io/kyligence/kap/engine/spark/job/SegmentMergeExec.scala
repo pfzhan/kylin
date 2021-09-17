@@ -30,7 +30,6 @@ import java.util.Objects
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
-import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager
 import org.apache.hadoop.fs.Path

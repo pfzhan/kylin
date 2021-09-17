@@ -27,8 +27,7 @@ package io.kyligence.kap.engine.spark.job
 import java.io.IOException
 import com.google.common.collect.{Maps, Sets}
 import io.kyligence.kap.engine.spark.builder.MLPFlatTable
-import io.kyligence.kap.engine.spark.model.MLPFlatTableDesc
-import io.kyligence.kap.metadata.cube.model.NDataSegment
+import io.kyligence.kap.metadata.cube.model.{MLPFlatTableDesc, NDataSegment}
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
