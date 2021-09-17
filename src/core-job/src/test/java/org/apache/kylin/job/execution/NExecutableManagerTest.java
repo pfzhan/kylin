@@ -774,7 +774,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         // The test log directory does not exist
         assertEquals("", manager.getStreamingOutputFromHDFS(jobId).getVerboseMsg());
         try {
-            manager.getFilePathsFromHDFSDir(jobLogDir, false);
+            manager.getFilePathsFromHDFSDir(jobLogDir);
             Assert.fail();
         } catch (Exception e) {
             assertTrue(e instanceof KylinException);
@@ -789,7 +789,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
             Assert.fail();
         } catch (Exception e) {
             assertTrue(e instanceof IllegalArgumentException);
-            assertEquals("There is no file in the current job HDFS directory: " + jobLogDir, e.getMessage());
+            assertEquals("The current job has not been started and no log has been generated: " + jobLogDir, e.getMessage());
         }
         assertTrue(CollectionUtils.isEmpty(manager.getFilePathsFromHDFSDir(jobLogDir, false)));
 

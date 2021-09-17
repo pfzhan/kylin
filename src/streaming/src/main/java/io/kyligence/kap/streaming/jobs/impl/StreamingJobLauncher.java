@@ -84,6 +84,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
     private Map<String, String> jobParams;
     private String mainClazz;
     private String[] appArgs;
+    private Long currentTimestamp;
 
     // TODO: support yarn cluster
     private boolean isYarnCluster = false;
@@ -94,6 +95,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
     public void init(String project, String modelId, JobTypeEnum jobType) {
         super.init(project, modelId, jobType);
         jobParams = strmJob.getParams();
+        currentTimestamp = System.currentTimeMillis();
 
         //reload configuration from job params
         this.config = StreamingJobUtils.getStreamingKylinConfig(this.config, jobParams, modelId, project);
@@ -125,8 +127,8 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
     }
 
     private String getDriverHDFSLogPath() {
-        return String.format(Locale.ROOT, "%s/%s/%s/driver.%s.log", config.getStreamingBaseJobsLocation(), project, jobId,
-                System.currentTimeMillis());
+        return String.format(Locale.ROOT, "%s/%s/%s/%s/driver.%s.log", config.getStreamingBaseJobsLocation(), project, jobId,
+                currentTimestamp, currentTimestamp);
     }
 
     private String wrapDriverJavaOptions(Map<String, String> sparkConf) {
@@ -165,6 +167,7 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         StringBuilder executorJavaOptionsSB = new StringBuilder(executorJavaOptsConfigStr);
 
         executorJavaOptionsSB.append(javaPropertyFormatter("kap.spark.identifier", jobId));
+        executorJavaOptionsSB.append(javaPropertyFormatter("kap.spark.jobTimeStamp", currentTimestamp.toString()));
         executorJavaOptionsSB.append(javaPropertyFormatter("kap.spark.project", project));
         executorJavaOptionsSB.append(javaPropertyFormatter("user.timezone", config.getTimeZone()));
         if (StringUtils.isNotBlank(config.getMountSparkLogDir())) {

@@ -44,15 +44,23 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -61,7 +69,7 @@ import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.joda.time.DateTime;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.util.OptionBuilder;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -69,7 +77,7 @@ import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+@Slf4j(topic = "diag")
 public class StreamingSparkLogTool extends ExecutableApplication {
 
     private static final Option OPTION_STREAMING_DIR = OptionBuilder.getInstance().hasArg()
@@ -91,6 +99,7 @@ public class StreamingSparkLogTool extends ExecutableApplication {
 
     private static final long DAY = 24 * 3600 * 1000L;
     private static final long MAX_DAY = 31L;
+    private static final int JOB_LOG_COUNT = 3;
     private static final String STREAMING_LOG_ROOT_DIR = "streaming_spark_logs";
     private static final String STREAMING_SPARK_DRIVER_DIR = "spark_driver";
     private static final String STREAMING_SPARK_EXECUTOR_DIR = "spark_executor";
@@ -133,12 +142,13 @@ public class StreamingSparkLogTool extends ExecutableApplication {
         String startTimeStr = optionsHelper.getOptionValue(OPTION_STREAMING_START_TIME);
         String endTimeStr = optionsHelper.getOptionValue(OPTION_STREAMING_END_TIME);
 
+        // The acquisition of executor and checkpoint logs depends on the job start time returned by the driver
         // streaming job
         if (StringUtils.isNotEmpty(project) && StringUtils.isNotEmpty(jobId)) {
             log.info("start dump streaming spark driver/executor/checkpoint job log, project: {}, jobId: {}", project,
                     jobId);
-            dumpJobDriverLog(project, jobId, dir, null, null);
-            dumpExecutorLog(project, jobId, dir, null, null);
+            Map<String, Map<String, Set<String>>> projectJobMap = dumpJobDriverLog(project, jobId, dir, null, null);
+            dumpExecutorLog(projectJobMap, dir);
             dumpCheckPoint(project, StringUtils.split(jobId, "_")[0], dir);
             return;
         }
@@ -156,19 +166,28 @@ public class StreamingSparkLogTool extends ExecutableApplication {
 
             log.info("start dump streaming spark driver/executor/checkpoint full log, startTime: {}, endTime: {}",
                     startTimeStr, endTimeStr);
-            dumpAllDriverLog(dir, startTimeStr, endTimeStr);
-            dumpAllExecutorLog(dir, startTimeStr, endTimeStr);
-            dumpAllCheckPoint(dir);
+            Map<String, Map<String, Set<String>>> projectJobMap = dumpAllDriverLog(dir, startTimeStr, endTimeStr);
+            if (ObjectUtils.isEmpty(projectJobMap)) {
+                return;
+            }
+            dumpExecutorLog(projectJobMap, dir);
+            dumpAllCheckPoint(dir, projectJobMap);
         }
 
     }
 
     /**
      * dump spark driver logs for a single job
-     * single job -> latest log
+     * single job -> latest 3 logs
      * full       -> all log with time filter
+     * @return Map<project, Map<jobId, Set<JobStartedTime>>>
      */
-    private void dumpJobDriverLog(String project, String jobId, String exportDir, String startTime, String endTime) {
+    private Map<String, Map<String, Set<String>>> dumpJobDriverLog(String project, String jobId, String exportDir,
+            String startTime, String endTime) {
+
+        Map<String, Map<String, Set<String>>> projectJobMap = new HashMap<>();
+        Map<String, Set<String>> jobTimeMap = new HashMap<>();
+
         // streaming job driver log in hdfs directory
         String outputStoreDirPath = kylinConfig.getStreamingJobTmpOutputStorePath(project, jobId);
         NExecutableManager executableManager = NExecutableManager.getInstance(kylinConfig, project);
@@ -177,82 +196,156 @@ public class StreamingSparkLogTool extends ExecutableApplication {
         if (!executableManager.isHdfsPathExists(outputStoreDirPath)) {
             log.warn("The job driver log file on HDFS has not been generated yet, jobId: {}, filePath: {}", jobId,
                     outputStoreDirPath);
-            return;
+            return projectJobMap;
         }
-        List<String> logFilePathList = executableManager.getFilePathsFromHDFSDir(outputStoreDirPath, false);
+
+        List<String> logFilePathList = executableManager.getFilePathsFromHDFSDir(outputStoreDirPath, true);
         if (CollectionUtils.isEmpty(logFilePathList)) {
             log.warn("There is no file in the current job HDFS directory: {}", outputStoreDirPath);
-            return;
+            return projectJobMap;
         }
 
         File driverDir = new File(exportDir, String.format(Locale.ROOT, "/%s/%s/%s/%s", STREAMING_LOG_ROOT_DIR,
                 STREAMING_SPARK_DRIVER_DIR, project, jobId));
-        List<Path> needCopyPathList = new ArrayList<>();
+
+        List<Path> needCopyLogPathList = new ArrayList<>();
+        List<Path> logPathFullList = new ArrayList<>();
+        Set<String> needCopyJobStartedSet = new HashSet<>();
+        Set<String> jobStartedFullSet = new HashSet<>();
         boolean isJob = StringUtils.isEmpty(startTime) && StringUtils.isEmpty(endTime);
 
         // copy hdfs file to local
-        logFilePathList.stream().filter(filePath -> {
+        logFilePathList.stream().map(Path::new).filter(path -> {
+            logPathFullList.add(path);
+            jobStartedFullSet.add(path.getParent().getName());
             if (isJob) {
                 return true;
             }
             // Time Filter
-            Long logTimeStamp = Long.parseLong(StringUtils.split(new Path(filePath).getName(), "\\.")[1]);
+            Long logTimeStamp = Long.parseLong(StringUtils.split(path.getName(), "\\.")[1]);
             return logTimeStamp.compareTo(Long.parseLong(startTime)) >= 0
                     && logTimeStamp.compareTo(Long.parseLong(endTime)) <= 0;
-        }).map(Path::new).forEach(needCopyPathList::add);
-        Collections.sort(needCopyPathList);
+        }).forEach(path -> {
+            needCopyLogPathList.add(path);
+            String jobStartedTime = path.getParent().getName();
+            needCopyJobStartedSet.add(jobStartedTime);
+        });
+        if (CollectionUtils.isEmpty(logPathFullList)) {
+            return projectJobMap;
+        }
 
         try {
             FileUtils.forceMkdir(driverDir);
             if (isJob) {
-                // log get latest
-                Path path = needCopyPathList.get(needCopyPathList.size() - 1);
-                fs.copyToLocalFile(path, new Path(driverDir.getAbsolutePath()));
-                return;
+                // log get latest 3 log
+                List<String> needCopyPathLimitedList = lastN(needCopyJobStartedSet.stream().sorted());
+                Set<String> startedTimeSet = new HashSet<>();
+                for (Path path : needCopyLogPathList) {
+                    String jobStartTime = path.getParent().getName();
+                    if (!needCopyPathLimitedList.contains(jobStartTime)) {
+                        continue;
+                    }
+                    File jobStartedTimeDir = new File(driverDir, jobStartTime);
+                    FileUtils.forceMkdir(jobStartedTimeDir);
+                    fs.copyToLocalFile(path, new Path(jobStartedTimeDir.getAbsolutePath()));
+                    startedTimeSet.add(jobStartTime);
+                }
+                jobTimeMap.put(jobId, startedTimeSet);
+                projectJobMap.put(project, jobTimeMap);
+                return projectJobMap;
             }
             // full
-            for (Path path : needCopyPathList) {
-                fs.copyToLocalFile(path, new Path(driverDir.getAbsolutePath()));
+            // In any case, ensure that each job in the full diagnostic package has an oldest driver log that can be returned
+            if (needCopyJobStartedSet.isEmpty()) {
+                needCopyJobStartedSet.add(Collections.max(jobStartedFullSet));
             }
+            for (Path path : logPathFullList) {
+                if (!needCopyJobStartedSet.contains(path.getParent().getName())) {
+                    continue;
+                }
+                String jobStartTime = path.getParent().getName();
+                File jobStartedTimeDir = new File(driverDir, jobStartTime);
+                FileUtils.forceMkdir(jobStartedTimeDir);
+                fs.copyToLocalFile(path, new Path(jobStartedTimeDir.getAbsolutePath()));
+            }
+            jobTimeMap.put(jobId, needCopyJobStartedSet);
+            projectJobMap.put(project, jobTimeMap);
         } catch (IOException e) {
             log.error("dump streaming driver log failed. ", e);
         }
+        return projectJobMap;
+    }
+
+    private static <T> List<T> lastN(Stream<T> stream) {
+        Deque<T> result = new ArrayDeque<>(JOB_LOG_COUNT);
+        stream.forEach(x -> {
+            if (result.size() == JOB_LOG_COUNT) {
+                result.pop();
+            }
+            result.add(x);
+        });
+        return new ArrayList<>(result);
     }
 
     /**
      * dump spark driver All logs
+     * @return Map<project, Map<jobId, Set<JobStartedTime>>>
      */
-    private void dumpAllDriverLog(String exportDir, String startTime, String endTime) {
+    private Map<String, Map<String, Set<String>>> dumpAllDriverLog(String exportDir, String startTime, String endTime) {
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
-
+        Map<String, Map<String, Set<String>>> projectJobMap = new HashMap<>();
         projectManager.listAllProjects().forEach(projectInstance -> {
+            Map<String, Set<String>> jobTimeMap = new HashMap<>();
             String project = projectInstance.getName();
+
             StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(kylinConfig, project);
             streamingJobManager.listAllStreamingJobMeta().stream().map(StreamingJobMeta::getId).forEach(jobId -> {
-                dumpJobDriverLog(project, jobId, exportDir, startTime, endTime);
+                Map<String, Map<String, Set<String>>> map = dumpJobDriverLog(project, jobId, exportDir, startTime,
+                        endTime);
+                if (ObjectUtils.isEmpty(map)) {
+                    return;
+                }
+                for (Map.Entry<String, Map<String, Set<String>>> entry : map.entrySet()) {
+                    for (Map.Entry<String, Set<String>> setEntry : entry.getValue().entrySet()) {
+                        jobTimeMap.put(jobId, setEntry.getValue());
+                    }
+                }
             });
+            if (ObjectUtils.isEmpty(jobTimeMap)) {
+                return;
+            }
+            projectJobMap.put(project, jobTimeMap);
         });
+        return projectJobMap;
     }
 
     /**
      * dump spark All checkpoint
      */
-    private void dumpAllCheckPoint(String exportDir) {
+    private void dumpAllCheckPoint(String exportDir, Map<String, Map<String, Set<String>>> projectJobMap) {
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
 
-        projectManager.listAllProjects().forEach(projectInstance -> {
-            String project = projectInstance.getName();
-            StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(kylinConfig, project);
-            streamingJobManager.listAllStreamingJobMeta().stream().map(StreamingJobMeta::getModelId).forEach(uuid -> {
-                dumpCheckPoint(project, uuid, exportDir);
-            });
-        });
+        projectManager.listAllProjects().stream().map(ProjectInstance::getName).filter(projectJobMap.keySet()::contains)
+                .forEach(project -> {
+                    StreamingJobManager streamingJobManager = StreamingJobManager.getInstance(kylinConfig, project);
+                    streamingJobManager.listAllStreamingJobMeta().stream().map(StreamingJobMeta::getModelId)
+                            .filter(uuid -> {
+                                Set<String> jobIdSet = projectJobMap.get(project).keySet();
+                                return jobIdSet.contains(uuid.concat("_build"))
+                                        || jobIdSet.contains(uuid.concat("_merge"));
+                            }).forEach(uuid -> dumpCheckPoint(project, uuid, exportDir));
+                });
     }
 
     /**
      * dump spark checkpoint for a single job
      */
-    private void dumpCheckPoint(String project, String modelId, String exportDir) {
+    private void dumpCheckPoint(String project, String jobId, String exportDir) {
+        if (StringUtils.endsWithIgnoreCase(jobId, "_merge")) {
+            log.warn("Only build job have checkpoints, current job: {}", jobId);
+            return;
+        }
+        String modelId = StringUtils.split(jobId, "_")[0];
         String hdfsStreamLogRootPath = kylinConfig.getHdfsWorkingDirectoryWithoutScheme();
         String hdfsStreamJobCheckPointPath = String.format(Locale.ROOT, "%s%s%s", hdfsStreamLogRootPath,
                 "streaming/checkpoint/", modelId);
@@ -270,8 +363,8 @@ public class StreamingSparkLogTool extends ExecutableApplication {
             return;
         }
 
-        File checkpointDir = new File(exportDir,
-                String.format(Locale.ROOT, "/%s/%s", STREAMING_LOG_ROOT_DIR, STREAMING_SPARK_CHECKPOINT_DIR));
+        File checkpointDir = new File(exportDir, String.format(Locale.ROOT, "/%s/%s/%s", STREAMING_LOG_ROOT_DIR,
+                STREAMING_SPARK_CHECKPOINT_DIR, project));
         try {
             FileUtils.forceMkdir(checkpointDir);
             fs.copyToLocalFile(new Path(hdfsStreamJobCheckPointPath), new Path(checkpointDir.getAbsolutePath()));
@@ -280,23 +373,25 @@ public class StreamingSparkLogTool extends ExecutableApplication {
         }
     }
 
-    /**
-     * dump spark executor All logs
-     */
-    private void dumpAllExecutorLog(String exportDir, String startTime, String endTime) {
-        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
-
-        projectManager.listAllProjects().forEach(projectInstance -> {
-            String project = projectInstance.getName();
-            dumpExecutorLog(project, null, exportDir, startTime, endTime);
-        });
-
+    private void dumpExecutorLog(Map<String, Map<String, Set<String>>> projectJobMap, String exportDir) {
+        if (ObjectUtils.isEmpty(projectJobMap)) {
+            return;
+        }
+        for (Map.Entry<String, Map<String, Set<String>>> entryOut : projectJobMap.entrySet()) {
+            String project = entryOut.getKey();
+            Map<String, Set<String>> jobTimeMap = entryOut.getValue();
+            for (Map.Entry<String, Set<String>> entryInner : jobTimeMap.entrySet()) {
+                String jobId = entryInner.getKey();
+                Set<String> jobStartedSet = entryInner.getValue();
+                dumpSingleExecutorLog(project, jobId, exportDir, jobStartedSet);
+            }
+        }
     }
 
     /**
      * dump spark executor log for a single job
      */
-    private void dumpExecutorLog(String project, String jobId, String exportDir, String startTime, String endTime) {
+    private void dumpSingleExecutorLog(String project, String jobId, String exportDir, Set<String> jobStartedSet) {
         String hdfsStreamLogRootPath = kylinConfig.getHdfsWorkingDirectoryWithoutScheme();
         String hdfsStreamLogProjectPath = String.format(Locale.ROOT, "%s%s%s", hdfsStreamLogRootPath,
                 "streaming/spark_logs/", project);
@@ -314,25 +409,16 @@ public class StreamingSparkLogTool extends ExecutableApplication {
             return;
         }
 
-        executorLogPath.stream().filter(
-                path -> StringUtils.isEmpty(jobId) || StringUtils.equals(new Path(path).getParent().getName(), jobId))
+        executorLogPath.stream().filter(StringUtils::isNotEmpty).map(Path::new).filter(
+                path -> StringUtils.isEmpty(jobId) || StringUtils.equals(path.getParent().getParent().getName(), jobId))
                 .filter(path -> {
-                    if (StringUtils.isEmpty(startTime) && StringUtils.isEmpty(endTime)) {
-                        return true;
-                    }
-
-                    // Time Filter
-                    String rollingDate = new Path(path).getParent().getParent().getName();
-                    DateTime rollingDateTime = new DateTime(rollingDate);
-                    DateTime startDateTime = new DateTime(Long.parseLong(startTime)).withTimeAtStartOfDay();
-                    DateTime endDateTime = new DateTime(Long.parseLong(endTime));
-
-                    return rollingDateTime.compareTo(startDateTime) >= 0 && rollingDateTime.compareTo(endDateTime) <= 0;
-                }).map(Path::new).forEach(logPath -> {
-                    String logJobId = logPath.getParent().getName();
-                    String rollingDate = logPath.getParent().getParent().getName();
+                    String executorTimeStamp = path.getParent().getName();
+                    return jobStartedSet.contains(executorTimeStamp);
+                }).forEach(logPath -> {
+                    String logJobId = logPath.getParent().getParent().getName();
+                    String executorDateTime = logPath.getParent().getName();
                     File executorDir = new File(exportDir, String.format(Locale.ROOT, "/%s/%s/%s/%s/%s",
-                            STREAMING_LOG_ROOT_DIR, STREAMING_SPARK_EXECUTOR_DIR, project, logJobId, rollingDate));
+                            STREAMING_LOG_ROOT_DIR, STREAMING_SPARK_EXECUTOR_DIR, project, logJobId, executorDateTime));
                     try {
                         FileUtils.forceMkdir(executorDir);
                         fs.copyToLocalFile(logPath, new Path(executorDir.getAbsolutePath()));

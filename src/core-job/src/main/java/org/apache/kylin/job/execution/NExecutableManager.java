@@ -38,6 +38,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.SequenceInputStream;
 import java.lang.reflect.Constructor;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -54,6 +55,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Vector;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -349,16 +351,23 @@ public class NExecutableManager {
             return parseOutput(jobOutput);
         }
 
-        List<String> logFilePathList = getFilePathsFromHDFSDir(outputStoreDirPath, false);
-        Preconditions.checkArgument(CollectionUtils.isNotEmpty(logFilePathList),
-                "There is no file in the current job HDFS directory: " + outputStoreDirPath);
+        List<String> jobStartedList = getFilePathsFromHDFSDir(outputStoreDirPath);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(jobStartedList),
+                "The current job has not been started and no log has been generated: " + outputStoreDirPath);
 
-        // get latest driver.{timestamp}.log
+        // get latest started job
+        List<String> logFilePathList = getFilePathsFromHDFSDir(jobStartedList.get(jobStartedList.size() - 1), false);
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(logFilePathList),
+                "There is no file in the current job HDFS directory: " + jobStartedList.get(jobStartedList.size() - 1));
+
+        // get latest and first driver.{timestamp}.log
         String latestLogFilePath = logFilePathList.get(logFilePathList.size() - 1);
+        String firstLogFilePath = logFilePathList.get(0);
         if (nLines == LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE) {
-            jobOutput.setContent(getSampleDataFromHDFS(latestLogFilePath, LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE));
+            jobOutput.setContent(getSampleDataFromBothHDFS(firstLogFilePath, latestLogFilePath,
+                    LOG_DEFAULT_DISPLAY_HEAD_AND_TAIL_SIZE));
         } else {
-            jobOutput.setContentStream(getLogStream(latestLogFilePath));
+            jobOutput.setContentStream(mergeHdfsFile(logFilePathList));
         }
         return parseOutput(jobOutput);
     }
@@ -386,6 +395,35 @@ public class NExecutableManager {
             logger.error("get file paths from hdfs [{}] failed!", resPath, e);
             throw new KylinException(FILE_NOT_EXIST, e);
         }
+    }
+
+    public List<String> getFilePathsFromHDFSDir(String resPath) {
+        try {
+            List<String> fileList = Lists.newArrayList();
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            Path path = new Path(resPath);
+            FileStatus[] fileStatuses = fs.listStatus(path);
+
+            for (FileStatus fileStatus : fileStatuses) {
+                fileList.add(fileStatus.getPath().toString());
+            }
+            Collections.sort(fileList);
+            return fileList;
+        } catch (IOException e) {
+            logger.error("get file paths from hdfs [{}] failed!", resPath, e);
+            throw new KylinException(FILE_NOT_EXIST, e);
+        }
+    }
+
+    /**
+     * merge sorted inputStreams
+     * @param logPathList
+     * @return
+     */
+    public InputStream mergeHdfsFile(List<String> logPathList) {
+        Vector<InputStream> inputStreamVector = new Vector<>();
+        logPathList.forEach(path -> inputStreamVector.add(getLogStream(path)));
+        return new SequenceInputStream(inputStreamVector.elements());
     }
 
     //for ut
@@ -1077,6 +1115,48 @@ public class NExecutableManager {
             }
         } catch (IOException e) {
             logger.error("get sample data from hdfs log file [{}] failed!", resPath, e);
+            return null;
+        }
+    }
+
+    /**
+     * get sample data from hdfs log file.
+     * specified the lines, will get the first num lines and last num lines.
+     * @return
+     */
+    public String getSampleDataFromBothHDFS(String firstPath, String lastPath, final int nLines) {
+        try {
+            Path fPath = new Path(firstPath);
+            Path lPath = new Path(lastPath);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            if (!fs.exists(fPath) || !fs.exists(lPath)) {
+                return null;
+            }
+
+            FileStatus lastFileStatus = fs.getFileStatus(lPath);
+            try (FSDataInputStream fdin = fs.open(fPath);
+                 BufferedReader fReader = new BufferedReader(new InputStreamReader(fdin, Charset.defaultCharset()));
+                 FSDataInputStream ldin = fs.open(lPath)) {
+
+                String line;
+                StringBuilder sampleData = new StringBuilder();
+                // read Head nLines from firstPath
+                for (int i = 0; i < nLines && (line = fReader.readLine()) != null; i++) {
+                    if (sampleData.length() > 0) {
+                        sampleData.append('\n');
+                    }
+                    sampleData.append(line);
+                }
+
+                int offset = sampleData.toString().getBytes(Charset.defaultCharset()).length + 1;
+                if (offset < lastFileStatus.getLen()) {
+                    sampleData.append("\n================================================================\n");
+                    sampleData.append(tailHdfsFileInputStream(ldin, offset, lastFileStatus.getLen(), nLines));
+                }
+                return sampleData.toString();
+            }
+        } catch (IOException e) {
+            logger.error("get sample data from hdfs log file [{}, {}] failed!", firstPath, lastPath, e);
             return null;
         }
     }

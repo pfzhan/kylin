@@ -26,6 +26,7 @@ package io.kyligence.kap.spark.common.logging;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -38,9 +39,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.client.HdfsDataOutputStream;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.logging.log4j.core.Filter;
@@ -373,6 +376,43 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
         }
     }
 
+    protected boolean needRollingFile(String logPath, Long rollingMaxSize) throws IOException {
+        Path pathProcess = new Path(logPath);
+        FileSystem fs = getFileSystem();
+
+        StatusLogger.getLogger().debug("log file path {}, {}", logPath, fs.exists(pathProcess));
+        if (!fs.exists(pathProcess)) {
+            return false;
+        }
+        ContentSummary contentSummary = fs.getContentSummary(pathProcess);
+        long length = contentSummary.getLength();
+        StatusLogger.getLogger().debug("log file length {}", length);
+
+        return length > rollingMaxSize;
+
+    }
+
+    protected String updateOutPutPath(String logPath) throws IOException {
+        synchronized (initWriterLock) {
+            StatusLogger.getLogger().debug("start rolling log file {}", logPath);
+            Path pathProcess = new Path(logPath);
+            Path pathDone = new Path(getLogPathRollingDone(logPath));
+            FileSystem fs = getFileSystem();
+            fs.rename(pathProcess, pathDone);
+            String currentProcessPath = getLogPathAfterRolling(logPath);
+            outStream = null;
+            StatusLogger.getLogger().debug("end rolling log file {}", currentProcessPath);
+            return currentProcessPath;
+        }
+    }
+
+
+    abstract String getLogPathAfterRolling(String logPath);
+
+    abstract String getLogPathRollingDone(String logPath);
+
+
+
     public static class HdfsManager extends OutputStreamManager {
 
         protected HdfsManager(String streamName, Layout<?> layout) {
@@ -392,7 +432,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
             final OutputStream stream = getOutputStreamQuietly(); // access volatile field only once per method
             if (stream != null) {
                 try {
-                    ((FSDataOutputStream) stream).hflush();
+                    ((HdfsDataOutputStream) stream).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
                 } catch (final IOException ex) {
                     throw new AppenderLoggingException("Error flushing stream " + getName(), ex);
                 }

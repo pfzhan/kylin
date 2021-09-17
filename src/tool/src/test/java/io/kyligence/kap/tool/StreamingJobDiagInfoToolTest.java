@@ -42,7 +42,6 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -72,7 +71,6 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "streaming_test";
     private static final String JOB_ID = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
     private static final String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b72";
-    private static final long DAY = 24 * 3600 * 1000L;
 
     @Before
     public void setup() throws Exception {
@@ -89,17 +87,26 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     }
 
     public void createStreamingDriverLog(String project, String jobId) throws IOException {
-
-        File file = temporaryFolder.newFile("driver." + 1628560620000L + ".log");
-        File file2 = temporaryFolder.newFile("driver." + 1628477820000L + ".log");
-
-        String jobLogDir = KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath(project, jobId);
-
-        Path jobLogDirPath = new Path(jobLogDir);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        fs.mkdirs(jobLogDirPath);
-        fs.copyFromLocalFile(new Path(file.getAbsolutePath()), jobLogDirPath);
-        fs.copyFromLocalFile(new Path(file2.getAbsolutePath()), jobLogDirPath);
+
+        File file1_1 = temporaryFolder.newFile("driver." + 1628555550000L + ".log");
+        File file1_2 = temporaryFolder.newFile("driver." + 1628555551000L + ".log");
+        String jobLogDir1 = String.format(Locale.ROOT, "%s%s",
+                KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath(project, jobId), "1628555550000");
+        Path jobLogDirPath1 = new Path(jobLogDir1);
+        fs.mkdirs(jobLogDirPath1);
+        fs.copyFromLocalFile(new Path(file1_1.getAbsolutePath()), jobLogDirPath1);
+        fs.copyFromLocalFile(new Path(file1_2.getAbsolutePath()), jobLogDirPath1);
+
+        File file2_1 = temporaryFolder.newFile("driver." + 1628555560000L + ".log");
+        File file2_2 = temporaryFolder.newFile("driver." + 1628555561000L + ".log");
+        String jobLogDir2 = String.format(Locale.ROOT, "%s%s",
+                KylinConfig.getInstanceFromEnv().getStreamingJobTmpOutputStorePath(project, jobId), "1628555560000");
+        Path jobLogDirPath2 = new Path(jobLogDir2);
+        fs.mkdirs(jobLogDirPath2);
+        fs.copyFromLocalFile(new Path(file2_1.getAbsolutePath()), jobLogDirPath2);
+        fs.copyFromLocalFile(new Path(file2_2.getAbsolutePath()), jobLogDirPath2);
+
     }
 
     public void createCheckpoint(String modelId) throws IOException {
@@ -126,11 +133,11 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
     public void createStreamingExecutorLog(String project, String jobId) throws IOException {
 
-        File file = temporaryFolder.newFile("executor.1.log");
+        File file = temporaryFolder.newFile("executor-1.1628555560000.log");
 
         String hdfsStreamLogProjectPath = String.format(Locale.ROOT, "%s%s%s/%s/%s",
                 KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectoryWithoutScheme(), "streaming/spark_logs/",
-                project, new DateTime(System.currentTimeMillis()).toString("yyyy-MM-dd"), jobId);
+                project, jobId, "1628555560000");
 
         Path jobLogDirPath = new Path(hdfsStreamLogProjectPath);
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
@@ -181,9 +188,10 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 }
                 HashSet<String> appFiles = new HashSet<>();
                 val zipFile = new ZipFile(file2);
-                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_") && !file.endsWith(".crc")))
+                zipFile.stream().map(ZipEntry::getName)
+                        .filter(file -> (file.contains("streaming_spark_logs/spark_") && !file.endsWith(".crc")))
                         .forEach(appFiles::add);
-                Assert.assertEquals(6, appFiles.size());
+                Assert.assertEquals(9, appFiles.size());
             }
         }
 
@@ -209,11 +217,13 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         diagClientTool.execute(new String[] { "-destDir", mainDir2.getAbsolutePath(), "-startTime", "1604999712000",
                 "-endTime", String.valueOf(System.currentTimeMillis()) });
 
+        // over all job start time
+        diagClientTool.execute(new String[] { "-destDir", mainDir2.getAbsolutePath(), "-startTime", "1628555591000",
+                "-endTime", "1628555961000" });
+
         // normal
-        Long endTime = new DateTime(System.currentTimeMillis()).getMillis();
-        Long startTime = endTime - (20 * DAY);
-        diagClientTool.execute(new String[] { "-destDir", mainDir.getAbsolutePath(), "-startTime",
-                String.valueOf(startTime), "-endTime", String.valueOf(endTime) });
+        diagClientTool.execute(new String[] { "-destDir", mainDir.getAbsolutePath(), "-startTime", "1628555560000",
+                "-endTime", "1628555560100" });
 
         long duration = System.currentTimeMillis() - start;
         Assert.assertTrue(
@@ -229,9 +239,10 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 }
                 HashSet<String> appFiles = new HashSet<>();
                 val zipFile = new ZipFile(file2);
-                zipFile.stream().map(ZipEntry::getName).filter(file -> (file.contains("streaming_spark_logs/spark_") && !file.endsWith(".crc")))
+                zipFile.stream().map(ZipEntry::getName)
+                        .filter(file -> (file.contains("streaming_spark_logs/spark_") && !file.endsWith(".crc")))
                         .forEach(appFiles::add);
-                Assert.assertEquals(6, appFiles.size());
+                Assert.assertEquals(7, appFiles.size());
             }
         }
     }

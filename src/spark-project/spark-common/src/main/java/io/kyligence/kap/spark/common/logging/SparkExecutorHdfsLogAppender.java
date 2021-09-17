@@ -175,6 +175,16 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
         }
     }
 
+    @Override
+    String getLogPathAfterRolling(String logPath) {
+        return null;
+    }
+
+    @Override
+    String getLogPathRollingDone(String logPath) {
+        return null;
+    }
+
     @VisibleForTesting
     void updateOutPutDir(LogEvent event) {
         String rollingDir = dateFormat.format(new Date(event.getTimeMillis()));
