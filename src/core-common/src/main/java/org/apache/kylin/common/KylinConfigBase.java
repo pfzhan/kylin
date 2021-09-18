@@ -2954,4 +2954,8 @@ public abstract class KylinConfigBase implements Serializable {
     public String getInferiorFlatTableStorageLevel() {
         return getOptional("kylin.engine.inferior-flattable-storage-level", "DISK_ONLY");
     }
+
+    public boolean auditLogGroupByProjectReload() {
+        return Boolean.parseBoolean(getOptional("auditlog-groupby-project-reload-enable", TRUE));
+    }
 }
