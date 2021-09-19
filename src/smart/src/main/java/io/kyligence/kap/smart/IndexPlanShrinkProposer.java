@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -44,6 +45,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -91,14 +93,51 @@ public class IndexPlanShrinkProposer extends AbstractProposer {
         }
 
         val dim2Indices = recognizeAggIndexGroupOfSameDims(indexPlan);
-        List<IndexEntity> existedTableIndicesOrReadyIndices = collectTableOrReadyIndices(indexPlan);
-        mergeIndicesGroupOfSameDim(modelContext, dim2Indices, existedTableIndicesOrReadyIndices);
+        List<IndexEntity> readyIndices = collectTableOrReadyIndices(indexPlan);
+
+        val newDim2Index = mergeIndicesGroupOfSameDim(modelContext, dim2Indices, readyIndices);
+
+        dropDuplicateLayouts(readyIndices, newDim2Index);
+        mergeProposingIndexToExist(readyIndices, newDim2Index);
+
+        updateLayoutRecItem(modelContext, readyIndices, newDim2Index);
+        updateIndexPlan(indexPlan, readyIndices, newDim2Index);
     }
 
-    private void mergeIndicesGroupOfSameDim(AbstractContext.ModelContext modelContext,
+    private void updateIndexPlan(IndexPlan indexPlan, List<IndexEntity> existedTableIndicesOrReadyIndices,
+            HashMap<ImmutableBitSet, List<IndexEntity>> newDim2Index) {
+        indexPlan.getIndexes().clear();
+        indexPlan.getIndexes().addAll(existedTableIndicesOrReadyIndices);
+        indexPlan.getIndexes().addAll(newDim2Index.entrySet().stream().map(Map.Entry::getValue).flatMap(List::stream)
+                .collect(Collectors.toSet()));
+    }
+
+    private void updateLayoutRecItem(AbstractContext.ModelContext modelContext, List<IndexEntity> readyIndices,
+            HashMap<ImmutableBitSet, List<IndexEntity>> newDim2Index) {
+        newDim2Index.forEach((k, v) -> v.forEach(index -> {
+            List<LayoutEntity> layouts = index.getLayouts();
+            layouts.forEach(layout -> {
+                if (layout.isInProposing()) {
+                    modelContext.gatherLayoutRecItem(layout);
+                }
+            });
+        }));
+        readyIndices.forEach(index -> {
+            List<LayoutEntity> layouts = index.getLayouts();
+            layouts.forEach(layout -> {
+                if (layout.isInProposing()) {
+                    modelContext.gatherLayoutRecItem(layout);
+                }
+            });
+        });
+    }
+
+    private HashMap<ImmutableBitSet, List<IndexEntity>> mergeIndicesGroupOfSameDim(
+            AbstractContext.ModelContext modelContext,
             Map<ImmutableBitSet, List<IndexEntity>> sameDimIndicesGroup,
-            List<IndexEntity> existedTableIndicesOrReadyIndices) {
+            List<IndexEntity> readyIndices) {
         IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+
         val newDim2Index = new HashMap<ImmutableBitSet, List<IndexEntity>>();
         sameDimIndicesGroup.entrySet().stream().filter(indices -> CollectionUtils.isNotEmpty(indices.getValue()))
                 .forEach(indices -> {
@@ -108,7 +147,7 @@ public class IndexPlanShrinkProposer extends AbstractProposer {
                     }
 
                     // gen available index id
-                    List<IndexEntity> existedIndices = Lists.newArrayList(existedTableIndicesOrReadyIndices);
+                    List<IndexEntity> existedIndices = Lists.newArrayList(readyIndices);
                     existedIndices.addAll(newDim2Index.entrySet().stream().map(Map.Entry::getValue)
                             .flatMap(List::stream).collect(Collectors.toSet()));
                     long availableId = EntityBuilder.IndexEntityBuilder.findAvailableIndexEntityId(indexPlan,
@@ -120,35 +159,21 @@ public class IndexPlanShrinkProposer extends AbstractProposer {
                     for (IndexEntity indexEntity : indices.getValue().subList(1, indices.getValue().size())) {
                         IndexEntity mergedIndex = mergeIndexEntity(tempIndex, indexEntity, availableId);
                         if (CollectionUtils.isNotEmpty(tempIndex.getLayouts())) {
-                            reservedIndex.add(tempIndex);
+                            readyIndices.add(tempIndex);
                         }
                         if (CollectionUtils.isNotEmpty(indexEntity.getLayouts())) {
-                            reservedIndex.add(indexEntity);
+                            readyIndices.add(indexEntity);
                         }
                         tempIndex = mergedIndex;
                     }
+
                     if (CollectionUtils.isNotEmpty(tempIndex.getLayouts())) {
                         reservedIndex.add(tempIndex);
                     }
                     newDim2Index.put(indices.getKey(), reservedIndex);
                 });
 
-        dropDuplicateIndex(existedTableIndicesOrReadyIndices.stream().map(IndexEntity::getLayouts).flatMap(List::stream)
-                .collect(Collectors.toList()), newDim2Index);
-        newDim2Index.forEach((k, v) -> v.forEach(index -> {
-            List<LayoutEntity> layouts = index.getLayouts();
-            layouts.forEach(layout -> {
-                if (layout.isInProposing()) {
-                    modelContext.gatherLayoutRecItem(layout);
-                }
-            });
-        }));
-
-        // update new merged indices to the origin index_plan
-        indexPlan.getIndexes().clear();
-        indexPlan.getIndexes().addAll(existedTableIndicesOrReadyIndices);
-        indexPlan.getIndexes().addAll(newDim2Index.entrySet().stream().map(Map.Entry::getValue).flatMap(List::stream)
-                .collect(Collectors.toSet()));
+        return newDim2Index;
     }
 
     private IndexEntity mergeIndexEntity(IndexEntity originIndex, IndexEntity toBeMergedIndex,
@@ -196,9 +221,33 @@ public class IndexPlanShrinkProposer extends AbstractProposer {
         return mergedIndex;
     }
 
-    private void dropDuplicateIndex(List<LayoutEntity> existedLayout,
+    private void mergeProposingIndexToExist(List<IndexEntity> readyIndices,
             HashMap<ImmutableBitSet, List<IndexEntity>> newDim2Index) {
-        // drop duplicate index
+        Map<IndexIdentifier, IndexEntity> readyIndicesMap = readyIndices.stream()
+                .collect(Collectors.toMap(IndexEntity::createIndexIdentifier, Function.identity()));
+
+        newDim2Index.forEach(((integers, indexEntities) -> {
+            Iterator<IndexEntity> it = indexEntities.iterator();
+            while (it.hasNext()) {
+                val index = it.next();
+                val indexIdentifier = index.createIndexIdentifier();
+                if (readyIndicesMap.containsKey(indexIdentifier)) {
+                    val readyIndex = readyIndicesMap.get(indexIdentifier);
+                    index.getLayouts().forEach(layout -> {
+                        layout.initalId(true);
+                        readyIndex.addLayout(layout);
+                    });
+                    it.remove();
+                }
+            }
+        }));
+    }
+
+    private void dropDuplicateLayouts(List<IndexEntity> readyIndices,
+            HashMap<ImmutableBitSet, List<IndexEntity>> newDim2Index) {
+        val existedLayout = readyIndices.stream().map(IndexEntity::getLayouts).flatMap(List::stream)
+                .collect(Collectors.toList());
+
         newDim2Index.forEach((integers, indexEntities) -> {
             Iterator<IndexEntity> it = indexEntities.iterator();
             while (it.hasNext()) {
