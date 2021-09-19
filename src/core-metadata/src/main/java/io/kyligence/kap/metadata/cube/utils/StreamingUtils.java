@@ -73,7 +73,6 @@ public class StreamingUtils {
         return layouts;
     }
 
-
     public static String getJobId(String modelId, String jobType) {
         return modelId + "_" + jobType.toLowerCase(Locale.ROOT).substring(10);
     }

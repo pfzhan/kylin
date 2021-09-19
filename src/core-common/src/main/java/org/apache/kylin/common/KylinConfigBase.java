@@ -2918,4 +2918,8 @@ public abstract class KylinConfigBase implements Serializable {
     public long getCheckResourceTimeLimit() {
         return Long.parseLong(getOptional("kylin.build.resource.check-retry-limit-minutes", "10"));
     }
+
+    public boolean auditLogGroupByProjectReload() {
+        return Boolean.parseBoolean(getOptional("auditlog-groupby-project-reload-enable", TRUE));
+    }
 }

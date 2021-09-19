@@ -69,6 +69,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         overwriteSystemProp("kylin.metadata.audit-log.catchup-interval", "1s");
         createTestMetadata();
+        getTestConfig().setProperty("auditlog-groupby-project-reload-enable", "false");
         getTestConfig().setMetadataUrl("test" + System.currentTimeMillis()
                 + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         UnitOfWork.doInTransactionWithRetry(() -> {
