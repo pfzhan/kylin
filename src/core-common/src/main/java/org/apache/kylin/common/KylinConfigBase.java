@@ -519,11 +519,11 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getMetadataCacheMaxNum() {
-        return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", "100"));
+        return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", String.valueOf(Integer.MAX_VALUE)));
     }
 
     public int getMetadataCacheMaxDuration() {
-        return Integer.parseInt(getOptional("kylin.metadata.cache.max-duration", "300"));
+        return Integer.parseInt(getOptional("kylin.metadata.cache.max-duration", String.valueOf(Integer.MAX_VALUE)));
     }
 
     public boolean skipRecordJobExecutionTime() {
