@@ -513,7 +513,15 @@ public class KylinLogTool {
 
             File[] kylinLogs;
             if (null != queryId) {
+<<<<<<< HEAD
+<<<<<<< HEAD
                 kylinLogs = logsDir.listFiles(pathname -> isQueryDiagExcludedLogs(pathname.getName()));
+=======
+                kylinLogs = logsDir.listFiles(pathname -> isKylinLogFileNoQuery(pathname.getName()));
+>>>>>>> KE-30122 fix query diag
+=======
+                kylinLogs = logsDir.listFiles(pathname -> isQueryDiagExcludedLogs(pathname.getName()));
+>>>>>>> KE-30122 fix code review
             } else {
                 kylinLogs = logsDir.listFiles(pathname -> isKylinLogFile(pathname.getName()));
             }
@@ -547,6 +555,33 @@ public class KylinLogTool {
             }
         } catch (Exception e) {
             logger.error("Failed to extract kylin.log, ", e);
+        }
+    }
+
+    /**
+     * extract kylin query log
+     *
+     * @param exportDir
+     * @param queryId
+     */
+    public static void extractKylinQueryLog(File exportDir, String queryId) {
+        File destLogDir = new File(exportDir, "logs");
+
+        try {
+            FileUtils.forceMkdir(destLogDir);
+
+            File logsDir = new File(ToolUtil.getKylinHome(), "logs");
+            File[] kylinQueryLogs = logsDir.listFiles(pathname -> StringUtils.startsWith(pathname.getName(), "kylin.query.log"));
+
+            if (kylinQueryLogs == null || kylinQueryLogs.length == 0) {
+                logger.error("Can not fond the kylin.query.log file!");
+            }
+
+            for (File kylinQueryLog : kylinQueryLogs) {
+                extractQueryLogByQueryId(kylinQueryLog, queryId, new File(destLogDir, kylinQueryLog.getName()));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to extract kylin.query.log, ", e);
         }
     }
 
