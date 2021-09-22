@@ -137,8 +137,9 @@ public abstract class ResourceStore implements AutoCloseable, IKeep {
 
     private static final String KYLIN_PROPS = "kylin.properties";
 
-    private static final Cache<KylinConfig, ResourceStore> META_CACHE = CacheBuilder.newBuilder().maximumSize(20)
-            .expireAfterAccess(10, TimeUnit.MINUTES) //
+    private static final Cache<KylinConfig, ResourceStore> META_CACHE = CacheBuilder.newBuilder()
+            .maximumSize(KylinConfig.getInstanceFromEnv().getMetadataCacheMaxNum())
+            .expireAfterAccess(KylinConfig.getInstanceFromEnv().getMetadataCacheMaxDuration(), TimeUnit.MINUTES)
             .build(new CacheLoader<KylinConfig, ResourceStore>() {
                 @Override
                 public ResourceStore load(KylinConfig config) {

@@ -492,6 +492,10 @@ public abstract class SparkApplication implements Application, IKeep {
     public void logJobInfo() {
         try {
             logger.info(generateInfo());
+            if (KylinConfig.getInstanceFromEnv().skipRecordJobExecutionTime()) {
+                logger.info("skip record job wait and run time");
+                return;
+            }
             Map<String, String> extraInfo = new HashMap<>();
             extraInfo.put("yarn_job_wait_time", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
             extraInfo.put("yarn_job_run_time", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());

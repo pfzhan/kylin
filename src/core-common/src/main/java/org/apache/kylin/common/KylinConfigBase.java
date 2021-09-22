@@ -518,6 +518,18 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.second-storage.ssh-identity-path", "~/.ssh/id_rsa");
     }
 
+    public int getMetadataCacheMaxNum() {
+        return Integer.parseInt(getOptional("kylin.metadata.cache.max-num", String.valueOf(Integer.MAX_VALUE)));
+    }
+
+    public int getMetadataCacheMaxDuration() {
+        return Integer.parseInt(getOptional("kylin.metadata.cache.max-duration", String.valueOf(Integer.MAX_VALUE)));
+    }
+
+    public boolean skipRecordJobExecutionTime() {
+        return Boolean.parseBoolean(getOptional("kylin.job.skip-record-execution-time", FALSE));
+    }
+
     public boolean isMetadataAuditLogEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.audit-log.enabled", TRUE));
     }
