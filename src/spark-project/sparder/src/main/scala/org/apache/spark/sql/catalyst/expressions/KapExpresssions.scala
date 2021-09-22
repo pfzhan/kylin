@@ -32,7 +32,10 @@ import org.apache.spark.sql.catalyst.util.{DateTimeUtils, GenericArrayData, KapD
 import org.apache.spark.sql.connector.read.sqlpushdown.NotSupportPushDown
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.udaf.BitmapSerAndDeSerObj
 import org.apache.spark.sql.udf._
+import org.apache.spark.unsafe.types.UTF8String
+import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 import java.time.ZoneId
 import java.util.Locale
@@ -683,4 +686,39 @@ case class PercentileDecode(bytes: Expression, quantile: Expression, precision: 
   override def nullable: Boolean = false
 
   override def children: Seq[Expression] = Seq(bytes, quantile, precision)
+}
+
+@SerialVersionUID(1)
+case class PreciseBitmapContains(column: Expression, encodeBitmap: Expression) extends BinaryExpression with ExpectsInputTypes{
+
+  override def left: Expression = column
+  override def right: Expression = encodeBitmap
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(NumericType, StringType)
+
+  lazy val bitmap: Roaring64NavigableMap = {
+    val literalValue = right.asInstanceOf[Literal].value
+    val utf8Bitmap = literalValue.asInstanceOf[UTF8String]
+    val bitmapArray = org.apache.commons.codec.binary.Base64.decodeBase64(utf8Bitmap.toString)
+    BitmapSerAndDeSerObj.deserialize(bitmapArray)
+  }
+
+  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val bitmapRef = ctx.addReferenceObj("bitmap", bitmap)
+    val expressionUtils = ExpressionUtils.getClass.getName.stripSuffix("$")
+    defineCodeGen(ctx, ev, (left, right) => {
+      s"""$expressionUtils.bitmapContainsImpl($left, $bitmapRef)"""
+    })
+  }
+
+  override protected def nullSafeEval(column: Any, encodeBitmap: Any): Any = {
+    if (bitmap.isEmpty) {
+      return false
+    }
+    ExpressionUtils.bitmapContainsImpl(column, bitmap)
+  }
+
+  override def dataType: DataType = BooleanType
+
+  override def prettyName: String = "bitmap_contains"
 }

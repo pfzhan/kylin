@@ -328,7 +328,7 @@ class FilePruner(val session: SparkSession,
   private def pruneSegments(filters: Seq[Expression],
                             segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
 
-    val filteredStatuses = if (filters.isEmpty) {
+    val filteredStatuses = if (filters.isEmpty || filters.map(ex => ex.prettyName).contains("bitmap_contains")) {
       segDirs
     } else {
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))
@@ -358,7 +358,7 @@ class FilePruner(val session: SparkSession,
 
   private def pruneSegmentsDimRange(filters: Seq[Expression],
                                     segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
-    val filteredStatuses = if (filters.isEmpty) {
+    val filteredStatuses = if (filters.isEmpty || filters.map(ex => ex.prettyName).contains("bitmap_contains")) {
       segDirs
     } else {
       val reducedFilter = filters.toList.map(filter => convertCastFilter(filter))

@@ -21,7 +21,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,26 +39,16 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.udf;
+package org.apache.kylin.query.udf
 
-import org.apache.calcite.linq4j.function.Parameter;
+import org.junit.Test
+import org.scalatest.Assertions._
 
-import java.util.List;
 
-public class BitmapUDF {
-    public Long INTERSECT_COUNT_BY_COL(List maps) throws CalciteNotSupportException {
-        throw new CalciteNotSupportException();
-    }
-
-    public Object SUBTRACT_BITMAP_VALUE(@Parameter(name = "m1") Object map1, @Parameter(name = "m2") Object map2) throws CalciteNotSupportException {
-        throw new CalciteNotSupportException();
-    }
-
-    public Object SUBTRACT_BITMAP_UUID(@Parameter(name = "m1") Object map1, @Parameter(name = "m2") Object map2) throws CalciteNotSupportException {
-        throw new CalciteNotSupportException();
-    }
-
-    public Boolean BITMAP_CONTAINS(@Parameter(name = "column") Object column, @Parameter(name = "encodeBitmap") Object encodeBitmap) throws CalciteNotSupportException {
-        throw new CalciteNotSupportException();
-    }
+class BitmapUDFTest {
+  @Test
+  def testBitmapContains(): Unit = {
+    val bitmap_udf = new BitmapUDF
+    assertThrows[CalciteNotSupportException](bitmap_udf.BITMAP_CONTAINS("column", "bitmapencode"))
+  }
 }

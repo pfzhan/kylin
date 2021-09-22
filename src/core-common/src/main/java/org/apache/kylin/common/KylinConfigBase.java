@@ -2958,4 +2958,8 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean auditLogGroupByProjectReload() {
         return Boolean.parseBoolean(getOptional("auditlog-groupby-project-reload-enable", TRUE));
     }
+
+    public boolean isSkipEncodeIntegerFamilyEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.skip-encode-integer-enabled", FALSE));
+    }
 }

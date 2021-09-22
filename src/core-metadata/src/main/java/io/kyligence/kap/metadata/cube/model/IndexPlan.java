@@ -875,8 +875,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public boolean isSkipEncodeIntegerFamilyEnabled() {
-        return overrideProps.containsKey("kylin.query.skip-encode-integer-enabled")
-                && Boolean.parseBoolean(overrideProps.get("kylin.query.skip-encode-integer-enabled"));
+        return getConfig().isSkipEncodeIntegerFamilyEnabled();
     }
 
     public boolean isFastBitmapEnabled() {
