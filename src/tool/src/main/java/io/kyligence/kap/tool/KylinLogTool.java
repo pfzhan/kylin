@@ -88,6 +88,8 @@ public class KylinLogTool {
     // 2019-11-11 09:30:04,628 INFO  [FetchJobWorker(project:test_fact)-p-94-t-94] threadpool.NDefaultScheduler : start check project test_fact
     private static final String LOG_PATTERN = "([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3}) ([^ ]*)[ ]+\\[(.*)\\] ([^: ]*) :([\\n\\r. ]*)";
 
+    private static final String QUERY_LOG_PATTERN = "Query ([0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12})";
+
     private static final int EXTRA_LINES = 100;
 
     private static final String ROLL_LOG_FILE_NAME_PREFIX = "events";
@@ -96,6 +98,9 @@ public class KylinLogTool {
 
     private static final Set<String> kylinLogPrefix = Sets.newHashSet("kylin.log", "kylin.schedule.log",
             "kylin.query.log", "kylin.smart.log", "kylin.build.log");
+
+    private static final Set<String> queryDiagExcludedLogs = Sets.newHashSet("kylin.log", "kylin.schedule.log",
+             "kylin.smart.log", "kylin.build.log");
 
     private static ExtractLogByRangeTool DEFAULT_EXTRACT_LOG_BY_RANGE
             = new ExtractLogByRangeTool(LOG_PATTERN, LOG_TIME_PATTERN, SECOND_DATE_FORMAT);
@@ -227,7 +232,7 @@ public class KylinLogTool {
      * @param jobId
      */
     public static void extractKylinLog(File exportDir, String jobId) {
-        extractKylinLog(exportDir, jobId, null, null);
+        extractKylinLog(exportDir, jobId, null, null, null);
     }
 
     /**
@@ -239,7 +244,20 @@ public class KylinLogTool {
      * @param endTime
      */
     public static void extractKylinLog(File exportDir, long startTime, long endTime) {
-        extractKylinLog(exportDir, null, startTime, endTime);
+        extractKylinLog(exportDir, null, startTime, endTime, null);
+    }
+
+    /**
+     * extract kylin log by time range
+     * for query diagnosis
+     *
+     * @param exportDir
+     * @param startTime
+     * @param endTime
+     * @param queryId
+     */
+    public static void extractKylinLog(File exportDir, long startTime, long endTime, String queryId) {
+        extractKylinLog(exportDir, null, startTime, endTime, queryId);
     }
 
     private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File logFile) {
@@ -420,6 +438,59 @@ public class KylinLogTool {
         return false;
     }
 
+    private static boolean isQueryDiagExcludedLogs(String fileName) {
+        for (String name : queryDiagExcludedLogs) {
+            if (StringUtils.startsWith(fileName, name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * extract kylin query log by queryId
+     *
+     * @param queryLogFile
+     * @param queryId
+     * @param distFile
+     */
+    private static void extractQueryLogByQueryId(File queryLogFile, String queryId, File distFile) {
+        Preconditions.checkNotNull(queryLogFile);
+        Preconditions.checkNotNull(queryId);
+        Preconditions.checkNotNull(distFile);
+        final String charsetName = Charset.defaultCharset().name();
+        try (InputStream in = new FileInputStream(queryLogFile);
+             OutputStream out = new FileOutputStream(distFile);
+             BufferedReader br = new BufferedReader(new InputStreamReader(in, charsetName));
+             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charsetName))) {
+
+            boolean extract = false;
+            boolean stdLogNotFound = true;
+            Pattern pattern = Pattern.compile(QUERY_LOG_PATTERN);
+            String queryLog;
+            while ((queryLog = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(queryLog);
+
+                if (matcher.find()) {
+                    stdLogNotFound = false;
+                    if (queryId.equals(matcher.group(1))) {
+                        extract = true;
+                        bw.write(queryLog);
+                        bw.write('\n');
+                    } else {
+                        extract = false;
+                    }
+                } else if (extract || stdLogNotFound) {
+                    bw.write(queryLog);
+                    bw.write('\n');
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Failed to extract query log from {} to {}", queryLogFile.getAbsolutePath(), distFile.getAbsolutePath(),
+                    e);
+        }
+    }
+
     /**
      * extract kylin log
      *
@@ -428,7 +499,7 @@ public class KylinLogTool {
      * @param startTime
      * @param endTime
      */
-    private static void extractKylinLog(File exportDir, String jobId, Long startTime, Long endTime) {
+    private static void extractKylinLog(File exportDir, String jobId, Long startTime, Long endTime, String queryId) {
         File destLogDir = new File(exportDir, "logs");
 
         try {
@@ -440,7 +511,12 @@ public class KylinLogTool {
                 return;
             }
 
-            File[] kylinLogs = logsDir.listFiles(pathname -> isKylinLogFile(pathname.getName()));
+            File[] kylinLogs;
+            if (null != queryId) {
+                kylinLogs = logsDir.listFiles(pathname -> isQueryDiagExcludedLogs(pathname.getName()));
+            } else {
+                kylinLogs = logsDir.listFiles(pathname -> isKylinLogFile(pathname.getName()));
+            }
             if (null == kylinLogs || 0 == kylinLogs.length) {
                 logger.error("Can not find the kylin.log file!");
                 return;
@@ -471,6 +547,33 @@ public class KylinLogTool {
             }
         } catch (Exception e) {
             logger.error("Failed to extract kylin.log, ", e);
+        }
+    }
+
+    /**
+     * extract kylin query log
+     *
+     * @param exportDir
+     * @param queryId
+     */
+    public static void extractKylinQueryLog(File exportDir, String queryId) {
+        File destLogDir = new File(exportDir, "logs");
+
+        try {
+            FileUtils.forceMkdir(destLogDir);
+
+            File logsDir = new File(ToolUtil.getKylinHome(), "logs");
+            File[] kylinQueryLogs = logsDir.listFiles(pathname -> StringUtils.startsWith(pathname.getName(), "kylin.query.log"));
+
+            if (kylinQueryLogs == null || kylinQueryLogs.length == 0) {
+                logger.error("Can not fond the kylin.query.log file!");
+            }
+
+            for (File kylinQueryLog : kylinQueryLogs) {
+                extractQueryLogByQueryId(kylinQueryLog, queryId, new File(destLogDir, kylinQueryLog.getName()));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to extract kylin.query.log, ", e);
         }
     }
 

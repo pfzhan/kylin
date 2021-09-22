@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.request.QueryDiagPackageRequest;
 import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -377,6 +378,21 @@ public class NSystemController extends NBasicController {
             return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, uuid, "");
         } else {
             String url = host + "/kylin/api/system/diag";
+            return generateTaskForRemoteHost(request, url);
+        }
+    }
+
+    @ApiOperation(value = "queryDiag", tags = { "QE" })
+    @PostMapping(value = "/diag/query")
+    @ResponseBody
+    public EnvelopeResponse<String> getRemoteDumpQueryDiagPackage(
+            @RequestParam(value = "host", required = false) String host,
+            @RequestBody QueryDiagPackageRequest queryDiagPackageRequest, final HttpServletRequest request) throws Exception {
+        if (StringUtils.isEmpty(host)) {
+            String uuid = systemService.dumpLocalQueryDiagPackage(queryDiagPackageRequest.getQueryId(), queryDiagPackageRequest.getProject());
+            return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, uuid, "");
+        } else {
+            String url = host + "/kylin/api/system/diag/query";
             return generateTaskForRemoteHost(request, url);
         }
     }

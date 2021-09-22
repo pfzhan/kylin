@@ -113,6 +113,7 @@ public class StreamingJobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_STREAMING_META, true);
         final boolean isCloud = getKapConfig().isCloud();
         final boolean includeAuditLog = getBooleanOption(optionsHelper, OPTION_STREAMING_AUDIT_LOG, true);
+        final boolean includeBin = true;
 
         final long diagStartTime = System.currentTimeMillis();
 
@@ -162,7 +163,7 @@ public class StreamingJobDiagInfoTool extends AbstractInfoExtractorTool {
 
         exportJstack(recordTimeFile);
 
-        exportConf(exportDir, recordTimeFile, includeConf);
+        exportConf(exportDir, recordTimeFile, includeConf, includeBin);
 
         exportKgLogs(exportDir, createTime, endTime, recordTimeFile);
 

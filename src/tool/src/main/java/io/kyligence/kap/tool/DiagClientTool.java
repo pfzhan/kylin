@@ -24,12 +24,9 @@
 package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.LOG;
-import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARDER_HISTORY;
-import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static org.apache.kylin.common.exception.ToolErrorCode.INVALID_SHELL_PARAMETER;
 
 import java.io.File;
-import java.util.concurrent.Future;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.io.FileUtils;
@@ -41,8 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.OptionBuilder;
-import io.kyligence.kap.query.util.ExtractFactory;
-import io.kyligence.kap.query.util.ILogExtractor;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 
 public class DiagClientTool extends AbstractInfoExtractorTool {
@@ -117,6 +112,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
                 getBooleanOption(optionsHelper, OPTION_CATE_BASE, true));
         final boolean includeAuditLog = getBooleanOption(optionsHelper, OPTION_AUDIT_LOG,
                 getBooleanOption(optionsHelper, OPTION_CATE_BASE, true));
+        final boolean includeBin = true;
 
         final long startTime = getLongOption(optionsHelper, OPTION_START_TIME, getDefaultStartTime());
         final long endTime = getLongOption(optionsHelper, OPTION_END_TIME, getDefaultEndTime());
@@ -157,7 +153,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
 
         exportJstack(recordTime);
 
-        exportConf(exportDir, recordTime, includeConf);
+        exportConf(exportDir, recordTime, includeConf, includeBin);
         exportInfluxDBMetrics(exportDir, recordTime);
 
         exportSparkLog(exportDir, startTime, endTime, recordTime);
@@ -180,29 +176,6 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         }
 
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
-    }
-
-    private void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime) {
-        // job spark log
-        Future sparkLogTask = executorService.submit(() -> {
-            recordTaskStartTime(SPARK_LOGS);
-            KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
-            recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
-        });
-
-        scheduleTimeoutTask(sparkLogTask, SPARK_LOGS);
-
-        // sparder history rolling eventlog
-        Future sparderHistoryTask = executorService.submit(() -> {
-            recordTaskStartTime(SPARDER_HISTORY);
-            ILogExtractor extractTool = ExtractFactory.create();
-            tryRollUpEventLog();
-            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
-                    extractTool);
-            recordTaskExecutorTimeToFile(SPARDER_HISTORY, recordTime);
-        });
-
-        scheduleTimeoutTask(sparderHistoryTask, SPARDER_HISTORY);
     }
 
     public long getDefaultStartTime() {

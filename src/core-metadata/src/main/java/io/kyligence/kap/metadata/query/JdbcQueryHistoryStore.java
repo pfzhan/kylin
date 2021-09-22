@@ -247,6 +247,17 @@ public class JdbcQueryHistoryStore {
         }
     }
 
+    public QueryHistory queryByQueryId(String queryId) {
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);
+            SelectStatementProvider statementProvider = select(getSelectFields(queryHistoryTable)) //
+                    .from(queryHistoryTable) //
+                    .where(queryHistoryTable.queryId, isEqualTo(queryId)) //
+                    .build().render(RenderingStrategies.MYBATIS3);
+            return mapper.selectOne(statementProvider);
+        }
+    }
+
     public List<QueryHistory> queryAllQueryHistories() {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             QueryHistoryMapper mapper = session.getMapper(QueryHistoryMapper.class);

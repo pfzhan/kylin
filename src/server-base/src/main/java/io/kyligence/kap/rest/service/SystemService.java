@@ -123,7 +123,7 @@ public class SystemService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) {
+    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId, String queryId, String project) {
         File exportFile = KylinConfigBase.getDiagFileName();
         String uuid = exportFile.getName();
         FileUtils.deleteQuietly(exportFile);
@@ -134,19 +134,21 @@ public class SystemService extends BasicService {
 
         String[] arguments;
         // full
-        if (StringUtils.isEmpty(jobId)) {
+        if (StringUtils.isEmpty(jobId) && StringUtils.isEmpty(queryId)) {
             if (startTime == null && endTime == null) {
                 startTime = Long.toString(System.currentTimeMillis() - 259200000L);
                 endTime = Long.toString(System.currentTimeMillis());
             }
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
                     endTime, "-diagId", uuid };
-        } else {//job
+        } else if (StringUtils.isEmpty(queryId)) {//job
             String jobOpt = "-job";
             if (StringUtils.endsWithAny(jobId, new String[] { "_build", "_merge" })) {
                 jobOpt = "-streamingJob";
             }
             arguments = new String[] { jobOpt, jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
+        } else { //query
+            arguments = new String[] { "-project", project, "-query", queryId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
         }
         Future<?> task = executorService.submit(() -> {
             try {
@@ -165,6 +167,16 @@ public class SystemService extends BasicService {
         });
         diagMap.put(uuid, new DiagInfo(exportFile, task));
         return uuid;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public String dumpLocalQueryDiagPackage(String queryId, String project) {
+        return dumpLocalDiagPackage(null, null, null, queryId, project);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) {
+        return dumpLocalDiagPackage(startTime, endTime, jobId, null, null);
     }
 
     private void handleDiagException(String uuid, @NotNull Exception ex) {

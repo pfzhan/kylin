@@ -498,6 +498,15 @@ public class RDBMSQueryHistoryDaoTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetByQueryId() throws Exception {
+        QueryMetrics queryMetrics = createQueryMetrics(1580311512000L, 1L, true, PROJECT, true);
+        queryHistoryDAO.insert(queryMetrics);
+
+        QueryHistory queryHistory = queryHistoryDAO.getByQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
+        Assert.assertEquals(queryMetrics.id, queryHistory.getId());
+    }
+
+    @Test
     public void testGetRetainTime() throws Exception {
         long retainTime = RDBMSQueryHistoryDAO.getRetainTime();
         long currentTime = System.currentTimeMillis();

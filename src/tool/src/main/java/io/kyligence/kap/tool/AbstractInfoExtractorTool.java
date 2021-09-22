@@ -35,6 +35,8 @@ import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.KG_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.METADATA;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.MONITOR_METRICS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.REC_CANDIDATE;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARDER_HISTORY;
+import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SPARK_STREAMING_LOGS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.SYSTEM_METRICS;
 import static io.kyligence.kap.tool.constant.DiagSubTaskEnum.TIERED_STORAGE_LOGS;
@@ -58,6 +60,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
+import io.kyligence.kap.query.util.ExtractFactory;
+import io.kyligence.kap.query.util.ILogExtractor;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
@@ -309,7 +313,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     private boolean isDiag() {
-        return this instanceof DiagClientTool || this instanceof JobDiagInfoTool || this instanceof StreamingJobDiagInfoTool;
+        return this instanceof DiagClientTool || this instanceof JobDiagInfoTool || this instanceof StreamingJobDiagInfoTool || this instanceof QueryDiagInfoTool;
     }
 
     private boolean isDiagFromWeb(OptionsHelper optionsHelper) {
@@ -332,6 +336,29 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         while (retry-- > 0 && !updateSuccess) {
             updateSuccess = restClient.updateDiagProgress(diagId, getStage(), getProgress());
         }
+    }
+
+    protected void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime) {
+        // job spark log
+        Future sparkLogTask = executorService.submit(() -> {
+            recordTaskStartTime(SPARK_LOGS);
+            KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
+            recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
+        });
+
+        scheduleTimeoutTask(sparkLogTask, SPARK_LOGS);
+
+        // sparder history rolling eventlog
+        Future sparderHistoryTask = executorService.submit(() -> {
+            recordTaskStartTime(SPARDER_HISTORY);
+            ILogExtractor extractTool = ExtractFactory.create();
+            tryRollUpEventLog();
+            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
+                    extractTool);
+            recordTaskExecutorTimeToFile(SPARDER_HISTORY, recordTime);
+        });
+
+        scheduleTimeoutTask(sparderHistoryTask, SPARDER_HISTORY);
     }
 
     public void tryRollUpEventLog() {
@@ -665,7 +692,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     }
 
-    protected void exportConf(File exportDir, final File recordTime, final boolean includeConf) {
+    protected void exportConf(File exportDir, final File recordTime, final boolean includeConf, final boolean includeBin) {
         // export conf
         if (includeConf) {
             Future confTask = executorService.submit(() -> {
@@ -687,13 +714,15 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         scheduleTimeoutTask(hadoopConfTask, HADOOP_CONF);
 
         // export bin
-        Future binTask = executorService.submit(() -> {
-            recordTaskStartTime(BIN);
-            ConfTool.extractBin(exportDir);
-            recordTaskExecutorTimeToFile(BIN, recordTime);
-        });
+        if (includeBin) {
+            Future binTask = executorService.submit(() -> {
+                recordTaskStartTime(BIN);
+                ConfTool.extractBin(exportDir);
+                recordTaskExecutorTimeToFile(BIN, recordTime);
+            });
 
-        scheduleTimeoutTask(binTask, BIN);
+            scheduleTimeoutTask(binTask, BIN);
+        }
 
         // export hadoop env
         Future hadoopEnvTask = executorService.submit(() -> {

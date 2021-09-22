@@ -118,7 +118,7 @@ if [[ ${DIAG_OPTS} != *"-destDir"* ]]; then
     DIAG_OPTS="${DIAG_OPTS} -destDir ${destDir}"
 fi
 
-if ([[ ${DIAG_OPTS} != *"-project"* ]] && [[ ${DIAG_OPTS} != *"-job"* ]]); then
+if ([[ ${DIAG_OPTS} != *"-project"* ]] && [[ ${DIAG_OPTS} != *"-job"* ]] && [[ ${DIAG_OPTS} != *"-query"* ]]); then
     project="-all"
     DIAG_OPTS="${DIAG_OPTS} -project ${project}"
 fi
@@ -132,6 +132,8 @@ if [[ ${DIAG_OPTS} == *"-job"* ]]; then
     runTool io.kyligence.kap.tool.JobDiagInfoCLI ${DIAG_OPTS}
 elif [[ ${DIAG_OPTS} == *"-streamingJob"* ]]; then
     runTool io.kyligence.kap.tool.StreamingJobDiagInfoCLI ${DIAG_OPTS}
+elif [[ ${DIAG_OPTS} == *"-query"* ]]; then
+    runTool io.kyligence.kap.tool.QueryDiagInfoCLI ${DIAG_OPTS}
 else
     runTool io.kyligence.kap.tool.DiagClientCLI ${DIAG_OPTS}
 fi

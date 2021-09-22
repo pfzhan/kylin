@@ -173,6 +173,16 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetRemoteDumpQueryDiagPackage() throws Exception {
+        DiagPackageRequest request = new DiagPackageRequest();
+        Mockito.doAnswer(x -> null).when(nSystemController).generateTaskForRemoteHost(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/diag/query").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))
+                .content(JsonUtil.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).getRemoteDumpQueryDiagPackage(Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
     public void testRemoteStopPackage() throws Exception {
         Mockito.doAnswer(x -> null).when(nSystemController).generateTaskForRemoteHost(Mockito.any(),
                 Mockito.anyString());

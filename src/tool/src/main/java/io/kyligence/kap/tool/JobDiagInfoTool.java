@@ -112,6 +112,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_META, true);
         final boolean isCloud = getKapConfig().isCloud();
         final boolean includeAuditLog = getBooleanOption(optionsHelper, OPTION_AUDIT_LOG, true);
+        final boolean includeBin = true;
 
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
@@ -163,7 +164,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         exportJstack(recordTime);
 
-        exportConf(exportDir, recordTime, includeConf);
+        exportConf(exportDir, recordTime, includeConf, includeBin);
 
         exportSparkLog(exportDir, recordTime, project, jobId, job);
 

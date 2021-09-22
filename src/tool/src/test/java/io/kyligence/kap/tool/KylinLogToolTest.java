@@ -114,6 +114,55 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
             + "2020-06-08T05:25:22,838 INFO  [ke-guardian-process] handler.AbstractCheckStateHandler : Handler: [io.kyligence.kap.tool.daemon.handler.NormalStateHandler] handle the check result success ...\n"
             + "2020-06-08T05:25:22,838 INFO  [ke-guardian-process] daemon.KapGuardian : Guardian Process: health check finished ...";
 
+    private static final String queryLog1 = "2021-09-25T18:05:01,377 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] memory.MemoryStore : Block broadcast_0 stored as values in memory (estimated size 358.6 KiB, free 4.6 GiB)\n"
+            + "2021-09-25T18:05:01,536 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] memory.MemoryStore : Block broadcast_0_piece0 stored as bytes in memory (estimated size 30.7 KiB, free 4.6 GiB)\n"
+            + "2021-09-25T18:05:01,544 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] spark.SparkContext : Created broadcast 0 from\n"
+            + "2021-09-25T18:05:02,088 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] mapred.FileInputFormat : Total input paths to process : 1\n"
+            + "2021-09-25T18:05:02,146 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] spark.SparkContext : Starting job: toIterator at SparkSqlClient.scala:126\n"
+            + "2021-09-25T18:05:02,148 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] scheduler.DAGScheduler : submit job : 0, executionId is 89\n"
+            + "2021-09-25T18:05:05,583 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] scheduler.DAGScheduler : Job 0 finished: toIterator at SparkSqlClient.scala:126, took 3.436620 s\n"
+            + "2021-09-25T18:05:05,616 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] spark.SparkContext : Starting job: toIterator at SparkSqlClient.scala:126\n"
+            + "2021-09-25T18:05:05,616 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] scheduler.DAGScheduler : submit job : 1, executionId is 89\n"
+            + "2021-09-25T18:05:05,760 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] scheduler.DAGScheduler : Job 1 finished: toIterator at SparkSqlClient.scala:126, took 0.143551 s\n"
+            + "2021-09-25T18:05:06,603 INFO  [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] query :\n"
+            + "==========================[QUERY]===============================\n"
+            + "Query Id: 14f61937-e8fd-174c-c0d0-93b01f04173e\n"
+            + "SQL: select * from CUSTOMER\n"
+            + "User: ADMIN\n"
+            + "Success: true\n"
+            + "Duration: 11.038\n"
+            + "Project: fanshu\n"
+            + "Realization Names: []\n"
+            + "Index Layout Ids: []\n"
+            + "Snapshot Names: []\n"
+            + "Is Partial Match Model: []\n"
+            + "Scan rows: [300]\n"
+            + "Total Scan rows: 300\n"
+            + "Scan bytes: [41039]\n"
+            + "Total Scan Bytes: 41039\n"
+            + "Result Row Count: 300\n"
+            + "Shuffle partitions: 1\n"
+            + "Accept Partial: true\n"
+            + "Is Partial Result: false\n"
+            + "Hit Exception Cache: false\n"
+            + "Storage Cache Used: false\n"
+            + "Is Query Push-Down: true\n"
+            + "Is Prepare: false\n"
+            + "Is Timeout: false\n"
+            + "Trace URL: null\n"
+            + "Time Line Schema: end_http_proc,massage,end calcite parse sql,end_convert_to_relnode,end_calcite_optimize,end_plan,collect_olap_context_info\n"
+            + "Time Line: 87,1842,4,444,1184,14,58\n"
+            + "Message: null\n"
+            + "User Defined Tag: null\n"
+            + "Is forced to Push-Down: false\n"
+            + "User Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36\n"
+            + "Back door toggles: {DEBUG_TOGGLE_HTRACE_ENABLED=false}\n"
+            + "Scan Segment Count: 0\n"
+            + "Scan File Count: 0\n"
+            + "==========================[QUERY]===============================\n"
+            + "\n"
+            + "2021-09-25T18:05:06,665 DEBUG [fanshu] [Query 14f61937-e8fd-174c-c0d0-93b01f04173e-65] scheduler.EventBusFactory : Post event io.kyligence.kap.metadata.query.QueryMetricsContext@1bf317b3 async\n"
+            + "\n";
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -212,6 +261,34 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         long endTime = DateTime.parse("2019-09-03").withTimeAtStartOfDay().getMillis();
 
         KylinLogTool.extractKylinLog(mainDir, startTime, endTime);
+
+        FileUtils.deleteQuietly(kylinLog);
+        FileUtils.deleteQuietly(kylinLog1);
+
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02T02:35:19,868"));
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02T02:40:07,635"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log"))
+                .contains("\"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\""));
+    }
+
+    @Test
+    public void testExtractKylinLogQuery() throws Exception {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        File kylinLog = new File(ToolUtil.getLogFolder(), "kylin.log");
+        File kylinLog1 = new File(ToolUtil.getLogFolder(), "kylin.log.1");
+
+        FileUtils.writeStringToFile(kylinLog, logs2);
+        FileUtils.writeStringToFile(kylinLog1, logs1);
+
+        long startTime = DateTime.parse("2019-09-01").withTimeAtStartOfDay().getMillis();
+        long endTime = DateTime.parse("2019-09-03").withTimeAtStartOfDay().getMillis();
+        String queryId = "6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1";
+
+        KylinLogTool.extractKylinLog(mainDir, startTime, endTime, queryId);
 
         FileUtils.deleteQuietly(kylinLog);
         FileUtils.deleteQuietly(kylinLog1);
@@ -410,6 +487,23 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
                 .contains("2020-06-08T05:25:22,838"));
         Assert.assertFalse(
                 FileUtils.readFileToString(new File(mainDir, "logs/guardian.log")).contains("2020-06-08T05:23:22,410"));
+    }
+
+    @Test
+    public void testExtractQueryLogByQueryId() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        File qyLog = new File(ToolUtil.getLogFolder(), "kylin.query.log");
+
+        FileUtils.writeStringToFile(qyLog, queryLog1);
+        String queryId = "14f61937-e8fd-174c-c0d0-93b01f04173e";
+        KylinLogTool.extractKylinQueryLog(mainDir, queryId);
+
+        FileUtils.deleteQuietly(qyLog);
+
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.query.log")).contains("14f61937-e8fd-174c-c0d0-93b01f04173e"));
     }
 
     @Test
