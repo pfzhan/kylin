@@ -663,6 +663,8 @@ public class QueryService extends BasicService {
                 sqlResponse.setStopByUser(true);
                 sqlResponse.setColumnMetas(Lists.newArrayList());
                 sqlResponse.setExceptionMessage(MsgPicker.getMsg().getSTOP_BY_USER_ERROR_MESSAGE());
+            } else {
+                sqlResponse.setExceptionMessage(e.getMessage());
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);
