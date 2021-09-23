@@ -34,6 +34,7 @@ import java.security.Principal;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -48,15 +49,16 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.UnitMessages;
+import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
-import io.kyligence.kap.common.persistence.transaction.AbstractAuditLogReplayWorker;
-import io.kyligence.kap.common.persistence.transaction.AuditLogGroupedReplayWorker;
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
+import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.guava20.shaded.common.annotations.VisibleForTesting;
 import lombok.Getter;
@@ -89,16 +91,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
             + " from %s where id > %d and id <= %d order by id";
-
-    static final String SELECT_BY_PROJECT_RANGE_SQL = "select "
-            + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
-                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
-            + " from %s where meta_key like '/%s/%%' and id > %d and id <= %d order by id";
-
-    static final String SELECT_MAX_ID_BY_PROJECT_SQL = "select max(id) from %s where id > %d and meta_key like '/%s/%%'";
     static final String SELECT_MAX_ID_SQL = "select max(id) from %s";
     static final String SELECT_MIN_ID_SQL = "select min(id) from %s";
-    static final String SELECT_COUNT_ID_RANGE = "select count(id) from %s where id >= %d and id < %d";
     static final String DELETE_ID_LESSTHAN_SQL = "delete from %s where id < ?";
     static final String SELECT_TS_RANGE = "select "
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
@@ -116,7 +110,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
     @Getter
     private final String table;
 
-    private final AbstractAuditLogReplayWorker replayWorker;
+    private final AuditLogReplayWorker replayWorker;
 
     private String instance;
     @Getter
@@ -138,8 +132,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
 
         instance = AddressUtil.getLocalInstance();
         createIfNotExist();
-        replayWorker = config.auditLogGroupByProjectReload() ? new AuditLogGroupedReplayWorker(config, this)
-                : new AuditLogReplayWorker(config, this);
+        replayWorker = new AuditLogReplayWorker(config, this::catchupToMaxId);
     }
 
     public JdbcAuditLogStore(KylinConfig config, JdbcTemplate jdbcTemplate,
@@ -151,11 +144,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
         instance = AddressUtil.getLocalInstance();
 
         createIfNotExist();
-        replayWorker = config.auditLogGroupByProjectReload() ? new AuditLogGroupedReplayWorker(config, this)
-                : new AuditLogReplayWorker(config, this);
-
+        replayWorker = new AuditLogReplayWorker(config, this::catchupToMaxId);
     }
-
 
     public void save(UnitMessages unitMessages) {
         val unitId = unitMessages.getUnitId();
@@ -203,13 +193,6 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 new AuditLogRowMapper());
     }
 
-    public List<AuditLog> fetch(String project, long currentId, long size) {
-        log.trace("fetch log from {} < id <= {}", currentId, currentId + size);
-        return jdbcTemplate.query(
-                String.format(Locale.ROOT, SELECT_BY_PROJECT_RANGE_SQL, table, project, currentId, currentId + size),
-                new AuditLogRowMapper());
-    }
-
     public List<AuditLog> fetchRange(long fromId, long start, long end, int limit) {
         log.trace("Fetch log from {} meta_ts between {} and {}, fromId: {}.", table, start, end, fromId);
         return jdbcTemplate.query(String.format(Locale.ROOT, SELECT_TS_RANGE, table, fromId, start, end, limit),
@@ -224,13 +207,6 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 .orElse(0L);
     }
 
-    public long getMaxIdByProject(String project, long from) {
-        return Optional
-                .ofNullable(jdbcTemplate.queryForObject(
-                        String.format(Locale.ROOT, SELECT_MAX_ID_BY_PROJECT_SQL, table, from, project), Long.class))
-                .orElse(0L);
-    }
-
     @Override
     public long getMinId() {
         return Optional
@@ -239,45 +215,47 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 .orElse(0L);
     }
 
-    public long count(long startId, long endId) {
-        return jdbcTemplate.queryForObject(String.format(Locale.ROOT, SELECT_COUNT_ID_RANGE, table, startId, endId),
-                Long.class);
-    }
-
     @Override
     public void restore(long currentId) {
+        replayWorker.updateOffset(currentId);
+        val interval = config.getCatchUpInterval();
         if (config.isJobNode() && !config.isUTEnv()) {
             log.info("current maxId is {}", currentId);
-            replayWorker.startSchedule(currentId, false);
+            replayWorker.startSchedule(interval);
             return;
         }
-        // query node need wait update to latest due to restore from backup
-        replayWorker.startSchedule(currentId, true);
+        val newOffset = catchupToMaxId(currentId);
+        replayWorker.updateOffset(newOffset);
+        replayWorker.startSchedule(interval);
     }
 
     @Override
     public void catchupWithTimeout() throws Exception {
         val store = ResourceStore.getKylinMetaStore(config);
-        replayWorker.catchupFrom(store.getOffset());
+        replayWorker.updateOffset(store.getOffset());
+        replayWorker.catchup();
         replayWorker.waitForCatchup(getMaxId(), config.getCatchUpTimeout());
     }
 
     public void catchupWithMaxTimeout() throws Exception {
         val store = ResourceStore.getKylinMetaStore(config);
-        replayWorker.catchupFrom(store.getOffset());
+        replayWorker.updateOffset(store.getOffset());
+        replayWorker.catchup();
         replayWorker.waitForCatchup(getMaxId(), config.getCatchUpMaxTimeout());
     }
 
     @Override
     public void catchup() {
         val store = ResourceStore.getKylinMetaStore(config);
-        replayWorker.catchupFrom(store.getOffset());
+        replayWorker.updateOffset(store.getOffset());
+        replayWorker.catchup();
     }
 
     @Override
     public void forceCatchup() {
         val store = ResourceStore.getKylinMetaStore(config);
-        replayWorker.forceCatchFrom(store.getOffset());
+        replayWorker.forceUpdateOffset(store.getOffset());
+        replayWorker.catchup();
     }
 
     @Override
@@ -307,6 +285,43 @@ public class JdbcAuditLogStore implements AuditLogStore {
             jdbcTemplate.update(String.format(Locale.ROOT, DELETE_ID_LESSTHAN_SQL, table), deletableMaxId);
             return null;
         });
+    }
+
+    private long catchupToMaxId(final long currentId) {
+        val replayer = MessageSynchronization.getInstance(config);
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayer.setChecker(store.getChecker());
+        return withTransaction(transactionManager, () -> {
+            val step = 1000L;
+            val maxId = getMaxId();
+            log.debug("start restore, current max_id is {}", maxId);
+            var start = currentId;
+            while (start < maxId) {
+                val logs = fetch(start, Math.min(step, maxId - start));
+                replayLogs(replayer, logs);
+                start += step;
+            }
+            return maxId;
+        });
+    }
+
+    private void replayLogs(MessageSynchronization replayer, List<AuditLog> logs) {
+        Map<String, UnitMessages> messagesMap = Maps.newLinkedHashMap();
+        for (AuditLog log : logs) {
+            val event = Event.fromLog(log);
+            String unitId = log.getUnitId();
+            if (messagesMap.get(unitId) == null) {
+                UnitMessages newMessages = new UnitMessages();
+                newMessages.getMessages().add(event);
+                messagesMap.put(unitId, newMessages);
+            } else {
+                messagesMap.get(unitId).getMessages().add(event);
+            }
+        }
+        for (UnitMessages message : messagesMap.values()) {
+            log.debug("replay {} event for project:{}", message.getMessages().size(), message.getKey());
+            replayer.replay(message);
+        }
     }
 
     private Properties loadMedataProperties() throws IOException {
@@ -369,5 +384,4 @@ public class JdbcAuditLogStore implements AuditLogStore {
     public long getLogOffset() {
         return replayWorker.getLogOffset();
     }
-
 }
