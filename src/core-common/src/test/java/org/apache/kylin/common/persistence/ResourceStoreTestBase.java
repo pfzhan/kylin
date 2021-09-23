@@ -264,7 +264,7 @@ public class ResourceStoreTestBase {
             // Make a deep copy of kylinConfig is important
             ResourceStore.getKylinMetaStore(KylinConfig.createKylinConfig(kylinConfig));
         }
-        Assert.assertFalse(ResourceStore.isPotentialMemoryLeak());
+        Assert.assertTrue(ResourceStore.isPotentialMemoryLeak());
         // Clear one cache
         ResourceStore.clearCache(kylinConfig);
         Assert.assertFalse(ResourceStore.isPotentialMemoryLeak());
