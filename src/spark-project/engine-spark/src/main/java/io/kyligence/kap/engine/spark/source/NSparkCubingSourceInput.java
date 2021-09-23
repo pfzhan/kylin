@@ -24,24 +24,23 @@
 package io.kyligence.kap.engine.spark.source;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.SparderTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Locale;
-import java.util.Map;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
 public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingSource {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingSourceInput.class);
@@ -65,6 +64,6 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         StructType sparkSchema = df.schema();
         logger.debug("Source data sql is: {}", sql);
         logger.debug("Kylin schema: {}", kylinSchema.treeString());
-        return df.select(SparderTypeUtil.alignDataType(sparkSchema, kylinSchema));
+        return df.select(SparderTypeUtil.alignDataTypeAndName(sparkSchema, kylinSchema));
     }
 }

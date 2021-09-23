@@ -24,6 +24,12 @@
 
 package org.apache.spark.sql.util
 
+import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float => JFloat, Long => JLong, Short => JShort}
+import java.math.BigDecimal
+import java.sql.{Date, Timestamp, Types}
+import java.time.ZoneId
+import java.util.{GregorianCalendar, Locale, TimeZone}
+
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
@@ -41,11 +47,6 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float => JFloat, Long => JLong, Short => JShort}
-import java.math.BigDecimal
-import java.sql.{Date, Timestamp, Types}
-import java.time.ZoneId
-import java.util.{GregorianCalendar, TimeZone}
 import scala.collection.{immutable, mutable}
 
 object SparderTypeUtil extends Logging {
@@ -464,20 +465,20 @@ object SparderTypeUtil extends Logging {
     sparkTimestamp * 1000
   }
 
-  def alignDataType(origin: StructType, goal: StructType): Array[Column] = {
+  def alignDataTypeAndName(origin: StructType, goal: StructType): Array[Column] = {
     val columns = origin.zip(goal).map {
       case (sparkField, goalField) =>
         val sparkDataType = sparkField.dataType
         val goalDataType = goalField.dataType
         if (!sparkDataType.sameType(goalDataType)) {
           if (Cast.canCast(sparkDataType, goalDataType)) {
-            col(sparkField.name).cast(goalDataType)
+            col(sparkField.name).cast(goalDataType).as(sparkField.name.toUpperCase(Locale.ROOT))
           } else {
             logError(s"Error for cast datatype from  $sparkDataType to $goalDataType with column name is : ${sparkField.name}")
-            col(sparkField.name)
+            col(sparkField.name).as(sparkField.name.toUpperCase(Locale.ROOT))
           }
         } else {
-          col(sparkField.name)
+          col(sparkField.name).as(sparkField.name.toUpperCase(Locale.ROOT))
         }
     }.toArray
     logInfo(s"Align data type is ${columns.mkString(",")}")
