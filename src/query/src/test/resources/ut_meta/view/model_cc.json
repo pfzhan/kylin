@@ -184,6 +184,12 @@
       "id": 26,
       "name": "CC2",
       "column": "LINEORDER.CC2"
+    },
+    {
+      "id": 27,
+      "name": "CC3",
+      "column": "LINEORDER.CC3",
+      "status": "DIMENSION"
     }
   ],
   "all_measures": [
@@ -239,6 +245,16 @@
       "expression": "LINEORDER.LO_QUANTITY + CUSTOMER.C_CUSTKEY",
       "innerExpression": "`LINEORDER`.`LO_QUANTITY` + `CUSTOMER`.`C_CUSTKEY`",
       "datatype": "BIGINT",
+      "comment": null,
+      "rec_uuid": null
+    },
+    {
+      "tableIdentity": "SSB.LINEORDER",
+      "tableAlias": "LINEORDER",
+      "columnName": "CC3",
+      "expression": "nvl(LINEORDER.LO_CUSTKEY, 123)",
+      "innerExpression": "nvl(`LINEORDER`.`LO_CUSTKEY`, 123)",
+      "datatype": "INTEGER",
       "comment": null,
       "rec_uuid": null
     }

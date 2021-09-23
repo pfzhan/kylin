@@ -143,7 +143,9 @@ public class ProjectSchemaFactory {
             return existingSchema;
         }
 
-        return parentSchema.add(schemaName, viewSchema);
+        CalciteSchema addedViewSchema = parentSchema.add(schemaName, viewSchema);
+        addUDFs(addedViewSchema);
+        return addedViewSchema;
     }
 
     private Schema createSchema(String schemaName) {

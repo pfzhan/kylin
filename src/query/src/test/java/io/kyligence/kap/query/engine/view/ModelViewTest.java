@@ -56,7 +56,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
 
-public class ModelViewGeneratorTest extends NLocalFileMetadataTestCase {
+public class ModelViewTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
