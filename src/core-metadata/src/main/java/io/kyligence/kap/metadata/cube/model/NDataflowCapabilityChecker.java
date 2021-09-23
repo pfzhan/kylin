@@ -120,8 +120,13 @@ public class NDataflowCapabilityChecker {
         }
 
         //1. all aggregations on lookup table can be done
+        NDataModel dataModel = dataflow.getModel();
+        if (dataModel.isFusionModel()) {
+            dataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), dataflow.getProject())
+                    .getDataModelDesc(dataflow.getModel().getFusionId());
+        }
         Set<TblColRef> colsOfSnapShot = Sets
-                .newHashSet(dataflow.getModel().findFirstTable(digest.factTable).getColumns());
+                .newHashSet(dataModel.findFirstTable(digest.factTable).getColumns());
         Collection<TblColRef> unmatchedCols = Sets.newHashSet(digest.allColumns);
         if (!unmatchedCols.isEmpty()) {
             unmatchedCols.removeAll(colsOfSnapShot);

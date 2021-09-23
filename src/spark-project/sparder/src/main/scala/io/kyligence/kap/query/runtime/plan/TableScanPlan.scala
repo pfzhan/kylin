@@ -42,9 +42,11 @@ import org.apache.spark.sql.manager.SparderLookupManager
 import org.apache.spark.sql.types.{ArrayType, DoubleType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
-
 import java.util.concurrent.ConcurrentHashMap
 import java.{lang, util}
+
+import org.apache.kylin.metadata.realization.IRealization
+
 import scala.collection.JavaConverters._
 
 // scalastyle:off
@@ -366,7 +368,14 @@ object TableScanPlan extends LogEx {
 
     val session = SparderEnv.getSparkSession
     val olapContext = rel.getContext
-    var instance: NDataflow = olapContext.realization.asInstanceOf[NDataflow]
+    var instance: IRealization = null
+    if (olapContext.realization.isInstanceOf[NDataflow])
+    {
+      instance = olapContext.realization.asInstanceOf[NDataflow]
+    } else {
+      instance = olapContext.realization.asInstanceOf[HybridRealization]
+    }
+
     val tableMetadataManager = NTableMetadataManager.getInstance(instance.getConfig, instance.getProject)
     val lookupTableName = olapContext.firstTableScan.getTableName
     val snapshotResPath = tableMetadataManager.getTableDesc(lookupTableName).getLastSnapshotPath

@@ -39,8 +39,13 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.SmartContext;
 import io.kyligence.kap.smart.SmartMaster;
+import io.kyligence.kap.smart.query.AbstractQueryRunner;
+import io.kyligence.kap.smart.query.QueryRunnerBuilder;
 import io.kyligence.kap.utils.AccelerationContextUtil;
+
+import java.util.Collection;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 import lombok.val;
 import lombok.var;
@@ -215,6 +220,7 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(realization.getStorageType(), IStorageAware.ID_NDATA_STORAGE);
         Assert.assertNotNull(realization.getUuid());
         Assert.assertFalse(realization.isStreaming());
+        Assert.assertEquals(realization.getProject(), project);
         FunctionDesc functionDesc = hybridRealization.getBatchRealization().getMeasures().get(1).getFunction();
         Assert.assertNotNull(hybridRealization.findAggrFunc(functionDesc));
         Assert.assertTrue(hybridRealization.hasPrecalculatedFields());
@@ -238,6 +244,29 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
         Assert.assertFalse(hybridRealization.isCapable(context.getSQLDigest(), Lists.newArrayList()).capable);
 
+    }
+
+    @Test
+    public void testHybridStreamingMatchLookUp() throws Exception {
+        String project = "streaming_test";
+        String sql = "select * from SSB.CUSTOMER";
+        NTableMetadataManager.getInstance(getTestConfig(), project)
+                .getTableDesc("SSB.CUSTOMER").setLastSnapshotPath(
+                "default/table_snapshot/SSB.CUSTOMER/cf3eddab-4686-721c-ee1f-a502ed95163e");
+
+        AbstractQueryRunner queryRunner1 = new QueryRunnerBuilder(project, getTestConfig(), new String[] { sql }).build();
+        queryRunner1.execute();
+        ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = queryRunner1.getOlapContexts();
+
+        OLAPContext context = olapContexts.get(0).iterator().next();
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+
+        RealizationChooser.attemptSelectCandidate(context);
+        IRealization realization = context.realization;
+
+        Assert.assertTrue(realization instanceof HybridRealization);
+        HybridRealization hybridRealization = (HybridRealization)realization;
+        Assert.assertEquals(hybridRealization.getUuid(), "14e00a6f-d910-14b6-ee67-e0a5775012c4");
     }
 
     @Test

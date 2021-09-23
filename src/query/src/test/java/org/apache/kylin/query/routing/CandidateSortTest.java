@@ -232,6 +232,11 @@ public class CandidateSortTest {
             public boolean isStreaming() {
                 return false;
             }
+
+            @Override
+            public String getProject() {
+                return null;
+            }
         };
     }
 

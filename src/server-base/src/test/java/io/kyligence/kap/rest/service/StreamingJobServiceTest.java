@@ -173,7 +173,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(8, list.getTotalSize());
+        Assert.assertEquals(10, list.getTotalSize());
         Assert.assertTrue(!list.getValue().get(0).isModelBroken());
         Assert.assertNotNull(list.getValue().get(0).getPartitionDesc());
 
@@ -202,7 +202,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Arrays.asList("STREAMING_BUILD"),
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(4, list.getValue().size());
+        Assert.assertEquals(5, list.getValue().size());
 
         // status filter
         val config = getTestConfig();
@@ -237,7 +237,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 "", "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
-        Assert.assertEquals(8, list.getTotalSize());
+        Assert.assertEquals(10, list.getTotalSize());
         Assert.assertEquals(4, list.getValue().size());
 
         // offset filter
@@ -266,9 +266,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(8, list.getTotalSize());
-        Assert.assertEquals("model_streaming", list.getValue().get(0).getModelName());
-        Assert.assertEquals(4, list.getValue().get(0).getModelIndexes().intValue());
+        Assert.assertEquals(10, list.getTotalSize());
+        Assert.assertEquals("model_streaming", list.getValue().get(2).getModelName());
+        Assert.assertEquals(4, list.getValue().get(2).getModelIndexes().intValue());
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4, mgr.getIndexPlan("4965c827-fbb4-4ea1-a744-3f341a3b030d").getAllLayouts().size());
         Assert.assertEquals(4, mgr.getIndexPlan("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getAllLayouts().size());

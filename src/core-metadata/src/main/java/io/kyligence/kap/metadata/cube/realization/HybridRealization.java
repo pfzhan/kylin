@@ -309,6 +309,11 @@ public class HybridRealization implements IRealization {
     }
 
     @Override
+    public String getProject() {
+        return this.project;
+    }
+
+    @Override
     public boolean isStreaming() {
         return false;
     }

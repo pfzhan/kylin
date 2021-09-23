@@ -86,6 +86,8 @@ public interface IRealization extends IStorageAware {
 
     FunctionDesc findAggrFunc(FunctionDesc aggrFunc);
 
+    String getProject();
+
     boolean isReady();
 
     String getUuid();

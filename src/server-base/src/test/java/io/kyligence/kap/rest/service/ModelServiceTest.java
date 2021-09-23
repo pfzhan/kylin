@@ -448,7 +448,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetFusionModels() {
         List<NDataModelResponse> models = modelService.getModels("", "streaming_test", false, "", null, "usage", true);
-        Assert.assertEquals(10, models.size());
+        Assert.assertEquals(11, models.size());
     }
 
     @Test
@@ -6293,7 +6293,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String modelName = "model_streaming_broken";
         val list = modelService.getModels(null, project, false, null, Lists.newArrayList(), null, false, null, null,
                 null, true);
-        Assert.assertEquals(10, list.size());
+        Assert.assertEquals(11, list.size());
 
         NDataModelResponse model = modelService
                 .getModels(modelName, project, false, null, Lists.newArrayList(), null, false, null, null, null, true)

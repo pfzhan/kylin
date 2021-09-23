@@ -1046,7 +1046,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(11, projectStatistics.getTableSize());
         Assert.assertEquals(0, projectStatistics.getLastWeekQueryCount());
         Assert.assertEquals(0, projectStatistics.getUnhandledQueryCount());
-        Assert.assertEquals(10, projectStatistics.getModelSize());
+        Assert.assertEquals(11, projectStatistics.getModelSize());
     }
 
     @Test
