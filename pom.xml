@@ -161,8 +161,6 @@
         <jetty.toolchain.test-helper.version>3.1.1</jetty.toolchain.test-helper.version>
         <test.container.version>1.15.3</test.container.version>
 
-        <snowflake.version>3.11.1</snowflake.version>
-
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
@@ -2005,13 +2003,6 @@
                 <artifactId>nginx</artifactId>
                 <version>${test.container.version}</version>
                 <scope>test</scope>
-            </dependency>
-
-            <!-- https://mvnrepository.com/artifact/net.snowflake/snowflake-jdbc -->
-            <dependency>
-                <groupId>net.snowflake</groupId>
-                <artifactId>snowflake-jdbc</artifactId>
-                <version>${snowflake.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
