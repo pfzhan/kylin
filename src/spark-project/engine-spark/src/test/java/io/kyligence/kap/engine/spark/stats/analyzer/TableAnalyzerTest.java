@@ -53,7 +53,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSampleFullTable() {
         TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 20_000_000, getTestConfig(), ss);
+        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 20_000_000, ss);
         val tableExt = tableMgr.getTableExtIfExists(tableDesc);
         Assert.assertEquals(10, tableExt.getSampleRows().size());
 
@@ -97,7 +97,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
         final ColumnDesc categBusnMgr = Arrays.stream(testCategoryGroupings.getColumns())
                 .filter(columnDesc -> columnDesc.getName().equalsIgnoreCase("CATEG_BUSN_MGR"))
                 .collect(Collectors.toList()).get(0);
-        new TableAnalyzerJob().analyzeTable(testCategoryGroupings, getProject(), 10000, getTestConfig(), ss);
+        new TableAnalyzerJob().analyzeTable(testCategoryGroupings, getProject(), 10000, ss);
         val tableExt = tableMgr.getTableExtIfExists(testCategoryGroupings);
         final TableExtDesc.ColumnStats columnStats = tableExt.getColumnStatsByName("CATEG_BUSN_MGR");
         Assert.assertEquals(categBusnMgr.getName(), columnStats.getColumnName());
@@ -108,7 +108,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
         // case 2: this case test sample data has a line always null in each column
         TableDesc testEncodings = tableMgr.getTableDesc("DEFAULT.TEST_ENCODING");
-        new TableAnalyzerJob().analyzeTable(testEncodings, getProject(), 10000, getTestConfig(), ss);
+        new TableAnalyzerJob().analyzeTable(testEncodings, getProject(), 10000, ss);
         final TableExtDesc testEncodingsExt = tableMgr.getTableExtIfExists(testEncodings);
         final List<String[]> sampleRows = testEncodingsExt.getSampleRows();
         final String[] rowValue = sampleRows.get(sampleRows.size() - 1);
@@ -116,7 +116,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
 
         // case 3: this case test sample data with a large long string value
         TableDesc allMeasTbl = tableMgr.getTableDesc("DEFAULT.TEST_MEASURE");
-        new TableAnalyzerJob().analyzeTable(allMeasTbl, getProject(), 10000, getTestConfig(), ss);
+        new TableAnalyzerJob().analyzeTable(allMeasTbl, getProject(), 10000, ss);
         final TableExtDesc allMeasTblExt = tableMgr.getTableExtIfExists(allMeasTbl);
         Assert.assertNotNull(allMeasTblExt);
         String minName1 = allMeasTblExt.getColumnStatsByName("NAME1").getMinValue();
@@ -136,7 +136,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
         notExistTableDesc.setName(tableIdentity);
 
         try {
-            new TableAnalyzerJob().analyzeTable(notExistTableDesc, getProject(), 10000, getTestConfig(), ss);
+            new TableAnalyzerJob().analyzeTable(notExistTableDesc, getProject(), 10000, ss);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertTrue(e instanceof AnalysisException);
@@ -148,7 +148,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
     @Test
     public void testSamplePartTable() {
         TableDesc tableDesc = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 100, getTestConfig(), ss);
+        new TableAnalyzerJob().analyzeTable(tableDesc, getProject(), 100, ss);
         NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         val tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
         Assert.assertEquals(10, tableExt.getSampleRows().size());

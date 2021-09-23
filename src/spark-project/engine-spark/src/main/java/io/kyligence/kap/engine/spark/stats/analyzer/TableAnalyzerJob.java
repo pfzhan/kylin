@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.job.TableAnalysisJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -64,29 +65,26 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
         String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        analyzeTable(tableDesc, prjName, (int) rowCount, config, ss);
+        analyzeTable(tableDesc, prjName, (int) rowCount, ss);
     }
 
-    void analyzeTable(TableDesc tableDesc, String project, int rowCount, KylinConfig config, SparkSession ss) {
+    void analyzeTable(TableDesc tableDesc, String project, int rowCount, SparkSession ss) {
 
         long start = System.currentTimeMillis();
         Row[] row = new TableAnalysisJob(tableDesc, project, rowCount, ss, jobId).analyzeTable();
         logger.info("sampling rows from table {} takes {}s", tableDesc.getIdentity(),
                 (System.currentTimeMillis() - start) / 1000);
 
-        val tableMetadataManager = NTableMetadataManager.getInstance(config, project);
-        var tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
-        tableExt = tableMetadataManager.copyForWrite(tableExt);
-
+        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        var tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableDesc);
         final long count_star = Long.parseLong(row[0].get(0).toString());
-        tableExt.setTotalRows(count_star);
         final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
         for (int colIdx = 0; colIdx < tableDesc.getColumnCount(); colIdx++) {
             final ColumnDesc columnDesc = tableDesc.getColumns()[colIdx];
             if (columnDesc.isComputedColumn()) {
                 continue;
             }
-            TableExtDesc.ColumnStats colStats = tableExt.getColumnStatsByName(columnDesc.getName());
+            TableExtDesc.ColumnStats colStats = tableExtDesc.getColumnStatsByName(columnDesc.getName());
             if (colStats == null) {
                 colStats = new TableExtDesc.ColumnStats();
                 colStats.setColumnName(columnDesc.getName());
@@ -116,7 +114,6 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
             }
             columnStatsList.add(colStats);
         }
-        tableExt.setColumnStats(columnStatsList);
 
         List<String[]> sampleData = Lists.newArrayList();
         IntStream.range(1, row.length).forEach(i -> {
@@ -133,9 +130,20 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
             });
             sampleData.add(data);
         });
-        tableExt.setSampleRows(sampleData);
-        tableExt.setJodID(jobId);
-        tableMetadataManager.saveTableExt(tableExt);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val tableMetadataManagerForUpdate = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                    project);
+            var tableExt = tableMetadataManagerForUpdate.getOrCreateTableExt(tableDesc);
+            tableExt = tableMetadataManagerForUpdate.copyForWrite(tableExt);
+            tableExt.setTotalRows(count_star);
+            tableExt.setColumnStats(columnStatsList);
+            tableExt.setSampleRows(sampleData);
+            tableExt.setJodID(jobId);
+            tableMetadataManagerForUpdate.saveTableExt(tableExt);
+
+            return null;
+        }, project);
         logger.info("Table {} analysis finished, update table ext desc done.", tableDesc.getName());
     }
 
