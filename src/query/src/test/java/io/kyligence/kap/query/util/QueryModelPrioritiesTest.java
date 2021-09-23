@@ -47,4 +47,29 @@ public class QueryModelPrioritiesTest {
     private String getModelHints(String sql) {
         return String.join(",", QueryModelPriorities.getModelPrioritiesFromComment(sql));
     }
+
+    private void assertModelHints(String expected, String sql) {
+        Assert.assertEquals(expected, getModelHints(sql));
+    }
+
+    @Test
+    public void testCubePriorityWithComment() {
+        //illegal CubePriority, cubepriority wont be recognized
+        assertModelHints("", "-- cubepriority(aaa,bbb)\n"
+                + "SELECT * FROM KYLIN_SALES as KYLIN_SALES\n");
+        //illegal CubePriority, no blank space between '('
+        assertModelHints("", "-- CubePriority (aaa,bbb)\n"
+                + "SELECT * FROM KYLIN_SALES as KYLIN_SALES\n");
+        // case insensitive
+        assertModelHints("AAA,BBB", "-- CubePriority(aaa,bbb)\n"
+                + "SELECT * FROM KYLIN_SALES as KYLIN_SALES\n");
+        //recog first matched
+        String sql = "   --  CubePriority(kylin_1,kylin_2,kylin_1,kylin_3)   \n"
+                + "SELECT * FROM KYLIN_SALES as KYLIN_SALES\n"
+                + " -- CubePriority(kylin_4,kylin_5)   \n -- CubePriority(kylin_4,kylin_5)\n";
+        assertModelHints("KYLIN_1,KYLIN_2,KYLIN_1,KYLIN_3", sql);
+        // has both model_priority and CubePriority
+        Assert.assertEquals("MODEL1", getModelHints("-- CubePriority(aaa,bbb) \nselect   /*+   MODEL_PRIORITY(model1)  */ a from tbl"));
+    }
+
 }

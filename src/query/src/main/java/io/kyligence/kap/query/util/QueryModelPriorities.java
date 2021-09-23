@@ -45,6 +45,15 @@ public class QueryModelPriorities {
     }
 
     public static String[] getModelPrioritiesFromComment(String sql) {
+        String[] models = doGetModelPrioritiesFromComment(sql);
+        if (models.length > 0) {
+            return models;
+        }
+        // for backward compatibility with KE3
+        return loadCubePriorityFromComment(sql);
+    }
+
+    static String[] doGetModelPrioritiesFromComment(String sql) {
         String hint = getHint(sql).toUpperCase(Locale.ROOT);
         if (hint.isEmpty() || hint.indexOf("MODEL_PRIORITY(") != 0) {
             return new String[0];
@@ -55,5 +64,19 @@ public class QueryModelPriorities {
             modelHints[i] = modelHints[i].trim();
         }
         return modelHints;
+    }
+
+    // for backward compatibility with KE3
+    private static final Pattern CUBE_PRIORITY_PATTERN = Pattern
+            .compile("(?<=--(\\s){0,2}CubePriority\\().*(?=\\)(\\s)*[\r\n])");
+    static String[] loadCubePriorityFromComment(String sql) {
+        // get CubePriority From Comment
+        Matcher matcher = CUBE_PRIORITY_PATTERN.matcher(sql + "\n");
+        if (matcher.find()) {
+            String cubeNames = matcher.group().trim().toUpperCase(Locale.ROOT);
+            return cubeNames.split(",");
+        } else {
+            return new String[0];
+        }
     }
 }
