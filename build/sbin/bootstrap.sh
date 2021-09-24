@@ -279,6 +279,8 @@ function startKE(){
 
     runToolInternal io.kyligence.kap.tool.upgrade.AddInstanceColumnCLI
 
+    runToolInternal io.kyligence.kap.tool.upgrade.UpdateSessionTableColumnLengthCLI
+
     runToolInternal io.kyligence.kap.tool.security.AdminUserInitCLI
     if [[ $? == 1 ]]; then
       quit "Create Admin user failed, for more details please refer to \"\$KYLIN_HOME/logs/shell.stderr\"."
