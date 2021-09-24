@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.engine.spark.job.exec.TableAnalyzerExec;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
@@ -53,6 +55,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.var;
 
+import static io.kyligence.kap.engine.spark.job.StageType.TABLE_SAMPLING;
+
 public class TableAnalyzerJob extends SparkApplication implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(TableAnalyzerJob.class);
 
@@ -61,6 +65,13 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
 
     @Override
     protected void doExecute() {
+        val jobStepId = StringUtils.replace(infos.getJobStepId(), JOB_NAME_PREFIX, "");
+        val exec = new TableAnalyzerExec(jobStepId);
+        TABLE_SAMPLING.createStage(this, null, null, exec);
+        exec.analyzerTable();
+    }
+
+    public void analyzerTable() {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         long rowCount = Long.parseLong(getParam(NBatchConstants.P_SAMPLING_ROWS));
         String prjName = getParam(NBatchConstants.P_PROJECT_NAME);

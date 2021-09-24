@@ -122,6 +122,9 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("tag")
     private Object tag;
 
+    @JsonProperty("stages_map")
+    private Map<String, List<ExecutablePO>> stagesMap;
+
     public void setPriority(int p) {
         priority = isPriorityValid(p) ? p : DEFAULT_PRIORITY;
     }

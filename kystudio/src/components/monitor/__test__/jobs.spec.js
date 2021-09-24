@@ -3,7 +3,7 @@ import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import * as business from '../../../util/business'
 import * as utils from '../../../util/index'
-import JobsList from '../jobs.vue'
+import JobsList from '../batchJobs/jobs.vue'
 import JobDialog from '../job_dialog.vue'
 import Diagnostic from '../../admin/Diagnostic/store.js'
 import kapPager from 'components/common/kap_pager.vue'
@@ -310,7 +310,7 @@ describe('Component Monitor', () => {
     expect(handleError).toBeCalled()
     expect(options.autoFilter).toBeCalled()
     expect(options.filter.isAuto).toBeTruthy()
-    
+
     options._isDestroyed = true
     await JobsList.options.methods.autoFilter.call(options)
     jest.runAllTimers()
@@ -436,7 +436,7 @@ describe('Component Monitor', () => {
     expect(mockApi.mockCallGlobalDetailDialog).toBeCalled()
     wrapper.vm.batchDrop()
     expect(mockApi.mockCallGlobalDetailDialog).toBeCalled()
-    
+
 
     await wrapper.setData({ multipleSelection: [{id: 'job1'}], isSelectAll: false, isSelectAllShow: false })
     wrapper.vm.batchResume()
@@ -514,7 +514,7 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.filter.reverse).toBeFalsy()
     expect(wrapper.vm.filter.sort_by).toEqual('jobName')
     expect(wrapper.vm.filter.page_offset).toEqual(0)
-    
+
     wrapper.vm.sortJobList({ column: {name: 'jobName'}, prop: 'jobName', order: 'descending' })
     expect(wrapper.vm.filter.reverse).toBeTruthy()
     expect(wrapper.vm.filter.sort_by).toEqual('jobName')

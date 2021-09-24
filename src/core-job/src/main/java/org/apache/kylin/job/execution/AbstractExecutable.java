@@ -179,7 +179,7 @@ public abstract class AbstractExecutable implements Executable {
         NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), getProject())
                 .getDataModelDesc(targetSubject);
         if (dataModelDesc != null) {
-            if (modelManager.isModelBroken(targetSubject)) { 
+            if (modelManager.isModelBroken(targetSubject)) {
                 return modelManager.getDataModelDescWithoutInit(targetSubject).getAlias();
             } else {
                 return dataModelDesc.getFusionModelAlias();
@@ -320,6 +320,13 @@ public abstract class AbstractExecutable implements Executable {
             }
 
             //The output will be stored in HDFS,not in RS
+            if (this instanceof ChainedExecutable) {
+                if (newStatus == ExecutableState.SUCCEED) {
+                    executableManager.makeStageSuccess(jobId);
+                } else if (newStatus == ExecutableState.ERROR) {
+                    executableManager.makeStageError(jobId);
+                }
+            }
             executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, errMsg);
             if (hook != null) {
                 hook.accept(jobId);

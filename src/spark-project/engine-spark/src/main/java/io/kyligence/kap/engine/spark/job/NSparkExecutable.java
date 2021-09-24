@@ -31,6 +31,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +40,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -57,17 +59,23 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.StageBase;
 import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -87,7 +95,7 @@ import lombok.val;
 /**
  *
  */
-public class NSparkExecutable extends AbstractExecutable {
+public class NSparkExecutable extends AbstractExecutable implements ChainedStageExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
 
@@ -109,6 +117,8 @@ public class NSparkExecutable extends AbstractExecutable {
     protected static final String HIVE_METASTORE_JARS = "spark.sql.hive.metastore.jars";
 
     private volatile boolean isYarnCluster = false;
+    private transient final List<StageBase> stages = Lists.newCopyOnWriteArrayList();
+    private final Map<String, List<StageBase>> stagesMap = Maps.newConcurrentMap();
 
     public NSparkExecutable() {
         super();
@@ -234,6 +244,16 @@ public class NSparkExecutable extends AbstractExecutable {
             return runSparkSubmit(hadoopConf, jars, kylinJobJar,
                     "-className " + getSparkSubmitClassName() + SPACE + argsPath);
         }
+    }
+
+    @Override
+    protected void onExecuteStart() throws JobStoppedException {
+        wrapWithCheckQuit(() -> {
+            final Map<String, String> sparkConf = getSparkConf();
+            Map<String, String> jobParams = Maps.newHashMap();
+            jobParams.put("job_params", JsonUtil.writeValueAsString(sparkConf));
+            updateJobOutput(project, getId(), ExecutableState.RUNNING, jobParams, null, null);
+        });
     }
 
     protected String createArgsFileOnHDFS(KylinConfig config, String jobId) throws ExecuteException {
@@ -746,5 +766,48 @@ public class NSparkExecutable extends AbstractExecutable {
         String get(String key);
 
         void set(String key, String value);
+    }
+
+    @Override
+    public AbstractExecutable addStage(AbstractExecutable step) {
+        int stepId = stages.size();
+
+        step.setId(getId() + "_" + String.format(Locale.ROOT, "%02d", stepId));
+        step.setParent(this);
+        step.setStepId(stepId);
+        this.stages.add(((StageBase) step));
+        return step;
+    }
+
+    @Override
+    public void setStageMap() {
+        if (CollectionUtils.isEmpty(stages)) {
+            return;
+        }
+        // when table sampling and snapshot build, null segmentIds, use jobId
+        if (StringUtils.isBlank(getParam(NBatchConstants.P_SEGMENT_IDS))) {
+            stagesMap.put(getId(), stages);
+            return;
+        }
+        for (String segmentId : getSegmentIds()) {
+            stagesMap.put(segmentId, stages);
+        }
+        // when layout ids not null, set index count
+        if (StringUtils.isNotBlank(getParam(NBatchConstants.P_LAYOUT_IDS))) {
+            int indexCount = StringUtil.splitAndTrim(getParam(NBatchConstants.P_LAYOUT_IDS), ",").length;
+            setParam(NBatchConstants.P_INDEX_COUNT, String.valueOf(indexCount));
+        }
+    }
+
+    @Override
+    public void setStageMapWithSegment(String id, List<StageBase> steps) {
+        final List<StageBase> old = stagesMap.getOrDefault(id, Lists.newCopyOnWriteArrayList());
+        old.addAll(steps);
+        stagesMap.put(id, steps);
+    }
+
+    @Override
+    public Map<String, List<StageBase>> getStagesMap() {
+        return stagesMap;
     }
 }

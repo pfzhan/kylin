@@ -24,14 +24,22 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static io.kyligence.kap.engine.spark.job.StageType.MERGE_COLUMN_BYTES;
+import static io.kyligence.kap.engine.spark.job.StageType.MERGE_FLAT_TABLE;
+import static io.kyligence.kap.engine.spark.job.StageType.MERGE_INDICES;
+
 import java.io.IOException;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+
 import com.google.common.base.Throwables;
 
+import io.kyligence.kap.engine.spark.job.exec.MergeExec;
+import io.kyligence.kap.engine.spark.job.stage.BuildParam;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
 
 public class SegmentMergeJob extends SegmentJob {
 
@@ -51,7 +59,14 @@ public class SegmentMergeJob extends SegmentJob {
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
-                val exec = isPartitioned() ? new PartitionMergeExec(this, seg) : new SegmentMergeExec(this, seg);
+                val jobStepId = StringUtils.replace(infos.getJobStepId(), JOB_NAME_PREFIX, "");
+                val exec = new MergeExec(jobStepId);
+
+                val buildParam = new BuildParam();
+                MERGE_FLAT_TABLE.createStage(this, seg, buildParam, exec);
+                MERGE_INDICES.createStage(this, seg, buildParam, exec);
+                MERGE_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
+
                 exec.mergeSegment();
             } catch (IOException e) {
                 Throwables.propagate(e);

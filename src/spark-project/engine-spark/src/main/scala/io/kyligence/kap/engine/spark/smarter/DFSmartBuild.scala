@@ -27,8 +27,7 @@ import java.lang.{Long => JLong}
 import java.util
 import java.util.function.Function
 import java.util.{Arrays, Map => JMap}
-
-import com.google.common.collect.Lists
+import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil.{getColumns, str2Longs, toLayouts}
 import io.kyligence.kap.engine.spark.job._
@@ -181,8 +180,8 @@ class DFSmartBuild extends DFBuildJob with Logging {
     buildSourceInfos.foreach(
       info => {
         val toBuildCuboids = info.getToBuildCuboids
-        infos.recordParent2Children(seg.getLayout(info.getLayoutId()),
-          toBuildCuboids.asScala.map(_.getId).toList.asJava)
+        val children = Sets.newHashSet(toBuildCuboids.asScala.map(_.getId).toSet.asJava)
+        infos.recordParent2Children(seg.getLayout(info.getLayoutId()), children)
         cuboidsNumInBatch += toBuildCuboids.size
 
         Predef.assert(!toBuildCuboids.isEmpty, "To be built cuboids is empty.")

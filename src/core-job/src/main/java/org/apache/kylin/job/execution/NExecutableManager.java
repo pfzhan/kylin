@@ -60,6 +60,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -181,6 +182,19 @@ public class NExecutableManager {
                 }
             }
         }
+        if (executable instanceof ChainedStageExecutable) {
+            Map<String, List<ExecutablePO>> taskMap = Maps.newHashMap();
+            final Map<String, List<StageBase>> tasksMap = Optional
+                    .ofNullable(((ChainedStageExecutable) executable).getStagesMap()).orElse(Maps.newHashMap());
+            for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                final List<ExecutablePO> executables = entry.getValue().stream().map(stage -> toPO(stage, project))
+                        .collect(Collectors.toList());
+                taskMap.put(entry.getKey(), executables);
+            }
+            if (MapUtils.isNotEmpty(taskMap)) {
+                result.setStagesMap(taskMap);
+            }
+        }
         return result;
     }
 
@@ -209,11 +223,15 @@ public class NExecutableManager {
     private void addJobOutput(ExecutablePO executable) {
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
         executable.setOutput(executableOutputPO);
-        if (CollectionUtils.isEmpty(executable.getTasks())) {
-            return;
+        if (CollectionUtils.isNotEmpty(executable.getTasks())) {
+            for (ExecutablePO subTask : executable.getTasks()) {
+                addJobOutput(subTask);
+            }
         }
-        for (ExecutablePO subTask : executable.getTasks()) {
-            addJobOutput(subTask);
+        if (MapUtils.isNotEmpty(executable.getStagesMap())) {
+            for (Map.Entry<String, List<ExecutablePO>> entry : executable.getStagesMap().entrySet()) {
+                entry.getValue().forEach(this::addJobOutput);
+            }
         }
     }
 
@@ -287,6 +305,12 @@ public class NExecutableManager {
     public Output getOutput(String id) {
         val jobOutput = getJobOutput(id);
         assertOutputNotNull(jobOutput, id);
+        return parseOutput(jobOutput);
+    }
+
+    public Output getOutput(String id, String segmentId) {
+        val jobOutput = getJobOutput(id, segmentId);
+        assertOutputNotNull(jobOutput, id, segmentId);
         return parseOutput(jobOutput);
     }
 
@@ -684,6 +708,21 @@ public class NExecutableManager {
             tasks.stream()
                     .filter(task -> task.getStatus().isNotProgressing() || task.getStatus() == ExecutableState.RUNNING)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING
+                                            || stage.getStatus(entry.getKey()) == ExecutableState.ERROR)//
+                                    .forEach(stage -> // 
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null));
+                        }
+                    }
+                }
+            });
         }
         updateJobOutput(jobId, ExecutableState.READY);
     }
@@ -706,6 +745,17 @@ public class NExecutableManager {
             job.getTasks().forEach(task -> {
                 task.getOutput().setResumable(false);
                 task.getOutput().resetTime();
+                if (MapUtils.isNotEmpty(task.getStagesMap())) {
+                    for (Map.Entry<String, List<ExecutablePO>> entry : task.getStagesMap().entrySet()) {
+                        Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList()).forEach(executablePO -> {
+                            executablePO.getOutput().setResumable(false);
+                            executablePO.getOutput().resetTime();
+                            Map<String, String> stageInfo = Maps.newHashMap(executablePO.getOutput().getInfo());
+                            stageInfo.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "0");
+                            executablePO.getOutput().setInfo(stageInfo);
+                        });
+                    }
+                }
             });
             return true;
         });
@@ -740,8 +790,26 @@ public class NExecutableManager {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList()) //
+                                    .stream()//
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.READY)
+                                    .forEach(stage -> // when restart, reset stage
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null, true));
+                        }
+                    }
+                }
+
+            });
         }
-        updateJobOutput(jobId, ExecutableState.READY);
+        // restart waite time
+        Map<String, String> info = Maps.newHashMap();
+        info.put(NBatchConstants.P_WAITE_TIME, "{}");
+        updateJobOutput(jobId, ExecutableState.READY, info);
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
@@ -763,6 +831,21 @@ public class NExecutableManager {
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.SUICIDAL)
                     .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.SUICIDAL));
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream()
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SUICIDAL
+                                            && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)
+                                    .forEach(stage -> // 
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.SUICIDAL, null, null));
+                        }
+                    }
+                }
+            });
         }
 
         updateJobOutput(jobId, ExecutableState.SUICIDAL);
@@ -774,6 +857,21 @@ public class NExecutableManager {
             return;
         }
         job.cancelJob();
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .forEach(stage -> // 
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.DISCARDED, null, null));
+                        }
+                    }
+                }
+            });
+        }
         updateJobOutput(jobId, ExecutableState.DISCARDED);
     }
 
@@ -788,6 +886,21 @@ public class NExecutableManager {
             tasks.stream().filter(task -> task.getStatus() != ExecutableState.ERROR)
                     .filter(task -> task.getStatus() != ExecutableState.SUCCEED)
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.ERROR));
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream()
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.ERROR
+                                            && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)
+                                    .forEach(stage -> // 
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
+                        }
+                    }
+                }
+            });
         }
 
         updateJobOutput(jobId, ExecutableState.ERROR);
@@ -802,18 +915,109 @@ public class NExecutableManager {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidJobStatusTransaction(), "PAUSE", jobId, job.getStatus()));
         }
-
-        updateJobOutput(jobId, ExecutableState.PAUSED);
+        updateStagePaused(job);
+        Map<String, String> info = getWaiteTime(job);
+        updateJobOutput(jobId, ExecutableState.PAUSED, info);
         // pauseJob may happen when the job has not been scheduled
         // then call this hook after updateJobOutput
         job.onExecuteStopHook();
+    }
+
+    private void updateStagePaused(AbstractExecutable job) {
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING)//
+                                    .forEach(stage -> //
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.PAUSED, null, null));
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private Map<String, String> getWaiteTime(AbstractExecutable job) {
+        try {
+            val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
+            Map<String, String> info = Maps.newHashMap(oldInfo);
+            if (job instanceof DefaultChainedExecutable) {
+                Map<String, String> waiteTime = JsonUtil
+                        .readValueAsMap(info.getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
+
+                final List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+                for (AbstractExecutable task : tasks) {
+                    val waitTime = task.getWaitTime();
+                    val oldWaitTime = Long.parseLong(waiteTime.getOrDefault(task.getId(), "0"));
+                    waiteTime.put(task.getId(), String.valueOf(waitTime + oldWaitTime));
+                    if (task instanceof ChainedStageExecutable) {
+                        final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
+                        Map<String, List<StageBase>> taskMap = Optional.ofNullable(stageExecutable.getStagesMap())
+                                .orElse(Maps.newHashMap());
+                        val taskStartTime = task.getStartTime();
+                        for (Map.Entry<String, List<StageBase>> entry : taskMap.entrySet()) {
+                            final String segmentId = entry.getKey();
+                            if (waiteTime.containsKey(segmentId)) {
+                                break;
+                            }
+                            final List<StageBase> stageBases = Optional.ofNullable(entry.getValue())
+                                    .orElse(Lists.newArrayList());
+                            if (CollectionUtils.isNotEmpty(stageBases)) {
+                                final StageBase firstStage = stageBases.get(0);
+                                val firstStageStartTime = getOutput(firstStage.getId(), segmentId).getStartTime();
+                                val stageWaiteTIme = firstStageStartTime - taskStartTime > 0
+                                        ? firstStageStartTime - taskStartTime
+                                        : 0;
+                                val oldStageWaiteTIme = Long.parseLong(waiteTime.getOrDefault(segmentId, "0"));
+                                waiteTime.put(segmentId, String.valueOf(stageWaiteTIme + oldStageWaiteTIme));
+                            }
+                        }
+                    }
+                }
+                info.put(NBatchConstants.P_WAITE_TIME, JsonUtil.writeValueAsString(waiteTime));
+            }
+            return info;
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+            return null;
+        }
+    }
+
+    @VisibleForTesting
+    public ExecutableOutputPO getJobOutput(String taskOrJobId, String segmentId) {
+        val jobId = extractJobId(taskOrJobId);
+        val executablePO = executableDao.getJobByUuid(jobId);
+        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, jobId, executablePO);
+        if (Objects.isNull(jobOutput)) {
+            logger.trace("get job output from taskOrJobId : {} and segmentId : {}", taskOrJobId, segmentId);
+            final Map<String, List<ExecutablePO>> stageMap = executablePO.getTasks().stream()
+                    .map(ExecutablePO::getStagesMap)
+                    .filter(map -> MapUtils.isNotEmpty(map) && map.containsKey(segmentId)).findFirst()
+                    .orElse(Maps.newHashMap());
+            jobOutput = stageMap.getOrDefault(segmentId, Lists.newArrayList()).stream()
+                    .filter(po -> po.getId().equals(taskOrJobId)).findFirst().map(ExecutablePO::getOutput).orElse(null);
+        }
+        assertOutputNotNull(jobOutput, taskOrJobId, segmentId);
+        return jobOutput;
     }
 
     @VisibleForTesting
     public ExecutableOutputPO getJobOutput(String taskOrJobId) {
         val jobId = extractJobId(taskOrJobId);
         val executablePO = executableDao.getJobByUuid(jobId);
-        final ExecutableOutputPO jobOutput;
+        ExecutableOutputPO jobOutput = getExecutableOutputPO(taskOrJobId, jobId, executablePO);
+        assertOutputNotNull(jobOutput, taskOrJobId);
+        return jobOutput;
+    }
+
+    private ExecutableOutputPO getExecutableOutputPO(String taskOrJobId, String jobId, ExecutablePO executablePO) {
+        ExecutableOutputPO jobOutput;
         if (Objects.isNull(executablePO)) {
             jobOutput = new ExecutableOutputPO();
         } else if (Objects.equals(taskOrJobId, jobId)) {
@@ -822,7 +1026,6 @@ public class NExecutableManager {
             jobOutput = executablePO.getTasks().stream().filter(po -> po.getId().equals(taskOrJobId)).findFirst()
                     .map(ExecutablePO::getOutput).orElse(null);
         }
-        assertOutputNotNull(jobOutput, taskOrJobId);
         return jobOutput;
     }
 
@@ -857,6 +1060,138 @@ public class NExecutableManager {
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
             Set<String> removeInfo, String output, long byteSize) {
         updateJobOutput(taskOrJobId, newStatus, updateInfo, removeInfo, output, byteSize, null);
+    }
+
+    /** just used to update stage */
+    public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
+            Map<String, String> updateInfo, String errMsg) {
+        updateStageStatus(taskOrJobId, segmentId, newStatus, updateInfo, errMsg, false);
+    }
+
+    public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
+            Map<String, String> updateInfo, String errMsg, Boolean isRestart) {
+        val jobId = extractJobId(taskOrJobId);
+        executableDao.updateJob(jobId, job -> {
+            final List<Map<String, List<ExecutablePO>>> collect = job.getTasks().stream()//
+                    .map(ExecutablePO::getStagesMap)//
+                    .filter(MapUtils::isNotEmpty)//
+                    .collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(collect)) {
+                return false;
+            }
+
+            final Map<String, List<ExecutablePO>> stageMapFromSegment = collect.stream()//
+                    .filter(map -> map.containsKey(segmentId))//
+                    .findFirst().orElse(null);
+            if (MapUtils.isNotEmpty(stageMapFromSegment)) {
+                ExecutablePO stage = stageMapFromSegment.getOrDefault(segmentId, Lists.newArrayList()).stream()
+                        .filter(po -> po.getId().equals(taskOrJobId))//
+                        .findFirst().orElse(null);
+
+                ExecutableOutputPO stageOutput = stage.getOutput();
+                assertOutputNotNull(stageOutput, taskOrJobId, segmentId);
+                return setStageOutput(stageOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+            } else {
+                for (Map<String, List<ExecutablePO>> stageMap : collect) {
+                    for (Map.Entry<String, List<ExecutablePO>> entry : stageMap.entrySet()) {
+                        final ExecutablePO stage = entry.getValue().stream()
+                                .filter(po -> po.getId().equals(taskOrJobId))//
+                                .findFirst().orElse(null);
+                        if (null == stage) {
+                            // local spark job(RESOURCE_DETECT): waiteForResource
+                            return false;
+                        }
+                        ExecutableOutputPO stageOutput = stage.getOutput();
+                        assertOutputNotNull(stageOutput, taskOrJobId);
+                        val flag = setStageOutput(stageOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+                        if (!flag) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        });
+    }
+
+    private boolean setStageOutput(ExecutableOutputPO jobOutput, String taskOrJobId, ExecutableState newStatus,
+            Map<String, String> updateInfo, String errMsg, Boolean isRestart) {
+        ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
+        if (newStatus != null && oldStatus != newStatus) {
+            if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
+                logger.warn(
+                        "[UNEXPECTED_THINGS_HAPPENED] wrong job state transfer! There is no valid state transfer from: {} to: {}, job id: {}",
+                        oldStatus, newStatus, taskOrJobId);
+            }
+            if ((oldStatus == ExecutableState.PAUSED && newStatus == ExecutableState.ERROR)
+                    || (oldStatus == ExecutableState.SKIPPED && newStatus == ExecutableState.SUCCEED)) {
+                return false;
+            }
+            if (isRestart || oldStatus != ExecutableState.SUCCEED) {
+                jobOutput.setStatus(String.valueOf(newStatus));
+                updateJobStatus(jobOutput, oldStatus, newStatus);
+                logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
+            }
+        }
+
+        Map<String, String> info = Maps.newHashMap(jobOutput.getInfo());
+        Optional.ofNullable(updateInfo).ifPresent(map -> {
+            final int indexSuccessCount = Integer
+                    .parseInt(map.getOrDefault(NBatchConstants.P_INDEX_SUCCESS_COUNT, "0"));
+            info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, String.valueOf(indexSuccessCount));
+        });
+        jobOutput.setInfo(info);
+        jobOutput.setLastModified(System.currentTimeMillis());
+        jobOutput.setErrMsg(errMsg);
+        return true;
+    }
+
+    public void makeStageSuccess(String jobId) {
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED)//
+                                    .forEach(stage -> //
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.SUCCEED, null, null));
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    public void makeStageError(String jobId) {
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+        if (job instanceof DefaultChainedExecutable) {
+            List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+            tasks.forEach(task -> {
+                if (task instanceof ChainedStageExecutable) {
+                    final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (MapUtils.isNotEmpty(tasksMap)) {
+                        for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING)//
+                                    .forEach(stage -> //
+                            updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.ERROR, null, null));
+                        }
+                    }
+                }
+            });
+        }
     }
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
@@ -943,6 +1278,10 @@ public class NExecutableManager {
         }
     }
 
+    public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo) {
+        updateJobOutput(taskOrJobId, newStatus, updateInfo, null, null);
+    }
+
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus) {
         updateJobOutput(taskOrJobId, newStatus, null, null, null);
     }
@@ -979,7 +1318,19 @@ public class NExecutableManager {
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);
                 for (ExecutablePO subTask : tasks) {
-                    ((ChainedExecutable) result).addTask(fromPO(subTask));
+                    final AbstractExecutable abstractExecutable = fromPO(subTask);
+                    if (abstractExecutable instanceof ChainedStageExecutable
+                            && MapUtils.isNotEmpty(subTask.getStagesMap())) {
+                        for (Map.Entry<String, List<ExecutablePO>> entry : subTask.getStagesMap().entrySet()) {
+                            final List<StageBase> executables = entry.getValue().stream().map(po -> {
+                                final AbstractExecutable executable = fromPO(po);
+                                return (StageBase) executable;
+                            }).collect(Collectors.toList());
+                            ((ChainedStageExecutable) abstractExecutable).setStageMapWithSegment(entry.getKey(),
+                                    executables);
+                        }
+                    }
+                    ((ChainedExecutable) result).addTask(abstractExecutable);
                 }
                 if (result instanceof DefaultChainedExecutableOnModel) {
                     val handlerType = executablePO.getHandlerType();
@@ -1228,6 +1579,11 @@ public class NExecutableManager {
 
     private void assertOutputNotNull(ExecutableOutputPO output, String idOrPath) {
         Preconditions.checkArgument(output != null, "there is no related output for job :" + idOrPath);
+    }
+
+    private void assertOutputNotNull(ExecutableOutputPO output, String idOrPath, String segmentOrStepId) {
+        Preconditions.checkArgument(output != null,
+                "there is no related output for job :" + idOrPath + " , segmentOrStep : " + segmentOrStepId);
     }
 
     public void destoryAllProcess() {

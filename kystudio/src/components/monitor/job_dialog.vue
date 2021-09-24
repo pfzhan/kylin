@@ -28,15 +28,15 @@ export default {
   props: ['stepDetail', 'stepId', 'jobId', 'targetProject', 'showOutputJob'],
   locales: {
     'en': {
-      outputTips: 'The output log shows the first and last 100 lines by default. To view all the output, please click to ',
-      download: 'download the log file',
+      outputTips: 'The output log shows the first and last 100 lines. Click to ',
+      download: 'download the full log',
       end: '.',
       outputTipsKC: 'The output log shows the first and last 100 lines by default. To view all the output, please download diagnosis package on Admin-Troubleshooting page.',
       gotoSystemLog: 'view all logs',
       or: ' or '
     },
     'zh-cn': {
-      outputTips: '输出日志默认展示首尾各100行内容，如需查看所有内容，请点击',
+      outputTips: '默认展示首尾各 100 行内容，查看完整内容请',
       download: '下载全部日志',
       end: '。',
       outputTipsKC: '输出日志默认展示首尾各 100 行内容，如需查看所有内容，请进入管理 - 诊断运维页面下载诊断包。',

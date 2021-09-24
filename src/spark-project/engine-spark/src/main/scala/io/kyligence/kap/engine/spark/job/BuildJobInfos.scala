@@ -35,7 +35,7 @@ class BuildJobInfos {
 
   private val seg2SpanningTree: java.util.Map[String, NSpanningTree] = new util.HashMap[String, NSpanningTree]
 
-  private val parent2Children: util.Map[NDataLayout, util.List[Long]] = new util.HashMap[NDataLayout, util.List[Long]]
+  private val parent2Children: util.Map[NDataLayout, util.HashSet[Long]] = new util.HashMap[NDataLayout, util.HashSet[Long]]
 
   // MERGE
   private val sparkPlans: java.util.List[SparkPlan] = new util.LinkedList[SparkPlan]
@@ -172,11 +172,11 @@ class BuildJobInfos {
     seg2cuboidsNumPerLayer
   }
 
-  def recordParent2Children(key: NDataLayout, value: util.List[Long]): Unit = {
+  def recordParent2Children(key: NDataLayout, value: util.HashSet[Long]): Unit = {
     parent2Children.put(key, value)
   }
 
-  def getParent2Children: util.Map[NDataLayout, util.List[Long]] = {
+  def getParent2Children: util.Map[NDataLayout, util.HashSet[Long]] = {
     parent2Children
   }
 

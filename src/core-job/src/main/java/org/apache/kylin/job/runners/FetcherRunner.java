@@ -127,6 +127,7 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
                 }
 
                 final Output output = executableManager.getOutput(id);
+
                 switch (output.getState()) {
                 case READY:
                     nReady++;
@@ -188,8 +189,8 @@ public class FetcherRunner extends AbstractDefaultSchedulerRunner {
         // check special case, all sub task success, show make current job to success
         AbstractExecutable job = executableManager.getJob(id);
         if (job instanceof DefaultChainedExecutable) {
-            return ((DefaultChainedExecutable) job).getTasks().stream().allMatch(
-                    abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.SUCCEED);
+            return ((DefaultChainedExecutable) job).getTasks().stream()
+                    .allMatch(abstractExecutable -> abstractExecutable.getStatus() == ExecutableState.SUCCEED);
         }
 
         return false;

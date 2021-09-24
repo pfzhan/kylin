@@ -22,20 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job
+package io.kyligence.kap.engine.spark.job.stage.build
 
-import java.io.IOException
-import java.util.Objects
-import java.util.concurrent.{BlockingQueue, CountDownLatch, ForkJoinPool, TimeUnit}
-
-import com.google.common.collect.Queues
+import com.google.common.collect.{Queues, Sets}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
-import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
-import io.kyligence.kap.engine.spark.builder.{DictionaryBuilderHelper, SegmentFlatTable}
-import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
-import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree
-import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.{AdaptiveTreeBuilder, TreeNode}
+import io.kyligence.kap.engine.spark.application.SparkApplication
+import io.kyligence.kap.engine.spark.builder.DictionaryBuilderHelper
+import io.kyligence.kap.engine.spark.job._
+import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
+import io.kyligence.kap.engine.spark.job.stage.{BuildParam, StageExec}
+import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.TreeNode
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.commons.math3.ml.clustering.{Clusterable, KMeansPlusPlusClusterer}
@@ -48,12 +45,23 @@ import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.storage.StorageLevel
 
+import java.util.Objects
+import java.util.concurrent.{BlockingQueue, CountDownLatch, ForkJoinPool, TimeUnit}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 
-class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
-                       private val dataSegment: NDataSegment) extends SegmentExec {
+
+abstract class BuildStage(private val jobContext: SegmentJob,
+                         private val dataSegment: NDataSegment,
+                         private val buildParam: BuildParam)
+  extends SegmentExec with StageExec {
+  override def getJobContext: SparkApplication = jobContext
+
+  override def getDataSegment: NDataSegment = dataSegment
+
+  override def getSegmentId: String = dataSegment.getId
+
   // Needed variables from job context.
   protected final val jobId = jobContext.getJobId
   protected final val config = jobContext.getConfig
@@ -70,21 +78,14 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   protected final val dataModel = dataSegment.getModel
   protected final val storageType = dataModel.getStorageType
 
-  private lazy val spanningTree = new AdaptiveSpanningTree(config, new AdaptiveTreeBuilder(dataSegment, readOnlyLayouts))
+  private lazy val spanningTree = buildParam.getSpanningTree
 
-  private lazy val flatTableDesc = if (jobContext.isPartialBuild) {
-    val parser = new IndexDependencyParser(dataModel)
-    val relatedTableAlias =
-      parser.getRelatedTablesAlias(jobContext.getReadOnlyLayouts)
-    new SegmentFlatTableDesc(config, dataSegment, spanningTree, relatedTableAlias)
-  } else {
-    new SegmentFlatTableDesc(config, dataSegment, spanningTree)
-  }
+  private lazy val flatTableDesc = buildParam.getFlatTableDesc
 
-  private lazy val flatTable = new SegmentFlatTable(sparkSession, flatTableDesc)
+  private lazy val flatTable = buildParam.getBuildFlatTable
 
-  private var flatTableDS: Dataset[Row] = _
-  private var flatTableStats: Statistics = _
+  private lazy val flatTableDS: Dataset[Row] = buildParam.getFlatTable
+  private lazy val flatTableStats: Statistics = buildParam.getFlatTableStatistics
 
   // thread unsafe
   private var cachedLayoutSanity: Option[Map[Long, Long]] = None
@@ -94,37 +95,18 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
   // thread unsafe
   private var cachedIndexInferior: Map[Long, InferiorCountDownLatch] = _
 
-  @throws(classOf[IOException])
-  final def buildSegment(): Unit = {
-    logInfo(s"Build SEGMENT $segmentId")
-    // Checkpoint results.
-    scheduleCheckpoint()
-    // Build layouts
-    buildLayouts()
-    // Refresh column bytes.
-    tryRefreshColumnBytes()
-    // By design, refresh layout bucket-num mapping.
-    // Bucket here is none business of multi-level partition.
-    tryRefreshBucketMapping()
-    // Drain results, shutdown pool, cleanup extra immediate outputs.
-    cleanup()
-    logInfo(s"Finished SEGMENT $segmentId")
-  }
-
   protected val sparkSchedulerPool = "build"
 
   override protected def columnIdFunc(colRef: TblColRef): String = flatTableDesc.getColumnIdAsString(colRef)
 
   protected def buildLayouts(): Unit = {
-    // Flat table? Sanity cache?
-    beforeBuildLayouts()
-
     // Maintain this variable carefully.
     var remainingTaskCount = 0
 
     // Share failed task 'throwable' with main thread.
     val failQueue = Queues.newLinkedBlockingQueue[Option[Throwable]]()
 
+    var successTaskCount = 0
     // Main loop: build layouts.
     while (spanningTree.nonSpanned()) {
       if (resourceContext.isAvailable) {
@@ -148,6 +130,12 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
             // Offer 'Throwable' if unexpected things happened.
             case t: Throwable => failQueue.offer(Some(t))
           })
+        }
+        if (0 != tasks.size) {
+          KylinBuildEnv.get().buildJobInfos.recordCuboidsNumPerLayer(segmentId, tasks.size)
+
+          val layoutCount = KylinBuildEnv.get().buildJobInfos.getSeg2cuboidsNumPerLayer.get(segmentId).asScala.sum
+          onBuildLayoutSuccess(layoutCount)
         }
       }
       // Poll and fail fast.
@@ -184,7 +172,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       // Very very heavy step
       // Potentially global dictionary building & encoding within.
       // Materialize flat table.
-      flatTableDS = flatTable.getFlatTableDS
+      //      flatTableDS = flatTable.getFlatTableDS
 
       // Collect statistics for flat table.
       buildStatistics()
@@ -202,15 +190,17 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     cleanupLayoutTempData()
   }
 
-  private def buildStatistics(): Unit = {
+  protected def buildStatistics(): Statistics = {
+    var flatTableStats: Statistics = null
     if (KapConfig.getInstanceFromEnv.isCalculateStatisticsFromFlatTable) {
       flatTableStats = flatTable.gatherStatistics()
     } else {
       flatTableStats = flatTable.gatherStatisticsFromJoinTables()
     }
+    flatTableStats
   }
 
-  private def buildSanityCache(): Unit = {
+  protected def buildSanityCache(): Unit = {
     if (!config.isSanityCheckEnabled) {
       return
     }
@@ -242,7 +232,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     }
   }
 
-  private def cleanupLayoutTempData(): Unit = {
+  protected def cleanupLayoutTempData(): Unit = {
     logInfo(s"Segment $segmentId cleanup layout temp data.")
     val prefixes = readOnlyLayouts.asScala.map(_.getId).map(id => s"${id}_temp")
     val segmentPath = new Path(NSparkCubingUtil.getStoragePath(dataSegment))
@@ -346,6 +336,12 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     val parentDesc = if (task.parentLayout.isEmpty) {
       if (task.ic.isDefined) "inferior flat table" else "flat table"
     } else task.parentLayout.get.getId
+    // set layout mess in build job infos
+    val layout: NDataLayout = if (task.parentLayout.isEmpty) null else dataSegment.getLayout(task.parentLayout.get.getId)
+    val layoutIdsFromFlatTable = KylinBuildEnv.get().buildJobInfos.getParent2Children.getOrDefault(layout, Sets.newHashSet())
+    layoutIdsFromFlatTable.add(task.layout.getId)
+    KylinBuildEnv.get().buildJobInfos.recordParent2Children(layout, layoutIdsFromFlatTable)
+
     val readableDesc = s"Segment $segmentId build layout ${task.layout.getId} from $parentDesc"
     newDataLayout(task.segment, task.layout, layoutDS, readableDesc, Some(new SanityChecker(task.sanityCount)))
 
@@ -396,7 +392,7 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     true
   }
 
-  private def tryRefreshBucketMapping(): Unit = {
+  protected def tryRefreshBucketMapping(): Unit = {
     val segment = jobContext.getSegment(segmentId)
     UnitOfWork.doInTransactionWithRetry(new Callback[Unit] {
       override def process(): Unit = {
@@ -413,14 +409,13 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     }, project)
   }
 
-
   // ----------------------------- Beta feature: Inferior Flat Table. ----------------------------- //
 
   case class InferiorCountDownLatch(inferior: Dataset[Row], cdl: CountDownLatch)
 
   // Suitable for models generated from multi index recommendations.
   // TODO Make more fantastic abstractions.
-  private def buildInferior(): Unit = {
+  protected def buildInferior(): Unit = {
 
     val schema = flatTableDS.schema
     val arraySize = schema.size
@@ -469,9 +464,6 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
     case class GroupedNodeColumn(nodes: Seq[TreeNode], columns: Seq[String])
 
     def cluster(k: Int, nodes: Seq[TreeNode]): Seq[GroupedNodeColumn] = {
-      if (nodes.isEmpty) {
-        return Seq.empty[GroupedNodeColumn]
-      }
       val kcluster = new KMeansPlusPlusClusterer[ClusterNode](k, -1, new EarthMoversDistance())
       kcluster.cluster( //
         scala.collection.JavaConverters.seqAsJavaList(nodes.map(n => new ClusterNode(n)))).asScala //
@@ -489,23 +481,17 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
 
     def getK(nodes: Seq[TreeNode]): Int = {
       val groupFactor = 30
-      val k = Math.max(1, //
-        Math.max(nodes.size / groupFactor //
-          , nodes.map(_.getIndex) //
-            .flatMap(_.getEffectiveDimCols.keySet().asScala) //
-            .distinct.size / groupFactor))
-      if (nodes.size < k) {
-        1
-      } else {
-        k
-      }
+      Math.max(nodes.size / groupFactor //
+        , nodes.map(_.getIndex) //
+          .flatMap(_.getEffectiveDimCols.keySet().asScala) //
+          .distinct.size / groupFactor)
     }
 
     val tinyClustered = cluster(getK(tinyNodes), tinyNodes)
     val normalClustered = cluster(getK(normalNodes), normalNodes)
     val indexInferiorMap = mutable.HashMap[Long, InferiorCountDownLatch]()
     val inferiors = (tinyClustered ++ normalClustered).map { grouped =>
-      val selectColumns = grouped.columns.map(id => expr(s"`$id`"))
+      val selectColumns = grouped.columns.map(col => expr(col))
 
       logInfo(s"Segment $segmentId inferior index ${grouped.nodes.map(_.getIndex).map(_.getId).sorted.mkString("[", ",", "]")} " +
         s" columns ${grouped.columns.mkString("[", ",", "]")}")
@@ -516,11 +502,6 @@ class SegmentBuildExec(private val jobContext: SegmentBuildJob, //
       grouped.nodes.foreach(node => indexInferiorMap.put(node.getIndex.getId, ic))
       ic
     }
-
-    if (inferiors.isEmpty) {
-      return
-    }
-
     cachedIndexInferior = indexInferiorMap.toMap
 
     def getStorageLevel: StorageLevel = {

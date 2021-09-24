@@ -22,15 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job
-
-import java.io.IOException
-import java.lang
-import java.util.Objects
+package io.kyligence.kap.engine.spark.job.stage.merge
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
+import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
+import io.kyligence.kap.engine.spark.job.stage.StageExec
+import io.kyligence.kap.engine.spark.job.{SegmentExec, SegmentJob}
+import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager
 import org.apache.hadoop.fs.Path
@@ -39,11 +39,20 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.{StorageStoreUtils, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row, SaveMode}
 
+import java.io.IOException
+import java.lang
+import java.util.Objects
 import scala.collection.JavaConverters
 import scala.collection.JavaConverters._
 
-class SegmentMergeExec(private val jobContext: SegmentMergeJob,
-                       private val dataSegment: NDataSegment) extends SegmentExec {
+abstract class MargeStage(private val jobContext: SegmentJob,
+                         private val dataSegment: NDataSegment)
+  extends SegmentExec with StageExec {
+  override def getJobContext: SparkApplication = jobContext
+
+  override def getDataSegment: NDataSegment = dataSegment
+
+  override def getSegmentId: String = dataSegment.getId
 
   protected final val jobId = jobContext.getJobId
   protected final val config = jobContext.getConfig
@@ -62,17 +71,6 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
     val segments = jobContext.getUnmergedSegments(dataSegment).asScala
     logInfo(s"Unmerged SEGMENT [${segments.map(_.getId).mkString(",")}]")
     segments
-  }
-
-  @throws(classOf[IOException])
-  final def mergeSegment(): Unit = {
-    scheduleCheckpoint()
-    mergeFlatTable()
-    mergeIndices()
-    // Drain results immediately after merging.
-    drain()
-    mergeColumnBytes()
-    cleanup()
   }
 
   protected def mergeIndices(): Unit = {
@@ -140,7 +138,7 @@ class SegmentMergeExec(private val jobContext: SegmentMergeJob,
       s"-1"
     }
 
-  private def mergeFlatTable(): Unit = {
+  protected def mergeFlatTable(): Unit = {
     if (!config.isPersistFlatTableEnabled) {
       logInfo(s"Flat table persisting is not enabled.")
       return

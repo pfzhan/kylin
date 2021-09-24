@@ -24,6 +24,20 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static io.kyligence.kap.engine.spark.job.StageType.BUILD_DICT;
+import static io.kyligence.kap.engine.spark.job.StageType.BUILD_LAYER;
+import static io.kyligence.kap.engine.spark.job.StageType.GATHER_FLAT_TABLE_STATS;
+import static io.kyligence.kap.engine.spark.job.StageType.GENERATE_FLAT_TABLE;
+import static io.kyligence.kap.engine.spark.job.StageType.MATERIALIZED_FACT_TABLE;
+import static io.kyligence.kap.engine.spark.job.StageType.MERGE_COLUMN_BYTES;
+import static io.kyligence.kap.engine.spark.job.StageType.MERGE_FLAT_TABLE;
+import static io.kyligence.kap.engine.spark.job.StageType.MERGE_INDICES;
+import static io.kyligence.kap.engine.spark.job.StageType.REFRESH_COLUMN_BYTES;
+import static io.kyligence.kap.engine.spark.job.StageType.REFRESH_SNAPSHOTS;
+import static io.kyligence.kap.engine.spark.job.StageType.SNAPSHOT_BUILD;
+import static io.kyligence.kap.engine.spark.job.StageType.TABLE_SAMPLING;
+import static io.kyligence.kap.engine.spark.job.StageType.WAITE_FOR_RESOURCE;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageStepFactory;
@@ -38,6 +52,10 @@ public enum JobStepType {
         public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
             return new NResourceDetectStep(parent);
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
     },
 
     CLEAN_UP_AFTER_MERGE {
@@ -47,17 +65,43 @@ public enum JobStepType {
             return step;
 
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
     },
     CUBING {
         @Override
         public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
             return new NSparkCubingStep(config.getSparkBuildClassName());
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            WAITE_FOR_RESOURCE.createStage(parent, config);
+            REFRESH_SNAPSHOTS.createStage(parent, config);
+
+            MATERIALIZED_FACT_TABLE.createStage(parent, config);
+            BUILD_DICT.createStage(parent, config);
+            GENERATE_FLAT_TABLE.createStage(parent, config);
+            GATHER_FLAT_TABLE_STATS.createStage(parent, config);
+            BUILD_LAYER.createStage(parent, config);
+            REFRESH_COLUMN_BYTES.createStage(parent, config);
+        }
     },
     MERGING {
         @Override
         public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
             return new NSparkMergingStep(config.getSparkMergeClassName());
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            WAITE_FOR_RESOURCE.createStage(parent, config);
+
+            MERGE_FLAT_TABLE.createStage(parent, config);
+            MERGE_INDICES.createStage(parent, config);
+            MERGE_COLUMN_BYTES.createStage(parent, config);
         }
     },
 
@@ -66,12 +110,24 @@ public enum JobStepType {
         public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
             return new NSparkSnapshotBuildingStep(config.getSnapshotBuildClassName());
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            WAITE_FOR_RESOURCE.createStage(parent, config);
+            SNAPSHOT_BUILD.createStage(parent, config);
+        }
     },
 
     SAMPLING {
         @Override
         public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
             return new NTableSamplingJob.SamplingStep(config.getSparkTableSamplingClassName());
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            WAITE_FOR_RESOURCE.createStage(parent, config);
+            TABLE_SAMPLING.createStage(parent, config);
         }
     },
 
@@ -85,6 +141,10 @@ public enum JobStepType {
                     ExecutableHandlerFactory.createExecutableHandler((DefaultChainedExecutableOnModel) parent));
             return new NSparkUpdateMetadataStep();
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
     },
 
     SECOND_STORAGE_EXPORT {
@@ -94,6 +154,10 @@ public enum JobStepType {
                 step.setProject(parent.getProject());
                 step.setParams(parent.getParams());
             });
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
         }
     },
 
@@ -105,6 +169,10 @@ public enum JobStepType {
                 step.setParams(parent.getParams());
             });
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
     },
 
     SECOND_STORAGE_MERGE {
@@ -115,9 +183,16 @@ public enum JobStepType {
                 step.setParams(parent.getParams());
             });
         }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
     };
 
     protected abstract AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config);
+
+    /** add stage in spark executable */
+    protected abstract void addSubStage(NSparkExecutable parent, KylinConfig config);
 
     public AbstractExecutable createStep(DefaultChainedExecutable parent, KylinConfig config) {
         AbstractExecutable step = create(parent, config);
@@ -132,6 +207,9 @@ public enum JobStepType {
         step.setJobType(parent.getJobType());
         parent.addTask(step);
         if (step instanceof NSparkExecutable) {
+            addSubStage((NSparkExecutable) step, config);
+            ((NSparkExecutable) step).setStageMap();
+
             ((NSparkExecutable) step).setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
         }
         if (CollectionUtils.isNotEmpty(parent.getTargetPartitions())) {

@@ -147,7 +147,7 @@ public class AdaptiveSpanningTree implements Serializable {
 
     public List<TreeNode> getRootNodes() {
         return level0thNodes.stream().filter(TreeNode::parentNonNull) //
-                .map(TreeNode::getParent).collect(Collectors.toList());
+                .map(TreeNode::getParent).distinct().collect(Collectors.toList());
     }
 
     protected void buildMappings(List<TreeNode> nodes) {

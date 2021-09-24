@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -324,8 +325,9 @@ public class DFBuildJob extends SparkApplication {
         List<IndexEntity> allIndexesInCurrentLayer = new ArrayList<>();
         for (NBuildSourceInfo info : buildSourceInfos) {
             Collection<IndexEntity> toBuildCuboids = info.getToBuildCuboids();
-            infos.recordParent2Children(seg.getLayout(info.getLayoutId()),
-                    toBuildCuboids.stream().map(IndexEntity::getId).collect(Collectors.toList()));
+            HashSet children = toBuildCuboids.stream().map(IndexEntity::getId)
+                    .collect(Collectors.toCollection(Sets::newHashSet));
+            infos.recordParent2Children(seg.getLayout(info.getLayoutId()), children);
             cuboidsNumInLayer += toBuildCuboids.size();
             Preconditions.checkState(!toBuildCuboids.isEmpty(), "To be built cuboids is empty.");
             Dataset<Row> parentDS = info.getParentDS();

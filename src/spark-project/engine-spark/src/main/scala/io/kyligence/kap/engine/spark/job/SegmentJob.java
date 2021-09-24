@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableParams;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.tracker.BuildContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,9 +72,11 @@ public abstract class SegmentJob extends SparkApplication {
     // Resource detection results output path
     protected Path rdSharedPath;
 
-    protected JobRuntime runtime;
+    public JobRuntime runtime;
 
     private boolean partialBuild = false;
+
+    protected BuildContext buildContext;
 
     public boolean isPartialBuild() {
         return partialBuild;
@@ -119,15 +122,11 @@ public abstract class SegmentJob extends SparkApplication {
         }
     }
 
-    protected KylinConfig getConfig() {
-        return config;
-    }
-
-    protected SparkSession getSparkSession() {
+    public SparkSession getSparkSession() {
         return ss;
     }
 
-    protected String getDataflowId() {
+    public String getDataflowId() {
         return dataflowId;
     }
 
@@ -135,20 +134,20 @@ public abstract class SegmentJob extends SparkApplication {
         return rdSharedPath;
     }
 
-    protected Set<JobBucket> getReadOnlyBuckets() {
+    public Set<JobBucket> getReadOnlyBuckets() {
         return Collections.unmodifiableSet(ExecutableParams.getBuckets(getParam(NBatchConstants.P_BUCKETS)));
     }
 
-    protected NDataflow getDataflow(String dataflowId) {
+    public NDataflow getDataflow(String dataflowId) {
         return getDataflowManager().getDataflow(dataflowId);
     }
 
-    protected NDataSegment getSegment(String segmentId) {
+    public NDataSegment getSegment(String segmentId) {
         // Always get the latest data segment.
         return getDataflowManager().getDataflow(dataflowId).getSegment(segmentId);
     }
 
-    protected final List<NDataSegment> getUnmergedSegments(NDataSegment merged) {
+    public final List<NDataSegment> getUnmergedSegments(NDataSegment merged) {
         List<NDataSegment> unmerged = getDataflowManager().getDataflow(dataflowId).getMergingSegments(merged);
         Preconditions.checkNotNull(unmerged);
         Preconditions.checkState(!unmerged.isEmpty());
@@ -156,7 +155,7 @@ public abstract class SegmentJob extends SparkApplication {
         return unmerged;
     }
 
-    protected boolean needBuildSnapshots() {
+    public boolean needBuildSnapshots() {
         String s = getParam(NBatchConstants.P_NEED_BUILD_SNAPSHOTS);
         if (StringUtils.isBlank(s)) {
             return true;
@@ -184,5 +183,9 @@ public abstract class SegmentJob extends SparkApplication {
 
     private NDataflowManager getDataflowManager() {
         return NDataflowManager.getInstance(config, project);
+    }
+
+    public BuildContext getBuildContext() {
+        return buildContext;
     }
 }

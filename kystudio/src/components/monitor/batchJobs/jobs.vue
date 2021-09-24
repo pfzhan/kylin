@@ -183,7 +183,7 @@
             <div class="timeline-body">
               <div class="ksd-list">
                 <p class="list">
-                  <span class="label">{{$t('kylinLang.common.jobs')}} ID: </span>
+                  <span class="label">{{$t('jobId')}}</span>
                   <span class="text single-line greyd0">
                     {{selectedJob.id}}
                   </span>
@@ -211,11 +211,11 @@
                 </p>
                 <p class="list">
                   <span class="label">{{$t('waiting')}}: </span>
-                  <span class="text">{{selectedJob.wait_time/60/1000 | number(2)}} mins</span>
+                  <span class="text">{{formatTime(selectedJob.wait_time)}}</span>
                 </p>
                 <p class="list">
                   <span class="label">{{$t('duration')}}: </span>
-                  <span class="text greyd0">{{selectedJob.duration/60/1000 | number(2)}} mins</span>
+                  <span class="text greyd0">{{formatTime(selectedJob.duration)}}</span>
                 </p>
               </div>
             </div>
@@ -226,7 +226,17 @@
           <ul class="timeline">
 
             <li v-for="(step, index) in selectedJob.details" :key="index" :class="{'finished' : step.step_status=='FINISHED'}">
-              <el-popover
+              <!-- <i class="fa"
+                :class="{
+                'el-ksd-icon-time_22' : step.step_status=='PENDING'|| step.step_status=='STOPPED',
+                'el-ksd-icon-loading_22' : step.step_status=='WAITING' || step.step_status=='RUNNING',
+                'el-icon-ksd-good_health' : step.step_status=='FINISHED',
+                'el-icon-ksd-error_01' : step.step_status=='ERROR',
+                'el-icon-ksd-table_discard' : step.step_status=='DISCARDED'
+              }">
+              </i> -->
+              <el-icon :class="['job-status', {'is-running': step.step_status=='RUNNING'}]" :name="getStatusIcons(step)" type="mult"></el-icon>
+              <!-- <el-popover
                 placement="left"
                 width="300"
                 trigger="hover" popper-class="jobPoplayer">
@@ -262,48 +272,77 @@
                     <span class="label">Data Size: </span><span class="text">{{ step.info.hdfs_bytes_written | dataSize}}</span>
                   </p>
                 </div>
-              </el-popover>
+              </el-popover> -->
 
               <div class="timeline-item timer-line">
                 <div class="timeline-header ">
                   <p class="stepname single-line">
                     <span>{{getStepLineName(step.name)}}</span>
+                    <common-tip :content="$t('logInfoTip')">
+                      <i name="file" v-if="step.step_status!='PENDING'" class="action-icon el-ksd-icon-log_16 ksd-fs-16 ksd-mr-4 ksd-mb-2" @click="clickFile(step)"></i>
+                    </common-tip>
+                    <common-tip :content="$t('jobParams')">
+                      <i v-if="step.info && 'job_params' in step.info" class="action-icon el-ksd-icon-controller_16 ksd-fs-16 ksd-mr-4 ksd-mb-2" @click="showJobParams(step)"></i>
+                    </common-tip>
                     <common-tip :content="$t('sparkJobTip')" v-if="step.info">
                       <a :href="step.info.yarn_application_tracking_url" target="_blank" v-if="!$store.state.config.platform || ($store.state.config.platform === 'iframe' && step.step_status === 'RUNNING')">
-                          <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export ksd-ml-4"></i>
+                          <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
                       </a>
-                    </common-tip>
-                    <common-tip :content="$t('logInfoTip')">
-                      <i name="file" v-if="step.step_status!='PENDING'" class="el-ksd-icon-log_16 ksd-fs-16 ksd-ml-4 ksd-mb-2" @click="clickFile(step)"></i>
                     </common-tip>
                   </p>
                 </div>
                 <div class="timeline-body">
-                  <span class="steptime jobActivityLabel" v-if="step.exec_start_time && step.exec_end_time">
+                  <!-- <span class="steptime jobActivityLabel" v-if="step.exec_start_time && step.exec_end_time">
                     <i class="el-icon-time"></i>
                     {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
-                  </span>
+                  </span> -->
+                  <!-- <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR'" :closable="false">
+                    <p slot="title">
+                      错误提示的文案
+                      <el-button nobg-text size="small">{{$t('viewDetails')}}</el-button>
+                    </p>
+                  </el-alert> -->
+                  <el-alert class="ksd-mb-8" type="tip" show-icon v-if="'segment_sub_tasks' in step && step.segment_sub_tasks && Object.keys(step.segment_sub_tasks).length > 1" :closable="false">
+                    <p slot="title">{{$t('buildSegmentTips', {segments: Object.keys(step.segment_sub_tasks).length, successLen: getSegmentStatusLen(step, 'FINISHED'), pendingLen: getSegmentStatusLen(step, 'PENDING'), runningLen: getSegmentStatusLen(step, 'RUNNING')})}}
+                      <el-button nobg-text size="small" @click="viewSegmentDetails(step, step.id)">{{$t('viewDetails')}}</el-button>
+                    </p>
+                  </el-alert>
 
-                  <div v-if="step.info&&step.info.hdfs_bytes_written">
+                  <div v-if="step.info && step.info.hdfs_bytes_written">
                     <span class="jobActivityLabel">Data Size: </span>
                     <span>{{step.info.hdfs_bytes_written|dataSize}}</span>
                   </div>
                   <div>
                     <span class="jobActivityLabel">{{$t('waiting')}}: </span>
-                    <span v-if="step.wait_time">{{step.wait_time/60/1000 | number(2)}} mins</span>
+                    <span v-if="step.wait_time">{{formatTime(step.wait_time)}}</span>
                     <span v-else>0</span>
                   </div>
                   <div>
                     <span class="jobActivityLabel">{{$t('duration')}}: </span>
-                    <span v-if="step.duration">{{step.duration/60/1000 | number(2)}} mins</span>
-                    <span v-else>0
-                      <!-- <img src="../../assets/img/dot.gif" height="12px" width="10px"/> -->
-                    </span>
+                    <span v-if="step.duration">{{formatTime(step.duration)}}</span>
+                    <span v-else>0</span>
+                    <el-tooltip placement="bottom" triggle="hover">
+                      <div slot="content">
+                        <div><span>{{$t('durationStart')}}</span><span>{{step.exec_start_time!== 0 ? transToGmtTime(step.exec_start_time) : '-'}}</span></div>
+                        <div><span>{{$t('durationEnd')}}</span><span>{{step.exec_end_time!== 0 ? transToGmtTime(step.exec_end_time) : '-'}}</span></div>
+                      </div>
+                      <span class="duration-details" v-show="step.step_status !== 'PENDING'">{{$t('durationDetails')}}</span>
+                    </el-tooltip>
                   </div>
                   <div>
                     <span class="active-nodes jobActivityLabel">{{$t('jobNodes')}}: </span>
                     <span v-if="step.info">{{step.info.node_info || $t('unknow')}}</span>
                     <br />
+                  </div>
+                  <div class="sub-tasks" v-if="'sub_tasks' in step && step.sub_tasks && step.sub_tasks.length > 0">
+                    <ul v-for="sub in step.sub_tasks" :key="sub.id">
+                      <li>
+                        <span :class="[step.step_status === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+                        <span class="sub-tasks-name">{{getSubTasksName(sub.name)}}</span>
+                        <span class="sub-tasks-layouts" v-if="sub.name === 'Build indexes by layer'"><span class="success-layout-count">{{sub.success_index_count}}</span>{{`/${sub.index_count}`}}</span>
+                      </li>
+                      <li><span class="list-details" v-if="sub.duration">{{$t('duration')}}: {{formatTime(sub.duration)}}</span><span class="list-details" v-else>{{$t('duration')}}: -</span></li>
+                    </ul>
                   </div>
                 </div>
                 <!-- <div class="timeline-footer">
@@ -348,6 +387,7 @@
     </el-dialog> -->
     <el-dialog
       id="show-diagnos"
+      width="600px"
       limited-area
       :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')"
       :visible.sync="dialogVisible"
@@ -355,10 +395,24 @@
       :close-on-click-modal="false">
       <job_dialog :stepDetail="outputDetail" :stepId="stepId" :jobId="selectedJob.id" :targetProject="selectedJob.project"></job_dialog>
       <span slot="footer" class="dialog-footer">
-        <el-button plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button type="primary" size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.IKnow')}}</el-button>
       </span>
     </el-dialog>
     <diagnostic v-if="showDiagnostic" @close="showDiagnostic = false" :jobId="diagnosticId"/>
+    <!-- segment 构建步骤详情 -->
+    <el-dialog
+      :visible="true"
+      width="600px"
+      @close="closeSegmentDetail"
+      v-if="showSegmentDetails"
+      :close-on-click-modal="false">
+      <span slot="title">{{$t('segmentDetail')}}</span>
+      <build-segment-detail :segmentTesks="segmentDetails" :jobStatus="currentJobStatus" />
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="closeSegmentDetail">{{$t('kylinLang.common.IKnow')}}</el-button>
+      </span>
+    </el-dialog>
+    <job-error-detail v-if="showErrorDetails" />
   </div>
   </div>
 </template>
@@ -367,16 +421,23 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
-import jobDialog from './job_dialog'
+import locales from './locales'
+import jobDialog from '../job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
-import { pageRefTags } from '../../config'
-import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from '../../util/business'
-import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from '../../util/index'
+import { pageRefTags } from '../../../config'
+import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from '../../../util/business'
+import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from '../../../util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
+import BuildSegmentDetail from './buildSegmentDetail.vue'
+import jobErrorDetail from './jobErrorDetail.vue'
+import { getSubTasksName, getSubTaskStatus, formatTime } from './handler'
+// import subTasks from './subTasks.json'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
+    getSubTaskStatus: getSubTaskStatus,
+    formatTime: formatTime,
     ...mapActions({
       loadJobsList: 'LOAD_JOBS_LIST',
       getJobDetail: 'GET_JOB_DETAIL',
@@ -406,224 +467,16 @@ import Diagnostic from 'components/admin/Diagnostic/index'
   },
   components: {
     'job_dialog': jobDialog,
-    Diagnostic
+    Diagnostic,
+    BuildSegmentDetail,
+    jobErrorDetail
   },
-  locales: {
-    'en': {
-      dataRange: 'Data Range',
-      JobType: 'Type',
-      JobName: 'Job Name',
-      TargetSubject: 'Object',
-      ProgressStatus: 'Status',
-      startTime: 'Start Time',
-      endTime: 'End Time',
-      Duration: 'Duration',
-      Actions: 'Actions',
-      jobResume: 'Resume',
-      jobDiscard: 'Discard',
-      jobPause: 'Pause',
-      jobDrop: 'Delete',
-      jobRestart: 'Restart',
-      jobDiagnosis: 'Download Job Diagnostic Package',
-      tip_jobResume: 'Resume the Job',
-      tip_jobPause: 'Pause the Job',
-      tip_jobDiscard: 'Discard the Job',
-      cubeName: 'Cube Name',
-      NEW: 'NEW',
-      PENDING: 'PENDING',
-      RUNNING: 'RUNNING',
-      FINISHED: 'FINISHED',
-      ERROR: 'ERROR',
-      DISCARDED: 'DISCARDED',
-      STOPPED: 'STOPPED',
-      LASTONEDAY: 'Last 1 Day',
-      LASTONEWEEK: 'Last 1 Week',
-      LASTONEMONTH: 'Last 1 Month',
-      LASTONEYEAR: 'Last 1 Year',
-      ALL: 'ALL',
-      parameters: 'Parameters',
-      output: 'Output',
-      load: 'Loading ... ',
-      cmdOutput: 'cmd_output',
-      resumeJob: 'Are you sure you want to resume {count} job record(s)?',
-      resumeJobTitle: 'Resume Job',
-      restartJob: 'Are you sure you want to restart {count} job record(s)?',
-      restartJobTitle: 'Restart Job',
-      pauseJob: 'Are you sure you want to pause {count} job record(s)?',
-      pauseJobTitle: 'Pause Job',
-      dropJob: 'Are you sure you want to delete {count} job record(s)?',
-      dropJobTitle: 'Delete Job',
-      discardJob: 'Are you sure you want to discard the following job(s)? Please note that it couldn\'t be recovered.',
-      discardJobWarning: 'Are you sure you want to discard the following job(s)? Discarding the highlighted job(s) might result in gaps between segments. The query results would be empty for those data ranges. Please note that the discarded jobs couldn’t be recovered.',
-      discardJobTitle: 'Discard Job',
-      jobName: 'Job Name',
-      duration: 'Excuting',
-      totalDuration: 'Total Duration',
-      waiting: 'Waiting',
-      noSelectJobs: 'Please select at least one job.',
-      selectedJobs: '{selectedNumber} jobs have been selected. ',
-      selectAll: 'All Select',
-      fullLoad: 'Full Load',
-      full: 'Full',
-      jobDetails: 'Job Details',
-      waitingjobs: 'initializing job(s)',
-      jobs: 'Job(s)',
-      waitingJobList: 'Initializing job List',
-      triggerTime: 'Trigger Time',
-      order: 'Order',
-      jobTarget: 'Job Target: ',
-      jobsList: 'Batch Job List',
-      sparkJobTip: 'Spark Job',
-      logInfoTip: 'Log Output',
-      openJobSteps: 'Open Job Steps',
-      sequenceId: 'Sequence ID',
-      INDEX_REFRESH: 'Refresh Data',
-      INDEX_MERGE: 'Merge Data',
-      INDEX_BUILD: 'Build Index',
-      INC_BUILD: 'Load Data',
-      TABLE_SAMPLING: 'Sample Table',
-      SUB_PARTITION_REFRESH: 'Refresh Subpartition',
-      SUB_PARTITION_BUILD: 'Build Subpartition',
-      SNAPSHOT_BUILD: 'Build Snapshot',
-      SNAPSHOT_REFRESH: 'Refresh Snapshot',
-      EXPORT_TO_SECOND_STORAGE: 'Load Data to Tiered Storage',
-      SECOND_STORAGE_MODEL_CLEAN: 'Delete Tiered Storage - Model',
-      SECOND_STORAGE_NODE_CLEAN: 'Delete Tiered Storage - Project',
-      SECOND_STORAGE_SEGMENT_CLEAN: 'Delete Tiered Storage - Segment',
-      clearUpIntermediateTable: 'Garbage CleanUp',
-      project: 'Project',
-      adminTips: 'Admin user can view all job information via Select All option in the project list.',
-      clearAll: 'Clear All',
-      filter: 'Filter',
-      refreshList: 'Refresh List',
-      pleaseSearch: 'Search Object or Job ID',
-      diagnosis: 'Diagnosis',
-      jobNodes: 'Job Node',
-      unknow: 'Unknown',
-      snapshotDisableTips: 'Snapshot management is not enabled.',
-      snapshotIsDeleted: 'The snapshot is deleted',
-      modelIsDeleted: 'The model is deleted',
-      detectResource: 'Detect Resource',
-      loadDataToIndex: 'Load Data To Index',
-      updateMetadata: 'Update Metadata',
-      mergeSegmentData: 'Merge Segment Data',
-      cleanUpOldSegment: 'Clean Up Old Segment',
-      tableSampling: 'Table Sampling',
-      buildSnapshot: 'Build Snapshot',
-      filteredTotalSize: '{totalSize} result(s)',
-      secondaryStorage: 'Tiered Storage',
-      delSecondaryStorage: 'Delete Tiered Storage'
-    },
-    'zh-cn': {
-      dataRange: '数据范围',
-      JobType: '类型',
-      JobName: '任务',
-      TargetSubject: '对象',
-      ProgressStatus: '状态',
-      startTime: '任务开始时间',
-      endTime: '任务结束时间',
-      Duration: '耗时',
-      Actions: '操作',
-      jobResume: '恢复',
-      jobDiscard: '终止',
-      jobPause: '暂停',
-      jobDrop: '删除',
-      jobRestart: '重启',
-      jobDiagnosis: '下载任务诊断包',
-      tip_jobResume: '恢复 Job',
-      tip_jobPause: '暂停 Job',
-      tip_jobDiscard: '终止 Job',
-      cubeName: 'Cube 名称',
-      NEW: '新建',
-      PENDING: '等待',
-      RUNNING: '运行',
-      FINISHED: '完成',
-      ERROR: '错误',
-      DISCARDED: '终止',
-      STOPPED: '暂停',
-      LASTONEDAY: '最近 1 天',
-      LASTONEWEEK: '最近 1 周',
-      LASTONEMONTH: '最近 1 月',
-      LASTONEYEAR: '最近 1 年',
-      ALL: '所有',
-      parameters: '参数',
-      output: '输出',
-      load: '下载中 ... ',
-      cmdOutput: 'cmd_output',
-      resumeJob: '确认要恢复 {count} 个任务记录吗？',
-      resumeJobTitle: '恢复任务',
-      restartJob: '确认要重启 {count} 个任务记录吗？',
-      restartJobTitle: '重启任务',
-      pauseJob: '确认要暂停 {count} 个任务记录吗？',
-      pauseJobTitle: '暂停任务',
-      dropJob: '确认要删除 {count} 个任务记录吗？',
-      dropJobTitle: '删除任务',
-      discardJob: '确认要终止以下任务吗？请注意，该操作无法撤销。',
-      discardJobWarning: '确认要终止以下任务吗？终止高亮部分任务将导致模型 Segment 不连续，此时查询对应数据范围时结果将为空。请注意：终止操作无法撤销。',
-      discardJobTitle: '终止任务',
-      jobName: '任务名',
-      duration: '执行时间',
-      totalDuration: '总耗时',
-      waiting: '等待时间',
-      noSelectJobs: '请选择至少一个任务。',
-      selectedJobs: '目前已选择当页 {selectedNumber} 条任务。',
-      selectAll: '全选',
-      fullLoad: '全量加载',
-      full: '全量',
-      jobDetails: '任务详情',
-      waitingjobs: '个初始化的任务',
-      jobs: '个任务',
-      waitingJobList: '初始化任务列表',
-      triggerTime: '触发时间',
-      order: '排序',
-      jobTarget: '任务目标：',
-      jobsList: '批数据任务列表',
-      sparkJobTip: 'Spark任务详情',
-      logInfoTip: '日志详情',
-      openJobSteps: '展开任务详情',
-      sequenceId: '序列号',
-      INDEX_REFRESH: '刷新数据',
-      INDEX_MERGE: '合并数据',
-      INDEX_BUILD: '构建索引',
-      INC_BUILD: '加载数据',
-      TABLE_SAMPLING: '抽样表数据',
-      SUB_PARTITION_BUILD: '加载子分区数据',
-      SUB_PARTITION_REFRESH: '刷新子分区数据',
-      SNAPSHOT_BUILD: '构建快照',
-      SNAPSHOT_REFRESH: '刷新快照',
-      EXPORT_TO_SECOND_STORAGE: '加载数据到分层存储',
-      SECOND_STORAGE_MODEL_CLEAN: '删除分层存储 - 模型',
-      SECOND_STORAGE_NODE_CLEAN: '删除分层存储 - 项目',
-      SECOND_STORAGE_SEGMENT_CLEAN: '删除分层存储 - Segment',
-      clearUpIntermediateTable: '垃圾清理',
-      project: '项目',
-      adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
-      clearAll: '清除所有',
-      filter: '筛选',
-      refreshList: '刷新列表',
-      pleaseSearch: '搜索任务对象或任务 ID',
-      diagnosis: '诊断包',
-      jobNodes: '节点信息',
-      unknow: '未知',
-      snapshotDisableTips: '管理快照未开启',
-      snapshotIsDeleted: '该快照已被删除',
-      modelIsDeleted: '该模型已被删除',
-      detectResource: '检测资源',
-      loadDataToIndex: '加载数据到索引',
-      updateMetadata: '更新元数据',
-      mergeSegmentData: '合并 Segment 数据',
-      cleanUpOldSegment: '清理旧 Segment',
-      tableSampling: '表抽样',
-      buildSnapshot: '构建快照',
-      filteredTotalSize: '{totalSize} 条结果',
-      secondaryStorage: '分层存储',
-      delSecondaryStorage: '删除分层存储'
-    }
-  }
+  locales
 })
 
 export default class JobsList extends Vue {
   pageRefTags = pageRefTags
+  getSubTasksName = (name) => getSubTasksName(this, name)
   project = localStorage.getItem('selected_project')
   filterName = ''
   filterStatus = []
@@ -654,10 +507,11 @@ export default class JobsList extends Vue {
     key: '',
     isAuto: false
   }
-  // waitingFilter = {
-  //   isAuto: false,
-  //   project: ''
-  // }
+  showSegmentDetails = false
+  showErrorDetails = false
+  segmentDetails = {}
+  expandSegmentDetailId = ''
+  currentJobStatus = ''
   waittingJobsFilter = {
     offset: 0,
     limit: 10
@@ -718,6 +572,34 @@ export default class JobsList extends Vue {
     // this.getWaittingJobs()
   }
 
+  getSegmentStatusLen (step, type) {
+    const { segment_sub_tasks } = step
+    const segmentTasks = Object.values(segment_sub_tasks)
+    switch (type) {
+      case 'FINISHED':
+        return segmentTasks.filter(it => it.logic_step.length === it.logic_step.filter(item => item.step_status === 'FINISHED').length).length
+      case 'PENDING':
+        return segmentTasks.filter(it => it.logic_step.length === it.logic_step.filter(item => item.step_status === 'PENDING').length).length
+      case 'RUNNING':
+        return segmentTasks.filter(it => it.logic_step.filter(item => item.step_status === 'RUNNING').length > 0).length
+      default:
+        return ''
+    }
+  }
+
+  // segment 构建详情
+  viewSegmentDetails (step, id) {
+    this.showSegmentDetails = true
+    this.segmentDetails = this.definitionStopErrorStatus(step)
+    this.expandSegmentDetailId = id
+    this.currentJobStatus = step.step_status
+  }
+
+  closeSegmentDetail () {
+    this.showSegmentDetails = false
+    this.expandSegmentDetailId = ''
+  }
+
   getStepLineName (name) {
     const stepMap = {
       'Detect Resource': this.$t('detectResource'),
@@ -737,6 +619,91 @@ export default class JobsList extends Vue {
     }
     return stepMap[name]
   }
+
+  getStatusIcons (step) {
+    const status = {
+      'PENDING': 'el-ksd-icon-pending_16',
+      'STOPPED': 'el-ksd-icon-stopped_16',
+      'WAITING,RUNNING': 'el-ksd-icon-running_16',
+      'FINISHED': 'el-ksd-icon-finished_16',
+      'ERROR': 'el-ksd-icon-error_16',
+      'DISCARDED': 'el-ksd-icon-discarded_16'
+    }
+    const currentStatus = Object.keys(status).filter(item => item.split(',').includes(step.step_status))
+    if (currentStatus.length > 0) {
+      return status[currentStatus[0]]
+    } else {
+      return ''
+    }
+  }
+
+  // 获取子步骤名称
+  // getSubTasksName (name) {
+  //   const subTaskNameMap = {
+  //     'Waiting for yarn resource': this.$t('waitingYarnResource'),
+  //     'Build or refresh snapshot': this.$t('buildOrRefreshSnapshot'),
+  //     'Materialize fact table view': this.$t('materializeFactTableView'),
+  //     'Generate global dictionary': this.$t('generateGlobalDict'),
+  //     'Generate flat table': this.$t('generateFlatTable'),
+  //     'Save flat table': this.$t('saveFlatTable'),
+  //     'Get flat table statistics': this.$t('getFlatTableStatistics'),
+  //     'Generate global dictionary of computed columns': this.$t('generateDictOfCC'),
+  //     'Merge flat table': this.$t('mergeFlatTable'),
+  //     'Merge indexes': this.$t('mergeIndexes'),
+  //     'Merge flat table statistics': this.$t('mergeFlatTableStatistics')
+  //   }
+  //   return subTaskNameMap[name]
+  // }
+
+  // 获取子步骤状态显示
+  // getSubTaskStatus (subTask) {
+  //   const statusType = {
+  //     'FINISHED': 'sub-tasks-status is-finished',
+  //     'RUNNING': 'running el-icon-loading',
+  //     'PENDING': 'sub-tasks-status is-pending',
+  //     'ERROR': 'sub-tasks-status is-error'
+  //   }
+  //   return statusType[subTask.step_status]
+  // }
+
+  // 展示任务参数
+  showJobParams (step) {
+    const { job_params } = step.info
+    if (!job_params) return
+    try {
+      const jobParams = JSON.parse(job_params)
+      const data = Object.keys(jobParams).map(item => ({key: item, value: jobParams[item]}))
+      this.$msgbox({
+        width: '600px',
+        message: <el-table data={data} ref="jobParamRef" height="300">
+          <el-table-column label={this.$t('paramKey')} show-overflow-tooltip prop="key"></el-table-column>
+          <el-table-column label={this.$t('paramValue')} show-overflow-tooltip prop="value"></el-table-column>
+        </el-table>,
+        title: this.$t('jobParams'),
+        confirmButtonText: this.$t('kylinLang.common.IKnow'),
+        dangerouslyUseHTMLString: true,
+        closeOnClickModal: false,
+        closeOnPressEscape: false
+      })
+      setTimeout(() => {
+        this.$refs.jobParamRef && this.$refs.jobParamRef.doLayout()
+      }, 100)
+    } catch (e) {
+      console.error(e)
+      return
+    }
+  }
+
+  // 格式化时间 Xh Xm
+  // formatTime (time) {
+  //   if (time < 0.01 * 60 * 1000) {
+  //     return '< 0.01m'
+  //   } else {
+  //     const hour = Math.floor(time / 1000 / 60 / 60)
+  //     const minutes = Vue.filter('number')((time - hour * 60 * 60 * 1000) / 1000 / 60, 2)
+  //     return hour > 0 ? `${hour}h ${minutes}m` : `${minutes}m`
+  //   }
+  // }
 
   getTargetSubject (row) {
     if (row.target_subject === 'The snapshot is deleted') {
@@ -866,7 +833,13 @@ export default class JobsList extends Vue {
                 this.getJobDetail({project: this.selectedJob.project, job_id: this.selectedJob.id}).then((res) => {
                   handleSuccess(res, (data) => {
                     this.selectedJob = this.jobsList[selectedIndex]
-                    this.selectedJob['details'] = data
+                    this.selectedJob['details'] = data.map(item => ({...item, sub_tasks: item.sub_tasks && item.sub_tasks.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_tasks) : item.sub_tasks}))
+                    if (this.expandSegmentDetailId) {
+                      const jobDetail = data.filter(it => it.id === this.expandSegmentDetailId)
+                      const detail = this.definitionStopErrorStatus(jobDetail[0])
+                      this.segmentDetails = detail
+                      this.currentJobStatus = jobDetail[0].step_status
+                    }
                   })
                 }, (resError) => {
                   handleError(resError)
@@ -900,6 +873,35 @@ export default class JobsList extends Vue {
       })
     })
   }
+
+  // 非多 segment 时，子步骤状态处理
+  definitionSubTaskStopErrorStatus (subTask) {
+    const tasks = subTask
+    const hasErrorTask = tasks.filter(it => it.step_status === 'ERROR')
+    if (hasErrorTask.length) {
+      tasks.forEach(tk => {
+        if (tk.step_status !== 'ERROR' && tk.step_status !== 'FINISHED') {
+          tk.step_status = 'ERROR_STOP'
+        }
+      })
+    }
+    return tasks
+  }
+
+  // segment 步骤详情状态处理
+  definitionStopErrorStatus (steps) {
+    const segmentSteps = steps.segment_sub_tasks
+    const hasErrorSegments = Object.keys(segmentSteps).filter(it => segmentSteps[it].logic_step.filter(item => item.step_status === 'ERROR').length > 0)
+    if (hasErrorSegments.length) {
+      Object.keys(segmentSteps).forEach(seg => {
+        if (!hasErrorSegments.includes(seg)) {
+          segmentSteps[seg].logic_step = segmentSteps[seg].logic_step.map(it => ({...it, step_status: it.step_status !== 'FINISHED' ? 'ERROR_STOP' : it.step_status}))
+        }
+      })
+    }
+    return segmentSteps
+  }
+
   // getWaittingJobModels () {
   //   return new Promise((resolve, reject) => {
   //     if (!this.currentSelectedProject) return reject()
@@ -1392,7 +1394,7 @@ export default class JobsList extends Vue {
       this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
-            this.$set(this.selectedJob, 'details', data)
+            this.$set(this.selectedJob, 'details', data.map(item => ({...item, sub_tasks: item.sub_tasks && item.sub_tasks.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_tasks) : item.sub_tasks})))
             this.isShowJobBtn()
             // this.setRightBarTop()
           })
@@ -1467,7 +1469,7 @@ export default class JobsList extends Vue {
 </script>
 
 <style lang="less">
-  @import '../../assets/styles/variables.less';
+  @import '../../../assets/styles/variables.less';
   .jobs_list {
     #show-diagnos .el-textarea__inner:focus {
       border-color: @line-border-color;
@@ -1644,6 +1646,16 @@ export default class JobsList extends Vue {
         margin: 0px 10px 30px 0px;
         list-style: none;
         font-size: 12px;
+        clear: both;
+
+        .job-status {
+          font-size: 16px;
+          float: left;
+          margin-top: 2px;
+          &.is-running {
+            animation: rotating 2s linear infinite;
+          }
+        }
 
         .jobPoplayer.el-popover[x-placement^=left] .popper__arrow{
           border-left-color: #333;
@@ -1698,6 +1710,9 @@ export default class JobsList extends Vue {
                 font-size:14px;
                 font-weight: @font-medium;
               }
+              .action-icon {
+                cursor: pointer;
+              }
               i {
                 color: @text-normal-color;
                 &:hover {
@@ -1728,6 +1743,64 @@ export default class JobsList extends Vue {
               }
               .jobActivityLabel {
                 color: @text-normal-color;
+              }
+              .sub-tasks {
+                &-name {
+                  color: @text-normal-color;
+                }
+                &-status {
+                  width: 6px;
+                  height: 6px;
+                  display: inline-block;
+                  border-radius: 100%;
+                  margin-right: 8px;
+                  &.is-finished {
+                    background: @ke-color-success;
+                  }
+                  &.is-pending {
+                    background: @ke-color-info-secondary;
+                    position: relative;
+                    &::after {
+                      content: '';
+                      width: 3px;
+                      height: 3px;
+                      border-radius: 100%;
+                      background: #fff;
+                      position: absolute;
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%);
+                    }
+                  }
+                  &.is-error {
+                    background: @ke-color-danger;
+                  }
+                  &.is-error-stop {
+                    background: @text-placeholder-color;
+                  }
+                  &.is-stop {
+                    background: @ke-color-primary;
+                  }
+                }
+                &-layouts {
+                  color: @text-normal-color;
+                  .success-layout-count {
+                    color: @ke-color-primary;
+                  }
+                }
+                .running {
+                  margin-right: 8px;
+                  font-size: 8px;
+                  margin-left: -1px;
+                }
+                .list-details {
+                  padding-left: 15px;
+                  color: @text-disabled-color;
+                }
+              }
+              .duration-details {
+                color: @ke-color-primary;
+                cursor: pointer;
               }
             }
           }

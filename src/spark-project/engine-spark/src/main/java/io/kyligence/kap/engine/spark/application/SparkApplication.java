@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.application;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.engine.spark.job.StageType.WAITE_FOR_RESOURCE;
 import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
 
 import java.io.BufferedReader;
@@ -43,7 +44,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -80,7 +80,6 @@ import org.apache.spark.sql.catalyst.rules.Rule;
 import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
-import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +108,7 @@ import scala.runtime.BoxedUnit;
 public abstract class SparkApplication implements Application, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(SparkApplication.class);
     private Map<String, String> params = Maps.newHashMap();
+    public static final String JOB_NAME_PREFIX = "job_step_";
 
     protected volatile KylinConfig config;
     protected volatile String jobId;
@@ -151,6 +151,14 @@ public abstract class SparkApplication implements Application, IKeep {
 
     public String getJobId() {
         return jobId;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public KylinConfig getConfig() {
+        return config;
     }
 
     /**
@@ -434,33 +442,7 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     private void waiteForResource(SparkConf sparkConf, KylinBuildEnv buildEnv) throws Exception {
-        if (isJobOnCluster(sparkConf)) {
-            long sleepSeconds = (long) (Math.random() * 60L);
-            logger.info("Sleep {} seconds to avoid submitting too many spark job at the same time.", sleepSeconds);
-            infos.startWait();
-            Thread.sleep(sleepSeconds * 1000);
-            // Set check resource timeout limit, otherwise tasks will remain in an endless loop, default is 10 min.
-            long timeoutLimitNs = TimeUnit.NANOSECONDS.convert(config.getCheckResourceTimeLimit(), TimeUnit.MINUTES);
-            logger.info("CheckResource timeout limit was set: {} minutes.", config.getCheckResourceTimeLimit());
-            long startTime = System.nanoTime();
-            long timeTaken;
-            try {
-                while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
-                    timeTaken = System.nanoTime();
-                    if (timeTaken - startTime > timeoutLimitNs) {
-                        throw new NoRetryException("CheckResource exceed timeout limit: " + TimeUnit.MINUTES.convert(timeTaken - startTime, TimeUnit.NANOSECONDS) + " minutes.");
-                    }
-                    long waitTime = (long) (Math.random() * 10 * 60);
-                    logger.info("Current available resource in cluster is not sufficient, wait {} seconds.", waitTime);
-                    Thread.sleep(waitTime * 1000L);
-                }
-            } catch (NoRetryException e) {
-                throw e;
-            } catch (Exception e) {
-                logger.warn("Error occurred when check resource. Ignore it and try to submit this job.", e);
-            }
-            infos.endWait();
-        }
+        WAITE_FOR_RESOURCE.create(this, null, null).toWork();
     }
 
     protected void chooseContentSize(SparkConfHelper helper) {
@@ -509,7 +491,7 @@ public abstract class SparkApplication implements Application, IKeep {
         return LogJobInfoUtils.sparkApplicationInfo();
     }
 
-    protected Set<String> getIgnoredSnapshotTables() {
+    public Set<String> getIgnoredSnapshotTables() {
         return NSparkCubingUtil.toIgnoredTableSet(getParam(NBatchConstants.P_IGNORED_SNAPSHOT_TABLES));
     }
 

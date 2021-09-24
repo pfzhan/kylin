@@ -55,6 +55,7 @@ import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
+import io.kyligence.kap.rest.request.StageRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
@@ -288,6 +289,23 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).updateSparkJobInfo(request);
+    }
+
+    @Test
+    public void testUpdateStageStatus() throws Exception {
+        StageRequest request = new StageRequest();
+        request.setProject("default");
+        request.setSegmentId("b");
+        request.setTaskId("c");
+        request.setStatus("RUNNING");
+        Mockito.doNothing().when(jobService).updateStageStatus(request.getProject(), request.getTaskId(),
+                request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).updateStageStatus(request);
     }
 
     @Test

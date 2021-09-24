@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static io.kyligence.kap.engine.spark.job.StageType.SNAPSHOT_BUILD;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Locale;
@@ -54,16 +56,26 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
 import io.kyligence.kap.engine.spark.builder.SnapshotPartitionBuilder;
+import io.kyligence.kap.engine.spark.job.exec.SnapshotExec;
 import io.kyligence.kap.engine.spark.utils.FileNames;
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 
 public class SnapshotBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(SnapshotBuildJob.class);
 
     @Override
     protected void doExecute() throws Exception {
+        val jobStepId = StringUtils.replace(infos.getJobStepId(), JOB_NAME_PREFIX, "");
+        val exec = new SnapshotExec(jobStepId);
+
+        SNAPSHOT_BUILD.createStage(this, null, null, exec);
+        exec.buildSnapshot();
+    }
+
+    public void buildSnapshot() throws IOException {
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         String selectedPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
@@ -114,7 +126,7 @@ public class SnapshotBuildJob extends SparkApplication {
 
     }
 
-    private Set<String> getTablePartitions(TableDesc tableDesc, String selectPartitionCol) {
+    protected Set<String> getTablePartitions(TableDesc tableDesc, String selectPartitionCol) {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return toPartitions(getParam("partitions"));
         }
@@ -192,6 +204,7 @@ public class SnapshotBuildJob extends SparkApplication {
         return workingDir + "/" + snapshotPath;
     }
 
+    @Override
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
         Map<String, String> snapshotConfig = config.getSnapshotBuildingConfigOverride();
         Map<String, String> generalBuildConfig = config.getSparkConfigOverride();

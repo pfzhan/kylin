@@ -57,6 +57,12 @@ public interface NBatchConstants {
     String P_QUERY_CONTEXT = "queryContext";
     String P_QUERY_QUEUE = "queryQueue";
 
+    /** use for stage calculate exec ratio */
+    String P_INDEX_COUNT = "indexCount";
+    String P_INDEX_SUCCESS_COUNT = "indexSuccessCount";
+    /** value like : { "segmentId1": 1223, "segmentId2": 1223 } */
+    String P_WAITE_TIME = "waiteTime";
+
     // ut only
     String P_BREAK_POINT_LAYOUTS = "breakPointLayouts";
 }

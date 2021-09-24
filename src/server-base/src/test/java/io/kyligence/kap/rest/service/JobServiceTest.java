@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.io.BufferedReader;
@@ -45,27 +48,29 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.model.FusionModel;
-import io.kyligence.kap.metadata.model.FusionModelManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.DefaultOutput;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -92,13 +97,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
+import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.FusionModel;
+import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -181,7 +192,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
                 Assert.assertNull(result.getId());
             } else {
                 Assert.assertTrue(org.apache.commons.lang3.StringUtils.endsWith(result.getId(), "null"));
-            } 
+            }
         }
     }
 
@@ -385,6 +396,412 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         ExecutableResponse response = ExecutableResponse.create(executable);
         Assert.assertEquals(0.99F, response.getStepRatio(), 0.001);
+    }
+
+    @Test
+    public void testCalculateStepRatio() {
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setProject(project);
+        addSegment(executable);
+        FiveSecondSucceedTestExecutable task = new FiveSecondSucceedTestExecutable();
+        task.setProject(project);
+        addSegment(task);
+        executable.addTask(task);
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.PAUSED, null, null, null);
+        manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null, null);
+        manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null, null);
+
+        var ratio = ExecutableResponse.calculateStepRatio(executable);
+        assertTrue(0.99F == ratio);
+    }
+
+    @Test
+    public void testcalculateSuccessStageInTaskMapSingle() {
+        String segmentId = UUID.randomUUID().toString();
+
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setId(UUID.randomUUID().toString());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(UUID.randomUUID().toString());
+        executable.addTask(sparkExecutable);
+
+        NStageForBuild build1 = new NStageForBuild();
+        NStageForBuild build2 = new NStageForBuild();
+        NStageForBuild build3 = new NStageForBuild();
+        final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+
+        var buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        var successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(3 == successLogicStep);
+
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0 == successLogicStep);
+
+        Map<String, String> info = Maps.newHashMap();
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "1");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0.1 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "8");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0.8 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "10");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(1 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "12");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(1 == successLogicStep);
+
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(1 == successLogicStep);
+
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(2 == successLogicStep);
+    }
+
+    @Test
+    public void testcalculateSuccessStageInTaskMap() {
+        String segmentId = UUID.randomUUID().toString();
+        String segmentIds = segmentId + "," + UUID.randomUUID();
+
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setId(UUID.randomUUID().toString());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentIds);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(UUID.randomUUID().toString());
+        executable.addTask(sparkExecutable);
+
+        NStageForBuild build1 = new NStageForBuild();
+        NStageForBuild build2 = new NStageForBuild();
+        NStageForBuild build3 = new NStageForBuild();
+        final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+
+        var buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        var successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(1.5 == successLogicStep);
+
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0 == successLogicStep);
+
+        Map<String, String> info = Maps.newHashMap();
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "1");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "10");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "10");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0.5 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "12");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0.5 == successLogicStep);
+
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(0.5 == successLogicStep);
+
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap();
+        successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
+        assertTrue(1 == successLogicStep);
+    }
+
+    @Test
+    public void testcalculateSuccessStage() {
+        String segmentId = UUID.randomUUID().toString();
+
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setId(UUID.randomUUID().toString());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(UUID.randomUUID().toString());
+        executable.addTask(sparkExecutable);
+
+        NStageForBuild build1 = new NStageForBuild();
+        NStageForBuild build2 = new NStageForBuild();
+        NStageForBuild build3 = new NStageForBuild();
+        final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+
+        var buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        var successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(3 == successLogicStep);
+
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(0 == successLogicStep);
+
+        Map<String, String> info = Maps.newHashMap();
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "1");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(0.1 == successLogicStep);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(0 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "8");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(0.8 == successLogicStep);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(0 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "10");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(1 == successLogicStep);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(0 == successLogicStep);
+
+        info.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "12");
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, info, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(1 == successLogicStep);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(1 == successLogicStep);
+
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(1 == successLogicStep);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(1 == successLogicStep);
+
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
+                .get(0)).getStagesMap().get(segmentId);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, true);
+        assertTrue(2 == successLogicStep);
+        successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
+        assertTrue(2 == successLogicStep);
+    }
+
+    @Test
+    public void testUpdateStageOutput() {
+        String segmentId = UUID.randomUUID().toString();
+        String segmentId2 = UUID.randomUUID().toString();
+        String segmentIds = segmentId + "," + segmentId2;
+
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setId(UUID.randomUUID().toString());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentIds);
+        sparkExecutable.setId(UUID.randomUUID().toString());
+        executable.addTask(sparkExecutable);
+
+        NStageForBuild build = new NStageForBuild();
+        final StageBase logicStep = (StageBase) sparkExecutable.addStage(build);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        SucceedChainedTestExecutable job = ((SucceedChainedTestExecutable) manager.getJob(executable.getId()));
+        long createTime = job.getCreateTime();
+        assertNotEquals(0L, createTime);
+        List<AbstractExecutable> result = manager.getAllExecutables();
+        assertEquals(1, result.size());
+
+        List<AbstractExecutable> tasks = job.getTasks();
+        assertEquals(1, tasks.size());
+        NSparkExecutable sparkExecutable1 = (NSparkExecutable) tasks.get(0);
+        assertEquals(sparkExecutable.getId(), sparkExecutable1.getId());
+        assertEquals(segmentIds, sparkExecutable1.getParam(NBatchConstants.P_SEGMENT_IDS));
+
+        Map<String, List<StageBase>> tasksMap = sparkExecutable1.getStagesMap();
+        assertEquals(2, tasksMap.size());
+        List<StageBase> logicStepBases = tasksMap.get(segmentId);
+        assertEquals(1, logicStepBases.size());
+        StageBase logicStepBase = logicStepBases.get(0);
+        assertEquals(logicStep.getId(), logicStepBase.getId());
+
+        manager.updateStageStatus(logicStep.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+
+        List<ExecutableStepResponse> jobDetail = jobService.getJobDetail(project, executable.getId());
+        assertEquals(1, jobDetail.size());
+        ExecutableStepResponse executableStepResponse = jobDetail.get(0);
+        assertEquals(sparkExecutable.getId(), executableStepResponse.getId());
+        Map<String, ExecutableStepResponse.SubStages> subStages = executableStepResponse.getSegmentSubStages();
+        assertEquals(2, subStages.size());
+        List<ExecutableStepResponse> stages = subStages.get(segmentId).getStage();
+        assertEquals(1, stages.size());
+        ExecutableStepResponse logicStepResponse = stages.get(0);
+        assertEquals(logicStep.getId(), logicStepResponse.getId());
+        assertEquals(JobStatusEnum.RUNNING, logicStepResponse.getStatus());
+
+        List<ExecutableStepResponse> stages2 = subStages.get(segmentId2).getStage();
+        assertEquals(1, stages2.size());
+        ExecutableStepResponse logicStepResponse2 = stages2.get(0);
+        assertEquals(logicStep.getId(), logicStepResponse2.getId());
+        assertEquals(0, logicStepResponse2.getExecStartTime());
+        assertTrue(logicStepResponse2.getExecStartTime() < System.currentTimeMillis());
+        assertEquals(JobStatusEnum.PENDING, logicStepResponse2.getStatus());
+
+        manager.updateStageStatus(logicStep.getId(), segmentId2, ExecutableState.RUNNING, null, "test output");
+
+        manager.updateStageStatus(logicStep.getId(), null, ExecutableState.SUCCEED, null, "test output");
+
+        jobDetail = jobService.getJobDetail(project, executable.getId());
+        assertEquals(1, jobDetail.size());
+        executableStepResponse = jobDetail.get(0);
+        assertEquals(sparkExecutable.getId(), executableStepResponse.getId());
+        subStages = executableStepResponse.getSegmentSubStages();
+        assertEquals(2, subStages.size());
+        stages = subStages.get(segmentId).getStage();
+        assertEquals(1, stages.size());
+        logicStepResponse = stages.get(0);
+        assertEquals(logicStep.getId(), logicStepResponse.getId());
+        assertEquals(JobStatusEnum.FINISHED, logicStepResponse.getStatus());
+
+        stages2 = subStages.get(segmentId2).getStage();
+        assertEquals(1, stages2.size());
+        logicStepResponse2 = stages2.get(0);
+        assertEquals(logicStep.getId(), logicStepResponse2.getId());
+        assertEquals(JobStatusEnum.FINISHED, logicStepResponse2.getStatus());
+    }
+
+    @Test
+    public void updateStageOutputTaskMapEmpty() {
+        String segmentId = UUID.randomUUID().toString();
+        String segmentId2 = UUID.randomUUID().toString();
+        String segmentIds = segmentId + "," + segmentId2;
+
+        val project = "default";
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setId(UUID.randomUUID().toString());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        NSparkExecutable sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentIds);
+        sparkExecutable.setId(UUID.randomUUID().toString());
+        executable.addTask(sparkExecutable);
+
+        manager.addJob(executable);
+
+        val outputOld = manager.getOutput(sparkExecutable.getId());
+        manager.updateStageStatus(sparkExecutable.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        val outputNew = manager.getOutput(sparkExecutable.getId());
+        assertEquals(outputOld.getState(), outputNew.getState());
+        assertEquals(outputOld.getCreateTime(), outputNew.getCreateTime());
+        assertEquals(outputOld.getEndTime(), outputNew.getEndTime());
+        assertEquals(outputOld.getStartTime(), outputNew.getStartTime());
     }
 
     @Test
@@ -856,8 +1273,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         // test fusion model stop batch job
         String table = "SSB.P_LINEORDER_STREAMING";
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(),
-                project);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         UnitOfWork.doInTransactionWithRetry(() -> {
             jobService.stopBatchJob(project, tableDesc);

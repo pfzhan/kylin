@@ -63,6 +63,7 @@ import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
 import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
+import io.kyligence.kap.rest.request.StageRequest;
 import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
@@ -179,7 +180,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateJobStatus", tags = { "DW" }, notes = "Update Param: job_id")
+    @ApiOperation(value = "getJobDetail", tags = { "DW" }, notes = "Update Param: job_id")
     @GetMapping(value = "/{job_id:.+}/detail")
     @ResponseBody
     public EnvelopeResponse<List<ExecutableStepResponse>> getJobDetail(@PathVariable(value = "job_id") String jobId,
@@ -251,7 +252,26 @@ public class NJobController extends NBasicController {
                 jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
     }
 
-
+    /**
+     * RPC Call
+     * 
+     * @param stageRequest
+     * @return
+     */
+    @ApiOperation(value = "updateStageStatus", tags = { "DW" }, notes = "Update Body: jobIds(stage ids)")
+    @PutMapping(value = "/stage/status")
+    @ResponseBody
+    public EnvelopeResponse<String> updateStageStatus(@RequestBody StageRequest stageRequest) {
+        if (StringUtils.isBlank(stageRequest.getProject()) && StringUtils.isBlank(stageRequest.getTaskId())) {
+            throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to update stage status");
+        }
+        checkProjectName(stageRequest.getProject());
+        logger.info("updateStageStatus stageRequest is : {}", stageRequest);
+        jobService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(),
+                stageRequest.getSegmentId(), stageRequest.getStatus(), stageRequest.getUpdateInfo(),
+                stageRequest.getErrMsg());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
 
     /**
      * RPC Call

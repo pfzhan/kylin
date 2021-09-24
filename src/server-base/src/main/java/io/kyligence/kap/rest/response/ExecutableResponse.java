@@ -25,18 +25,25 @@
 package io.kyligence.kap.rest.response;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageCleanJobUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.model.TableDesc;
 
+import com.clearspring.analytics.util.Lists;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
@@ -158,21 +165,99 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             }
         }
 
+        val stepRatio = calculateStepRatio(abstractExecutable);
+        executableResponse.setStepRatio(stepRatio);
+        executableResponse.setProject(abstractExecutable.getProject());
+        return executableResponse;
+    }
+
+    /**
+     * Single Segment situation:
+     *
+     * CurrentProgress = numberOfCompletedSteps / totalNumberOfSteps, accurate to the single digit percentage.
+     *
+     * Among them, the progress of the "BUILD_LAYER"
+     * step = numberOfCompletedIndexes / totalNumberOfIndexesToBeConstructed,
+     * the progress of other steps will not be refined
+     * ----------------------------------------------------------------------------------------------------------
+     * multi segment situation:
+     *
+     * CurrentProgress =
+     *   [numberOfPublicStepsCompleted + (numberOfSegmentStepsCompleted / numberOfSegments)] / totalNumberOfSteps
+     *
+     * Another: "BUILD_LAYER" are not refined
+     */
+    public static float calculateStepRatio(AbstractExecutable abstractExecutable) {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
-        int successSteps = 0;
+        var successSteps = 0D;
+        var stageCount = 0;
         for (AbstractExecutable task : tasks) {
+            if (task instanceof ChainedStageExecutable) {
+                final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
+                Map<String, List<StageBase>> taskMap = Optional.ofNullable(stageExecutable.getStagesMap())
+                        .orElse(Maps.newHashMap());
+                var taskMapStageCount = 0;
+                for (Map.Entry<String, List<StageBase>> entry : taskMap.entrySet()) {
+                    taskMapStageCount = (int) Optional.of(entry.getValue()).orElse(Lists.newArrayList()).stream()
+                            .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SKIPPED)
+                            .count();
+                }
+
+                if (0 != taskMapStageCount) {
+                    // calculate sum step count, second step and stage is duplicate
+                    stageCount = taskMapStageCount - 1;
+                    successSteps += calculateSuccessStageInTaskMap(task, taskMap);
+                    continue;
+                }
+            }
             if (ExecutableState.SUCCEED == task.getStatus()) {
                 successSteps++;
             }
         }
-        var stepRatio = (float) successSteps / tasks.size();
-        // in case all steps are succeed, but the job is paused, the stepRatio should be 99%
-        if (stepRatio == 1 && ExecutableState.PAUSED == abstractExecutable.getStatus()) {
+        val stepCount = tasks.size() + stageCount;
+        var stepRatio = (float) successSteps / stepCount;
+        // in case all steps are succeeded, but the job is not succeeded, the stepRatio should be 99%
+        if (stepRatio == 1 && ExecutableState.SUCCEED != abstractExecutable.getStatus()) {
             stepRatio = 0.99F;
         }
-        executableResponse.setStepRatio(stepRatio);
-        executableResponse.setProject(abstractExecutable.getProject());
-        return executableResponse;
+        return stepRatio;
+    }
+
+    /** calculate stage count from segment */
+    public static double calculateSuccessStageInTaskMap(AbstractExecutable task, Map<String, List<StageBase>> taskMap) {
+        var successStages = 0D;
+        boolean calculateIndexExecRadio = taskMap.size() == 1;
+        for (Map.Entry<String, List<StageBase>> entry : taskMap.entrySet()) {
+            double count = calculateSuccessStage(task, entry.getKey(), entry.getValue(), calculateIndexExecRadio);
+            successStages += count;
+        }
+        return successStages / taskMap.size();
+    }
+
+    public static double calculateSuccessStage(AbstractExecutable task, String segmentId, List<StageBase> stageBases,
+            boolean calculateIndexExecRadio) {
+        var successStages = 0D;
+        for (StageBase stage : stageBases) {
+            if (stage.getStatus(segmentId) == ExecutableState.SKIPPED) {
+                continue;
+            }
+            if (ExecutableState.SUCCEED == stage.getStatus(segmentId)) {
+                successStages += 1;
+                continue;
+            }
+
+            final String indexCountString = task.getParam(NBatchConstants.P_INDEX_COUNT);
+            final String indexSuccess = stage.getOutput(segmentId).getExtra()
+                    .getOrDefault(NBatchConstants.P_INDEX_SUCCESS_COUNT, "");
+            if (calculateIndexExecRadio && StringUtils.isNotBlank(indexCountString)
+                    && StringUtils.isNotBlank(indexSuccess)) {
+                final int indexCount = Integer.parseInt(indexCountString);
+                final int indexSuccessCount = Integer.parseInt(indexSuccess);
+                successStages += (double) indexSuccessCount / indexCount;
+            }
+        }
+
+        return successStages;
     }
 
     @Override

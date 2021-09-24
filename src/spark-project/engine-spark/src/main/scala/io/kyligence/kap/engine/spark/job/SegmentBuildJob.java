@@ -24,12 +24,21 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static io.kyligence.kap.engine.spark.job.StageType.BUILD_DICT;
+import static io.kyligence.kap.engine.spark.job.StageType.BUILD_LAYER;
+import static io.kyligence.kap.engine.spark.job.StageType.GATHER_FLAT_TABLE_STATS;
+import static io.kyligence.kap.engine.spark.job.StageType.GENERATE_FLAT_TABLE;
+import static io.kyligence.kap.engine.spark.job.StageType.MATERIALIZED_FACT_TABLE;
+import static io.kyligence.kap.engine.spark.job.StageType.REFRESH_COLUMN_BYTES;
+import static io.kyligence.kap.engine.spark.job.StageType.REFRESH_SNAPSHOTS;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.kylin.common.KylinConfig;
@@ -42,6 +51,9 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
+import io.kyligence.kap.engine.spark.job.exec.BuildExec;
+import io.kyligence.kap.engine.spark.job.stage.BuildParam;
+import io.kyligence.kap.engine.spark.job.stage.StageExec;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -53,8 +65,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SegmentBuildJob extends SegmentJob {
 
-    private BuildContext buildContext;
-
     @Override
     protected String generateInfo() {
         return LogJobInfoUtils.dfBuildJobInfo();
@@ -65,7 +75,8 @@ public class SegmentBuildJob extends SegmentJob {
         if (config.isBuildCheckPartitionColEnabled()) {
             checkDateFormatIfExist(project, dataflowId);
         }
-        tryRefreshSnapshots();
+        // tryRefreshSnapshots();
+        REFRESH_SNAPSHOTS.create(this, null, null).toWork();
 
         buildContext = new BuildContext(ss.sparkContext(), config);
         buildContext.appStatusTracker().startMonitorBuildResourceState();
@@ -77,10 +88,6 @@ public class SegmentBuildJob extends SegmentJob {
         }
 
         updateSegmentSourceBytesSize();
-    }
-
-    protected BuildContext getBuildContext() {
-        return buildContext;
     }
 
     @Override // Copied from DFBuildJob
@@ -114,7 +121,17 @@ public class SegmentBuildJob extends SegmentJob {
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
-                val exec = isPartitioned() ? new PartitionBuildExec(this, seg) : new SegmentBuildExec(this, seg);
+                val jobStepId = StringUtils.replace(infos.getJobStepId(), JOB_NAME_PREFIX, "");
+                val exec = new BuildExec(jobStepId);
+
+                val buildParam = new BuildParam();
+                MATERIALIZED_FACT_TABLE.createStage(this, seg, buildParam, exec);
+                BUILD_DICT.createStage(this, seg, buildParam, exec);
+                GENERATE_FLAT_TABLE.createStage(this, seg, buildParam, exec);
+                GATHER_FLAT_TABLE_STATS.createStage(this, seg, buildParam, exec);
+                BUILD_LAYER.createStage(this, seg, buildParam, exec);
+                REFRESH_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
+
                 buildSegment(seg, exec);
             } catch (IOException e) {
                 Throwables.propagate(e);
@@ -122,22 +139,24 @@ public class SegmentBuildJob extends SegmentJob {
         });
     }
 
-    private void buildSegment(NDataSegment dataSegment, SegmentBuildExec exec) throws IOException {
+    private void buildSegment(NDataSegment dataSegment, BuildExec exec) throws IOException {
         log.info("Encoding segment {}", dataSegment.getId());
         exec.buildSegment();
     }
 
     // Copied from DFBuildJob
-    protected void tryRefreshSnapshots() throws IOException {
+    public void tryRefreshSnapshots(StageExec stageExec) throws IOException {
         SnapshotBuilder snapshotBuilder = new SnapshotBuilder(getJobId());
         if (config.isSnapshotManualManagementEnabled()) {
             log.info("Skip snapshot build in snapshot manual mode, dataflow: {}, only calculate total rows",
                     dataflowId);
             snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
+            stageExec.onStageSkipped();
             return;
         } else if (!needBuildSnapshots()) {
             log.info("Skip snapshot build, dataflow {}, only calculate total rows", dataflowId);
             snapshotBuilder.calculateTotalRows(ss, getDataflow(dataflowId).getModel(), getIgnoredSnapshotTables());
+            stageExec.onStageSkipped();
             return;
         }
         log.info("Refresh SNAPSHOT.");

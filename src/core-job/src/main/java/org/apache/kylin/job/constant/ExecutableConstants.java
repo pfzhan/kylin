@@ -89,4 +89,18 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_TABLE_SAMPLING = "Table Sampling";
     public static final String NOTIFY_EMAIL_TEMPLATE = "<div><b>Build Result of Job ${job_name}</b><pre><ul>" + "<li>Build Result: <b>${result}</b></li>" + "<li>Job Engine: ${job_engine}</li>" + "<li>Env: ${env_name}</li>" + "<li>Project: ${project_name}</li>" + "<li>Cube Name: ${cube_name}</li>" + "<li>Source Records Count: ${source_records_count}</li>" + "<li>Start Time: ${start_time}</li>" + "<li>Duration: ${duration}</li>" + "<li>MR Waiting: ${mr_waiting}</li>" + "<li>Last Update Time: ${last_update_time}</li>" + "<li>Submitter: ${submitter}</li>" + "<li>Error Log: ${error_log}</li>" + "</ul></pre><div/>";
     public static final String STEP_NAME_BUILD_SNAPSHOT = "Build Snapshot";
+
+    public static final String STAGE_NAME_WAITE_FOR_RESOURCE = "Waiting for yarn resources";
+    public static final String STAGE_NAME_REFRESH_SNAPSHOTS = "Build or refresh snapshot";
+    public static final String STAGE_NAME_MATERIALIZED_FACT_TABLE = "Materialize fact table view";
+    public static final String STAGE_NAME_BUILD_DICT = "Generate global dictionary";
+    public static final String STAGE_NAME_GENERATE_FLAT_TABLE = "Generate flat table";
+    public static final String STAGE_NAME_GATHER_FLAT_TABLE_STATS = "Get flat table statistics";
+    public static final String STAGE_NAME_BUILD_LAYER = "Build indexes by layer";
+    public static final String STAGE_NAME_REFRESH_COLUMN_BYTES = "Update flat table statistics";
+    public static final String STAGE_NAME_MERGE_FLAT_TABLE = "Merge flat table";
+    public static final String STAGE_NAME_MERGE_INDICES = "Merge indexes";
+    public static final String STAGE_NAME_MERGE_COLUMN_BYTES = "Merge flat table statistics";
+    public static final String STAGE_NAME_TABLE_SAMPLING = "Sample Table Data";
+    public static final String STAGE_NAME_SNAPSHOT_BUILD = "Build Snapshot";
 }

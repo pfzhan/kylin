@@ -24,14 +24,18 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobStepCmdTypeEnum;
 
-import java.util.concurrent.ConcurrentHashMap;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -63,6 +67,12 @@ public class ExecutableStepResponse {
     @JsonProperty("create_time")
     private long createTime;
 
+    @JsonProperty("index_count")
+    private long indexCount;
+
+    @JsonProperty("success_index_count")
+    private long successIndexCount;
+
     @JsonProperty("step_status")
     private JobStatusEnum status = JobStatusEnum.PENDING;
 
@@ -90,5 +100,32 @@ public class ExecutableStepResponse {
     public static class OldParams {
         @JsonProperty("exec_wait_time")
         private long execWaitTime;
+    }
+
+    @JsonProperty("sub_stages")
+    private List<ExecutableStepResponse> subStages;
+
+    @JsonProperty("segment_sub_stages")
+    private Map<String, SubStages> segmentSubStages;
+
+    @Getter
+    @Setter
+    public static class SubStages {
+        @JsonProperty("wait_time")
+        private long waitTime;
+        @JsonProperty("step_ratio")
+        private float stepRatio;
+        @JsonProperty("name")
+        private String name;
+        @JsonProperty("start_time")
+        private Long startTime;
+        @JsonProperty("end_time")
+        private Long endTime;
+        @JsonProperty("exec_start_time")
+        private long execStartTime;
+        @JsonProperty("exec_end_time")
+        private long execEndTime;
+        @JsonProperty("stage")
+        private List<ExecutableStepResponse> stage;
     }
 }

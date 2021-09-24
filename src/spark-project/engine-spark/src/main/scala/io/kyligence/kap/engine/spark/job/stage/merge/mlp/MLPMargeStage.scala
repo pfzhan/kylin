@@ -21,24 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.job
 
-import java.util.Objects
+package io.kyligence.kap.engine.spark.job.stage.merge.mlp
 
 import com.google.common.collect.Lists
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
+import io.kyligence.kap.engine.spark.job.stage.merge.MargeStage
+import io.kyligence.kap.engine.spark.job.{PartitionExec, SegmentJob}
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
 
+import java.util.Objects
 import scala.collection.JavaConverters._
 
-class PartitionMergeExec(private val jobContext: SegmentMergeJob,
-                         private val dataSegment: NDataSegment)
-  extends SegmentMergeExec(jobContext, dataSegment) with PartitionExec {
-
+abstract class MLPMargeStage(private val jobContext: SegmentJob,
+                            private val dataSegment: NDataSegment)
+  extends MargeStage(jobContext, dataSegment) with PartitionExec {
   protected final val newBuckets = //
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
 
@@ -133,5 +134,4 @@ class PartitionMergeExec(private val jobContext: SegmentMergeJob,
       }
     }, project)
   }
-
 }

@@ -21,57 +21,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.engine.spark.job
 
-import java.util.Objects
-import java.util.concurrent.TimeUnit
+package io.kyligence.kap.engine.spark.job.stage.build.mlp
 
-import com.google.common.collect.{Lists, Queues}
+import com.google.common.collect.{Lists, Queues, Sets}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
-import io.kyligence.kap.engine.spark.builder.PartitionFlatTable
-import io.kyligence.kap.engine.spark.builder.SegmentFlatTable.Statistics
+import io.kyligence.kap.engine.spark.job.stage.BuildParam
+import io.kyligence.kap.engine.spark.job.stage.build.BuildStage
+import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
+import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, PartitionExec, SanityChecker, SegmentJob}
 import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
-import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
-import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.{PartitionTreeBuilder, PartitionTreeNode}
+import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.PartitionTreeNode
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.KapConfig
 import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.{Dataset, Row}
 
+import java.util.Objects
+import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
-                         private val dataSegment: NDataSegment) //
-  extends SegmentBuildExec(jobContext, dataSegment) with PartitionExec {
-
+abstract class MLPBuildStage(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
+  extends BuildStage(jobContext, dataSegment, buildParam) with PartitionExec {
   protected final val newBuckets = //
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
 
-  private lazy val spanningTree = new PartitionSpanningTree(config, //
-    new PartitionTreeBuilder(dataSegment, readOnlyLayouts, jobId, partitions))
+  protected lazy val spanningTree: PartitionSpanningTree = buildParam.getPartitionSpanningTree
 
-  private lazy val flatTableDesc = if (jobContext.isPartialBuild) {
-    val parser = new IndexDependencyParser(dataModel)
-    val relatedTableAlias =
-      parser.getRelatedTablesAlias(jobContext.getReadOnlyLayouts)
-    new PartitionFlatTableDesc(config, dataSegment, spanningTree, relatedTableAlias, jobId, partitions)
-  } else {
-    new PartitionFlatTableDesc(config, dataSegment, spanningTree, jobId, partitions)
-  }
-
-  private lazy val flatTable = new PartitionFlatTable(sparkSession, flatTableDesc)
+  protected lazy val flatTableDesc: PartitionFlatTableDesc = buildParam.getTableDesc
+  protected lazy val flatTable: MLPFlatTableAndDictBase = buildParam.getPartitionFlatTable
 
   // Thread unsafe, read only.
-  private var cachedPartitionFlatTableDS: Map[java.lang.Long, Dataset[Row]] = _
+  private lazy val cachedPartitionFlatTableDS: Map[java.lang.Long, Dataset[Row]] = buildParam.getCachedPartitionFlatTableDS
 
   // Thread unsafe, read only
-  private var cachedPartitionFlatTableStats: Map[java.lang.Long, Statistics] = _
+  private lazy val cachedPartitionFlatTableStats: Map[java.lang.Long, Statistics] = buildParam.getCachedPartitionFlatTableStats
 
   // Thread unsafe
   // [layout, [partition, dataset]]
@@ -81,10 +72,11 @@ class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
   // [layout, [partition, sanity]]
   private var cachedPartitionSanity: Option[mutable.HashMap[Long, mutable.HashMap[Long, Long]]] = None
 
+  override protected def columnIdFunc(colRef: TblColRef): String = flatTableDesc.getColumnIdAsString(colRef)
 
   override protected def buildLayouts(): Unit = {
     // Flat table? Sanity cache?
-    beforeBuildLayouts()
+    //    beforeBuildLayouts()
 
     // Maintain this variable carefully.
     var remainingTaskCount = 0
@@ -115,6 +107,12 @@ class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
             // Offer 'Throwable' if unexpected things happened.
             case t: Throwable => failQueue.offer(Some(t))
           })
+        }
+        if (0 != tasks.size) {
+          KylinBuildEnv.get().buildJobInfos.recordCuboidsNumPerLayer(segmentId, tasks.size)
+
+          val layoutCount = KylinBuildEnv.get().buildJobInfos.getSeg2cuboidsNumPerLayer.get(segmentId).asScala.sum
+          onBuildLayoutSuccess(layoutCount / partitions.size())
         }
       }
       // Poll and fail fast.
@@ -154,8 +152,8 @@ class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
           val stats = buildPartitionStatistics(partition, partitionFlatTableDS, partitionFactTableDS)
           (partition, partitionFlatTableDS, stats)
         }.seq
-        cachedPartitionFlatTableDS = collected.map(tpl => (tpl._1, tpl._2)).toMap
-        cachedPartitionFlatTableStats = collected.map(tpl => (tpl._1, tpl._3)).toMap
+        //        cachedPartitionFlatTableDS = collected.map(tpl => (tpl._1, tpl._2)).toMap
+        //        cachedPartitionFlatTableStats = collected.map(tpl => (tpl._1, tpl._3)).toMap
       } finally {
         forkJoinPool.shutdownNow()
       }
@@ -168,9 +166,9 @@ class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
     // TODO Cleanup potential temp data.
   }
 
-  private def buildPartitionStatistics(partition: Long //
-                                       , partitionFlatTableDS: Dataset[Row] //
-                                       , partitionFactTableDS: Option[Dataset[Row]]): Statistics = {
+  protected def buildPartitionStatistics(partition: Long //
+                                         , partitionFlatTableDS: Dataset[Row] //
+                                         , partitionFactTableDS: Option[Dataset[Row]]): Statistics = {
     // Maybe exist metadata operations.
     setConfig4CurrentThread()
     if (partitionFactTableDS.isEmpty) {
@@ -186,7 +184,7 @@ class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
     Statistics(partitionFlatTableDS.count(), stats ++ lookupTableStats)
   }
 
-  private def buildSanityCache(): Unit = {
+  override protected def buildSanityCache(): Unit = {
     if (!config.isSanityCheckEnabled) {
       return
     }
@@ -295,6 +293,11 @@ class PartitionBuildExec(private val jobContext: SegmentBuildJob, //
     val layoutDS = wrapLayoutDS(task.layout, task.parentDS)
     val parentDesc = if (task.parentLayout.isEmpty) "flat table" else task.parentLayout.get.getId
     val readableDesc = s"Segment $segmentId build layout partition ${task.layout.getId},${task.partition} from $parentDesc"
+    // set layout mess in build job infos
+    val layout: NDataLayout = if (task.parentLayout.isEmpty) null else dataSegment.getLayout(task.parentLayout.get.getId)
+    val layoutIdsFromFlatTable = KylinBuildEnv.get().buildJobInfos.getParent2Children.getOrDefault(layout, Sets.newHashSet())
+    layoutIdsFromFlatTable.add(task.layout.getId)
+    KylinBuildEnv.get().buildJobInfos.recordParent2Children(layout, layoutIdsFromFlatTable)
     newLayoutPartition(task.segment, task.layout, task.partition, layoutDS, readableDesc, Some(new SanityChecker(task.sanityCount)))
   }
 
