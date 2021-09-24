@@ -23,17 +23,21 @@
  */
 package io.kyligence.kap.metadata.model.schema;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import lombok.Data;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.guava20.shaded.common.base.Preconditions;
 import io.kyligence.kap.guava20.shaded.common.collect.MapDifference;
 import io.kyligence.kap.guava20.shaded.common.collect.Maps;
 import io.kyligence.kap.guava20.shaded.common.graph.Graph;
@@ -41,27 +45,18 @@ import io.kyligence.kap.guava20.shaded.common.graph.GraphBuilder;
 import io.kyligence.kap.guava20.shaded.common.graph.MutableGraph;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.Data;
 import lombok.val;
 
 public class SchemaUtil {
-
-    public static SchemaDifference diff(IndexPlan sourcePlan, IndexPlan targetPlan) {
-        val sourceGraph = dependencyGraph(sourcePlan);
-        val targetGraph = dependencyGraph(targetPlan);
-        return new SchemaDifference(sourceGraph, targetGraph);
-    }
 
     public static SchemaDifference diff(String project, KylinConfig sourceConfig, KylinConfig targetConfig) {
         val sourceGraph = dependencyGraph(project, sourceConfig);
         val targetGraph = dependencyGraph(project, targetConfig);
         return new SchemaDifference(sourceGraph, targetGraph);
-    }
-
-    public static Graph<SchemaNode> dependencyGraph(IndexPlan plan) {
-        val model = plan.getModel();
-        val tables = model.getAllTables().stream().map(TableRef::getTableDesc).collect(Collectors.toList());
-        return dependencyGraph(tables, Arrays.asList(plan));
     }
 
     public static Graph<SchemaNode> dependencyGraph(String project, KylinConfig config) {
@@ -70,15 +65,77 @@ public class SchemaUtil {
         return dependencyGraph(tableManager.listAllTables(), planManager.listAllIndexPlans());
     }
 
-    public static Graph<SchemaNode> dependencyGraph(String project) {
-        return dependencyGraph(project, KylinConfig.getInstanceFromEnv());
+    /**
+     * Build dependency graph of specific model, just all related tables of this model.
+     */
+    public static Graph<SchemaNode> dependencyGraph(String project, NDataModel model) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
+        String factTableName = model.getRootFactTableName();
+        TableDesc table = tableManager.getTableDesc(factTableName);
+        List<TableDesc> tables = Lists.newArrayList();
+        List<IndexPlan> indexPlans = Lists.newArrayList();
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(model.getUuid());
+        if (!indexPlan.isBroken()) {
+            indexPlans.add(indexPlan);
+        }
+        tables.add(table);
+        List<JoinTableDesc> joinTables = model.getJoinTables();
+        for (JoinTableDesc joinTable : joinTables) {
+            tables.add(tableManager.getTableDesc(joinTable.getTable()));
+        }
+        return dependencyGraph(tables, indexPlans);
+    }
+
+    /**
+     * Build dependency graph on a table, it will deduce all related models and tables.
+     */
+    public static Graph<SchemaNode> dependencyGraph(String project, String tableIdentity) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
+        TableDesc table = tableManager.getTableDesc(tableIdentity);
+        List<TableDesc> tables = Lists.newArrayList();
+        List<IndexPlan> indexPlans = Lists.newArrayList();
+
+        Preconditions.checkNotNull(table,
+                String.format(Locale.ROOT, "Table(%s) not exist in project(%s)", tableIdentity, project));
+
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
+        List<NDataModel> models = modelManager.listAllModels().stream() //
+                .filter(model -> !model.isBroken()) //
+                .filter(model -> isTableRelatedModel(tableIdentity, model)).collect(Collectors.toList());
+        models.forEach(model -> {
+            indexPlans.add(indexPlanManager.getIndexPlan(model.getUuid()));
+            tables.add(table);
+            List<JoinTableDesc> joinTables = model.getJoinTables();
+            for (JoinTableDesc joinTable : joinTables) {
+                tables.add(tableManager.getTableDesc(joinTable.getTable()));
+            }
+        });
+
+        return dependencyGraph(tables, indexPlans);
+    }
+
+    private static boolean isTableRelatedModel(String tableIdentity, NDataModel model) {
+        List<JoinTableDesc> joinTables = model.getJoinTables();
+        for (JoinTableDesc joinTable : joinTables) {
+            final TableRef tableRef = joinTable.getTableRef();
+            if (tableRef.getTableIdentity().equalsIgnoreCase(tableIdentity)) {
+                return true;
+            }
+        }
+        return model.getRootFactTableName().equalsIgnoreCase(tableIdentity);
     }
 
     static Graph<SchemaNode> dependencyGraph(List<TableDesc> tables, List<IndexPlan> plans) {
         MutableGraph<SchemaNode> graph = GraphBuilder.directed().allowsSelfLoops(false).build();
-        for (TableDesc tableDesc : tables) {
-            Stream.of(tableDesc.getColumns()).forEach(col -> graph.putEdge(SchemaNode.ofTableColumn(col), SchemaNode.ofTable(tableDesc)));
-        }
+        tables.forEach(table -> {
+            for (ColumnDesc column : table.getColumns()) {
+                graph.putEdge(SchemaNode.ofTableColumn(column), SchemaNode.ofTable(table));
+            }
+        });
 
         for (IndexPlan plan : plans) {
             new ModelEdgeCollector(plan, graph).collect();
@@ -98,12 +155,13 @@ public class SchemaUtil {
         public SchemaDifference(Graph<SchemaNode> sourceGraph, Graph<SchemaNode> targetGraph) {
             this.sourceGraph = sourceGraph;
             this.targetGraph = targetGraph;
-
-            this.nodeDiff = Maps.difference(
-                    sourceGraph.nodes().stream().collect(Collectors.toMap(SchemaNode::getIdentifier, Function.identity())),
-                    targetGraph.nodes().stream().collect(Collectors.toMap(SchemaNode::getIdentifier, Function.identity())));
+            this.nodeDiff = Maps.difference(toSchemaNodeMap(sourceGraph), toSchemaNodeMap(targetGraph));
 
         }
 
+        private Map<SchemaNode.SchemaNodeIdentifier, SchemaNode> toSchemaNodeMap(Graph<SchemaNode> sourceGraph) {
+            return sourceGraph.nodes().stream()
+                    .collect(Collectors.toMap(SchemaNode::getIdentifier, Function.identity()));
+        }
     }
 }

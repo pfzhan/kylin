@@ -88,13 +88,13 @@ public class AffectedModelContext {
         this.modelAlias = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(modelId).getAlias();
         this.updatedNodes = updatedNodes;
-        this.updateIdMeasureMap= updateMeasures.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        this.updateIdMeasureMap = updateMeasures.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
         this.updateMeasureMap = updateMeasures.stream()
                 .collect(Collectors.toMap(pair -> pair.getFirst().getId(), Pair::getSecond));
         this.shouldDeleteNodes = calcShouldDeletedNodes(isDelete);
-        if(isDelete) {
+        if (isDelete) {
             isBroken = updatedNodes.stream().anyMatch(SchemaNode::isCauseModelBroken);
-        }else{
+        } else {
             isBroken = false;
         }
         updatedLayouts = filterIndexFromNodes(updatedNodes);
@@ -190,7 +190,9 @@ public class AffectedModelContext {
             return updatedNodes;
         }
 
-        Graph<SchemaNode> schemaNodeGraph = SchemaUtil.dependencyGraph(project);
+        NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDesc(modelId);
+        Graph<SchemaNode> schemaNodeGraph = SchemaUtil.dependencyGraph(project, model);
 
         updatedNodes.stream().filter(node -> node.getType() == SchemaNodeType.MODEL_MEASURE)
                 .filter(node -> !updateMeasureMap.containsKey(Integer.parseInt(node.getDetail()))).forEach(node -> {

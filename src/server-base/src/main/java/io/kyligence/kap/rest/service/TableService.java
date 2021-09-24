@@ -1682,7 +1682,7 @@ public class TableService extends BasicService {
         context.setRemoveColumns(diff.entriesOnlyOnRight().keySet());
         context.setChangeTypeColumns(diff.entriesDiffering().keySet());
 
-        val dependencyGraph = SchemaUtil.dependencyGraph(project);
+        val dependencyGraph = SchemaUtil.dependencyGraph(project, tableIdentity);
 
         if (failFast) {
             checkNewColumn(dependencyGraph, newTableDesc, Sets.newHashSet(context.getAddColumns()));
