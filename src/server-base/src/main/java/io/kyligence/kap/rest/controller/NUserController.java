@@ -185,6 +185,7 @@ public class NUserController extends NBasicController {
         user.setPassword(pwdEncode(user.getPassword()));
         logger.info("Creating user: {}", user);
         completeAuthorities(user);
+        user.setDefaultPassword(true);
         userService.createUser(user);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
