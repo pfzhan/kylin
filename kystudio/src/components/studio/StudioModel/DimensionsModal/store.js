@@ -5,8 +5,7 @@ const types = {
   SET_MODAL_FORM: 'SET_MODAL_FORM',
   RESET_MODAL_FORM: 'RESET_MODAL_FORM',
   CALL_MODAL: 'CALL_MODAL',
-  UPDATE_SYNC_NAME: 'UPDATE_SYNC_NAME',
-  COLLECT_OTHER_COLUMNS: 'COLLECT_OTHER_COLUMNS'
+  UPDATE_SYNC_NAME: 'UPDATE_SYNC_NAME'
 }
 // 声明：初始state状态
 const initialState = JSON.stringify({
@@ -14,8 +13,7 @@ const initialState = JSON.stringify({
   modelDesc: [],
   selectedDimensions: [],
   callback: null,
-  syncCommentToName: false,
-  otherColumns: [] // 同步注释传递没有选中的dimensions
+  syncCommentToName: false
 })
 
 export default {
@@ -44,9 +42,6 @@ export default {
     },
     [types.UPDATE_SYNC_NAME]: (state) => {
       state.syncCommentToName = !state.syncCommentToName
-    },
-    [types.COLLECT_OTHER_COLUMNS]: (state, list) => {
-      state.otherColumns = list
     }
   },
   actions: {

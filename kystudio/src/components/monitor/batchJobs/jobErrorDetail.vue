@@ -1,45 +1,75 @@
-/*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 <template>
   <el-dialog
     :visible="true"
     width="600px"
     status-icon="el-ksd-icon-error_24"
-    @close="closeSegmentDetail"
+    @close="closeErrorDetail"
     :close-on-click-modal="false">
     <span slot="title">{{$t('errorDetail')}}</span>
-
+    <div class="error-contain">
+      <p class="error-title"></p>
+      <el-button class="error-solution-btn ksd-mt-8" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button>
+      <el-input class="error-trace-msg ksd-mt-8" :disabled="true" type="textarea" :value="traceMsg"></el-input>
+      <el-button class="view-details-btn ksd-mt-8" v-if="showViewMore" @click="showMore = !showMore" nobg-text :iconr="showMore ? 'el-ksd-icon-arrow_up_16' : 'el-ksd-icon-arrow_down_16'">{{$t('viewMore')}}</el-button>
+      <build-segment-detail v-if="showMore" :segmentTesks="currentErrorJob.segment_sub_tasks" :jobStatus="currentErrorJob.step_status"/>
+    </div>
+    <span slot="footer" class="dialog-footer">
+      <el-button type="primary" size="medium" @click="closeErrorDetail">{{$t('kylinLang.common.IKnow')}}</el-button>
+    </span>
   </el-dialog>
 </template>
 
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
+import buildSegmentDetail from './buildSegmentDetail.vue'
+import locales from './locales'
 
 @Component({
+  props: {
+    currentErrorJob: {
+      type: Object,
+      default () {
+        return {}
+      }
+    }
+  },
+  components: {
+    buildSegmentDetail
+  },
+  locales
 })
 export default class jobErrorDetail extends Vue {
+  traceMsg = 'xxxxxxxxxxx'
+  showMore = false
+
+  get showViewMore () {
+    return this.currentErrorJob.segment_sub_tasks && Object.keys(this.currentErrorJob.segment_sub_tasks).length > 1
+  }
+
+  closeErrorDetail () {
+    this.$emit('close')
+  }
 }
 </script>
+
+<style lang="less">
+  @import '../../../assets/styles/variables.less';
+  .error-contain {
+    .error-title {
+      font-weight: 500;
+    }
+    .error-solution-btn {
+      i {
+        font-size: 16px;
+      }
+    }
+    .error-trace-msg {
+      .el-textarea__inner {
+        background: @ke-background-color-secondary;
+        -webkit-text-fill-color: @text-normal-color;
+        max-height: 400px;
+      }
+    }
+  }
+</style>

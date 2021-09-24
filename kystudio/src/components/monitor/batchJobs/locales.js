@@ -1,27 +1,3 @@
-/*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 export default {
   'en': {
     dataRange: 'Data Range',
@@ -150,7 +126,10 @@ export default {
     paramValue: 'Value',
     buildSegmentTips: 'The current step has {segments} segments in parallel, where {successLen} success, {pendingLen} pending, and {runningLen} executing.',
     viewDetails: 'View Details',
-    segmentDetail: 'Segment Details'
+    segmentDetail: 'Segment Details',
+    errorDetail: 'Error Details',
+    resolveErrorBtn: 'View Solution',
+    viewMore: 'View More'
   },
   'zh-cn': {
     dataRange: '数据范围',
@@ -279,6 +258,9 @@ export default {
     paramValue: '参数值',
     buildSegmentTips: '当前步骤并行 {segments} 个 segment，其中 {successLen} 个成功， {pendingLen} 个等待中， {runningLen} 个执行中。',
     viewDetails: '查看详情',
-    segmentDetail: 'Segment 详情'
+    segmentDetail: 'Segment 详情',
+    errorDetail: '错误详情',
+    resolveErrorBtn: '查看解决方案',
+    viewMore: '查看更多'
   }
 }

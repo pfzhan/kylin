@@ -1,27 +1,3 @@
-/*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 <template>
   <div>
     <el-collapse>
@@ -66,7 +42,7 @@
           <span v-if="item.info">{{item.info.node_info || $t('unknow')}}</span>
           <br />
         </div>
-        <ul class="sub-tasks" v-for="sub in item.logic_step" :key="sub.id">
+        <ul class="sub-tasks" v-for="sub in item.stage" :key="sub.id">
           <li>
             <!-- 当 job 主步骤为暂停状态时，所有的未完成的子步骤都变更为 STOP 状态 -->
             <span :class="[jobStatus === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
@@ -123,16 +99,16 @@ export default class BuildSegmentDetail extends Vue {
 
   // segment 运行状态
   segmentStatus (step) {
-    let status = ''
-    const { logic_step } = step
+    let status = 'PENDING'
+    const { stage } = step
 
-    logic_step.filter(item => item.step_status === 'RUNNING').length > 0 && (status = 'RUNNING')
-    logic_step.filter(item => item.step_status === 'STOPPED').length > 0 && (status = 'STOPPED')
-    logic_step.filter(item => item.step_status === 'ERROR').length > 0 && (status = 'ERROR')
-    logic_step.filter(item => item.step_status === 'FINISHED').length === logic_step.length && (status = 'FINISHED')
-    logic_step.filter(item => item.step_status === 'PENDING').length === logic_step.length && (status = 'PENDING')
-    logic_step.filter(item => item.step_status === 'ERROR_STOP').length === logic_step.length && (status = 'ERROR_STOP')
-    logic_step.filter(item => item.step_status === 'DISCARDED').length === logic_step.length && (status = 'DISCARDED')
+    stage.filter(item => item.step_status === 'RUNNING').length > 0 && (status = 'RUNNING')
+    stage.filter(item => item.step_status === 'STOPPED').length > 0 && (status = 'STOPPED')
+    stage.filter(item => item.step_status === 'ERROR').length > 0 && (status = 'ERROR')
+    stage.filter(item => item.step_status === 'FINISHED').length === stage.length && (status = 'FINISHED')
+    stage.filter(item => item.step_status === 'PENDING').length === stage.length && (status = 'PENDING')
+    stage.filter(item => item.step_status === 'ERROR_STOP').length === stage.length && (status = 'ERROR_STOP')
+    stage.filter(item => item.step_status === 'DISCARDED').length === stage.length && (status = 'DISCARDED')
 
     return status
   }
@@ -153,7 +129,7 @@ export default class BuildSegmentDetail extends Vue {
 
   // 获取运行状态的 segment 步骤
   getRunningStep (item) {
-    const step = item.logic_step.filter(it => it.step_status === 'RUNNING')
+    const step = item.stage.filter(it => it.step_status === 'RUNNING')
     return `${step.length > 0 ? this.getSubTasksName(this, step[0].name) : ''}`
   }
 

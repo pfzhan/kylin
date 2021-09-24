@@ -13,7 +13,8 @@ export default {
     modelSpeedEvents: 0,
     modelSpeedModelsCount: 0,
     reachThreshold: false,
-    circleSpeedInfoLock: false
+    circleSpeedInfoLock: false,
+    otherColumns: []
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -43,6 +44,12 @@ export default {
     },
     [types.LOCK_SPEED_INFO]: function (state, { isLock }) {
       state.circleSpeedInfoLock = isLock
+    },
+    [types.COLLECT_OTHER_COLUMNS]: (state, list) => {
+      state.otherColumns = list
+    },
+    [types.RESET_OTHER_COLUMNS]: (state) => {
+      state.otherColumns = []
     }
   },
   actions: {

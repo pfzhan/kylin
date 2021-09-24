@@ -324,9 +324,11 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       modelDesc: state => state.modelDesc,
       modelInstance: state => state.modelInstance,
       usedColumns: state => state.modelDesc.dimensions,
-      otherColumns: state => state.otherColumns,
       callback: state => state.callback,
       syncCommentToName: state => state.syncCommentToName
+    }),
+    ...mapState({
+      otherColumns: state => state.model.otherColumns
     })
   },
   methods: {
@@ -336,8 +338,10 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,
       resetModalForm: types.RESET_MODAL_FORM,
-      updateSyncName: types.UPDATE_SYNC_NAME,
-      collectOtherColumns: types.COLLECT_OTHER_COLUMNS
+      updateSyncName: types.UPDATE_SYNC_NAME
+    }),
+    ...mapMutations({
+      collectOtherColumns: 'COLLECT_OTHER_COLUMNS'
     }),
     // 后台接口请求
     ...mapActions({
@@ -429,7 +433,7 @@ export default class DimensionsModal extends Vue {
     let tempArr = [];
     [...this.factTable, ...this.lookupTable].forEach((item, index, self) => {
       for (let it of item.columns) {
-        if ('comment' in it && it.comment && this.checkDimensionNameRegex(it.comment)) {
+        if ('comment' in it && it.comment && it.comment.trim() && this.checkDimensionNameRegex(it.comment)) {
           let name = it.comment.slice(0, 100)
           it.oldName = it.alias
           if (tempArr.includes(name)) {
@@ -595,7 +599,7 @@ export default class DimensionsModal extends Vue {
       let selectedColumns = this.usedColumns.map(it => it.column)
       let others = this.otherColumns.length ? this.otherColumns : this.modelDesc.all_named_columns.filter(item => !selectedColumns.includes(item.column))
       // 将已经选上的dimension回显到界面上
-      table.columns && table.columns.forEach((col) => {
+      table.columns && table.columns.forEach((col, index) => {
         this.$set(col, 'tableName', table.alias)
         this.$set(col, 'alias', col.name)
         this.$set(col, 'isSelected', false)
@@ -611,8 +615,8 @@ export default class DimensionsModal extends Vue {
           }
         }
         for (let it of others) {
-          if (`${table.alias}.${col.name}` === it.column) {
-            col.alias = it.name
+          if (`${table.alias}.${col.name}` === it.column && !selectedColumns.includes(it.column)) {
+            this.$set(col, 'alias', it.name)
             break
           }
         }

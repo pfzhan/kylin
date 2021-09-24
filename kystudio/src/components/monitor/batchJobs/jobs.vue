@@ -286,7 +286,7 @@
                     </common-tip>
                     <common-tip :content="$t('sparkJobTip')" v-if="step.info">
                       <a :href="step.info.yarn_application_tracking_url" target="_blank" v-if="!$store.state.config.platform || ($store.state.config.platform === 'iframe' && step.step_status === 'RUNNING')">
-                          <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
+                          <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-ksd-icon-export_16"></i>
                       </a>
                     </common-tip>
                   </p>
@@ -299,11 +299,11 @@
                   <!-- <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR'" :closable="false">
                     <p slot="title">
                       错误提示的文案
-                      <el-button nobg-text size="small">{{$t('viewDetails')}}</el-button>
+                      <el-button nobg-text size="small" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
                     </p>
                   </el-alert> -->
-                  <el-alert class="ksd-mb-8" type="tip" show-icon v-if="'segment_sub_tasks' in step && step.segment_sub_tasks && Object.keys(step.segment_sub_tasks).length > 1" :closable="false">
-                    <p slot="title">{{$t('buildSegmentTips', {segments: Object.keys(step.segment_sub_tasks).length, successLen: getSegmentStatusLen(step, 'FINISHED'), pendingLen: getSegmentStatusLen(step, 'PENDING'), runningLen: getSegmentStatusLen(step, 'RUNNING')})}}
+                  <el-alert class="ksd-mb-8" type="tip" show-icon v-if="'segment_sub_stages' in step && step.segment_sub_stages && Object.keys(step.segment_sub_stages).length > 1" :closable="false">
+                    <p slot="title">{{$t('buildSegmentTips', {segments: Object.keys(step.segment_sub_stages).length, successLen: getSegmentStatusLen(step, 'FINISHED'), pendingLen: getSegmentStatusLen(step, 'PENDING'), runningLen: getSegmentStatusLen(step, 'RUNNING')})}}
                       <el-button nobg-text size="small" @click="viewSegmentDetails(step, step.id)">{{$t('viewDetails')}}</el-button>
                     </p>
                   </el-alert>
@@ -334,8 +334,8 @@
                     <span v-if="step.info">{{step.info.node_info || $t('unknow')}}</span>
                     <br />
                   </div>
-                  <div class="sub-tasks" v-if="'sub_tasks' in step && step.sub_tasks && step.sub_tasks.length > 0">
-                    <ul v-for="sub in step.sub_tasks" :key="sub.id">
+                  <div class="sub-tasks" v-if="'sub_stages' in step && step.sub_stages && step.sub_stages.length > 0">
+                    <ul v-for="sub in step.sub_stages" :key="sub.id">
                       <li>
                         <span :class="[step.step_status === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
                         <span class="sub-tasks-name">{{getSubTasksName(sub.name)}}</span>
@@ -412,7 +412,7 @@
         <el-button type="primary" @click="closeSegmentDetail">{{$t('kylinLang.common.IKnow')}}</el-button>
       </span>
     </el-dialog>
-    <job-error-detail v-if="showErrorDetails" />
+    <job-error-detail v-if="showErrorDetails" @close="showErrorDetails = false" :currentErrorJob="currentErrorJob"/>
   </div>
   </div>
 </template>
@@ -512,6 +512,7 @@ export default class JobsList extends Vue {
   segmentDetails = {}
   expandSegmentDetailId = ''
   currentJobStatus = ''
+  currentErrorJob = {}
   waittingJobsFilter = {
     offset: 0,
     limit: 10
@@ -573,15 +574,15 @@ export default class JobsList extends Vue {
   }
 
   getSegmentStatusLen (step, type) {
-    const { segment_sub_tasks } = step
-    const segmentTasks = Object.values(segment_sub_tasks)
+    const { segment_sub_stages } = step
+    const segmentTasks = Object.values(segment_sub_stages)
     switch (type) {
       case 'FINISHED':
-        return segmentTasks.filter(it => it.logic_step.length === it.logic_step.filter(item => item.step_status === 'FINISHED').length).length
+        return segmentTasks.filter(it => it.stage.length === it.stage.filter(item => item.step_status === 'FINISHED').length).length
       case 'PENDING':
-        return segmentTasks.filter(it => it.logic_step.length === it.logic_step.filter(item => item.step_status === 'PENDING').length).length
+        return segmentTasks.filter(it => it.stage.length === it.stage.filter(item => item.step_status === 'PENDING').length).length
       case 'RUNNING':
-        return segmentTasks.filter(it => it.logic_step.filter(item => item.step_status === 'RUNNING').length > 0).length
+        return segmentTasks.filter(it => it.stage.filter(item => item.step_status === 'RUNNING').length > 0).length
       default:
         return ''
     }
@@ -637,35 +638,6 @@ export default class JobsList extends Vue {
     }
   }
 
-  // 获取子步骤名称
-  // getSubTasksName (name) {
-  //   const subTaskNameMap = {
-  //     'Waiting for yarn resource': this.$t('waitingYarnResource'),
-  //     'Build or refresh snapshot': this.$t('buildOrRefreshSnapshot'),
-  //     'Materialize fact table view': this.$t('materializeFactTableView'),
-  //     'Generate global dictionary': this.$t('generateGlobalDict'),
-  //     'Generate flat table': this.$t('generateFlatTable'),
-  //     'Save flat table': this.$t('saveFlatTable'),
-  //     'Get flat table statistics': this.$t('getFlatTableStatistics'),
-  //     'Generate global dictionary of computed columns': this.$t('generateDictOfCC'),
-  //     'Merge flat table': this.$t('mergeFlatTable'),
-  //     'Merge indexes': this.$t('mergeIndexes'),
-  //     'Merge flat table statistics': this.$t('mergeFlatTableStatistics')
-  //   }
-  //   return subTaskNameMap[name]
-  // }
-
-  // 获取子步骤状态显示
-  // getSubTaskStatus (subTask) {
-  //   const statusType = {
-  //     'FINISHED': 'sub-tasks-status is-finished',
-  //     'RUNNING': 'running el-icon-loading',
-  //     'PENDING': 'sub-tasks-status is-pending',
-  //     'ERROR': 'sub-tasks-status is-error'
-  //   }
-  //   return statusType[subTask.step_status]
-  // }
-
   // 展示任务参数
   showJobParams (step) {
     const { job_params } = step.info
@@ -693,17 +665,6 @@ export default class JobsList extends Vue {
       return
     }
   }
-
-  // 格式化时间 Xh Xm
-  // formatTime (time) {
-  //   if (time < 0.01 * 60 * 1000) {
-  //     return '< 0.01m'
-  //   } else {
-  //     const hour = Math.floor(time / 1000 / 60 / 60)
-  //     const minutes = Vue.filter('number')((time - hour * 60 * 60 * 1000) / 1000 / 60, 2)
-  //     return hour > 0 ? `${hour}h ${minutes}m` : `${minutes}m`
-  //   }
-  // }
 
   getTargetSubject (row) {
     if (row.target_subject === 'The snapshot is deleted') {
@@ -833,7 +794,7 @@ export default class JobsList extends Vue {
                 this.getJobDetail({project: this.selectedJob.project, job_id: this.selectedJob.id}).then((res) => {
                   handleSuccess(res, (data) => {
                     this.selectedJob = this.jobsList[selectedIndex]
-                    this.selectedJob['details'] = data.map(item => ({...item, sub_tasks: item.sub_tasks && item.sub_tasks.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_tasks) : item.sub_tasks}))
+                    this.selectedJob['details'] = data.map(item => ({...item, sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages}))
                     if (this.expandSegmentDetailId) {
                       const jobDetail = data.filter(it => it.id === this.expandSegmentDetailId)
                       const detail = this.definitionStopErrorStatus(jobDetail[0])
@@ -890,35 +851,18 @@ export default class JobsList extends Vue {
 
   // segment 步骤详情状态处理
   definitionStopErrorStatus (steps) {
-    const segmentSteps = steps.segment_sub_tasks
-    const hasErrorSegments = Object.keys(segmentSteps).filter(it => segmentSteps[it].logic_step.filter(item => item.step_status === 'ERROR').length > 0)
+    const segmentSteps = steps.segment_sub_stages
+    const hasErrorSegments = Object.keys(segmentSteps).filter(it => segmentSteps[it].stage.filter(item => item.step_status === 'ERROR').length > 0)
     if (hasErrorSegments.length) {
       Object.keys(segmentSteps).forEach(seg => {
-        if (!hasErrorSegments.includes(seg)) {
-          segmentSteps[seg].logic_step = segmentSteps[seg].logic_step.map(it => ({...it, step_status: it.step_status !== 'FINISHED' ? 'ERROR_STOP' : it.step_status}))
-        }
+        // if (!hasErrorSegments.includes(seg)) {
+        segmentSteps[seg].stage = segmentSteps[seg].stage.map(it => ({...it, step_status: it.step_status !== 'FINISHED' ? 'ERROR_STOP' : it.step_status}))
+        // }
       })
     }
     return segmentSteps
   }
 
-  // getWaittingJobModels () {
-  //   return new Promise((resolve, reject) => {
-  //     if (!this.currentSelectedProject) return reject()
-  //     this.waitingFilter.project = this.filter.project
-  //     this.losdWaittingJobModels(this.waitingFilter).then((res) => {
-  //       handleSuccess(res, (data) => {
-  //         this.$nextTick(() => {
-  //           this.waittingJobModels = data
-  //         })
-  //         resolve()
-  //       })
-  //     }, (res) => {
-  //       handleError(res)
-  //       reject()
-  //     })
-  //   })
-  // }
   get getJobStatusTag () {
     if (this.selectedJob.job_status === 'PENDING') {
       return 'gray'
@@ -1394,7 +1338,7 @@ export default class JobsList extends Vue {
       this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
-            this.$set(this.selectedJob, 'details', data.map(item => ({...item, sub_tasks: item.sub_tasks && item.sub_tasks.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_tasks) : item.sub_tasks})))
+            this.$set(this.selectedJob, 'details', data.map(item => ({...item, sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages})))
             this.isShowJobBtn()
             // this.setRightBarTop()
           })
@@ -1464,6 +1408,11 @@ export default class JobsList extends Vue {
   showDiagnosisDetail (id) {
     this.diagnosticId = id
     this.showDiagnostic = true
+  }
+  // 显示错误详情
+  viewErrorDetails (step) {
+    this.showErrorDetails = true
+    this.currentErrorJob = step
   }
 }
 </script>

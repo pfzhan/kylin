@@ -558,7 +558,8 @@ import { NamedRegex, columnTypeIcon } from '../../../../config'
   },
   methods: {
     ...mapMutations({
-      clearDatasourceCache: 'CLEAR_DATASOURCE_CACHE'
+      clearDatasourceCache: 'CLEAR_DATASOURCE_CACHE',
+      resetOtherColumns: 'RESET_OTHER_COLUMNS'
     }),
     ...mapActions({
       getModelByModelName: 'LOAD_MODEL_INFO',
@@ -978,6 +979,7 @@ export default class ModelEdit extends Vue {
             this.modelData = data.value[0]
             this.modelData.project = this.currentSelectedProject
             this.modelData.anti_flatten_lookups = []
+            this.resetOtherColumns()
             cb(this.modelData)
           } else {
             kapMessage(this.$t('modelDataNullTip'), {type: 'warning'})
@@ -2202,6 +2204,7 @@ export default class ModelEdit extends Vue {
       }
       .el-button+.el-button {
         margin-left:5px;
+        color: @fff;
       }
     }
     div.action {

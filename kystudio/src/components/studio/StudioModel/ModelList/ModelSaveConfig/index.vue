@@ -294,8 +294,14 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
       isChangeModelLayout: state => state.form.isChangeModelLayout,
       callback: state => state.callback
     }),
-    ...mapState('DimensionsModal', {
-      otherColumns: state => state.otherColumns
+    // ...mapState('DimensionsModal', {
+    //   otherColumns: state => state.otherColumns
+    // }),
+    // ...mapState('BatchMeasureModal', {
+    //   otherMeasureColumns: state => state.otherColumns
+    // }),
+    ...mapState({
+      otherColumns: state => state.model.otherColumns
     })
   },
   methods: {

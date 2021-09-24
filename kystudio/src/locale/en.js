@@ -90,7 +90,7 @@ exports.default = {
     userOrGroup: 'User/Group',
     all: 'All models',
     license: 'License',
-    IKnow: 'I Know',
+    IKnow: 'Got it',
     contactTech: 'Contact Tech Support',
     next: 'Next',
     prev: 'Prev',

@@ -212,6 +212,9 @@ vuex.registerModule(['modals', 'BatchMeasureModal'], store)
       tables: state => objectClone(state.modelDesc && state.modelDesc.tables),
       usedColumns: state => state.modelDesc.all_measures,
       callback: state => state.callback
+    }),
+    ...mapState({
+      otherColumns: state => state.model.otherColumns
     })
   },
   methods: {
@@ -221,6 +224,9 @@ vuex.registerModule(['modals', 'BatchMeasureModal'], store)
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,
       resetModalForm: types.RESET_MODAL_FORM
+    }),
+    ...mapMutations({
+      collectOtherColumns: 'COLLECT_OTHER_COLUMNS'
     })
   },
   locales
@@ -279,7 +285,7 @@ export default class BatchMeasureModal extends Vue {
         if (column.SUM.value && !column.SUM.isShouldDisable) {
           // 如果存在同名的，添加上表别名，如果不同名，就是列名+函数
           const measure = {
-            name: this.checkHasSameName(allMeasureArr, column.name + '_SUM', column) ? column.name + '_SUM_' + column.table_alias : column.name + '_SUM',
+            name: this.checkHasSameName(allMeasureArr, column.name, column) ? column.name + column.table_alias : column.name,
             guid: sampleGuid(),
             expression: 'SUM',
             parameter_value: [{type: 'column', value: column.table_alias + '.' + column.column}],
@@ -321,8 +327,21 @@ export default class BatchMeasureModal extends Vue {
     })
     this.$set(this.modelDesc, 'all_measures', allMeasureArr)
     this.$emit('betchMeasures', allMeasureArr)
+    this.collectOtherColumns(this.getOtherColumns(columns))
     this.handleClose(true)
   }
+
+  // 整理没有选中做 measures 的列，同步注释时要用到
+  getOtherColumns (columns) {
+    let result = []
+    columns.forEach((col) => {
+      if (!col.isMeasureCol) {
+        result.push({ name: col.name, column: `${col.table_alias}.${col.column}`, datatype: col.datatype })
+      }
+    })
+    return result
+  }
+
   handleClose (isSubmit, data) {
     this.hideModal()
     this.syncComment = false
@@ -512,13 +531,24 @@ export default class BatchMeasureModal extends Vue {
           this.$set(col, 'table_guid', table.guid)
           this.$set(col, 'table_alias', table.alias)
           const len = this.usedColumns.length
+          const selectedColumns = this.usedColumns.filter(it => this.expressions.indexOf(it.expression) !== -1).map(item => item.parameter_value[0].value)
+          let others = this.otherColumns.length ? this.otherColumns : this.modelDesc.all_named_columns.filter(item => !selectedColumns.includes(item.column))
           for (let i = 0; i < len; i++) {
             let d = this.usedColumns[i]
-            if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === table.alias + '.' + col.name) {
+            if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === table.alias + '.' + col.column) {
+              let regxt = new RegExp(`\\_${d.expression}$`)
+              let name = d.name.trim() ? d.name.replace(regxt, '') : col.name
               col[d.expression].value = true
               col[d.expression].isShouldDisable = true
               this.$set(col, 'isMeasureCol', true)
+              this.$set(col, 'name', name)
               nums[d.expression.toLowerCase() + 'Num']++
+            }
+          }
+          for (let it of others) {
+            if (`${col.table_alias}.${col.column}` === it.column && !selectedColumns.includes(it.column)) {
+              this.$set(col, 'name', it.name.trim() ? it.name : col.column)
+              break
             }
           }
           if (measureSumAndTopNDataType.indexOf(returnValue[1]) === -1) {
@@ -654,28 +684,22 @@ export default class BatchMeasureModal extends Vue {
   changeSyncName () {
     this.factTable.forEach((item, index) => {
       item.columns.forEach((it, idx) => {
-        // const { COUNT, MAX, MIN, SUM } = it
-        // if (COUNT.value || MAX.value || MIN.value || SUM.value) {
         if (!this.syncComment) {
-          it.name = it.comment ? it.comment.slice(0, 100) : it.name
+          it.name = it.comment && it.comment.trim() ? it.comment.slice(0, 100) : it.name
         } else {
-          it.name = it.column || ''
+          this.usedColumns.filter(useColumn => this.expressions.indexOf(useColumn.expression) !== -1 && useColumn.parameter_value[0].value === item.alias + '.' + it.column).length === 0 && (it.name = it.column || '')
         }
         this.$set(this.factTable[index].columns[idx], 'name', it.name)
-        // }
       })
     })
     this.lookupTable.forEach((item, index) => {
       item.columns.forEach((it, idx) => {
-        // const { COUNT, MAX, MIN, SUM } = it
-        // if (COUNT.value || MAX.value || MIN.value || SUM.value) {
         if (!this.syncComment) {
-          it.name = it.comment ? it.comment.slice(0, 100) : it.name
+          it.name = it.comment && it.comment.trim() ? it.comment.slice(0, 100) : it.name
         } else {
-          it.name = it.column || ''
+          this.usedColumns.filter(useColumn => this.expressions.indexOf(useColumn.expression) !== -1 && useColumn.parameter_value[0].value === item.alias + '.' + it.column).length === 0 && (it.name = it.column || '')
         }
         this.$set(this.lookupTable[index].columns[idx], 'name', it.name)
-        // }
       })
     })
     this.syncComment = !this.syncComment
