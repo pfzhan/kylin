@@ -30,6 +30,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -37,11 +38,15 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import lombok.val;
 import lombok.var;
+import org.junit.rules.ExpectedException;
 
 public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
     public static final String PROJECT = "streaming_test";
     private static String MODEL_ID = "e78a89dd-847f-4574-8afa-8768b4228b73";
     private static String DATAFLOW_ID = MODEL_ID;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -107,15 +112,21 @@ public class StreamingUtilsTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(10 * 1024 * 1024 * 1024L, ten_g);
         val ten_gb = StreamingUtils.parseSize("10gb").longValue();
         Assert.assertEquals(10 * 1024 * 1024 * 1024L, ten_gb);
+        thrown.expect(IllegalArgumentException.class);
+        StreamingUtils.parseSize("3t");
     }
 
     @Test
-    public void testParseException() {
-        try {
-            StreamingUtils.parseSize("10z");
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof IllegalArgumentException);
-        }
+    public void testParseTableRefreshInterval() {
+        Assert.assertEquals(-1L, StreamingUtils.parseTableRefreshInterval(null).longValue());
+        Assert.assertEquals(-1L, StreamingUtils.parseTableRefreshInterval(" ").longValue());
+
+        Assert.assertEquals(30L, StreamingUtils.parseTableRefreshInterval("30m").longValue());
+        Assert.assertEquals(2 * 60L, StreamingUtils.parseTableRefreshInterval("2h").longValue());
+        Assert.assertEquals(3 * 24 * 60L, StreamingUtils.parseTableRefreshInterval("3d").longValue());
+
+        thrown.expect(IllegalArgumentException.class);
+        StreamingUtils.parseTableRefreshInterval("3t");
     }
 
     @Test

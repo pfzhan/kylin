@@ -66,7 +66,10 @@ public class StreamingConstants {
     public static final String STREAMING_CONFIG_PREFIX = "kylin.streaming.spark-conf.";
     public static final String STREAMING_DURATION_DEFAULT = "30";
     public static final String FILE_LAYER = "file_layer";
+    public static final String ACTION_START = "START";
+    public static final String ACTION_GRACEFUL_SHUTDOWN = "GRACEFUL_SHUTDOWN";
 
+    // watermark
     public static final String STREAMING_WATERMARK = "kylin.streaming.watermark";
     public static final String STREAMING_WATERMARK_DEFAULT = KylinConfig.getInstanceFromEnv()
             .getStreamingJobWatermark();
@@ -87,7 +90,7 @@ public class StreamingConstants {
     // retry
     public static final String STREAMING_RETRY_ENABLE = "kylin.streaming.job-retry-enabled";
 
-    public static final String ACTION_START = "START";
-    public static final String ACTION_GRACEFUL_SHUTDOWN = "GRACEFUL_SHUTDOWN";
+    // dimension table refresh conf
+    public static final String STREAMING_TABLE_REFRESH_INTERVAL = "kylin.streaming.table-refresh-interval";
 
 }

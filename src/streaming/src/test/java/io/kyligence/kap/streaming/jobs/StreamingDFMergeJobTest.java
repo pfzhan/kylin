@@ -29,10 +29,8 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
@@ -57,7 +55,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.source.kafka.NSparkKafkaSource;
 import io.kyligence.kap.streaming.CreateStreamingFlatTable;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
@@ -87,25 +84,13 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         this.cleanupTestMetadata();
     }
 
-
     @Test
     public void testStreamingMergeSegment() {
         val config = KylinConfig.getInstanceFromEnv();
         KylinBuildEnv.getOrCreate(config);
 
-        val source = (NSparkKafkaSource)SourceFactory.getSource(new ISourceAware() {
-
-            @Override
-            public int getSourceType() {
-                return 1;
-            }
-
-            @Override
-            public KylinConfig getConfig() {
-                return config;
-            }
-        });
-        source.enableMemoryStream(true);
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
 
         val dfMgr = NDataflowManager.getInstance(config, PROJECT);
@@ -132,8 +117,8 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         val streamingEntry = new StreamingEntry(new String[] { PROJECT, DATAFLOW_ID, "1000", "" });
         streamingEntry.setSparkSession(ss);
         val sr1 = createSegmentRange(0L, 10L, 3, 100L, 200);
-        val microBatchEntry = new MicroBatchEntry(dataset, 0, "SSB_TOPIC_0_DOT_0_LO_PARTITIONCOLUMN", flatTable,
-                df, nSpanningTree, builder, sr1);
+        val microBatchEntry = new MicroBatchEntry(dataset, 0, "SSB_TOPIC_0_DOT_0_LO_PARTITIONCOLUMN", flatTable, df,
+                nSpanningTree, builder, sr1);
         val minMaxBuffer = new ArrayBuffer<Tuple2<Object, Object>>(1);
         streamingEntry.processMicroBatch(microBatchEntry, minMaxBuffer);
         df = dfMgr.getDataflow(DATAFLOW_ID);
@@ -164,12 +149,13 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
         df = dfMgr.getDataflow(df.getId());
         val merger = new StreamingDFMergeJob();
         KylinBuildEnv.getOrCreate(config);
-        try{
+        try {
             merger.streamingMergeSegment(mergeJobEntry);
             Assert.assertEquals(100L, mergeJobEntry.afterMergeSegmentSourceCount());
             Assert.assertEquals(5, df.getSegments().size());
-            Assert.assertEquals("1", df.getSegment(mergeJobEntry.afterMergeSegment().getId()).getAdditionalInfo().get("file_layer"));
-        }catch (Exception e) {
+            Assert.assertEquals("1",
+                    df.getSegment(mergeJobEntry.afterMergeSegment().getId()).getAdditionalInfo().get("file_layer"));
+        } catch (Exception e) {
             logger.error(e.getMessage(), e);
 
         }
@@ -187,7 +173,8 @@ public class StreamingDFMergeJobTest extends StreamingTestCase {
             return df.getSegment(seg.getId());
         }).collect(Collectors.toList());
         val globalMergeTime = new AtomicLong(System.currentTimeMillis());
-        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), 100L, globalMergeTime, updatedSegments, afterMergeSeg);
+        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), 100L, globalMergeTime, updatedSegments,
+                afterMergeSeg);
         return mergeJobEntry;
     }
 

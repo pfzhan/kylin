@@ -229,7 +229,7 @@ public abstract class StreamingApplication {
     }
 
     protected void closeSparkSession() {
-        if (isJobOnCluster() && !ss.sparkContext().isStopped()) {
+        if (!StreamingUtils.isLocalMode() && !ss.sparkContext().isStopped()) {
             ss.stop();
         }
     }

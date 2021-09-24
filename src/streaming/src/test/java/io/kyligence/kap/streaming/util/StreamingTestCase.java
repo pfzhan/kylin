@@ -28,10 +28,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import com.google.common.cache.Cache;
+import io.kyligence.kap.source.kafka.NSparkKafkaSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.source.ISource;
+import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.SparkSession;
 import org.junit.Assert;
 
@@ -163,5 +168,24 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
                 createKafkaPartitionsOffset(partitions, partitionStartOffset),
                 createKafkaPartitionsOffset(partitions, partitionEndOffset));
         return rangeToMerge;
+    }
+
+    public NSparkKafkaSource createSparkKafkaSource(KylinConfig config) {
+        val sourceAware= new ISourceAware() {
+            @Override
+            public int getSourceType() {
+                return 1;
+            }
+
+            @Override
+            public KylinConfig getConfig() {
+                return config;
+            }
+        };
+        val cache= (Cache<String, ISource>)ReflectionUtils.getField(SourceFactory.class, "sourceMap");
+        cache.cleanUp();
+        val source = (NSparkKafkaSource) SourceFactory.getSource(sourceAware);
+        assert source.supportBuildSnapShotByPartition();
+        return source;
     }
 }

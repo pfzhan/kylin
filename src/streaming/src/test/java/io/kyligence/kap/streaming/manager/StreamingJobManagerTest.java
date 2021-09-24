@@ -165,7 +165,7 @@ public class StreamingJobManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testListAllStreamingJobMeta() {
         val lists = mgr.listAllStreamingJobMeta();
-        Assert.assertEquals(10, lists.size());
+        Assert.assertEquals(11, lists.size());
     }
 
     private NDataModel mockModel(String uuid) {

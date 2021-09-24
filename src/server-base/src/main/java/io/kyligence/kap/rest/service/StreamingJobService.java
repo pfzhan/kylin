@@ -84,6 +84,7 @@ import io.kyligence.kap.rest.request.StreamingJobFilter;
 import io.kyligence.kap.rest.response.StreamingJobDataStatsResponse;
 import io.kyligence.kap.rest.response.StreamingJobResponse;
 import io.kyligence.kap.rest.util.ModelUtils;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
 import io.kyligence.kap.streaming.jobs.scheduler.StreamingScheduler;
 import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
@@ -144,12 +145,22 @@ public class StreamingJobService extends BasicService {
 
     public void updateStreamingJobParams(String project, String jobId, Map<String, String> params) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkJobParams(params);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val config = KylinConfig.getInstanceFromEnv();
             StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
             mgr.updateStreamingJob(jobId, copyForWrite -> copyForWrite.setParams(params));
             return null;
         }, project);
+    }
+
+    private void checkJobParams(Map<String, String> params) {
+        val tableRefreshInterval = params.get(StreamingConstants.STREAMING_TABLE_REFRESH_INTERVAL);
+        try {
+            StreamingUtils.parseTableRefreshInterval(tableRefreshInterval);
+        } catch (Exception e) {
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getINVALID_CUSTOMIZE_FORMAT());
+        }
     }
 
     public void updateStreamingJobStatus(String project, List<String> jobIds, String action) {
@@ -323,6 +334,9 @@ public class StreamingJobService extends BasicService {
 
     public DataResult<List<StreamingJobResponse>> getStreamingJobList(StreamingJobFilter jobFilter, int offset,
             int limit) {
+        if (!StringUtils.isEmpty(jobFilter.getProject())) {
+            aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
+        }
         List<StreamingJobMeta> list = getAllStreamingJobs(jobFilter.getProject());
 
         List<String> jobIdList = list.stream().filter(item -> JobTypeEnum.STREAMING_BUILD == item.getJobType())

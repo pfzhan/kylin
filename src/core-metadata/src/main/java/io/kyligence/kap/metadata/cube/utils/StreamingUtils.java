@@ -28,10 +28,12 @@ import java.lang.management.ManagementFactory;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
@@ -103,6 +105,21 @@ public class StreamingUtils {
             return size * 1024 * 1024 * 1024;
         } else {
             throw new IllegalArgumentException("Size unit must be k/kb, m/mb or g/gb...");
+        }
+    }
+
+    public static Long parseTableRefreshInterval(String inputInterval) {
+        if (inputInterval == null || "".equals(inputInterval.trim())) {
+            inputInterval = "-1m";
+        }
+        if (inputInterval.endsWith("m")) {
+            return TimeUtil.timeStringAs(inputInterval, TimeUnit.MINUTES);
+        } else if (inputInterval.endsWith("h")) {
+            return 60 * TimeUtil.timeStringAs(inputInterval, TimeUnit.HOURS);
+        } else if (inputInterval.endsWith("d")) {
+            return 24 * 60 * TimeUtil.timeStringAs(inputInterval, TimeUnit.DAYS);
+        } else {
+            throw new IllegalArgumentException("Dimension table refresh interval unit must be m, h or d...");
         }
     }
 

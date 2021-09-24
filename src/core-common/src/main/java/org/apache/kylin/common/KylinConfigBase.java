@@ -1422,6 +1422,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.streaming.kafka-conf.");
     }
 
+    public String getStreamingTableRefreshInterval() {
+        return getOptional("kylin.streaming.table-refresh-interval");
+    }
+
     public long getStreamingJobShutdownTimeout() {
         return TimeUtil.timeStringAs(getOptional("kylin.streaming.shutdown-timeout", "0m"), TimeUnit.MINUTES);
     }

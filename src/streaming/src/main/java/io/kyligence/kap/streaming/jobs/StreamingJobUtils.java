@@ -38,6 +38,7 @@ import java.util.Map;
 
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_CONFIG_PREFIX;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_KAFKA_CONFIG_PREFIX;
+import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_TABLE_REFRESH_INTERVAL;
 
 @Slf4j
 public class StreamingJobUtils {
@@ -77,6 +78,11 @@ public class StreamingJobUtils {
         ).forEach(entry -> {
             streamingJobOverrides.put(entry.getKey(), entry.getValue());
         });
+
+        //load dimension table refresh conf
+        jobParams.entrySet().stream().filter(entry ->
+                entry.getKey().equals(STREAMING_TABLE_REFRESH_INTERVAL)
+        ).forEach(entry -> streamingJobOverrides.put(entry.getKey(), entry.getValue()));
 
         //load spark.*
         jobParams.entrySet().stream().filter(entry ->

@@ -22,20 +22,15 @@
 
 package io.kyligence.kap.streaming
 
-import java.sql.{Date, Timestamp}
-import java.util.Locale
-
-import com.google.gson.JsonParser
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.{CreateFlatTable, NBuildSourceInfo}
 import io.kyligence.kap.engine.spark.job.{FlatTableHelper, NSparkCubingUtil}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils
 import io.kyligence.kap.metadata.model.NDataModel
-import org.apache.commons.lang.time.DateUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
@@ -43,7 +38,6 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
-import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -60,6 +54,9 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
 
   private val MAX_OFFSETS_PER_TRIGGER = "maxOffsetsPerTrigger"
   private val STARTING_OFFSETS = "startingOffsets"
+  var lookupTablesGlobal: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = null
+  var factTableDataset: Dataset[Row] = null
+  var tableRefreshInterval = -1L
 
   def generateStreamingDataset(config: KylinConfig): Dataset[Row] = {
     val model = flatTable.getDataModel
@@ -93,7 +90,7 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
       CreateStreamingFlatTable.castDF(originFactTable, schema).alias(model.getRootFactTable.getAlias),
       model.getRootFactTable.getAlias)
 
-    val factTable =
+    factTableDataset =
       if (!StringUtils.isEmpty(watermark)) {
         import org.apache.spark.sql.functions._
         val cols = model.getRootFactTable.getColumns.asScala.map(item => {
@@ -103,15 +100,26 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
       } else {
         rootFactTable
       }
+    tableRefreshInterval = StreamingUtils.parseTableRefreshInterval(config.getStreamingTableRefreshInterval())
+    loadLookupTables()
+    joinFactTableWithLookupTables(factTableDataset, lookupTablesGlobal, model, ss)
+  }
 
-    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-    val cleanLookupCC = cleanComputColumn(ccCols.toSeq, factTable.columns.toSet)
-    val lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
+  def loadLookupTables(): Unit = {
+    val ccCols = model().getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
+    val cleanLookupCC = cleanComputColumn(ccCols.toSeq, factTableDataset.columns.toSet)
+    lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
     lookupTablesGlobal.foreach { case (_, df) =>
       df.persist(StorageLevel.MEMORY_AND_DISK)
     }
+  }
 
-    joinFactTableWithLookupTables(factTable, lookupTablesGlobal, model, ss)
+  def shouldRefreshTable(): Boolean = {
+    tableRefreshInterval > 0
+  }
+
+  def model(): NDataModel = {
+    flatTable.getDataModel
   }
 
   def encodeStreamingDataset(seg: NDataSegment, model: NDataModel, batchDataset: Dataset[Row]): Dataset[Row] = {
@@ -148,70 +156,4 @@ object CreateStreamingFlatTable {
         newRows.filter(row => row.size == parsedSchema.length)
       }(RowEncoder(parsedSchema))
   }
-}
-
-class PartitionRowIterator(iter: Iterator[Row], parsedSchema: StructType) extends Iterator[Row] {
-  val logger = LoggerFactory.getLogger(classOf[PartitionRowIterator])
-
-  val EMPTY_ROW = Row()
-
-  val DATE_PATTERN = Array[String](DateFormat.COMPACT_DATE_PATTERN,
-    DateFormat.DEFAULT_DATE_PATTERN,
-    DateFormat.DEFAULT_DATE_PATTERN_WITH_SLASH,
-    DateFormat.DEFAULT_DATE_PATTERN_WITH_SLASH,
-    DateFormat.DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS,
-    DateFormat.DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS)
-
-  def hasNext: Boolean = {
-    iter.hasNext
-  }
-
-  def next: Row = {
-    val csvString = iter.next.get(0)
-    val parser = new JsonParser()
-    if (csvString == null || StringUtils.isEmpty(csvString.toString)) {
-      EMPTY_ROW
-    } else {
-      try {
-        convertJson2Row(csvString.toString(), parser)
-      } catch {
-        case e: Exception =>
-          logger.error(s"parse json text fail ${e.toString}  stackTrace is: " +
-            s"${e.getStackTrace.toString} line is: ${csvString}")
-          EMPTY_ROW
-      }
-    }
-  }
-
-  def convertJson2Row(jsonStr: String, parser: JsonParser): Row = {
-    val jsonMap = new mutable.HashMap[String, String]()
-    val jsonObj = parser.parse(jsonStr).getAsJsonObject
-    val entries = jsonObj.entrySet().asScala
-    entries.foreach { entry =>
-      jsonMap.put(entry.getKey.toLowerCase(Locale.ROOT), entry.getValue.getAsString)
-    }
-    Row((0 to parsedSchema.fields.length - 1).map { index =>
-      val colName = parsedSchema.fields(index).name.toLowerCase(Locale.ROOT)
-      if (!jsonMap.contains(colName)) { // key not exist
-        null
-      } else {
-        val value = jsonMap.get(colName).getOrElse(null) // value not exist
-        parsedSchema.fields(index).dataType match {
-          case ShortType => if (value == null || value.equals("")) null else value.toShort
-          case IntegerType => if (value == null || value.equals("")) null else value.toInt
-          case LongType => if (value == null || value.equals("")) null else value.toLong
-          case DoubleType => if (value == null || value.equals("")) null else value.toDouble
-          case FloatType => if (value == null || value.equals("")) null else value.toFloat
-          case BooleanType => if (value == null || value.equals("")) null else value.toBoolean
-          case TimestampType => if (value == null || value.equals("")) null
-          else new Timestamp(DateUtils.parseDate(value, DATE_PATTERN).getTime)
-          case DateType => if (value == null || value.equals("")) null
-          else new Date(DateUtils.parseDate(value, DATE_PATTERN).getTime)
-          case DecimalType() => if (StringUtils.isEmpty(value)) null else BigDecimal(value)
-          case _ => value
-        }
-      }
-    }: _*)
-  }
-
 }

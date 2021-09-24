@@ -173,7 +173,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(10, list.getTotalSize());
+        Assert.assertEquals(11, list.getTotalSize());
         Assert.assertTrue(!list.getValue().get(0).isModelBroken());
         Assert.assertNotNull(list.getValue().get(0).getPartitionDesc());
 
@@ -202,7 +202,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Arrays.asList("STREAMING_BUILD"),
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(5, list.getValue().size());
+        Assert.assertEquals(6, list.getValue().size());
 
         // status filter
         val config = getTestConfig();
@@ -237,7 +237,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 "", "last_modified", true);
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 4);
-        Assert.assertEquals(10, list.getTotalSize());
+        Assert.assertEquals(11, list.getTotalSize());
         Assert.assertEquals(4, list.getValue().size());
 
         // offset filter
@@ -266,9 +266,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
-        Assert.assertEquals(10, list.getTotalSize());
-        Assert.assertEquals("model_streaming", list.getValue().get(2).getModelName());
-        Assert.assertEquals(4, list.getValue().get(2).getModelIndexes().intValue());
+        Assert.assertEquals(11, list.getTotalSize());
+        Assert.assertEquals("model_streaming", list.getValue().get(3).getModelName());
+        Assert.assertEquals(4, list.getValue().get(3).getModelIndexes().intValue());
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4, mgr.getIndexPlan("4965c827-fbb4-4ea1-a744-3f341a3b030d").getAllLayouts().size());
         Assert.assertEquals(4, mgr.getIndexPlan("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getAllLayouts().size());
@@ -489,7 +489,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val newSeg = df.getSegment(newSegId);
         Assert.assertEquals(newSegId, newSeg.getId());
         Assert.assertNull(newSeg.getAdditionalInfo().get(StreamingConstants.FILE_LAYER));
-        val segId =streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, null, newSegId);
+        val segId = streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, null, newSegId);
         Assert.assertEquals(StringUtils.EMPTY, segId);
 
     }
@@ -521,7 +521,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         StreamingSegmentRequest request = new StreamingSegmentRequest(PROJECT, dataflowId, 200L);
         request.setStatus("ONLINE");
-        streamingJobService.updateSegment(request.getProject(), request.getDataflowId(), segId, null, request.getStatus(), request.getSourceCount());
+        streamingJobService.updateSegment(request.getProject(), request.getDataflowId(), segId, null,
+                request.getStatus(), request.getSourceCount());
         NDataflow df2 = mgr.getDataflow(request.getDataflowId());
         val seg2 = df2.getSegment(segId);
         Assert.assertEquals(200L, seg2.getSourceCount());
@@ -529,7 +530,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         StreamingSegmentRequest request2 = new StreamingSegmentRequest(PROJECT, dataflowId);
         request2.setStatus("ONLINE");
-        streamingJobService.updateSegment(request2.getProject(), request2.getDataflowId(), segId, null, request2.getStatus(), request2.getSourceCount());
+        streamingJobService.updateSegment(request2.getProject(), request2.getDataflowId(), segId, null,
+                request2.getStatus(), request2.getSourceCount());
         NDataflow df3 = mgr.getDataflow(request2.getDataflowId());
         val seg3 = df3.getSegment(segId);
         Assert.assertEquals(200L, seg3.getSourceCount());
@@ -589,9 +591,9 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val jobId = "e78a89dd-847f-4574-8afa-8768b4228b72_build";
         Mockito.when(streamingJobService.getStreamingJobStatsManager()).thenReturn(null);
         val req = new StreamingJobStatsRequest(jobId, PROJECT, 123L, 123.2, 42L, 30L, 50L, 60L);
-        try{
+        try {
             streamingJobService.collectStreamingJobStats(req);
-        }catch (Exception e) {
+        } catch (Exception e) {
             Assert.fail();
         }
     }
@@ -776,8 +778,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         String sampleLog = "";
         try (InputStream inputStream = streamingJobService.getStreamingJobAllLog(project, jobId);
-             BufferedReader reader = new BufferedReader(
-                     new InputStreamReader(inputStream, Charset.defaultCharset()))) {
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(inputStream, Charset.defaultCharset()))) {
             String line;
             StringBuilder sampleData = new StringBuilder();
             while ((line = reader.readLine()) != null) {

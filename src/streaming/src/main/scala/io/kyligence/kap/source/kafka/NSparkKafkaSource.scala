@@ -26,19 +26,21 @@ import java.util.concurrent.ArrayBlockingQueue
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.source.NSparkMetadataExplorer
-import io.kyligence.kap.source.kafka.util.KafkaClient
 import org.apache.commons.lang.StringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.{IBuildable, SegmentRange, TableDesc}
 import org.apache.kylin.source.{IReadableTable, ISampleDataDeployer, ISource, ISourceMetadataExplorer}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
+import scala.io.Source
+
 
 class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
-  private val event = new ArrayBlockingQueue[String](1000)
-
+  private val textFileQueue = new ArrayBlockingQueue[String](1000)
+  private var msEvents: MemoryStream[Row] = null
   private var memoryStreamEnabled = false
 
   // scalastyle:off
@@ -57,11 +59,18 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
     if (engineInterface eq classOf[NSparkCubingEngine.NSparkCubingSource]) {
       val source = new NSparkCubingEngine.NSparkCubingSource() {
         override def getSourceData(table: TableDesc, ss: SparkSession, parameters: Map[String, String]): Dataset[Row] = {
-          if (KylinConfig.getInstanceFromEnv.isUTEnv && memoryStreamEnabled) {
+          if (KylinConfig.getInstanceFromEnv.isUTEnv) {
             val schema = new StructType().add("value", StringType)
-            val rdd = ss.read.text(event.take()).rdd
-            val dataframe = ss.createDataFrame(rdd, schema)
-            dataframe.as[Row](RowEncoder(schema))
+            if (memoryStreamEnabled) {
+              msEvents = MemoryStream[Row](1)(RowEncoder(schema), ss.sqlContext)
+              val text = Source.fromFile(textFileQueue.take())
+              msEvents.addData(Row(text.getLines().mkString))
+              msEvents.toDS()
+            } else {
+              val rdd = ss.read.text(textFileQueue.take()).rdd
+              val dataframe = ss.createDataFrame(rdd, schema)
+              dataframe.as[Row](RowEncoder(schema))
+            }
           } else {
             ss.readStream.format("kafka").options(parameters).load()
           }
@@ -75,19 +84,26 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
   /**
    * Return a ReadableTable that can iterate through the rows of given table.
    */
-  override def createReadableTable(tableDesc: TableDesc): IReadableTable = ???
+  override def createReadableTable(tableDesc: TableDesc): IReadableTable = {
+    throw new UnsupportedOperationException
+  }
 
   /**
    * Give the source a chance to enrich a SourcePartition before build start.
    * Particularly, Kafka source use this chance to define start/end offsets within each partition.
    */
-  override def enrichSourcePartitionBeforeBuild(buildable: IBuildable, segmentRange: SegmentRange[_ <: Comparable[_]]): SegmentRange[_ <: Comparable[_]] = ???
+  override def enrichSourcePartitionBeforeBuild(buildable: IBuildable, segmentRange:
+  SegmentRange[_ <: Comparable[_]]): SegmentRange[_ <: Comparable[_]] = {
+    throw new UnsupportedOperationException
+  }
 
   /**
    * Return an object that is responsible for deploying sample (CSV) data to the source database.
    * For testing purpose.
    */
-  override def getSampleDataDeployer: ISampleDataDeployer = ???
+  override def getSampleDataDeployer: ISampleDataDeployer = {
+    throw new UnsupportedOperationException
+  }
 
   override def getSegmentRange(start: String, end: String): SegmentRange[_ <: Comparable[_]] = {
     var startTime = start
@@ -105,8 +121,13 @@ class NSparkKafkaSource(val kylinConfig: KylinConfig) extends ISource {
     this.memoryStreamEnabled = mse
   }
 
-  def post(text: String): Unit = {
-    event.offer(text)
+  def post(textFile: String): Unit = {
+    if (msEvents != null && memoryStreamEnabled) {
+      val text = Source.fromFile(textFile)
+      msEvents.addData(Row(text.getLines().mkString))
+    } else {
+      textFileQueue.offer(textFile)
+    }
   }
 
   override def supportBuildSnapShotByPartition = true

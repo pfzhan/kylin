@@ -27,10 +27,12 @@ import lombok.val;
 
 public class AwaitUtils {
     public static void await(Runnable start, int waitTime, Runnable stop){
-        val thread = new Thread(() -> start.run());
+        val thread = new Thread(start);
         thread.start();
         sleep(waitTime);
-        stop.run();
+        if (stop != null) {
+            stop.run();
+        }
         try{
             thread.join(20000);
         }catch (Exception e) {

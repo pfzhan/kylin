@@ -24,6 +24,8 @@
 package io.kyligence.kap.streaming.jobs.thread;
 
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
+import io.kyligence.kap.streaming.jobs.impl.StreamingJobLauncher;
+import io.kyligence.kap.streaming.util.AwaitUtils;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -84,5 +86,38 @@ public class StreamingJobRunnerTest extends StreamingTestCase {
         Assert.assertFalse(app.isGracefulShutdown(PROJECT, buildJobId));
         val mergeJobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name());
         Assert.assertFalse(app.isGracefulShutdown(PROJECT, mergeJobId));
+    }
+
+    /**
+     * test StreamingJobRunner class 's  run method
+     */
+    @Test
+    public void testBuildJobRunner_run() {
+        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        val runner = new StreamingJobRunner(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+        runner.init();
+        AwaitUtils.await(() -> runner.run(), 10000, () -> {});
+    }
+
+    /**
+     * test StreamingJobLauncher class 's  launch method
+     */
+    @Test
+    public void testBuildJobLauncher_launch() {
+        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        val launcher = new StreamingJobLauncher();
+        launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {});
+    }
+
+    /**
+     * test StreamingJobLauncher class 's  launch method
+     */
+    @Test
+    public void testMergeJobLauncher_launch() {
+        val modelId = "e78a89dd-847f-4574-8afa-8768b4228b72";
+        val launcher = new StreamingJobLauncher();
+        launcher.init(PROJECT, modelId, JobTypeEnum.STREAMING_MERGE);
+        AwaitUtils.await(() -> launcher.launch(), 10000, () -> {});
     }
 }

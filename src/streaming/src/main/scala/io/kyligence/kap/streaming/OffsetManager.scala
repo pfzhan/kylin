@@ -24,7 +24,10 @@
 
 package org.apache.spark.sql.kafka010
 
+import java.util
+
 import org.apache.kafka.common.TopicPartition
+import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.streaming.{Offset, StreamExecution, StreamingQueryWrapper}
@@ -55,8 +58,16 @@ object OffsetRangeManager extends Logging {
   }
 
   def partitionOffsets(str: String): java.util.Map[Integer, java.lang.Long] = {
-    JsonUtils.partitionOffsets(str).map { kv =>
-      (Int.box(kv._1.partition()), Long.box(kv._2))
-    }.asJava
+
+    if (KylinConfig.getInstanceFromEnv.isUTEnv) {
+      val map = new util.HashMap[Integer, java.lang.Long]()
+      map.put(new Integer(0), new java.lang.Long(0))
+      map
+    } else {
+      JsonUtils.partitionOffsets(str).map { kv =>
+        (Int.box(kv._1.partition()), Long.box(kv._2))
+      }.asJava
+    }
+
   }
 }

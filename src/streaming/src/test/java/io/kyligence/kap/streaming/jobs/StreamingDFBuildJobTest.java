@@ -27,13 +27,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.source.SourceFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,6 +42,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.StreamingTestConstant;
 import io.kyligence.kap.engine.spark.job.BuildLayoutWithUpdate;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -53,7 +51,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
-import io.kyligence.kap.source.kafka.NSparkKafkaSource;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.common.BuildJobEntry;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
@@ -83,19 +80,8 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
     public void testStreamingBuild() {
         val config = getTestConfig();
         KylinBuildEnv.getOrCreate(config);
-        val source = (NSparkKafkaSource) SourceFactory.getSource(new ISourceAware() {
-
-            @Override
-            public int getSourceType() {
-                return 1;
-            }
-
-            @Override
-            public KylinConfig getConfig() {
-                return config;
-            }
-        });
-        source.enableMemoryStream(true);
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val mgr = NDataflowManager.getInstance(config, PROJECT);
         var df = mgr.getDataflow(DATAFLOW_ID);
@@ -156,19 +142,8 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
     @Test
     public void testGetSegment() {
         val config = getTestConfig();
-        val source = (NSparkKafkaSource) SourceFactory.getSource(new ISourceAware() {
-
-            @Override
-            public int getSourceType() {
-                return 1;
-            }
-
-            @Override
-            public KylinConfig getConfig() {
-                return config;
-            }
-        });
-        source.enableMemoryStream(true);
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val mgr = NDataflowManager.getInstance(config, PROJECT);
         var df = mgr.getDataflow(DATAFLOW_ID);
