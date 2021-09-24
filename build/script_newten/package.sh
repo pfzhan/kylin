@@ -50,6 +50,39 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.2 release note
+
+**Enhancement**
+
+- Query distributed cache
+- Overall optimization of JDBC data source front end, , and supports GBase data source
+- Supports 'model as view',data model to provide external services in the form of a wide table
+- Support custom job info when submitting jobs through API
+- When the number of indexes is large, the realizationchooser is slow
+- Each query has identity authentication, which has a great impact on the performance of small queries
+- Funnel analysis retention analysis bitmap function requirements
+- Support adapting source data field case
+- Remove the entrance of index suggestion for streaming model
+- Optimize the steps to check resources during the build process
+- Tableindex does not support CC columns
+- 'Count distinct case when' disassemble into 'bitmap_uuid',if there is no aggregate index to answer ,rollback returns 'count distinct case when'
+- Improved query 'exactly match'
+- The query on the result set after 'join' cannot hit the aggregate index
+- Support to jump directly to the Spark UI address of the real-time task
+
+**Bugfix**
+
+- Configuring async logging causes OOM
+- Diagnostic package generation timeout
+- If the derived dimension query conditions are met, the SQL object verification of the query derived dimension failed
+- In cache does not support project level caching now
+- Funnel analysis retention analysis bitmap function connection account table hit cube problem
+- Repair real-time SQL modeling import SQL verification error
+- When sum (expr) is enabled, the query result of sum (cast (case when)) is inaccurate
+- Fix OOM caused by KE not releasing config after restoring large amount of metadata
+- Optimize index recommendation behavior after CC is closed
+- When the job was restarted, spark_args.json was not regenerated, resulting in switching the working directory, and the job could not take effect
+
 #### Kyligence Enterprise 4.5.1 release note
 
 **Enhancement**
