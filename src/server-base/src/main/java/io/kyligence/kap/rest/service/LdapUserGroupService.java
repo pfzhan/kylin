@@ -200,7 +200,10 @@ public class LdapUserGroupService extends NUserGroupService {
         if (null == users) {
             users = new ArrayList<>();
             String ldapUserIDAttr = KapConfig.getInstanceFromEnv().getLDAPUserIDAttr();
-            Set<String> ldapUserDNs = getAllGroupMembers(name);
+            Set<String> ldapUserDNs = getAllGroupMembers(name)
+                    .stream()
+                    .filter(StringUtils::isNotBlank)
+                    .collect(Collectors.toSet());
 
             for (String u : ldapUserDNs) {
                 String username = null;
