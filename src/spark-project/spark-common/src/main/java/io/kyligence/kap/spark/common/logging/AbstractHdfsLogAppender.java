@@ -81,6 +81,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     @Getter
     private BlockingDeque<LogEvent> logBufferQue = null;
     private static final double QUEUE_FLUSH_THRESHOLD = 0.2;
+    public static final long ROLLING_BYTE_SIZE_DEFAULT = 524_288_000L;
 
     //configurable
     @Getter

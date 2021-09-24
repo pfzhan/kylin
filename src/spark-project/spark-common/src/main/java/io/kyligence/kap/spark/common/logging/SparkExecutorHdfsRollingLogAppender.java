@@ -67,7 +67,7 @@ public class SparkExecutorHdfsRollingLogAppender extends AbstractHdfsLogAppender
 
     @Setter
     @Getter
-    private long rollingByteSize = 524_288_000L;
+    private long rollingByteSize;
 
     @Getter
     @Setter
@@ -268,6 +268,9 @@ public class SparkExecutorHdfsRollingLogAppender extends AbstractHdfsLogAppender
         appender.setJobName(jobName);
         appender.setProject(project);
         appender.setRollingByteSize(rollingByteSize);
+        if (appender.getRollingByteSize() == 0L) {
+            appender.setRollingByteSize(ROLLING_BYTE_SIZE_DEFAULT);
+        }
         appender.setJobTimeStamp(jobTimeStamp);
         appender.setRollingPeriod(rollingPeriod);
         appender.setLogQueueCapacity(logQueueCapacity);

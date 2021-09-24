@@ -51,7 +51,7 @@ public class SparkDriverHdfsRollingLogAppender extends AbstractHdfsLogAppender {
 
     @Setter
     @Getter
-    private long rollingByteSize = 524_288_000L;
+    private long rollingByteSize;
 
     @Getter
     @Setter
@@ -152,6 +152,9 @@ public class SparkDriverHdfsRollingLogAppender extends AbstractHdfsLogAppender {
         appender.setWorkingDir(hdfsWorkingDir);
         appender.setLogPath(logPath.concat("_processing"));
         appender.setRollingByteSize(rollingByteSize);
+        if (appender.getRollingByteSize() == 0L) {
+            appender.setRollingByteSize(ROLLING_BYTE_SIZE_DEFAULT);
+        }
         appender.setLogQueueCapacity(logQueueCapacity);
         appender.setFlushInterval(flushInterval);
         return appender;
