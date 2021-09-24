@@ -475,9 +475,10 @@ public class NQueryController extends NBasicController {
     @ApiOperation(value = "getMetadata", notes = "Update Param: project")
     @GetMapping(value = "/tables_and_columns")
     @ResponseBody
-    public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project) {
+    public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project,
+            @RequestParam(value = "cube", required = false) String modelAlias) {
         checkProjectName(project);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.getMetadataV2(project), "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, queryService.getMetadataV2(project, modelAlias), "");
     }
 
     @GetMapping(value = "/statistics")

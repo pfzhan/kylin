@@ -43,12 +43,18 @@
 package org.apache.kylin.rest.request;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  */
 public class MetaRequest implements ProjectInsensitiveRequest {
 
     private String project;
+
+    @Getter
+    @Setter
+    private String modelAlias;
 
     public MetaRequest() {
     }

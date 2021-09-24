@@ -62,6 +62,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import lombok.val;
@@ -89,14 +91,15 @@ public class QueryCacheSignatureUtil {
     }
 
     // Schema Cache
-    public static String createCacheSignature(List<String> tables, String project) {
+    public static String createCacheSignature(List<String> tables, String project, String modelAlias) {
         val tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         List<String> signature = Lists.newArrayList();
         // TODO need rewrite
         QueryService queryService = SpringContext.getBean(QueryService.class);
         try {
             signature.add(queryService.createAclSignature(project));
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Fail to get acl signature: ", e);
             return "";
         }
@@ -106,6 +109,13 @@ public class QueryCacheSignatureUtil {
                 return "";
             }
             signature.add(String.valueOf(tableDesc.getLastModified()));
+        }
+        if (modelAlias != null) {
+            NDataModel modelDesc = modelManager.getDataModelDescByAlias(modelAlias);
+            if (modelDesc == null) {
+                return "";
+            }
+            signature.add(String.valueOf(modelDesc.getLastModified()));
         }
         return Joiner.on(",").join(signature);
     }
@@ -132,7 +142,7 @@ public class QueryCacheSignatureUtil {
     }
 
     // Schema Cache
-    public static boolean checkCacheExpired(List<String> tables, String prevSignature, String project) {
+    public static boolean checkCacheExpired(List<String> tables, String prevSignature, String project, String modelAlias) {
         if (StringUtils.isBlank(prevSignature)) {
             return true;
         }
@@ -140,7 +150,7 @@ public class QueryCacheSignatureUtil {
         if (prevSignature.split(",").length != tables.size() + 1) {
             return true;
         }
-        val currSignature = createCacheSignature(tables, project);
+        val currSignature = createCacheSignature(tables, project, modelAlias);
         return !prevSignature.equals(currSignature);
     }
 

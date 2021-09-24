@@ -65,7 +65,8 @@ import java.util.Set;
 
 public class TableauDataSourceConverter implements BISyncModelConverter {
 
-    private static final String ODBC_CONNECTION_STR_PREFIX = "PROJECT=";
+    private static final String ODBC_CONNECTION_PROJECT_PREFIX = "PROJECT=";
+    private static final String ODBC_CONNECTION_MODEL_PREFIX = "CUBE=";
 
     private static final String ODBC_CONN_TDS_TEMPLATE_PATH = "/bisync/tds/tableau.template.xml";
     private static final String CONNECTOR_CONN_TDS_TEMPLATE_PATH = "/bisync/tds/tableau.connector.template.xml";
@@ -105,7 +106,8 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     protected void fillTemplate(TableauDatasource tds, SyncModel syncModel, SyncContext syncContext) {
         String dbName = syncContext.getTargetBI() == SyncContext.BI.TABLEAU_CONNECTOR_TDS ? syncModel.getProjectName()
                 : "";
-        fillConnectionProperties(tds, syncModel.getHost(), syncModel.getPort(), syncModel.getProjectName(), dbName);
+        fillConnectionProperties(tds, syncModel.getHost(), syncModel.getPort(), syncModel.getProjectName(),
+                syncModel.getModelName(), dbName);
         Map<String, Pair<Col, ColumnDef>> colMap = fillCols(tds, syncModel.getColumnDefMap());
         fillColumns(tds, colMap);
         fillJoinTables(tds, syncModel.getJoinTree());
@@ -114,11 +116,12 @@ public class TableauDataSourceConverter implements BISyncModelConverter {
     }
 
     private void fillConnectionProperties(TableauDatasource tds, String host, String port, String project,
-            String dbName) {
+            String modelName, String dbName) {
         NamedConnection namedConnection = tds.getTableauConnection().getNamedConnectionList().getNamedConnections()
                 .get(0);
         Connection connection = namedConnection.getConnection();
-        String connectionStr = ODBC_CONNECTION_STR_PREFIX + project;
+        String connectionStr = ODBC_CONNECTION_PROJECT_PREFIX + project + ";" + ODBC_CONNECTION_MODEL_PREFIX
+                + modelName;
         namedConnection.setCaption(host);
         connection.setOdbcConnectStringExtras(connectionStr);
         connection.setServer(host);

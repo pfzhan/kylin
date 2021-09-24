@@ -308,10 +308,20 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetMetadata() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "default")
+                .param("cube", "model1")
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).getMetadata("default");
+        Mockito.verify(nQueryController).getMetadata("default", "model1");
+    }
+
+    @Test
+    public void testGetMetadataWhenModelIsNull() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "default")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).getMetadata("default", null);
     }
 
     @Test

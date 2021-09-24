@@ -112,8 +112,8 @@ public class QueryEhCacheTest extends LocalFileMetadataTestCase {
         Assert.assertNull(queryCacheManager.doGetSchemaCache(project, username));
 
         TableMetaCacheResultV2 metaWithTypeList = new TableMetaCacheResultV2();
-        queryCacheManager.putSchemaV2Cache(project, username, metaWithTypeList);
-        Assert.assertEquals(metaWithTypeList, queryCacheManager.doGetSchemaCacheV2(project, username));
+        queryCacheManager.putSchemaV2Cache(project, null, username, metaWithTypeList);
+        Assert.assertEquals(metaWithTypeList, queryCacheManager.doGetSchemaCacheV2(project, null, username));
     }
 
 }

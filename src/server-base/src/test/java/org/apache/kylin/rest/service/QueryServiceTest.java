@@ -653,7 +653,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         {
             projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
                     .put("kylin.query.metadata.expose-computed-column", "true"));
-            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
 
             List<ColumnMeta> factColumns;
             ColumnDesc[] columnDescs = findColumnDescs();
@@ -667,7 +667,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         {
             projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
                     .put("kylin.query.metadata.expose-computed-column", "false"));
-            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
 
             List<ColumnMeta> factColumns;
             ColumnDesc[] columnDescs = findColumnDescs();
@@ -676,6 +676,38 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
                     "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
                     "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+        }
+    }
+
+    @Test
+    public void testExposedColumnsProjectConfigByModel() throws Exception {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+
+        // expose computed column
+        {
+            projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
+                    .put("kylin.query.metadata.expose-computed-column", "true"));
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", "nmodel_basic_inner");
+
+            List<ColumnMeta> factColumns;
+            ColumnDesc[] columnDescs = findColumnDescs();
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "NEST1", "NEST2", "NEST3", "NEST4")));
+        }
+
+        // hide computed column
+        {
+            projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
+                    .put("kylin.query.metadata.expose-computed-column", "false"));
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", "nmodel_basic_inner");
+
+            List<ColumnMeta> factColumns;
+            ColumnDesc[] columnDescs = findColumnDescs();
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(columnDescs.length, factColumns.size());
+            Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "NEST1", "NEST2", "NEST3", "NEST4")));
         }
     }
 
@@ -692,7 +724,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         //table, depending on what ready cube it has.
         {
             //check the default project
-            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
 
             schemasAndTables = getSchemasAndTables(tableMetas);
             tableSchemas = schemasAndTables.getFirst();
@@ -723,7 +755,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             Thread.sleep(1000);
 
-            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
 
             schemasAndTables = getSchemasAndTables(tableMetas);
             tableSchemas = schemasAndTables.getFirst();
@@ -751,7 +783,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Thread.sleep(1000);
 
             //check the default project
-            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
 
             schemasAndTables = getSchemasAndTables(tableMetas);
             tableSchemas = schemasAndTables.getFirst();
@@ -761,6 +793,95 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
             Assert.assertEquals(20, tableNames.size());
+            Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
+
+            //make sure test_kylin_fact contains all computed columns
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(12, factColumns.size());
+        }
+    }
+
+    @Test
+    public void testExposedColumnsByModelWhenPushdownDisabled() throws Exception {
+
+        Pair<Set<String>, Set<String>> schemasAndTables;
+        Set<String> tableSchemas, tableNames;
+        List<ColumnMeta> factColumns;
+
+        getTestConfig().setProperty("kylin.query.pushdown-enabled", "false");
+
+        //we have two projects: testproject2 and testproject1. different projects exposes different views of
+        //table, depending on what ready cube it has.
+        {
+            //check the default project
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", "nmodel_basic_inner");
+
+            schemasAndTables = getSchemasAndTables(tableMetas);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(2, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(8, tableNames.size());
+            Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
+
+            //make sure test_kylin_fact contains all computed columns
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(12, factColumns.size());
+        }
+
+        //disable the one ready cube
+        {
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+            NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+            dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+            nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+
+            Thread.sleep(1000);
+
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", "nmodel_basic_inner");
+
+            schemasAndTables = getSchemasAndTables(tableMetas);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(2, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(8, tableNames.size());
+        }
+
+        // enable the ready cube
+        {
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+            NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+            dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+            nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+
+            Thread.sleep(1000);
+
+            //check the default project
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", "nmodel_basic_inner");
+
+            schemasAndTables = getSchemasAndTables(tableMetas);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(2, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(8, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
@@ -782,7 +903,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         //table, depending on what model it has.
         {
             //check the default project
-            final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default", null);
 
             schemasAndTables = getSchemasAndTables(tableMetas4default);
             tableSchemas = schemasAndTables.getFirst();
@@ -807,7 +928,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NDataModel dKapModel = makeModelWithMoreCC();
             modelManager.updateDataModelDesc(dKapModel);
 
-            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
 
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
@@ -822,7 +943,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NDataModel dKapModel = makeModelWithLessCC();
             modelManager.updateDataModelDesc(dKapModel);
 
-            final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
+            final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default", null);
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas4default);
             Assert.assertEquals(columnDescs.length, factColumns.size());
@@ -1316,6 +1437,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testMetaDataWhenSchemaCacheEnable() throws IOException {
+        updateProjectConfig("default", "kylin.query.schema-cache-enabled", "true");
+        final List<TableMeta> tableMetas = queryService.getMetadata("default");
+        // TEST_MEASURE table has basically all possible column types
+        String metaString = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE")).findFirst().get().toString();
+
+        File expectedMetaFile = new File("src/test/resources/ut_table_meta/defaultTableMetas");
+        String expectedMetaString = FileUtils.readFileToString(expectedMetaFile);
+        Assert.assertEquals(expectedMetaString, metaString);
+    }
+
+    @Test
     public void testMetaDataColumnCaseSensitive() throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
@@ -1347,7 +1481,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testMetaDataV2ColumnCaseSensitive() throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
-        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
         TableMeta tableToCheck = tableMetas.stream()
                 .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
                 .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
@@ -1360,7 +1494,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testMetaDataV2ColumnCaseNotSensitive() throws IOException {
-        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
         TableMeta tableToCheck = tableMetas.stream()
                 .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
                 .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
@@ -1373,7 +1507,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testMetaDataV2() throws IOException {
-        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
         // TEST_MEASURE table has basically all possible column types
         String metaString = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
                 .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE")).findFirst().get().toString();
@@ -1386,7 +1520,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     //ref KE-12803
     public void testDeepCopy() {
-        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
         tableMetas.stream()
                 .map(tableMetaWithType -> JsonUtil.deepCopyQuietly(tableMetaWithType, TableMetaWithType.class))
                 .collect(Collectors.toList());
@@ -1447,7 +1581,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetMetadataV2WithBrokenModels() {
         String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
-        List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default");
+        List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default", null);
         boolean noFactTableType = metaWithTypeList.stream()
                 .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME())).findFirst().get()
                 .getTYPE().isEmpty();
@@ -1460,11 +1594,60 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
         modelManager.updateDataBrokenModelDesc(brokenModel);
 
-        metaWithTypeList = queryService.getMetadataV2("default");
+        metaWithTypeList = queryService.getMetadataV2("default", null);
         noFactTableType = metaWithTypeList.stream()
                 .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME())).findFirst().get()
                 .getTYPE().isEmpty();
         Assert.assertTrue(noFactTableType);
+    }
+
+    @Test
+    public void testGetMetadataV2WhenSchemaCacheEnable() {
+        updateProjectConfig("default", "kylin.query.schema-cache-enabled", "true");
+        List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default", null);
+    }
+
+    @Test
+    public void testGetMetadataV2ByModelWithProjectContainBrokenModels() {
+        String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default", "nmodel_basic_inner");
+        Assert.assertTrue(metaWithTypeList.stream()
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
+                .collect(Collectors.toList()).isEmpty());
+
+        // fact table is broken
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(modelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+
+        metaWithTypeList = queryService.getMetadataV2("default", "nmodel_basic_inner");
+        Assert.assertTrue(metaWithTypeList.stream()
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
+                .collect(Collectors.toList()).isEmpty());
+    }
+
+    @Test
+    public void testGetMetadataV2ByBrokenModel() {
+        String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default", "nmodel_full_measure_test");
+        boolean noFactTableType = metaWithTypeList.stream()
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME())).findFirst().get()
+                .getTYPE().isEmpty();
+        Assert.assertFalse(noFactTableType);
+
+        // fact table is broken
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(modelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+
+        metaWithTypeList = queryService.getMetadataV2("default", "nmodel_full_measure_test");
+        Assert.assertTrue(metaWithTypeList.stream()
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
+                .collect(Collectors.toList()).isEmpty());
     }
 
     @Test
@@ -1625,5 +1808,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 sqlResponse.getNativeRealizations().get(0).getLayoutId());
 
         Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
+    }
+
+    private void updateProjectConfig(String project, String property, String value) {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(project,
+                copyForWrite -> copyForWrite.getOverrideKylinProps().put(property, value));
     }
 }

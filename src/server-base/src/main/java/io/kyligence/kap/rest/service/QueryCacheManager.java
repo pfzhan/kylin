@@ -201,7 +201,11 @@ public class QueryCacheManager {
     @SuppressWarnings("unchecked")
     public List<TableMeta> getSchemaCache(String project, String userName) {
         TableMetaCacheResult cacheResult = doGetSchemaCache(project, userName);
-        if (QueryCacheSignatureUtil.checkCacheExpired(cacheResult.getTables(), cacheResult.getSignature(), project)) {
+        if (cacheResult == null) {
+            return null;
+        }
+        if (QueryCacheSignatureUtil.checkCacheExpired(cacheResult.getTables(), cacheResult.getSignature(), project,
+                null)) {
             logger.info("[schema cache log] cache has expired, cache key is {}", userName);
             clearSchemaCache(project, userName);
             return null;
@@ -222,9 +226,13 @@ public class QueryCacheManager {
     }
 
     @SuppressWarnings("unchecked")
-    public List<TableMetaWithType> getSchemaV2Cache(String project, String userName) {
-        TableMetaCacheResultV2 cacheResult = doGetSchemaCacheV2(project, userName);
-        if (QueryCacheSignatureUtil.checkCacheExpired(cacheResult.getTables(), cacheResult.getSignature(), project)) {
+    public List<TableMetaWithType> getSchemaV2Cache(String project, String modelName, String userName) {
+        TableMetaCacheResultV2 cacheResult = doGetSchemaCacheV2(project, modelName, userName);
+        if (cacheResult == null) {
+            return null;
+        }
+        if (QueryCacheSignatureUtil.checkCacheExpired(cacheResult.getTables(), cacheResult.getSignature(), project,
+                modelName)) {
             logger.info("[schema cache log] cache has expired, cache key is {}", userName);
             clearSchemaCacheV2(project, userName);
             return null;
@@ -233,16 +241,24 @@ public class QueryCacheManager {
         return cacheResult.getTableMetaList();
     }
 
-    public TableMetaCacheResultV2 doGetSchemaCacheV2(String project, String userName) {
-        Object metaList = kylinCache.get(Type.SCHEMA_CACHE.rootCacheName, project, userName + "v2");
+    public TableMetaCacheResultV2 doGetSchemaCacheV2(String project, String modelName, String userName) {
+        String cacheKey = userName + "v2";
+        if (modelName != null) {
+            cacheKey = cacheKey + modelName;
+        }
+        Object metaList = kylinCache.get(Type.SCHEMA_CACHE.rootCacheName, project, cacheKey);
         if (metaList == null) {
             return null;
         }
         return (TableMetaCacheResultV2) metaList;
     }
 
-    public void putSchemaV2Cache(String project, String userName, TableMetaCacheResultV2 schemas) {
-        kylinCache.put(Type.SCHEMA_CACHE.rootCacheName, project, userName + "v2", schemas);
+    public void putSchemaV2Cache(String project, String modelName, String userName, TableMetaCacheResultV2 schemas) {
+        String cacheKey = userName + "v2";
+        if (modelName != null) {
+            cacheKey = cacheKey + modelName;
+        }
+        kylinCache.put(Type.SCHEMA_CACHE.rootCacheName, project, cacheKey, schemas);
     }
 
     public void clearSchemaCacheV2(String project, String userName) {

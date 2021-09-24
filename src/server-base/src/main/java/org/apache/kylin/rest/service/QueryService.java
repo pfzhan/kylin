@@ -69,7 +69,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -102,6 +101,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
@@ -753,7 +753,7 @@ public class QueryService extends BasicService {
     public List<TableMeta> getMetadata(String project) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!NProjectManager.getInstance(kylinConfig).getProject(project).getConfig().isSchemaCacheEnabled()) {
-            return doGetMetadata(project);
+            return doGetMetadata(project, null);
         }
 
         String userName = AclPermissionUtil.getCurrentUsername();
@@ -763,20 +763,28 @@ public class QueryService extends BasicService {
             return cached;
         }
 
-        List<TableMeta> tableMetas = doGetMetadata(project);
+        List<TableMeta> tableMetas = doGetMetadata(project, null);
         List<String> tables = tableMetas.stream().map(meta -> meta.getTABLE_SCHEM() + "." + meta.getTABLE_NAME())
                 .collect(Collectors.toList());
         val cacheResult = new TableMetaCacheResult(tableMetas,
-                QueryCacheSignatureUtil.createCacheSignature(tables, project));
+                QueryCacheSignatureUtil.createCacheSignature(tables, project, null));
         queryCacheManager.putSchemaCache(project, userName, cacheResult);
         return tableMetas;
     }
 
-    private List<TableMeta> doGetMetadata(String project) {
+    public List<TableMeta> getMetadata(String project, String modelAlias) {
+        return doGetMetadata(project, modelAlias);
+    }
+
+    private List<TableMeta> doGetMetadata(String project, String targetModelName) {
 
         if (StringUtils.isBlank(project)) {
             return Collections.emptyList();
         }
+
+        List<NDataModel> models = getModels(project, targetModelName);
+        List<String> targetModelTables = getTargetModelTables(targetModelName, models);
+        List<String> targetModelColumns = getTargetModelColumns(targetModelName, models);
 
         QueryContext.current().setAclInfo(getExecuteAclInfo(project));
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
@@ -789,7 +797,8 @@ public class QueryService extends BasicService {
             TableMeta tblMeta = new TableMeta(tableSchema.getCatalog(), tableSchema.getSchema(), tableSchema.getTable(),
                     tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null, null);
 
-            if (JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
+            if (JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM()) || (targetModelTables != null
+                    && !targetModelTables.contains(tblMeta.getTABLE_SCHEM() + "." + tblMeta.getTABLE_NAME()))) {
                 continue;
             }
 
@@ -804,7 +813,9 @@ public class QueryService extends BasicService {
                     continue;
                 }
 
-                if (!colmnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")) {
+                if (!colmnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")
+                        && (targetModelColumns == null || targetModelColumns.contains(colmnMeta.getTABLE_SCHEM() + "."
+                                + colmnMeta.getTABLE_NAME() + "." + colmnMeta.getCOLUMN_NAME()))) {
                     tblMeta.addColumn(colmnMeta);
                 }
             }
@@ -814,25 +825,25 @@ public class QueryService extends BasicService {
         return tableMetas;
     }
 
-    public List<TableMetaWithType> getMetadataV2(String project) {
+    public List<TableMetaWithType> getMetadataV2(String project, String modelAlias) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (!NProjectManager.getInstance(kylinConfig).getProject(project).getConfig().isSchemaCacheEnabled()) {
-            return doGetMetadataV2(project);
+            return doGetMetadataV2(project, modelAlias);
         }
 
         String userName = AclPermissionUtil.getCurrentUsername();
-        List<TableMetaWithType> cached = queryCacheManager.getSchemaV2Cache(project, userName);
+        List<TableMetaWithType> cached = queryCacheManager.getSchemaV2Cache(project, modelAlias, userName);
         if (cached != null) {
             logger.info("[schema cache log] Get meta data v2 from cache, project: {}, username: {}.", project, userName);
             return cached;
         }
 
-        List<TableMetaWithType> tableMetas = doGetMetadataV2(project);
+        List<TableMetaWithType> tableMetas = doGetMetadataV2(project, modelAlias);
         List<String> tables = tableMetas.stream().map(meta -> meta.getTABLE_SCHEM() + "." + meta.getTABLE_NAME())
                 .collect(Collectors.toList());
         val cacheResult = new TableMetaCacheResultV2(tableMetas,
-                QueryCacheSignatureUtil.createCacheSignature(tables, project));
-        queryCacheManager.putSchemaV2Cache(project, userName, cacheResult);
+                QueryCacheSignatureUtil.createCacheSignature(tables, project, modelAlias));
+        queryCacheManager.putSchemaV2Cache(project, modelAlias, userName, cacheResult);
         return tableMetas;
     }
 
@@ -858,24 +869,24 @@ public class QueryService extends BasicService {
     }
 
     @SuppressWarnings("checkstyle:methodlength")
-    private List<TableMetaWithType> doGetMetadataV2(String project) {
+    private List<TableMetaWithType> doGetMetadataV2(String project, String targetModelName) {
         aclEvaluate.checkProjectReadPermission(project);
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
+        List<NDataModel> models = getModels(project, targetModelName);
+        List<String> targetModelTables = getTargetModelTables(targetModelName, models);
+        List<String> targetModelColumns = getTargetModelColumns(targetModelName, models);
+
         QueryContext.current().setAclInfo(getExecuteAclInfo(project));
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
-        Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData);
-        Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project);
+        Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData, targetModelTables);
+        Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project, targetModelColumns);
         addColsToTblMeta(tableMap, columnMap);
 
-        ProjectInstance projectInstance = getProjectManager().getProject(project);
-        for (String modelId : projectInstance.getModels()) {
-            NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project).getDataModelDesc(modelId);
-            if (Objects.nonNull(dataModelDesc) && !dataModelDesc.isBroken()) {
-                clarifyTblTypeToFactOrLookup(dataModelDesc, tableMap);
-                clarifyPkFkCols(dataModelDesc, columnMap);
-            }
+        for (NDataModel model : models) {
+            clarifyTblTypeToFactOrLookup(model, tableMap);
+            clarifyPkFkCols(model, columnMap);
         }
 
         List<TableMetaWithType> tableMetas = Lists.newArrayList();
@@ -884,14 +895,33 @@ public class QueryService extends BasicService {
         return tableMetas;
     }
 
-    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData) {
+    private List<String> getTargetModelColumns(String targetModelName, List<NDataModel> models) {
+        return targetModelName == null ? null
+                : models.stream().flatMap(m -> m.getEffectiveCols().values().stream().map(TblColRef::getColumnWithTableAndSchema))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> getTargetModelTables(String targetModelName, List<NDataModel> models) {
+        return targetModelName == null ? null
+                : models.stream().flatMap(m -> m.getAllTableRefs().stream().map(TableRef::getTableIdentity))
+                .collect(Collectors.toList());
+    }
+
+    private List<NDataModel> getModels(String project, String targetModelName) {
+        return NDataModelManager.getInstance(getConfig(), project).listAllModels().stream()
+                .filter(m -> !m.isBroken() && (targetModelName == null || m.getAlias().equals(targetModelName)))
+                .collect(Collectors.toList());
+    }
+
+    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData, List<String> targetModelTables) {
         LinkedHashMap<String, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
             TableMetaWithType tblMeta = new TableMetaWithType(tableSchema.getCatalog(), tableSchema.getSchema(),
                     tableSchema.getTable(), tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null,
                     null);
 
-            if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
+            if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM()) && (targetModelTables == null
+                    || targetModelTables.contains(tblMeta.getTABLE_SCHEM() + "." + tblMeta.getTABLE_NAME()))) {
                 tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
             }
         }
@@ -900,7 +930,7 @@ public class QueryService extends BasicService {
     }
 
     private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(SchemaMetaData schemaMetaData,
-            String project) {
+            String project, List<String> targetModelColumns) {
 
         LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
@@ -919,7 +949,9 @@ public class QueryService extends BasicService {
                 }
 
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(columnMeta.getTABLE_SCHEM())
-                        && !columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")) {
+                        && !columnMeta.getCOLUMN_NAME().toUpperCase(Locale.ROOT).startsWith("_KY_")
+                        && (targetModelColumns == null || targetModelColumns.contains(columnMeta.getTABLE_SCHEM() + "."
+                        + columnMeta.getTABLE_NAME() + "." + columnMeta.getCOLUMN_NAME()))) {
                     columnMap.put(columnMeta.getTABLE_SCHEM() + "#" + columnMeta.getTABLE_NAME() + "#"
                             + columnMeta.getCOLUMN_NAME(), columnMeta);
                 }
