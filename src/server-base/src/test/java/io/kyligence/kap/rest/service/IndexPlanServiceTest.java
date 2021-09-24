@@ -48,6 +48,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -1434,5 +1435,24 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(
                 "The following columns are not added as dimensions to the model. Please delete them before saving or add them to the model.\nColumn ID: 10,11,12");
         indexPlanService.calculateAggIndexCount(request);
+    }
+
+    @Test
+    public void testGetShardByColumns() {
+        val project = "default";
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+        Segments<NDataSegment> segments = dataflowManager.getDataflow(modelId).getSegments();
+
+        val response = indexPlanService.getShardByColumns("default", modelId);
+        Assert.assertTrue(response.isShowLoadData());
+
+        val dfUpdate = new NDataflowUpdate(modelId);
+        dfUpdate.setToRemoveSegs(segments.toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(dfUpdate);
+
+        val response2 = indexPlanService.getShardByColumns("default", modelId);
+        Assert.assertFalse(response2.isShowLoadData());
     }
 }

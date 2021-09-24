@@ -39,4 +39,8 @@ public class AggShardByColumnsResponse {
 
     @JsonProperty("shard_by_columns")
     private List<String> shardByColumns;
+
+    @JsonProperty("show_load_data")
+    private boolean showLoadData = true;
+
 }

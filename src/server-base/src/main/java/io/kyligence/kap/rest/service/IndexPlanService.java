@@ -55,6 +55,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.SegmentUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -541,6 +542,19 @@ public class IndexPlanService extends BasicService {
         result.setProject(project);
         result.setShardByColumns(indexPlan.getAggShardByColumns().stream().map(model::getColumnNameByColumnId)
                 .collect(Collectors.toList()));
+
+        val df = getDataflowManager(project).getDataflow(modelId);
+        Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING, SegmentStatusEnum.NEW);
+
+        val executableManager = getExecutableManager(project);
+        List<AbstractExecutable> executables = executableManager.listExecByModelAndStatus(modelId,
+                ExecutableState::isProgressing, JobTypeEnum.INDEX_BUILD, JobTypeEnum.INC_BUILD,
+                JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INDEX_MERGE);
+
+        if (segments.isEmpty() && executables.isEmpty()) {
+            result.setShowLoadData(false);
+        }
+
         return result;
     }
 
