@@ -52,7 +52,7 @@
       <!-- list 区 end -->
     </div>
     <div slot="footer" class="dialog-footer clearfix">
-      <div class="ksd-fleft">
+      <div class="ksd-fleft" v-if="aggIndexAdvancedMeta.show_load_data">
         <el-checkbox v-model="loadData">{{$t('kylinLang.common.catchUp')}}</el-checkbox>
       </div>
       <div class="ksd-fright">
@@ -353,7 +353,7 @@ export default class AggregateModal extends Vue {
     })
     this.aggIndexAdvancedMeta.project = this.currentSelectedProject
     this.aggIndexAdvancedMeta.model_id = this.model.uuid
-    this.aggIndexAdvancedMeta.load_data = this.loadData
+    this.aggIndexAdvancedMeta.load_data = this.aggIndexAdvancedMeta.show_load_data ? this.loadData : false
     this.addAggIndexAdvanced(this.aggIndexAdvancedMeta).then(successCb, errorCb)
   }
 }
