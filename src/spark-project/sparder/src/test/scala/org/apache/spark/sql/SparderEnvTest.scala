@@ -24,11 +24,14 @@
 
 package org.apache.spark.sql
 
+import java.util.concurrent.CountDownLatch
+
+import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 
 // scalastyle:off
-class SparderEnvTest extends SparderBaseFunSuite {
+class SparderEnvTest extends SparderBaseFunSuite with LocalMetadata {
 
   test("getExecutorNum when dynamicAllocation enabled") {
     val sparkConf = new SparkConf(false)
@@ -52,6 +55,73 @@ class SparderEnvTest extends SparderBaseFunSuite {
     sparkConf.set("spark.shuffle.service.port", "7337")
 
     assert(1 == SparderEnv.getExecutorNum(sparkConf))
+  }
+
+  test("sparder env concurrent init") {
+    var initCount = 0
+    def init(): Unit = {
+      SparderEnv.initSpark(() => {
+        Thread.sleep(1000)
+        initCount += 1
+      })
+    }
+
+    var th1Elapsed = System.currentTimeMillis();
+    var th2Elapsed = System.currentTimeMillis();
+    var th3Elapsed = System.currentTimeMillis();
+    val th1 = new Thread(() => {
+      init()
+      th1Elapsed = System.currentTimeMillis() - th1Elapsed
+    })
+    val th2 = new Thread(() => {
+      init()
+      th2Elapsed = System.currentTimeMillis() - th1Elapsed
+    })
+    val th3 = new Thread(() => {
+      init()
+      th3Elapsed = System.currentTimeMillis() - th1Elapsed
+    })
+
+    Seq(th1, th2, th3).foreach(th => th.start())
+    Seq(th1, th2, th3).foreach(th => th.join())
+    assert(initCount == 1)
+    assert(th1Elapsed + th2Elapsed + th3Elapsed >= 3000);
+  }
+
+  test("sparder env concurrent init - interrupt") {
+    var initCount = 0
+    val latch = new CountDownLatch(1)
+    def init(): Unit = {
+      SparderEnv.initSpark(() => {
+        latch.countDown()
+        Thread.sleep(1000)
+        initCount += 1
+      })
+    }
+
+    var th1Interrupted = false
+    val th1 = new Thread(() => try {
+      init()
+    } catch {
+      case _: KylinTimeoutException =>
+        logInfo("interrupted corrected")
+        th1Interrupted = true
+      case _ =>
+        fail("not interrupted corrected")
+    })
+    th1.start()
+    latch.await()
+    th1.interrupt()
+
+    val th2 = new Thread(() => init())
+    val th3 = new Thread(() => init())
+    th2.start()
+    th3.start()
+
+    th2.join()
+    th3.join()
+    assert(initCount == 1)
+    assert(th1Interrupted)
   }
 }
 

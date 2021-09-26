@@ -63,6 +63,8 @@ trait WithKylinExternalCatalog extends SparkFunSuite with BeforeAndAfterAll {
   }
 
   override def beforeAll(): Unit = {
+    overwriteSystemProp("kylin.spark.discard-shard-state", "true")
+
     metaStore.createTestMetadata(metadata: _*)
     metaStore.overwriteSystemProp("kylin.use.external.catalog", "io.kyligence.kap.engine.spark.mockup.external.FileCatalog")
     metaStore.overwriteSystemProp("kylin.NSparkDataSource.data.dir", s"${kylinConf.getMetadataUrlPrefix}/../data")

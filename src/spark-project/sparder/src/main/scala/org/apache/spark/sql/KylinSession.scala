@@ -167,6 +167,15 @@ object KylinSession extends Logging {
       if (session ne null) {
         return session
       }
+
+      // for testing only
+      // discard existing shardState directly
+      // use in case that external shard state needs to be set in UT
+      if (Option(System.getProperty("kylin.spark.discard-shard-state")).getOrElse("false").toBoolean) {
+        existingSharedState = None
+        parentSessionState = None
+      }
+
       // Global synchronization so we will only set the default session once.
       SparkSession.synchronized {
         // If the current thread does not have an active session, get it from the global session.

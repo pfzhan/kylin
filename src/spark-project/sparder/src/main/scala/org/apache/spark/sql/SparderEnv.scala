@@ -26,6 +26,8 @@ package org.apache.spark.sql
 
 import java.lang.{Boolean => JBoolean, String => JString}
 import java.security.PrivilegedAction
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{Callable, ExecutorService}
 
 import io.kyligence.kap.common.util.DefaultHostInfoFetcher
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
@@ -42,7 +44,7 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.udf.UdfManager
-import org.apache.spark.util.Utils
+import org.apache.spark.util.{ThreadUtils, Utils}
 import org.apache.spark.{SparkConf, SparkContext, SparkEnv}
 
 // scalastyle:off
@@ -50,8 +52,11 @@ object SparderEnv extends Logging {
   @volatile
   private var spark: SparkSession = _
 
-  @volatile
-  private var initializingThread: Thread = null
+  private val initializingLock = new ReentrantLock()
+  private val initializingCondition = initializingLock.newCondition()
+  private var initializing: Boolean = false
+  private val initializingExecutor: ExecutorService =
+    ThreadUtils.newDaemonFixedThreadPool(1, "SparderEnv-Init")
 
   @volatile
   var APP_MASTER_TRACK_URL: String = null
@@ -65,7 +70,7 @@ object SparderEnv extends Logging {
   def getSparkSession: SparkSession = {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
-      initSpark()
+      initSpark(() => doInitSpark())
     }
     if (spark == null)
       throw new KylinException(ServerErrorCode.SPARK_FAILURE, MsgPicker.getMsg.getSPARK_FAILURE)
@@ -137,96 +142,118 @@ object SparderEnv extends Logging {
     }
   }
 
-  def initSpark(): Unit = {
-    this.synchronized {
-      if (initializingThread == null && (spark == null || spark.sparkContext.isStopped)) {
-        initializingThread = new Thread(new Runnable {
-          override def run(): Unit = {
-            var startSparkSucceed = false
+  def initSpark(doInit: () => Unit): Unit = {
+    // do init
+    try {
+      initializingLock.lock()
+      // exit if spark is running or it's during initializing
+      if ((spark == null || spark.sparkContext.isStopped) && !initializing) {
 
-            val hostInfoFetcher = new DefaultHostInfoFetcher
-            val appName = "sparder-" + UserGroupInformation.getCurrentUser.getShortUserName + "-" + hostInfoFetcher.getHostname
+        initializing = true
 
+        initializingExecutor.submit(new Callable[Unit]() {
+          override def call(): Unit = {
             try {
-              val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
-                ("true").equals(System.getProperty("spark.local"))
-              val sparkSession = isLocalMode match {
-                case true =>
-                  SparkSession.builder
-                    .master("local")
-                    .appName("sparder-local-sql-context")
-                    .withExtensions { ext =>
-                      ext.injectPlannerStrategy(_ => KylinSourceStrategy)
-                      ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
-                    }
-                    .enableHiveSupport()
-                    .getOrCreateKylinSession()
-                case _ =>
-                  SparkSession.builder
-                    .appName(appName)
-                    .master("yarn")
-                    //if user defined other master in kylin.properties,
-                    // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
-                    .withExtensions { ext =>
-                      ext.injectPlannerStrategy(_ => KylinSourceStrategy)
-                      ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
-                    }
-                    .enableHiveSupport()
-                    .getOrCreateKylinSession()
-              }
-              spark = sparkSession
-              logInfo("Spark context started successfully with stack trace:")
-              logInfo(Thread.currentThread().getStackTrace.mkString("\n"))
-              logInfo(
-                "Class loader: " + Thread
-                  .currentThread()
-                  .getContextClassLoader
-                  .toString)
-              registerListener(sparkSession.sparkContext)
-              initMonitorEnv()
-              APP_MASTER_TRACK_URL = null
-              startSparkSucceed = true
-            } catch {
-              case throwable: Throwable =>
-                logError("Error for initializing spark ", throwable)
-              case e: InterruptedException =>
-                Thread.currentThread.interrupt()
-                QueryContext.current().getQueryTagInfo.setTimeout(true)
-                logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
-                throw new KylinTimeoutException("The query exceeds the set time limit of "
-                  + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Init sparder. ")
+              logInfo("Initializing Spark thread starting.")
+              doInit()
             } finally {
-              if (startSparkSucceed) {
-                startSparkFailureTimes = 0
-                lastStartSparkFailureTime = 0
-              } else {
-                startSparkFailureTimes += 1
-                lastStartSparkFailureTime = System.currentTimeMillis()
-              }
-
-              logInfo("Setting initializing Spark thread to null.")
-              initializingThread = null
+              logInfo("Initialized Spark")
+              // wake up all waiting query threads after init done
+              initializingLock.lock()
+              initializing = false
+              initializingCondition.signalAll()
+              initializingLock.unlock()
             }
           }
         })
-
-        logInfo("Initializing Spark thread starting.")
-        initializingThread.start()
       }
+    } finally {
+      initializingLock.unlock()
+    }
 
-      if (initializingThread != null) {
-        logInfo("Initializing Spark, waiting for done.")
-        initializingThread.join()
+    // wait until initializing done
+    try {
+      initializingLock.lock()
+      if (Thread.interrupted()) { // exit in case thread is interrupted already
+        throw new InterruptedException
       }
+      while (initializing) {
+        initializingCondition.await()
+      }
+    } catch {
+      case _: InterruptedException =>
+        Thread.currentThread.interrupt()
+        QueryContext.current().getQueryTagInfo.setTimeout(true)
+        logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
+        throw new KylinTimeoutException("The query exceeds the set time limit of "
+          + KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds + "s. Current step: Init sparder. ")
+    } finally {
+      initializingLock.unlock()
+    }
 
-      try {
-        UserGroupInformation.getLoginUser.doAs(new PrivilegedAction[Unit] {
-          override def run(): Unit = spark.sql("show databases").show()
-        })
-      } catch {
-        case throwable: Throwable =>
-          logError("Error for initializing connection with hive.", throwable)
+    initConnWithHive()
+  }
+
+  private def initConnWithHive(): Unit = {
+    try {
+      UserGroupInformation.getLoginUser.doAs(new PrivilegedAction[Unit] {
+        override def run(): Unit = spark.sql("show databases").show()
+      })
+    } catch {
+      case throwable: Throwable =>
+        logError("Error for initializing connection with hive.", throwable)
+    }
+  }
+
+  def doInitSpark(): Unit = {
+    try {
+      val hostInfoFetcher = new DefaultHostInfoFetcher
+      val appName = "sparder-" + UserGroupInformation.getCurrentUser.getShortUserName + "-" + hostInfoFetcher.getHostname
+
+      val isLocalMode = KylinConfig.getInstanceFromEnv.isJobNodeOnly ||
+        ("true").equals(System.getProperty("spark.local"))
+      val sparkSession = isLocalMode match {
+        case true =>
+          SparkSession.builder
+            .master("local")
+            .appName("sparder-local-sql-context")
+            .withExtensions { ext =>
+              ext.injectPlannerStrategy(_ => KylinSourceStrategy)
+              ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+            }
+            .enableHiveSupport()
+            .getOrCreateKylinSession()
+        case _ =>
+          SparkSession.builder
+            .appName(appName)
+            .master("yarn")
+            //if user defined other master in kylin.properties,
+            // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
+            .withExtensions { ext =>
+              ext.injectPlannerStrategy(_ => KylinSourceStrategy)
+              ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+            }
+            .enableHiveSupport()
+            .getOrCreateKylinSession()
       }
+      spark = sparkSession
+      logInfo("Spark context started successfully with stack trace:")
+      logInfo(Thread.currentThread().getStackTrace.mkString("\n"))
+      logInfo(
+        "Class loader: " + Thread
+          .currentThread()
+          .getContextClassLoader
+          .toString)
+      registerListener(sparkSession.sparkContext)
+      initMonitorEnv()
+      APP_MASTER_TRACK_URL = null
+      startSparkFailureTimes = 0
+      lastStartSparkFailureTime = 0
+    } catch {
+      case throwable: Throwable =>
+        logError("Error for initializing spark ", throwable)
+        startSparkFailureTimes += 1
+        lastStartSparkFailureTime = System.currentTimeMillis()
     }
   }
 
