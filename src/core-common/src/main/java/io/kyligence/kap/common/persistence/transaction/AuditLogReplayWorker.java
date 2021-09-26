@@ -26,9 +26,7 @@ package io.kyligence.kap.common.persistence.transaction;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -53,7 +51,6 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
     @Getter
     private volatile long logOffset = 0L;
 
-
     public void startSchedule(long currentId, boolean syncImmediately) {
         updateOffset(currentId);
         if (syncImmediately) {
@@ -67,23 +64,6 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
         super(config, restorer);
     }
 
-    @Override
-    public void waitForCatchup(long targetId, long timeout) throws TimeoutException {
-        long endTime = System.currentTimeMillis() + timeout * 1000;
-        try {
-            while (System.currentTimeMillis() < endTime) {
-                if (getLogOffset() >= targetId) {
-                    return;
-                }
-                Thread.sleep(50);
-            }
-        } catch (Exception e) {
-            log.info("Wait for catchup to {} failed", targetId, e);
-        }
-        throw new TimeoutException(String.format(Locale.ROOT, "Cannot reach %s before %s, current is %s", targetId,
-                endTime, getLogOffset()));
-    }
-
     public synchronized void updateOffset(long expected) {
         logOffset = Math.max(logOffset, expected);
     }
@@ -93,15 +73,8 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
     }
 
     @Override
-    public void catchupFrom(long expected) {
-        updateOffset(expected);
-        catchup();
-    }
-
-    @Override
-    public void forceCatchFrom(long offset) {
-        forceUpdateOffset(offset);
-        catchup();
+    protected boolean hasCatch(long targetId) {
+        return logOffset >= targetId;
     }
 
     @Override
@@ -115,11 +88,7 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
             updateOffset(offset);
         } catch (TransactionException e) {
             log.warn("cannot create transaction, ignore it", e);
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
+            threadWait(5000);
         } catch (Exception e) {
             val rootCause = Throwables.getRootCause(e);
             if (rootCause instanceof VersionConflictException && countDown > 0) {
@@ -131,22 +100,50 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
 
     }
 
+    private void threadWait(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     public long catchupToMaxId(final long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
         val store = ResourceStore.getKylinMetaStore(config);
         replayer.setChecker(store.getChecker());
+        val maxId = auditLogStore.getMaxId();
+        if (maxId == currentId) {
+            return maxId;
+        }
+        if (!waitLogCommit(3, currentId, maxId)) {
+            return maxId;
+        }
         return withTransaction(auditLogStore.getTransactionManager(), () -> {
-            val step = 1000L;
-            val maxId = auditLogStore.getMaxId();
             log.debug("start restore, current max_id is {}", maxId);
             var start = currentId;
             while (start < maxId) {
-                val logs = auditLogStore.fetch(start, Math.min(step, maxId - start));
+                val logs = auditLogStore.fetch(start, Math.min(STEP, maxId - start));
                 replayLogs(replayer, logs);
-                start += step;
+                start += STEP;
             }
             return maxId;
         });
+    }
+
+    private boolean waitLogCommit(int maxTimes, long currentId, long maxId) {
+        if (!config.isNeedReplayConsecutiveLog()) {
+            return true;
+        }
+        int count = 0;
+        while (!logAllCommit(currentId, maxId)) {
+            threadWait(100);
+            count++;
+            if (count >= maxTimes) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void handleConflictOnce(VersionConflictException e, int countDown) {
@@ -176,6 +173,5 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
         }
         catchupInternal(countDown - 1);
     }
-
 
 }

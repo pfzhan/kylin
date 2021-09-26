@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.transaction;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -103,17 +104,27 @@ public abstract class AbstractAuditLogReplayWorker {
 
     public abstract long getLogOffset();
 
-    public abstract void waitForCatchup(long targetId, long timeout) throws TimeoutException;
-
     public abstract void updateOffset(long expected);
 
     public abstract void forceUpdateOffset(long expected);
 
     protected abstract void catchupInternal(int countDown);
 
-    public abstract void catchupFrom(long expected);
+    protected abstract boolean hasCatch(long targetId);
 
-    public abstract void forceCatchFrom(long offset);
+    public void forceCatchFrom(long expected) {
+        forceUpdateOffset(expected);
+        catchup();
+    }
+
+    public void catchupFrom(long expected) {
+        updateOffset(expected);
+        catchup();
+    }
+
+    protected boolean logAllCommit(long startOffset, long endOffset) {
+        return auditLogStore.count(startOffset, endOffset) == (endOffset - startOffset);
+    }
 
     protected void handleReloadAll(Exception e) {
         log.error("Critical exception happened, try to reload metadata ", e);
@@ -143,6 +154,23 @@ public abstract class AbstractAuditLogReplayWorker {
         log.info("Reload finished");
 
         EventBusFactory.getInstance().postSync(new EndReloadEvent());
+    }
+
+    public void waitForCatchup(long targetId, long timeout) throws TimeoutException {
+        long endTime = System.currentTimeMillis() + timeout * 1000;
+        try {
+            while (System.currentTimeMillis() < endTime) {
+                if (hasCatch(targetId)) {
+                    return;
+                }
+                Thread.sleep(50);
+            }
+        } catch (Exception e) {
+            log.info("Wait for catchup to {} failed", targetId, e);
+            Thread.currentThread().interrupt();
+        }
+        throw new TimeoutException(String.format(Locale.ROOT, "Cannot reach %s before %s, current is %s", targetId,
+                endTime, getLogOffset()));
     }
 
     public static class StartReloadEvent {

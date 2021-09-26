@@ -98,7 +98,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
     static final String SELECT_MAX_ID_BY_PROJECT_SQL = "select max(id) from %s where id > %d and meta_key like '/%s/%%'";
     static final String SELECT_MAX_ID_SQL = "select max(id) from %s";
     static final String SELECT_MIN_ID_SQL = "select min(id) from %s";
-    static final String SELECT_COUNT_ID_RANGE = "select count(id) from %s where id >= %d and id < %d";
+    static final String SELECT_COUNT_ID_RANGE = "select count(id) from %s where id > %d and id <= %d";
     static final String DELETE_ID_LESSTHAN_SQL = "delete from %s where id < ?";
     static final String SELECT_TS_RANGE = "select "
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,

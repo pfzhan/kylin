@@ -26,13 +26,13 @@ package io.kyligence.kap.common.persistence.transaction;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -52,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuditLogGroupedReplayWorker extends AbstractAuditLogReplayWorker {
 
-    private static final String GLOBAL_PROJECT = "_global";
+    private static final String GLOBAL_PROJECT = UnitOfWork.GLOBAL_UNIT;
 
     ConcurrentHashMap<String, Long> project2Offset = new ConcurrentHashMap<>();
 
@@ -92,6 +92,8 @@ public class AuditLogGroupedReplayWorker extends AbstractAuditLogReplayWorker {
     }
 
     private synchronized void resetProjectOffset(long offset, boolean force) {
+        log.trace("reset offset: {}", offset);
+        log.trace("before resetting projectOffset: {}", project2Offset);
         val store = ResourceStore.getKylinMetaStore(config);
         Set<String> existProjects = extractProjects(store);
         Map<String, Long> newProject2Offset = Maps.newHashMap();
@@ -101,30 +103,13 @@ public class AuditLogGroupedReplayWorker extends AbstractAuditLogReplayWorker {
         });
         project2Offset.clear();
         project2Offset.putAll(newProject2Offset);
+        log.trace("after resetting projectOffset: {}", project2Offset);
     }
 
     // not exactly log offset
     @Override
     public long getLogOffset() {
         return project2Offset.values().stream().min(Comparator.naturalOrder()).orElse(0L);
-    }
-
-    @Override
-    public void waitForCatchup(long targetId, long timeout) throws TimeoutException {
-
-        long endTime = System.currentTimeMillis() + timeout * 1000;
-        try {
-            while (System.currentTimeMillis() < endTime) {
-                if (getMaxLogOffset() >= targetId) {
-                    return;
-                }
-                Thread.sleep(50);
-            }
-        } catch (Exception e) {
-            log.info("Wait for catchup to {} failed", targetId, e);
-        }
-        throw new TimeoutException(String.format(Locale.ROOT, "Cannot reach %s before %s, current is %s", targetId,
-                endTime, getLogOffset()));
     }
 
     private long getMaxLogOffset() {
@@ -134,25 +119,16 @@ public class AuditLogGroupedReplayWorker extends AbstractAuditLogReplayWorker {
     @Override
     public void updateOffset(long expected) {
         resetProjectOffset(expected, false);
-        catchup();
     }
 
     @Override
     public void forceUpdateOffset(long expected) {
         resetProjectOffset(expected, true);
-        catchup();
     }
 
     @Override
-    public void forceCatchFrom(long expected) {
-        forceUpdateOffset(expected);
-        catchup();
-    }
-
-    @Override
-    public void catchupFrom(long expected) {
-        updateOffset(expected);
-        catchup();
+    protected boolean hasCatch(long targetId) {
+        return getMaxLogOffset() >= targetId;
     }
 
     @Override
@@ -161,75 +137,77 @@ public class AuditLogGroupedReplayWorker extends AbstractAuditLogReplayWorker {
             log.info("Catchup Already stopped");
             return;
         }
-        try {
-            val replayer = MessageSynchronization.getInstance(config);
-            val store = ResourceStore.getKylinMetaStore(config);
-            replayer.setChecker(store.getChecker());
-            Map<String, Long> newOffsetCollector = Maps.newHashMap();
-            List<ProjectChangeEvent> projectChangeEvents = Lists.newArrayList();
+        log.debug("start replay...");
+        val startTime = System.currentTimeMillis();
 
-            long maxOffset = getMaxLogOffset();
-            long minOffset = getLogOffset();
-            boolean needOptimizeOffset = needOptimizeOffset(minOffset, maxOffset);
+        Map<String, Long> replayInfoCollector = new HashMap<>();
+        List<ProjectChangeEvent> projectChangeEvents = Lists.newArrayList();
+        boolean nonSkipException = true;
 
-            project2Offset.entrySet().stream().parallel().forEach(entry -> {
-                val project = entry.getKey();
-                val offset = entry.getValue();
-                val projectMaxId = auditLogStore.getMaxIdByProject(project, offset);
-                log.debug(
-                        "start restore project {}, current project max_id is {}(don't update if 0), current project id : {}",
-                        project, projectMaxId, offset);
-                if (projectMaxId != 0) {
-                    withTransaction(auditLogStore.getTransactionManager(), () -> {
-                        var start = offset;
-                        boolean needDetectProjectChange = project.equals(GLOBAL_PROJECT);
-
-                        while (start < projectMaxId) {
-                            val logs = auditLogStore.fetch(project, start, Math.min(STEP, projectMaxId - start));
-                            if (needDetectProjectChange) {
-                                collectProjectChange(logs, projectChangeEvents);
-                            }
-                            replayLogs(replayer, logs);
-                            start += STEP;
-                        }
-                        return projectMaxId;
-                    });
-                }
-
-                if (needOptimizeOffset) {
-                    newOffsetCollector.put(project, Math.max(projectMaxId, maxOffset));
-                } else {
-                    if (projectMaxId != 0) {
-                        newOffsetCollector.put(project, projectMaxId);
-                    }
-                }
-
-            });
-
-            newOffsetCollector.forEach((project, newOffset) -> project2Offset.put(project, newOffset));
-
-            handleProjectChange(projectChangeEvents);
-        } catch (TransactionException e) {
-            log.warn("cannot create transaction, ignore it", e);
+        for (Entry<String, Long> entry : project2Offset.entrySet()) {
+            val project = entry.getKey();
+            val offset = entry.getValue();
             try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
+                replayInfoCollector.put(project, catchupForProject(project, offset, projectChangeEvents));
+            } catch (TransactionException e) {
+                log.warn("cannot create transaction, ignore it", e);
+                nonSkipException = false;
+                break;
+            } catch (Exception e) {
+                handleReloadAll(e);
+                return;
             }
-        } catch (Exception e) {
-            handleReloadAll(e);
+        }
+
+        long maxOffset = getMaxLogOffset();
+        long minOffset = getLogOffset();
+        boolean needOptimizeOffset = nonSkipException && canOptimizeOffset(minOffset, maxOffset);
+        replayInfoCollector.forEach((project, offset) -> {
+            long newOffset = needOptimizeOffset ? Math.max(maxOffset, offset) : offset;
+            logProjectOffsetChange(project, offset, newOffset);
+            project2Offset.put(project, newOffset);
+        });
+        handleProjectChange(projectChangeEvents);
+        log.debug("replay spend {}ms", System.currentTimeMillis() - startTime);
+    }
+
+    private void logProjectOffsetChange(String project, long offset, long newOffset) {
+        long oldOffset = project2Offset.get(project);
+        if (oldOffset != newOffset) {
+            log.debug("restore project {}, replay start offset {} to offset {}, and optimize to {} ", project,
+                    project2Offset.get(project), offset, newOffset);
         }
     }
 
-    private boolean needOptimizeOffset(long minOffset, long maxOffset) {
-        if (maxOffset - minOffset > STEP * 10 && logAllCommit(minOffset, maxOffset)) {
-                return true;
+    private long catchupForProject(String project, Long startOffset, List<ProjectChangeEvent> projectChangeEvents) {
+        val replayer = MessageSynchronization.getInstance(config);
+        val store = ResourceStore.getKylinMetaStore(config);
+        replayer.setChecker(store.getChecker());
+        val projectMaxId = auditLogStore.getMaxIdByProject(project, startOffset);
+
+        if (projectMaxId != 0) {
+            withTransaction(auditLogStore.getTransactionManager(), () -> {
+                var start = startOffset;
+                boolean needDetectProjectChange = project.equals(GLOBAL_PROJECT);
+
+                while (start < projectMaxId) {
+                    val logs = auditLogStore.fetch(project, start, Math.min(STEP, projectMaxId - start));
+                    if (needDetectProjectChange) {
+                        collectProjectChange(logs, projectChangeEvents);
+                    }
+                    replayLogs(replayer, logs);
+                    start += STEP;
+                }
+                return projectMaxId;
+            });
+            return projectMaxId;
         }
-        return false;
+
+        return startOffset;
     }
 
-    private boolean logAllCommit(long startOffset, long endOffset) {
-        return auditLogStore.count(startOffset, endOffset) == (endOffset - startOffset);
+    private boolean canOptimizeOffset(long minOffset, long maxOffset) {
+        return maxOffset - minOffset > STEP * 10 && logAllCommit(minOffset, maxOffset);
     }
 
     private synchronized void handleProjectChange(List<ProjectChangeEvent> projectChangeEvents) {
