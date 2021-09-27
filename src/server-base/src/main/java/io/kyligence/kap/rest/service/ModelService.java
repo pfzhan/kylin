@@ -1579,6 +1579,9 @@ public class ModelService extends BasicService {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return;
         }
+        if (getModelConfig(dataModel).skipCheckFlatTable()) {
+            return;
+        }
         try {
             ProjectInstance projectInstance = getProjectManager().getProject(dataModel.getProject());
             if (projectInstance.getSourceType() == ISourceAware.ID_SPARK
@@ -1608,6 +1611,14 @@ public class ModelService extends BasicService {
                 throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
             }
         }
+    }
+
+    private KylinConfig getModelConfig(NDataModel dataModel) {
+        IndexPlan indexPlan = getIndexPlan(dataModel.getId(), dataModel.getProject());
+        if (indexPlan == null || indexPlan.getConfig() == null) {
+            return getProjectManager().getProject(dataModel.getProject()).getConfig();
+        }
+        return indexPlan.getConfig();
     }
 
     private void validatePartitionDateColumn(ModelRequest modelRequest) {
