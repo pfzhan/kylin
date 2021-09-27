@@ -140,10 +140,11 @@ class MetaExplorerTest extends SQLTestUtils with WithKylinExternalCatalog {
     withTable(table) {
       val sparkMetadataExplorer = new NSparkMetadataExplorer
       val tables = sparkMetadataExplorer.listTables("")
-      assertResult(11)(tables.size())
+      assertResult(12)(tables.size())
       assertResult(
         Seq("STREAMING_TABLE", s"${table.toUpperCase(Locale.ROOT)}", "TEST_ACCOUNT", "TEST_CATEGORY_GROUPINGS", "TEST_COUNTRY",
-          "TEST_ENCODING", "TEST_KYLIN_FACT", "TEST_MEASURE", "TEST_MEASURE1", "TEST_ORDER", "TEST_SCD2"))(tables.asScala)
+          "TEST_ENCODING", "TEST_KYLIN_FACT", "TEST_KYLIN_FACT_WITH_INT_DATE", "TEST_MEASURE", "TEST_MEASURE1",
+          "TEST_ORDER", "TEST_SCD2"))(tables.asScala)
     }
   }
 

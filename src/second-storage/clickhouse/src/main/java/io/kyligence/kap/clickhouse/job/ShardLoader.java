@@ -29,10 +29,10 @@ import static io.kyligence.kap.clickhouse.job.DataLoader.getPrefixColumn;
 
 import java.sql.Date;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
@@ -160,9 +160,10 @@ public class ShardLoader {
 
     private void batchDropPartition(List<Date> partitions) throws SQLException {
         AlterTable alterTable;
+        val dateFormat = new SimpleDateFormat(partitionFormat, Locale.getDefault(Locale.Category.FORMAT));
         for (val partition : partitions) {
             alterTable = new AlterTable(TableIdentifier.table(database, destTableName),
-                    new AlterTable.ManipulatePartition(Objects.toString(partition),
+                    new AlterTable.ManipulatePartition(dateFormat.format(partition),
                             AlterTable.PartitionOperation.DROP));
             clickHouse.apply(alterTable.toSql(render));
         }
@@ -170,9 +171,10 @@ public class ShardLoader {
 
     private void batchMovePartition(List<Date> partitions, List<Date> successPartition) throws SQLException {
         AlterTable alterTable;
+        val dateFormat = new SimpleDateFormat(partitionFormat, Locale.getDefault(Locale.Category.FORMAT));
         for (val partition : partitions) {
             alterTable = new AlterTable(TableIdentifier.table(database, insertTempTableName),
-                    new AlterTable.ManipulatePartition(Objects.toString(partition),
+                    new AlterTable.ManipulatePartition(dateFormat.format(partition),
                             TableIdentifier.table(database, destTableName), AlterTable.PartitionOperation.MOVE));
             // clean partition data
             clickHouse.apply(alterTable.toSql(render));

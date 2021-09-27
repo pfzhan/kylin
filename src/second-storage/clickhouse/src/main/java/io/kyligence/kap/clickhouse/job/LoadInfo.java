@@ -23,14 +23,15 @@
  */
 package io.kyligence.kap.clickhouse.job;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.RandomUtil;
@@ -175,9 +176,10 @@ public class LoadInfo {
         if (segment.getSegRange().isInfinite()) {
             sizeInNode = metric.getByPartitions(targetDatabase, targetTable, Collections.singletonList("tuple()"));
         } else {
+            SimpleDateFormat partitionFormat = new SimpleDateFormat(model.getPartitionDesc().getPartitionDateFormat(), Locale.getDefault(Locale.Category.FORMAT));
             sizeInNode = metric.getByPartitions(targetDatabase, targetTable,
                     DataLoader.rangeToPartition((SegmentRange<Long>) segment.getSegRange()).stream()
-                            .map(Objects::toString).collect(Collectors.toList()));
+                            .map(partitionFormat::format).collect(Collectors.toList()));
         }
         return TablePartition.builder().setSegmentId(segmentId).setShardNodes(Arrays.asList(nodeNames))
                 .setId(RandomUtil.randomUUIDStr()).setNodeFileMap(nodeFileMap).setSizeInNode(sizeInNode).build();

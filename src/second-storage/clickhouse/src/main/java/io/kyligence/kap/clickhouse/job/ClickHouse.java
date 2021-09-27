@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
 
@@ -154,9 +155,16 @@ public class ClickHouse implements Closeable {
             while (resultSet.next()) {
                 if (Types.DATE == type) {
                     result.add(resultSet.getDate(1));
-                } else if (Types.VARCHAR == type){
+                } else if (Types.VARCHAR == type) {
                     try {
                         Date date = new Date(dateFormat.parse(resultSet.getString(1)).getTime());
+                        result.add(date);
+                    } catch (ParseException e) {
+                        ExceptionUtils.rethrow(e);
+                    }
+                } else {
+                    try {
+                        Date date = new Date(dateFormat.parse(Objects.toString(resultSet.getObject(1))).getTime());
                         result.add(date);
                     } catch (ParseException e) {
                         ExceptionUtils.rethrow(e);
