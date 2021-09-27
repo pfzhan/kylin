@@ -101,14 +101,17 @@ public class SchemaUtil {
 
         Preconditions.checkNotNull(table,
                 String.format(Locale.ROOT, "Table(%s) not exist in project(%s)", tableIdentity, project));
+        tables.add(table);
 
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
         List<NDataModel> models = modelManager.listAllModels().stream() //
-                .filter(model -> !model.isBroken()) //
-                .filter(model -> isTableRelatedModel(tableIdentity, model)).collect(Collectors.toList());
+                .filter(model -> model.isBroken() || isTableRelatedModel(tableIdentity, model)) //
+                .collect(Collectors.toList());
         models.forEach(model -> {
-            indexPlans.add(indexPlanManager.getIndexPlan(model.getUuid()));
-            tables.add(table);
+            if (!model.isBroken()) {
+                indexPlans.add(indexPlanManager.getIndexPlan(model.getUuid()));
+            }
+            tableManager.getTableDesc(model.getRootFactTableName());
             List<JoinTableDesc> joinTables = model.getJoinTables();
             for (JoinTableDesc joinTable : joinTables) {
                 tables.add(tableManager.getTableDesc(joinTable.getTable()));
