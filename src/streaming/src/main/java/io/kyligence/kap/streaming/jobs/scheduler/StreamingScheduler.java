@@ -224,13 +224,6 @@ public class StreamingScheduler {
 
     public void forceShutdown() {
         log.info("Shutting down DefaultScheduler ....");
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-        List<StreamingJobMeta> jobMetaList = mgr.listAllStreamingJobMeta().stream()
-                .filter(meta -> JobStatusEnum.RUNNING == meta.getCurrentStatus()
-                        || JobStatusEnum.STARTING == meta.getCurrentStatus())
-                .collect(Collectors.toList());
-        jobMetaList.forEach(meta -> killJob(meta.getModelId(), meta.getJobType(), JobStatusEnum.STOPPED));
         releaseResources();
         ExecutorServiceUtil.forceShutdown(scheduledExecutorService);
         ExecutorServiceUtil.forceShutdown(jobPool);

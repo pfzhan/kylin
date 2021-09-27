@@ -38,6 +38,7 @@ import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.assertj.core.util.Lists;
@@ -51,11 +52,13 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
@@ -68,6 +71,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
+import lombok.var;
 
 public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
 
@@ -252,6 +256,23 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         int oriCount = NDefaultScheduler.listAllSchedulers().size();
         listener.onProjectControlled(new ProjectControlledNotifier(prj));
         Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount + 1);
+        listener.onProjectEscaped(new ProjectEscapedNotifier(prj));
+        Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount);
+    }
+
+    @Test
+    public void testEpochChangedListenerOfGlobalPrj() throws Exception {
+        var prj = "_global";
+        val listener = new EpochChangedListener();
+        ReflectionTestUtils.setField(listener, "userService", Mockito.spy(UserService.class));
+        ReflectionTestUtils.setField(listener, "env", Mockito.spy(Environment.class));
+
+        val prjMgr = NProjectManager.getInstance(getTestConfig());
+        prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        int oriCount = NDefaultScheduler.listAllSchedulers().size();
+        listener.onEpochStarted(new EpochStartedNotifier());
+        listener.onProjectControlled(new ProjectControlledNotifier(prj));
+        Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount);
         listener.onProjectEscaped(new ProjectEscapedNotifier(prj));
         Assert.assertEquals(NDefaultScheduler.listAllSchedulers().size(), oriCount);
     }

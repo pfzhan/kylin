@@ -123,10 +123,7 @@ public class EpochChangedListener implements IKeep {
                 NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
                 QueryHistoryTaskScheduler.shutdownByProject(project);
                 NDefaultScheduler.shutdownByProject(project);
-                StreamingScheduler ss = StreamingScheduler.getInstance(project);
-                if(ss != null) {
-                    ss.forceShutdown();
-                }
+                StreamingScheduler.shutdownByProject(project);
             } catch (Exception e) {
                 log.warn("error when shutdown " + project + " thread", e);
             }
