@@ -32,6 +32,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -80,5 +81,26 @@ public class NComputedColumnTest extends NLocalWithSparkSessionTest {
         List<String> hitCubeResult = NExecAndComp.queryFromCube(getProject(), sqlHitCube).collectAsList().stream()
                 .map(Row::toString).collect(Collectors.toList());
         Assert.assertEquals(9, hitCubeResult.size());
+    }
+
+    @Test
+    public void testComputedColumnRewriteIrreversible() throws Exception {
+        overwriteSystemProp("kylin.query.transformers", "");
+        String aModelDfId = "4a306e0d-d80b-2b1b-b187-e0fe806de829";
+        String bModelDfId = "41e83026-96a7-200f-6b2f-0e835560c5b5";
+        NDataflow aModelDf = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(aModelDfId);
+        NDataflow bModelDf = NDataflowManager.getInstance(getTestConfig(), getProject()).getDataflow(bModelDfId);
+        buildCuboid(aModelDfId, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                com.google.common.collect.Sets.newHashSet(aModelDf.getIndexPlan().getAllLayouts()), true);
+        buildCuboid(bModelDfId, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                com.google.common.collect.Sets.newHashSet(bModelDf.getIndexPlan().getAllLayouts()), true);
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+
+        String sql1 = "SELECT SUM((CASE WHEN 1.1000000000000001 = 0 THEN CAST(NULL AS FLOAT) ELSE \"Staples\".\"PRICE\" / 1.1000000000000001 END))\n"
+                + "AS \"sum_Calculation_555068687593533\"\n" + "FROM TEST_KYLIN_FACT \"Staples\"\n"
+                + "GROUP BY 1.1000000000000001";
+        List<String> result = NExecAndComp.queryFromCube(getProject(), sql1).collectAsList().stream().map(Row::toString)
+                .collect(Collectors.toList());
+        Assert.assertEquals("[[4116942.727269302]]", result.toString());
     }
 }
