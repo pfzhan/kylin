@@ -2,13 +2,13 @@
   <el-dialog
     custom-class="diagnostic-dialog"
     :visible.sync="isShow"
-    width="720px"
+    width="600px"
     :close-on-click-modal="false"
     :before-close="() => handleClose('header')"
-    :title="isJobDiagnosis ? $t('jobDiagnosis') : $t('systemDiagnosis') "
+    :title="isQueryHistory?$t('queryDiagnostic'):isJobDiagnosis ? $t('jobDiagnosis') : $t('systemDiagnosis') "
   >
     <div class="body">
-      <template v-if="!isJobDiagnosis">
+      <template v-if="!isJobDiagnosis && !isQueryHistory">
         <el-alert
           class="ksd-pt-0 ksd-mb-10"
           type="info"
@@ -46,28 +46,37 @@
           <p class="error-text" v-if="validDateTime && getDateTimeValid">{{$t('timeErrorMsg')}}</p>
         </div>
       </template>
-      <div :class="['server', !isJobDiagnosis && 'ksd-mt-15']">
-        <el-alert
-          class="ksd-pt-0 ksd-mb-10"
-          type="info"
-          v-if="isJobDiagnosis"
-          :show-background="false"
-          :closable="false"
-          show-icon>
+      <div :class="['server', !isJobDiagnosis && !isQueryHistory && 'ksd-mt-16']">
+        <div
+          v-if='isQueryHistory'
+          class="ksd-pt-0 ksd-mb-16"
+        >
           <template v-if="$store.state.config.platform === 'iframe'">
-            <span slot="title" v-if="isAdminRole"><span v-html="$t('downloadJobDiagPackage1ForIframe')"></span><a href="javascript:void(0)" @click="gotoWorkspaceList">{{$t('workspaceList')}}</a>{{$t('downloadJobDiagPackage2ForIframe')}}</span>
-            <span slot="title" v-html="$t('downloadJobDiagPackageForNorAdminForIframe')" v-else></span>
+            <span v-if="isAdminRole" class='describe'>{{$t('downloadQueryDiagnostic')}}<a href="javascript:void(0)" @click="goto('job',$route.name)">{{$t("monitor")}}</a>{{$t('downloadQueryDiagnosticForKCsubText1')}}<a href="javascript:void(0)" @click="gotoWorkspaceList">{{$t('workspaceList')}}</a>{{$t('downloadQueryDiagnosticForKEsubText2')}}</span>
+            <span v-else class='describe'>{{$t('downloadQueryDiagnostic')}}<a href="javascript:void(0)" @click="goto('job',$route.name)">{{$t("monitor")}}</a>{{$t('downloadQueryDiagnosticForKEsubText3')}}</span>
           </template>
           <template v-else>
-            <span slot="title" v-if="isAdminRole"><span v-html="$t('downloadJobDiagPackage1')"></span><a href="javascript:void(0)" @click="goto('admin',$route.name)">{{$t('adminMode')}}</a>{{$t('downloadJobDiagPackage2')}}</span>
-            <span slot="title" v-html="$t('downloadJobDiagPackageForNorAdmin')" v-else></span>
+            <span v-if="isAdminRole" class='describe'>{{$t('downloadQueryDiagnostic')}}<a href="javascript:void(0)" @click="goto('job',$route.name)">{{$t("monitor")}}</a>{{$t("downloadQueryDiagnosticForKEsubText1")}}<a href="javascript:void(0)" @click="goto('admin',$route.name)">{{$t("adminMode")}}</a>{{$t('downloadQueryDiagnosticForKEsubText2')}}</span>
+            <span v-else class='describe'>{{$t('downloadQueryDiagnostic')}}<a href="javascript:void(0)" @click="goto('job',$route.name)">{{$t("monitor")}}</a>{{$t('downloadQueryDiagnosticForKEsubText3')}}</span>
           </template>
-        </el-alert>
+        </div>
+        <div
+          class="ksd-pt-0 ksd-mb-16"
+          v-if="isJobDiagnosis"
+        >
+          <template v-if="$store.state.config.platform === 'iframe'">
+            <span v-if="isAdminRole" class='describe'>{{$t('downloadJobDiagnosticSubText3')}}{{$t('downloadJobDiagnosticSubText4')}}<a href="javascript:void(0)" @click="gotoWorkspaceList">{{$t('workspaceList')}}</a>{{$t('downloadQueryDiagnosticForKEsubText2')}}</span>
+            <span v-else class='describe'>{{$t('downloadJobDiagnosticSubText3')}}{{$t('downloadJobDiagnosticSubText5')}}</span>
+          </template>
+          <template v-else>
+            <span v-if="isAdminRole" class='describe'>{{$t('downloadJobDiagnostic')}}<a href="javascript:void(0)" @click="goto('query',$route.name)">{{$t("queryPage")}}</a>{{$t("downloadJobDiagnosticSubText1")}}<a href="javascript:void(0)" @click="goto('admin',$route.name)">{{$t("adminMode")}}</a>{{$t('downloadQueryDiagnosticForKEsubText2')}}</span>
+            <span v-else class='describe'>{{$t('downloadJobDiagnostic')}}<a href="javascript:void(0)" @click="goto('query',$route.name)">{{$t("queryPage")}}</a>{{$t('downloadJobDiagnosticSubText2')}}</span>
+          </template>
+        </div>
         <el-alert
-          class="ksd-pt-0 ksd-mb-10"
+          class="ksd-mb-16"
           type="warning"
-          v-if="$route.name === 'Job'"
-          :show-background="false"
+          v-if="$route.name === 'Job' && this.jobStatus === 'RUNNING'"
           :closable="false"
           show-icon>
           <template>
@@ -75,7 +84,7 @@
           </template>
         </el-alert>
         <p class="title">{{$t('server')}}</p>
-        <el-select :class="{'no-selected': isServerChange && !servers.length}" v-model="servers" multiple :placeholder="$t('selectServerPlaceHolder')" :disabled="isRunning" @change="isServerChange = true">
+        <el-select :class="{'no-selected': isServerChange && !servers.length}" v-model="servers" multiple :placeholder="$t('selectServerPlaceHolder')" :disabled="isRunning || isQueryHistory" @change="isServerChange = true">
           <el-option
             v-for="item in serverOptions"
             :key="item.value"
@@ -86,53 +95,41 @@
         <p class="error-text" v-if="isServerChange && !servers.length">{{$t('selectServerTip')}}</p>
       </div>
       <div class="download-layout" v-if="isShowDiagnosticProcess">
-        <p>{{$t('downloadTip')}}</p>
+        <p class="download-layout-title">{{$t('createDiagnostic')}}</p>
         <div class="download-progress">
           <div class="progress-item clearfix" v-for="item in diagDumpIds" :key="item.id">
-            <el-checkbox v-model="item.isCheck" :disabled="item.stage !== 'DONE'" v-if="showManualDownloadLayout && isManualDownload" @change="changeCheckItems"></el-checkbox>
             <div class="download-details">
-              <p class="title"><template v-if="item.tm"><i class="el-icon-ksd-type_interval_day_to_seconds default-color"></i> {{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color">｜</span></template>{{ getTitle(item) }}</p>
-              <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" ></el-progress>
+              <p class="title ksd-mb-8">{{ getTitle(item) }}<template v-if="item.tm"> ｜{{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color"></span></template></p>
+              <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" :icon-class="item.stage==='PREPARE'?'el-ksd-icon-time_22':''"></el-progress>
               <template v-if="item.status === '001'">
-                <span :class="['retry-btn', {'ksd-ml-20': isManualDownload}]" @click="retryJob(item)">{{$t('retry')}}</span>
-                <p class="error-text">{{$t('requireOverTime1')}}<a class="user-manual" :href="!isJobDiagnosis ? 'https://sso.kyligence.com/uaa/login.html?lang=en&source=docs' : ($lang === 'en' ? 'https://docs.kyligence.io/books/v4.0/en/monitor/job_diagnosis.en.html' : 'https://docs.kyligence.io/books/v4.0/zh-cn/monitor/job_diagnosis.cn.html')" target="_blank">{{$t('manual')}}</a>{{$t('requireOverTime2')}}</p>
+                <p class="error-text">{{$t('requireOverTime1')}}<span class='retry-btn' @click="retryJob(item)">{{$t('retry')}}</span>{{$t('requireOverTime2')}}<a :href="$lang === 'en' ? 'https://docs.kyligence.io/books/v4.5/en/operation/diag.en.html' : 'https://docs.kyligence.io/books/v4.5/zh-cn/operation/diag.cn.html'" target="_blank">{{$t('manual')}}<i class="el-ksd-icon-export_22 export-icon"></i></a>{{$t('requireOverTime3')}}</p>
               </template>
               <template v-if="['002', '999'].includes(item.status)">
                 <span class="error-text">{{item.status === '002' ? $t('noAuthorityTip') : $t('otherErrorMsg')}}</span><span class="detail-text" @click="item.showErrorDetail = !item.showErrorDetail">{{$t('details')}}<i :class="item.showErrorDetail ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
                 <div class="dialog-detail" v-if="item.showErrorDetail">
-                  <el-input class="details-content" type="textarea" v-model.trim="item.error" :rows="4" readonly></el-input>
-                  <el-button class="copyBtn" size="mini" v-clipboard:copy="item.error" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+                  <el-input class="details-content" type="textarea" v-model.trim="item.error" :rows="4" :disabled="true"></el-input>
+                  <el-tooltip
+                    content="Copy"
+                    placement="top"
+                  >
+                     <el-button class="copyBtn" size="mini" v-clipboard:copy="item.error" v-clipboard:success="onCopy" v-clipboard:error="onError" icon-button icon="el-ksd-icon-dup_22"></el-button>
+                  </el-tooltip>
                 </div>
               </template>
-            </div>
-          </div>
-          <div class="checkbox-group" v-if="showManualDownloadLayout && isManualDownload">
-            <el-checkbox v-model="checkAll" :indeterminate="indeterminate" @change="changeCheckAllType">{{$t('selectAll')}}</el-checkbox>
-            <div class="download-msg">
-              <span @click="downloadEvent">{{`${$t('download')}(${getDownloadNum})`}}</span>
-              <span class="cancel" @click="cancelManualDownload">{{$t('cancel')}}</span>
+              <template v-if="item.status === '000' && item.stage === 'DONE'">
+                <p class="manual-download">{{$t('manualDownloadTip')}}<el-button nobg-text size="small" @click="downloadEvent (item)">{{$t('manualDownload')}}</el-button></p>
+              </template>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div slot="footer">
-      <span class="manual-download"><span :class="['manual', {'is-disable': !showManualDownloadLayout || isManualDownload}]" @click="!(!showManualDownloadLayout || isManualDownload) && (isManualDownload = true)">{{$t('manualDownload')}}</span><el-tooltip :content="$t('manualDownloadTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></span>
-      <el-popover
-        ref="closePopover"
-        placement="top"
-        width="326"
-        :popper-class="popperClass === 'header' ? 'popover-running' : popperClass === 'jumpLinks' ? 'popover-jump-link' : ''"
-        v-model="showPopoverTip">
-        <p>{{$t('closeModelTip')}}</p>
-        <div style="text-align: right; margin: 0">
-          <el-button size="mini" type="info" text @click="showPopoverTip = false">{{$t('cancelBtn')}}</el-button>
-          <el-button type="primary" size="mini" @click="closeDialog">{{$t('confrimBtn')}}</el-button>
-        </div>
-      </el-popover>
-      <el-button v-popover="'closePopover'" size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
-      <el-button type="primary" size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length || isManualDownload">{{$t('generateBtn')}}</el-button>
-    </div>
+    <template>
+      <div slot="footer">
+        <el-button size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button type="primary" size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length ">{{$t('generateBtn')}}</el-button>
+      </div>
+    </template>
   </el-dialog>
 </template>
 
@@ -152,6 +149,14 @@ vuex.registerModule(['diagnosticModel'], store)
     jobId: {
       type: String,
       default: ''
+    },
+    jobStatus: {
+      type: String,
+      default: ''
+    },
+    queryServer: {
+      type: String,
+      default: ''
     }
   },
   computed: {
@@ -160,7 +165,8 @@ vuex.registerModule(['diagnosticModel'], store)
       diagDumpIds: state => state.diagDumpIds
     }),
     ...mapGetters([
-      'isAdminRole'
+      'isAdminRole',
+      'currentSelectedProject'
     ])
   },
   methods: {
@@ -168,7 +174,8 @@ vuex.registerModule(['diagnosticModel'], store)
       getDumpRemote: types.GET_DUMP_REMOTE,
       getServers: types.GET_SERVERS,
       downloadDumps: types.DOWNLOAD_DUMP_DIAG,
-      removeDiagnosticTask: types.REMOVE_DIAGNOSTIC_TASK
+      removeDiagnosticTask: types.REMOVE_DIAGNOSTIC_TASK,
+      getQueryDiagnostic: types.GET_QUERY_DIAGNOSTIC
     }),
     ...mapMutations('diagnosticModel', {
       updateCheckType: types.UPDATE_CHECK_TYPE,
@@ -184,7 +191,7 @@ vuex.registerModule(['diagnosticModel'], store)
 export default class Diagnostic extends Vue {
   isShow = true
   isRunning = false
-  isManualDownload = false
+  // isManualDownload = false
   checkAll = false
   indeterminate = false
   isShowDiagnosticProcess = false
@@ -220,15 +227,24 @@ export default class Diagnostic extends Vue {
       {text: this.$t('custom'), label: 'custom'}
     ]
   }
+  openConfirm () {
+    this.$confirm(this.$t('closeModelTip'), this.$t('closeModalTitle'), {
+      confirmButtonText: this.$t('confrimBtn'),
+      cancelButtonText: this.$t('cancelBtn'),
+      type: 'warning',
+      centerButton: true
+    }).then(() => {
+      this.closeDialog()
+    })
+  }
   gotoWorkspaceList () {
     postCloudUrlMessage(this.$route, { name: 'Stack' })
   }
   goto (page, previousPage) {
     this.jumpPage = page
     if (this.isRunning) {
-      this.showPopoverTip = true
-      this.popperClass = 'jumpLinks'
       this.popoverCallback = this.gotoEventCallback
+      this.openConfirm()
     } else {
       this.gotoEventCallback(previousPage)
       this.$emit('close')
@@ -245,6 +261,12 @@ export default class Diagnostic extends Vue {
           this.$router.push('/monitor/job')
         }
       }
+    } else if (this.jumpPage === 'query') {
+      if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+        postCloudUrlMessage(this.$route, { name: 'kapHistory' })
+      } else {
+        this.$router.push('/query/queryhistory')
+      }
     } else {
       this.$router.push(`/admin/project?previousPage=${previousPage}`)
     }
@@ -260,17 +282,21 @@ export default class Diagnostic extends Vue {
     return !this.dateTime.prev || !this.dateTime.next || this.getTimes(this.dateTime.prev) > this.getTimes(this.dateTime.next) || (this.getTimes(this.dateTime.next) - this.getTimes(this.dateTime.prev)) < 300000 || (this.getTimes(getPrevTimeValue({ date: this.dateTime.next, m: 1 })) - this.getTimes(this.dateTime.prev)) > 0
   }
   // 是否展示手动下载提示
-  get showManualDownloadLayout () {
-    return Object.keys(this.diagDumpIds).filter(it => this.diagDumpIds[it].stage === 'DONE').length > 0
-  }
+  // get showManualDownloadLayout () {
+  //   return Object.keys(this.diagDumpIds).filter(it => this.diagDumpIds[it].stage === 'DONE').length > 0
+  // }
   // 是否任务为Job诊断包
   get isJobDiagnosis () {
     return this.$route.name === 'Job' || this.$route.name === 'StreamingJob'
   }
+  // 是否为查询诊断包
+  get isQueryHistory () {
+    return this.$route.name === 'QueryHistory'
+  }
   // 进度条title
   getTitle (item) {
     let [{label}] = this.serverOptions.filter(it => it.value === item.host.replace(/http:\/\//, ''))
-    return `http://${label}`
+    return label
   }
   getTimes (date) {
     return date ? new Date(date).getTime() : new Date().getTime()
@@ -300,10 +326,16 @@ export default class Diagnostic extends Vue {
   created () {
     this.getServers(this).then((data) => {
       if (data) {
-        data.forEach(item => {
-          Object.prototype.toString.call(item) === '[object Object]' && this.serverOptions.push({label: `${item.host}(${item.mode && item.mode.toLocaleUpperCase()})`, value: item.host})
-        })
-        this.servers = this.serverOptions.length ? [this.serverOptions[0].value] : []
+        if (this.isQueryHistory) {
+          const hostItem = data.find((item) => item.host === this.queryServer)
+          Object.prototype.toString.call(hostItem) === '[object Object]' && this.serverOptions.push({label: `${hostItem.host}(${hostItem.mode && hostItem.mode.toLocaleUpperCase()})`, value: hostItem.host})
+          this.servers = this.serverOptions.length ? [this.serverOptions[0].value] : []
+        } else {
+          data.forEach(item => {
+            Object.prototype.toString.call(item) === '[object Object]' && this.serverOptions.push({label: `${item.host}(${item.mode && item.mode.toLocaleUpperCase()})`, value: item.host})
+          })
+          this.servers = this.serverOptions.length ? [this.serverOptions[0].value] : []
+        }
       }
     })
   }
@@ -349,8 +381,7 @@ export default class Diagnostic extends Vue {
   // 有诊断包在生成中关闭弹窗时的popover提示
   handleClose (para) {
     if (this.isRunning) {
-      this.showPopoverTip = true
-      this.popperClass = para
+      this.openConfirm()
       return
     }
     this.closeDialog()
@@ -358,8 +389,7 @@ export default class Diagnostic extends Vue {
   // 关闭弹窗
   closeDialog () {
     // 增加停止后台诊断包生成接口
-    this.removeDiagnosticTask()
-    this.$refs['closePopover'] && this.$refs['closePopover'].doClose()
+    this.removeDiagnosticTask(this.$t('deleteDiagnosticSuccess'))
     this.resetDumpData(true)
     this.stopInterfaceCall(true)
     this.$emit('close')
@@ -380,6 +410,11 @@ export default class Diagnostic extends Vue {
       data = {
         job_id: this.jobId
       }
+    } else if (this.isQueryHistory) {
+      data = {
+        query_id: this.jobId,
+        project: this.currentSelectedProject
+      }
     } else {
       data = {
         start: new Date(this.dateTime.prev).getTime(),
@@ -387,20 +422,36 @@ export default class Diagnostic extends Vue {
       }
     }
     this.servers.forEach(async (host) => {
-      await this.getDumpRemote({
-        host: `http://${host.trim()}`,
-        ...data,
-        tm: this.getTimes(),
-        isIframe: this.$store.state.config.platform === 'iframe'
-      }).then(() => {
-        // apiErrorNum += 1
-      }).catch(() => {
-        apiErrorNum += 1
-        if (apiErrorNum === this.servers.length) {
-          this.isShowDiagnosticProcess = false
-          this.isRunning = false
-        }
-      })
+      if (this.isQueryHistory) {
+        await this.getQueryDiagnostic({
+          host: `http://${host.trim()}`,
+          ...data
+          // isIframe: this.$store.state.config.platform === 'iframe'
+        }).then(() => {
+          // apiErrorNum += 1
+        }).catch(() => {
+          apiErrorNum += 1
+          if (apiErrorNum === this.servers.length) {
+            this.isShowDiagnosticProcess = false
+            this.isRunning = false
+          }
+        })
+      } else {
+        await this.getDumpRemote({
+          host: `http://${host.trim()}`,
+          ...data,
+          tm: this.getTimes(),
+          isIframe: this.$store.state.config.platform === 'iframe'
+        }).then(() => {
+          // apiErrorNum += 1
+        }).catch(() => {
+          apiErrorNum += 1
+          if (apiErrorNum === this.servers.length) {
+            this.isShowDiagnosticProcess = false
+            this.isRunning = false
+          }
+        })
+      }
     })
   }
   // 生成超时，重新生成
@@ -415,7 +466,6 @@ export default class Diagnostic extends Vue {
   }
   // 取消手动下载
   cancelManualDownload () {
-    this.isManualDownload = false
     this.checkAll = false
     this.indeterminate = false
     this.updateCheckType(false)
@@ -432,13 +482,11 @@ export default class Diagnostic extends Vue {
     this.checkAll = checkList.length === Object.keys(this.diagDumpIds).length
   }
   // 手动下在诊断包
-  downloadEvent () {
-    let dumps = Object.keys(this.diagDumpIds).filter(it => this.diagDumpIds[it].isCheck)
-    dumps.forEach(item => {
-      const { host, id } = this.diagDumpIds[item]
-      this.downloadDumps({host, id, isIframe: this.$store.state.config.platform === 'iframe'})
-    })
+  downloadEvent (item) {
+    const {host, id} = item
+    this.downloadDumps({host, id, isIframe: this.$store.state.config.platform === 'iframe'})
   }
+
   mounted () {
     this.changeTimeRange('lastDay')
     this.stopInterfaceCall(false)
@@ -451,6 +499,7 @@ export default class Diagnostic extends Vue {
   .diagnostic-dialog {
     .el-dialog__body {
       max-height: 464px !important;
+      overflow-y: overlay;
     }
     .body {
       color: @text-title-color;
@@ -497,8 +546,14 @@ export default class Diagnostic extends Vue {
         }
       }
       .server {
+        .describe{
+          font-size: 12px;
+          color:@text-normal-color
+        }
         .title{
-          font-weight: bold;
+          font-size: 12px;
+          line-height: 16px;
+          font-weight: 600
         }
         .el-select {
           margin-top: 10px;
@@ -514,17 +569,24 @@ export default class Diagnostic extends Vue {
         font-size: 12px;
         color: @error-color-1;
         max-width: 650px;
-        .user-manual {
-          text-decoration: underline;
+        line-height: 16px;
+        .export-icon{
+          font-size:16px;
+          vertical-align: top;
         }
       }
       .download-layout {
         margin-top: 15px;
         font-size: 14px;
+        .download-layout-title{
+          font-size: 12px;
+          line-height: 16px;
+          font-weight: 600;
+        }
         .download-progress {
+          margin-top: -16px;
           .progress-item {
-            position: relative;
-            margin-top: 0;
+            margin-bottom:16px;
             .el-checkbox {
               float: left;
               margin-top: 34px;
@@ -533,21 +595,22 @@ export default class Diagnostic extends Vue {
             }
             .download-details {
               display: inline-block;
+              width:100%;
             }
             .title {
               font-size: 12px;
-              margin-top: 8px;
-              .default-color {
-                color: @text-disabled-color;
-              }
+              font-weight: 400;
+              text-align: end;
+              color: @text-disabled-color;
             }
             .progress {
-              width: 450px;
+              width: 100%;
+              .el-progress-bar{
+                padding-right: 40px;
+                margin-right: -40px;
+               }
             }
             .retry-btn {
-              position: absolute;
-              left: 430px;
-              top: 25px;
               color: @base-color;
               cursor: pointer;
               font-size: 12px;
@@ -562,18 +625,31 @@ export default class Diagnostic extends Vue {
               // background:@background-disabled-color;
               position: relative;
               margin-top: 10px;
+              width: 100%;
               .details-content {
+                width: 100%;
                 border: solid 1px @line-border-color;
                 border-radius: 2px;
                 textarea {
-                  min-height: 95px;
-                  background: @aceditor-bg-color;
+                  height: 175px;
+                  width: 100%;
                 }
               }
               .copyBtn{
                 position: absolute;
                 right:5px;
                 top:5px;
+                width:40px;
+                height:38px;
+              }
+            }
+            .manual-download{
+              line-height: 16px;
+              font-size: 12px;
+              font-weight: 400;
+              color:@text-normal-color;
+              button{
+                vertical-align: top;
               }
             }
           }
@@ -603,29 +679,6 @@ export default class Diagnostic extends Vue {
             }
           }
         }
-      }
-    }
-    .manual-download {
-      font-size: 12px;
-      position: absolute;
-      left: 20px;
-      line-height: 30px;
-      .manual {
-        color: @text-normal-color;
-        cursor: pointer;
-        &.is-disable {
-          color: @text-disabled-color;
-          cursor: default;
-          &:hover {
-            color: @text-disabled-color;
-          }
-        }
-        &:hover {
-          color: @base-color;
-        }
-      }
-      .el-icon-ksd-what {
-        margin-left: 5px;
       }
     }
   }

@@ -18,7 +18,8 @@ export const types = {
   POLLING_STATUS_MSG: 'POLLING_STATUS_MSG',
   DOWNLOAD_DUMP_DIAG: 'DOWNLOAD_DUMP_DIAG',
   STOP_INTERFACE_CALL: 'STOP_INTERFACE_CALL',
-  REMOVE_DIAGNOSTIC_TASK: 'REMOVE_DIAGNOSTIC_TASK'
+  REMOVE_DIAGNOSTIC_TASK: 'REMOVE_DIAGNOSTIC_TASK',
+  GET_QUERY_DIAGNOSTIC: 'GET_QUERY_DIAGNOSTIC'
 }
 
 export default {
@@ -31,6 +32,11 @@ export default {
     [types.UPDATE_DUMP_IDS] (state, { host, start, end, id, tm }) {
       let idList = state.diagDumpIds
       if (typeof id === 'string') {
+        Object.keys(idList).map((item) => {
+          if (idList[item].host === host && idList[item].start === start && idList[item].end === end) {
+            delete idList[item]
+          }
+        })
         idList = {
           ...idList,
           ...{[id]: {
@@ -72,8 +78,8 @@ export default {
         // state.diagDumpIds[id] = {...state.diagDumpIds[id], ...{status, stage, progress}}
         state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, stage, progress, running: progress !== 1}}}}
       } else if (['001', '002', '999'].includes(status)) {
-        const { error } = data
-        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, error, running: false}}}}
+        const { stage, error } = data
+        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, stage, error, running: false}}}}
       } else {
         state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, running: false}}}}
       }
@@ -112,6 +118,21 @@ export default {
     }
   },
   actions: {
+    [types.GET_QUERY_DIAGNOSTIC] ({ state, commit, dispatch }, { host = '', start = '', end = '', query_id = '', project, tm, isIframe = false }) {
+      if (!host) return
+      return new Promise((resolve, reject) => {
+        api.system.getQueryDiagnostic({ host, project, query_id }).then(async (res) => {
+          if (state.isReset) return
+          const { data } = res.data
+          await commit(types.UPDATE_DUMP_IDS, { host, start, end, id: data, tm })
+          dispatch(types.POLLING_STATUS_MSG, { host, id: data, isIframe })
+          resolve(data)
+        }).catch((err) => {
+          handleError(err)
+          reject(err)
+        })
+      })
+    },
     // 生成诊断包
     [types.GET_DUMP_REMOTE] ({ state, commit, dispatch }, { host = '', start = '', end = '', job_id = '', tm, isIframe = false }) {
       if (!host) return
@@ -193,12 +214,17 @@ export default {
       }
     },
     // 关闭弹窗后通知后端终止正在进行的任务
-    [types.REMOVE_DIAGNOSTIC_TASK] ({ state }) {
+    [types.REMOVE_DIAGNOSTIC_TASK] ({ state }, message) {
       const { diagDumpIds } = state
       let removeList = Object.keys(diagDumpIds).filter(item => diagDumpIds[item].running)
       removeList.length && removeList.forEach(it => {
         let { host, id } = diagDumpIds[it]
-        api.system.stopDumpTask({ host, id })
+        api.system.stopDumpTask({ host, id }).then(() => {
+          window.kapVm.$message({
+            message: message,
+            type: 'success'
+          })
+        })
       })
     }
   },

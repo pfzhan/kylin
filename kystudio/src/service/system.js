@@ -115,5 +115,9 @@ export default {
   // 保存预警通知邮箱及是否开启状态
   saveAlertEmails: (para) => {
     return Vue.resource(apiUrl + 'system/capacity/notification').post(para)
+  },
+  getQueryDiagnostic: (para) => {
+    const { host, project, query_id } = para
+    return Vue.http.post(apiUrl + `system/diag/query?host=${host}`, {project, query_id})
   }
 }

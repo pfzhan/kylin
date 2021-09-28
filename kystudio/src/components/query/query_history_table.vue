@@ -244,8 +244,25 @@
         show-overflow-tooltip
         width="110">
       </el-table-column>
+      <el-table-column
+        v-if="this.$store.state.config.platform !== 'iframe'"
+        :label="$t('kylinLang.common.action')"
+        width='70'>
+        <template slot-scope="scope">
+          <common-tip :content="$t('downloadQueryDiagnosticPackage')" >
+            <i class="el-icon-ksd-ostin_diagnose ksd-fs-14 ksd-ml-4" @click.stop="openQueryDialog(scope.row)"></i>
+          </common-tip>
+        </template>
+      </el-table-column>
     </el-table>
-      <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
+    <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
+    <diagnostic
+      v-if="showDiagnostic"
+      @close="showDiagnostic = false"
+      :jobId='queryId'
+      :queryServer='queryServer'
+      :jobStatus='jobStatus'
+    />
   </div>
 </template>
 
@@ -260,6 +277,7 @@ import '../../util/fly.js'
 import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
 import sqlFormatter from 'sql-formatter'
 import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDetails'
+import Diagnostic from 'components/admin/Diagnostic/index'
 @Component({
   name: 'QueryHistoryTable',
   props: ['queryHistoryData', 'queryHistoryTotalSize', 'queryNodes', 'filterDirectData', 'isLoadingHistory'],
@@ -283,7 +301,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
     ])
   },
   components: {
-    IndexDetails
+    IndexDetails,
+    Diagnostic
   },
   locales: {
     'en': {
@@ -323,7 +342,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       unExistLayoutTip: 'This index has been deleted',
       filteredTotalSize: '{totalSize} result(s)',
       secStorage: 'Tiered Storage',
-      streamingTag: 'streaming'
+      streamingTag: 'streming',
+      downloadQueryDiagnosticPackage: 'Download Query Diagnostic Package'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -362,7 +382,8 @@ import IndexDetails from '../studio/StudioModel/ModelList/ModelAggregate/indexDe
       unExistLayoutTip: '该索引已被删除',
       filteredTotalSize: '{totalSize} 条结果',
       secStorage: '分层存储',
-      streamingTag: '流数据'
+      streamingTag: '流数据',
+      downloadQueryDiagnosticPackage: '下载查询诊断包'
     }
   },
   filters: {
@@ -402,6 +423,10 @@ export default class QueryHistoryTable extends Vue {
   indexDetailTitle = ''
   indexDetailShow = false
   detailType = ''
+  showDiagnostic = false
+  queryId = ''
+  queryServer = ''
+  jobStatus=''
 
   @Watch('queryHistoryData')
   onQueryHistoryDataChange (val) {
@@ -995,6 +1020,12 @@ export default class QueryHistoryTable extends Vue {
   // 关闭 layout 详情
   closeDetailDialog () {
     this.indexDetailShow = false
+  }
+  openQueryDialog (row) {
+    this.queryId = row.query_id
+    this.queryServer = row.server[0]
+    this.jobStatus = row.job_status
+    this.showDiagnostic = true
   }
 }
 </script>
