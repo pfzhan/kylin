@@ -24,14 +24,17 @@
 
 package io.kyligence.kap.engine.spark.job.stage.merge
 
+import java.io.IOException
+import java.lang
+import java.util.Objects
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
 import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.job.SegmentExec.SourceStats
 import io.kyligence.kap.engine.spark.job.stage.StageExec
 import io.kyligence.kap.engine.spark.job.{SegmentExec, SegmentJob}
-import io.kyligence.kap.metadata.cube.model.SegmentFlatTableDesc
-import io.kyligence.kap.metadata.cube.model._
+import io.kyligence.kap.metadata.cube.model.{SegmentFlatTableDesc, _}
 import io.kyligence.kap.metadata.sourceusage.SourceUsageManager
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.util.HadoopUtil
@@ -39,9 +42,6 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.{StorageStoreUtils, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row, SaveMode}
 
-import java.io.IOException
-import java.lang
-import java.util.Objects
 import scala.collection.JavaConverters
 import scala.collection.JavaConverters._
 
@@ -74,6 +74,10 @@ abstract class MargeStage(private val jobContext: SegmentJob,
   }
 
   protected def mergeIndices(): Unit = {
+
+    // Cleanup previous potentially left temp layout data.
+    cleanupLayoutTempData(dataSegment, jobContext.getReadOnlyLayouts.asScala.toSeq)
+
     val sources = unmerged.flatMap(segment => segment.getSegDetails.getLayouts.asScala) //
       .groupBy(_.getLayoutId).values.toSeq
 

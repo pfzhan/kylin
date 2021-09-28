@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job.stage.build
 
+import java.util.Objects
+import java.util.concurrent.{BlockingQueue, CountDownLatch, ForkJoinPool, TimeUnit}
+
 import com.google.common.collect.{Queues, Sets}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
@@ -37,23 +40,20 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.commons.math3.ml.clustering.{Clusterable, KMeansPlusPlusClusterer}
 import org.apache.commons.math3.ml.distance.EarthMoversDistance
-import org.apache.hadoop.fs.{Path, PathFilter}
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.storage.StorageLevel
 
-import java.util.Objects
-import java.util.concurrent.{BlockingQueue, CountDownLatch, ForkJoinPool, TimeUnit}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 
 
 abstract class BuildStage(private val jobContext: SegmentJob,
-                         private val dataSegment: NDataSegment,
-                         private val buildParam: BuildParam)
+                          private val dataSegment: NDataSegment,
+                          private val buildParam: BuildParam)
   extends SegmentExec with StageExec {
   override def getJobContext: SparkApplication = jobContext
 
@@ -185,8 +185,8 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     // Build root node's layout sanity cache.
     buildSanityCache()
 
-    // Cleanup potential temp data.
-    cleanupLayoutTempData()
+    // Cleanup previous potentially left temp layout data.
+    cleanupLayoutTempData(dataSegment, readOnlyLayouts.asScala.toSeq)
   }
 
   protected def buildStatistics(): Statistics = {
@@ -223,38 +223,6 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     } finally {
       forkJoinPool.shutdownNow()
     }
-  }
-
-  protected def cleanupLayoutTempData(): Unit = {
-    logInfo(s"Segment $segmentId cleanup layout temp data.")
-    val prefixes = readOnlyLayouts.asScala.map(_.getId).map(id => s"${id}_temp")
-    val segmentPath = new Path(NSparkCubingUtil.getStoragePath(dataSegment))
-    val fileSystem = segmentPath.getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
-    if (!fileSystem.exists(segmentPath)) {
-      return
-    }
-    val cleanups = fileSystem.listStatus(segmentPath, new PathFilter {
-      override def accept(destPath: Path): Boolean = {
-        val name = destPath.getName
-        prefixes.exists(prefix => name.startsWith(prefix))
-      }
-    }).map(_.getPath)
-
-    if (cleanups.isEmpty) {
-      return
-    }
-    val processors = Runtime.getRuntime.availableProcessors
-    val parallel = cleanups.par
-    val forkJoinPool = new ForkJoinPool(Math.max(processors, cleanups.length / 2))
-    try {
-      parallel.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
-      parallel.foreach { p =>
-        fileSystem.delete(p, true)
-      }
-    } finally {
-      forkJoinPool.shutdownNow()
-    }
-    logInfo(s"Segment $segmentId cleanup layout temp data: ${cleanups.map(_.getName).mkString("[", ",", "]")}")
   }
 
   private def getLayoutTasks(segment: NDataSegment, node: TreeNode): Seq[LayoutBuildTask] = {

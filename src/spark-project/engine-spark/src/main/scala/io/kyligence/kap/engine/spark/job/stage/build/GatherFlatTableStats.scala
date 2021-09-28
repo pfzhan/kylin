@@ -28,6 +28,8 @@ import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 
+import scala.collection.JavaConverters._
+
 class GatherFlatTableStats(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
   extends BuildStage(jobContext, dataSegment, buildParam) {
 
@@ -49,7 +51,7 @@ class GatherFlatTableStats(jobContext: SegmentJob, dataSegment: NDataSegment, bu
     // Build root node's layout sanity cache.
     buildSanityCache()
 
-    // Cleanup potential temp data.
-    cleanupLayoutTempData()
+    // Cleanup previous potentially left temp layout data.
+    cleanupLayoutTempData(dataSegment, readOnlyLayouts.asScala.toSeq)
   }
 }

@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util
 import java.util.Objects
+import java.util.concurrent.ForkJoinPool
 
 import com.google.common.collect.{Lists, Queues}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
@@ -33,7 +34,7 @@ import io.kyligence.kap.engine.spark.job.SegmentExec.{LayoutResult, ResultType, 
 import io.kyligence.kap.engine.spark.scheduler.JobRuntime
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{Path, PathFilter}
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
@@ -41,6 +42,7 @@ import org.apache.spark.sql.datasource.storage.{StorageListener, StorageStoreFac
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
+import scala.collection.parallel.ForkJoinTaskSupport
 
 trait SegmentExec extends Logging {
 
@@ -261,6 +263,38 @@ trait SegmentExec extends Logging {
 
   protected def cleanup(): Unit = {
     drain()
+  }
+
+  protected def cleanupLayoutTempData(segment: NDataSegment, layouts: Seq[LayoutEntity]): Unit = {
+    logInfo(s"Segment $segmentId cleanup layout temp data.")
+    val prefixes = layouts.map(_.getId).map(id => s"${id}_temp")
+    val segmentPath = new Path(NSparkCubingUtil.getStoragePath(segment))
+    val fileSystem = segmentPath.getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
+    if (!fileSystem.exists(segmentPath)) {
+      return
+    }
+    val cleanups = fileSystem.listStatus(segmentPath, new PathFilter {
+      override def accept(destPath: Path): Boolean = {
+        val name = destPath.getName
+        prefixes.exists(prefix => name.startsWith(prefix))
+      }
+    }).map(_.getPath)
+
+    if (cleanups.isEmpty) {
+      return
+    }
+    val processors = Runtime.getRuntime.availableProcessors
+    val parallel = cleanups.par
+    val forkJoinPool = new ForkJoinPool(Math.max(processors, cleanups.length / 2))
+    try {
+      parallel.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
+      parallel.foreach { p =>
+        fileSystem.delete(p, true)
+      }
+    } finally {
+      forkJoinPool.shutdownNow()
+    }
+    logInfo(s"Segment $segmentId cleanup layout temp data: ${cleanups.map(_.getName).mkString("[", ",", "]")}")
   }
 
 }
