@@ -153,13 +153,17 @@ public class SourceUsageUpdateListener {
                     }
                     return colPartMap.get(canonical);
                 }).map(colRef -> {
-                    TableDesc copied = tableManager.copyForWrite(colRef.getTableRef().getTableDesc());
+                    TableDesc tableDesc = tableManager.getTableDesc(colRef.getTableRef().getTableIdentity());
+                    if (tableDesc == null) {
+                        return null;
+                    }
+                    TableDesc copied = tableManager.copyForWrite(tableDesc);
                     Arrays.stream(copied.getColumns()) //
                             .filter(desc -> Objects.nonNull(desc.getName())) //
                             .filter(desc -> desc.getName().equals(colRef.getName())) //
                             .findAny().ifPresent(desc -> desc.setPartitioned(true));
                     return copied;
-                }).collect(Collectors.toList());
+                }).filter(Objects::nonNull).collect(Collectors.toList());
 
         // persist
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
