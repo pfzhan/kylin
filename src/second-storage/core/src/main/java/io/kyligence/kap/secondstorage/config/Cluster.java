@@ -25,6 +25,8 @@
 package io.kyligence.kap.secondstorage.config;
 
 
+import io.kyligence.kap.common.util.EncryptUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,7 +95,7 @@ public class Cluster {
     }
 
     public String getPassword() {
-        return password;
+        return EncryptUtil.isEncrypted(password) ? EncryptUtil.decryptPassInKylin(password) : password;
     }
 
     public void setPassword(String password) {

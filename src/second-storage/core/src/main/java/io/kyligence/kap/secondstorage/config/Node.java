@@ -86,7 +86,7 @@ public class Node {
     }
 
     public String getPassword() {
-        return EncryptUtil.isEncrypted(password) ? EncryptUtil.decrypt(password) : password;
+        return EncryptUtil.isEncrypted(password) ? EncryptUtil.decryptPassInKylin(password) : password;
     }
 
     public Node setPassword(String password) {

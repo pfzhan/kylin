@@ -44,6 +44,8 @@ import lombok.val;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.MODEL_NOT_EXIST;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -180,7 +182,7 @@ public class SecondStorageEndpoint extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
-    @PostMapping(value = "/recovery/model")
+    @PostMapping(value = "/recovery/model", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<Void> recoverModel(@RequestBody RecoverRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg("modelName", request.getModelName());
@@ -202,7 +204,7 @@ public class SecondStorageEndpoint extends NBasicController {
         modelService.exportSegmentToSecondStorage(project, model, segIds.toArray(new String[]{}));
     }
 
-    @PostMapping(value = "/recovery/project")
+    @PostMapping(value = "/recovery/project", produces = {HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON})
     public EnvelopeResponse<ProjectRecoveryResponse> recoverProject(@RequestBody RecoverRequest request) {
         checkProjectName(request.getProject());
         secondStorageService.isProjectAdmin(request.getProject());
