@@ -26,7 +26,9 @@ package io.kyligence.kap.secondstorage
 import io.kyligence.kap.engine.spark.utils.JavaOptionals._
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum
 import io.kyligence.kap.secondstorage.metadata._
+import net.sf.ehcache.concurrent.LockType
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -96,6 +98,12 @@ object SecondStorage extends LogEx {
                         dataflow: NDataflow,
                         layout: LayoutEntity,
                         pruningInfo: String): Option[DataFrame] = {
+
+    if (LockTypeEnum.locked(LockTypeEnum.QUERY.name(), SecondStorageUtil.getProjectLocks(dataflow.getProject))) {
+      log.info("project={} has 'QUERY' lock, can not hit clickhouse query.", dataflow.getProject)
+      return Option.empty
+    }
+
     // Only support table index
     val enableSSForThisQuery = enabled  &&  layout.getIndex.isTableIndex && !QueryContext.current().isForceTableIndex
     val result = Option.apply(enableSSForThisQuery)

@@ -29,10 +29,15 @@ import io.kyligence.kap.secondstorage.ddl.CreateDatabase;
 import io.kyligence.kap.secondstorage.ddl.CreateTable;
 import io.kyligence.kap.secondstorage.ddl.DropDatabase;
 import io.kyligence.kap.secondstorage.ddl.DropTable;
+import io.kyligence.kap.secondstorage.ddl.ExistsDatabase;
+import io.kyligence.kap.secondstorage.ddl.ExistsTable;
 import io.kyligence.kap.secondstorage.ddl.InsertInto;
 import io.kyligence.kap.secondstorage.ddl.RenameTable;
 import io.kyligence.kap.secondstorage.ddl.Select;
+import io.kyligence.kap.secondstorage.ddl.ShowCreateDatabase;
 import io.kyligence.kap.secondstorage.ddl.ShowCreateTable;
+import io.kyligence.kap.secondstorage.ddl.ShowDatabases;
+import io.kyligence.kap.secondstorage.ddl.ShowTables;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.ddl.exp.GroupBy;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
@@ -43,6 +48,7 @@ public interface RenderVisitor {
     void visit(RenameTable renameTable);
     void visit(CreateTable<?> createTable);
     void visit(CreateDatabase createDatabase);
+    void visit(ShowCreateDatabase showCreateDatabase);
     void visit(DropTable dropTable);
     void visit(DropDatabase dropDatabase);
     void visit(InsertInto insert);
@@ -50,6 +56,10 @@ public interface RenderVisitor {
     void visit(GroupBy groupBy);
     void visit(AlterTable alterTable);
     void visit(ShowCreateTable showCreateTable);
+    void visit(ExistsDatabase existsDatabase);
+    void visit(ExistsTable existsTable);
+    void visit(ShowDatabases showDatabases);
+    void visit(ShowTables showTables);
 
     void visitValue(Object pram);
 

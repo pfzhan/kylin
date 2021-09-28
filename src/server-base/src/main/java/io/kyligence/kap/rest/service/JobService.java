@@ -21,7 +21,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
@@ -134,7 +133,6 @@ public class JobService extends BasicService {
     @Autowired
     private ProjectService projectService;
 
-    @Autowired
     private AclEvaluate aclEvaluate;
 
     @Autowired
@@ -153,6 +151,12 @@ public class JobService extends BasicService {
         jobTypeMap.put("INDEX_BUILD", "Build Index");
         jobTypeMap.put("INC_BUILD", "Load Data");
         jobTypeMap.put("TABLE_SAMPLING", "Sample Table");
+    }
+
+    @Autowired
+    public JobService setAclEvaluate(AclEvaluate aclEvaluate) {
+        this.aclEvaluate = aclEvaluate;
+        return this;
     }
 
     @VisibleForTesting

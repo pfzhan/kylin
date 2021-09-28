@@ -277,6 +277,11 @@ public abstract class AbstractExecutable implements Executable {
                 updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output(),
                         null);
             });
+        } else if (result.skip()) {
+            wrapWithCheckQuit(() -> {
+                updateJobOutput(project, getId(), ExecutableState.SKIP, result.getExtraInfo(), result.output(),
+                        null);
+            });
         } else {
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, project,
                     retry);

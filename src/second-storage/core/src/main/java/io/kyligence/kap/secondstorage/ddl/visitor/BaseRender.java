@@ -24,7 +24,7 @@
 package io.kyligence.kap.secondstorage.ddl.visitor;
 
 public interface BaseRender extends RenderVisitor{
-    public default void acceptOrVisitValue(final Object param) {
+    default void acceptOrVisitValue(final Object param) {
         if (param instanceof Renderable)
             ((Renderable) param).accept(this);
         else

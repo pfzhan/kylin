@@ -124,7 +124,7 @@ public enum JobStatusEnum {
         public boolean checkAction(JobActionEnum actionEnum) {
             return false;
         }
-    },;
+    };
 
     public abstract boolean checkAction(JobActionEnum actionEnum);
 

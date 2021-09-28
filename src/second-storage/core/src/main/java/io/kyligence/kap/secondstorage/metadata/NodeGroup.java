@@ -42,6 +42,8 @@ public class NodeGroup extends RootPersistentEntity implements Serializable, IKe
         IManagerAware<NodeGroup> {
     @JsonProperty("nodeNames")
     private List<String> nodeNames = new ArrayList<>();
+    @JsonProperty("lock_types")
+    private List<String> lockTypes = new ArrayList<>();
     private transient Manager<NodeGroup> manager;
 
     public static Builder builder() {
@@ -59,6 +61,9 @@ public class NodeGroup extends RootPersistentEntity implements Serializable, IKe
         if (nodeNames != null) {
             Preconditions.checkArgument(nodeNames.stream().distinct().count() == nodeNames.size());
         }
+        if (lockTypes != null) {
+            Preconditions.checkArgument(lockTypes.stream().distinct().count() == lockTypes.size());
+        }
     }
 
     public List<String> getNodeNames() {
@@ -68,6 +73,15 @@ public class NodeGroup extends RootPersistentEntity implements Serializable, IKe
     public NodeGroup setNodeNames(List<String> nodeNames) {
         this.checkIsNotCachedAndShared();
         this.nodeNames = nodeNames;
+        return this;
+    }
+
+    public List<String> getLockTypes() {
+        return CollectionUtils.isEmpty(lockTypes) ? Collections.emptyList() : Collections.unmodifiableList(lockTypes);
+    }
+
+    public NodeGroup setLockTypes(List<String> lockTypes) {
+        this.lockTypes = lockTypes;
         return this;
     }
 
@@ -96,15 +110,22 @@ public class NodeGroup extends RootPersistentEntity implements Serializable, IKe
 
     public static final class Builder {
         private List<String> nodeNames;
+        private List<String> lockTypes;
 
         public Builder setNodeNames(List<String> nodeNames) {
             this.nodeNames = nodeNames;
             return this;
         }
 
+        public Builder setLockTypes(List<String> lockTypes) {
+            this.lockTypes = lockTypes;
+            return this;
+        }
+
         public NodeGroup build() {
             NodeGroup nodeGroup = new NodeGroup();
             nodeGroup.nodeNames = nodeNames;
+            nodeGroup.lockTypes = lockTypes;
             return nodeGroup;
         }
     }

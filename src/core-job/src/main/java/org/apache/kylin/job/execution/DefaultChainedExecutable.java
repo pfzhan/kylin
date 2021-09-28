@@ -140,6 +140,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             case PAUSED:
                 hasPaused = true;
                 break;
+            case SKIP:
             case SUCCEED:
                 taskSucceed = true;
                 break;

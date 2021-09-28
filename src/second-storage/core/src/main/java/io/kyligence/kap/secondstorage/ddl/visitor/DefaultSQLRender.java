@@ -28,10 +28,15 @@ import io.kyligence.kap.secondstorage.ddl.CreateDatabase;
 import io.kyligence.kap.secondstorage.ddl.CreateTable;
 import io.kyligence.kap.secondstorage.ddl.DropDatabase;
 import io.kyligence.kap.secondstorage.ddl.DropTable;
+import io.kyligence.kap.secondstorage.ddl.ExistsDatabase;
+import io.kyligence.kap.secondstorage.ddl.ExistsTable;
 import io.kyligence.kap.secondstorage.ddl.InsertInto;
 import io.kyligence.kap.secondstorage.ddl.RenameTable;
 import io.kyligence.kap.secondstorage.ddl.Select;
+import io.kyligence.kap.secondstorage.ddl.ShowCreateDatabase;
 import io.kyligence.kap.secondstorage.ddl.ShowCreateTable;
+import io.kyligence.kap.secondstorage.ddl.ShowDatabases;
+import io.kyligence.kap.secondstorage.ddl.ShowTables;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithAlias;
 import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.ddl.exp.GroupBy;
@@ -223,8 +228,33 @@ public class DefaultSQLRender implements BaseRender {
     }
 
     @Override
+    public void visit(ShowCreateDatabase showCreateDatabase) {
+        result.append(KeyWord.SHOW_CREATE_DATABASE).append(' ').append(showCreateDatabase.getDatabase());
+    }
+
+    @Override
     public void visit(ShowCreateTable showCreateTable) {
         result.append(KeyWord.SHOW_CREATE_TABLE).append(' ').append(showCreateTable.getTableIdentifier().table());
+    }
+
+    @Override
+    public void visit(ExistsDatabase existsDatabase) {
+        result.append(KeyWord.EXISTS).append(" ").append(KeyWord.DATABASE).append(" ").append(existsDatabase.getDatabase());
+    }
+
+    @Override
+    public void visit(ExistsTable existsTable) {
+        result.append(KeyWord.EXISTS).append(" ").append(KeyWord.TABLE).append(" ").append(existsTable.getTableIdentifier().table());
+    }
+
+    @Override
+    public void visit(ShowDatabases showDatabases) {
+        result.append("SHOW DATABASES");
+    }
+
+    @Override
+    public void visit(ShowTables showTables) {
+        result.append("SHOW TABLES").append(" FROM ").append(showTables.getDatabase());
     }
 
     @Override
@@ -236,10 +266,12 @@ public class DefaultSQLRender implements BaseRender {
         private KeyWord() {}
         public static final String CREATE = "CREATE";
         public static final String DATABASE = "DATABASE";
+        public static final String SHOW_CREATE_DATABASE = "SHOW CREATE DATABASE";
         public static final String TABLE = "TABLE";
         public static final String DISTINCT = "DISTINCT";
         public static final String ALTER = "ALTER";
         public static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE";
+        public static final String EXISTS = "EXISTS";
         public static final String WHERE = "WHERE";
         public static final String GROUP_BY = "GROUP BY";
 

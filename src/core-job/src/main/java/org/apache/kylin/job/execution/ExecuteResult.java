@@ -57,7 +57,7 @@ import lombok.Getter;
 public final class ExecuteResult {
 
     public enum State {
-        SUCCEED, ERROR
+        SUCCEED, ERROR, SKIP
     }
 
     private final State state;
@@ -72,6 +72,9 @@ public final class ExecuteResult {
         Preconditions.checkArgument(state != null, "state cannot be null");
 
         if (state == State.SUCCEED) {
+            Preconditions.checkNotNull(output);
+            Preconditions.checkState(throwable == null);
+        } else if (state == State.SKIP) {
             Preconditions.checkNotNull(output);
             Preconditions.checkState(throwable == null);
         } else if (state == State.ERROR) {
@@ -94,6 +97,14 @@ public final class ExecuteResult {
         return new ExecuteResult(State.SUCCEED, output, null);
     }
 
+    public static ExecuteResult createSkip() {
+        return new ExecuteResult(State.SKIP, "skip", null);
+    }
+
+    public static ExecuteResult createSkip(String output) {
+        return new ExecuteResult(State.SKIP, output, null);
+    }
+
     public static ExecuteResult createError(Throwable throwable) {
         Preconditions.checkArgument(throwable != null, "throwable cannot be null");
         return new ExecuteResult(State.ERROR, null, throwable);
@@ -105,6 +116,10 @@ public final class ExecuteResult {
 
     public boolean succeed() {
         return state == State.SUCCEED;
+    }
+
+    public boolean skip() {
+        return state == State.SKIP;
     }
 
     public String output() {

@@ -34,4 +34,5 @@ public class JobFactoryConstant {
     public static final String STORAGE_NODE_CLEAN_FACTORY = "STORAGE_NODE_CLEAN_FACTORY";
     public static final String STORAGE_MODEL_CLEAN_FACTORY = "STORAGE_MODEL_CLEAN_FACTORY";
     public static final String STORAGE_SEGMENT_CLEAN_FACTORY = "STORAGE_SEGMENT_CLEAN_FACTORY";
+
 }

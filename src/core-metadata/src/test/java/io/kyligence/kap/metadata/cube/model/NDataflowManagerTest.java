@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -370,7 +369,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(3, df.getSegments().size());
 
-        String newSegId = UUID.randomUUID().toString();
+        String newSegId = RandomUtil.randomUUIDStr();
         NDataSegment mergedSeg1 = mgr.mergeSegments(df, new SegmentRange.KafkaOffsetPartitionedSegmentRange(1L, 2L,
                 createKafkaPartitionOffset(0, 100L), createKafkaPartitionOffset(0, 300L)), true, 1, newSegId);
         Assert.assertEquals(SegmentStatusEnum.NEW, mergedSeg1.getStatus());

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +39,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import io.kyligence.kap.secondstorage.ColumnMapping;
+import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.model.SegmentRange;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -127,16 +126,6 @@ public class DataLoader {
         this.isIncremental = isIncremental;
     }
 
-    public static List<Date> rangeToPartition(SegmentRange<Long> range) {
-        List<Date> partitions = new ArrayList<>();
-        Long start = range.getStart();
-        while (start < range.getEnd()) {
-            partitions.add(new Date(start));
-            start = start + 24 * 60 * 60 * 1000;
-        }
-        return partitions;
-    }
-
     public void load(List<LoadInfo> loadInfoBatch) throws InterruptedException, ExecutionException, SQLException {
         val totalJdbcNum = loadInfoBatch.stream().mapToInt(item -> item.getNodeNames().length).sum();
 
@@ -164,7 +153,7 @@ public class DataLoader {
                     Preconditions.checkArgument(loadInfo.segment.getSegRange().getStart() instanceof Long);
                     builder.partitionFormat(loadInfo.model.getPartitionDesc().getPartitionDateFormat())
                             .partitionColumn(Objects.toString(dateCol.getId()))
-                            .targetPartitions(rangeToPartition(loadInfo.segment.getSegRange()));
+                            .targetPartitions(SecondStorageDateUtils.splitByDay(loadInfo.segment.getSegRange()));
                 }
                 ShardLoader.ShardLoadContext context = builder.build();
                 loadInfo.setTargetDatabase(database);

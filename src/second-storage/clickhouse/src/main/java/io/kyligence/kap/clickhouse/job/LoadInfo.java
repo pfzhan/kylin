@@ -33,12 +33,11 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.metadata.model.SegmentRange;
-
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
+import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.metadata.model.SegmentRange;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -178,7 +177,7 @@ public class LoadInfo {
         } else {
             SimpleDateFormat partitionFormat = new SimpleDateFormat(model.getPartitionDesc().getPartitionDateFormat(), Locale.getDefault(Locale.Category.FORMAT));
             sizeInNode = metric.getByPartitions(targetDatabase, targetTable,
-                    DataLoader.rangeToPartition((SegmentRange<Long>) segment.getSegRange()).stream()
+                    SecondStorageDateUtils.splitByDay((SegmentRange<Long>) segment.getSegRange()).stream()
                             .map(partitionFormat::format).collect(Collectors.toList()));
         }
         return TablePartition.builder().setSegmentId(segmentId).setShardNodes(Arrays.asList(nodeNames))

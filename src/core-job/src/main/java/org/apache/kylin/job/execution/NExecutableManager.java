@@ -21,7 +21,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
@@ -1314,6 +1313,7 @@ public class NExecutableManager {
         case RUNNING:
             jobOutput.addStartTime(time);
             break;
+        case SKIP:
         case SUICIDAL:
         case DISCARDED:
             jobOutput.addStartTime(time);

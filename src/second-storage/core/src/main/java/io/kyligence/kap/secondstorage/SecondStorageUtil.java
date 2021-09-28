@@ -36,6 +36,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.config.Node;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
@@ -43,17 +44,17 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
-import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
-import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN_NOT_AVAILABLE;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +63,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_DATA_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 
 public class SecondStorageUtil {
     public static final Set<ExecutableState> RUNNING_STATE = Sets.newHashSet(
@@ -97,6 +103,17 @@ public class SecondStorageUtil {
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
+    public static void checkSecondStorageData(String project) {
+        if (!SecondStorageUtil.isProjectEnable(project)) {
+            throw new KylinException(SECOND_STORAGE_PROJECT_STATUS_ERROR, String.format(Locale.ROOT, "'%s' not enable second storage.", project));
+        }
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        Optional<Manager<TableFlow>> optionalTableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
+        if (!optionalTableFlowManager.isPresent()) {
+            throw new KylinException(SECOND_STORAGE_DATA_NOT_EXIST, String.format(Locale.ROOT, "'%s' second storage data not exist.", project));
+        }
+    }
+
     private static void checkEnableModel(String project, String model) {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         final IndexPlan indexPlan = indexPlanManager.getIndexPlan(model);
@@ -121,6 +138,19 @@ public class SecondStorageUtil {
         return df.getIndexPlan().getAllLayouts().stream().filter(SecondStorageUtil::isBaseTableIndex).findFirst();
     }
 
+    public static List<String> getProjectLocks(String project) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        Optional<Manager<NodeGroup>> nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, project);
+        if(!nodeGroupManager.isPresent()) {
+            return new ArrayList<>();
+        }
+        List<NodeGroup> nodeGroups = nodeGroupManager.get().listAll();
+        if(CollectionUtils.isNotEmpty(nodeGroups)) {
+            return nodeGroups.get(0).getLockTypes();
+        }
+        return new ArrayList<>();
+    }
+
     public static List<AbstractExecutable> findSecondStorageRelatedJobByProject(String project) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
@@ -129,7 +159,12 @@ public class SecondStorageUtil {
                 .collect(Collectors.toList());
     }
 
+    public static void validateProjectLock(String project, List<String> requestLocks){
+        LockTypeEnum.checkLocks(requestLocks, SecondStorageUtil.getProjectLocks(project));
+    }
+
     public static void validateDisableModel(String project, String modelId) {
+        validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
         List<AbstractExecutable> jobs = SecondStorageUtil.findSecondStorageRelatedJobByProject(project);
         if (jobs.stream().filter(job -> RUNNING_STATE.contains(job.getStatus()))
                 .anyMatch(job -> job.getTargetSubject().equals(modelId))) {

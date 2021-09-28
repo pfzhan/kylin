@@ -82,6 +82,7 @@ public enum ExecutableState {
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.ERROR);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUICIDAL);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.PAUSED);
+        VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SKIP);
 
         VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.PAUSED, ExecutableState.SUICIDAL);
@@ -137,6 +138,8 @@ public enum ExecutableState {
             case SUICIDAL:
             case DISCARDED:
                 return JobStatusEnum.DISCARDED;
+            case SKIP:
+                return JobStatusEnum.SKIP;
             default:
                 throw new RuntimeException("invalid state:" + this);
         }

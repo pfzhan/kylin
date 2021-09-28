@@ -62,7 +62,8 @@ public class TablePartition implements Serializable, IKeep {
     }
 
     public List<String> getShardNodes() {
-        return Collections.unmodifiableList(shardNodes);
+        return shardNodes;
+        //return Collections.unmodifiableList(shardNodes);
     }
 
     public static final class Builder {
@@ -95,7 +96,6 @@ public class TablePartition implements Serializable, IKeep {
             this.sizeInNode = sizeInNode;
             return this;
         }
-
         public TablePartition build() {
             TablePartition partition = new TablePartition();
             partition.shardNodes.addAll(shardNodes);
@@ -106,7 +106,6 @@ public class TablePartition implements Serializable, IKeep {
             return partition;
         }
     }
-
     public String getSegmentId() {
         return segmentId;
     }

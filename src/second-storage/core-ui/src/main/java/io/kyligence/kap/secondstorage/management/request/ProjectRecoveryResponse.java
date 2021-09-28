@@ -31,6 +31,8 @@ import java.util.List;
 
 @Data
 public class ProjectRecoveryResponse {
+    @JsonProperty("project")
+    private String project;
     @JsonProperty("submitted_models")
     private List<String> submittedModels;
     @JsonProperty("skipped_models")

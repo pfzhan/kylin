@@ -26,8 +26,10 @@ package io.kyligence.kap.newten.clickhouse;
 import com.google.common.collect.ImmutableList;
 import com.clearspring.analytics.util.Preconditions;
 import io.kyligence.kap.clickhouse.ClickHouseStorage;
+import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseLoad;
 import io.kyligence.kap.clickhouse.management.ClickHouseConfigLoader;
+import io.kyligence.kap.clickhouse.parser.ShowDatabasesParser;
 import io.kyligence.kap.clickhouse.tool.ClickHouseSanityCheckTool;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
@@ -38,15 +40,24 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.rest.service.JobService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.ddl.ShowDatabases;
+import io.kyligence.kap.secondstorage.ddl.ShowTables;
+import io.kyligence.kap.secondstorage.enums.LockOperateTypeEnum;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
+import io.kyligence.kap.secondstorage.management.ProjectLock;
+import io.kyligence.kap.secondstorage.management.ProjectNode;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.ModelEnableRequest;
 import io.kyligence.kap.secondstorage.management.request.ProjectEnableRequest;
+import io.kyligence.kap.secondstorage.management.request.ProjectLockOperateRequest;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
+import io.kyligence.kap.secondstorage.management.request.SecondStorageMetadataRequest;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
 import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableEntity;
@@ -74,6 +85,9 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
@@ -87,18 +101,23 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.rules.TestName;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -116,6 +135,14 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     public final String cubeName = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
     public final String userName = "ADMIN";
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+
+    @Mock
+    private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+    @Mock
+    private final JobService jobService = Mockito.spy(JobService.class);
+    @Mock
+    private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
 
     private SecondStorageService secondStorageService = new SecondStorageService();
     private ModelService modelService = Mockito.mock(ModelService.class);
@@ -166,6 +193,13 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
      */
     @Before
     public void setUp() throws Exception {
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
+
+        secondStorageService.setAclEvaluate(aclEvaluate);
+        secondStorageService.setJobService(jobService);
+        secondStorageService.setModelService(modelService);
         secondStorageEndpoint.setSecondStorageService(secondStorageService);
         secondStorageEndpoint.setModelService(modelService);
         prepareMeta();
@@ -257,8 +291,24 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testIncrementalSingleShard() throws Exception {
-        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
-            build_load_query("testIncrementalSingleShard", true, clickhouse);
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            build_load_query("testIncrementalSingleShard", true, clickhouse, clickhouse2);
+
+            try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve("node01"))) {
+                ShowDatabases showDatabases = new ShowDatabases();
+                List<String> databases = clickHouse.query(showDatabases.toSql(), ShowDatabasesParser.SHOW_DATABASES);
+                databases = databases.stream().filter(database -> !database.equals("default") && !database.equals("system")).collect(Collectors.toList());
+                Assertions.assertTrue(new HashSet<>(databases).contains("UT_table_index_incremental"));
+                List<String> tables = clickHouse.query(ShowTables.createShowTables("UT_table_index_incremental").toSql(), ShowDatabasesParser.SHOW_DATABASES);
+                Assertions.assertTrue(new HashSet<>(tables).contains("acfde546_2cc9_4eec_bc92_e3bd46d4e2ee_20000000001"));
+            }
+            EnvelopeResponse response = secondStorageEndpoint.tableSync(getProject());
+            Assertions.assertEquals(response.getCode(), "000");
+            SecondStorageMetadataRequest request = new SecondStorageMetadataRequest();
+            request.setProject(getProject());
+            response = secondStorageEndpoint.sizeInNode(request);
+            Assertions.assertEquals(response.getCode(), "000");
         }
     }
 
@@ -316,6 +366,113 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         }
     }
 
+    @Ignore
+    @Test
+    public void testIncrementalCleanModel2() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse1 = ClickHouseUtils.startClickHouse();
+             JdbcDatabaseContainer<?> clickhouse2 = ClickHouseUtils.startClickHouse()) {
+            changeProjectSecondStorageState("testIncrementalSingleShard", true, 1, clickhouse1, clickhouse2);
+            build_load_query("testIncrementalSingleShard", true, clickhouse1);
+            build_load_query("testSingleShard", false, clickhouse2);
+
+            try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve("node01"))) {
+                ShowDatabases showDatabases = new ShowDatabases();
+                List<String> databases = clickHouse.query(showDatabases.toSql(), ShowDatabasesParser.SHOW_DATABASES);
+                for (String database : databases) {
+                    List<String> tables = clickHouse.query(ShowTables.createShowTables(database).toSql(), ShowDatabasesParser.SHOW_DATABASES);
+                    System.out.println(tables);
+                }
+//                CreateDatabase createDatabase = CreateDatabase.createDatabase("ut_db_sync");
+//                Assertions.assertTrue(clickHouse.apply(createDatabase.toSql()));
+//
+//                String createTableSql = "CREATE TABLE ut_db_sync\n"
+//                        + ".ut_table_sync\n"
+//                        + "(`c0` Nullable(Int64),`c1` Nullable(Int32),`c7` Nullable(Int32),`c10` Date,`c15` Nullable(Int64),`c16` Nullable(Int32)) \n"
+//                        + "ENGINE = MergeTree() \n"
+//                        + "PARTITION BY `c10` ORDER BY tuple()";
+//                Assertions.assertTrue(clickHouse.apply(createTableSql));
+            }
+//            Assertions.assertEquals(secondStorageEndpoint.tableSync(getProject()).getCode(), "000");
+            try (ClickHouse clickHouse = new ClickHouse(SecondStorageNodeHelper.resolve("node02"))) {
+//                ShowCreateTable showCreateTable = new ShowCreateTable(TableIdentifier.table("ut_db_sync", "ut_table_sync"));
+//                String aa = clickHouse.query(showCreateTable.toSql(), ShowCreateQueryParser.SHOW_CREATE).get(0);
+//                System.out.println(aa);
+                ShowDatabases showDatabases = new ShowDatabases();
+                List<String> databases = clickHouse.query(showDatabases.toSql(), ShowDatabasesParser.SHOW_DATABASES);
+                for (String database : databases) {
+                    List<String> tables = clickHouse.query(ShowTables.createShowTables(database).toSql(), ShowDatabasesParser.SHOW_DATABASES);
+                    System.out.println(tables);
+                }
+
+            }
+        }
+    }
+
+    @Test
+    public void testLockOperate() throws Exception {
+        try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
+            changeProjectSecondStorageState("testIncrementalCleanModel", true, 1, clickhouse);
+
+            EnvelopeResponse<List<ProjectNode>> projectNodesResponse1 = secondStorageEndpoint.projectNodes(getProject());
+            Assertions.assertEquals(projectNodesResponse1.getCode(), "000");
+            projectNodesResponse1.getData().stream().forEach(projectNode -> {
+                Assertions.assertEquals(projectNode.getProject(), getProject());
+                Assertions.assertEquals(projectNode.getNodes().size(), 1);
+            });
+
+            EnvelopeResponse<List<ProjectNode>> projectNodesResponse2 = secondStorageEndpoint.projectNodes(null);
+            Assertions.assertEquals(projectNodesResponse2.getCode(), "000");
+            projectNodesResponse1.getData().stream().forEach(projectNode -> {
+                if (projectNode.getProject().equals(getProject())) {
+                    Assertions.assertEquals(projectNode.getNodes().size(), 1);
+                }
+            });
+
+            val lockOperateRequest1 = new ProjectLockOperateRequest();
+            lockOperateRequest1.setProject(getProject());
+            lockOperateRequest1.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
+            lockOperateRequest1.setOperateType(LockOperateTypeEnum.LOCK.name());
+            EnvelopeResponse envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest1);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.LOAD.name()), getProject());
+
+            EnvelopeResponse<List<ProjectLock>> projectLockResponse = secondStorageEndpoint.lockList(getProject());
+            Assertions.assertEquals(projectLockResponse.getCode(), "000");
+            projectLockResponse.getData().stream().forEach(projectLock -> {
+                Assertions.assertEquals(projectLock.getProject(), getProject());
+                Assertions.assertIterableEquals(projectLock.getLockTypes(), Arrays.asList(LockTypeEnum.LOAD.name()));
+            });
+
+            val lockOperateRequest2 = new ProjectLockOperateRequest();
+            lockOperateRequest2.setProject(getProject());
+            lockOperateRequest2.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()));
+            lockOperateRequest2.setOperateType(LockOperateTypeEnum.LOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest2);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.QUERY.name()), getProject());
+
+            val lockOperateRequest4 = new ProjectLockOperateRequest();
+            lockOperateRequest4.setProject(getProject());
+            lockOperateRequest4.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name()));
+            lockOperateRequest4.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest4);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.QUERY.name()), getProject());
+
+
+            val lockOperateRequest3 = new ProjectLockOperateRequest();
+            lockOperateRequest3.setProject(getProject());
+            lockOperateRequest3.setLockTypes(Arrays.asList(LockTypeEnum.LOAD.name(), LockTypeEnum.ALL.name()));
+            lockOperateRequest3.setOperateType(LockOperateTypeEnum.LOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest3);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(LockTypeEnum.ALL.name()), getProject());
+
+            val lockOperateRequest5 = new ProjectLockOperateRequest();
+            lockOperateRequest5.setProject(getProject());
+            lockOperateRequest5.setLockTypes(Arrays.asList(LockTypeEnum.ALL.name()));
+            lockOperateRequest5.setOperateType(LockOperateTypeEnum.UNLOCK.name());
+            envelopeResponse = secondStorageEndpoint.lockOperate(lockOperateRequest5);
+            ClickHouseSimpleITTestUtils.checkLockOperateResult(envelopeResponse, Arrays.asList(), getProject());
+        }
+    }
+
     @Test
     public void testIncrementalCleanProject() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
@@ -337,6 +494,8 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testRecoverProject() throws Exception {
+        secondStorageEndpoint.setModelService(modelService);
+
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testRecoverProject", false, clickhouse);
             val request = new RecoverRequest();
@@ -455,6 +614,25 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
         String jobId = simulateJobMangerAddJob(jobParam, localHandler);
         waitJobFinish(jobId);
         return jobParam;
+    }
+
+    private void configClickHouse(String catalog, int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllNames(), true);
+            return true;
+        });
+    }
+
+    private void changeProjectSecondStorageState(String catalog, boolean incremental, int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {
+        Unsafe.setProperty(ClickHouseLoad.SOURCE_URL, getSourceUrl());
+        Unsafe.setProperty(ClickHouseLoad.ROOT_PATH, getLocalWorkingDirectory());
+        configClickhouseWith(clickhouse, replica, catalog, () -> {
+            secondStorageService.changeProjectSecondStorageState(getProject(), SecondStorageNodeHelper.getAllNames(), true);
+            Assert.assertEquals(clickhouse.length, SecondStorageUtil.listProjectNodes(getProject()).size());
+            return true;
+        });
     }
 
     protected void build_load_query(String catalog, boolean incremental, int replica, JdbcDatabaseContainer<?>... clickhouse) throws Exception {

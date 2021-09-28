@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.Objects;
 
+import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -84,7 +85,7 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
                             ShardCleaner shardCleaner = segmentRangeMap.get(segment).isInfinite()
                                     ? new ShardCleaner(node, database, table, null, true)
                                     : new ShardCleaner(node, database, table,
-                                            DataLoader.rangeToPartition(segmentRangeMap.get(segment)));
+                                    SecondStorageDateUtils.splitByDay(segmentRangeMap.get(segment)));
                             shardCleaners.add(shardCleaner);
                         }
                     });

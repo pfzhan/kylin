@@ -100,6 +100,7 @@ public class SecondStorageServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void prepareManger() {
+        PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "getProjectLocks", String.class)).toReturn(new ArrayList<>());
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isGlobalEnable")).toReturn(true);
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isProjectEnable", String.class)).toReturn(true);
         PowerMockito.stub(PowerMockito.method(SecondStorageUtil.class, "isModelEnable", String.class, String.class)).toReturn(true);

@@ -40,6 +40,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -263,17 +264,13 @@ public class ClickHouseLoad extends AbstractExecutable {
         return wrapWithExecuteException(() -> {
             val isIncrementalBuild = mc.isIncremental(getSegmentIds());
             Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(mc.config, mc.project);
-            val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);
-            val partitions = tableFlowManager.listAll().stream()
-                    .flatMap(tableFlow -> tableFlow.getTableDataList().stream())
-                    .flatMap(tableData -> tableData.getPartitions().stream()).collect(Collectors.toList());
-            Map<String, Long> nodeSizeMap = new HashMap<>();
-            partitions.forEach(partition -> partition.getNodeFileMap().forEach((node, files) -> {
-                Long size = nodeSizeMap.computeIfAbsent(node, n -> 0L);
-                size = size + files.stream().map(SegmentFileStatus::getLen).reduce(Long::sum).orElse(0L);
-                nodeSizeMap.put(node, size);
-            }));
             List<NodeGroup> allGroup = nodeGroupManager.listAll();
+            for (NodeGroup nodeGroup : allGroup) {
+                if (LockTypeEnum.locked(Arrays.asList(LockTypeEnum.LOAD.name()), nodeGroup.getLockTypes())) {
+                    logger.info("project={} has been locked, skip the step", mc.getProject());
+                    return ExecuteResult.createSkip();
+                }
+            }
             String[][] nodeGroups = new String[allGroup.size()][];
             ListIterator<NodeGroup> it = allGroup.listIterator();
             while (it.hasNext()) {
@@ -284,6 +281,16 @@ public class ClickHouseLoad extends AbstractExecutable {
             DataLoader dataLoader = new DataLoader(mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
             val replicaNum = options.replicaShards().length;
             List<List<LoadInfo>> tempLoadInfos = new ArrayList<>();
+            val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);
+            val partitions = tableFlowManager.listAll().stream()
+                    .flatMap(tableFlow -> tableFlow.getTableDataList().stream())
+                    .flatMap(tableData -> tableData.getPartitions().stream()).collect(Collectors.toList());
+            Map<String, Long> nodeSizeMap = new HashMap<>();
+            partitions.forEach(partition -> partition.getNodeFileMap().forEach((node, files) -> {
+                Long size = nodeSizeMap.computeIfAbsent(node, n -> 0L);
+                size = size + files.stream().map(SegmentFileStatus::getLen).reduce(Long::sum).orElse(0L);
+                nodeSizeMap.put(node, size);
+            }));
             for (val shards : options.replicaShards()) {
                 val sortedShards = Arrays.stream(shards)
                         .sorted(Comparator.comparingLong(node -> nodeSizeMap.getOrDefault(node, 0L)))

@@ -206,7 +206,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                     continue;
                 }
             }
-            if (ExecutableState.SUCCEED == task.getStatus()) {
+            if (ExecutableState.SUCCEED == task.getStatus() || ExecutableState.SKIP == task.getStatus()) {
                 successSteps++;
             }
         }
