@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,7 +64,7 @@ public class TableDescResponse extends TableDesc {
     @JsonProperty("total_records")
     private long totalRecords;
     @JsonProperty("sampling_rows")
-    private List<String[]> samplingRows;
+    private List<String[]> samplingRows = new ArrayList<>();
     @JsonProperty("columns")
     private ColumnDescResponse[] extColumns;
     @JsonProperty("last_build_job_id")

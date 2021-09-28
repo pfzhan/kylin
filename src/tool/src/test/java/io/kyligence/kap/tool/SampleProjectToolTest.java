@@ -67,7 +67,8 @@ public class SampleProjectToolTest extends NLocalFileMetadataTestCase {
         boolean success = true;
         try {
             SampleProjectTool tool = new SampleProjectTool();
-            tool.execute(new String[] { "-project", project, "-dir", junitFolder.getAbsolutePath() });
+            tool.execute(new String[] { "-project", project, "-model", "AUTO_MODEL_TEST_ACCOUNT_1", "-dir",
+                    junitFolder.getAbsolutePath() });
         } catch (Exception e) {
             success = false;
         }
@@ -84,7 +85,8 @@ public class SampleProjectToolTest extends NLocalFileMetadataTestCase {
         boolean success = true;
         try {
             SampleProjectTool tool = new SampleProjectTool();
-            tool.execute(new String[] { "-project", project, "-dir", junitFolder.getAbsolutePath() });
+            tool.execute(new String[] { "-project", project, "-model", "AUTO_MODEL_TEST_ACCOUNT_1", "-dir",
+                    junitFolder.getAbsolutePath() });
         } catch (Exception e) {
             success = false;
         }

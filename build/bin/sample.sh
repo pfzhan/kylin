@@ -118,7 +118,7 @@ mkdir -p ${KYLIN_HOME}/sample_project/sample_model/metadata
 cp -rf ${KYLIN_HOME}/sample_project/template/* ${KYLIN_HOME}/sample_project/sample_model/metadata
 
 #### Add version info into model
-kylin_version_str=4.0.0.0
+kylin_version=4.0.0.0
 echo "kylin version is "$kylin_version
 sed -i "s/%default_version%/${kylin_version}/g" ${KYLIN_HOME}/sample_project/sample_model/metadata/_global/project/learn_kylin.json
 sed -i "s/%default_version%/${kylin_version}/g" ${KYLIN_HOME}/sample_project/sample_model/metadata/learn_kylin/dataflow/2d07e878-da28-a203-2d2c-185b4c6656f1.json
@@ -136,29 +136,29 @@ function turn_on_maintain_mode() {
   ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -on -reason 'metastore tool' -hidden-output true
   ret=$?
   if [[ $ret != 0 ]]; then
-      exit $ret
+    exit $ret
   fi
 }
 
 function turn_off_maintain_mode() {
   echo "exit maintenance mode."
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off -hidden-output true
+  ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MaintainModeTool -off -hidden-output true
 }
 
 function printImportResult() {
-    error=$1
-    if [[ $error == 0 ]]; then
-        echo -e "${YELLOW}Sample model is created successfully in project 'learn_kylin'. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
-    else
-        echo -e "${YELLOW}Sample model is created failed in project 'learn_kylin'. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
-    fi
+  error=$1
+  if [[ $error == 0 ]]; then
+    echo -e "${YELLOW}Sample model is created successfully in project 'learn_kylin'. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+  else
+    echo -e "${YELLOW}Sample model is created failed in project 'learn_kylin'. Detailed Message is at \"logs/shell.stderr\".${RESTORE}"
+  fi
 }
 
 function importProject() {
-        turn_on_maintain_mode
-        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.SampleProjectTool -dir ${KYLIN_HOME}/sample_project/sample_model/metadata -project learn_kylin
-        printImportResult $?
-        turn_off_maintain_mode
+  turn_on_maintain_mode
+  ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.SampleProjectTool -dir ${KYLIN_HOME}/sample_project/sample_model/metadata -project learn_kylin -model sample_ssb
+  printImportResult $?
+  turn_off_maintain_mode
 }
 
 importProject
