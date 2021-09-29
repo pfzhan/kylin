@@ -29,10 +29,25 @@ export function getSubTaskStatus (subTask) {
     'PENDING': 'sub-tasks-status is-pending',
     'ERROR': 'sub-tasks-status is-error',
     'ERROR_STOP': 'sub-tasks-status is-error-stop',
-    'DISCARDED': 'sub-tasks-status is-error-stop',
-    'STOPPED': 'sub-tasks-status is-stop'
+    'DISCARDED': 'icons el-ksd-icon-discarded_6',
+    'STOPPED': 'sub-tasks-status is-stop',
+    'SKIP': 'icons el-ksd-icon-skip_6'
   }
   return statusType[subTask.step_status]
+}
+
+export function getStepStatusTips (that, status) {
+  const statusTips = {
+    'FINISHED': that.$t('step_finished'),
+    'RUNNING': that.$t('step_running'),
+    'PENDING': that.$t('step_pending'),
+    'ERROR': that.$t('step_error'),
+    'ERROR_STOP': that.$t('step_error_stop'),
+    'DISCARDED': that.$t('step_discarded'),
+    'STOPPED': that.$t('step_stopped'),
+    'SKIP': that.$t('step_skip')
+  }
+  return statusTips[status]
 }
 
 // 格式化时间 Xh Xm

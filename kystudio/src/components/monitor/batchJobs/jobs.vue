@@ -226,16 +226,16 @@
           <ul class="timeline">
 
             <li v-for="(step, index) in selectedJob.details" :key="index" :class="{'finished' : step.step_status=='FINISHED'}">
-              <!-- <i class="fa"
-                :class="{
-                'el-ksd-icon-time_22' : step.step_status=='PENDING'|| step.step_status=='STOPPED',
-                'el-ksd-icon-loading_22' : step.step_status=='WAITING' || step.step_status=='RUNNING',
-                'el-icon-ksd-good_health' : step.step_status=='FINISHED',
-                'el-icon-ksd-error_01' : step.step_status=='ERROR',
-                'el-icon-ksd-table_discard' : step.step_status=='DISCARDED'
-              }">
-              </i> -->
-              <el-icon :class="['job-status', {'is-running': step.step_status=='RUNNING'}]" :name="getStatusIcons(step)" type="mult"></el-icon>
+              <el-tooltip placement="bottom" :content="getStepStatusTips(step.step_status)">
+                <i class="fa"
+                  v-if="step.step_status=='SKIP' || step.step_status === 'ERROR_STOP'"
+                  :class="{
+                    'el-ksd-icon-skip_16' : step.step_status=='SKIP',
+                    'el-ksd-icon-wrong_fill_16': step.step_status === 'ERROR_STOP'
+                  }">
+                </i>
+                <el-icon v-else :class="['job-status', {'is-running': step.step_status=='RUNNING'}]" :name="getStatusIcons(step)" type="mult"></el-icon>
+              </el-tooltip>
               <!-- <el-popover
                 placement="left"
                 width="300"
@@ -337,7 +337,9 @@
                   <div class="sub-tasks" v-if="'sub_stages' in step && step.sub_stages && step.sub_stages.length > 0">
                     <ul v-for="sub in step.sub_stages" :key="sub.id">
                       <li>
-                        <span :class="[step.step_status === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+                        <el-tooltip placement="bottom" :content="getStepStatusTips(sub.step_status)">
+                          <span :class="[step.step_status === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+                        </el-tooltip>
                         <span class="sub-tasks-name">{{getSubTasksName(sub.name)}}</span>
                         <span class="sub-tasks-layouts" v-if="sub.name === 'Build indexes by layer'"><span class="success-layout-count">{{sub.success_index_count}}</span>{{`/${sub.index_count}`}}</span>
                       </li>
@@ -431,7 +433,7 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmt
 import Diagnostic from 'components/admin/Diagnostic/index'
 import BuildSegmentDetail from './buildSegmentDetail.vue'
 import jobErrorDetail from './jobErrorDetail.vue'
-import { getSubTasksName, getSubTaskStatus, formatTime } from './handler'
+import { getSubTasksName, getSubTaskStatus, formatTime, getStepStatusTips } from './handler'
 // import subTasks from './subTasks.json'
 @Component({
   methods: {
@@ -477,6 +479,7 @@ import { getSubTasksName, getSubTaskStatus, formatTime } from './handler'
 export default class JobsList extends Vue {
   pageRefTags = pageRefTags
   getSubTasksName = (name) => getSubTasksName(this, name)
+  getStepStatusTips = (status) => getStepStatusTips(this, status)
   project = localStorage.getItem('selected_project')
   filterName = ''
   filterStatus = []
@@ -610,9 +613,9 @@ export default class JobsList extends Vue {
       'Update Metadata': this.$t('updateMetadata'),
       'Table Sampling': this.$t('tableSampling'),
       'Build Snapshot': this.$t('buildSnapshot'),
-      'STEP_EXPORT_TO_SECOND_STORAGE': this.$t('secondaryStorage'),
-      'STEP_REFRESH_SECOND_STORAGE': this.$t('secondaryStorage'),
-      'STEP_MERGE_SECOND_STORAGE': this.$t('secondaryStorage'),
+      'STEP_EXPORT_TO_SECOND_STORAGE': this.$t('exportSecondaryStorage'),
+      'STEP_REFRESH_SECOND_STORAGE': this.$t('refreshSecondaryStorage'),
+      'STEP_MERGE_SECOND_STORAGE': this.$t('mergeSecondaryStorage'),
       'STEP_SECOND_STORAGE_MODEL_CLEAN': this.$t('delSecondaryStorage'),
       'STEP_SECOND_STORAGE_NODE_CLEAN': this.$t('delSecondaryStorage'),
       'STEP_SECOND_STORAGE_SEGMENT_CLEAN': this.$t('delSecondaryStorage'),
@@ -647,9 +650,17 @@ export default class JobsList extends Vue {
       const data = Object.keys(jobParams).map(item => ({key: item, value: jobParams[item]}))
       this.$msgbox({
         width: '600px',
-        message: <el-table data={data} ref="jobParamRef" height="300">
-          <el-table-column label={this.$t('paramKey')} show-overflow-tooltip prop="key"></el-table-column>
-          <el-table-column label={this.$t('paramValue')} show-overflow-tooltip prop="value"></el-table-column>
+        message: <el-table data={data} ref="jobParamRef" class="job-param-table" height="300">
+          <el-table-column label={this.$t('paramKey')}>
+            {
+              scope => <div class="params-item" title={scope.row.key}><span class="params-value">{scope.row.key}</span></div>
+            }
+          </el-table-column>
+          <el-table-column label={this.$t('paramValue')}>
+            {
+              scope => <div class="params-item" title={scope.row.value}><span class="params-value">{scope.row.value}</span></div>
+            }
+          </el-table-column>
         </el-table>,
         title: this.$t('jobParams'),
         confirmButtonText: this.$t('kylinLang.common.IKnow'),
@@ -794,7 +805,7 @@ export default class JobsList extends Vue {
                 this.getJobDetail({project: this.selectedJob.project, job_id: this.selectedJob.id}).then((res) => {
                   handleSuccess(res, (data) => {
                     this.selectedJob = this.jobsList[selectedIndex]
-                    this.selectedJob['details'] = data.map(item => ({...item, sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages}))
+                    this.selectedJob['details'] = data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages}))
                     if (this.expandSegmentDetailId) {
                       const jobDetail = data.filter(it => it.id === this.expandSegmentDetailId)
                       const detail = this.definitionStopErrorStatus(jobDetail[0])
@@ -835,13 +846,23 @@ export default class JobsList extends Vue {
     })
   }
 
+  // 大步骤状态 ERROR_STOP 转换
+  exChangeErrorStop (currentStep, steps) {
+    const hasErrorTask = steps.filter(it => it.step_status === 'ERROR')
+    if (hasErrorTask.length && !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIPED'].includes(currentStep.step_status)) {
+      return 'ERROR_STOP'
+    } else {
+      return currentStep.step_status
+    }
+  }
+
   // 非多 segment 时，子步骤状态处理
   definitionSubTaskStopErrorStatus (subTask) {
     const tasks = subTask
     const hasErrorTask = tasks.filter(it => it.step_status === 'ERROR')
     if (hasErrorTask.length) {
       tasks.forEach(tk => {
-        if (tk.step_status !== 'ERROR' && tk.step_status !== 'FINISHED') {
+        if (!['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIPED'].includes(tk.step_status)) {
           tk.step_status = 'ERROR_STOP'
         }
       })
@@ -856,7 +877,7 @@ export default class JobsList extends Vue {
     if (hasErrorSegments.length) {
       Object.keys(segmentSteps).forEach(seg => {
         // if (!hasErrorSegments.includes(seg)) {
-        segmentSteps[seg].stage = segmentSteps[seg].stage.map(it => ({...it, step_status: it.step_status !== 'FINISHED' ? 'ERROR_STOP' : it.step_status}))
+        segmentSteps[seg].stage = segmentSteps[seg].stage.map(it => ({...it, step_status: !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIPED'].includes(it.step_status) ? 'ERROR_STOP' : it.step_status}))
         // }
       })
     }
@@ -1338,7 +1359,7 @@ export default class JobsList extends Vue {
       this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
-            this.$set(this.selectedJob, 'details', data.map(item => ({...item, sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages})))
+            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages})))
             this.isShowJobBtn()
             // this.setRightBarTop()
           })
@@ -1746,6 +1767,12 @@ export default class JobsList extends Vue {
                   padding-left: 15px;
                   color: @text-disabled-color;
                 }
+                .icons {
+                  transform: scale(0.6);
+                  margin-left: -2px;
+                  margin-right: 3px;
+                  color: #A5B2C5;
+                }
               }
               .duration-details {
                 color: @ke-color-primary;
@@ -1760,8 +1787,14 @@ export default class JobsList extends Vue {
             position: absolute;
             border-radius: 50%;
             text-align: center;
-            font-size: 14px;
+            font-size: 16px;
             color: @color-info;
+            &.el-ksd-icon-skip_16 {
+              color: @text-normal-color;
+            }
+            &.el-ksd-icon-wrong_fill_16 {
+              color: @ke-color-info-secondary;
+            }
             &.el-icon-ksd-good_health {
               color: @ke-color-success-hover;
             }
@@ -1891,6 +1924,15 @@ export default class JobsList extends Vue {
       position: absolute;
       top: 8px;
       right: 10px;
+    }
+  }
+  .job-param-table {
+    .params-item {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      .params-value {
+        white-space: nowrap;
+      }
     }
   }
 </style>

@@ -45,7 +45,9 @@
         <ul class="sub-tasks" v-for="sub in item.stage" :key="sub.id">
           <li>
             <!-- 当 job 主步骤为暂停状态时，所有的未完成的子步骤都变更为 STOP 状态 -->
-            <span :class="[jobStatus === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+            <el-tooltip placement="bottom" :content="getStepStatusTips(sub.step_status)">
+              <span :class="[jobStatus === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+            </el-tooltip>
             <span class="sub-tasks-name">{{getTaskName(sub.name)}}</span>
             <span class="sub-tasks-layouts" v-if="sub.name === 'Build indexes by layer'"><span class="success-layout-count">{{sub.success_index_count}}</span>{{`/${sub.index_count}`}}</span>
           </li>
@@ -59,7 +61,7 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
-import { getSubTasksName, getSubTaskStatus, formatTime } from './handler'
+import { getSubTasksName, getSubTaskStatus, formatTime, getStepStatusTips } from './handler'
 import { transToGmtTime } from '../../../util/business'
 
 @Component({
@@ -82,6 +84,7 @@ export default class BuildSegmentDetail extends Vue {
   getSubTasksName = getSubTasksName
   getSubTaskStatus = getSubTaskStatus
   formatTime = formatTime
+  getStepStatusTips = (status) => getStepStatusTips(this, status)
 
   // 获取 segment 构建状态 icon
   getStatusIcons (step) {
