@@ -100,15 +100,6 @@ public class KafkaControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetHistoryKafkaCluster() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/kafka/history_cluster").contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        Mockito.verify(kafkaController).getHistoryKafkaCluster();
-    }
-
-    @Test
     public void testGetTopics() throws Exception {
         val request = mockStreamingRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/kafka/topics").contentType(MediaType.APPLICATION_JSON)

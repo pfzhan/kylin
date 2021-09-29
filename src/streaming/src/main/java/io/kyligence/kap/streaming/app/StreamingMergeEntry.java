@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.streaming.app;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -36,13 +35,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.response.RestResponse;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeZoneUtils;
@@ -105,7 +101,7 @@ public class StreamingMergeEntry extends StreamingApplication {
 
     public void schedule(String project, String dataflowId) throws ExecuteException {
         shutdown.set(false);
-        logger.info("{},{},{},{}", project, dataflowId, thresholdOfSegSize, numberOfSeg);
+        logger.info("StreamingMergeEntry:{},{},{},{}", project, dataflowId, thresholdOfSegSize, numberOfSeg);
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
 
         val modelId = dataflowId;
@@ -134,7 +130,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             logger.error(e.getMessage(), e);
             isError = true;
             JobKiller.killApplication(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
-            throw new ExecuteException("streaming merging segment error occurred: ", e);
+            throw new ExecuteException("streaming merging segment error occured: ", e);
         } finally {
             // add a stop method
             merger.shutdown();
@@ -146,13 +142,11 @@ public class StreamingMergeEntry extends StreamingApplication {
         }
     }
 
-    public void process(String project, String dataflowId) throws IOException {
+    public void process(String project, String dataflowId) {
         // Step1. catch up metadata
         StreamingUtils.replayAuditlog();
-        val config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataflow dataflow = dfMgr.getDataflow(dataflowId);
-        removeHdfsFiles(dataflow);
         Segments<NDataSegment> segments = dataflow.getSegments().getSegments(SegmentStatusEnum.READY,
                 SegmentStatusEnum.WARNING);
         // step2. sort segment
@@ -180,7 +174,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             if (seg.getStorageBytesSize() > thresholdOfSegSize) {
                 logger.info("SegmentId={} size ({}) exceeds threshold", seg.getId(), seg.getStorageBytesSize());
                 break;
-            } else if (config.getStreamingSegmentCleanInterval() >= 0) {
+            } else {
                 for (NDataSegment item : segList) {
                     putHdfsFile(item.getId(),
                             new Pair<>(dataflow.getSegmentHdfsPath(item.getId()), System.currentTimeMillis()));
@@ -188,33 +182,6 @@ public class StreamingMergeEntry extends StreamingApplication {
             }
             policy = selectPolicy(segments, currLayer.get());
             clearHdfsFiles(dfMgr.getDataflow(dataflowId), hdfsFileScanStartTime);
-        }
-    }
-
-    /**
-     * remove invalid segment from hdfs file
-     */
-    public void removeHdfsFiles(NDataflow dataflow) throws IOException {
-        val config = KylinConfig.getInstanceFromEnv();
-
-        if (config.getStreamingSegmentCleanInterval() >= 0) {
-            String hdfsWorkingDir = KapConfig.wrap(dataflow.getConfig()).getMetadataWorkingDirectory();
-            val dirPath = new Path(hdfsWorkingDir + StreamingConstants.SLASH + dataflow.getProject()
-                    + StreamingConstants.SLASH + "parquet" + StreamingConstants.SLASH + dataflow.getId());
-            val fs = HadoopUtil.getFileSystem(hdfsWorkingDir);
-            if (!fs.exists(dirPath)) {
-                return;
-            }
-            val segments = dataflow.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
-            val files = fs.listStatus(dirPath,
-                    segPath -> !segPath.getName().equals(dataflow.getId()) && !segments.contains(segPath.getName()));
-            Arrays.sort(files, (file1, file2) -> (int) (file1.getModificationTime() - file2.getModificationTime()));
-            // skip last build & merge job's segment
-            for (int i = 0; i < files.length - 2; i++) {
-                putHdfsFile(files[i].getPath().getName(),
-                        new Pair<>(files[i].getPath().toString(), files[i].getModificationTime()));
-            }
-            clearHdfsFiles(dataflow, new AtomicLong(0));
         }
     }
 

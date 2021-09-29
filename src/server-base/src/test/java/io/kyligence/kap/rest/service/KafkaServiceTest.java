@@ -106,53 +106,6 @@ public class KafkaServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetHistoryKafkaBrokers() {
-        val broker = "192.168.1.100";
-        val emptyBroker = kafkaService.getHistoryKafkaBrokers();
-        Assert.assertTrue(emptyBroker.isEmpty());
-        kafkaService.appendKafkaBroker(broker);
-
-        val brokers = kafkaService.getHistoryKafkaBrokers();
-        Assert.assertEquals(broker, brokers.get(0));
-
-        val broker1 = "192.168.1.101";
-        kafkaService.appendKafkaBroker(broker1);
-    }
-
-    @Test
-    public void testAppendKafkaBrokerException() {
-        expectedException.expect(KylinException.class);
-        expectedException.expectMessage(Message.getInstance().getINVALID_BROKER_DEFINITION());
-        kafkaService.appendKafkaBroker("");
-    }
-
-    @Test
-    public void testAppendKafkaBroker() {
-        kafkaService.appendKafkaBroker("192.169.1.100:9092");
-
-        kafkaService.appendKafkaBroker("192.169.1.100:9092");
-        Assert.assertEquals(1, kafkaService.getHistoryKafkaBrokers().size());
-
-        kafkaService.appendKafkaBroker("192.169.1.100:9092");
-        kafkaService.appendKafkaBroker("192.169.1.101:9092");
-        kafkaService.appendKafkaBroker("192.169.1.102:9092");
-        kafkaService.appendKafkaBroker("192.169.1.103:9092");
-        kafkaService.appendKafkaBroker("192.169.1.104:9092");
-        kafkaService.appendKafkaBroker("192.169.1.105:9092");
-        Assert.assertEquals(5, kafkaService.getHistoryKafkaBrokers().size());
-        Assert.assertFalse(kafkaService.getHistoryKafkaBrokers().contains("192.169.1.100:9092"));
-
-        kafkaService.appendKafkaBroker("192.169.1.101:9092");
-        Assert.assertEquals(5, kafkaService.getHistoryKafkaBrokers().size());
-        Assert.assertEquals("192.169.1.101:9092", kafkaService.getHistoryKafkaBrokers().get(0));
-
-        kafkaService.appendKafkaBroker("192.169.1.105:9092");
-        Assert.assertEquals(5, kafkaService.getHistoryKafkaBrokers().size());
-        Assert.assertEquals("192.169.1.105:9092", kafkaService.getHistoryKafkaBrokers().get(0));
-
-    }
-
-    @Test
     public void testGetTopics() {
         expectedException.expect(KylinException.class);
         expectedException.expectMessage(Message.getInstance().getBROKER_TIMEOUT_MESSAGE());

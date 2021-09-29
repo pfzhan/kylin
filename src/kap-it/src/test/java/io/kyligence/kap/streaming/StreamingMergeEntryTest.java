@@ -29,13 +29,10 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.hadoop.fs.Path;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.response.RestResponse;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -389,41 +386,6 @@ public class StreamingMergeEntryTest extends StreamingTestCase {
             StreamingMergeEntry.main(args);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof ExecuteException);
-        }
-    }
-
-    @Test
-    public void testRemoveHdfsFiles() {
-        val entry = Mockito.spy(new StreamingMergeEntry());
-        val config = getTestConfig();
-        config.setProperty("kylin.engine.streaming-segment-clean-interval", "-1h");
-        val mgr = NDataflowManager.getInstance(config, PROJECT);
-        var dataflow = mgr.getDataflow(DATAFLOW_ID);
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getUuid());
-        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
-        mgr.updateDataflow(update);
-        dataflow = mgr.getDataflow(DATAFLOW_ID);
-        try {
-            String hdfsWorkingDir = KapConfig.wrap(dataflow.getConfig()).getMetadataWorkingDirectory();
-            val dataflowPath = hdfsWorkingDir + "/" + dataflow.getProject() + "/parquet/" + dataflow.getId();
-            val dirPath = new Path(dataflowPath);
-            val fs = HadoopUtil.getFileSystem(hdfsWorkingDir);
-            if (!fs.exists(dirPath)) {
-                fs.mkdirs(dirPath);
-            }
-            fs.mkdirs(new Path(dataflowPath + "/abcd-123"));
-            fs.mkdirs(new Path(dataflowPath + "/abcd-124"));
-            fs.mkdirs(new Path(dataflowPath + "/abcd-125"));
-            fs.mkdirs(new Path(dataflowPath + "/abcd-126"));
-            entry.removeHdfsFiles(dataflow);
-            Assert.assertEquals(4, fs.listStatus(dirPath).length);
-
-            config.setProperty("kylin.engine.streaming-segment-clean-interval", "0h");
-            entry.removeHdfsFiles(dataflow);
-            Assert.assertEquals(2, fs.listStatus(dirPath).length);
-
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
         }
     }
 

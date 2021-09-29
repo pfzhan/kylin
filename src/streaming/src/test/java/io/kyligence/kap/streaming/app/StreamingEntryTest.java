@@ -168,6 +168,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
+        clearCheckpoint(DATAFLOW_ID);
     }
 
     @Test

@@ -81,16 +81,15 @@ public abstract class StreamingApplication {
         val hdfsFileScanStartTime = startTime.get();
         long now = System.currentTimeMillis();
         val intervals = KylinConfig.getInstanceFromEnv().getStreamingSegmentCleanInterval() * 60 * 60 * 1000;
-        if (intervals >= 0 && now - hdfsFileScanStartTime > intervals) {
+        if (now - hdfsFileScanStartTime > intervals) {
             val iter = removeSegIds.keySet().iterator();
             while (iter.hasNext()) {
                 String segId = iter.next();
                 if (dataflow.getSegment(segId) == null) {
                     if ((now - removeSegIds.get(segId).getValue()) > intervals) {
                         try {
-                            val path = removeSegIds.get(segId).getKey();
-                            logger.info("clear invalid segment: {}", path);
-                            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
+                            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(),
+                                    new Path(removeSegIds.get(segId).getKey()));
                             iter.remove();
                         } catch (IOException e) {
                             logger.warn(e.getMessage());
