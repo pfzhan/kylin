@@ -649,6 +649,9 @@ public class QueryService extends BasicService {
             logger.error("Exception while executing query", e);
             QueryContext.current().getMetrics().setException(true);
             String errMsg = makeErrorMsgUserFriendly(e);
+            if (errMsg == null) {
+                errMsg = e.getMessage();
+            }
 
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
@@ -663,8 +666,6 @@ public class QueryService extends BasicService {
                 sqlResponse.setStopByUser(true);
                 sqlResponse.setColumnMetas(Lists.newArrayList());
                 sqlResponse.setExceptionMessage(MsgPicker.getMsg().getSTOP_BY_USER_ERROR_MESSAGE());
-            } else {
-                sqlResponse.setExceptionMessage(e.getMessage());
             }
 
             sqlResponse.wrapResultOfQueryContext(queryContext);
