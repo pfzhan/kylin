@@ -194,19 +194,15 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         for (AbstractExecutable task : tasks) {
             if (task instanceof ChainedStageExecutable) {
                 final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
-                Map<String, List<StageBase>> taskMap = Optional.ofNullable(stageExecutable.getStagesMap())
+                Map<String, List<StageBase>> stageMap = Optional.ofNullable(stageExecutable.getStagesMap())
                         .orElse(Maps.newHashMap());
-                var taskMapStageCount = 0;
-                for (Map.Entry<String, List<StageBase>> entry : taskMap.entrySet()) {
-                    taskMapStageCount = (int) Optional.of(entry.getValue()).orElse(Lists.newArrayList()).stream()
-                            .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.SKIPPED)
-                            .count();
-                }
+                var taskMapStageCount = Optional.of(stageMap.values()).orElse(Lists.newArrayList())
+                        .stream().findFirst().orElse(Lists.newArrayList()).size();
 
                 if (0 != taskMapStageCount) {
                     // calculate sum step count, second step and stage is duplicate
                     stageCount = taskMapStageCount - 1;
-                    successSteps += calculateSuccessStageInTaskMap(task, taskMap);
+                    successSteps += calculateSuccessStageInTaskMap(task, stageMap);
                     continue;
                 }
             }
@@ -224,24 +220,23 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     }
 
     /** calculate stage count from segment */
-    public static double calculateSuccessStageInTaskMap(AbstractExecutable task, Map<String, List<StageBase>> taskMap) {
+    public static double calculateSuccessStageInTaskMap(AbstractExecutable task,
+            Map<String, List<StageBase>> stageMap) {
         var successStages = 0D;
-        boolean calculateIndexExecRadio = taskMap.size() == 1;
-        for (Map.Entry<String, List<StageBase>> entry : taskMap.entrySet()) {
+        boolean calculateIndexExecRadio = stageMap.size() == 1;
+        for (Map.Entry<String, List<StageBase>> entry : stageMap.entrySet()) {
             double count = calculateSuccessStage(task, entry.getKey(), entry.getValue(), calculateIndexExecRadio);
             successStages += count;
         }
-        return successStages / taskMap.size();
+        return successStages / stageMap.size();
     }
 
     public static double calculateSuccessStage(AbstractExecutable task, String segmentId, List<StageBase> stageBases,
             boolean calculateIndexExecRadio) {
         var successStages = 0D;
         for (StageBase stage : stageBases) {
-            if (stage.getStatus(segmentId) == ExecutableState.SKIPPED) {
-                continue;
-            }
-            if (ExecutableState.SUCCEED == stage.getStatus(segmentId)) {
+            if (ExecutableState.SUCCEED == stage.getStatus(segmentId)
+                    || stage.getStatus(segmentId) == ExecutableState.SKIP) {
                 successStages += 1;
                 continue;
             }

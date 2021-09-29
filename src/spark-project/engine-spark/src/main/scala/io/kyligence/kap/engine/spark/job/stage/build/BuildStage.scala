@@ -298,7 +298,7 @@ abstract class BuildStage(private val jobContext: SegmentJob,
       if (task.ic.isDefined) "inferior flat table" else "flat table"
     } else task.parentLayout.get.getId
     // set layout mess in build job infos
-    val layout: NDataLayout = if (task.parentLayout.isEmpty) null else dataSegment.getLayout(task.parentLayout.get.getId)
+    val layout: NDataLayout = if (task.parentLayout.isEmpty) null else task.segment.getLayout(task.parentLayout.get.getId)
     val layoutIdsFromFlatTable = KylinBuildEnv.get().buildJobInfos.getParent2Children.getOrDefault(layout, Sets.newHashSet())
     layoutIdsFromFlatTable.add(task.layout.getId)
     KylinBuildEnv.get().buildJobInfos.recordParent2Children(layout, layoutIdsFromFlatTable)

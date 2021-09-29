@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
@@ -33,8 +33,8 @@ import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-class MLPGatherFlatTableStats(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
-  extends MLPBuildStage(jobContext, dataSegment, buildParam) {
+class PartitionGatherFlatTableStats(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
+  extends PartitionBuildStage(jobContext, dataSegment, buildParam) {
   override def execute(): Unit = {
     if (spanningTree.fromFlatTable()) {
       // Very very heavy step

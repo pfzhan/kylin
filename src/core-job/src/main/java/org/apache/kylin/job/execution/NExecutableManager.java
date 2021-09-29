@@ -702,6 +702,7 @@ public class NExecutableManager {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", jobId, job.getStatus()));
         }
+        val pausedTime = getPausedTime(job);
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
@@ -724,7 +725,51 @@ public class NExecutableManager {
                 }
             });
         }
-        updateJobOutput(jobId, ExecutableState.READY);
+
+        updateJobOutput(jobId, ExecutableState.READY, pausedTime);
+    }
+
+    private Map<String, String> getPausedTime(AbstractExecutable job) {
+        try {
+            val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
+            Map<String, String> info = Maps.newHashMap(oldInfo);
+            if (job instanceof DefaultChainedExecutable) {
+                Map<String, String> pausedTime = JsonUtil
+                        .readValueAsMap(info.getOrDefault(NBatchConstants.P_PAUSED_TIME, "{}"));
+
+                final List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
+                for (AbstractExecutable task : tasks) {
+                    val pauseTime = task.getPausedTimeFromLastModify();
+                    val oldPauseTime = Long.parseLong(pausedTime.getOrDefault(task.getId(), "0"));
+                    pausedTime.put(task.getId(), String.valueOf(pauseTime + oldPauseTime));
+                    if (task instanceof ChainedStageExecutable) {
+                        final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
+                        Map<String, List<StageBase>> stageMap = Optional.ofNullable(stageExecutable.getStagesMap())
+                                .orElse(Maps.newHashMap());
+
+                        for (Map.Entry<String, List<StageBase>> entry : stageMap.entrySet()) {
+                            final String segmentId = entry.getKey();
+                            if (pausedTime.containsKey(segmentId)) {
+                                break;
+                            }
+                            val stageBases = Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList());
+                            for (StageBase stageBase : stageBases) {
+                                val pausedStage = segmentId + stageBase.getId();
+
+                                val stagePauseTime = stageBase.getPausedTimeFromLastModify(entry.getKey());
+                                val oldStagePauseTime = Long.parseLong(pausedTime.getOrDefault(pausedStage, "0"));
+                                pausedTime.put(pausedStage, String.valueOf(stagePauseTime + oldStagePauseTime));
+                            }
+                        }
+                    }
+                }
+                info.put(NBatchConstants.P_PAUSED_TIME, JsonUtil.writeValueAsString(pausedTime));
+            }
+            return info;
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+            return null;
+        }
     }
 
     public void restartJob(String jobId) {
@@ -809,6 +854,7 @@ public class NExecutableManager {
         // restart waite time
         Map<String, String> info = Maps.newHashMap();
         info.put(NBatchConstants.P_WAITE_TIME, "{}");
+        info.put(NBatchConstants.P_PAUSED_TIME, "{}");
         updateJobOutput(jobId, ExecutableState.READY, info);
     }
 
@@ -958,10 +1004,10 @@ public class NExecutableManager {
                     waiteTime.put(task.getId(), String.valueOf(waitTime + oldWaitTime));
                     if (task instanceof ChainedStageExecutable) {
                         final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
-                        Map<String, List<StageBase>> taskMap = Optional.ofNullable(stageExecutable.getStagesMap())
+                        Map<String, List<StageBase>> stageMap = Optional.ofNullable(stageExecutable.getStagesMap())
                                 .orElse(Maps.newHashMap());
                         val taskStartTime = task.getStartTime();
-                        for (Map.Entry<String, List<StageBase>> entry : taskMap.entrySet()) {
+                        for (Map.Entry<String, List<StageBase>> entry : stageMap.entrySet()) {
                             final String segmentId = entry.getKey();
                             if (waiteTime.containsKey(segmentId)) {
                                 break;
@@ -1124,10 +1170,10 @@ public class NExecutableManager {
                         oldStatus, newStatus, taskOrJobId);
             }
             if ((oldStatus == ExecutableState.PAUSED && newStatus == ExecutableState.ERROR)
-                    || (oldStatus == ExecutableState.SKIPPED && newStatus == ExecutableState.SUCCEED)) {
+                    || (oldStatus == ExecutableState.SKIP && newStatus == ExecutableState.SUCCEED)) {
                 return false;
             }
-            if (isRestart || oldStatus != ExecutableState.SUCCEED) {
+            if (isRestart || (oldStatus != ExecutableState.SUCCEED && oldStatus != ExecutableState.SKIP)) {
                 jobOutput.setStatus(String.valueOf(newStatus));
                 updateJobStatus(jobOutput, oldStatus, newStatus);
                 logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
@@ -1486,8 +1532,8 @@ public class NExecutableManager {
 
             FileStatus lastFileStatus = fs.getFileStatus(lPath);
             try (FSDataInputStream fdin = fs.open(fPath);
-                 BufferedReader fReader = new BufferedReader(new InputStreamReader(fdin, Charset.defaultCharset()));
-                 FSDataInputStream ldin = fs.open(lPath)) {
+                    BufferedReader fReader = new BufferedReader(new InputStreamReader(fdin, Charset.defaultCharset()));
+                    FSDataInputStream ldin = fs.open(lPath)) {
 
                 String line;
                 StringBuilder sampleData = new StringBuilder();

@@ -118,7 +118,13 @@ public enum JobStatusEnum {
             return actionEnum == JobActionEnum.DISCARD || actionEnum == JobActionEnum.RESUME
                     || actionEnum == JobActionEnum.RESTART;
         }
-    };
+    },
+    SKIP(1024) {
+        @Override
+        public boolean checkAction(JobActionEnum actionEnum) {
+            return false;
+        }
+    },;
 
     public abstract boolean checkAction(JobActionEnum actionEnum);
 

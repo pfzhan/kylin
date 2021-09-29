@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import com.google.common.collect.{Lists, Queues, Sets}
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
@@ -46,7 +46,7 @@ import scala.collection.mutable
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
-abstract class MLPBuildStage(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
+abstract class PartitionBuildStage(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
   extends BuildStage(jobContext, dataSegment, buildParam) with PartitionExec {
   protected final val newBuckets = //
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
@@ -54,7 +54,7 @@ abstract class MLPBuildStage(jobContext: SegmentJob, dataSegment: NDataSegment, 
   protected lazy val spanningTree: PartitionSpanningTree = buildParam.getPartitionSpanningTree
 
   protected lazy val flatTableDesc: PartitionFlatTableDesc = buildParam.getTableDesc
-  protected lazy val flatTable: MLPFlatTableAndDictBase = buildParam.getPartitionFlatTable
+  protected lazy val flatTable: PartitionFlatTableAndDictBase = buildParam.getPartitionFlatTable
 
   // Thread unsafe, read only.
   private lazy val cachedPartitionFlatTableDS: Map[java.lang.Long, Dataset[Row]] = buildParam.getCachedPartitionFlatTableDS
@@ -241,7 +241,8 @@ abstract class MLPBuildStage(jobContext: SegmentJob, dataSegment: NDataSegment, 
     val parentDesc = if (task.parentLayout.isEmpty) "flat table" else task.parentLayout.get.getId
     val readableDesc = s"Segment $segmentId build layout partition ${task.layout.getId},${task.partition} from $parentDesc"
     // set layout mess in build job infos
-    val layout: NDataLayout = if (task.parentLayout.isEmpty) null else dataSegment.getLayout(task.parentLayout.get.getId)
+    val layout: NDataLayout = if (task.parentLayout.isEmpty) null
+    else task.segment.getLayout(task.parentLayout.get.getId)
     val layoutIdsFromFlatTable = KylinBuildEnv.get().buildJobInfos.getParent2Children.getOrDefault(layout, Sets.newHashSet())
     layoutIdsFromFlatTable.add(task.layout.getId)
     KylinBuildEnv.get().buildJobInfos.recordParent2Children(layout, layoutIdsFromFlatTable)

@@ -62,6 +62,8 @@ public interface NBatchConstants {
     String P_INDEX_SUCCESS_COUNT = "indexSuccessCount";
     /** value like : { "segmentId1": 1223, "segmentId2": 1223 } */
     String P_WAITE_TIME = "waiteTime";
+    /** value like : { "segmentId1": 1223, "segmentId2": 1223 } */
+    String P_PAUSED_TIME = "pausedTime";
 
     // ut only
     String P_BREAK_POINT_LAYOUTS = "breakPointLayouts";

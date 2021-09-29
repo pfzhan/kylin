@@ -22,17 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.merge.mlp
+package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
+import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 
-class MLPMergeIndices(jobContext: SegmentJob, dataSegment: NDataSegment)
-  extends MLPMargeStage(jobContext, dataSegment) {
-
+class PartitionRefreshColumnBytes(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
+  extends PartitionBuildStage(jobContext, dataSegment, buildParam) {
   override def execute(): Unit = {
-    mergeIndices()
-    // Drain results immediately after merging.
-    drain()
+    // Refresh column bytes.
+    tryRefreshColumnBytes()
+    // By design, refresh layout bucket-num mapping.
+    // Bucket here is none business of multi-level partition.
+    tryRefreshBucketMapping()
+    // Drain results, shutdown pool, cleanup extra immediate outputs.
+    cleanup()
+    logInfo(s"Finished SEGMENT $segmentId")
   }
 }

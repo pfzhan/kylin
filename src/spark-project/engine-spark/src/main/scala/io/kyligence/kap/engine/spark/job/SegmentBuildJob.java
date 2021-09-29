@@ -31,6 +31,7 @@ import static io.kyligence.kap.engine.spark.job.StageType.GENERATE_FLAT_TABLE;
 import static io.kyligence.kap.engine.spark.job.StageType.MATERIALIZED_FACT_TABLE;
 import static io.kyligence.kap.engine.spark.job.StageType.REFRESH_COLUMN_BYTES;
 import static io.kyligence.kap.engine.spark.job.StageType.REFRESH_SNAPSHOTS;
+import static io.kyligence.kap.engine.spark.job.StageType.WAITE_FOR_RESOURCE;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,10 +72,18 @@ public class SegmentBuildJob extends SegmentJob {
     }
 
     @Override
-    protected final void doExecute() throws Exception {
+    protected void waiteForResourceSuccess() throws Exception {
+        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
+        waiteForResource.onStageFinished(true);
         if (config.isBuildCheckPartitionColEnabled()) {
             checkDateFormatIfExist(project, dataflowId);
         }
+    }
+
+    @Override
+    protected final void doExecute() throws Exception {
+        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
+        waiteForResource.onStageFinished(true);
         // tryRefreshSnapshots();
         REFRESH_SNAPSHOTS.create(this, null, null).toWork();
 

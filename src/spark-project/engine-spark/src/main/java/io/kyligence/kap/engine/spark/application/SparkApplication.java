@@ -343,6 +343,8 @@ public abstract class SparkApplication implements Application, IKeep {
             logger.info("Start job");
             infos.startJob();
             extraInit();
+
+            waiteForResourceSuccess();
             doExecute();
             // Output metadata to another folder
             val resourceStore = ResourceStore.getKylinMetaStore(config);
@@ -442,7 +444,14 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     private void waiteForResource(SparkConf sparkConf, KylinBuildEnv buildEnv) throws Exception {
-        WAITE_FOR_RESOURCE.create(this, null, null).toWork();
+        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
+        waiteForResource.onStageStart();
+        waiteForResource.execute();
+    }
+
+    protected void waiteForResourceSuccess() throws Exception {
+        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
+        waiteForResource.onStageFinished(true);
     }
 
     protected void chooseContentSize(SparkConfHelper helper) {

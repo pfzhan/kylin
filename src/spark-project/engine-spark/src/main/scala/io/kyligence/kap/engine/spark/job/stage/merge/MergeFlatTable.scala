@@ -28,7 +28,7 @@ import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 
 class MergeFlatTable(jobContext: SegmentJob, dataSegment: NDataSegment)
-  extends MargeStage(jobContext, dataSegment) {
+  extends MergeStage(jobContext, dataSegment) {
 
   override def execute(): Unit = {
     scheduleCheckpoint()

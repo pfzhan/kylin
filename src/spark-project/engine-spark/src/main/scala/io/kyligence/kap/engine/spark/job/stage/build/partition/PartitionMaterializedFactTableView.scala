@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
@@ -32,8 +32,8 @@ import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.PartitionTree
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, PartitionFlatTableDesc}
 import org.apache.spark.sql.{Dataset, Row}
 
-class MLPMaterializedFactTableView(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
-  extends MLPFlatTableAndDictBase(jobContext, dataSegment, buildParam) {
+class PartitionMaterializedFactTableView(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
+  extends PartitionFlatTableAndDictBase(jobContext, dataSegment, buildParam) {
 
 
   override def execute(): Unit = {

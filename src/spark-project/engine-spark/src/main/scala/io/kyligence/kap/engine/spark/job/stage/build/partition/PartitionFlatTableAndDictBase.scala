@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase
@@ -36,9 +36,9 @@ import java.util.Objects
 import java.{lang, util}
 import scala.collection.JavaConverters._
 
-abstract class MLPFlatTableAndDictBase(private val jobContext: SegmentJob,
-                                 private val dataSegment: NDataSegment,
-                                 private val buildParam: BuildParam)
+abstract class PartitionFlatTableAndDictBase(private val jobContext: SegmentJob,
+                                             private val dataSegment: NDataSegment,
+                                             private val buildParam: BuildParam)
   extends FlatTableAndDictBase(jobContext, dataSegment, buildParam) with PartitionExec {
 
   protected final val newBuckets = //

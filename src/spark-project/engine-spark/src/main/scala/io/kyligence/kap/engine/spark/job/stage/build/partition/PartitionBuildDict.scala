@@ -22,21 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.spark.sql.{Dataset, Row}
 
-class MLPGenerateFlatTable(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
-  extends MLPFlatTableAndDictBase(jobContext, dataSegment, buildParam) {
-  override def execute(): Unit = {
-    val flatTable: Dataset[Row] = generateFlatTable()
-    buildParam.setFlatTable(flatTable)
-    val flatTablePart: Dataset[Row] = generateFlatTablePart()
-    buildParam.setFlatTablePart(flatTablePart)
+class PartitionBuildDict(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
+  extends PartitionFlatTableAndDictBase(jobContext, dataSegment, buildParam) {
 
-    buildParam.setPartitionFlatTable(this)
+  override def execute(): Unit = {
+    val dict: Dataset[Row] = buildDictIfNeed()
+    buildParam.setDict(dict)
   }
 }

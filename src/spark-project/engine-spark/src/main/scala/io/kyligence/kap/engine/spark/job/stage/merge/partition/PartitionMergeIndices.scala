@@ -22,18 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.merge.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
-import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 
-class MLPBuildLayer(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
-  extends MLPBuildStage(jobContext, dataSegment, buildParam) {
+class PartitionMergeIndices(jobContext: SegmentJob, dataSegment: NDataSegment)
+  extends PartitionMergeStage(jobContext, dataSegment) {
+
   override def execute(): Unit = {
-    // Build layers.
-    buildLayouts()
-    // Drain results immediately after building.
+    mergeIndices()
+    // Drain results immediately after merging.
     drain()
   }
 }

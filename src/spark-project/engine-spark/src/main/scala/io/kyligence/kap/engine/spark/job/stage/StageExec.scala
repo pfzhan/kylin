@@ -101,7 +101,7 @@ trait StageExec extends Logging {
     val taskId = getId
     val segmentId = getSegmentId
     val project = getJobContext.getProject
-    val status = ExecutableState.SKIPPED.toString
+    val status = ExecutableState.SKIP.toString
     val errMsg = null
     val updateInfo: util.HashMap[String, String] = null
 

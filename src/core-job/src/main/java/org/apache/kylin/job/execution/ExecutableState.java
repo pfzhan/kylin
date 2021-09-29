@@ -56,9 +56,7 @@ import org.apache.kylin.job.constant.JobStatusEnum;
  */
 public enum ExecutableState {
 
-    READY, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL,
-    // just use to stage skip
-    SKIPPED;
+    READY, RUNNING, ERROR, PAUSED, DISCARDED, SUCCEED, SUICIDAL, SKIP;
 
     private static Multimap<ExecutableState, ExecutableState> VALID_STATE_TRANSFER;
 
@@ -124,6 +122,8 @@ public enum ExecutableState {
 
     public JobStatusEnum toJobStatus() {
         switch (this) {
+            case SKIP:
+                return JobStatusEnum.SKIP;
             case READY:
                 return JobStatusEnum.PENDING;
             case RUNNING:

@@ -22,12 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.merge.mlp
+package io.kyligence.kap.engine.spark.job.stage.merge.partition
 
 import com.google.common.collect.Lists
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork.Callback
-import io.kyligence.kap.engine.spark.job.stage.merge.MargeStage
+import io.kyligence.kap.engine.spark.job.stage.merge.MergeStage
 import io.kyligence.kap.engine.spark.job.{PartitionExec, SegmentJob}
 import io.kyligence.kap.metadata.cube.model._
 import org.apache.hadoop.fs.Path
@@ -37,9 +37,9 @@ import org.apache.spark.sql.{Dataset, Row}
 import java.util.Objects
 import scala.collection.JavaConverters._
 
-abstract class MLPMargeStage(private val jobContext: SegmentJob,
-                            private val dataSegment: NDataSegment)
-  extends MargeStage(jobContext, dataSegment) with PartitionExec {
+abstract class PartitionMergeStage(private val jobContext: SegmentJob,
+                                   private val dataSegment: NDataSegment)
+  extends MergeStage(jobContext, dataSegment) with PartitionExec {
   protected final val newBuckets = //
     jobContext.getReadOnlyBuckets.asScala.filter(_.getSegmentId.equals(segmentId)).toSeq
 

@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.job.stage
 
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPFlatTableAndDictBase
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionFlatTableAndDictBase
 import io.kyligence.kap.metadata.cube.cuboid.{AdaptiveSpanningTree, PartitionSpanningTree}
 import io.kyligence.kap.metadata.cube.model.{PartitionFlatTableDesc, SegmentFlatTableDesc}
 import org.apache.spark.sql.{Dataset, Row}
@@ -46,7 +46,7 @@ class BuildParam {
   private var flatTableStatistics: Statistics = _
 
   private var tableDesc: PartitionFlatTableDesc = _
-  private var partitionFlatTable: MLPFlatTableAndDictBase = _
+  private var partitionFlatTable: PartitionFlatTableAndDictBase = _
   private var partitionSpanningTree: PartitionSpanningTree = _
   private var cachedPartitionFlatTableDS: Map[java.lang.Long, Dataset[Row]] =
     immutable.Map.newBuilder[java.lang.Long, Dataset[Row]].result()
@@ -71,9 +71,9 @@ class BuildParam {
     this.partitionSpanningTree = partitionSpanningTree
   }
 
-  def getPartitionFlatTable: MLPFlatTableAndDictBase = partitionFlatTable
+  def getPartitionFlatTable: PartitionFlatTableAndDictBase = partitionFlatTable
 
-  def setPartitionFlatTable(partitionFlatTable: MLPFlatTableAndDictBase): Unit = {
+  def setPartitionFlatTable(partitionFlatTable: PartitionFlatTableAndDictBase): Unit = {
     this.partitionFlatTable = partitionFlatTable
   }
 

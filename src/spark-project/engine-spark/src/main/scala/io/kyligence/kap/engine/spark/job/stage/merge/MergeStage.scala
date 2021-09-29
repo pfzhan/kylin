@@ -45,8 +45,8 @@ import org.apache.spark.sql.{Dataset, Row, SaveMode}
 import scala.collection.JavaConverters
 import scala.collection.JavaConverters._
 
-abstract class MargeStage(private val jobContext: SegmentJob,
-                         private val dataSegment: NDataSegment)
+abstract class MergeStage(private val jobContext: SegmentJob,
+                          private val dataSegment: NDataSegment)
   extends SegmentExec with StageExec {
   override def getJobContext: SparkApplication = jobContext
 
@@ -145,11 +145,13 @@ abstract class MargeStage(private val jobContext: SegmentJob,
   protected def mergeFlatTable(): Unit = {
     if (!config.isPersistFlatTableEnabled) {
       logInfo(s"Flat table persisting is not enabled.")
+      onStageSkipped()
       return
     }
     // Check flat table paths
     val unmergedFTPaths = getUnmergedFTPaths
     if (unmergedFTPaths.isEmpty) {
+      onStageSkipped()
       return
     }
 
@@ -164,6 +166,7 @@ abstract class MargeStage(private val jobContext: SegmentJob,
     }
     if (!schemaMatched) {
       logWarning("Skip FLAT-TABLE schema not matched.")
+      onStageSkipped()
       return
     }
 

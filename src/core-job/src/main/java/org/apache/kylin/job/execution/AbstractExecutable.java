@@ -649,9 +649,33 @@ public abstract class AbstractExecutable implements Executable {
         if (output.getStartTime() == 0) {
             return 0;
         }
+        if (output.getEndTime() == 0) {
+            if (output.getState() == ExecutableState.PAUSED && output.getLastModified() != 0) {
+                return output.getLastModified() - output.getStartTime();
+            }
+            return System.currentTimeMillis() - output.getStartTime();
+        }
+        if (output.getState() == ExecutableState.READY) {
+            return System.currentTimeMillis() - output.getStartTime();
+        }
 
-        return output.getEndTime() == 0 ? System.currentTimeMillis() - output.getStartTime()
-                : output.getEndTime() - output.getStartTime();
+        return output.getEndTime() - output.getStartTime();
+    }
+
+    public long getPausedTimeFromLastModify() {
+        return getPausedTimeFromLastModify(getOutput());
+    }
+
+    public static long getPausedTimeFromLastModify(Output output) {
+        if (output.getStartTime() == 0 || output.getLastModified() == 0) {
+            return 0;
+        }
+
+        if (output.getState() == ExecutableState.SUCCEED || output.getState() == ExecutableState.SKIP) {
+            return 0;
+        }
+
+        return System.currentTimeMillis() - output.getLastModified();
     }
 
     public long getWaitTime() {

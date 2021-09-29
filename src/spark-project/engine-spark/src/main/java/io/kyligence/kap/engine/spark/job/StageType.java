@@ -40,18 +40,18 @@ import io.kyligence.kap.engine.spark.job.stage.build.GenerateFlatTable;
 import io.kyligence.kap.engine.spark.job.stage.build.MaterializedFactTableView;
 import io.kyligence.kap.engine.spark.job.stage.build.RefreshColumnBytes;
 import io.kyligence.kap.engine.spark.job.stage.build.RefreshSnapshots;
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPBuildDict;
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPBuildLayer;
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPGatherFlatTableStats;
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPGenerateFlatTable;
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPMaterializedFactTableView;
-import io.kyligence.kap.engine.spark.job.stage.build.mlp.MLPRefreshColumnBytes;
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionBuildDict;
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionBuildLayer;
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionGatherFlatTableStats;
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionGenerateFlatTable;
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionMaterializedFactTableView;
+import io.kyligence.kap.engine.spark.job.stage.build.partition.PartitionRefreshColumnBytes;
 import io.kyligence.kap.engine.spark.job.stage.merge.MergeColumnBytes;
 import io.kyligence.kap.engine.spark.job.stage.merge.MergeFlatTable;
 import io.kyligence.kap.engine.spark.job.stage.merge.MergeIndices;
-import io.kyligence.kap.engine.spark.job.stage.merge.mlp.MLPMergeColumnBytes;
-import io.kyligence.kap.engine.spark.job.stage.merge.mlp.MLPMergeFlatTable;
-import io.kyligence.kap.engine.spark.job.stage.merge.mlp.MLPMergeIndices;
+import io.kyligence.kap.engine.spark.job.stage.merge.partition.PartitionMergeColumnBytes;
+import io.kyligence.kap.engine.spark.job.stage.merge.partition.PartitionMergeFlatTable;
+import io.kyligence.kap.engine.spark.job.stage.merge.partition.PartitionMergeIndices;
 import io.kyligence.kap.engine.spark.job.stage.snapshots.SnapshotsBuild;
 import io.kyligence.kap.engine.spark.job.stage.tablesampling.AnalyzerTable;
 import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
@@ -89,7 +89,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPMaterializedFactTableView((SegmentJob) jobContext, dataSegment, buildParam);
+                return new PartitionMaterializedFactTableView((SegmentJob) jobContext, dataSegment, buildParam);
             }
             return new MaterializedFactTableView((SegmentJob) jobContext, dataSegment, buildParam);
         }
@@ -103,7 +103,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPBuildDict((SegmentJob) jobContext, dataSegment, buildParam);
+                return new PartitionBuildDict((SegmentJob) jobContext, dataSegment, buildParam);
             }
             return new BuildDict((SegmentJob) jobContext, dataSegment, buildParam);
         }
@@ -117,7 +117,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPGenerateFlatTable((SegmentJob) jobContext, dataSegment, buildParam);
+                return new PartitionGenerateFlatTable((SegmentJob) jobContext, dataSegment, buildParam);
             }
             return new GenerateFlatTable((SegmentJob) jobContext, dataSegment, buildParam);
         }
@@ -131,7 +131,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPGatherFlatTableStats((SegmentJob) jobContext, dataSegment, buildParam);
+                return new PartitionGatherFlatTableStats((SegmentJob) jobContext, dataSegment, buildParam);
             }
             return new GatherFlatTableStats((SegmentJob) jobContext, dataSegment, buildParam);
         }
@@ -145,7 +145,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPBuildLayer((SegmentJob) jobContext, dataSegment, buildParam);
+                return new PartitionBuildLayer((SegmentJob) jobContext, dataSegment, buildParam);
             }
             return new BuildLayer((SegmentJob) jobContext, dataSegment, buildParam);
         }
@@ -159,7 +159,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPRefreshColumnBytes((SegmentJob) jobContext, dataSegment, buildParam);
+                return new PartitionRefreshColumnBytes((SegmentJob) jobContext, dataSegment, buildParam);
             }
             return new RefreshColumnBytes((SegmentJob) jobContext, dataSegment, buildParam);
         }
@@ -174,7 +174,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPMergeFlatTable((SegmentJob) jobContext, dataSegment);
+                return new PartitionMergeFlatTable((SegmentJob) jobContext, dataSegment);
             }
             return new MergeFlatTable((SegmentJob) jobContext, dataSegment);
         }
@@ -188,7 +188,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPMergeIndices((SegmentJob) jobContext, dataSegment);
+                return new PartitionMergeIndices((SegmentJob) jobContext, dataSegment);
             }
             return new MergeIndices((SegmentJob) jobContext, dataSegment);
         }
@@ -202,7 +202,7 @@ public enum StageType {
         @Override
         public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
             if (isPartitioned(jobContext)) {
-                return new MLPMergeColumnBytes((SegmentJob) jobContext, dataSegment);
+                return new PartitionMergeColumnBytes((SegmentJob) jobContext, dataSegment);
             }
             return new MergeColumnBytes((SegmentJob) jobContext, dataSegment);
         }

@@ -111,6 +111,8 @@ public class ExecutableStepResponse {
     @Getter
     @Setter
     public static class SubStages {
+        @JsonProperty("duration")
+        private long duration;
         @JsonProperty("wait_time")
         private long waitTime;
         @JsonProperty("step_ratio")

@@ -22,18 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.mlp
+package io.kyligence.kap.engine.spark.job.stage.merge.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
-import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.metadata.cube.model.NDataSegment
-import org.apache.spark.sql.{Dataset, Row}
 
-class MLPBuildDict(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
-  extends MLPFlatTableAndDictBase(jobContext, dataSegment, buildParam) {
+class PartitionMergeFlatTable(jobContext: SegmentJob, dataSegment: NDataSegment)
+  extends PartitionMergeStage(jobContext, dataSegment) {
 
   override def execute(): Unit = {
-    val dict: Dataset[Row] = buildDictIfNeed()
-    buildParam.setDict(dict)
+    scheduleCheckpoint()
+
+    mergeFlatTable()
   }
 }

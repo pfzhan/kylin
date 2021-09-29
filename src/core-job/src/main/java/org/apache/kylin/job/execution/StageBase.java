@@ -62,4 +62,8 @@ public class StageBase extends AbstractExecutable {
     public Output getOutput(String segmentId) {
         return getManager().getOutput(getId(), segmentId);
     }
+
+    public long getPausedTimeFromLastModify(String segmentId) {
+        return getPausedTimeFromLastModify(getOutput(segmentId));
+    }
 }

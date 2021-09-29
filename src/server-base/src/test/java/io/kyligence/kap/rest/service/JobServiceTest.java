@@ -445,7 +445,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
-        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIP, null, "test output");
         manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
 
         var buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
@@ -453,9 +453,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         var successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
         assertTrue(3 == successLogicStep);
 
-        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
-        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
-        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
 
         buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
                 .get(0)).getStagesMap();
@@ -532,7 +532,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
-        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIP, null, "test output");
         manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
 
         var buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
@@ -540,9 +540,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         var successLogicStep = ExecutableResponse.calculateSuccessStageInTaskMap(sparkExecutable, buildSteps);
         assertTrue(1.5 == successLogicStep);
 
-        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
-        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
-        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
 
         buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
                 .get(0)).getStagesMap();
@@ -618,7 +618,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
-        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIP, null, "test output");
         manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SUCCEED, null, "test output");
 
         var buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
@@ -626,9 +626,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         var successLogicStep = ExecutableResponse.calculateSuccessStage(sparkExecutable, segmentId, buildSteps, false);
         assertTrue(3 == successLogicStep);
 
-        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
-        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
-        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.SKIPPED, null, "test output", true);
+        manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
+        manager.updateStageStatus(logicStep2.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
+        manager.updateStageStatus(logicStep3.getId(), segmentId, ExecutableState.ERROR, null, "test output", true);
 
         buildSteps = ((ChainedStageExecutable) ((ChainedExecutable) manager.getJob(executable.getId())).getTasks()
                 .get(0)).getStagesMap().get(segmentId);
