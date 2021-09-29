@@ -169,7 +169,6 @@ public class SystemService extends BasicService {
         return uuid;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpLocalQueryDiagPackage(String queryId, String project) {
         return dumpLocalDiagPackage(null, null, null, queryId, project);
     }
