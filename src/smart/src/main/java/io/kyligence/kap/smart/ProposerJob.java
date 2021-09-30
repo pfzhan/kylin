@@ -87,6 +87,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProposerJob extends ExecutableApplication implements IKeep {
 
+    private static final String CONTEXT_CLASS = "contextClass";
+    private static final String CONTEXT_PARAMS = "contextParams";
+    private static final String CONTEXT_OUTPUT = "contextOutput";
+
     @VisibleForTesting
     public static AbstractContext proposeForAutoMode(KylinConfig config, String project, String[] sqls) {
         AbstractContext context = new SmartContext(config, project, sqls);
@@ -131,17 +135,18 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
                 props.setProperty(key, config.getMetadataUrl().toString());
             });
             Map<String, String> params = Maps.newHashMap();
-            params.put("contextClass", context.getClass().getName());
+
+            params.put(CONTEXT_CLASS, context.getClass().getName());
             String jobTmpDir = runner.prepareEnv(jobId);
 
             val contextParamsFile = jobTmpDir + "/context_params.json";
             ContextParams contextParams = new ContextParams(project, context.isCanCreateNewModel(), modelOptRule,
                     Lists.newArrayList(sqls), allModelNames, excludedTableSet, onlineModelIdSet);
             JsonUtil.writeValue(new File(contextParamsFile), contextParams);
-            params.put("contextParams", contextParamsFile);
+            params.put(CONTEXT_PARAMS, contextParamsFile);
 
             val contextOutputFile = jobTmpDir + "/context_output.json";
-            params.put("contextOutput", contextOutputFile);
+            params.put(CONTEXT_OUTPUT, contextOutputFile);
 
             // execute propose
             runner.start(new ProposerJob(), params);
@@ -170,8 +175,11 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
             try {
                 SimpleTimeLimiter.create(ForkJoinPool.commonPool())
                         .callWithTimeout(() -> uploadJobLog(project, jobId, jobContentZip), Duration.ofSeconds(10));
+            } catch (InterruptedException e) {
+                log.warn("Upload job Interrupted! The job id is: {}", jobId, e);
+                Thread.currentThread().interrupt();
             } catch (Exception exception) {
-                log.warn("Upload Job Evidence failed {}", jobId, exception);
+                log.warn("Upload Job Evidence failed! The job id is: {}", jobId, exception);
             } finally {
                 FileUtils.deleteQuietly(new File(jobContentZip));
             }
@@ -183,7 +191,7 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
     }
 
     private static void extractProjectResources(String project, List<String> resources) {
-        String projectPath = ResourceStore.PROJECT_ROOT + "/" + project + ".json";
+        String projectPath = ResourceStore.PROJECT_ROOT + File.separator + project + ".json";
         resources.add(projectPath);
     }
 
@@ -270,14 +278,14 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
 
     static final Option OPTION_META_DIR = OptionBuilder.getInstance().withArgName("meta").hasArg().isRequired(true)
             .withDescription("metadata input directory").create("meta");
-    static final Option OPTION_CONTEXT_PARAMS_FILE = OptionBuilder.getInstance().withArgName("contextParams").hasArg()
-            .isRequired(true).withDescription("context params file").create("contextParams");
+    static final Option OPTION_CONTEXT_PARAMS_FILE = OptionBuilder.getInstance().withArgName(CONTEXT_PARAMS).hasArg()
+            .isRequired(true).withDescription("context params file").create(CONTEXT_PARAMS);
     static final Option OPTION_META_OUTPUT_DIR = OptionBuilder.getInstance().withArgName("metaOutput").hasArg()
             .isRequired(true).withDescription("metadata output directory").create("metaOutput");
-    static final Option OPTION_CONTEXT_CLASS = OptionBuilder.getInstance().withArgName("contextClass").hasArg()
-            .isRequired(true).withDescription("context implement").create("contextClass");
-    static final Option OPTION_CONTEXT_OUTPUT_FILE = OptionBuilder.getInstance().withArgName("contextOutput").hasArg()
-            .isRequired(true).withDescription("context output file").create("contextOutput");
+    static final Option OPTION_CONTEXT_CLASS = OptionBuilder.getInstance().withArgName(CONTEXT_CLASS).hasArg()
+            .isRequired(true).withDescription("context implement").create(CONTEXT_CLASS);
+    static final Option OPTION_CONTEXT_OUTPUT_FILE = OptionBuilder.getInstance().withArgName(CONTEXT_OUTPUT).hasArg()
+            .isRequired(true).withDescription("context output file").create(CONTEXT_OUTPUT);
 
     protected final Options options;
 
