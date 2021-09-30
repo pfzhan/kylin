@@ -123,11 +123,6 @@ if ([[ ${DIAG_OPTS} != *"-project"* ]] && [[ ${DIAG_OPTS} != *"-job"* ]] && [[ $
     DIAG_OPTS="${DIAG_OPTS} -project ${project}"
 fi
 
-if ([[ ${DIAG_OPTS} != *"-project"* ]] && [[ ${DIAG_OPTS} != *"-query"* ]]); then
-    project="-all"
-    DIAG_OPTS="${DIAG_OPTS} -project ${project}"
-fi
-
 INCLUDE_AUDIT_LOG=`${KYLIN_HOME}/bin/get-properties.sh kylin.diag.include-auditlog`
 if [[ ${INCLUDE_AUDIT_LOG} == "false" ]]; then
     DIAG_OPTS="${DIAG_OPTS} -includeAuditLog false"
