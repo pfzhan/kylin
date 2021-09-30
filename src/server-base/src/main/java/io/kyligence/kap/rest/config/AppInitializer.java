@@ -130,6 +130,7 @@ public class AppInitializer {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             val epochStore = EpochStore.getEpochStore(kylinConfig);
             kylinConfig.setQueryHistoryUrl(kylinConfig.getQueryHistoryUrl().toString());
+            kylinConfig.setStreamingStatsUrl(kylinConfig.getStreamingStatsUrl().toString());
             if (kylinConfig.getMetadataStoreType().equals("hdfs")) {
                 kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
             }

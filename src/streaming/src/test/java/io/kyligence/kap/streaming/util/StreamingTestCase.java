@@ -183,7 +183,7 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
             }
         };
         val cache= (Cache<String, ISource>)ReflectionUtils.getField(SourceFactory.class, "sourceMap");
-        cache.cleanUp();
+        cache.invalidateAll();
         val source = (NSparkKafkaSource) SourceFactory.getSource(sourceAware);
         assert source.supportBuildSnapShotByPartition();
         return source;

@@ -63,6 +63,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import lombok.val;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.junit.After;
@@ -860,15 +861,21 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.tool.system-profile-extractor",
                         "io.kyligence.kap.tool.LightningSystemProfileExtractor",
                         "io.kyligence.kap.tool.LightningSystemProfileExtractor"));
-        map.put("isCharDisplaySizeEnabled", new PropertiesEntity("kylin.query.char-display-size-enabled", "true", true));
+        map.put("isCharDisplaySizeEnabled",
+                new PropertiesEntity("kylin.query.char-display-size-enabled", "true", true));
         map.put("isPrometheusMetricsEnabled", new PropertiesEntity("kylin.metrics.prometheus-enabled", "true", true));
-        map.put("isSetYarnQueueInTaskEnabled", new PropertiesEntity("kylin.engine-yarn.queue.in.task.enabled", "false", false));
-        map.put("getYarnQueueInTaskAvailable", new PropertiesEntity("kylin.engine-yarn.queue.in.task.available", "default", Lists.newArrayList("default")));
+        map.put("isSetYarnQueueInTaskEnabled",
+                new PropertiesEntity("kylin.engine-yarn.queue.in.task.enabled", "false", false));
+        map.put("getYarnQueueInTaskAvailable", new PropertiesEntity("kylin.engine-yarn.queue.in.task.available",
+                "default", Lists.newArrayList("default")));
         map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
         map.put("getAutoModelViewEnabled", new PropertiesEntity("kylin.query.auto-model-view-enabled", "false", false));
-        map.put("getCheckResourceTimeLimit", new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
-        map.put("getSourceNameCaseSensitiveEnabled", new PropertiesEntity("kylin.source.name-case-sensitive-enabled", "", false));
-        map.put("isSkipEncodeIntegerFamilyEnabled", new PropertiesEntity("kylin.query.skip-encode-integer-enabled", "", false));
+        map.put("getCheckResourceTimeLimit",
+                new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
+        map.put("getSourceNameCaseSensitiveEnabled",
+                new PropertiesEntity("kylin.source.name-case-sensitive-enabled", "", false));
+        map.put("isSkipEncodeIntegerFamilyEnabled",
+                new PropertiesEntity("kylin.query.skip-encode-integer-enabled", "", false));
     }
 
     @Before
@@ -885,11 +892,17 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
     public void testKylinBaseConfigMethodsCount() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Class<? extends KylinConfig> configClass = config.getClass();
+        Stream.of(configClass.getSuperclass().getDeclaredMethods()).forEach(method -> {
+            try {
+                method.invoke(config, null);
+            } catch (Exception e) {
+            }
+        });
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(534, methodsCount);
+        Assert.assertEquals(536, methodsCount);
     }
 
     @Test
@@ -1037,6 +1050,19 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         assertEquals(config.getRedisConnectionTimeout(), 2000);
         assertEquals(config.getRedisSoTimeout(), 2000);
         assertEquals(config.getRedisMaxAttempts(), 20);
+    }
+
+    @Test
+    public void testMetadataUrlSetting() {
+        val config = KylinConfig.getInstanceFromEnv();
+        Assert.assertEquals(config.getStreamingStatsUrl().toString(), config.getMetadataUrl().toString());
+        Assert.assertEquals(config.getQueryHistoryUrl().toString(), config.getMetadataUrl().toString());
+        val pgUrl = "ke_metadata@jdbc,driverClassName=org.postgresql.Driver,"
+                + "url=jdbc:postgresql://sandbox:5432/kylin,username=postgres,password";
+        config.setStreamingStatsUrl(pgUrl);
+        Assert.assertEquals(pgUrl, config.getStreamingStatsUrl().toString());
+        config.setQueryHistoryUrl(pgUrl);
+        Assert.assertEquals(pgUrl, config.getQueryHistoryUrl().toString());
     }
 
 }

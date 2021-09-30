@@ -2474,6 +2474,17 @@ public abstract class KylinConfigBase implements Serializable {
         return Math.max(1L, Long.parseLong(getOptional("kylin.task.jstack-dump-log-files-max-count", "20")));
     }
 
+    public StorageURL getStreamingStatsUrl() {
+        if (StringUtils.isEmpty(getOptional("kylin.streaming.stats.url"))) {
+            return getMetadataUrl();
+        }
+        return StorageURL.valueOf(getOptional("kylin.streaming.stats.url"));
+    }
+
+    public void setStreamingStatsUrl(String streamingStatsUrl) {
+        setProperty("kylin.streaming.stats.url", streamingStatsUrl);
+    }
+
     public StorageURL getQueryHistoryUrl() {
         if (StringUtils.isEmpty(getOptional("kylin.query.queryhistory.url"))) {
             return getMetadataUrl();

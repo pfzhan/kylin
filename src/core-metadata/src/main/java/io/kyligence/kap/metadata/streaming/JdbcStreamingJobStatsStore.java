@@ -24,30 +24,15 @@
 
 package io.kyligence.kap.metadata.streaming;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.logging.LogOutputStream;
-import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
-import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import lombok.var;
-import org.apache.ibatis.jdbc.ScriptRunner;
-import org.apache.ibatis.session.ExecutorType;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
-import org.mybatis.dynamic.sql.BasicColumn;
-import org.mybatis.dynamic.sql.SqlBuilder;
-import org.mybatis.dynamic.sql.delete.render.DeleteStatementProvider;
-import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
-import org.mybatis.dynamic.sql.render.RenderingStrategies;
-import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
+import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.isGreaterThan;
+import static org.mybatis.dynamic.sql.SqlBuilder.isGreaterThanOrEqualTo;
+import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
+import static org.mybatis.dynamic.sql.SqlBuilder.max;
+import static org.mybatis.dynamic.sql.SqlBuilder.min;
+import static org.mybatis.dynamic.sql.SqlBuilder.select;
+import static org.mybatis.dynamic.sql.SqlBuilder.sum;
 
-import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -63,14 +48,32 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import static org.mybatis.dynamic.sql.SqlBuilder.isEqualTo;
-import static org.mybatis.dynamic.sql.SqlBuilder.isGreaterThan;
-import static org.mybatis.dynamic.sql.SqlBuilder.isGreaterThanOrEqualTo;
-import static org.mybatis.dynamic.sql.SqlBuilder.isLessThan;
-import static org.mybatis.dynamic.sql.SqlBuilder.max;
-import static org.mybatis.dynamic.sql.SqlBuilder.min;
-import static org.mybatis.dynamic.sql.SqlBuilder.select;
-import static org.mybatis.dynamic.sql.SqlBuilder.sum;
+import javax.sql.DataSource;
+
+import org.apache.ibatis.jdbc.ScriptRunner;
+import org.apache.ibatis.session.ExecutorType;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
+import org.mybatis.dynamic.sql.BasicColumn;
+import org.mybatis.dynamic.sql.SqlBuilder;
+import org.mybatis.dynamic.sql.delete.render.DeleteStatementProvider;
+import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
+import org.mybatis.dynamic.sql.render.RenderingStrategies;
+import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.logging.LogOutputStream;
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.metadata.streaming.util.StreamingJobStatsStoreUtil;
+import lombok.Getter;
+import lombok.val;
+import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JdbcStreamingJobStatsStore {
@@ -89,7 +92,7 @@ public class JdbcStreamingJobStatsStore {
     String tableName;
 
     public JdbcStreamingJobStatsStore(KylinConfig config) throws Exception {
-        StorageURL url = config.getMetadataUrl();
+        StorageURL url = config.getStreamingStatsUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         dataSource = JdbcDataSource.getDataSource(props);
         tableName = StorageURL.replaceUrl(url) + "_" + StreamingJobStats.STREAMING_JOB_STATS_SUFFIX;

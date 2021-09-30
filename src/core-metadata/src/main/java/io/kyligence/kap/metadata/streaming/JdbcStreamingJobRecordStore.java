@@ -41,8 +41,6 @@ import java.util.Properties;
 
 import javax.sql.DataSource;
 
-import io.kyligence.kap.metadata.streaming.util.StreamingJobRecordStoreUtil;
-import lombok.val;
 import org.apache.ibatis.jdbc.ScriptRunner;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -53,15 +51,17 @@ import org.mybatis.dynamic.sql.SqlBuilder;
 import org.mybatis.dynamic.sql.delete.render.DeleteStatementProvider;
 import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.render.RenderingStrategies;
+import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 
 import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.common.logging.LogOutputStream;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import io.kyligence.kap.metadata.streaming.util.StreamingJobRecordStoreUtil;
 import lombok.Getter;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 
 @Slf4j
 public class JdbcStreamingJobRecordStore {
@@ -78,7 +78,7 @@ public class JdbcStreamingJobRecordStore {
     String tableName;
 
     public JdbcStreamingJobRecordStore(KylinConfig config) throws Exception {
-        StorageURL url = config.getMetadataUrl();
+        StorageURL url = config.getStreamingStatsUrl();
         Properties props = JdbcUtil.datasourceParameters(url);
         dataSource = JdbcDataSource.getDataSource(props);
         tableName = StorageURL.replaceUrl(url) + "_" + StreamingJobRecord.STREAMING_JOB_RECORD_SUFFIX;
