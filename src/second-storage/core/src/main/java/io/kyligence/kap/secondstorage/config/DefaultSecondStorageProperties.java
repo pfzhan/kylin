@@ -32,9 +32,6 @@ import java.util.Properties;
 public class DefaultSecondStorageProperties implements SecondStorageProperties {
     private Properties properties = new Properties();
 
-    public DefaultSecondStorageProperties() {
-    }
-
     public DefaultSecondStorageProperties(Properties param) {
         properties.putAll(param);
     }
@@ -69,8 +66,6 @@ public class DefaultSecondStorageProperties implements SecondStorageProperties {
         if (key == null) {
             throw new NullPointerException("Key must not be null.");
         }
-        synchronized (this.properties) {
-            return Optional.ofNullable(this.properties.get(key));
-        }
+        return Optional.ofNullable(this.properties.get(key));
     }
 }

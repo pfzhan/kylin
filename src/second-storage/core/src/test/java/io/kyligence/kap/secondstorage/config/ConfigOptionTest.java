@@ -21,37 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.secondstorage.util;
+package io.kyligence.kap.secondstorage.config;
 
-import org.apache.kylin.metadata.model.SegmentRange;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import java.sql.Date;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
-public class SecondStorageDateUtils {
+public class ConfigOptionTest {
 
-    /**
-     * @param start Include
-     * @param end   exclude
-     * @return
-     */
-    public static List<String> splitByDayStr(long start, long end) {
-        return splitByDay(start, end).stream().map(Objects::toString).collect(Collectors.toList());
-    }
+    @Test
+    public void test01() {
+        ConfigOption configOption1 = new ConfigOption<>("k1", "", String.class);
+        ConfigOption configOption2 = new ConfigOption<>("k1", "", String.class);
 
-    public static List<Date> splitByDay(SegmentRange<Long> range) {
-        return splitByDay(range.getStart(), range.getEnd());
-    }
+        Assertions.assertTrue(configOption1.equals(configOption1));
+        Assertions.assertTrue(configOption1.equals(configOption2));
+        Assertions.assertTrue(!configOption1.equals(""));
 
-    public static List<Date> splitByDay(long start, long end) {
-        List<Date> partitions = new ArrayList<>();
-        while (start < end) {
-            partitions.add(new Date(start));
-            start = start + 24 * 60 * 60 * 1000;
-        }
-        return partitions;
+        Assertions.assertTrue(configOption1.hasDefaultValue());
+
+        Map<ConfigOption, String> map = new HashMap<>();
+        map.put(configOption1, configOption1.toString());
     }
 }

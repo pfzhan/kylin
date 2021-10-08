@@ -21,37 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.secondstorage.util;
+package io.kyligence.kap.secondstorage.response;
 
-import org.apache.kylin.metadata.model.SegmentRange;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import java.sql.Date;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-public class SecondStorageDateUtils {
+public class TableSyncResponseTest {
 
-    /**
-     * @param start Include
-     * @param end   exclude
-     * @return
-     */
-    public static List<String> splitByDayStr(long start, long end) {
-        return splitByDay(start, end).stream().map(Objects::toString).collect(Collectors.toList());
-    }
+    @Test
+    public void test01() {
+        String project = "jjg_test_01";
+        TableSyncResponse response = new TableSyncResponse(project);
 
-    public static List<Date> splitByDay(SegmentRange<Long> range) {
-        return splitByDay(range.getStart(), range.getEnd());
-    }
+        response.setProject(project);
+        response.setDatabase("");
+        response.setTables(new ArrayList<>());
+        response.setNodes(new ArrayList<>());
 
-    public static List<Date> splitByDay(long start, long end) {
-        List<Date> partitions = new ArrayList<>();
-        while (start < end) {
-            partitions.add(new Date(start));
-            start = start + 24 * 60 * 60 * 1000;
-        }
-        return partitions;
+        response.getDatabase();
+        response.getNodes();
+        response.getTables();
+        Assertions.assertEquals(project, response.getProject());
     }
 }

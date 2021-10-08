@@ -36,16 +36,18 @@ import io.kyligence.kap.secondstorage.config.ConfigOption;
 import io.kyligence.kap.secondstorage.config.DefaultSecondStorageProperties;
 import io.kyligence.kap.secondstorage.config.SecondStorageModelSegment;
 import io.kyligence.kap.secondstorage.config.SecondStorageProjectModelSegment;
+import io.kyligence.kap.secondstorage.config.SecondStorageProperties;
 import io.kyligence.kap.secondstorage.config.SecondStorageSegment;
 import io.kyligence.kap.secondstorage.ddl.ExistsDatabase;
 import io.kyligence.kap.secondstorage.ddl.ExistsTable;
 import io.kyligence.kap.secondstorage.ddl.ShowCreateDatabase;
 import io.kyligence.kap.secondstorage.ddl.ShowCreateTable;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
-import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
+import io.kyligence.kap.secondstorage.metadata.SegmentFileStatus;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
+import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SizeInNodeResponse;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
 import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
@@ -68,7 +70,7 @@ import java.util.stream.Collectors;
 public class ClickHouseMetadataOperator implements MetadataOperator {
     private static final Logger logger = LoggerFactory.getLogger(ClickHouseMetadataOperator.class);
 
-    private final DefaultSecondStorageProperties properties;
+    private final SecondStorageProperties properties;
 
     public ClickHouseMetadataOperator(DefaultSecondStorageProperties properties) {
         this.properties = new DefaultSecondStorageProperties(properties.getProperties());
@@ -79,18 +81,14 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         String project = properties.get(new ConfigOption<>(SecondStorageConstants.PROJECT, String.class));
 
         SecondStorageUtil.checkSecondStorageData(project);
-
         KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-        Manager<NodeGroup> nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, project).get();
-        List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
+        List<NodeGroup> nodeGroups = SecondStorageUtil.listNodeGroup(config, project);
         Set<String> nodes = nodeGroups.stream()
                 .flatMap(x -> x.getNodeNames().stream())
                 .collect(Collectors.toSet());
 
-        Manager<TableFlow> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project).get();
-
-        List<TableFlow> tableFlows = tableFlowManager.listAll();
+        List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
         tableFlows = tableFlows.stream()
                 .filter(x -> x.getTableDataList() != null && x.getTableDataList().size() > 0)
                 .collect(Collectors.toList());
@@ -155,11 +153,9 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         Map<String, SecondStorageModelSegment> modelSegmentMap = projectModelSegment.getModelSegmentMap();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         SecondStorageUtil.checkSecondStorageData(project);
-        Manager<TableFlow> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project).get();
-        List<TableFlow> tableFlows = tableFlowManager.listAll();
+        List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
 
-        Manager<NodeGroup> nodeGroupManager = SecondStorageUtil.nodeGroupManager(config, project).get();
-        List<NodeGroup> nodeGroups = nodeGroupManager.listAll();
+        List<NodeGroup> nodeGroups = SecondStorageUtil.listNodeGroup(config, project);
         Set<String> nodes = nodeGroups.stream()
                 .flatMap(x -> x.getNodeNames().stream())
                 .collect(Collectors.toSet());
@@ -170,30 +166,48 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
             tableFlows.stream().forEach(tableFlow -> {
                 tableFlow.update(copied -> {
                     copied.getTableDataList().stream().forEach(tableData -> {
-                        tableData.getPartitions().stream().forEach(tablePartition -> {
+                        List<TablePartition> tablePartitions = tableData.getPartitions();
+                        for (TablePartition tablePartition : tablePartitions) {
                             SecondStorageSegment secondStorageSegment = modelSegmentMap.get(tableFlow.getUuid()).getSegmentMap().get(tablePartition.getSegmentId());
                             Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(),
                                     SecondStorageDateUtils.splitByDayStr(secondStorageSegment.getStart(), secondStorageSegment.getEnd())
                                             .stream().map(Objects::toString).collect(Collectors.toList()));
 
                             Set<String> existShardNodes = new HashSet<>(tablePartition.getShardNodes());
-
                             List<String> addShardNodes = nodes.stream()
                                     .filter(node -> !existShardNodes.contains(node))
                                     .collect(Collectors.toList());
+
                             tablePartition.getSizeInNode().entrySet().stream().forEach(
                                     e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
                             );
-                            for(String node : addShardNodes) {
-                                tablePartition.getShardNodes().add(node);
-                                if (!tablePartition.getSizeInNode().containsKey(node)) {
-                                    tablePartition.getSizeInNode().put(node, sizeInNodeMap.getOrDefault(node, 0L));
-                                }
-                                if (!tablePartition.getNodeFileMap().containsKey(node)) {
-                                    tablePartition.getNodeFileMap().put(node, new ArrayList<>());
-                                }
+
+                            List<String> shardNodes = new ArrayList<>(tablePartition.getShardNodes());
+                            shardNodes.addAll(addShardNodes);
+
+                            Map<String, Long> sizeInNode = new HashMap<>();
+                            sizeInNode.putAll(tablePartition.getSizeInNode());
+
+                            sizeInNode.entrySet().stream().forEach(
+                                    e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
+                            );
+
+                            Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>();
+                            nodeFileMap.putAll(tablePartition.getNodeFileMap());
+
+                            for (String node : addShardNodes) {
+                                sizeInNode.put(node, sizeInNodeMap.getOrDefault(node, 0L));
+                                nodeFileMap.put(node, new ArrayList<>());
                             }
-                        });
+
+                            TablePartition.Builder builder = new TablePartition.Builder();
+                            builder.setId(tablePartition.getId())
+                                    .setSegmentId(tablePartition.getSegmentId())
+                                    .setShardNodes(shardNodes)
+                                    .setSizeInNode(sizeInNode)
+                                    .setNodeFileMap(nodeFileMap);
+                            tableData.addPartition(builder.build());
+                        }
                     });
                 });
             });

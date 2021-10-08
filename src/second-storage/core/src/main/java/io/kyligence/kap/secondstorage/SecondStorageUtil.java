@@ -309,6 +309,15 @@ public class SecondStorageUtil {
         return isGlobalEnable() ? Optional.of(SecondStorage.tableFlowManager(config, project)) : Optional.empty();
     }
 
+    public static List<TableFlow> listTableFlow(KylinConfig config, String project) {
+        Optional<Manager<TableFlow>> optional = tableFlowManager(config, project);
+        if(optional.isPresent()) {
+            Manager<TableFlow> tableFlowManager = optional.get();
+            return tableFlowManager.listAll();
+        }
+        return Collections.emptyList();
+    }
+
     public static Optional<Manager<TableFlow>> tableFlowManager(NDataflow dataflow) {
         return isGlobalEnable() ? tableFlowManager(dataflow.getConfig(), dataflow.getProject()) : Optional.empty();
     }
@@ -320,4 +329,14 @@ public class SecondStorageUtil {
     public static Optional<Manager<NodeGroup>> nodeGroupManager(KylinConfig config, String project) {
         return isGlobalEnable() ? Optional.of(SecondStorage.nodeGroupManager(config, project)) : Optional.empty();
     }
+
+    public static List<NodeGroup> listNodeGroup(KylinConfig config, String project) {
+        Optional<Manager<NodeGroup>> optional = nodeGroupManager(config, project);
+        if(optional.isPresent()) {
+            Manager<NodeGroup> nodeGroupManager = optional.get();
+            return nodeGroupManager.listAll();
+        }
+        return Collections.emptyList();
+    }
+
 }

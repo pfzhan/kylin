@@ -25,11 +25,7 @@ package io.kyligence.kap.secondstorage.util;
 
 import io.kyligence.kap.secondstorage.config.SecondStorageProjectModelSegment;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ConvertUtils {
     public static <T> T convertValue(Object rawValue, Class<?> clazz) {
@@ -54,24 +50,6 @@ public class ConvertUtils {
     static String convertToString(Object o) {
         if (o.getClass() == String.class) {
             return (String) o;
-        } else if (o instanceof List) {
-            return ((List<?>) o)
-                    .stream()
-                    .map(e -> escapeWithSingleQuote(convertToString(e), ";"))
-                    .collect(Collectors.joining(";"));
-        } else if (o instanceof Map) {
-            return ((Map<?, ?>) o)
-                    .entrySet().stream()
-                    .map(
-                            e -> {
-                                String escapedKey =
-                                        escapeWithSingleQuote(e.getKey().toString(), ":");
-                                String escapedValue =
-                                        escapeWithSingleQuote(e.getValue().toString(), ":");
-                                return escapeWithSingleQuote(
-                                        escapedKey + ":" + escapedValue, ",");
-                            })
-                    .collect(Collectors.joining(","));
         }
         return o.toString();
     }
@@ -148,18 +126,5 @@ public class ConvertUtils {
         }
 
         return Double.parseDouble(o.toString());
-    }
-
-    static String escapeWithSingleQuote(String string, String... charsToEscape) {
-        boolean escape =
-                Arrays.stream(charsToEscape).anyMatch(string::contains)
-                        || string.contains("\"")
-                        || string.contains("'");
-
-        if (escape) {
-            return "'" + string.replaceAll("'", "''") + "'";
-        }
-
-        return string;
     }
 }

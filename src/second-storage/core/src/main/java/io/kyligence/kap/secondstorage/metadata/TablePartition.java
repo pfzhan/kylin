@@ -62,8 +62,7 @@ public class TablePartition implements Serializable, IKeep {
     }
 
     public List<String> getShardNodes() {
-        return shardNodes;
-        //return Collections.unmodifiableList(shardNodes);
+        return Collections.unmodifiableList(shardNodes);
     }
 
     public static final class Builder {

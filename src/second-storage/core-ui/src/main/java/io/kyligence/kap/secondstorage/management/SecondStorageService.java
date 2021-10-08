@@ -416,8 +416,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     public void sizeInNode(String project) {
         SecondStorageUtil.checkSecondStorageData(project);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        Manager<TableFlow> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project).get();
-        List<TableFlow> tableFlows = tableFlowManager.listAll();
+        List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
 
         NDataflowManager dataflowManager = getDataflowManager(project);
         SecondStorageProjectModelSegment projectModelSegment = new SecondStorageProjectModelSegment();
