@@ -63,13 +63,13 @@ do
     if [ ! -f "build/postgresql/$file_name" ]
     then
         echo "No binary file found "
-        wget --directory-prefix=build/postgresql/ $url || { echo "Download $file_name failed." && exit 1; }
+        wget --no-check-certificate --directory-prefix=build/postgresql/ $url || { echo "Download $file_name failed." && exit 1; }
     else
         if [ `calMd5 build/postgresql/$file_name | awk '{print $1}'` != "${pg_file_md5[$i]}" ]
         then
             echo "md5 check failed"
             rm build/$file_name
-            wget --directory-prefix=build/postgresql/ $url || { echo "Download $file_name failed." && exit 1; }
+            wget --no-check-certificate --directory-prefix=build/postgresql/ $url || { echo "Download $file_name failed." && exit 1; }
         fi
     fi
 done
