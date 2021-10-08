@@ -244,7 +244,7 @@
         show-overflow-tooltip
         width="110">
       </el-table-column>
-      <el-table-column
+      <!-- <el-table-column
         v-if="this.$store.state.config.platform !== 'iframe'"
         :label="$t('kylinLang.common.action')"
         width='70'>
@@ -253,7 +253,7 @@
             <i class="el-icon-ksd-ostin_diagnose ksd-fs-14 ksd-ml-4" @click.stop="openQueryDialog(scope.row)"></i>
           </common-tip>
         </template>
-      </el-table-column>
+      </el-table-column> -->
     </el-table>
     <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
     <diagnostic
