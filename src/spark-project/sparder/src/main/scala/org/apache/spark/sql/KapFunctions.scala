@@ -150,7 +150,7 @@ object KapFunctions {
   }
 
   case class TRUNCATE(child: Expression, scale: Expression)
-    extends RoundBase(child, scale, BigDecimal.RoundingMode.DOWN, "DOWN")
+    extends RoundBase(child, scale, BigDecimal.RoundingMode.DOWN, "ROUND_DOWN")
       with Serializable with ImplicitCastInputTypes {
     def this(child: Expression) = this(child, Literal(0))
   }

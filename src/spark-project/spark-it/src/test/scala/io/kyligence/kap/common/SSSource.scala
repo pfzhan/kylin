@@ -40,7 +40,7 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
 
   override def beforeAll() {
     super.beforeAll()
-    val project = "default"
+    val project = getProject
     import io.kyligence.kap.metadata.project.NProjectManager
     val kylinConf = KylinConfig.getInstanceFromEnv
     val projectInstance =
@@ -69,6 +69,8 @@ trait SSSource extends SharedSparkSession with LocalMetadata {
         }
       }
   }
+
+  protected def getProject: String = "default"
 
   def cleanSql(originSql: String): String = {
     val sqlForSpark = originSql

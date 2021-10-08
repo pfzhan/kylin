@@ -114,6 +114,13 @@
             <artifactId>curator-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- utils -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
