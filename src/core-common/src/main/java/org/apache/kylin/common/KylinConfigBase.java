@@ -2971,7 +2971,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean auditLogGroupByProjectReload() {
-        return Boolean.parseBoolean(getOptional("kylin.auditlog.replay-groupby-project-reload-enable", TRUE));
+        return Boolean.parseBoolean(getOptional("kylin.auditlog.replay-groupby-project-reload-enable", FALSE));
     }
 
     public boolean isNeedReplayConsecutiveLog() {
