@@ -337,8 +337,8 @@
                   <div class="sub-tasks" v-if="'sub_stages' in step && step.sub_stages && step.sub_stages.length > 0">
                     <ul v-for="sub in step.sub_stages" :key="sub.id">
                       <li>
-                        <el-tooltip placement="bottom" :content="getStepStatusTips(sub.step_status)">
-                          <span :class="[step.step_status === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+                        <el-tooltip placement="bottom" :content="getStepStatusTips(step.step_status === 'STOPPED' && sub.step_status !== 'SKIP' ? 'STOPPED' : sub.step_status)">
+                          <span :class="[step.step_status === 'STOPPED' && sub.step_status !== 'FINISHED' && sub.step_status !== 'SKIP' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
                         </el-tooltip>
                         <span class="sub-tasks-name">{{getSubTasksName(sub.name)}}</span>
                         <span class="sub-tasks-layouts" v-if="sub.name === 'Build indexes by layer'"><span class="success-layout-count">{{sub.success_index_count}}</span>{{`/${sub.index_count}`}}</span>
@@ -581,9 +581,9 @@ export default class JobsList extends Vue {
     const segmentTasks = Object.values(segment_sub_stages)
     switch (type) {
       case 'FINISHED':
-        return segmentTasks.filter(it => it.stage.length === it.stage.filter(item => item.step_status === 'FINISHED').length).length
+        return segmentTasks.filter(it => it.stage.length === it.stage.filter(item => item.step_status === 'FINISHED' || item.step_status === 'SKIP').length).length
       case 'PENDING':
-        return segmentTasks.filter(it => it.stage.length === it.stage.filter(item => item.step_status === 'PENDING').length).length
+        return segmentTasks.filter(it => it.stage.length === it.stage.filter(item => item.step_status === 'PENDING' || item.step_status === 'SKIP').length).length
       case 'RUNNING':
         return segmentTasks.filter(it => it.stage.filter(item => item.step_status === 'RUNNING').length > 0).length
       default:

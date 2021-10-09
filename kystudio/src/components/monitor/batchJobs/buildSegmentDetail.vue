@@ -45,8 +45,8 @@
         <ul class="sub-tasks" v-for="sub in item.stage" :key="sub.id">
           <li>
             <!-- 当 job 主步骤为暂停状态时，所有的未完成的子步骤都变更为 STOP 状态 -->
-            <el-tooltip placement="bottom" :content="getStepStatusTips(sub.step_status)">
-              <span :class="[jobStatus === 'STOPPED' && sub.step_status !== 'FINISHED' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
+            <el-tooltip placement="bottom" :content="getStepStatusTips(jobStatus === 'STOPPED' && sub.step_status !== 'SKIP' ? 'STOPPED' : sub.step_status)">
+              <span :class="[jobStatus === 'STOPPED' && sub.step_status !== 'FINISHED' && sub.step_status !== 'SKIP' ? 'sub-tasks-status is-stop' : getSubTaskStatus(sub)]"></span>
             </el-tooltip>
             <span class="sub-tasks-name">{{getTaskName(sub.name)}}</span>
             <span class="sub-tasks-layouts" v-if="sub.name === 'Build indexes by layer'"><span class="success-layout-count">{{sub.success_index_count}}</span>{{`/${sub.index_count}`}}</span>
@@ -108,10 +108,10 @@ export default class BuildSegmentDetail extends Vue {
     stage.filter(item => item.step_status === 'RUNNING').length > 0 && (status = 'RUNNING')
     stage.filter(item => item.step_status === 'STOPPED').length > 0 && (status = 'STOPPED')
     stage.filter(item => item.step_status === 'ERROR').length > 0 && (status = 'ERROR')
-    stage.filter(item => item.step_status === 'FINISHED').length === stage.length && (status = 'FINISHED')
-    stage.filter(item => item.step_status === 'PENDING').length === stage.length && (status = 'PENDING')
-    stage.filter(item => item.step_status === 'ERROR_STOP').length === stage.length && (status = 'ERROR_STOP')
-    stage.filter(item => item.step_status === 'DISCARDED').length === stage.length && (status = 'DISCARDED')
+    stage.filter(item => item.step_status === 'FINISHED').length === stage.filter(item => item.step_status !== 'SKIP').length && (status = 'FINISHED')
+    stage.filter(item => item.step_status === 'PENDING').length === stage.filter(item => item.step_status !== 'SKIP').length && (status = 'PENDING')
+    stage.filter(item => item.step_status === 'ERROR_STOP').length === stage.filter(item => item.step_status !== 'SKIP').length && (status = 'ERROR_STOP')
+    stage.filter(item => item.step_status === 'DISCARDED').length === stage.filter(item => item.step_status !== 'SKIP').length && (status = 'DISCARDED')
 
     return status
   }
@@ -235,6 +235,12 @@ export default class BuildSegmentDetail extends Vue {
     .list-details {
       padding-left: 15px;
       color: @text-disabled-color;
+    }
+    .icons {
+      transform: scale(0.6);
+      margin-left: -2px;
+      margin-right: 3px;
+      color: #A5B2C5;
     }
   }
   .duration-details {

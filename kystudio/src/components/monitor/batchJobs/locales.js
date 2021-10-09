@@ -104,7 +104,7 @@ export default {
     buildSnapshot: 'Build Snapshot',
     filteredTotalSize: '{totalSize} result(s)',
     secondaryStorage: 'Tiered Storage',
-    exportSecondaryStorage: 'Upload Data to Tiered Storage',
+    exportSecondaryStorage: 'Load Data to Tiered Storage',
     mergeSecondaryStorage: 'Merge Data to Tiered Storage',
     refreshSecondaryStorage: 'Refresh Tiered Storage',
     delSecondaryStorage: 'Delete Tiered Storage',
