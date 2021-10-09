@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,15 +47,6 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.util.Random;
 
-<<<<<<< HEAD:src/core-common/src/main/java/org/apache/kylin/common/util/CheckUtil.java
-=======
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-
-import org.apache.kylin.common.KylinConfig;
->>>>>>> revert KE-30046 add transactional table and ut (#25227):src/source-hive/src/main/java/org/apache/kylin/source/hive/HiveCmdBuilder.java
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,23 +81,12 @@ public class CheckUtil {
         ServerSocket ss = null;
         DatagramSocket ds = null;
         try {
-            tmpBeelineHqlPath = "/tmp/" + UUID.randomUUID().toString() + ".hql";
-            for (String statement : statements) {
-                beelineHql.append(statement.replaceAll("`", "\\\\`"));
-                beelineHql.append("\n");
-            }
-            String createFileCmd = String.format(Locale.ROOT, CREATE_HQL_TMP_FILE_TEMPLATE, tmpBeelineHqlPath,
-                    beelineHql);
-            buf.append(createFileCmd);
-            buf.append("\n");
-            buf.append("beeline");
-            buf.append(" ");
-            buf.append(beelineParams);
-            buf.append(" -f ");
-            buf.append(tmpBeelineHqlPath);
-            buf.append(";ret_code=$?;rm -f ");
-            buf.append(tmpBeelineHqlPath);
-            buf.append(";exit $ret_code");
+            ss = new ServerSocket(port);
+            ss.setReuseAddress(true);
+            ds = new DatagramSocket(port);
+            ds.setReuseAddress(true);
+            return true;
+        } catch (IOException e) {
         } finally {
             if (ds != null) {
                 ds.close();
