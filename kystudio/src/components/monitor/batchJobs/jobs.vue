@@ -397,7 +397,7 @@
       :close-on-click-modal="false">
       <job_dialog :stepDetail="outputDetail" :stepId="stepId" :jobId="selectedJob.id" :targetProject="selectedJob.project"></job_dialog>
       <span slot="footer" class="dialog-footer">
-        <el-button type="primary" size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.IKnow')}}</el-button>
+        <!-- <el-button type="primary" size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.IKnow')}}</el-button> -->
       </span>
     </el-dialog>
     <diagnostic v-if="showDiagnostic" @close="showDiagnostic = false" :jobId="diagnosticId"/>
@@ -411,7 +411,7 @@
       <span slot="title">{{$t('segmentDetail')}}</span>
       <build-segment-detail :segmentTesks="segmentDetails" :jobStatus="currentJobStatus" />
       <span slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="closeSegmentDetail">{{$t('kylinLang.common.IKnow')}}</el-button>
+        <!-- <el-button type="primary" @click="closeSegmentDetail">{{$t('kylinLang.common.IKnow')}}</el-button> -->
       </span>
     </el-dialog>
     <job-error-detail v-if="showErrorDetails" @close="showErrorDetails = false" :currentErrorJob="currentErrorJob"/>
@@ -663,7 +663,8 @@ export default class JobsList extends Vue {
           </el-table-column>
         </el-table>,
         title: this.$t('jobParams'),
-        confirmButtonText: this.$t('kylinLang.common.IKnow'),
+        showConfirmButton: false,
+        // confirmButtonText: this.$t('kylinLang.common.IKnow'),
         dangerouslyUseHTMLString: true,
         closeOnClickModal: false,
         closeOnPressEscape: false
