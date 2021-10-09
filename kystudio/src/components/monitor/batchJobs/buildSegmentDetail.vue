@@ -166,7 +166,7 @@ export default class BuildSegmentDetail extends Vue {
     .running-step {
       color: @text-disabled-color;
       display: inline-block;
-      max-width: 80px;
+      max-width: 75px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

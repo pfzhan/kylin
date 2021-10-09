@@ -286,7 +286,7 @@
                     </common-tip>
                     <common-tip :content="$t('sparkJobTip')" v-if="step.info">
                       <a :href="step.info.yarn_application_tracking_url" target="_blank" v-if="!$store.state.config.platform || ($store.state.config.platform === 'iframe' && step.step_status === 'RUNNING')">
-                          <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-ksd-icon-export_16"></i>
+                          <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-ksd-icon-export_16 ksd-fs-16 ksd-mr-4 ksd-mb-4"></i>
                       </a>
                     </common-tip>
                   </p>
@@ -650,8 +650,8 @@ export default class JobsList extends Vue {
       const data = Object.keys(jobParams).map(item => ({key: item, value: jobParams[item]}))
       this.$msgbox({
         width: '600px',
-        message: <el-table data={data} ref="jobParamRef" class="job-param-table" height="300">
-          <el-table-column label={this.$t('paramKey')}>
+        message: <el-table data={data} ref="jobParamRef" style="width: 100%" key={step.id} class="job-param-table" height="300">
+          <el-table-column width="300" label={this.$t('paramKey')}>
             {
               scope => <div class="params-item" title={scope.row.key}><span class="params-value">{scope.row.key}</span></div>
             }
