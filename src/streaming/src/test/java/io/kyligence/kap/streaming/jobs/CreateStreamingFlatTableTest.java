@@ -82,9 +82,6 @@ public class CreateStreamingFlatTableTest extends StreamingTestCase {
 
         val ds = steamingFlatTable.generateStreamingDataset(config);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
-        Assert.assertEquals(4, steamingFlatTable.lookupTablesGlobal().size());
-        Assert.assertEquals(-1, steamingFlatTable.tableRefreshInterval());
-        Assert.assertFalse(steamingFlatTable.shouldRefreshTable());
         Assert.assertEquals(DATAFLOW_ID, steamingFlatTable.model().getId());
         Assert.assertNotNull(ds);
         Assert.assertEquals(60, ds.encoder().schema().size());

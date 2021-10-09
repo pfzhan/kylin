@@ -113,8 +113,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val builder = startRealtimeBuildStreaming(streamFlatTable, timeColumn, query, baseCheckpointLocation)
     addShutdownListener(gracefulStop, prj, StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
 
-    startTableRefreshThread(streamFlatTable)
-
     while (!ss.sparkContext.isStopped) {
       if (gracefulStop.get()) {
         ss.streams.active.foreach(_.stop())
@@ -146,9 +144,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
         val microBatchEntry = new MicroBatchEntry(batchDF, batchId, timeColumn, streamFlatTable,
           dataflow, nSpanningTree, builder, null)
         processMicroBatch(microBatchEntry, minMaxBuffer)
-        refreshTable(streamFlatTable)
       }
-      .queryName("StreamingEntry")
       .trigger(trigger)
       .start()
     builder
@@ -214,32 +210,6 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     val layouts = StreamingUtils.getToBuildLayouts(dataflow)
     Preconditions.checkState(CollectionUtils.isNotEmpty(layouts), "layouts is empty", layouts)
     NSpanningTreeFactory.fromLayouts(layouts, dataflowId)
-  }
-
-  def startTableRefreshThread(streamFlatTable: CreateStreamingFlatTable): Unit = {
-    if (streamFlatTable.shouldRefreshTable) {
-      val tableRefreshThread = new Thread() {
-        override def run(): Unit = {
-          while (!gracefulStop.get() && !ss.sparkContext.isStopped) {
-            tableRefreshAcc.getAndAdd(1)
-            StreamingUtils.sleep(rateTriggerDuration)
-          }
-        }
-      }
-      tableRefreshThread.setDaemon(true)
-      tableRefreshThread.start()
-    }
-  }
-
-  def refreshTable(streamFlatTable: CreateStreamingFlatTable): Unit = {
-    if (streamFlatTable.shouldRefreshTable && tableRefreshAcc.get > streamFlatTable.tableRefreshInterval) {
-      log.info("refresh dimension tables.")
-      streamFlatTable.lookupTablesGlobal.foreach { case (_, df) =>
-        df.unpersist(true)
-      }
-      streamFlatTable.loadLookupTables()
-      tableRefreshAcc.set(0)
-    }
   }
 
   def registerStreamListener(ss: SparkSession, config: KylinConfig, jobId: String, projectId: String, windowSize: Int,

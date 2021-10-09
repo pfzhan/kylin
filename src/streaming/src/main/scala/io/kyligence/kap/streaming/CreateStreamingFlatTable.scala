@@ -27,7 +27,6 @@ import io.kyligence.kap.engine.spark.builder.{CreateFlatTable, NBuildSourceInfo}
 import io.kyligence.kap.engine.spark.job.{FlatTableHelper, NSparkCubingUtil}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
-import io.kyligence.kap.metadata.cube.utils.StreamingUtils
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
@@ -40,7 +39,6 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.storage.StorageLevel
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 
 class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
                                seg: NDataSegment,
@@ -54,9 +52,6 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
 
   private val MAX_OFFSETS_PER_TRIGGER = "maxOffsetsPerTrigger"
   private val STARTING_OFFSETS = "startingOffsets"
-  var lookupTablesGlobal: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = null
-  var factTableDataset: Dataset[Row] = null
-  var tableRefreshInterval = -1L
 
   def generateStreamingDataset(config: KylinConfig): Dataset[Row] = {
     val model = flatTable.getDataModel
@@ -90,7 +85,7 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
       CreateStreamingFlatTable.castDF(originFactTable, schema).alias(model.getRootFactTable.getAlias),
       model.getRootFactTable.getAlias)
 
-    factTableDataset =
+    val factTable =
       if (!StringUtils.isEmpty(watermark)) {
         import org.apache.spark.sql.functions._
         val cols = model.getRootFactTable.getColumns.asScala.map(item => {
@@ -100,22 +95,15 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
       } else {
         rootFactTable
       }
-    tableRefreshInterval = StreamingUtils.parseTableRefreshInterval(config.getStreamingTableRefreshInterval())
-    loadLookupTables()
-    joinFactTableWithLookupTables(factTableDataset, lookupTablesGlobal, model, ss)
-  }
 
-  def loadLookupTables(): Unit = {
-    val ccCols = model().getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
-    val cleanLookupCC = cleanComputColumn(ccCols.toSeq, factTableDataset.columns.toSet)
-    lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
+    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
+    val cleanLookupCC = cleanComputColumn(ccCols.toSeq, factTable.columns.toSet)
+    val lookupTablesGlobal = generateLookupTableDataset(model, cleanLookupCC, ss)
     lookupTablesGlobal.foreach { case (_, df) =>
       df.persist(StorageLevel.MEMORY_AND_DISK)
     }
-  }
 
-  def shouldRefreshTable(): Boolean = {
-    tableRefreshInterval > 0
+    joinFactTableWithLookupTables(factTable, lookupTablesGlobal, model, ss)
   }
 
   def model(): NDataModel = {
