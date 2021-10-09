@@ -599,7 +599,7 @@ public class JobService extends BasicService {
                 }
             }
         }
-        segmentSubStages.setDuration(segmentDuration);
+        segmentSubStages.setDuration(segmentDuration - pauseTime);
 
         final Segments<NDataSegment> segmentsByRange = modelService.getSegmentsByRange(targetSubject, project, "", "");
         final NDataSegment segment = segmentsByRange.stream()//
@@ -636,13 +636,19 @@ public class JobService extends BasicService {
             /*
              * As long as there is a task executing, the step of this step is executing;
              * when all Segments are completed, the status of this step is changed to complete.
+             * 
+             * if one segment is skip, other segment is success, the status of this step is success
              */
             Set<JobStatusEnum> jobStatusEnums = Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,
                     JobStatusEnum.DISCARDED);
+            Set<JobStatusEnum> jobFinishOrSkip = Sets.newHashSet(JobStatusEnum.FINISHED, JobStatusEnum.SKIP);
             if (oldResponse.getStatus() != newResponse.getStatus()
                     && !jobStatusEnums.contains(oldResponse.getStatus())) {
                 if (jobStatusEnums.contains(newResponse.getStatus())) {
                     oldResponse.setStatus(newResponse.getStatus());
+                } else if (jobFinishOrSkip.contains(newResponse.getStatus())
+                        && jobFinishOrSkip.contains(oldResponse.getStatus())) {
+                    oldResponse.setStatus(JobStatusEnum.FINISHED);
                 } else {
                     oldResponse.setStatus(JobStatusEnum.RUNNING);
                 }

@@ -73,11 +73,11 @@ public class SegmentBuildJob extends SegmentJob {
 
     @Override
     protected void waiteForResourceSuccess() throws Exception {
-        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
-        waiteForResource.onStageFinished(true);
         if (config.isBuildCheckPartitionColEnabled()) {
             checkDateFormatIfExist(project, dataflowId);
         }
+        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
+        waiteForResource.onStageFinished(true);
     }
 
     @Override
