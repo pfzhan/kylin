@@ -87,4 +87,13 @@ public class AdminControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(adminController).getInstanceConfig();
     }
 
+    @Test
+    public void testQueryDiagGetPublicConfig() throws Exception {
+        overwriteSystemProp("kylin.security.allow-non-admin-generate-query-diag-package", "false");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/public_config").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(adminController).getPublicConfig();
+    }
+
 }

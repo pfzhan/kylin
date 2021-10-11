@@ -83,6 +83,10 @@ public class NAdminController extends NBasicController {
             propertyKeys.add("kylin.second-storage.class");
         }
 
+        if (!KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
+            propertyKeys.add("kylin.security.allow-non-admin-generate-query-diag-package");
+        }
+
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys) + addPropertyInMetadata();
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, config, "");

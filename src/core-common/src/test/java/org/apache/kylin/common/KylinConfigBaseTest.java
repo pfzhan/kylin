@@ -863,6 +863,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                         "io.kyligence.kap.tool.LightningSystemProfileExtractor"));
         map.put("isCharDisplaySizeEnabled",
                 new PropertiesEntity("kylin.query.char-display-size-enabled", "true", true));
+        map.put("isAllowedNonAdminGenerateQueryDiagPackage",
+                new PropertiesEntity("kylin.security.allow-non-admin-generate-query-diag-package", "true", true));
         map.put("isPrometheusMetricsEnabled", new PropertiesEntity("kylin.metrics.prometheus-enabled", "true", true));
         map.put("isSetYarnQueueInTaskEnabled",
                 new PropertiesEntity("kylin.engine-yarn.queue.in.task.enabled", "false", false));
@@ -901,7 +903,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(535, methodsCount);
+        Assert.assertEquals(536, methodsCount);
     }
 
     @Test

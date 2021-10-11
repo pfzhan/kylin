@@ -2432,6 +2432,10 @@ public abstract class KylinConfigBase implements Serializable {
         return !FALSE.equals(option);
     }
 
+    public boolean isAllowedNonAdminGenerateQueryDiagPackage() {
+        return Boolean.parseBoolean(getOptional("kylin.security.allow-non-admin-generate-query-diag-package", TRUE));
+    }
+
     public String getStreamingBaseCheckpointLocation() {
         return getOptional("kylin.engine.streaming-checkpoint-location",
                 getHdfsWorkingDirectory() + "/streaming/checkpoint");

@@ -26,6 +26,9 @@ package io.kyligence.kap.rest.service;
 import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static io.kyligence.kap.tool.constant.DiagTypeEnum.FULL;
+import static io.kyligence.kap.tool.constant.DiagTypeEnum.JOB;
+import static io.kyligence.kap.tool.constant.DiagTypeEnum.QUERY;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +44,7 @@ import javax.validation.constraints.NotNull;
 
 import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
+import io.kyligence.kap.tool.constant.DiagTypeEnum;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -53,8 +57,10 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -78,6 +84,9 @@ public class SystemService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(SystemService.class);
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     @Data
     @NoArgsConstructor
     public static class DiagInfo {
@@ -85,10 +94,12 @@ public class SystemService extends BasicService {
         private float progress = 0.0f;
         private File exportFile;
         private Future task;
+        private DiagTypeEnum diagType;
 
-        public DiagInfo(File exportFile, Future task) {
+        public DiagInfo(File exportFile, Future task, DiagTypeEnum diagType) {
             this.exportFile = exportFile;
             this.task = task;
+            this.diagType = diagType;
         }
     }
 
@@ -132,6 +143,7 @@ public class SystemService extends BasicService {
         CliCommandExecutor commandExecutor = new CliCommandExecutor();
         val patternedLogger = new BufferedLogger(logger);
 
+        DiagTypeEnum diagPackageType;
         String[] arguments;
         // full
         if (StringUtils.isEmpty(jobId) && StringUtils.isEmpty(queryId)) {
@@ -141,14 +153,17 @@ public class SystemService extends BasicService {
             }
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-startTime", startTime, "-endTime",
                     endTime, "-diagId", uuid };
+            diagPackageType = FULL;
         } else if (StringUtils.isEmpty(queryId)) {//job
             String jobOpt = "-job";
             if (StringUtils.endsWithAny(jobId, new String[] { "_build", "_merge" })) {
                 jobOpt = "-streamingJob";
             }
             arguments = new String[] { jobOpt, jobId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
+            diagPackageType = JOB;
         } else { //query
             arguments = new String[] { "-project", project, "-query", queryId, "-destDir", exportFile.getAbsolutePath(), "-diagId", uuid };
+            diagPackageType = QUERY;
         }
         Future<?> task = executorService.submit(() -> {
             try {
@@ -165,11 +180,14 @@ public class SystemService extends BasicService {
                 handleDiagException(uuid, ex);
             }
         });
-        diagMap.put(uuid, new DiagInfo(exportFile, task));
+        diagMap.put(uuid, new DiagInfo(exportFile, task, diagPackageType));
         return uuid;
     }
 
     public String dumpLocalQueryDiagPackage(String queryId, String project) {
+        if (!KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
+            aclEvaluate.checkIsGlobalAdmin();
+        }
         return dumpLocalDiagPackage(null, null, null, queryId, project);
     }
 
@@ -199,7 +217,6 @@ public class SystemService extends BasicService {
         diagMap.invalidate(uuid);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String getDiagPackagePath(String uuid) {
         DiagStatusResponse exception = exceptionMap.getIfPresent(uuid);
         if (exception != null) {
@@ -213,6 +230,9 @@ public class SystemService extends BasicService {
         if (exportFile == null) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
+        }
+        if (QUERY != diagInfo.getDiagType() || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
+            aclEvaluate.checkIsGlobalAdmin();
         }
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
@@ -242,7 +262,6 @@ public class SystemService extends BasicService {
         return null;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DiagStatusResponse> getExtractorStatus(String uuid) {
         DiagStatusResponse exception = exceptionMap.getIfPresent(uuid);
         if (exception != null) {
@@ -253,6 +272,9 @@ public class SystemService extends BasicService {
         if (Objects.isNull(diagInfo)) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
+        }
+        if (QUERY != diagInfo.getDiagType() || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
+            aclEvaluate.checkIsGlobalAdmin();
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);
@@ -272,13 +294,15 @@ public class SystemService extends BasicService {
         diagInfo.setProgress(diagProgressRequest.getProgress());
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void stopDiagTask(String uuid) {
         logger.debug("Stop diagnostic package task {}", uuid);
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         if (diagInfo == null) {
             throw new KylinException(DIAG_UUID_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getINVALID_ID(), uuid));
+        }
+        if (QUERY != diagInfo.getDiagType() || !KylinConfig.getInstanceFromEnv().isAllowedNonAdminGenerateQueryDiagPackage()) {
+            aclEvaluate.checkIsGlobalAdmin();
         }
         EventBusFactory.getInstance().postSync(new CliCommandExecutor.JobKilled(uuid));
     }
