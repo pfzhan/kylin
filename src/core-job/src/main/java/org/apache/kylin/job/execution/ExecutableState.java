@@ -138,8 +138,6 @@ public enum ExecutableState {
             case SUICIDAL:
             case DISCARDED:
                 return JobStatusEnum.DISCARDED;
-            case SKIP:
-                return JobStatusEnum.SKIP;
             default:
                 throw new RuntimeException("invalid state:" + this);
         }
