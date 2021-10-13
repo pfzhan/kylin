@@ -154,8 +154,7 @@ public class AggIndexMatcher extends IndexMatcher {
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
 
-            Set<Integer> leftUnmatchedCols = functionCols.get(functionDesc).stream().filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+            Set<Integer> leftUnmatchedCols = Sets.newHashSet(functionCols.get(functionDesc));
             indexEntity.getDimensions().forEach(leftUnmatchedCols::remove);
             if (isBatchFusionModel) {
                 leftUnmatchedCols.addAll(layoutEntity.getStreamingColumns().keySet());
