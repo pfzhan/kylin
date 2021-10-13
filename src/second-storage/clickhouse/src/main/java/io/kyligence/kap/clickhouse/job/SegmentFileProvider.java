@@ -49,7 +49,7 @@ public class SegmentFileProvider implements FileProvider {
         List<FileStatus> paths = new ArrayList<>();
         final FileSystem fs = HadoopUtil.getWorkingFileSystem();
         try {
-            RemoteIterator<LocatedFileStatus> it = fs.listFiles(new Path(rootPath), false);
+            RemoteIterator<LocatedFileStatus> it = fs.listFiles(new Path(rootPath), true);
             while (it.hasNext()) {
                 LocatedFileStatus fileStatus = it.next();
                 if (!fileStatus.getPath().getName().endsWith("parquet")) {
