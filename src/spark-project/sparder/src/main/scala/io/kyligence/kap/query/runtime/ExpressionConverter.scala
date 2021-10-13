@@ -33,7 +33,7 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions
-import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, PreciseBitmapContains, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
+import org.apache.spark.sql.catalyst.expressions.{Cast, If, IfNull, IntersectCountByCol, Literal, StringLocate, StringRepeat, SubtractBitmapUUID, SubtractBitmapValue}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
 
@@ -65,7 +65,7 @@ object ExpressionConverter {
 
   val varArgsFunc = mutable.HashSet("months_between", "locate", "rtrim", "from_unixtime")
 
-  val bitmapUDF = mutable.HashSet("intersect_count_by_col", "subtract_bitmap_value", "subtract_bitmap_uuid", "bitmap_contains");
+  val bitmapUDF = mutable.HashSet("intersect_count_by_col", "subtract_bitmap_value", "subtract_bitmap_uuid");
 
   // scalastyle:off
   def convert(sqlTypeName: SqlTypeName, relDataType: RelDataType, op: SqlKind, opName: String, children: Seq[Any]): Any = {
@@ -404,8 +404,6 @@ object ExpressionConverter {
                 new Column(SubtractBitmapValue(children.head.asInstanceOf[Column].expr, children.last.asInstanceOf[Column].expr, KylinConfig.getInstanceFromEnv.getBitmapValuesUpperBound))
               case "subtract_bitmap_uuid" =>
                 new Column(SubtractBitmapUUID(children.head.asInstanceOf[Column].expr, children.last.asInstanceOf[Column].expr))
-              case "bitmap_contains" =>
-                new Column(PreciseBitmapContains(children.head.asInstanceOf[Column].expr, k_lit(children.last.asInstanceOf[String]).expr))
             }
           case "ascii" =>
             ascii(k_lit(children.head))

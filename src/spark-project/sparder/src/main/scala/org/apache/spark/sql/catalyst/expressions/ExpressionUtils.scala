@@ -30,7 +30,6 @@ import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.types.Decimal
 import org.apache.spark.sql.udaf.BitmapSerAndDeSerObj
-import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 import java.nio.ByteBuffer
 import scala.reflect.ClassTag
@@ -139,17 +138,6 @@ object ExpressionUtils {
     val serializer = new PercentileSerializer(precision.asInstanceOf[Int]);
     val counter = serializer.deserialize(ByteBuffer.wrap(arrayBytes))
     counter.getResultEstimateWithQuantileRatio(quantile.asInstanceOf[Decimal].toDouble)
-  }
-
-  def bitmapContainsImpl(column: Any, bitmapArg: Any): Boolean = {
-    val bitmap = bitmapArg.asInstanceOf[Roaring64NavigableMap]
-    column match {
-      case value: Integer =>
-        bitmap.contains(value.asInstanceOf[Integer].longValue())
-      case value: Long =>
-        bitmap.contains(value.asInstanceOf[Long])
-      case _ => throw new UnsupportedOperationException("Unsupported data type in bitmap_contains")
-    }
   }
 }
 

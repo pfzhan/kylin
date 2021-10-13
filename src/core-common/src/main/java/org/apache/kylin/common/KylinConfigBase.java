@@ -2978,10 +2978,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.auditlog.replay-need-consecutive-log", TRUE));
     }
 
-    public boolean isSkipEncodeIntegerFamilyEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.query.skip-encode-integer-enabled", FALSE));
-    }
-
     public boolean skipCheckFlatTable() {
         return Boolean.parseBoolean(getOptional("kylin.model.skip-flattable-check", FALSE));
     }

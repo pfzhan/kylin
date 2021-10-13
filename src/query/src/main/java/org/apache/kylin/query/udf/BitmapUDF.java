@@ -58,8 +58,4 @@ public class BitmapUDF {
     public Object SUBTRACT_BITMAP_UUID(@Parameter(name = "m1") Object map1, @Parameter(name = "m2") Object map2) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
-
-    public Boolean BITMAP_CONTAINS(@Parameter(name = "column") Object column, @Parameter(name = "encodeBitmap") Object encodeBitmap) throws CalciteNotSupportException {
-        throw new CalciteNotSupportException();
-    }
 }

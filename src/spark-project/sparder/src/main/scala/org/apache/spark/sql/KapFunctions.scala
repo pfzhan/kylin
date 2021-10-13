@@ -27,7 +27,7 @@ import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry.FunctionBuilder
 import org.apache.spark.sql.catalyst.expressions.ExpressionUtils.expression
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
-import org.apache.spark.sql.catalyst.expressions.{ApproxCountDistinctDecode, CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, PercentileDecode, PreciseBitmapContains, PreciseCountDistinctDecode, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
+import org.apache.spark.sql.catalyst.expressions.{ApproxCountDistinctDecode, CeilDateTime, DictEncode, Expression, ExpressionInfo, FloorDateTime, ImplicitCastInputTypes, In, KapAddMonths, KapDayOfWeek, KapSubtractMonths, Like, Literal, PercentileDecode, PreciseCountDistinctDecode, RLike, RoundBase, SplitPart, Sum0, TimestampAdd, TimestampDiff, Truncate}
 import org.apache.spark.sql.types.{ArrayType, BinaryType, DoubleType, LongType, StringType}
 import org.apache.spark.sql.udaf.{ApproxCountDistinct, IntersectCount, Percentile, PreciseBitmapBuildBase64Decode, PreciseBitmapBuildBase64WithIndex, PreciseBitmapBuildPushDown, PreciseCardinality, PreciseCountDistinct, PreciseCountDistinctAndArray, PreciseCountDistinctAndValue, ReusePreciseCountDistinct}
 
@@ -175,8 +175,7 @@ object KapFunctions {
     FunctionEntity(expression[PreciseCountDistinctDecode]("precise_count_distinct_decode")),
     FunctionEntity(expression[ApproxCountDistinctDecode]("approx_count_distinct_decode")),
     FunctionEntity(expression[PercentileDecode]("percentile_decode")),
-    FunctionEntity(expression[PreciseBitmapBuildPushDown]("bitmap_build")),
-    FunctionEntity(expression[PreciseBitmapContains]("bitmap_contains"))
+    FunctionEntity(expression[PreciseBitmapBuildPushDown]("bitmap_build"))
   )
 }
 

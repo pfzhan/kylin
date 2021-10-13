@@ -874,8 +874,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
         map.put("getSourceNameCaseSensitiveEnabled",
                 new PropertiesEntity("kylin.source.name-case-sensitive-enabled", "", false));
-        map.put("isSkipEncodeIntegerFamilyEnabled",
-                new PropertiesEntity("kylin.query.skip-encode-integer-enabled", "", false));
+
     }
 
     @Before
@@ -902,7 +901,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(536, methodsCount);
+        Assert.assertEquals(535, methodsCount);
     }
 
     @Test
