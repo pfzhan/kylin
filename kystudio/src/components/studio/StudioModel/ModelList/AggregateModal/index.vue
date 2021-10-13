@@ -495,10 +495,14 @@
         </div>
       </div>
       <div class="ky-simple-table" @scroll="scrollEvent">
-        <el-row class="table-header table-row">
+        <el-row class="table-header table-row dim-table-header">
           <el-col :span="1"><el-checkbox v-model="isSelectAllDimensions" :indeterminate="getSelectedIncludeDimensions.length > 0 && getSelectedIncludeDimensions.length < dimensions().length" @change="selectAllIncludes" size="small"/></el-col>
-          <el-col :span="6">{{$t('th_name')}}</el-col>
-          <el-col :span="7">{{$t('th_column')}}</el-col>
+          <el-col :span="6" :key="dataDragData.width" :style="{width: dataDragData.width + 'px'}">{{$t('th_name')}}
+            <div class="ky-table-drag-layout-line" unselectable="on" v-drag:change.width="dataDragData"></div>
+          </el-col>
+          <el-col :span="7" :key="dataDragData2.width" :style="{width: dataDragData2.width + 'px'}">{{$t('th_column')}}
+            <div class="ky-table-drag-layout-line" unselectable="on" v-drag:change.width="dataDragData2"></div>
+          </el-col>
           <el-col :span="3">{{$t('th_dataType')}}</el-col>
           <el-col :span="2">{{$t('cardinality')}}</el-col>
           <el-col :span="3">{{$t('th_info')}}</el-col>
@@ -507,8 +511,8 @@
         <transition-group name="flip-list" tag="div">
           <el-row class="table-row" v-for="(item, index) in includeDimensions" :key="item.id">
             <el-col :span="1"><el-checkbox size="small" :disabled="getDisabledTableType(item)" v-model="item.isCheck" @change="(val) => selectIncludDimensions(item, val)"/></el-col>
-            <el-col :span="6"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
-            <el-col :span="7"><span v-custom-tooltip="{text: item.column, w: 40}">{{item.column}}</span><el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(item) && displayExcludedTables"></i></el-tooltip></el-col>
+            <el-col :span="6" :key="dataDragData.width" :style="{width: dataDragData.width + 'px'}"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
+            <el-col :span="7" :key="dataDragData2.width" :style="{width: dataDragData2.width + 'px'}"><span v-custom-tooltip="{text: item.column, w: 40}">{{item.column}}</span><el-tooltip :content="$t('excludedTableIconTip')" effect="dark" placement="top"><i class="excluded_table-icon el-icon-ksd-exclude" v-if="isExistExcludeTable(item) && displayExcludedTables"></i></el-tooltip></el-col>
             <el-col :span="3">{{item.type}}</el-col>
             <el-col :span="2">
               <template v-if="item.cardinality === null"><i class="no-data_placeholder">NULL</i></template>
@@ -558,18 +562,22 @@
         </div>
       </div>
       <div class="ky-simple-table measure-table">
-        <el-row class="table-header table-row ksd-mt-10">
+        <el-row class="table-header measure-table-header table-row ksd-mt-10">
           <el-col :span="1"><el-checkbox v-model="isSelectAllMeasure" :indeterminate="getSelectedMeasures.length > 0 && getSelectedMeasures.length < measures.length" @change="selectAllMeasures" size="small"/></el-col>
-          <el-col :span="5">{{$t('th_name')}}</el-col>
+          <el-col :span="5" :key="dataDragData3.width" :style="{width: dataDragData3.width + 'px'}">{{$t('th_name')}}
+            <div class="ky-table-drag-layout-line" unselectable="on" v-drag:change.width="dataDragData3"></div>
+          </el-col>
           <el-col :span="3">{{$t('expression')}}</el-col>
-          <el-col :span="12">{{$t('parameters')}}</el-col>
+          <el-col :span="12" :key="dataDragData4.width" :style="{width: dataDragData4.width + 'px'}">{{$t('parameters')}}
+            <div class="ky-table-drag-layout-line" unselectable="on" v-drag:change.width="dataDragData4"></div>
+          </el-col>
           <el-col :span="3">{{$t('returnType')}}</el-col>
         </el-row>
         <el-row class="table-row" v-for="item in measureList" :key="item.id">
           <el-col :span="1"><el-tooltip :content="$t('disabledConstantMeasureTip')" :disabled="item.name !== 'COUNT_ALL'" placement="top-start" offset="10"><el-checkbox size="small" v-model="item.isCheck" :disabled="item.name === 'COUNT_ALL'" @change="(type) => changeMeasureBox(item, type)"/></el-tooltip></el-col>
-          <el-col :span="5"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
+          <el-col :span="5" :key="dataDragData3.width" :style="{width: dataDragData3.width + 'px'}"><span class="text" v-custom-tooltip="{text: item.name, w: 20}">{{item.name}}</span></el-col>
           <el-col :span="3">{{item.expression}}</el-col>
-          <el-col :span="12"><span v-custom-tooltip="{text: JSON.stringify(item.parameter_value), w: 20}">{{JSON.stringify(item.parameter_value)}}</span></el-col>
+          <el-col :span="12" :key="dataDragData4.width" :style="{width: dataDragData4.width + 'px'}"><span v-custom-tooltip="{text: JSON.stringify(item.parameter_value), w: 20}">{{JSON.stringify(item.parameter_value)}}</span></el-col>
           <el-col :span="3">{{item.return_type}}</el-col>
         </el-row>
       </div>
@@ -688,6 +696,30 @@ export default class AggregateModal extends Vue {
   pageSize = 50
   generateDeletedIndexes = true
   displayExcludedTables = false
+  dataDragData = {
+    width: 238,
+    limit: {
+      width: [50, 1000]
+    }
+  }
+  dataDragData2 = {
+    width: 300,
+    limit: {
+      width: [50, 1000]
+    }
+  }
+  dataDragData3 = {
+    width: 200,
+    limit: {
+      width: [50, 1000]
+    }
+  }
+  dataDragData4 = {
+    width: 476,
+    limit: {
+      width: [50, 1000]
+    }
+  }
 
   @Watch('$lang')
   changeCurrentLang (newVal, oldVal) {
@@ -2320,6 +2352,19 @@ export default class AggregateModal extends Vue {
     height: calc(~'100% - 70px');
     margin-top: 10px;
     overflow: auto;
+    .ky-table-drag-layout-line {
+      height: 100%;
+      border-left: 1px solid #ddd;
+      cursor: col-resize;
+      float: right;;
+      z-index: 9;
+      position: relative;
+      right: -10px;
+      .ky-drag-layout-bar {
+        right:-5px;
+        top:200px;
+      }
+    }
     .order-actions {
       display: flex;
       align-items: center;
@@ -2340,6 +2385,11 @@ export default class AggregateModal extends Vue {
     }
     .table-row {
       height: 32px;
+      display: flex;
+      display: -webkit-box;
+      display: -moz-box;
+      display: -ms-flexbox;
+      display: -webkit-flex;
       .el-col {
         height: 100%;
         line-height: 32px;
@@ -2347,12 +2397,27 @@ export default class AggregateModal extends Vue {
         font-size: 12px;
         font-weight: bold;
         position: relative;
+        flex-grow: 1;
+        &:nth-child(1) {
+          flex-grow: 0;
+          flex-basis: 38px;
+          width: 38px;
+          min-width: 38px;
+        }
       }
       .el-checkbox {
         cursor: pointer;
       }
       .text {
         white-space: pre-wrap;
+      }
+      &.dim-table-header {
+        .el-col {
+          &:nth-child(2),
+          &:nth-child(3) {
+            border-right: none;
+          }
+        }
       }
     }
     .excluded_table-icon {
@@ -2371,12 +2436,45 @@ export default class AggregateModal extends Vue {
   }
 }
 .measure-table {
+  .ky-table-drag-layout-line {
+    height: 100%;
+    border-left: 1px solid #ddd;
+    cursor: col-resize;
+    float: right;;
+    z-index: 9;
+    position: relative;
+    right: -10px;
+    .ky-drag-layout-bar {
+      right:-5px;
+      top:200px;
+    }
+  }
   .table-row {
+    display: flex;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
     .el-col {
       text-align: left;
+      flex-grow: 1;
+      &:nth-child(1) {
+        flex-grow: 0;
+        flex-basis: 38px;
+        width: 38px;
+        min-width: 38px;
+      }
     }
     .text {
       white-space: pre-wrap;
+    }
+    &.measure-table-header {
+      .el-col {
+        &:nth-child(2),
+        &:nth-child(4) {
+          border-right: none;
+        }
+      }
     }
   }
 }
