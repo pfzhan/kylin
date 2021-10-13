@@ -778,7 +778,8 @@ public class JobService extends BasicService {
         executableManager.updateStageStatus(taskId, segmentId, newStatus, updateInfo, errMsg);
     }
 
-    private ExecutableState convertToExecutableState(String status) {
+    @VisibleForTesting
+    public ExecutableState convertToExecutableState(String status) {
         if (StringUtils.isBlank(status)) {
             return null;
         }

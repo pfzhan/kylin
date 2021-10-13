@@ -58,6 +58,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -420,18 +421,18 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testcalculateSuccessStageInTaskMapSingle() {
-        String segmentId = UUID.randomUUID().toString();
+        String segmentId = RandomUtil.randomUUIDStr();
 
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
-        executable.setId(UUID.randomUUID().toString());
+        executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();
         sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
         sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
-        sparkExecutable.setId(UUID.randomUUID().toString());
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
         executable.addTask(sparkExecutable);
 
         NStageForBuild build1 = new NStageForBuild();
@@ -506,19 +507,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testcalculateSuccessStageInTaskMap() {
-        String segmentId = UUID.randomUUID().toString();
+        String segmentId = RandomUtil.randomUUIDStr();
         String segmentIds = segmentId + "," + UUID.randomUUID();
 
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
-        executable.setId(UUID.randomUUID().toString());
+        executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();
         sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentIds);
         sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
-        sparkExecutable.setId(UUID.randomUUID().toString());
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
         executable.addTask(sparkExecutable);
 
         NStageForBuild build1 = new NStageForBuild();
@@ -593,18 +594,18 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testcalculateSuccessStage() {
-        String segmentId = UUID.randomUUID().toString();
+        String segmentId = RandomUtil.randomUUIDStr();
 
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
-        executable.setId(UUID.randomUUID().toString());
+        executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();
         sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
         sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
-        sparkExecutable.setId(UUID.randomUUID().toString());
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
         executable.addTask(sparkExecutable);
 
         NStageForBuild build1 = new NStageForBuild();
@@ -691,19 +692,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateStageOutput() {
-        String segmentId = UUID.randomUUID().toString();
-        String segmentId2 = UUID.randomUUID().toString();
+        String segmentId = RandomUtil.randomUUIDStr();
+        String segmentId2 = RandomUtil.randomUUIDStr();
         String segmentIds = segmentId + "," + segmentId2;
 
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
-        executable.setId(UUID.randomUUID().toString());
+        executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();
         sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentIds);
-        sparkExecutable.setId(UUID.randomUUID().toString());
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
         executable.addTask(sparkExecutable);
 
         NStageForBuild build = new NStageForBuild();
@@ -778,19 +779,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void updateStageOutputTaskMapEmpty() {
-        String segmentId = UUID.randomUUID().toString();
-        String segmentId2 = UUID.randomUUID().toString();
+        String segmentId = RandomUtil.randomUUIDStr();
+        String segmentId2 = RandomUtil.randomUUIDStr();
         String segmentIds = segmentId + "," + segmentId2;
 
         val project = "default";
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), project);
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
-        executable.setId(UUID.randomUUID().toString());
+        executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NSparkExecutable sparkExecutable = new NSparkExecutable();
         sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentIds);
-        sparkExecutable.setId(UUID.randomUUID().toString());
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
         executable.addTask(sparkExecutable);
 
         manager.addJob(executable);

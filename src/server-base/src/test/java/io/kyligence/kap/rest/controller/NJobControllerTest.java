@@ -306,6 +306,20 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).updateStageStatus(request);
+
+        request = new StageRequest();
+        request.setProject("");
+        request.setSegmentId("b");
+        request.setTaskId("");
+        request.setStatus("RUNNING");
+        Mockito.doNothing().when(jobService).updateStageStatus(request.getProject(), request.getTaskId(),
+                request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
+
+        Mockito.verify(nJobController).updateStageStatus(request);
     }
 
     @Test

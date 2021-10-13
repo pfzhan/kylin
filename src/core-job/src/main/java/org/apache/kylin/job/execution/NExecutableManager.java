@@ -728,7 +728,8 @@ public class NExecutableManager {
         updateJobOutput(jobId, ExecutableState.READY, pausedTime);
     }
 
-    private Map<String, String> getPausedTime(AbstractExecutable job) {
+    @VisibleForTesting
+    public Map<String, String> getPausedTime(AbstractExecutable job) {
         try {
             val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
             Map<String, String> info = Maps.newHashMap(oldInfo);
@@ -968,7 +969,8 @@ public class NExecutableManager {
         job.onExecuteStopHook();
     }
 
-    private void updateStagePaused(AbstractExecutable job) {
+    @VisibleForTesting
+    public void updateStagePaused(AbstractExecutable job) {
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.forEach(task -> {
@@ -988,7 +990,8 @@ public class NExecutableManager {
         }
     }
 
-    private Map<String, String> getWaiteTime(AbstractExecutable job) {
+    @VisibleForTesting
+    public Map<String, String> getWaiteTime(AbstractExecutable job) {
         try {
             val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
             Map<String, String> info = Maps.newHashMap(oldInfo);
@@ -1159,7 +1162,8 @@ public class NExecutableManager {
         });
     }
 
-    private boolean setStageOutput(ExecutableOutputPO jobOutput, String taskOrJobId, ExecutableState newStatus,
+    @VisibleForTesting
+    public boolean setStageOutput(ExecutableOutputPO jobOutput, String taskOrJobId, ExecutableState newStatus,
             Map<String, String> updateInfo, String errMsg, Boolean isRestart) {
         ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
         if (newStatus != null && oldStatus != newStatus) {
