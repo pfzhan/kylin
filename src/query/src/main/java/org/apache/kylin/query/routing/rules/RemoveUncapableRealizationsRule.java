@@ -46,14 +46,11 @@ package org.apache.kylin.query.routing.rules;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.BiMap;
-import io.kyligence.kap.query.util.SqlDigestComputedColumnRewriter;
 import org.apache.kylin.metadata.realization.CapabilityResult;
-import org.apache.kylin.metadata.realization.SQLDigest;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.RoutingRule;
 
+import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
@@ -68,27 +65,28 @@ public class RemoveUncapableRealizationsRule extends RoutingRule {
     public void apply(List<Candidate> candidates) {
         for (Iterator<Candidate> iterator = candidates.iterator(); iterator.hasNext();) {
             Candidate candidate = iterator.next();
-            OLAPContext ctx = candidate.getCtx();
             if (candidate.getCapability() != null) {
                 continue;
             }
-            BiMap<String, String> aliasMapping = HashBiMap.create();
-            aliasMapping.putAll(candidate.getAliasMap());
-
-            ctx.resetSQLDigest();
-            SQLDigest sqlDigestRewrittenCC = SqlDigestComputedColumnRewriter.getSqlDigest(ctx,
-                    candidate.getRealization().getModel(), new QueryAliasMatchInfo(aliasMapping, null));
-
-            CapabilityResult capability = candidate.getRealization().isCapable(sqlDigestRewrittenCC,
+            candidate.getCtx().resetSQLDigest();
+            CapabilityResult capability = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
                     candidate.getPrunedSegments(), candidate.getPrunedStreamingSegments());
 
-            candidate.setCapability(capability);
-            if (capability.capable) {
-                ComputedColumnRewriter.rewriteCcInnerCol(ctx, candidate.getRealization().getModel(),
+            if (!capability.capable && !candidate.getRealization().getModel().getComputedColumnDescs().isEmpty()) {
+                BiMap<String, String> aliasMapping = HashBiMap.create();
+                aliasMapping.putAll(candidate.getAliasMap());
+                ComputedColumnRewriter.rewriteCcInnerCol(candidate.getCtx(), candidate.getRealization().getModel(),
                         new QueryAliasMatchInfo(aliasMapping, null));
-            } else {
+                candidate.getCtx().resetSQLDigest();
+                capability = candidate.getRealization().isCapable(candidate.getCtx().getSQLDigest(),
+                        candidate.getPrunedSegments(), candidate.getPrunedStreamingSegments());
+            }
+
+            candidate.setCapability(capability);
+            if (!capability.capable) {
                 iterator.remove();
             }
+
         }
     }
 

@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -69,8 +68,7 @@ public class AggIndexMatcher extends IndexMatcher {
                 .map(tblColMap::get).collect(Collectors.toSet());
 
         sqlDigest.aggregations.forEach(agg -> {
-            functionCols.put(agg, agg.getSourceColRefs().stream().map(tblColMap::get).filter(Objects::nonNull)
-                    .collect(Collectors.toList()));
+            functionCols.put(agg, agg.getSourceColRefs().stream().map(tblColMap::get).collect(Collectors.toList()));
         });
     }
 
@@ -167,7 +165,7 @@ public class AggIndexMatcher extends IndexMatcher {
                 continue;
 
             if (!FunctionDesc.NOT_SUPPORTED_FUNCTION.contains(functionDesc.getExpression())) {
-                influences.add(new CapabilityResult.DimensionAsMeasure(sqlDigest.aggToOriginMap.get(functionDesc)));
+                influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
                 it.remove();
             }
         }

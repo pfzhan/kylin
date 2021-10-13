@@ -44,13 +44,12 @@ package org.apache.kylin.metadata.realization;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -81,7 +80,6 @@ public class SQLDigest {
     // aggregation
     public Set<TblColRef> metricColumns;
     public List<FunctionDesc> aggregations; // storage level measure type, on top of which various sql aggr function may apply
-    public Map<FunctionDesc, FunctionDesc> aggToOriginMap;
 
     // filter
     public Set<TblColRef> filterColumns;
@@ -122,7 +120,7 @@ public class SQLDigest {
         this.involvedMeasure = involvedMeasure;
 
         this.includeSubqueryJoinParticipants();
-        this.allColumns = Sets.newHashSet(allColumns);
+        this.allColumns = Collections.unmodifiableSet(allColumns);
     }
 
     private boolean isRawQuery() {

@@ -215,6 +215,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         executeTestScenario(1, new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join", 32, 33));
     }
 
+    @Ignore("blocked by KE-30323")
     @Test
     public void testUDFs() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");

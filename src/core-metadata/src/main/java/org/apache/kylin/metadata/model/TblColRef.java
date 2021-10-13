@@ -199,18 +199,6 @@ public class TblColRef implements Serializable {
         return new TblColRef(desc);
     }
 
-    public TblColRef copy() {
-        TblColRef tblColRef = new TblColRef(column);
-        tblColRef.table = table;
-        tblColRef.backupTable = backupTable;
-        tblColRef.identity = identity;
-        tblColRef.parserDescription = parserDescription;
-        tblColRef.filterLevel = filterLevel;
-        tblColRef.operator = operator;
-        tblColRef.operands = operands;
-        return tblColRef;
-    }
-
     // ============================================================================
 
     private TableRef table;
