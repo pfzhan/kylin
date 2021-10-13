@@ -1089,4 +1089,11 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     }
 
+    @Test(expected = KylinException.class)
+    public void testDropProjectFailed() throws IOException {
+        val project = "default";
+        MockSecondStorage.mock(project, new ArrayList<>(), this);
+        projectService.dropProject(project);
+    }
+
 }

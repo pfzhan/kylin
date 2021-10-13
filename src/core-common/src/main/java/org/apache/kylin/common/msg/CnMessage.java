@@ -332,6 +332,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getPROJECT_DROP_FAILED_SECOND_STORAGE_ENABLED() {
+        return "无法删除项目 \"%s\"，请先关闭分层存储。";
+    }
+
+    @Override
     public String getSQL_LIST_IS_EMPTY() {
         return "请输入参数 “sqls“。";
     }

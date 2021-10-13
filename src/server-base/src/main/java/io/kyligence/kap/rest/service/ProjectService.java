@@ -40,6 +40,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_JDBC_SOU
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.ONGOING_OPTIMIZATION;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_DROP_FAILED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
@@ -985,6 +986,10 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void dropProject(String project) {
+        if (SecondStorageUtil.isProjectEnable(project)) {
+            throw new KylinException(PROJECT_DROP_FAILED, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getPROJECT_DROP_FAILED_SECOND_STORAGE_ENABLED(), project));
+        }
         val prjManager = getProjectManager();
         prjManager.forceDropProject(project);
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
