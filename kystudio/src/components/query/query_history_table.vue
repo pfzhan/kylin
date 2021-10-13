@@ -244,8 +244,8 @@
         show-overflow-tooltip
         width="110">
       </el-table-column>
-      <!-- <el-table-column
-        v-if="this.$store.state.config.platform !== 'iframe'"
+      <el-table-column
+        v-if="this.$store.state.config.platform !== 'iframe'&&(queryHistoryFilter.includes('filterActions') || isNonAdminGenQueryDiagPackage)"
         :label="$t('kylinLang.common.action')"
         width='70'>
         <template slot-scope="scope">
@@ -253,7 +253,7 @@
             <i class="el-icon-ksd-ostin_diagnose ksd-fs-14 ksd-ml-4" @click.stop="openQueryDialog(scope.row)"></i>
           </common-tip>
         </template>
-      </el-table-column> -->
+      </el-table-column>
     </el-table>
     <index-details :index-detail-title="indexDetailTitle" :detail-type="detailType" :cuboid-data="cuboidData" @close="closeDetailDialog" v-if="indexDetailShow" />
     <diagnostic
@@ -297,7 +297,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
     ...mapGetters([
       'currentSelectedProject',
       'briefMenuGet',
-      'queryHistoryFilter'
+      'queryHistoryFilter',
+      'isNonAdminGenQueryDiagPackage'
     ])
   },
   components: {
