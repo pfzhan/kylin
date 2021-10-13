@@ -130,6 +130,8 @@ public class SegmentBuildJob extends SegmentJob {
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
+                infos.clearCuboidsNumPerLayer(seg.getId());
+
                 val jobStepId = StringUtils.replace(infos.getJobStepId(), JOB_NAME_PREFIX, "");
                 val exec = new BuildExec(jobStepId);
 
