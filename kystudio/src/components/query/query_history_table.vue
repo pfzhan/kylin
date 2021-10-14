@@ -832,7 +832,11 @@ export default class QueryHistoryTable extends Vue {
   }
   saveLatencyRange () {
     this.filterData.latencyFrom = this.startSec
-    this.filterData.latencyTo = this.endSec
+    if (this.startSec > this.endSec) {
+      this.filterData.latencyTo = this.endSec = this.startSec
+    } else {
+      this.filterData.latencyTo = this.endSec
+    }
     this.latencyFilterPopoverVisible = false
     this.clearLatencyRange()
     this.filterTags.push({label: `${this.startSec}s To ${this.endSec}s`, source: 'kylinLang.query.latency_th', key: 'latency'})
@@ -894,7 +898,6 @@ export default class QueryHistoryTable extends Vue {
               size="small"
               value={this.startSec}
               min={0}
-              max={this.endSec}
               onInput={val1 => (this.startSec = val1)}></el-input-number>
             <span>&nbsp;S&nbsp;&nbsp;To</span>
             <el-input-number
