@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_CONNECT_META_DATABASE;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -34,6 +36,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -128,32 +131,32 @@ public abstract class AbstractAuditLogReplayWorker {
 
     protected void handleReloadAll(Exception e) {
         log.error("Critical exception happened, try to reload metadata ", e);
-        EventBusFactory.getInstance().postSync(new StartReloadEvent());
-        val fixerKylinConfig = KylinConfig.createKylinConfig(config);
-        val fixerResourceStore = ResourceStore.getKylinMetaStore(fixerKylinConfig);
-        log.info("Finish read all metadata from store, start to reload");
-
         val lockKeys = Lists.newArrayList(TransactionLock.projectLocks.keySet());
         lockKeys.sort(Comparator.naturalOrder());
         try {
+            EventBusFactory.getInstance().postSync(new StartReloadEvent());
             for (String lockKey : lockKeys) {
                 TransactionLock.getLock(lockKey, false).lock();
             }
             log.info("Acquired all locks, start to copy");
+            val fixerKylinConfig = KylinConfig.createKylinConfig(config);
+            val fixerResourceStore = ResourceStore.getKylinMetaStore(fixerKylinConfig);
+            log.info("Finish read all metadata from store, start to reload");
             val resourceStore = ResourceStore.getKylinMetaStore(config);
             resourceStore.deleteResourceRecursively("/");
             fixerResourceStore.copy("/", resourceStore);
             resourceStore.setOffset(fixerResourceStore.getOffset());
             updateOffset(fixerResourceStore.getOffset());
+        } catch (Throwable th) {
+            log.error("reload all failed", th);
         } finally {
             Collections.reverse(lockKeys);
             for (String lockKey : lockKeys) {
                 TransactionLock.getLock(lockKey, false).unlock();
             }
+            EventBusFactory.getInstance().postSync(new EndReloadEvent());
         }
         log.info("Reload finished");
-
-        EventBusFactory.getInstance().postSync(new EndReloadEvent());
     }
 
     public void waitForCatchup(long targetId, long timeout) throws TimeoutException {
@@ -178,4 +181,11 @@ public abstract class AbstractAuditLogReplayWorker {
 
     public static class EndReloadEvent {
     }
+
+    protected static class DatabaseNotAvailableException extends KylinException {
+        public DatabaseNotAvailableException(Exception e) {
+            super(FAILED_CONNECT_META_DATABASE, e);
+        }
+    }
+
 }

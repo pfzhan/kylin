@@ -35,71 +35,47 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
+import org.springframework.jdbc.BadSqlGrammarException;
 
 import io.kyligence.kap.common.util.AbstractJdbcMetadataTestCase;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCase {
+public class JdbcAuditLogReplayerTest extends AbstractJdbcMetadataTestCase {
 
     private static final String LOCAL_INSTANCE = "127.0.0.1";
     private final Charset charset = Charset.defaultCharset();
 
     @Test
-    public void testReplayGroupbyProject() throws Exception {
-        val workerStore = initResourceStore();
-        String project1 = "abc1";
-        String project2 = "abc2";
-        changeProject(project1, false);
-        changeProject(project2, false);
-        workerStore.catchup();
-        Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
-
-        addProjectLog(project2, 6000);
-        addProjectLog(project1, 6000);
-        Awaitility.await().atMost(6, TimeUnit.SECONDS)
-                .until(() -> 12003 == workerStore.listResourcesRecursively("/").size());
-        Awaitility.await().atMost(6, TimeUnit.SECONDS)
-                .until(() -> 12002 == workerStore.getAuditLogStore().getLogOffset());
-        workerStore.getAuditLogStore().catchupWithTimeout();
-        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
-    }
-
-    private ResourceStore initResourceStore() {
-        getTestConfig().setProperty("kylin.auditlog.replay-groupby-project-reload-enable", "true");
+    public void testDatabaseNotAvailable() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
         workerStore.checkAndPutResource("/UUID", new StringEntity(RandomUtil.randomUUIDStr()), StringEntity.serializer);
-        Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
-        return workerStore;
-    }
 
-    @Test
-    public void testHandleProjectChange() throws Exception {
-        val workerStore = initResourceStore();
-        String project = "abc1";
-        changeProject(project, false);
-        workerStore.catchup();
-        Assert.assertEquals(2, workerStore.listResourcesRecursively("/").size());
-        changeProject(project, true);
-        Awaitility.await().atMost(6, TimeUnit.SECONDS)
-                .until(() -> 1 == workerStore.listResourcesRecursively("/").size());
-        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
-    }
-
-    private void addProjectLog(String project, int logNum) throws Exception {
-        val url = getTestConfig().getMetadataUrl();
+        val auditLogStore = workerStore.getAuditLogStore();
         val jdbcTemplate = getJdbcTemplate();
-        String unitId = RandomUtil.randomUUIDStr();
-        List<Object[]> logs = Lists.newArrayList();
-        for (int i = 0; i < logNum; i++) {
-            logs.add(new Object[] { "/" + project + "/abc/b" + i, "abc".getBytes(charset), System.currentTimeMillis(),
-                    0, unitId, null, LOCAL_INSTANCE });
+        changeProject("abc", false);
+        auditLogStore.restore(0);
+        Assert.assertEquals(2, workerStore.listResourcesRecursively("/").size());
+
+        jdbcTemplate.batchUpdate("ALTER TABLE TEST_AUDIT_LOG RENAME TO TEST_AUDIT_LOG_TEST",
+                "ALTER TABLE TEST RENAME TO TEST_TEST");
+
+        //replay fail
+        try {
+            auditLogStore.catchupWithTimeout();
+        }catch (BadSqlGrammarException e){
         }
-        jdbcTemplate.batchUpdate(
-                String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), logs);
+
+        //restore audit log
+        jdbcTemplate.update("ALTER TABLE TEST_AUDIT_LOG_TEST RENAME TO TEST_AUDIT_LOG");
+        changeProject("abcd", false);
+
+        //replay to maxOffset
+        Awaitility.await().atMost(6, TimeUnit.SECONDS)
+                .until(() -> 3 == workerStore.listResourcesRecursively("/").size());
+        //important for release a replay thread
+        auditLogStore.close();
     }
 
     public void changeProject(String project, boolean isDel) throws Exception {
@@ -117,4 +93,5 @@ public class JdbcAuditLogGroupbyReplayerTest extends AbstractJdbcMetadataTestCas
         jdbcTemplate.batchUpdate(
                 String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), logs);
     }
+
 }

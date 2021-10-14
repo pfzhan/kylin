@@ -59,6 +59,7 @@ public enum CommonErrorCode implements ErrorCodeSupplier {
     // 00027XXX metadata
     FAILED_UPDATE_METADATA("KE-000027001"), //
     FAILED_NOTIFY_CATCHUP("KE-000027002"), //
+    FAILED_CONNECT_META_DATABASE("KE-000027003"),
 
     // 10028XXX json
     FAILED_PARSE_JSON("KE-000028001"), //

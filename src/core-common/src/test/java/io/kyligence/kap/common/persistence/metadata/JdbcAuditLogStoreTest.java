@@ -208,6 +208,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         workerStore.catchup();
         // catch up exception, load /_global/p1/abc3 from metadata
         Assert.assertEquals(2, workerStore.listResourcesRecursively("/").size());
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
     @Test
@@ -230,6 +231,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         workerStore.catchup();
         // catch up exception, load /_global/p1/abc3 from metadata
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
 
@@ -375,6 +377,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         auditLogStore.forceCatchup();
         auditLogStore.catchupWithTimeout();
         Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
     @Test
@@ -386,6 +389,7 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         workerStore.getAuditLogStore().close();
         thrown.expect(RejectedExecutionException.class);
         workerStore.catchup();
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
     public void changeProject(String project, boolean isDel) throws Exception {
@@ -403,4 +407,5 @@ public class JdbcAuditLogStoreTest extends AbstractJdbcMetadataTestCase {
         jdbcTemplate.batchUpdate(
                 String.format(Locale.ROOT, JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), logs);
     }
+
 }

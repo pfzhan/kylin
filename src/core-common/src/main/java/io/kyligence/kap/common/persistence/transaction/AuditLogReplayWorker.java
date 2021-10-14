@@ -84,10 +84,9 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
             return;
         }
         try {
-            val offset = catchupToMaxId(logOffset);
-            updateOffset(offset);
-        } catch (TransactionException e) {
-            log.warn("cannot create transaction, ignore it", e);
+            catchupToMaxId(logOffset);
+        } catch (TransactionException | DatabaseNotAvailableException e) {
+            log.warn("cannot create transaction or auditlog database connect error, ignore it", e);
             threadWait(5000);
         } catch (Exception e) {
             val rootCause = Throwables.getRootCause(e);
@@ -108,18 +107,16 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
         }
     }
 
-    public long catchupToMaxId(final long currentId) {
+    public void catchupToMaxId(final long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
         val store = ResourceStore.getKylinMetaStore(config);
         replayer.setChecker(store.getChecker());
-        val maxId = auditLogStore.getMaxId();
-        if (maxId == currentId) {
-            return maxId;
+
+        val maxId = waitMaxIdOk(currentId);
+        if (maxId == -1 || maxId == currentId) {
+            return;
         }
-        if (!waitLogCommit(3, currentId, maxId)) {
-            return maxId;
-        }
-        return withTransaction(auditLogStore.getTransactionManager(), () -> {
+        withTransaction(auditLogStore.getTransactionManager(), () -> {
             log.debug("start restore, current max_id is {}", maxId);
             var start = currentId;
             while (start < maxId) {
@@ -129,6 +126,22 @@ public class AuditLogReplayWorker extends AbstractAuditLogReplayWorker {
             }
             return maxId;
         });
+        updateOffset(maxId);
+    }
+
+    private long waitMaxIdOk(long currentId) {
+        try {
+            val maxId = auditLogStore.getMaxId();
+            if (maxId == currentId) {
+                return maxId;
+            }
+            if (waitLogCommit(3, currentId, maxId)) {
+                return maxId;
+            }
+            return -1;
+        } catch (Exception e) {
+            throw new DatabaseNotAvailableException(e);
+        }
     }
 
     private boolean waitLogCommit(int maxTimes, long currentId, long maxId) {
