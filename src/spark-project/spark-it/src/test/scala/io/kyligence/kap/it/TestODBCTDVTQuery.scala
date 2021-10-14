@@ -122,7 +122,7 @@ class TestODBCTDVTQuery
     new JsonSerializer[T](clz).deserialize(new DataInputStream(bais))
   }
 
-  test("Test Tdvt") {
+  ignore("Test Tdvt") {
     logTime("test tdvt", debug = true) {
       val tdvtSqlsPath = "src/test/resources/tdvt/tdvt_sqls.csv"
       val tdvtResultPath = "src/test/resources/tdvt/expected_result"

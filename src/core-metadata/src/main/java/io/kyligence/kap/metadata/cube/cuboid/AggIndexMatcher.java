@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -68,7 +69,8 @@ public class AggIndexMatcher extends IndexMatcher {
                 .map(tblColMap::get).collect(Collectors.toSet());
 
         sqlDigest.aggregations.forEach(agg -> {
-            functionCols.put(agg, agg.getSourceColRefs().stream().map(tblColMap::get).collect(Collectors.toList()));
+            functionCols.put(agg, agg.getSourceColRefs().stream().map(tblColMap::get).filter(Objects::nonNull)
+                    .collect(Collectors.toList()));
         });
     }
 
@@ -152,7 +154,8 @@ public class AggIndexMatcher extends IndexMatcher {
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
 
-            Set<Integer> leftUnmatchedCols = Sets.newHashSet(functionCols.get(functionDesc));
+            Set<Integer> leftUnmatchedCols = functionCols.get(functionDesc).stream().filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
             indexEntity.getDimensions().forEach(leftUnmatchedCols::remove);
             if (isBatchFusionModel) {
                 leftUnmatchedCols.addAll(layoutEntity.getStreamingColumns().keySet());
