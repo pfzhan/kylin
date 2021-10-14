@@ -55,9 +55,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.guava20.shaded.common.io.ByteSource;
 import lombok.val;
 
 public class SchemaUtilTest extends NLocalFileMetadataTestCase {
@@ -444,6 +444,45 @@ public class SchemaUtilTest extends NLocalFileMetadataTestCase {
                             ((ArrayList<String>) schemaChange.getAttributes().get("col_orders")));
                     return col_orders.equals("P_LINEORDER.LO_SUPPKEY,P_LINEORDER.LO_QUANTITY");
                 }));
+    }
+
+    @Test
+    public void testIndexWithShardByDiff() throws IOException {
+        val file = new File(
+                "src/test/resources/ut_meta/schema_utils/model_index_update/model_index_project_model_metadata_2020_11_16_02_37_33_1B8D602879F14297E132978D784C46EA.zip");
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(file);
+        String key = "/model_index_project/index_plan/10d5eb7c-d854-4f72-9e4b-9b1f3c65bcda.json";
+        String value = "{\"uuid\":\"10d5eb7c-d854-4f72-9e4b-9b1f3c65bcda\",\"last_modified\":1605494236502,\"create_time\":1605494168935,\"version\":\"4.0.0.0\","
+                + "\"description\":null,\"rule_based_index\":{\"dimensions\":[1,4,5,6,7,8,10,12],\"measures\":[100000,100001,100002,100003,100004,100005,100006,100007,"
+                + "100008,100009,100010,100011],\"global_dim_cap\":null,\"aggregation_groups\":[{\"includes\":[1,4,5,6,7,8,10,12],\"measures\":[100011,100000,100001,100002,"
+                + "100003,100004,100005,100006,100007,100008,100009,100010],\"select_rule\":{\"hierarchy_dims\":[],\"mandatory_dims\":[12],\"joint_dims\":[[4,5,6,7,8]]}}],"
+                + "\"layout_id_mapping\":[1,10001,20001,30001,40001,50001,60001,70001],\"parent_forward\":3,\"index_start_id\":0,\"last_modify_time\":1605494223951,"
+                + "\"layout_black_list\":[],\"scheduler_version\":2},\"indexes\":[{\"id\":20000000000,\"dimensions\":[1,4,5,6,7,8,10,12],\"measures\":[],\"layouts\":"
+                + "[{\"id\":20000000001,\"name\":null,\"owner\":\"ADMIN\",\"col_order\":[1,4,5,6,7,8,10,12],\"shard_by_columns\":[4],\"partition_by_columns\":[],"
+                + "\"sort_by_columns\":[],\"storage_type\":20,\"update_time\":1605494229727,\"manual\":true,\"auto\":false,\"draft_version\":null},{\"id\":20000000002,"
+                + "\"name\":null,\"owner\":\"ADMIN\",\"col_order\":[1,4,5,6,7,8,10,12],\"shard_by_columns\":[],\"partition_by_columns\":[],\"sort_by_columns\":[],"
+                + "\"storage_type\":20,\"update_time\":1605494229727,\"manual\":true,\"auto\":false,\"draft_version\":null}],\"next_layout_offset\":3},{\"id\":20000010000,"
+                + "\"dimensions\":[4,5],\"measures\":[],\"layouts\":[{\"id\":20000010001,\"name\":null,\"owner\":\"ADMIN\",\"col_order\":[4,5],\"shard_by_columns\":[],"
+                + "\"partition_by_columns\":[],\"sort_by_columns\":[4,5],\"storage_type\":20,\"update_time\":1605494236499,\"manual\":true,\"auto\":false,\"draft_version\":null}"
+                + "],\"next_layout_offset\":2}],\"override_properties\":{},\"to_be_deleted_indexes\":[],\"auto_merge_time_ranges\":null,\"retention_range\":0,\"engine_type\":80,"
+                + "\"next_aggregation_index_id\":80000,\"next_table_index_id\":20000020000,\"agg_shard_by_columns\":[],\"extend_partition_columns\":[],\"layout_bucket_num\":{}}";
+
+        val rawResource = rawResourceMap.get(key);
+        val update = new RawResource(rawResource.getResPath(), ByteSource.wrap(value.getBytes()),
+                rawResource.getTimestamp(), rawResource.getMvcc());
+        rawResourceMap.put(key, update);
+        String srcProject = getModelMetadataProjectName(rawResourceMap.keySet());
+        val importModelContext = new ImportModelContext(getTargetProject(), srcProject, rawResourceMap);
+        importModelContext.getTargetKylinConfig();
+        boolean result = true;
+        try {
+            SchemaUtil.diff(getTargetProject(), KylinConfig.getInstanceFromEnv(),
+                    importModelContext.getTargetKylinConfig());
+        } catch (Exception e) {
+            e.printStackTrace();
+            result = false;
+        }
+        Assert.assertTrue(result);
     }
 
     @Test

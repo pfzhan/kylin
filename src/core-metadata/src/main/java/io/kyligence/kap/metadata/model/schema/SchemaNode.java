@@ -198,10 +198,13 @@ public class SchemaNode {
         val colOrders = getLayoutIdColumn(layout, modelColumnMeasureIdMap);
         val shardBy = aggShardByColumns == null ? getLayoutShardByColumn(layout, modelColumnMeasureIdMap)
                 : getColumnMeasureName(aggShardByColumns, modelColumnMeasureIdMap);
-        return new SchemaNode(type, model.getAlias() + "/" + String.join(",", colOrders),
-                ImmutableMap.of("col_orders", colOrders, "shard_by", shardBy, "sort_by",
-                        getLayoutSortByColumn(layout, modelColumnMeasureIdMap), "id", String.valueOf(layout.getId())),
-                "id");
+        val sortBy = getLayoutSortByColumn(layout, modelColumnMeasureIdMap);
+        val key = model.getAlias() + "/" + String.join(",", colOrders) //
+                + "/" + String.join(",", shardBy) //
+                + "/" + String.join(",", sortBy);
+
+        return new SchemaNode(type, key, ImmutableMap.of("col_orders", colOrders, "shard_by", shardBy, "sort_by",
+                sortBy, "id", String.valueOf(layout.getId())), "id");
     }
 
     private static List<String> getLayoutIdColumn(LayoutEntity layout, Map<Integer, String> modelColumnMeasureIdMap) {
