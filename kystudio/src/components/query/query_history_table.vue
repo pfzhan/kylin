@@ -864,7 +864,6 @@ export default class QueryHistoryTable extends Vue {
               <el-input-number
                 size="small"
                 min={0}
-                max={this.endSec}
                 value={this.startSec}
                 onInput={val1 => (this.startSec = val1)}></el-input-number>
               <span>&nbsp;S&nbsp;&nbsp;To</span>
