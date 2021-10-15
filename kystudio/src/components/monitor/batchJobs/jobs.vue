@@ -850,7 +850,7 @@ export default class JobsList extends Vue {
   // 大步骤状态 ERROR_STOP 转换
   exChangeErrorStop (currentStep, steps) {
     const hasErrorTask = steps.filter(it => it.step_status === 'ERROR')
-    if (hasErrorTask.length && !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIPED'].includes(currentStep.step_status)) {
+    if (hasErrorTask.length && !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIP'].includes(currentStep.step_status)) {
       return 'ERROR_STOP'
     } else {
       return currentStep.step_status
@@ -863,7 +863,7 @@ export default class JobsList extends Vue {
     const hasErrorTask = tasks.filter(it => it.step_status === 'ERROR')
     if (hasErrorTask.length) {
       tasks.forEach(tk => {
-        if (!['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIPED'].includes(tk.step_status)) {
+        if (!['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIP'].includes(tk.step_status)) {
           tk.step_status = 'ERROR_STOP'
         }
       })
@@ -878,7 +878,7 @@ export default class JobsList extends Vue {
     if (hasErrorSegments.length) {
       Object.keys(segmentSteps).forEach(seg => {
         // if (!hasErrorSegments.includes(seg)) {
-        segmentSteps[seg].stage = segmentSteps[seg].stage.map(it => ({...it, step_status: !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIPED'].includes(it.step_status) ? 'ERROR_STOP' : it.step_status}))
+        segmentSteps[seg].stage = segmentSteps[seg].stage.map(it => ({...it, step_status: !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIP'].includes(it.step_status) ? 'ERROR_STOP' : it.step_status}))
         // }
       })
     }
