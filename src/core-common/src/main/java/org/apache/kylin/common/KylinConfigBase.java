@@ -1150,7 +1150,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getKafkaMaxOffsetsPerTrigger() {
-        return getOptional("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "-1");
+        return getOptional("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "0");
     }
 
     // ============================================================================
