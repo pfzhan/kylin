@@ -51,6 +51,7 @@ import static org.apache.kylin.metadata.datatype.DataType.FLOAT;
 import static org.apache.kylin.metadata.datatype.DataType.INTEGER;
 import static org.apache.kylin.metadata.datatype.DataType.SMALL_INT;
 import static org.apache.kylin.metadata.datatype.DataType.TINY_INT;
+import static org.apache.kylin.metadata.model.TblColRef.UNKNOWN_ALIAS;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -171,6 +172,8 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
     public static final String FUNC_GROUPING = "GROUPING";
     public static final String FUNC_TOP_N = "TOP_N";
+    public static final ImmutableSet<String> DIMENSION_AS_MEASURES = ImmutableSet.<String> builder()
+            .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
     public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder().add(FUNC_CORR)
             .build();
 
@@ -446,6 +449,12 @@ public class FunctionDesc implements Serializable {
         default:
             return true;
         }
+    }
+
+    // propose dimension as measure to answer count(distinct expr)、min(expr)、max(expr)
+    public boolean canAnsweredByDimensionAsMeasure() {
+        return DIMENSION_AS_MEASURES.contains(expression) && CollectionUtils.isNotEmpty(parameters)
+                && UNKNOWN_ALIAS.equals(parameters.get(0).getColRef().getTableAlias());
     }
 
     @Override

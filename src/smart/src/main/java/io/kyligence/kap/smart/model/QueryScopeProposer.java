@@ -249,7 +249,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
                         NDataModel.Measure measure = CubeUtils.newMeasure(fun, name, ++maxMeasureId);
                         candidateMeasures.put(fun, measure);
                         isNewMeasure = true;
-                    } else {
+                    } else if (agg.canAnsweredByDimensionAsMeasure()) {
                         dimensionAsMeasureColumns.addAll(agg.getSourceColRefs());
                     }
                 } else if (candidateMeasures.get(agg).isTomb()) {

@@ -167,7 +167,7 @@ public class AggIndexMatcher extends IndexMatcher {
             if (CollectionUtils.isNotEmpty(leftUnmatchedCols))
                 continue;
 
-            if (!FunctionDesc.NOT_SUPPORTED_FUNCTION.contains(functionDesc.getExpression())) {
+            if (FunctionDesc.DIMENSION_AS_MEASURES.contains(functionDesc.getExpression())) {
                 influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
                 it.remove();
             }

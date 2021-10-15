@@ -358,7 +358,7 @@ class IndexSuggester {
                                     model.getAlias(), measure));
                         }
                     }
-                } else {
+                } else if (aggFunc.canAnsweredByDimensionAsMeasure()) {
                     List<Integer> newDimIds = generateDimensionIds(Lists.newArrayList(aggFunc.getSourceColRefs()),
                             model.getEffectiveDimensions().inverse());
                     newDimIds.removeIf(dimIds::contains);
