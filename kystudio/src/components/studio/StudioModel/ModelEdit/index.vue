@@ -425,21 +425,23 @@
             <div @click.stop="openEditAliasForm"><i class="el-icon-ksd-table_edit"></i> {{$t('editTableAlias')}}</div>
           </div>
         </div>
-        <el-popover
-          popper-class="fast-action-popper"
-          style="z-index:100001"
-          ref="popover5"
-          placement="top"
-          width="160"
-          v-model="delTipVisible">
-          <p>{{$t('delTableTip')}}</p>
-          <div style="text-align: right; margin: 0">
-            <el-button size="mini" type="info" text @click="delTipVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-            <el-button type="primary" size="mini" @click.enter="delTable">{{$t('kylinLang.common.ok')}}</el-button>
-          </div>
-        </el-popover>
-        <div class="action del" v-if="!modelInstance.checkTableCanDel(currentEditTable.guid)" @click.stop="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
-        <div class="action del" v-else @click.stop="delTable"><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
+        <template v-if="!showEditAliasForm">
+          <el-popover
+            popper-class="fast-action-popper"
+            style="z-index:100001"
+            ref="popover5"
+            placement="top"
+            width="160"
+            v-model="delTipVisible">
+            <p>{{$t('delTableTip')}}</p>
+            <div style="text-align: right; margin: 0">
+              <el-button size="mini" type="info" text @click="delTipVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+              <el-button type="primary" size="mini" @click.enter="delTable">{{$t('kylinLang.common.ok')}}</el-button>
+            </div>
+          </el-popover>
+          <div class="action del" v-if="!modelInstance.checkTableCanDel(currentEditTable.guid)" @click.stop="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
+          <div class="action del" v-else @click.stop="delTable"><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
+        </template>
       </div>
     </transition>
     <!-- 被编辑table clone dom -->
