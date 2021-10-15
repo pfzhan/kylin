@@ -12,7 +12,7 @@
             <template v-else>
               <div class="items" v-for="item in modelList" :key="item.uuid" @click="selectModel({model: item})">
                 <i class="el-icon-ksd-accept" v-if="item.alias === modelName"></i>
-                <span v-custom-tooltip="{text: item.alias, w: 60}" :class="[item.alias === modelName ? 'ksd-ml-5' : 'ksd-ml-25']">{{item.alias}}</span>
+                <span v-custom-tooltip="{text: item.alias, w: 60}" :class="['model-name', item.alias === modelName ? 'ksd-ml-5' : 'ksd-ml-25', {'is-disabled': item.status === 'BROKEN'}]">{{item.alias}}</span>
               </div>
             </template>
           </div>
@@ -297,6 +297,7 @@ export default class ModelLayout extends Vue {
     // this.$nextTick(() => {
     //   this.forceUpdateRoute()
     // })
+    if (model.status && model.status === 'BROKEN') return
     this.$router.push({name: 'refresh'})
     this.$nextTick(() => {
       this.$router.replace({name: 'ModelDetails', params: {modelName: model.alias, searchModelName: this.searchModelName, ...args}, query: {modelPageOffest: this.modelPageOffest}})
@@ -643,6 +644,12 @@ export default class ModelLayout extends Vue {
           // text-overflow: ellipsis;
           &:hover {
             background-color: @ke-background-color-secondary;
+          }
+
+          .model-name {
+            &.is-disabled {
+              color: @text-disabled-color;
+            }
           }
 
           .custom-tooltip-layout {

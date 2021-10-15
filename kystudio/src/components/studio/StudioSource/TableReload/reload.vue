@@ -35,13 +35,14 @@
       </div>
     </div>
     <div class="samping-box">
-      <span class="lable-text">{{$t('tableSample')}}</span><el-switch
-        class="ksd-ml-10"
+      <el-switch
         size="small"
         v-model="openSample">
-      </el-switch>
-      <p v-if="!hasColumnInfluence" class="sample-sub-top">{{$t('noEffectSampingTip', {tableName: this.tableName})}}</p>
-      <p v-else class="sample-sub-top">{{$t('hasEffectSampingTip')}}</p>
+      </el-switch><span class="lable-text ksd-ml-8">{{$t('tableSample')}}</span><el-tooltip placement="top" :content="!hasColumnInfluence ? $t('noEffectSampingTip') : $t('hasEffectSampingTip')">
+        <span class="desc-icon el-ksd-icon-info_fill_16"></span>
+      </el-tooltip>
+      <!-- <p v-if="!hasColumnInfluence" class="sample-sub-top">{{$t('noEffectSampingTip', {tableName: this.tableName})}}</p>
+      <p v-else class="sample-sub-top">{{$t('hasEffectSampingTip')}}</p> -->
       <el-form ref="sample-form" :rules="rules" :model="sampleOption">
         <el-form-item prop="sampleCount">
           <p>{{$t('sampleCount')}}<el-input v-model="sampleOption.sampleCount" :disabled="!openSample" size="mini" style="width:100px" class="ksd-mrl-5"></el-input>{{$t('rows')}}</p>
@@ -49,8 +50,8 @@
       </el-form>
     </div> 
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" :loading="reloadLoading" @click="submit">{{$t('reloadBtn')}}</el-button>
+      <el-button :type="showBuildIndex ? 'text' : ''" size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button :type="!showBuildIndex ? 'primary' : ''" size="medium" :loading="reloadLoading" @click="submit">{{$t('reloadBtn')}}</el-button>
       <el-button type="primary" v-if="showBuildIndex" size="medium" :loading="reloadLoading1" @click="submit('refreshIndex')">{{$t('reloadAndRefresh')}}</el-button>
     </div>
   </el-dialog>
@@ -318,6 +319,10 @@ export default class ReloadTableModal extends Vue {
   }
   .samping-box {
     margin-top:18px;
+    .desc-icon {
+      color: @ke-color-info-secondary;
+      margin-left: 5px;
+    }
     .lable-text {
       font-weight: @font-medium;
       vertical-align: middle;
