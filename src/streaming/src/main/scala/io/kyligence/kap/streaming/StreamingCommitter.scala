@@ -25,20 +25,12 @@
 package io.kyligence.kap.streaming
 
 import java.util.HashMap
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataLayout, NDataSegment}
-import io.kyligence.kap.streaming.metadata.BuildLayoutWithRestUpdate
-import io.kyligence.kap.streaming.util.MetaInfoUpdater
-import org.apache.hadoop.fs.Path
-import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.util.{ExecutorServiceUtil, HadoopUtil}
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
-import org.apache.spark.storage.StorageLevel
 
-import scala.collection.JavaConverters._
-import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
+import io.kyligence.kap.metadata.cube.model.LayoutEntity
+import org.apache.kylin.common.util.HadoopUtil
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.storage.StorageLevel
 
 object StreamingCommitter extends Logging {
 
@@ -53,72 +45,6 @@ object StreamingCommitter extends Logging {
     val rowsNum = dataset.count()
     cuboidRowCount.put(layout.getId, rowsNum)
     logInfo(s"eval rowNum cost time ${System.currentTimeMillis() - start}")
-  }
-
-  def commit(ss: SparkSession, indexDatasets: HashMap[java.lang.Long, Dataset[Row]], seg: NDataSegment, project: String): Unit = {
-
-    val cuboidPar = indexDatasets.asScala.par
-    val forkJoinPool = new ForkJoinPool(indexDatasets.size())
-    cuboidPar.tasksupport = new ForkJoinTaskSupport(forkJoinPool)
-
-    val start = System.currentTimeMillis()
-    logInfo("start save all file")
-    cuboidPar.foreach { case (layoutId, dataset) =>
-      ss.sparkContext.setLocalProperty("spark.scheduler.pool", "build")
-      logInfo(s"cuboid ${layoutId} dataset start save to file")
-      val layout = seg.getLayout(layoutId)
-
-      logInfo(s"cuboid ${layout.getLayoutId} save start")
-      val path = NSparkCubingUtil.getStoragePath(seg, layoutId)
-      val tempPath = path + TEMP_DIR_SUFFIX;
-      val dimsCols = NSparkCubingUtil.getColumns(layout.getLayout.getOrderedDimensions.keySet())
-      val start = System.currentTimeMillis()
-      val afterSort = dataset.sortWithinPartitions(dimsCols: _*).repartition(1)
-      afterSort.write.mode(SaveMode.Overwrite).parquet(tempPath)
-      movePath(tempPath, path)
-      fillCuboidInfo(layout, path)
-      layout.setPartitionNum(1)
-      if( KylinConfig.getInstanceFromEnv.isUTEnv) {
-        MetaInfoUpdater.update(project, seg, layout)
-      } else {
-        BuildLayoutWithRestUpdate.callUpdateLayouts(KylinConfig.getInstanceFromEnv, project,
-          seg.getDataflow.getUuid, layout)
-      }
-
-      logInfo(s"cuboid ${layout.getLayoutId} save  cost ${System.currentTimeMillis() - start}")
-    }
-
-    logInfo(s"save all file cost ${System.currentTimeMillis() - start}")
-    cuboidPar.foreach { case (layoutId, dataset) =>
-      val start = System.currentTimeMillis()
-      dataset.unpersist(true)
-      logInfo(s"unpersist cuboid : ${layoutId} dataset cost ${System.currentTimeMillis() - start}")
-    }
-
-    ExecutorServiceUtil.shutdownGracefully(forkJoinPool, 60)
-  }
-
-
-  def fillCuboidInfo(cuboid: NDataLayout, strPath: String): Unit = {
-    val fs = HadoopUtil.getWorkingFileSystem
-    if (fs.exists(new Path(strPath))) {
-      val cs = HadoopUtil.getContentSummary(fs, new Path(strPath))
-      cuboid.setFileCount(cs.getFileCount)
-      cuboid.setByteSize(cs.getLength)
-    } else {
-      cuboid.setFileCount(0)
-      cuboid.setByteSize(0)
-    }
-    cuboid.setRows(cuboidRowCount.getOrDefault(cuboid.getLayoutId, 0))
-  }
-
-
-  def movePath(tempPath: String, goalPath: String): Unit = {
-    if (fs.rename(new Path(tempPath), new Path((goalPath)))) {
-      logInfo(s"Rename temp path to target path successfully. Temp path: ${tempPath}, target path: ${goalPath}.")
-    } else {
-      throw new RuntimeException(s"Rename temp path to target path wrong. Temp path: ${tempPath}, target path: ${goalPath}.")
-    }
   }
 
 }

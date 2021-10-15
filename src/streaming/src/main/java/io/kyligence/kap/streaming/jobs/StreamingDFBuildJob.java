@@ -27,8 +27,9 @@ package io.kyligence.kap.streaming.jobs;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
@@ -38,7 +39,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
@@ -63,118 +63,122 @@ import lombok.val;
 
 public class StreamingDFBuildJob extends DFBuildJob {
 
-  private HashMap<Long, Dataset<Row>> cuboidDatasetMap;
+    private Map<Long, Dataset<Row>> cuboidDatasetMap;
 
-  public StreamingDFBuildJob(String project){
-    buildLayoutWithUpdate = new BuildLayoutWithRestUpdate();
-    config = KylinConfig.getInstanceFromEnv();
-    dfMgr = NDataflowManager.getInstance(config, project);
-    this.project = project;
-  }
-
-  public void streamBuild(BuildJobEntry buildJobEntry) throws IOException {
-
-    if(this.ss == null) {
-      this.ss = buildJobEntry.spark();
-      ss.sparkContext().setLocalProperty("spark.sql.execution.id", null);
+    public StreamingDFBuildJob(String project) {
+        buildLayoutWithUpdate = new BuildLayoutWithRestUpdate();
+        config = KylinConfig.getInstanceFromEnv();
+        dfMgr = NDataflowManager.getInstance(config, project);
+        this.project = project;
     }
 
-    this.jobId = RandomUtil.randomUUIDStr();
-    if(this.infos == null) {
-      this.infos = new BuildJobInfos();
-    }
+    public void streamBuild(BuildJobEntry buildJobEntry) throws IOException {
 
-    if(cuboidDatasetMap == null) {
-      cuboidDatasetMap = Maps.newHashMap();
-    }
+        if (this.ss == null) {
+            this.ss = buildJobEntry.spark();
+            ss.sparkContext().setLocalProperty("spark.sql.execution.id", null);
+        }
 
-    setParam(NBatchConstants.P_DATAFLOW_ID, buildJobEntry.dataflowId());
+        this.jobId = RandomUtil.randomUUIDStr();
+        if (this.infos == null) {
+            this.infos = new BuildJobInfos();
+        }
 
-    Preconditions.checkState(buildJobEntry.toBuildTree().getRootIndexEntities().size() != 0,
-        "streaming mast have one root index");
+        if (cuboidDatasetMap == null) {
+            cuboidDatasetMap = new ConcurrentHashMap<>();
+        }
 
-    val theRootLevelBuildInfos = new NBuildSourceInfo();
-    theRootLevelBuildInfos.setFlattableDS(buildJobEntry.streamingFlatDS());
-    theRootLevelBuildInfos.setSparkSession(ss);
-    theRootLevelBuildInfos.setToBuildCuboids(buildJobEntry.toBuildTree().getRootIndexEntities());
-    build(Sets.newHashSet(theRootLevelBuildInfos), buildJobEntry.batchSegment().getId(),
-        buildJobEntry.toBuildTree());
+        setParam(NBatchConstants.P_DATAFLOW_ID, buildJobEntry.dataflowId());
 
-    logger.info("start update segment");
-    if(config.isUTEnv()) {
-      EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-        NDataflowManager dfMgr = NDataflowManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataflow newDF = dfMgr.getDataflow(buildJobEntry.dataflowId()).copy();
-        NDataSegment segUpdate = newDF.getSegment(buildJobEntry.batchSegment().getId());
-        segUpdate.setStatus(SegmentStatusEnum.READY);
-        segUpdate.setSourceCount(buildJobEntry.flatTableCount());
-        val dfUpdate = new NDataflowUpdate(buildJobEntry.dataflowId());
-        dfUpdate.setToUpdateSegs(segUpdate);
-        dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
-        dfMgr.updateDataflow(dfUpdate);
-        return 0;
-      }, project);
-    } else {
-      RestSupport rest = new RestSupport(config);
-      String url = "/streaming_jobs/dataflow/segment";
-      StreamingSegmentRequest req = new StreamingSegmentRequest(project, buildJobEntry.dataflowId(), buildJobEntry.flatTableCount());
-      req.setNewSegId(buildJobEntry.batchSegment().getId());
-      req.setStatus("ONLINE");
-      try{
-        rest.execute(rest.createHttpPut(url), req);
-      }finally {
-        rest.close();
-      }
-      StreamingUtils.replayAuditlog();
-    }
-    this.infos.clear();
-    cuboidDatasetMap.clear();
-  }
+        Preconditions.checkState(buildJobEntry.toBuildTree().getRootIndexEntities().size() != 0,
+                "streaming mast have one root index");
 
-
-  @Override
-  protected List<NBuildSourceInfo> constructTheNextLayerBuildInfos(//
-      NSpanningTree st, //
-      NDataSegment seg, //
-      Collection<IndexEntity> allIndexesInCurrentLayer) { //
-    val childrenBuildSourceInfos = new ArrayList<NBuildSourceInfo>();
-    for (IndexEntity index : allIndexesInCurrentLayer) {
-      val children = st.getChildrenByIndexPlan(index);
-      if (!children.isEmpty()) {
         val theRootLevelBuildInfos = new NBuildSourceInfo();
+        theRootLevelBuildInfos.setFlattableDS(buildJobEntry.streamingFlatDS());
         theRootLevelBuildInfos.setSparkSession(ss);
-        LayoutEntity layout = new ArrayList<>(st.getLayouts(index)).get(0);
-        val parentDataset = cuboidDatasetMap.get(layout.getId());
-        theRootLevelBuildInfos.setLayoutId(layout.getId());
-        theRootLevelBuildInfos.setToBuildCuboids(children);
-        theRootLevelBuildInfos.setFlattableDS(parentDataset);
-        childrenBuildSourceInfos.add(theRootLevelBuildInfos);
-      }
-    }
-    // return the next to be built layer.
-    return childrenBuildSourceInfos;
-  }
+        theRootLevelBuildInfos.setToBuildCuboids(buildJobEntry.toBuildTree().getRootIndexEntities());
+        build(Sets.newHashSet(theRootLevelBuildInfos), buildJobEntry.batchSegment().getId(),
+                buildJobEntry.toBuildTree());
 
-  @Override
-  protected NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
-      throws IOException {
-    cuboidDatasetMap.put(layout.getId(), dataset);
-    return super.saveAndUpdateLayout(dataset, seg, layout);
-  }
-
-  public NDataSegment getSegment(String segId) {
-    // ensure the seg is the latest.
-    val conf = KylinConfig.getInstanceFromEnv();
-    if(!conf.isUTEnv()) {
-      StreamingUtils.replayAuditlog();
+        logger.info("start update segment");
+        if (config.isUTEnv()) {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                NDataflow newDF = dfMgr.getDataflow(buildJobEntry.dataflowId()).copy();
+                NDataSegment segUpdate = newDF.getSegment(buildJobEntry.batchSegment().getId());
+                segUpdate.setStatus(SegmentStatusEnum.READY);
+                segUpdate.setSourceCount(buildJobEntry.flatTableCount());
+                val dfUpdate = new NDataflowUpdate(buildJobEntry.dataflowId());
+                dfUpdate.setToUpdateSegs(segUpdate);
+                dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
+                dfMgr.updateDataflow(dfUpdate);
+                return 0;
+            }, project);
+        } else {
+            updateSegment(buildJobEntry);
+        }
+        this.infos.clear();
+        cuboidDatasetMap.clear();
     }
-    return super.getSegment(segId);
-  }
 
-  public void shutdown() {
-    if(buildLayoutWithUpdate != null) {
-      buildLayoutWithUpdate.shutDown();
+    public void updateSegment(BuildJobEntry buildJobEntry) {
+        RestSupport rest = createRestSupport();
+        String url = "/streaming_jobs/dataflow/segment";
+        StreamingSegmentRequest req = new StreamingSegmentRequest(project, buildJobEntry.dataflowId(),
+                buildJobEntry.flatTableCount());
+        req.setNewSegId(buildJobEntry.batchSegment().getId());
+        req.setStatus(RealizationStatusEnum.ONLINE.name());
+        try {
+            rest.execute(rest.createHttpPut(url), req);
+        } finally {
+            rest.close();
+        }
+        StreamingUtils.replayAuditlog();
     }
-  }
+
+    public RestSupport createRestSupport() {
+        return new RestSupport(config);
+    }
+
+    @Override
+    protected List<NBuildSourceInfo> constructTheNextLayerBuildInfos(//
+            NSpanningTree st, //
+            NDataSegment seg, //
+            Collection<IndexEntity> allIndexesInCurrentLayer) { //
+        val childrenBuildSourceInfos = new ArrayList<NBuildSourceInfo>();
+        for (IndexEntity index : allIndexesInCurrentLayer) {
+            val children = st.getChildrenByIndexPlan(index);
+            if (!children.isEmpty()) {
+                val theRootLevelBuildInfos = new NBuildSourceInfo();
+                theRootLevelBuildInfos.setSparkSession(ss);
+                LayoutEntity layout = new ArrayList<>(st.getLayouts(index)).get(0);
+                val parentDataset = cuboidDatasetMap.get(layout.getId());
+                theRootLevelBuildInfos.setLayoutId(layout.getId());
+                theRootLevelBuildInfos.setToBuildCuboids(children);
+                theRootLevelBuildInfos.setFlattableDS(parentDataset);
+                childrenBuildSourceInfos.add(theRootLevelBuildInfos);
+            }
+        }
+        // return the next to be built layer.
+        return childrenBuildSourceInfos;
+    }
+
+    @Override
+    protected NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
+            throws IOException {
+        cuboidDatasetMap.put(layout.getId(), dataset);
+        return super.saveAndUpdateLayout(dataset, seg, layout);
+    }
+
+    public NDataSegment getSegment(String segId) {
+        // ensure the seg is the latest.
+        StreamingUtils.replayAuditlog();
+        return super.getSegment(segId);
+    }
+
+    public void shutdown() {
+        if (buildLayoutWithUpdate != null) {
+            buildLayoutWithUpdate.shutDown();
+        }
+    }
 }

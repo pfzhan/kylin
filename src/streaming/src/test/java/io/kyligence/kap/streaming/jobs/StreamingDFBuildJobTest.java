@@ -27,7 +27,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
+import io.kyligence.kap.streaming.rest.RestSupport;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -57,6 +60,7 @@ import io.kyligence.kap.streaming.util.ReflectionUtils;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.var;
+import org.mockito.Mockito;
 
 public class StreamingDFBuildJobTest extends StreamingTestCase {
 
@@ -64,7 +68,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
     public ExpectedException thrown = ExpectedException.none();
 
     private static String PROJECT = "streaming_test";
-    private static String DATAFLOW_ID = "e78a89dd-847f-4574-8afa-8768b4228b73";
+    private static String DATAFLOW_ID = "4965c827-fbb4-4ea1-a744-3f341a3b030d";
 
     @Before
     public void setUp() throws Exception {
@@ -94,7 +98,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
         val layoutEntitys = StreamingUtils.getToBuildLayouts(df);
         var nSpanningTree = NSpanningTreeFactory.fromLayouts(layoutEntitys, DATAFLOW_ID);
         val model = df.getModel();
-        val builder = new StreamingDFBuildJob(PROJECT);
+        val builder = Mockito.spy(new StreamingDFBuildJob(PROJECT));
         val streamingEntry = new StreamingEntry(new String[] { PROJECT, DATAFLOW_ID, "3000", "", "-1" });
         val ss = createSparkSession();
         val tuple3 = streamingEntry.generateStreamQueryForOneModel(ss, PROJECT, DATAFLOW_ID, null);
@@ -122,21 +126,34 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
             val dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
             var newDataflow = dfMgr.getDataflow(batchBuildJob.dataflowId());
             Assert.assertEquals(RealizationStatusEnum.OFFLINE, newDataflow.getStatus());
-            Assert.assertEquals(1, newDataflow.getSegment(seg1.getId()).getLayoutsMap().size());
+            Assert.assertEquals(4, newDataflow.getSegment(seg1.getId()).getLayoutsMap().size());
             val oldFileCount = newDataflow.getSegment(seg1.getId()).getStorageFileCount();
             val oldByteSize = newDataflow.getSegment(seg1.getId()).getStorageBytesSize();
 
             builder.streamBuild(batchBuildJob);
             newDataflow = dfMgr.getDataflow(batchBuildJob.dataflowId());
             Assert.assertEquals(RealizationStatusEnum.ONLINE, newDataflow.getStatus());
-            Assert.assertEquals(1, newDataflow.getSegment(seg1.getId()).getLayoutsMap().size());
+            Assert.assertEquals(4, newDataflow.getSegment(seg1.getId()).getLayoutsMap().size());
             Assert.assertTrue(newDataflow.getSegment(seg1.getId()).getStorageFileCount() > oldFileCount);
             Assert.assertTrue(newDataflow.getSegment(seg1.getId()).getStorageBytesSize() > oldByteSize);
 
+            dfMgr.updateDataflow(batchBuildJob.dataflowId(), updater -> {
+                updater.setStatus(RealizationStatusEnum.OFFLINE);
+            });
+            Mockito.when(builder.createRestSupport()).thenReturn(new RestSupport(config) {
+                public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+                    dfMgr.updateDataflow(batchBuildJob.dataflowId(), updater -> {
+                        updater.setStatus(RealizationStatusEnum.ONLINE);
+                    });
+                    return RestResponse.ok();
+                }
+            });
+            builder.updateSegment(batchBuildJob);
+            newDataflow = dfMgr.getDataflow(batchBuildJob.dataflowId());
+            Assert.assertEquals(RealizationStatusEnum.ONLINE, newDataflow.getStatus());
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
-
     }
 
     @Test
@@ -146,9 +163,10 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
         source.enableMemoryStream(false);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
         val mgr = NDataflowManager.getInstance(config, PROJECT);
-        var df = mgr.getDataflow(DATAFLOW_ID);
+        val dataflowId = "e78a89dd-847f-4574-8afa-8768b4228b73";
+        var df = mgr.getDataflow(dataflowId);
         val builder = new StreamingDFBuildJob(PROJECT);
-        builder.setParam(NBatchConstants.P_DATAFLOW_ID, DATAFLOW_ID);
+        builder.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
         val seg = builder.getSegment("c380dd2a-43b8-4268-b73d-2a5f76236632");
         Assert.assertNotNull(seg);
         Assert.assertEquals("c380dd2a-43b8-4268-b73d-2a5f76236632", seg.getId());
