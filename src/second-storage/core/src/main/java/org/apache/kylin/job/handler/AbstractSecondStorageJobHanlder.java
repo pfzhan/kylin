@@ -35,4 +35,9 @@ public abstract class AbstractSecondStorageJobHanlder extends AbstractJobHandler
         String project = jobParam.getProject();
         checkNotNull(project);
     }
+
+    @Override
+    protected boolean needComputeJobBucket() {
+        return false;
+    }
 }

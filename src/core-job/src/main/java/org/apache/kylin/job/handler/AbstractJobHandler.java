@@ -72,9 +72,15 @@ public abstract class AbstractJobHandler {
         }, jobParam.getProject(), 1);
     }
 
+    protected boolean needComputeJobBucket() {
+        return true;
+    }
+
     protected final void doHandle(JobParam jobParam) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        ExecutableUtil.computeJobBucket(jobParam);
+        if (needComputeJobBucket()) {
+            ExecutableUtil.computeJobBucket(jobParam);
+        }
         AbstractExecutable job = createJob(jobParam);
         if (job == null) {
             log.info("Job {} no need to create job ", jobParam);

@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import lombok.SneakyThrows;
+import org.apache.commons.io.IOUtils;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
@@ -892,10 +894,13 @@ public class JobService extends BasicService {
         return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
+    @SneakyThrows
     public InputStream getAllJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
-        return executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE).getVerboseMsgStream();
+        val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
+        return Optional.ofNullable(output.getVerboseMsgStream())
+                .orElse(IOUtils.toInputStream(output.getVerboseMsg(), "UTF-8"));
     }
 
     /**

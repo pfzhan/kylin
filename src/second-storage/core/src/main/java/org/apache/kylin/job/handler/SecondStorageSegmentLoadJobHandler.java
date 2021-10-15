@@ -81,6 +81,11 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
     }
 
     @Override
+    protected boolean needComputeJobBucket() {
+        return false;
+    }
+
+    @Override
     protected void checkBeforeHandle(JobParam jobParam) {
         String model = jobParam.getModel();
         String project = jobParam.getProject();
