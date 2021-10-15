@@ -338,11 +338,15 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         }
     }
 
-    protected void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime) {
+    protected void exportSparkLog(File exportDir, long startTime, long endTime, File recordTime, String queryId) {
         // job spark log
         Future sparkLogTask = executorService.submit(() -> {
             recordTaskStartTime(SPARK_LOGS);
-            KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
+            if (StringUtils.isEmpty(queryId)) {
+                KylinLogTool.extractFullDiagSparderLog(exportDir, startTime, endTime);
+            } else {
+                KylinLogTool.extractQueryDiagSparderLog(exportDir, startTime, endTime);
+            }
             recordTaskExecutorTimeToFile(SPARK_LOGS, recordTime);
         });
 

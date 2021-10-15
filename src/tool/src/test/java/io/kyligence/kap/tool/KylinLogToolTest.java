@@ -420,7 +420,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         long startTime = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
         long endTime = DateTime.parse("2019-08-30").withTimeAtStartOfDay().getMillis() + 3600_000L;
 
-        KylinLogTool.extractSparderLog(mainDir, startTime, endTime);
+        KylinLogTool.extractFullDiagSparderLog(mainDir, startTime, endTime);
 
         FileUtils.deleteQuietly(new File(sourceLogsPath));
 
@@ -431,7 +431,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         // > 31 day
         long startTime2 = DateTime.parse("2019-07-28").withTimeAtStartOfDay().getMillis() + 3600_000L;
         long endTime2 = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
-        KylinLogTool.extractSparderLog(mainDir, startTime2, endTime2);
+        KylinLogTool.extractFullDiagSparderLog(mainDir, startTime2, endTime2);
     }
 
     @Test
@@ -455,7 +455,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         long startTime = DateTime.parse("2019-08-29").withTimeAtStartOfDay().getMillis() + 3600_000L;
         long endTime = DateTime.parse("2019-08-30").withTimeAtStartOfDay().getMillis() + 3600_000L;
 
-        KylinLogTool.extractSparderLog(mainDir, startTime, endTime);
+        KylinLogTool.extractFullDiagSparderLog(mainDir, startTime, endTime);
 
         for (String childDir : childDirs) {
             Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
@@ -504,6 +504,65 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(
                 FileUtils.readFileToString(new File(mainDir, "logs/kylin.query.log")).contains("14f61937-e8fd-174c-c0d0-93b01f04173e"));
+    }
+
+    @Test
+    public void testExtractQuerySparderLog() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        String sourceLogsPath = SparkLogExtractorFactory.create(getTestConfig()).getSparderLogsDir(getTestConfig());
+        String normPath = sourceLogsPath.startsWith("file://") ? sourceLogsPath.substring(7) : sourceLogsPath;
+
+        String[] childDirs = { "2021-08-29/application_1563861406192_0139", "2021-08-30/application_1563861406192_0139"};
+        int i = 0;
+        for (String childDir : childDirs) {
+            i++;
+            File sparderLogDir = new File(normPath, childDir);
+            FileUtils.forceMkdir(sparderLogDir);
+
+            File tFile = new File(sparderLogDir, "executor-1.log");
+            if (i == 1) {
+                FileUtils.writeStringToFile(tFile,
+                        "2021-08-29T14:46:31,095 INFO  [main] spark.SecurityManager : Changing view acls to: yarn,root\n"
+                            + "2021-08-29T15:06:53,844 INFO  [dispatcher-Executor] executor.YarnCoarseGrainedExecutorBackend : Got assigned task 0");
+            } else {
+                FileUtils.writeStringToFile(tFile,
+                        "2021-08-30T14:46:31,095 INFO  [main] spark.SecurityManager : Changing view acls to: yarn,root\n"
+                            + "2021-08-30T15:06:53,844 INFO  [dispatcher-Executor] executor.YarnCoarseGrainedExecutorBackend : Got assigned task 0");
+            }
+        }
+
+        // null
+        long startTime1 = DateTime.parse("2021-08-29").getMillis();
+        long endTime1 = DateTime.parse("2021-08-30").getMillis();
+
+        KylinLogTool.extractQueryDiagSparderLog(mainDir, startTime1, endTime1);
+
+        for (String childDir : childDirs) {
+            if (childDir.equals("2021-08-29/application_1563861406192_0139")) {
+                Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
+            } else {
+                Assert.assertFalse(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
+            }
+        }
+
+        // sparder log
+        long startTime = DateTime.parse("2021-08-29").getMillis();
+        long endTime = DateTime.parse("2021-08-31").getMillis();
+
+        KylinLogTool.extractQueryDiagSparderLog(mainDir, startTime, endTime);
+
+        FileUtils.deleteQuietly(new File(sourceLogsPath));
+
+        for (String childDir : childDirs) {
+            Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
+        }
+
+        // time range
+        long startTime2 = DateTime.parse("2019-07-28").getMillis() + 3600_000L;
+        long endTime2 = DateTime.parse("2019-03-29").getMillis() + 3600_000L;
+        KylinLogTool.extractQueryDiagSparderLog(mainDir, startTime2, endTime2);
     }
 
     @Test

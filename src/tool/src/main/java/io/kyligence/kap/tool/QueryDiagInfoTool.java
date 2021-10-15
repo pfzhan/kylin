@@ -112,7 +112,7 @@ public class QueryDiagInfoTool extends AbstractInfoExtractorTool{
 
         exportConf(exportDir, recordTime, includeConf, includeBin);
 
-        exportSparkLog(exportDir, startTime, endTime, recordTime);
+        exportSparkLog(exportDir, startTime, endTime, recordTime, queryId);
 
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 

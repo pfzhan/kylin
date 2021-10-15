@@ -156,7 +156,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         exportConf(exportDir, recordTime, includeConf, includeBin);
         exportInfluxDBMetrics(exportDir, recordTime);
 
-        exportSparkLog(exportDir, startTime, endTime, recordTime);
+        exportSparkLog(exportDir, startTime, endTime, recordTime, null);
 
         exportKgLogs(exportDir, startTime, endTime, recordTime);
 

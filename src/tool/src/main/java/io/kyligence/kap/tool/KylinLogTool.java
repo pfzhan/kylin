@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -492,6 +493,118 @@ public class KylinLogTool {
     }
 
     /**
+     * extract sparder log by time range
+     * for query diagnosis
+     *
+     * @param exportDir
+     * @param startTime
+     * @param endTime
+     */
+    public static void extractQueryDiagSparderLog(File exportDir, long startTime, long endTime) {
+        File sparkLogsDir = new File(exportDir, "spark_logs");
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        try {
+            FileUtils.forceMkdir(sparkLogsDir);
+            if (!checkTimeRange(startTime, endTime)) {
+                return;
+            }
+
+            DateTime date = new DateTime(startTime);
+            while (date.getMillis() <= endTime) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("Sparder log task is interrupt");
+                }
+                String sourceLogsPath = getSourceLogPath(kylinConfig, date);
+                FileSystem sourceFileSystem = HadoopUtil.getFileSystem(sourceLogsPath);
+                if (sourceFileSystem.exists(new Path(sourceLogsPath))) {
+                    File sparkLogsDateDir = new File(sparkLogsDir, date.toString("yyyy-MM-dd"));
+                    FileUtils.forceMkdir(sparkLogsDateDir);
+
+                    FileStatus[] sourceAppFiles = sourceFileSystem.listStatus(new Path(sourceLogsPath));
+                    for (FileStatus sourceAppFile : sourceAppFiles) {
+                        extractAppDirSparderLog(sourceAppFile, sparkLogsDateDir, startTime, endTime);
+                    }
+                }
+                if (kylinConfig.cleanDiagTmpFile()) {
+                    sourceFileSystem.delete(new Path(sourceLogsPath), true);
+                    logger.info("Clean tmp spark logs {}", sourceLogsPath);
+                }
+                date = date.plusDays(1);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to extract query sparder log, ", e);
+        }
+    }
+
+    private static void extractAppDirSparderLog(FileStatus fileStatus, File sparkLogsDateDir, long startTime, long endTime) {
+        File exportAppDir = new File(sparkLogsDateDir, fileStatus.getPath().getName());
+
+        try {
+            FileUtils.forceMkdir(exportAppDir);
+            FileSystem sourceExecutorFiles = HadoopUtil.getFileSystem(fileStatus.getPath());
+            if (sourceExecutorFiles.exists(fileStatus.getPath())) {
+                FileStatus[] executors = sourceExecutorFiles.listStatus(fileStatus.getPath());
+                for (FileStatus sourceExecutorFile : executors) {
+                    FileSystem executorFileSystem = HadoopUtil.getFileSystem(sourceExecutorFile.getPath());
+                    Pair<String, String> timeRange = new Pair<>(new DateTime(startTime).toString(SECOND_DATE_FORMAT),
+                            new DateTime(endTime).toString(SECOND_DATE_FORMAT));
+                    File exportExecutorsDir = new File(exportAppDir, sourceExecutorFile.getPath().getName());
+                    extractExecutorByTimeRange(executorFileSystem, timeRange, exportExecutorsDir, sourceExecutorFile.getPath());
+
+                    if (FileUtils.sizeOf(exportExecutorsDir) == 0) {
+                        FileUtils.deleteQuietly(exportExecutorsDir);
+                    }
+                }
+            }
+            if (FileUtils.sizeOf(exportAppDir) == 0) {
+                FileUtils.deleteQuietly(exportAppDir);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to extract sparder log in application directory, ", e);
+        }
+    }
+
+    private static void extractExecutorByTimeRange(FileSystem logFile, Pair<String, String> timeRange, File distFile, Path path) {
+        Preconditions.checkNotNull(logFile);
+        Preconditions.checkNotNull(path);
+
+        final String charsetName = Charset.defaultCharset().name();
+        try (FSDataInputStream in = logFile.open(path);
+             BufferedReader br = new BufferedReader(new InputStreamReader(in, charsetName));
+             OutputStream out = new FileOutputStream(distFile);
+             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charsetName))) {
+            boolean extract = false;
+            boolean stdLogNotFound = true;
+            Pattern pattern = Pattern.compile(LOG_PATTERN);
+            String log;
+            while ((log = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(log);
+
+                if (matcher.find()) {
+                    stdLogNotFound = false;
+                    String logDate = matcher.group(1);
+                    if (logDate.compareTo(timeRange.getSecond()) > 0) {
+                        break;
+                    }
+
+                    if (extract || logDate.compareTo(timeRange.getFirst()) >= 0) {
+                        extract = true;
+                        bw.write(log);
+                        bw.write('\n');
+                    }
+                } else if (extract || stdLogNotFound) {
+                    bw.write(log);
+                    bw.write('\n');
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Failed to extract executor from {} to {}", path, distFile.getAbsolutePath(),
+                    e);
+        }
+    }
+
+    /**
      * extract kylin log
      *
      * @param exportDir
@@ -780,13 +893,12 @@ public class KylinLogTool {
      * @param startTime
      * @param endTime
      */
-    public static void extractSparderLog(File exportDir, long startTime, long endTime) {
+    public static void extractFullDiagSparderLog(File exportDir, long startTime, long endTime) {
         File sparkLogsDir = new File(exportDir, "spark_logs");
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         try {
             FileUtils.forceMkdir(sparkLogsDir);
-            if (endTime < startTime) {
-                logger.error("endTime: {} < startTime: {}", endTime, startTime);
+            if (!checkTimeRange(startTime, endTime)) {
                 return;
             }
 
@@ -801,8 +913,7 @@ public class KylinLogTool {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterruptedException("sparder log task is interrupt");
                 }
-                String sourceLogsPath = SparkLogExtractorFactory.create(kylinConfig).getSparderLogsDir(kylinConfig)
-                        + File.separator + date.toString("yyyy-MM-dd");
+                String sourceLogsPath = getSourceLogPath(kylinConfig, date);
                 FileSystem fs = HadoopUtil.getFileSystem(sourceLogsPath);
                 if (fs.exists(new Path(sourceLogsPath))) {
                     fs.copyToLocalFile(false, new Path(sourceLogsPath), new Path(sparkLogsDir.getAbsolutePath()), true);
@@ -817,6 +928,19 @@ public class KylinLogTool {
         } catch (Exception e) {
             logger.error("Failed to extract sparder log, ", e);
         }
+    }
+
+    private static String getSourceLogPath(KylinConfig kylinConfig, DateTime date) {
+            return SparkLogExtractorFactory.create(kylinConfig).getSparderLogsDir(kylinConfig)
+                    + File.separator + date.toString("yyyy-MM-dd");
+    }
+
+    private static boolean checkTimeRange(long startTime, long endTime) {
+        if (endTime < startTime) {
+            logger.error("Time range is error, endTime: {} < startTime: {}", endTime, startTime);
+            return false;
+        }
+        return true;
     }
 
     public static void extractKGLogs(File exportDir, long startTime, long endTime) {
