@@ -250,6 +250,8 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
     public void testSingleShard() throws Exception {
         try (JdbcDatabaseContainer<?> clickhouse = ClickHouseUtils.startClickHouse()) {
             build_load_query("testSingleShard", false, clickhouse);
+            EnvelopeResponse response = secondStorageEndpoint.tableSync(getProject());
+            Assertions.assertEquals(response.getCode(), "000");
         }
     }
 

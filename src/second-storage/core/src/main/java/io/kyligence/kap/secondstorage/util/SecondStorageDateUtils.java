@@ -33,6 +33,10 @@ import java.util.stream.Collectors;
 
 public class SecondStorageDateUtils {
 
+    public static boolean isInfinite(long start, long end) {
+        return start == 0 && end == Long.MAX_VALUE;
+    }
+
     /**
      * @param start Include
      * @param end   exclude
@@ -47,6 +51,9 @@ public class SecondStorageDateUtils {
     }
 
     public static List<Date> splitByDay(long start, long end) {
+        if (end == Long.MAX_VALUE) {
+            throw new IllegalArgumentException("segmentRange end is invalid.");
+        }
         List<Date> partitions = new ArrayList<>();
         while (start < end) {
             partitions.add(new Date(start));

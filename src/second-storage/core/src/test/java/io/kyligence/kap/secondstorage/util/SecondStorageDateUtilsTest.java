@@ -35,5 +35,13 @@ public class SecondStorageDateUtilsTest {
         List<String> expected = Arrays.asList("1992-02-01", "1992-02-02");
         List<String> result = SecondStorageDateUtils.splitByDayStr(696873600000L, 697046400000L);
         Assertions.assertIterableEquals(result, expected);
+
+        Exception exception = Assertions.assertThrows(IllegalArgumentException.class, () -> SecondStorageDateUtils.splitByDayStr(696873600000L, Long.MAX_VALUE));
+        Assertions.assertEquals("segmentRange end is invalid.", exception.getMessage());
+    }
+
+    @Test
+    public void testIsInfinite() {
+        Assertions.assertTrue(SecondStorageDateUtils.isInfinite(0, Long.MAX_VALUE));
     }
 }

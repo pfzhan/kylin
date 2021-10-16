@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -169,8 +170,11 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                         List<TablePartition> tablePartitions = tableData.getPartitions();
                         for (TablePartition tablePartition : tablePartitions) {
                             SecondStorageSegment secondStorageSegment = modelSegmentMap.get(tableFlow.getUuid()).getSegmentMap().get(tablePartition.getSegmentId());
-                            Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(),
-                                    SecondStorageDateUtils.splitByDayStr(secondStorageSegment.getStart(), secondStorageSegment.getEnd())
+                            List<String> partitions = Collections.singletonList("tuple()");
+                            if(!SecondStorageDateUtils.isInfinite(secondStorageSegment.getStart(), secondStorageSegment.getEnd())) {
+                                partitions = SecondStorageDateUtils.splitByDayStr(secondStorageSegment.getStart(), secondStorageSegment.getEnd());
+                            }
+                            Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(), partitions
                                             .stream().map(Objects::toString).collect(Collectors.toList()));
 
                             Set<String> existShardNodes = new HashSet<>(tablePartition.getShardNodes());
