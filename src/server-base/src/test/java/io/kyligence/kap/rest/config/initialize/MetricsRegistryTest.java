@@ -30,8 +30,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
 import org.apache.kylin.rest.util.SpringContext;
@@ -41,21 +43,29 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.codahale.metrics.MetricFilter;
+
+import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
+import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import lombok.val;
+import lombok.var;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({ SpringContext.class, MetricsGroup.class, UserGroupInformation.class })
@@ -66,6 +76,9 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
     private String project = "default";
 
     Map<String, Long> totalStorageSizeMap;
+
+    @InjectMocks
+    private final ModelService modelService = Mockito.spy(new ModelService());
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -132,6 +145,25 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
         MetricsRegistry.registerMicrometerProjectMetrics(getTestConfig(), project, "localhost");
         List<Meter> meters = meterRegistry.getMeters();
         Assert.assertEquals(300, meters.size());
+
+        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setProject(project);
+        executable.setJobType(JobTypeEnum.INDEX_BUILD);
+        manager.addJob(executable);
+
+        var result = MetricsController.getDefaultMetricRegistry()
+                .getGauges(MetricFilter.contains(MetricsName.JOB_RUNNING_GAUGE.getVal()));
+        Assert.assertEquals(1L, result.get(result.firstKey()).getValue());
+
+        result = MetricsController.getDefaultMetricRegistry()
+                .getGauges(MetricFilter.contains(MetricsName.JOB_ERROR_GAUGE.getVal()));
+        Assert.assertEquals(0L, result.get(result.firstKey()).getValue());
+
+        result = MetricsController.getDefaultMetricRegistry()
+                .getGauges(MetricFilter.contains(MetricsName.JOB_PENDING_GAUGE.getVal()));
+        Assert.assertEquals(1L, result.get(result.firstKey()).getValue());
     }
 
     @Test

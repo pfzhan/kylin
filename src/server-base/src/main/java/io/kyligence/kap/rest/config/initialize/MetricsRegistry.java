@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -169,16 +170,19 @@ public class MetricsRegistry {
     static void registerJobMetrics(KylinConfig config, String project) {
         final NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
         MetricsGroup.newGauge(MetricsName.JOB_ERROR_GAUGE, MetricsCategory.PROJECT, project, () -> {
-            List<AbstractExecutable> list = executableManager.getAllExecutables();
-            return list == null ? 0 : list.stream().filter(e -> e.getStatus() == ExecutableState.ERROR).count();
+            List<ExecutablePO> list = executableManager.getAllJobs();
+            return list == null ? 0 : list.stream().filter(e -> ExecutableState.ERROR.name().equals(e.getOutput().getStatus())).count();
         });
         MetricsGroup.newGauge(MetricsName.JOB_RUNNING_GAUGE, MetricsCategory.PROJECT, project, () -> {
-            List<AbstractExecutable> list = executableManager.getAllExecutables();
-            return list == null ? 0 : list.stream().filter(e -> e.getStatus().isProgressing()).count();
+            List<ExecutablePO> list = executableManager.getAllJobs();
+            return list == null ? 0 : list.stream().filter(e -> {
+                String status = e.getOutput().getStatus();
+                return ExecutableState.RUNNING.name().equals(status) || ExecutableState.READY.name().equals(status);
+            }).count();
         });
         MetricsGroup.newGauge(MetricsName.JOB_PENDING_GAUGE, MetricsCategory.PROJECT, project, () -> {
-            List<AbstractExecutable> list = executableManager.getAllExecutables();
-            return list == null ? 0 : list.stream().filter(e -> e.getStatus() == ExecutableState.READY).count();
+            List<ExecutablePO> list = executableManager.getAllJobs();
+            return list == null ? 0 : list.stream().filter(e -> ExecutableState.READY.name().equals(e.getOutput().getStatus())).count();
         });
     }
 

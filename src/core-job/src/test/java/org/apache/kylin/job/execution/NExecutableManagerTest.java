@@ -697,11 +697,11 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, Collections.emptyMap(), null, null);
 
-        AbstractExecutable result = manager.getLastSuccessExecByModel(modelId);
-        Assert.assertEquals(result.getTargetSubject(), modelId);
+        long result = manager.getLastSuccessExecDurationByModel(modelId, manager.getAllJobs());
+        Assert.assertEquals(result, executable.getDuration());
 
-        result = manager.getLastSuccessExecByModel("3");
-        Assert.assertNull(result);
+        result = manager.getLastSuccessExecDurationByModel("3", manager.getAllJobs());
+        Assert.assertEquals(0, result);
 
     }
 
@@ -723,11 +723,11 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
 
-        AbstractExecutable result = manager.getMaxDurationRunningExecByModel(modelId);
-        Assert.assertEquals(result.getTargetSubject(), modelId);
+        long result = manager.getMaxDurationRunningExecDurationByModel(modelId, manager.getAllJobs());
+        Assert.assertEquals(result, executable.getDuration());
 
-        result = manager.getMaxDurationRunningExecByModel("3");
-        Assert.assertNull(result);
+        result = manager.getMaxDurationRunningExecDurationByModel("3", manager.getAllJobs());
+        Assert.assertEquals(0, result);
     }
 
     @Test

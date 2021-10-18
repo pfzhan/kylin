@@ -505,31 +505,54 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
+        return listExecutablePOByModelAndStatus(model, predicate, jobTypes)
+                .stream()
+                .map(this::fromPO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
+                                                               List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
         boolean allPass = Array.isEmpty(jobTypes);
-        return executableDao.getJobs().stream() //
+        return jobs.stream() //
                 .filter(job -> job.getTargetModel() != null) //
                 .filter(job -> job.getTargetModel().equals(model)) //
                 .filter(job -> predicate.test(ExecutableState.valueOf(job.getOutput().getStatus()))) //
                 .filter(job -> allPass || Lists.newArrayList(jobTypes).contains(job.getJobType())) //
-                .map(this::fromPO).collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
-    public AbstractExecutable getLastSuccessExecByModel(String modelId, JobTypeEnum... jobTypes) {
-        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId,
-                state -> ExecutableState.SUCCEED == state, jobTypes);
-        if (CollectionUtils.isEmpty(executables)) {
-            return null;
-        }
-        return executables.stream().max(Comparator.comparingLong(AbstractExecutable::getEndTime)).orElse(null);
+    public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
+                                                               JobTypeEnum... jobTypes) {
+        return listExecutablePOByModelAndStatus(model, predicate, executableDao.getJobs(), jobTypes);
     }
 
-    public AbstractExecutable getMaxDurationRunningExecByModel(String modelId, JobTypeEnum... jobTypes) {
-        List<AbstractExecutable> executables = listExecByModelAndStatus(modelId,
-                state -> ExecutableState.RUNNING == state, jobTypes);
+    public List<ExecutablePO> getAllJobs() {
+        return executableDao.getJobs();
+    }
+
+    public long getLastSuccessExecDurationByModel(String modelId, List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
+        List<ExecutablePO> executables = listExecutablePOByModelAndStatus(modelId,
+                state -> ExecutableState.SUCCEED == state, jobs, jobTypes);
         if (CollectionUtils.isEmpty(executables)) {
-            return null;
+            return 0L;
         }
-        return executables.stream().max(Comparator.comparingLong(AbstractExecutable::getDuration)).orElse(null);
+        return executables.stream()
+                .max(Comparator.comparingLong(exec -> exec.getOutput().getEndTime()))
+                .map(exec -> AbstractExecutable.getDuration(getOutput(exec.getId())))
+                .orElse(0L);
+    }
+
+    public long getMaxDurationRunningExecDurationByModel(String modelId, List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
+        List<ExecutablePO> executables = listExecutablePOByModelAndStatus(modelId,
+                state -> ExecutableState.RUNNING == state, jobs, jobTypes);
+        if (CollectionUtils.isEmpty(executables)) {
+            return 0L;
+        }
+        return executables.stream()
+                .map(exec -> AbstractExecutable.getDuration(getOutput(exec.getId())))
+                .max(Long::compareTo)
+                .orElse(0L);
     }
 
     public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
