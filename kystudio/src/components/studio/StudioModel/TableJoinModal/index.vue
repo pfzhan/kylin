@@ -137,6 +137,7 @@ vuex.registerModule(['modals', 'TableJoinModal'], store)
   },
   locales
 })
+
 export default class TableJoinModal extends Vue {
   isLoading = false
   isFormShow = false
@@ -167,6 +168,7 @@ export default class TableJoinModal extends Vue {
     {value: 'MANY_TO_MANY', label: 'manyToMany'}
   ]
   isPrecompute = true
+  joinConditionBackUp = null
   // get showTRelationTips () {
   //   if (this.selectTableRelation === 'ONE_TO_MANY' || this.selectTableRelation === 'MANY_TO_MANY') {
   //     return true
@@ -246,6 +248,7 @@ export default class TableJoinModal extends Vue {
       this.showDetails = false
       this.isErrorValue = []
     }
+    newVal && this.backUpJoinCondition()
   }
   @Watch('joinType')
   @Watch('joinColumns', {deep: true})
@@ -264,6 +267,33 @@ export default class TableJoinModal extends Vue {
       return {...item, isError: this.isErrorValue.includes(item.value)}
     })
   }
+
+  // 格式化一开始的 join 关系
+  backUpJoinCondition () {
+    let {join_tables: joinInfo, tables} = this.form.modelInstance
+    joinInfo = joinInfo.map(item => {
+      return {
+        ...item,
+        selectP: Object.keys(tables).filter(it => tables[it].alias === item.alias).length > 0 ? Object.keys(tables).filter(it => tables[it].alias === item.alias)[0] : '',
+        selectF: Object.keys(tables).filter(it => tables[it].alias === (item.join.foreign_key[0] ? item.join.foreign_key[0].split('.')[0] : '')).length > 0 ? Object.keys(tables).filter(it => tables[it].alias === (item.join.foreign_key[0] ? item.join.foreign_key[0].split('.')[0] : ''))[0] : ''
+      }
+    })
+    const joinCondition = joinInfo.filter(it => it.selectP === this.selectP && it.selectF === this.selectF)[0]
+    if (!joinCondition) return
+    this.joinConditionBackUp = Object.freeze({
+      selectF: joinCondition.selectF,
+      selectP: joinCondition.selectP,
+      joinData: {
+        foreign_key: joinCondition.join.foreign_key,
+        op: joinCondition.join.op,
+        primary_key: joinCondition.join.primary_key
+      },
+      selectTableRelation: joinCondition.join_relation_type,
+      joinType: joinCondition.join.type,
+      isPrecompute: joinCondition.flattenable
+    })
+  }
+
   changeFTable () {
     this.joinColumns.foreign_key = ['']
   }
@@ -637,11 +667,18 @@ export default class TableJoinModal extends Vue {
       this.resetModalForm()
       this.callback && this.callback({
         isSubmit: isSubmit,
-        data: data
+        data: data,
+        isChange: this.compareJoinCondition(data)
       })
+      this.joinConditionBackUp = null
     }, 300)
   }
-  handleClick () {
+  compareJoinCondition (data) {
+    if (!this.joinConditionBackUp && data.joinType === 'LEFT') return false
+    let newData = JSON.parse(JSON.stringify(data))
+    delete newData.anti_flatten_lookups
+    delete newData.anti_flatten_cc
+    return JSON.stringify(this.joinConditionBackUp) !== JSON.stringify(newData)
   }
   mounted () {
   }

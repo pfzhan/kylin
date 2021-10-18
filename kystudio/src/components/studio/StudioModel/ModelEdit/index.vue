@@ -676,6 +676,8 @@ export default class ModelEdit extends Vue {
     currentEditAlias: ''
   }
   delTipVisible = false
+  // 记录 join 关系被更改的维表 guid
+  exchangeJoinTableList = []
 
   get disableDelDimTips () {
     if (this.isHybridModel) {
@@ -1373,12 +1375,19 @@ export default class ModelEdit extends Vue {
     data.modelInstance = this.modelInstance
     return new Promise((resolve, reject) => {
       // 弹出框弹出
-      this.showJoinDialog(data).then(({isSubmit, data}) => {
+      this.showJoinDialog(data).then(({isSubmit, data, isChange}) => {
         // 保存的回调
         if (isSubmit) {
           resolve(data)
           this.saveLinkData(data)
-          if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
+          if (isChange && !this.exchangeJoinTableList.includes(data.selectF)) {
+            this.exchangeJoinTableList.push(data.selectF)
+          } else if (!isChange) {
+            const index = this.exchangeJoinTableList.indexOf(data.selectF)
+            index >= 0 && this.exchangeJoinTableList.splice(index, 1)
+          }
+          !this.exchangeJoinTableList.length && (this.isIgnore = false)
+          if (this.modelData.available_indexes_count > 0 && this.exchangeJoinTableList.length > 0) {
             this.showChangeTips()
           }
         }

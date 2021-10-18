@@ -806,7 +806,7 @@ export default class JobsList extends Vue {
                 this.getJobDetail({project: this.selectedJob.project, job_id: this.selectedJob.id}).then((res) => {
                   handleSuccess(res, (data) => {
                     this.selectedJob = this.jobsList[selectedIndex]
-                    this.selectedJob['details'] = data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages}))
+                    this.selectedJob['details'] = data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : item.sub_stages}))
                     if (this.expandSegmentDetailId) {
                       const jobDetail = data.filter(it => it.id === this.expandSegmentDetailId)
                       const detail = this.definitionStopErrorStatus(jobDetail[0])
@@ -858,10 +858,11 @@ export default class JobsList extends Vue {
   }
 
   // 非多 segment 时，子步骤状态处理
-  definitionSubTaskStopErrorStatus (subTask) {
+  definitionSubTaskStopErrorStatus (subTask, data) {
     const tasks = subTask
+    const hasErrorSteps = data.filter(it => it.step_status === 'ERROR')
     const hasErrorTask = tasks.filter(it => it.step_status === 'ERROR')
-    if (hasErrorTask.length) {
+    if (hasErrorTask.length || hasErrorSteps.length) {
       tasks.forEach(tk => {
         if (!['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIP'].includes(tk.step_status)) {
           tk.step_status = 'ERROR_STOP'
@@ -1360,7 +1361,7 @@ export default class JobsList extends Vue {
       this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
-            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages) : item.sub_stages})))
+            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : item.sub_stages})))
             this.isShowJobBtn()
             // this.setRightBarTop()
           })
