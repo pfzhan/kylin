@@ -393,7 +393,7 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
                                     relBuilder.peek().getRowType().getFieldList(), adjustments));
                     newArgs.add(whenNode);
                     RexNode thenNode = valuesList.get(whenIndex);
-                    if (isCast(thenNode)) {
+                    if (isNeedTackCast(thenNode)) {
                         thenNode = relBuilder.getRexBuilder().makeCast(((RexCall) thenNode).type,
                                 relBuilder.getRexBuilder().makeInputRef(relBuilder.peek(),
                                         aggExpression.getTopProjValuesInput()[whenIndex]));
@@ -404,7 +404,7 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
                     newArgs.add(thenNode);
                 }
                 RexNode elseNode = valuesList.get(whenIndex);
-                if (isCast(elseNode)) {
+                if (isNeedTackCast(elseNode)) {
                     elseNode = relBuilder.getRexBuilder().makeCast(((RexCall) elseNode).type, relBuilder.getRexBuilder()
                             .makeInputRef(relBuilder.peek(), aggExpression.getTopProjValuesInput()[whenIndex]));
                 } else if (isNotNullLiteral(elseNode)) {// TODO? keep null or sum(null)
@@ -456,6 +456,10 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
 
     protected boolean isValidAggColumnExpr(RexNode rexNode) {
         return true;
+    }
+
+    protected boolean isNeedTackCast(RexNode rexNode) {
+        return isCast(rexNode);
     }
 
     private static final String BOTTOM_AGG_PREFIX = "SUB_AGG$";

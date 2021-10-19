@@ -55,6 +55,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
@@ -64,6 +65,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.kyligence.kap.query.util.KapQueryUtil.isCast;
 import static io.kyligence.kap.query.util.KapQueryUtil.isNullLiteral;
 import static io.kyligence.kap.query.util.KapQueryUtil.isPlainTableColumn;
 
@@ -117,11 +119,18 @@ public class CountDistinctCaseWhenFunctionRule extends AbstractAggCaseWhenFuncti
         if (caseCall.getOperands().size() != 3) {
             return false;
         }
-        if (isNullLiteral(caseCall.getOperands().get(1)) && caseCall.getOperands().get(2) instanceof RexInputRef) {
-            return isPlainTableColumn(((RexInputRef) caseCall.getOperands().get(2)).getIndex(), inputProject.getInput(0));
-        }
-        if (isNullLiteral(caseCall.getOperands().get(2)) && caseCall.getOperands().get(1) instanceof RexInputRef) {
-            return isPlainTableColumn(((RexInputRef) caseCall.getOperands().get(1)).getIndex(), inputProject.getInput(0));
+        return isSimpleCaseWhen(inputProject, caseCall.getOperands().get(1), caseCall.getOperands().get(2))
+                || isSimpleCaseWhen(inputProject, caseCall.getOperands().get(2), caseCall.getOperands().get(1));
+    }
+
+    private boolean isSimpleCaseWhen(Project inputProject, RexNode n1, RexNode n2) {
+        if (isNullLiteral(n1)) {
+            if (n2 instanceof RexInputRef) {
+                return isPlainTableColumn(((RexInputRef) n2).getIndex(), inputProject.getInput(0));
+            } else if (isCast(n2) && ((RexCall) n2).getOperands().get(0) instanceof RexInputRef) {
+                return isPlainTableColumn(((RexInputRef) ((RexCall) n2).getOperands().get(0)).getIndex(),
+                        inputProject.getInput(0)) && !isNeedTackCast(n2);
+            }
         }
         return false;
     }
@@ -207,5 +216,16 @@ public class CountDistinctCaseWhenFunctionRule extends AbstractAggCaseWhenFuncti
     @Override
     protected boolean isValidAggColumnExpr(RexNode rexNode) {
         return !isNullLiteral(rexNode);
+    }
+
+    /**
+     * only successful non coerce cast can remove.
+     */
+    @Override
+    protected boolean isNeedTackCast(RexNode rexNode) {
+        if (!isCast(rexNode)) {
+            return false;
+        }
+        return !SqlTypeUtil.canCastFrom(rexNode.getType(), ((RexCall) rexNode).getOperands().get(0).getType(), false);
     }
 }
