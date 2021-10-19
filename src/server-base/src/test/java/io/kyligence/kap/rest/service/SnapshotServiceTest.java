@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -74,6 +75,7 @@ import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.SnapshotCheckResponse;
 import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
+import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
 import lombok.val;
@@ -539,6 +541,31 @@ public class SnapshotServiceTest extends NLocalFileMetadataTestCase {
                 .thenReturn(Arrays.asList(Pair.newPair(tableDesc, null)));
         SnapshotColResponse response = snapshotService.reloadPartitionCol(PROJECT, tableName[0]);
         Assert.assertEquals(partColName, response.getPartitionCol());
+    }
+
+    @Test
+    public void testGetPartitions() {
+        String project = "default";
+        Map<String, String> map = Maps.newHashMap();
+        map.put("SSB.SUPPLIER", "S_NATION");
+        map.put("SSB.DATES", "S_NATION");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NTableMetadataManager tbgr = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+            TableDesc tableDesc = tbgr.getTableDesc("SSB.SUPPLIER");
+            TableDesc tableDescCopy = tbgr.copyForWrite(tableDesc);
+            tableDescCopy.setPartitionColumn("S_NATION");
+            tableDesc.setSourceType(9);
+            tbgr.saveSourceTable(tableDescCopy);
+            return null;
+        }, project);
+
+        SnapshotConfigRequest request = new SnapshotConfigRequest();
+        request.setSnapshotManualManagementEnabled(true);
+        projectService.updateSnapshotConfig(project, request);
+        Map<String, SnapshotPartitionsResponse> responses = snapshotService.getPartitions(project, map);
+        assert responses.get("SSB.SUPPLIER").getNotReadyPartitions().size() == 2;
+        assert responses.get("SSB.SUPPLIER").getReadyPartitions().size() == 0;
+        assert responses.get("SSB.DATES") == null;
     }
 
     private String getSnapshotPath(String tableName) {

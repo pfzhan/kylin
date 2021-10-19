@@ -47,7 +47,17 @@ export default {
     excludePartitionColumnTip: 'Can\'t save partition settings. The partition column {partitionColumn} hasn\'t been synced yet. Please try reloading the table {tableName} in the data source.',
     jumpToDatasource: 'Reload Now',
     waitMoment: 'Later',
-    undefinedPartitionColErrorTip: 'This source table has no partition set yet.'
+    undefinedPartitionColErrorTip: 'This source table has no partition set yet.',
+    partitionValues: 'Partition Value',
+    fullRefresh: 'Full refresh',
+    incrementalFresh: 'Incremental refresh',
+    customRefresh: 'Custom partition value refresh',
+    incrementalFreshTip: 'For the snapshots with partitioning, only the data with new partition would be refreshed (without refreshing the built historical data). It is recommended to check this option if the historical data has no update.',
+    customRefreshTip: 'Refresh the data according to the selected partition value',
+    fullFreshTip: 'Refresh all data',
+    readyPartitions: 'Built',
+    notReadyPartitions: 'Not built',
+    noPartitionValuesError: 'Partition value can\'t be empty'
   },
   'zh-cn': {
     snapshotList: '快照列表',
@@ -97,6 +107,16 @@ export default {
     excludePartitionColumnTip: '保存分区设置失败，分区列 {partitionColumn} 尚未同步。请先在数据源页面重载表 {tableName}。',
     jumpToDatasource: '去重载',
     waitMoment: '稍后再说',
-    undefinedPartitionColErrorTip: '该源表未定义分区。'
+    undefinedPartitionColErrorTip: '该源表未定义分区。',
+    partitionValues: '分区值',
+    fullRefresh: '全量刷新',
+    incrementalFresh: '增量刷新',
+    customRefresh: '自定义分区值刷新',
+    incrementalFreshTip: '对于设置了源表分区的快照，将仅刷新新增的分区值数据（已构建的历史数据不刷新）。建议历史数据无更新时选择',
+    customRefreshTip: '按照所选分区值刷新数据',
+    fullFreshTip: '刷新全部数据',
+    readyPartitions: '已构建',
+    notReadyPartitions: '未构建',
+    noPartitionValuesError: '分区值不为空'
   }
 }

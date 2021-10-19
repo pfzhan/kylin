@@ -43,8 +43,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class SnapshotPartitionBuilder extends SnapshotBuilder {
 
   @throws[IOException]
-  def buildSnapshot(ss: SparkSession, table: TableDesc, partitionCol: String): Unit = {
-    executeBuildSnapshot(ss, table, partitionCol, table.getNotReadyPartitions.asScala.toSet)
+  def buildSnapshot(ss: SparkSession, table: TableDesc, partitionCol: String, partitions: java.util.Set[String]): Unit = {
+    executeBuildSnapshot(ss, table, partitionCol, partitions.asScala.toSet)
   }
 
   def checkPointForPartition(project: String, tableName: String, partition: String, result: Result): Unit = {
@@ -55,11 +55,14 @@ class SnapshotPartitionBuilder extends SnapshotBuilder {
         val copyTable = tableMetadataManager.copyForWrite(tableMetadataManager.getTableDesc(tableName))
         val copyExt = tableMetadataManager.copyForWrite(tableMetadataManager.getOrCreateTableExt(tableName))
         if (result.totalRows != -1) {
-          copyExt.setTotalRows(copyExt.getTotalRows + result.totalRows)
+          copyExt.setTotalRows(copyExt.getTotalRows + result.totalRows - copyTable.getPartitionRow(partition))
           copyTable.putPartitionSize(partition, result.originalSize)
+          copyTable.setSnapshotTotalRows(copyTable.getSnapshotTotalRows + result.totalRows - copyTable.getPartitionRow(partition))
+          copyTable.putPartitionRow(partition, result.totalRows)
         } else {
           // -1 in partitionSize means not build
           copyTable.putPartitionSize(partition, 0)
+          copyTable.putPartitionRow(partition, 0)
         }
         tableMetadataManager.updateTableDesc(copyTable)
         tableMetadataManager.saveTableExt(copyExt)

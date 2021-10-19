@@ -54,6 +54,7 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.apache.spark.sql.types.StructType;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 
@@ -135,6 +136,10 @@ public class CsvSource implements ISource {
 
         @Override
         public Set<String> getTablePartitions(String database, String table, String prj, String partitionCols) {
+            if (table.equalsIgnoreCase("SUPPLIER") && partitionCols.equalsIgnoreCase("S_NATION")) {
+                Set<String> partitions = Sets.newHashSet("2019-01-03", "2019-01-04");
+                return partitions;
+            }
             throw new UnsupportedOperationException();
         }
 

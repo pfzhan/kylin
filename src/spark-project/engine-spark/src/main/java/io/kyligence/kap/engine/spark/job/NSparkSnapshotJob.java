@@ -24,7 +24,10 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnTable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -32,6 +35,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.sparkproject.guava.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import lombok.SneakyThrows;
 
 /**
  *
@@ -46,19 +50,20 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
     }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, String partitionCol,
-            boolean incrementBuild, boolean isRefresh, String yarnQueue, Object tag) {
+            boolean incrementBuild, Set<String> partitionToBuild, boolean isRefresh, String yarnQueue, Object tag) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
         return create(tableDesc, submitter, jobType, RandomUtil.randomUUIDStr(), partitionCol, incrementBuild,
-                yarnQueue, tag);
+                partitionToBuild, yarnQueue, tag);
     }
 
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, boolean isRefresh, String yarnQueue) {
         JobTypeEnum jobType = isRefresh ? JobTypeEnum.SNAPSHOT_REFRESH : JobTypeEnum.SNAPSHOT_BUILD;
-        return create(tableDesc, submitter, jobType, RandomUtil.randomUUIDStr(), null, false, yarnQueue, null);
+        return create(tableDesc, submitter, jobType, RandomUtil.randomUUIDStr(), null, false, null, yarnQueue, null);
     }
 
+    @SneakyThrows
     public static NSparkSnapshotJob create(TableDesc tableDesc, String submitter, JobTypeEnum jobType, String jobId,
-            String partitionCol, boolean incrementalBuild, String yarnQueue, Object tag) {
+            String partitionCol, boolean incrementalBuild, Set<String> partitionToBuild, String yarnQueue, Object tag) {
         Preconditions.checkArgument(submitter != null);
         NSparkSnapshotJob job = new NSparkSnapshotJob();
         String project = tableDesc.getProject();
@@ -75,6 +80,10 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
 
         job.setParam(NBatchConstants.P_INCREMENTAL_BUILD, incrementalBuild + "");
         job.setParam(NBatchConstants.P_SELECTED_PARTITION_COL, partitionCol);
+        if (partitionToBuild != null) {
+            job.setParam(NBatchConstants.P_SELECTED_PARTITION_VALUE, JsonUtil.writeValueAsString(partitionToBuild));
+        }
+
         job.setSparkYarnQueueIfEnabled(project, yarnQueue);
         job.setTag(tag);
 
@@ -87,4 +96,5 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
     public NSparkSnapshotBuildingStep getSnapshotBuildingStep() {
         return getTask(NSparkSnapshotBuildingStep.class);
     }
+
 }

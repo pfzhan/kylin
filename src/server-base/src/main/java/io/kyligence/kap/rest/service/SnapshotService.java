@@ -68,6 +68,7 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.ISource;
+import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,6 +93,7 @@ import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.SnapshotCheckResponse;
 import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
+import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import lombok.val;
 
@@ -175,11 +177,12 @@ public class SnapshotService extends BasicService {
                     finalOptions.put(tableDesc.getIdentity(), option);
 
                     logger.info(
-                            "create snapshot job with args, table: {}, selectedPartCol: {}, incrementBuild: {},isRefresh: {}",
-                            tableDesc.getIdentity(), option.getPartitionCol(), option.isIncrementalBuild(), isRefresh);
+                            "create snapshot job with args, table: {}, selectedPartCol: {}, selectedPartition{}, incrementBuild: {},isRefresh: {}",
+                            tableDesc.getIdentity(), option.getPartitionCol(), option.getPartitionsToBuild(),
+                            option.isIncrementalBuild(), isRefresh);
 
                     NSparkSnapshotJob job = NSparkSnapshotJob.create(tableDesc, getUsername(), option.getPartitionCol(),
-                            option.isIncrementalBuild(), isRefresh, yarnQueue, tag);
+                            option.isIncrementalBuild(), option.getPartitionsToBuild(), isRefresh, yarnQueue, tag);
                     ExecutablePO po = NExecutableManager.toPO(job, project);
                     po.setPriority(priority);
                     execMgr.addJob(po);
@@ -227,10 +230,12 @@ public class SnapshotService extends BasicService {
 
         boolean incrementalBuild = false;
         String selectedPartCol = null;
+        Set<String> partitionsToBuild = null;
 
         if (option != null) {
             selectedPartCol = StringUtils.isEmpty(option.getPartitionCol()) ? null : option.getPartitionCol();
             incrementalBuild = option.isIncrementalBuild();
+            partitionsToBuild = option.getPartitionsToBuild();
         } else {
             if (tableDesc.getLastSnapshotPath() != null) {
                 selectedPartCol = tableDesc.getSelectedSnapshotPartitionCol();
@@ -242,7 +247,7 @@ public class SnapshotService extends BasicService {
         if (!StringUtils.equals(selectedPartCol, tableDesc.getSnapshotPartitionCol())) {
             incrementalBuild = false;
         }
-        return new SnapshotRequest.TableOption(selectedPartCol, incrementalBuild);
+        return new SnapshotRequest.TableOption(selectedPartCol, incrementalBuild, partitionsToBuild);
     }
 
     private void checkTablePermission(Set<TableDesc> tables) {
@@ -431,10 +436,9 @@ public class SnapshotService extends BasicService {
         List<SnapshotInfoResponse> response = new ArrayList<>();
         tables.forEach(tableDesc -> {
             Pair<Integer, Integer> countPair = getModelCount(tableDesc);
-            TableExtDesc tableExtDesc = nTableMetadataManager.getOrCreateTableExt(tableDesc);
-            long totalRows = tableExtDesc.getTotalRows();
-            response.add(new SnapshotInfoResponse(tableDesc, totalRows, countPair.getFirst(), countPair.getSecond(),
-                    getSnapshotJobStatus(tableDesc, executables), getForbiddenColumns(tableDesc)));
+            response.add(new SnapshotInfoResponse(tableDesc, tableDesc.getSnapshotTotalRows(), countPair.getFirst(),
+                    countPair.getSecond(), getSnapshotJobStatus(tableDesc, executables),
+                    getForbiddenColumns(tableDesc)));
         });
 
         if (!statusFilter.isEmpty()) {
@@ -767,5 +771,36 @@ public class SnapshotService extends BasicService {
                 .get(0).getFirst();
         newTableDesc.init(project);
         return SnapshotColResponse.from(newTableDesc);
+    }
+
+    public Map<String, SnapshotPartitionsResponse> getPartitions(String project, Map<String, String> tablesAndCol) {
+        Map<String, SnapshotPartitionsResponse> responses = Maps.newHashMap();
+        aclEvaluate.checkProjectReadPermission(project);
+        Set<TableDesc> tableDescSet = checkAndGetTable(project, tablesAndCol.keySet());
+        checkTablePermission(tableDescSet);
+        NTableMetadataManager tableManager = getTableManager(project);
+        for (String table : tablesAndCol.keySet()) {
+            TableDesc tableDesc = tableManager.getTableDesc(table);
+            SnapshotPartitionsResponse response = new SnapshotPartitionsResponse();
+            List<String> readyPartitions = tableDesc.getReadyPartitions().stream().collect(Collectors.toList());
+            readyPartitions.sort(String::compareTo);
+            response.setReadyPartitions(readyPartitions);
+            ISourceMetadataExplorer explr = SourceFactory.getSource(tableDesc).getSourceMetadataExplorer();
+            String userSelectPartitionCol = tablesAndCol.get(table);
+            if (tableDesc.getPartitionColumn() == null
+                    || !tableDesc.getPartitionColumn().equalsIgnoreCase(userSelectPartitionCol)) {
+                responses.put(tableDesc.getDatabase() + "." + tableDesc.getName(), null);
+                continue;
+            }
+            Set<String> allPartitions = explr.getTablePartitions(tableDesc.getDatabase(), tableDesc.getName(),
+                    tableDesc.getProject(), tableDesc.getPartitionColumn());
+            allPartitions.removeAll(tableDesc.getReadyPartitions());
+            List<String> notReadyPartitions = allPartitions.stream().collect(Collectors.toList());
+            notReadyPartitions.sort(String::compareTo);
+            response.setNotReadyPartitions(notReadyPartitions);
+            responses.put(tableDesc.getDatabase() + "." + tableDesc.getName(), response);
+        }
+        return responses;
+
     }
 }

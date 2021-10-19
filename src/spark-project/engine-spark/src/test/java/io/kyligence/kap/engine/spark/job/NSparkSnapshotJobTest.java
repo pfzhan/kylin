@@ -96,7 +96,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
 
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null);
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -127,7 +127,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null);
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, false, null, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
 
@@ -174,7 +174,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
-                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, null, null);
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, null, null, null);
         setPartitions(job, partitions);
         execMgr.addJob(job);
         StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
@@ -197,6 +197,41 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(partitionCol, tableManager.getTableDesc(tableName).getSnapshotPartitionCol());
         Assert.assertTrue(
                 tableManager.getTableDesc(tableName).getSnapshotLastModified() > table.getSnapshotLastModified());
+    }
+
+    @Test
+    public void testBuildSnapshotByPartitionRefreshChoosePartition() throws Exception {
+        testBuildSnapshotByPartitionJob();
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        String partitionCol = "CAL_DT";
+        Set<String> partitions = ImmutableSet.of("2012-01-03", "2012-01-04");
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, getProject());
+        TableDesc table = tableManager.getTableDesc(tableName);
+        table.setSelectedSnapshotPartitionCol(partitionCol);
+        table.setPartitionColumn(partitionCol);
+        tableManager.updateTableDesc(table);
+
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+
+        Set<String> partitionToBuild = ImmutableSet.of("2012-01-03");
+
+        NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
+                JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, partitionToBuild, null,
+                null);
+        setPartitions(job, partitions);
+        execMgr.addJob(job);
+        StorageURL distMetaUrl = StorageURL.valueOf(job.getSnapshotBuildingStep().getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        String snapshotPath = tableManager.getTableDesc(tableName).getLastSnapshotPath();
+        Assert.assertNotNull(snapshotPath);
+        Assert.assertEquals(3, list(snapshotPath).length);
+
     }
 
     private FileStatus[] list(String path) {
@@ -241,6 +276,7 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNotNull(tableManager.getTableDesc(tableName).getLastSnapshotPath());
         Assert.assertNotEquals(0L, tableManager.getTableDesc(tableName).getLastSnapshotSize());
         Assert.assertNotNull(remoteTableManager.getTableDesc(tableName).getLastSnapshotPath());
+        Assert.assertNotEquals(0L, tableManager.getTableDesc(tableName).getSnapshotTotalRows());
     }
 
 }

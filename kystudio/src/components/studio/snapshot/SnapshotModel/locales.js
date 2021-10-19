@@ -21,6 +21,7 @@ export default {
     pleaseFilterDBOrTable: 'Search by table or database name',
     table: 'Table Name',
     partitionColumn: 'Partition Column',
+    partitionValue: 'Partition Value',
     selectPartitionPlaceholder: 'Please select partition column',
     noPartition: 'No Partition',
     detectPartition: 'Detect source table partition',
@@ -29,7 +30,10 @@ export default {
     preStep: 'Previous',
     undefinedPartitionColErrorTip: 'This source table has no partition set yet.',
     emptyPartitionSettingTip: 'The snapshots of the selected tables have already been added. Please select again.',
-    repairSnapshotTitle: 'Snapshot Repair'
+    repairSnapshotTitle: 'Snapshot Repair',
+    readyPartitions: 'Built',
+    notReadyPartitions: 'Not built',
+    noPartitionValuesError: 'Partition value can\'t be empty'
   },
   'zh-cn': {
     addSnapshotTitle: '添加快照',
@@ -53,6 +57,7 @@ export default {
     pleaseFilterDBOrTable: '搜索数据库名称或表名',
     table: '表名',
     partitionColumn: '分区列',
+    partitionValue: '分区值',
     selectPartitionPlaceholder: '请选择分区列',
     noPartition: '无分区',
     detectPartition: '获取源表分区',
@@ -61,6 +66,9 @@ export default {
     preStep: '上一步',
     undefinedPartitionColErrorTip: '该源表未定义分区。',
     emptyPartitionSettingTip: '已选的表的快照均已添加，请重新选择。',
-    repairSnapshotTitle: '快照修复'
+    repairSnapshotTitle: '快照修复',
+    readyPartitions: '已构建',
+    notReadyPartitions: '未构建',
+    noPartitionValuesError: '分区值不为空'
   }
 }

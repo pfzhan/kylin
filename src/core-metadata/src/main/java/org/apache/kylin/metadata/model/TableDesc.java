@@ -51,12 +51,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
-import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -75,7 +69,16 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
+import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Table Metadata from Source. All name should be uppercase.
@@ -88,6 +91,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     private static final String TABLE_TYPE_VIEW = "VIEW";
     private static final String materializedTableNamePrefix = "kylin_intermediate_";
+    public static final long NOT_READY = -1;
 
     // returns <table, project>
     public static Pair<String, String> parseResourcePath(String path) {
@@ -170,6 +174,16 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonProperty("snapshot_partitions")
     private Map<String, Long> snapshotPartitions = Maps.newHashMap();
 
+    @Getter
+    @Setter
+    @JsonProperty("snapshot_partitions_info")
+    private Map<String, SnapshotPartitionInfo> snapshotPartitionsInfo = Maps.newHashMap();
+
+    @Getter
+    @Setter
+    @JsonProperty("snapshot_total_rows")
+    private long snapshotTotalRows;
+
     //partition col of current built snapshot
     @Getter
     @Setter
@@ -223,6 +237,8 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.lastSnapshotSize = other.lastSnapshotSize;
         this.partitionColumn = other.partitionColumn;
         this.snapshotPartitions = other.snapshotPartitions;
+        this.snapshotPartitionsInfo = other.snapshotPartitionsInfo;
+        this.snapshotTotalRows = other.snapshotTotalRows;
         this.selectedSnapshotPartitionCol = other.selectedSnapshotPartitionCol;
         this.snapshotPartitionCol = other.snapshotPartitionCol;
         this.snapshotLastModified = other.getSnapshotLastModified();
@@ -494,6 +510,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.lastSnapshotPath = null;
         snapshotPartitionCol = null;
         snapshotPartitions = Maps.newHashMap();
+        snapshotPartitionsInfo = Maps.newHashMap();
         selectedSnapshotPartitionCol = null;
         lastSnapshotSize = 0;
         snapshotHasBroken = makeBroken;
@@ -511,25 +528,68 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public void resetSnapshotPartitions(Set<String> snapshotPartitions) {
         this.snapshotPartitions = snapshotPartitions.stream()
-                .collect(Collectors.toMap(Function.identity(), item -> -1L));
+                .collect(Collectors.toMap(Function.identity(), item -> NOT_READY));
+        this.snapshotPartitionsInfo.clear();
+
     }
 
     public void putPartitionSize(String partition, long size) {
         snapshotPartitions.put(partition, size);
     }
 
+    public void putPartitionRow(String partition, long row) {
+        SnapshotPartitionInfo snapshotPartitionInfo = snapshotPartitionsInfo.get(partition);
+        if (snapshotPartitionInfo != null) {
+            snapshotPartitionInfo.setTotalRows(row);
+        } else {
+            snapshotPartitionInfo = new SnapshotPartitionInfo();
+            snapshotPartitionInfo.setTotalRows(row);
+            snapshotPartitionsInfo.put(partition, snapshotPartitionInfo);
+        }
+
+    }
+
+    public long getPartitionRow(String partition) {
+        SnapshotPartitionInfo snapshotPartitionInfo = snapshotPartitionsInfo.get(partition);
+        if (snapshotPartitionInfo != null) {
+            return snapshotPartitionInfo.getTotalRows();
+        }
+        return 0;
+    }
+
     public void addSnapshotPartitions(Set<String> snapshotPartitions) {
-        snapshotPartitions.forEach(part -> this.snapshotPartitions.put(part, -1L));
+        snapshotPartitions.forEach(part -> this.snapshotPartitions.put(part, NOT_READY));
     }
 
     public Set<String> getNotReadyPartitions() {
         Set<String> notReadyPartitions = Sets.newHashSet();
         snapshotPartitions.forEach((item, ready) -> {
-            if (ready == -1) {
+            if (ready == NOT_READY) {
                 notReadyPartitions.add(item);
             }
         });
         return notReadyPartitions;
+    }
+
+    public Set<String> getReadyPartitions() {
+        Set<String> readyPartitions = Sets.newHashSet();
+        snapshotPartitions.forEach((item, ready) -> {
+            if (ready != NOT_READY) {
+                readyPartitions.add(item);
+            }
+        });
+        return readyPartitions;
+    }
+
+    @Setter
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SnapshotPartitionInfo {
+
+        @JsonProperty("total_rows")
+        private long totalRows;
+
     }
 
     public KafkaConfig getKafkaConfig() {

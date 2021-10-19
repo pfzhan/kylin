@@ -104,6 +104,10 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private boolean discardSafety;
     @JsonProperty("tag")
     private Object tag;
+    @JsonProperty("snapshot_data_range")
+    private String snapshotDataRange;
+    private final static String SNAPSHOT_FULL_RANGE = "FULL";
+    private final static String SNAPSHOT_INC_RANGE = "INC";
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -142,6 +146,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             NSparkSnapshotJob snapshotJob = (NSparkSnapshotJob) abstractExecutable;
             executableResponse.setDataRangeEnd(Long.MAX_VALUE);
             executableResponse.setTargetSubject(snapshotJob.getParam(NBatchConstants.P_TABLE_NAME));
+            executableResponse.setSnapshotDataRange(getDataRangeBySnapshotJob(snapshotJob));
+
             TableDesc tableDesc = NTableMetadataManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
                     .getTableDesc(executableResponse.getTargetSubject());
@@ -253,6 +259,26 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         }
 
         return successStages;
+    }
+
+    private static String getDataRangeBySnapshotJob(NSparkSnapshotJob snapshotJob) {
+        boolean increment = false;
+        if ("true".equals(snapshotJob.getParam(NBatchConstants.P_INCREMENTAL_BUILD))) {
+            increment = true;
+        }
+        String partitionToBuild = snapshotJob.getParam(NBatchConstants.P_SELECTED_PARTITION_VALUE);
+        String partitionCol = snapshotJob.getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
+        if (partitionCol == null) {
+            return SNAPSHOT_FULL_RANGE;
+        }
+        if (partitionToBuild != null) {
+            return partitionToBuild;
+        }
+        if (partitionToBuild == null && increment) {
+            return SNAPSHOT_INC_RANGE;
+        } else {
+            return SNAPSHOT_FULL_RANGE;
+        }
     }
 
     @Override

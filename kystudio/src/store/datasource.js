@@ -83,6 +83,9 @@ export default {
     [types.FETCH_SNAPSHOT_LIST]: function ({ commit }, para) {
       return api.datasource.fetchSnapshotList(para)
     },
+    [types.GET_SNAPSHOT_PARTITION_VALUES] (_, para) {
+      return api.datasource.getSnapshotPartitionValues(para)
+    },
     [types.FETCH_UNBUILD_SNAPSHOT_TABLES]: function ({ commit }, para) {
       return api.datasource.fetchUnbuildSnapshotTables(para)
     },

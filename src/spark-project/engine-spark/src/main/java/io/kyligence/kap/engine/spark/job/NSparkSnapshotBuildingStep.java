@@ -149,10 +149,13 @@ public class NSparkSnapshotBuildingStep extends NSparkExecutable {
             copyExt.setOriginalSize(remoteTblExtDesc.getOriginalSize());
             copy.setSnapshotPartitionCol(null);
             copy.resetSnapshotPartitions(Sets.newHashSet());
+            copy.setSnapshotTotalRows(remoteTbDesc.getSnapshotTotalRows());
         } else {
             copyExt.setOriginalSize(remoteTbDesc.getSnapshotPartitions().values().stream().mapToLong(i -> i).sum());
             copy.setSnapshotPartitionCol(selectPartCol);
             copy.setSnapshotPartitions(remoteTbDesc.getSnapshotPartitions());
+            copy.setSnapshotPartitionsInfo(remoteTbDesc.getSnapshotPartitionsInfo());
+            copy.setSnapshotTotalRows(remoteTbDesc.getSnapshotTotalRows());
         }
 
         copyExt.setTotalRows(remoteTblExtDesc.getTotalRows());

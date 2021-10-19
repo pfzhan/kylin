@@ -53,7 +53,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
@@ -137,6 +139,12 @@ public class JsonUtil {
 
     public static Map<String, String> readValueAsMap(String content) throws IOException {
         TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {
+        };
+        return mapper.readValue(content, typeRef);
+    }
+
+    public static Set<String> readValueAsSet(String content) throws IOException {
+        TypeReference<HashSet<String>> typeRef = new TypeReference<HashSet<String>>() {
         };
         return mapper.readValue(content, typeRef);
     }

@@ -43,6 +43,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -105,6 +106,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
+import io.kyligence.kap.engine.spark.job.NSparkSnapshotJob;
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.engine.spark.job.step.NStageForBuild;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -397,6 +399,46 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         ExecutableResponse response = ExecutableResponse.create(executable);
         Assert.assertEquals(0.99F, response.getStepRatio(), 0.001);
+    }
+
+    @Test
+    public void testSnapshotDataRange() {
+        NSparkSnapshotJob snapshotJob = new NSparkSnapshotJob();
+        snapshotJob.setProject("default");
+        Map params = new HashMap<String, String>();
+        params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[1,2,3]");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
+        snapshotJob.setParams(params);
+        ExecutableResponse response = ExecutableResponse.create(snapshotJob);
+
+        params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[1,2,3]");
+        snapshotJob.setParams(params);
+        response = ExecutableResponse.create(snapshotJob);
+        assert response.getSnapshotDataRange().equals("[1,2,3]");
+
+        params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, null);
+        snapshotJob.setParams(params);
+        response = ExecutableResponse.create(snapshotJob);
+        assert response.getSnapshotDataRange().equals("FULL");
+
+        params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, null);
+        snapshotJob.setParams(params);
+        response = ExecutableResponse.create(snapshotJob);
+        assert response.getSnapshotDataRange().equals("INC");
+
+        params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_COL, null);
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[1,2,3]");
+        snapshotJob.setParams(params);
+        response = ExecutableResponse.create(snapshotJob);
+        assert response.getSnapshotDataRange().equals("FULL");
     }
 
     @Test

@@ -105,9 +105,16 @@
             min-width="180"
             show-overflow-tooltip>
             <template slot-scope="scope">
-              <span v-if="scope.row.data_range_end==9223372036854776000&&!delSecJobTypes.includes(scope.row.job_name)">{{$t('fullLoad')}}</span>
-              <span v-else-if="scope.row.data_range_end==9223372036854776000&&delSecJobTypes.includes(scope.row.job_name)">{{$t('full')}}</span>
-              <span v-else>{{scope.row.data_range_start | toServerGMTDate}} - {{scope.row.data_range_end | toServerGMTDate}}</span>
+              <template v-if="scope.row.job_name !== 'SNAPSHOT_REFRESH' && scope.row.job_name !== 'SNAPSHOT_BUILD'">
+                <span v-if="scope.row.data_range_end==9223372036854776000&&!delSecJobTypes.includes(scope.row.job_name)">{{$t('fullLoad')}}</span>
+                <span v-else-if="scope.row.data_range_end==9223372036854776000&&delSecJobTypes.includes(scope.row.job_name)">{{$t('full')}}</span>
+                <span v-else>{{scope.row.data_range_start | toServerGMTDate}} - {{scope.row.data_range_end | toServerGMTDate}}</span>
+              </template>
+              <template v-else>
+                <span v-if="scope.row.snapshot_data_range === 'FULL'">{{$t('fullLoad')}}</span>
+                <span v-else-if="scope.row.snapshot_data_range === 'INC'">{{$t('increamLoad')}}</span>
+                <span v-else>{{scope.row.snapshot_data_range ? JSON.parse(scope.row.snapshot_data_range).splice(0, 10).join(', ') : ''}}</span>
+              </template>
             </template>
           </el-table-column>
           <el-table-column

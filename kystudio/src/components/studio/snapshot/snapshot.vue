@@ -65,7 +65,7 @@
         :filter-change="(v) => filterContent(v, 'partition')"
         width="160">
         <template slot-scope="scope">
-          <div class="partition-values" v-if="!loadingSnapshotTable">
+          <div class="partition-column" v-if="!loadingSnapshotTable">
             <span class="content" v-custom-tooltip="{text: scope.row.select_partition_col, w: 20, tableClassName: 'snapshot-table'}">{{scope.row.select_partition_col || $t('noPartition')}}</span>
             <i @click="editPartitionColumn(scope.row)" v-if="scope.row.source_type === 9" :class="['el-icon-ksd-table_edit', {'is-disabled': scope.row.status === 'BROKEN'}]"></i>
           </div>
@@ -189,7 +189,7 @@
                 <el-tooltip :content="currentPartitionRow.partition_col" effect="dark" placement="top"><span style="float: left">{{ currentPartitionRow.partition_col | omit(30, '...') }}</span></el-tooltip>
                 <span class="ky-option-sub-info">{{ currentPartitionRow.partition_col_type.toLocaleLowerCase() }}</span>
               </el-option>
-              <p class="more-partition" @click="showAllPartition" v-if="!currentPartitionRow.showMore">{{$t('viewAllPartition')}}</p>
+              <!-- <p class="more-partition" @click="showAllPartition" v-if="!currentPartitionRow.showMore">{{$t('viewAllPartition')}}</p> -->
               <template v-if="currentPartitionRow.showMore">
                 <!-- <el-option :label="key" :value="key" v-for="(key, value) in item.other_column_and_type" :key="key"></el-option> -->
                 <el-option :label="value" :value="value" v-for="(key, value) in currentPartitionRow.partition[0].other_column_and_type" :key="value">
@@ -226,15 +226,28 @@
     <el-dialog
       v-if="refreshSnapshotDialog"
       :visible="true"
-      width="480px"
+      width="800px"
       :close-on-click-modal="false"
       class="refresh-snapshot-dialog ke-it-refresh-snapshot"
       @close="handleCloseRefreshDialog">
       <span slot="title" class="ksd-title-label">{{$t('refreshTitle')}}</span>
-      <p><i class="el-icon-ksd-info ksd-mr-5 alert-info"></i>{{refreshSnapshotTables.length ? $t('refreshTips', {snapshotNum: multipleSelection.length, partitionColNum: refreshSnapshotTables.length}) : $t('refreshNoPartitionTips', {snapshotNum: multipleSelection.length})}}</p>
-      <el-table class="ksd-mt-10 snapshot-table ke-it-snapshot_table"
-        v-if="refreshSnapshotTables.length"
-        :data="refreshSnapshotTables"
+      <el-alert
+        type="tip"
+        :closable="false"
+        show-icon>
+        {{$t('refreshTips', {snapshotNum: multipleSelection.length, partitionColNum: refreshSnapshotTables.length})}}
+      </el-alert>
+      <el-radio-group v-model="refreshType" class="refresh-table-types">
+        <el-radio :label="item.label" v-for="item in refreshTableOptions" :key="item.label" :disabled="['incremental', 'custom'].includes(item.label) ? onlyFullBuild : false">{{item.text}}
+          <el-tooltip v-if="item.tips" :content="item.tips" placement="top">
+            <i class="tips el-ksd-icon-info_fill_16"></i>
+          </el-tooltip>
+        </el-radio>
+      </el-radio-group>
+      <el-table class="ksd-mt-16 snapshot-table ke-it-snapshot_table"
+        v-loading="loadSnapshotValues"
+        v-if="multipleSelection.length"
+        :data="multipleSelection"
         :empty-text="emptyText"
         border
         style="width: 100%">
@@ -255,17 +268,68 @@
           :label="$t('partitionColumns')"
           show-overflow-tooltip
           width="140">
+          <template slot-scope="scope">
+            <span>{{scope.row.select_partition_col || '-'}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('partitionValues')"
+          show-overflow-tooltip
+          width="231">
+          <template slot-scope="scope">
+            <template v-if="refreshType === 'custom'">
+              <el-select
+                :class="['partition-value-select', {'is-error': incrementalBuildErrorList.includes(`${scope.row.database}.${scope.row.table}`)}]"
+                v-model="scope.row.partition_values"
+                :disabled="!scope.row.select_partition_col"
+                multiple
+                @change="changePartitionValues(scope)"
+                :placeholder="scope.row.select_partition_col && (scope.row.readyPartitions.length > 0 || scope.row.notReadyPartitions.length > 0) ? $t('kylinLang.common.pleaseSelect') : ''"
+                collapse-tags
+                filterable>
+                <el-option-group
+                  class="group-partitions"
+                  :label="$t('readyPartitions')">
+                  <span class="partition-count">{{scope.row.readyPartitions.length}}</span>
+                  <el-option
+                    v-for="item in scope.row.readyPartitions.slice(0, scope.row.pageReadyPartitionsSize * scope.row.pageSize)"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value">
+                  </el-option>
+                  <p class="page-value-more" v-show="scope.row.pageReadyPartitionsSize * scope.row.pageSize < scope.row.readyPartitions.length" @click.stop="scope.row.pageReadyPartitionsSize += 1">{{$t('kylinLang.common.loadMore')}}</p>
+                </el-option-group>
+                <el-option-group
+                  class="group-partitions"
+                  :label="$t('notReadyPartitions')">
+                  <span class="partition-count">{{scope.row.notReadyPartitions.length}}</span>
+                  <el-option
+                    v-for="item in scope.row.notReadyPartitions.slice(0, scope.row.pageNotReadyPartitions * scope.row.pageSize)"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value">
+                  </el-option>
+                  <p class="page-value-more" v-show="scope.row.pageNotReadyPartitions * scope.row.pageSize < scope.row.notReadyPartitions.length" @click.stop="scope.row.pageNotReadyPartitions += 1">{{$t('kylinLang.common.loadMore')}}</p>
+                </el-option-group>
+              </el-select>
+              <p class="error-tip" v-if="incrementalBuildErrorList.includes(`${scope.row.database}.${scope.row.table}`)">{{$t('noPartitionValuesError')}}</p>
+            </template>
+            <template v-else>
+              <span v-if="!scope.row.select_partition_col">-</span>
+              <div class="partition-values" v-else><el-tag class="partition-value-tag ksd-mr-2" :title="tag.value" size="small" v-for="tag in scope.row.readyPartitions" :key="tag.value">{{tag.value}}</el-tag></div>
+            </template>
+          </template>
         </el-table-column>
       </el-table>
-      <el-checkbox class="ksd-mt-10" v-model="refreshNewPartition" v-if="refreshSnapshotTables.length">
+      <!-- <el-checkbox class="ksd-mt-10" v-model="refreshNewPartition" v-if="refreshSnapshotTables.length">
         {{$t('refreshNewPartitionTip')}}
         <el-tooltip :content="$t('refreshNewPartitionInfo')" effect="dark" placement="top">
           <i class="el-ksd-icon-more_info_22 ksd-fs-22"></i>
         </el-tooltip>
-      </el-checkbox>
+      </el-checkbox> -->
       <span slot="footer" class="dialog-footer">
-        <el-button plain @click="handleCloseRefreshDialog">{{$t('kylinLang.common.close')}}</el-button>
-        <el-button @click="handleRefreshSnapshot">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button @click="handleCloseRefreshDialog">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button type="primary" @click="handleRefreshSnapshot" :loading="loadingRefresh">{{$t('kylinLang.common.refresh')}}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -308,7 +372,8 @@ import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
       deleteSnapshot: 'DELETE_SNAPSHOT',
       fetchPartitionConfig: 'FETCH_PARTITION_CONFIG',
       reloadPartitionColumn: 'RELOAD_PARTITION_COLUMN',
-      savePartitionColumn: 'SAVE_PARTITION_COLUMN'
+      savePartitionColumn: 'SAVE_PARTITION_COLUMN',
+      getSnapshotPartitionValues: 'GET_SNAPSHOT_PARTITION_VALUES'
     }),
     ...mapActions('SnapshotModel', {
       showSnapshotModelDialog: 'CALL_MODAL'
@@ -348,12 +413,29 @@ export default class Snapshot extends Vue {
   loadingSnapshotTable = false
   filterTimer = null
   sliceNumber = sliceNumber
+  refreshType = 'full'
+  incrementalBuildErrorList = []
+  loadSnapshotValues = false
+  loadingRefresh = false
+
   get partitionColumns () {
     return [{text: this.$t('noPartition'), value: false}, {text: this.$t('hasPartition'), value: true}]
   }
 
   get refreshSnapshotTables () {
     return this.multipleSelection.filter(it => it.select_partition_col)
+  }
+
+  get refreshTableOptions () {
+    return [
+      { label: 'full', text: this.$t('fullRefresh'), tips: this.$t('fullFreshTip') },
+      { label: 'incremental', text: this.$t('incrementalFresh'), tips: this.$t('incrementalFreshTip') },
+      { label: 'custom', text: this.$t('customRefresh'), tips: this.$t('customRefreshTip') }
+    ]
+  }
+
+  get onlyFullBuild () {
+    return this.multipleSelection.filter(it => !it.select_partition_col).length === this.multipleSelection.length
   }
 
   handleClose () {
@@ -367,20 +449,36 @@ export default class Snapshot extends Vue {
   handleCloseRefreshDialog () {
     this.refreshSnapshotDialog = false
     this.refreshNewPartition = true
+    this.incrementalBuildErrorList = []
+    this.loadSnapshotValues = false
   }
 
   // 刷新 snapshot
   async handleRefreshSnapshot () {
     try {
+      this.loadingRefresh = true
       // await kapConfirm(this.$t('refreshTips', {snapshotNum: this.multipleSelection.length}), {confirmButtonText: this.$t('kylinLang.common.refresh'), dangerouslyUseHTMLString: true, type: 'warning'}, this.$t('refreshTitle'))
       const tables = this.multipleSelection.map((s) => {
         return s.database + '.' + s.table
       })
       const options = {}
-      this.multipleSelection.filter(it => it.select_partition_col).forEach(item => {
-        options[`${item.database}.${item.table}`] = {partition_col: item.select_partition_col, incremental_build: this.refreshNewPartition}
+      this.multipleSelection.forEach(item => {
+        options[`${item.database}.${item.table}`] = {
+          partition_col: item.select_partition_col,
+          incremental_build: !!item.select_partition_col && this.refreshType !== 'full',
+          partitions_to_build: this.refreshType === 'custom' && !!item.select_partition_col ? item.partition_values : null
+        }
       })
+      if (this.refreshType === 'custom') {
+        const incrementalBuildErrorList = Object.keys(options).filter(it => options[it].partitions_to_build && options[it].partitions_to_build.length === 0 && options[it].partition_col)
+        this.incrementalBuildErrorList = incrementalBuildErrorList
+        if (incrementalBuildErrorList.length > 0) {
+          this.loadingRefresh = false
+          return
+        }
+      }
       await this.refreshSnapshotTable({ project: this.currentSelectedProject, tables, options })
+      this.loadingRefresh = false
       this.$message({
         dangerouslyUseHTMLString: true,
         type: 'success',
@@ -395,6 +493,7 @@ export default class Snapshot extends Vue {
       this.handleCloseRefreshDialog()
       this.getSnapshotList()
     } catch (e) {
+      this.loadingRefresh = false
       handleError(e)
     }
   }
@@ -571,11 +670,46 @@ export default class Snapshot extends Vue {
     })
   }
   handleSelectionChange (val) {
-    this.multipleSelection = val
+    this.multipleSelection = val.map(it => ({
+      ...it,
+      partition_values: [],
+      readyPartitions: [],
+      notReadyPartitions: [],
+      pageReadyPartitionsSize: 1,
+      pageNotReadyPartitions: 1,
+      pageSize: 100,
+      values: []
+    }))
   }
   async refreshSnapshot () {
     if (!this.multipleSelection.length) return
     this.refreshSnapshotDialog = true
+    this.loadSnapshotValues = true
+    // 获取分区值
+    try {
+      const tableCols = {}
+      this.multipleSelection.forEach(item => {
+        tableCols[`${item.database}.${item.table}`] = item.select_partition_col
+      })
+      const results = await this.getSnapshotPartitionValues({
+        project: this.currentSelectedProject,
+        table_cols: tableCols
+      })
+      const partitionValues = results.data.data
+      if (partitionValues) {
+        this.multipleSelection.forEach(item => {
+          if (`${item.database}.${item.table}` in partitionValues && partitionValues[`${item.database}.${item.table}`]) {
+            item.partition_values = []
+            item['readyPartitions'] = partitionValues[`${item.database}.${item.table}`].ready_partitions.map(it => ({label: it, value: it}))
+            item['notReadyPartitions'] = partitionValues[`${item.database}.${item.table}`].not_ready_partitions.map(it => ({label: it, value: it}))
+          }
+        })
+      }
+      this.loadSnapshotValues = false
+    } catch (e) {
+      this.loadSnapshotValues = false
+      handleError(e)
+    }
   }
   gotoJob () {
     if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
@@ -657,6 +791,12 @@ export default class Snapshot extends Vue {
       this.getSnapshotList()
     }
   }
+
+  // 更改刷新的分区列
+  changePartitionValues (scope) {
+    const index = this.incrementalBuildErrorList.findIndex(it => it === `${scope.row.database}.${scope.row.table}`)
+    index >= 0 && this.incrementalBuildErrorList.splice(index, 1)
+  }
 }
 </script>
 
@@ -676,6 +816,10 @@ export default class Snapshot extends Vue {
     width: 248px;
   }
   .snapshot-table {
+    .cell span:first-child {
+      line-height: initial;
+      vertical-align: baseline;
+    }
     .el-table__row.no-authority-model {
       background-color: @table-stripe-color;
       color: @text-disabled-color;
@@ -691,14 +835,22 @@ export default class Snapshot extends Vue {
     }
     .snapshot-row-layout {
       &:hover {
-        .partition-values {
+        .partition-column {
           i {
             display: inline-block;
           }
         }
       }
     }
-    .partition-values {
+    .partition-value-select {
+      width: 100%;
+      &.is-error {
+        .el-input input {
+          border: 1px solid @error-color-1;
+        }
+      }
+    }
+    .partition-column {
       height: 24px;
       position: relative;
       .content {
@@ -715,6 +867,18 @@ export default class Snapshot extends Vue {
           color: @text-disabled-color;
           pointer-events: none;
         }
+      }
+    }
+    .partition-values {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      .partition-value-tag {
+        display: inline-block;
+        max-width: 94px;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
       }
     }
   }
@@ -763,6 +927,36 @@ export default class Snapshot extends Vue {
 .refresh-snapshot-dialog {
   .alert-info {
     color: #F7BA2A;
+  }
+  .refresh-table-types {
+    margin-top: 16px;
+    .el-radio+.el-radio {
+      margin-left: 16px;
+    }
+    .tips {
+      vertical-align: baseline;
+      color: @text-placeholder-color;
+    }
+  }
+}
+.error-tip {
+  color: @error-color-1;
+  font-size: 12px;
+}
+.group-partitions {
+  .partition-count {
+    position: absolute;
+    top: 5px;
+    right: 16px;
+    font-size: 12px;
+    color: @text-disabled-color;
+  }
+  .page-value-more {
+    margin-top: 8px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    color: @text-disabled-color;
   }
 }
 </style>

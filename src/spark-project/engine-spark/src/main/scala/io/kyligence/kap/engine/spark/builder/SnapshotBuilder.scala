@@ -105,7 +105,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
     if (resultMap.isEmpty) {
       return
     }
-    
+
     // update metadata
     // maybe partial snapshots skipped
     updateMeta(toBuildTables.filter(tbl => resultMap.containsKey(tbl.getIdentity)), resultMap)
@@ -116,7 +116,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
     val project = toBuildTableDesc.iterator.next.getProject
     toBuildTableDesc.foreach(table => {
       updateTableSnapshot(project, table, resultMap)
-      updateTableExt(project, table, resultMap)
+      updateTable(project, table.getIdentity, resultMap)
     }
     )
   }
@@ -146,21 +146,25 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
     UnitOfWork.doInTransactionWithRetry(new TableUpdateOps, project)
   }
 
-  private def updateTableExt(project: String, table: TableDesc, map: util.Map[String, Result]): Unit = {
+  private def updateTable(project: String, table: String, map: util.Map[String, Result]): Unit = {
     val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
     var tableExt = tableMetadataManager.getOrCreateTableExt(table)
     tableExt = tableMetadataManager.copyForWrite(tableExt)
+    var tableDesc = tableMetadataManager.getTableDesc(table);
+    var tableDescCopy = tableMetadataManager.copyForWrite(tableDesc)
 
-    val result = map.get(table.getIdentity)
+    val result = map.get(tableDescCopy.getIdentity)
     if (result.totalRows != -1) {
       tableExt.setOriginalSize(result.originalSize)
       tableExt.setTotalRows(result.totalRows)
+      tableDescCopy.setSnapshotTotalRows(result.totalRows)
     }
 
     // define the updating operations
     class TableUpdateOps extends UnitOfWork.Callback[TableExtDesc] {
       override def process(): TableExtDesc = {
         tableMetadataManager.saveTableExt(tableExt)
+        tableMetadataManager.updateTableDesc(tableDescCopy)
         tableExt
       }
     }
@@ -181,7 +185,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
     })
 
     toCalculateTableDesc.foreach(table => {
-      updateTableExt(model.getProject, table, map)
+      updateTable(model.getProject, table.getIdentity, map)
     })
   }
 

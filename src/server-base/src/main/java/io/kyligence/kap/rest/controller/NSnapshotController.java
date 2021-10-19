@@ -32,6 +32,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.SNAPSHOT_RELOAD_
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -56,12 +57,14 @@ import com.google.common.base.CaseFormat;
 
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
+import io.kyligence.kap.rest.request.TablePartitionsRequest;
 import io.kyligence.kap.rest.request.TableReloadPartitionColRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.SnapshotCheckResponse;
 import io.kyligence.kap.rest.response.SnapshotColResponse;
 import io.kyligence.kap.rest.response.SnapshotInfoResponse;
+import io.kyligence.kap.rest.response.SnapshotPartitionsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.SnapshotService;
@@ -126,6 +129,16 @@ public class NSnapshotController extends NBasicController {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
             throw new KylinException(SNAPSHOT_RELOAD_PARTITION_FAILED, root.getMessage());
         }
+    }
+
+    @ApiOperation(value = "partitions of table", tags = { "AI" }, notes = "get partition value")
+    @PostMapping(value = "/partitions")
+    @ResponseBody
+    public EnvelopeResponse getSnapshotPartitionValues(@RequestBody TablePartitionsRequest tablePartitionsRequest) {
+        checkProjectName(tablePartitionsRequest.getProject());
+        Map<String, SnapshotPartitionsResponse> response = snapshotService
+                .getPartitions(tablePartitionsRequest.getProject(), tablePartitionsRequest.getTableCols());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "buildSnapshotsManually", tags = { "AI" }, notes = "build snapshots")

@@ -8,6 +8,9 @@ export default {
   fetchSnapshotList: (para) => {
     return Vue.resource(apiUrl + 'snapshots{?status}').get(para)
   },
+  getSnapshotPartitionValues: (para) => {
+    return Vue.resource(apiUrl + 'snapshots/partitions').save(para)
+  },
   fetchUnbuildSnapshotTables: (para) => {
     return Vue.resource(apiUrl + 'snapshots/tables').get(para)
   },

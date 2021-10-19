@@ -56,6 +56,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.SnapshotRequest;
 import io.kyligence.kap.rest.request.SnapshotTableConfigRequest;
+import io.kyligence.kap.rest.request.TablePartitionsRequest;
 import io.kyligence.kap.rest.request.TableReloadPartitionColRequest;
 import io.kyligence.kap.rest.service.SnapshotService;
 import io.kyligence.kap.rest.service.SnapshotService.SnapshotStatus;
@@ -125,6 +126,22 @@ public class NSnapshotControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nSnapshotController).buildSnapshotsManually(Mockito.any(SnapshotRequest.class));
         String errorMsg = "KE-010000005(Empty Parameter):You should select at least one table or database to load!!";
         Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+    }
+
+    @Test
+    public void testGetSnapshotPartitionValues() throws Exception {
+        TablePartitionsRequest request = new TablePartitionsRequest();
+        request.setProject("default");
+        Map<String, String> tableCols = Maps.newHashMap();
+        tableCols.put("db1.t1", "col1");
+        tableCols.put("db1.t2", "col2");
+        request.setTableCols(tableCols);
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/snapshots/partitions")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nSnapshotController).getSnapshotPartitionValues(Mockito.any(TablePartitionsRequest.class));
     }
 
     @Test

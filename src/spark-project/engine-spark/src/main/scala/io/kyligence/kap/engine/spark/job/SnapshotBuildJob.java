@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringSplitter;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -80,16 +81,24 @@ public class SnapshotBuildJob extends SparkApplication {
         String selectedPartCol = getParam(NBatchConstants.P_SELECTED_PARTITION_COL);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
         boolean incrementalBuild = "true".equals(getParam(NBatchConstants.P_INCREMENTAL_BUILD));
+        String partitionToBuildString = getParam(NBatchConstants.P_SELECTED_PARTITION_VALUE);
+        Set<String> partitionToBuild = null;
+        if (partitionToBuildString != null) {
+            partitionToBuild = JsonUtil.readValueAsSet(partitionToBuildString);
+        }
 
         if (selectedPartCol == null) {
             new SnapshotBuilder().buildSnapshot(ss, Sets.newHashSet(tableDesc));
         } else {
-            initialize(tableDesc, selectedPartCol, incrementalBuild);
+            initialize(tableDesc, selectedPartCol, incrementalBuild, partitionToBuild);
 
             tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-            logger.info("{} need build partitions: {}", tableDesc.getIdentity(), tableDesc.getNotReadyPartitions());
+            if (partitionToBuild == null) {
+                partitionToBuild = tableDesc.getNotReadyPartitions();
+            }
+            logger.info("{} need build partitions: {}", tableDesc.getIdentity(), partitionToBuild);
 
-            new SnapshotPartitionBuilder().buildSnapshot(ss, tableDesc, selectedPartCol);
+            new SnapshotPartitionBuilder().buildSnapshot(ss, tableDesc, selectedPartCol, partitionToBuild);
 
             if (incrementalBuild) {
                 moveIncrementalPartitions(tableDesc.getLastSnapshotPath(), tableDesc.getTempSnapshotPath());
@@ -97,7 +106,8 @@ public class SnapshotBuildJob extends SparkApplication {
         }
     }
 
-    private void initialize(TableDesc table, String selectedPartCol, boolean incrementBuild) {
+    private void initialize(TableDesc table, String selectedPartCol, boolean incrementBuild,
+            Set<String> partitionToBuild) {
         if (table.getTempSnapshotPath() != null) {
             logger.info("snapshot partition has been initialed, so skip.");
             return;
@@ -111,9 +121,14 @@ public class SnapshotBuildJob extends SparkApplication {
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
             TableDesc copy = tableMetadataManager.copyForWrite(table);
             if (incrementBuild) {
-                copy.addSnapshotPartitions(Sets.difference(partitions, curPartitions));
+                if (partitionToBuild == null) {
+                    copy.addSnapshotPartitions(Sets.difference(partitions, curPartitions));
+                } else {
+                    copy.addSnapshotPartitions(partitionToBuild);
+                }
             } else {
                 copy.resetSnapshotPartitions(partitions);
+                copy.setSnapshotTotalRows(0);
                 TableExtDesc copyExt = tableMetadataManager
                         .copyForWrite(tableMetadataManager.getOrCreateTableExt(table));
                 copyExt.setTotalRows(0);

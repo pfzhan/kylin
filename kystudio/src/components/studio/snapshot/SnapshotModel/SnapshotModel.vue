@@ -98,21 +98,22 @@
         <div class="search-partition-input"><el-input v-model="searchDBOrTableName" size="medium" v-global-key-event.enter.debounce="searchPartitionColumns" @clear="searchPartitionColumns" prefix-icon="el-ksd-icon-search_22" style="width:280px" :placeholder="$t('pleaseFilterDBOrTable')"></el-input></div>
         <template v-if="partitionColumnData && partitionColumnData.list.length">
           <el-row class="ksd-mb-10" :gutter="5">
-            <el-col :span="12">{{$t('table')}}</el-col>
-            <el-col :span="11">{{$t('partitionColumn')}}</el-col>
+            <el-col :span="7">{{$t('table')}}</el-col>
+            <el-col :span="8">{{$t('partitionColumn')}}</el-col>
+            <el-col :span="8">{{$t('partitionValue')}}</el-col>
           </el-row>
           <el-row v-for="(item, index) in partitionColumnData.list" :key="index" :gutter="5" class="ksd-mt-5">
-            <el-col :span="12">
+            <el-col :span="7">
               <el-input :value="`${item.database}.${item.table}`" :disabled="true" style="width: 100%;"></el-input>
             </el-col>
-            <el-col :span="11">
-              <el-select v-model="item.partition_column" :placeholder="$t('selectPartitionPlaceholder')" @change="changePartitionColumns(item)" style="width: 100%;" :disabled="item.isLoadingPartition || item.source_type !== 9">
+            <el-col :span="8">
+              <el-select v-model="item.partition_column" :placeholder="$t('selectPartitionPlaceholder')" @change="changePartitionColumns(item, item)" style="width: 100%;" :disabled="item.isLoadingPartition || item.source_type !== 9">
                 <el-option :label="$t('noPartition')" value=""></el-option>
                 <el-option :label="item.partition_col" :value="item.partition_col" v-if="item.partition_col">
                   <el-tooltip :content="item.partition_col" effect="dark" placement="top"><span style="float: left">{{ item.partition_col | omit(30, '...') }}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{ item.partition_col_type.toLocaleLowerCase() }}</span>
                 </el-option>
-                <p class="more-partition" @click="showAllPartition(item)" v-if="!item.showMore">{{$t('viewAllPartition')}}</p>
+                <!-- <p class="more-partition" @click="showAllPartition(item)" v-if="!item.showMore">{{$t('viewAllPartition')}}</p> -->
                 <template v-if="item.showMore">
                   <!-- <el-option :label="key" :value="key" v-for="(key, value) in item.other_column_and_type" :key="key"></el-option> -->
                   <el-option :label="value" :value="value" v-for="(key, value) in item.other_column_and_type" :key="value" :disabled="item.undefinedPartitionColErrorTip">
@@ -125,11 +126,51 @@
               <p class="error-msg" v-if="item.fetchError"><i class="el-icon-ksd-error_01 error-icon"></i>{{$t('fetchPartitionErrorTip')}}</p>
               <p class="alert-msg" v-if="item.undefinedPartitionColErrorTip"><i class="el-icon-ksd-alert alert-icon"></i>{{$t('undefinedPartitionColErrorTip')}}</p>
             </el-col>
+            <el-col :span="8">
+              <el-select
+                v-if="refreshSelectValue"
+                :class="['partition-value-select', {'is-error': incrementalBuildErrorList.includes(`${item.database}.${item.table}`)}]"
+                v-model="item.partition_values"
+                multiple
+                collapse-tags
+                filterable
+                :loading="item.loadPatitionValues"
+                @change="changePartitionValues(item)"
+                :disabled="!item.partition_column"
+                :placeholder="$t('kylinLang.common.pleaseSelect')">
+                <el-option-group
+                  class="group-partitions"
+                  :label="$t('readyPartitions')">
+                  <span class="partition-count">{{item.readyPartitions.length}}</span>
+                  <el-option
+                    v-for="item in item.readyPartitions.slice(0, item.pageSize * item.pageReadyPartitionsSize)"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value">
+                  </el-option>
+                  <p class="page-value-more" v-show="item.pageReadyPartitionsSize * item.pageSize < item.readyPartitions.length" @click.stop="item.pageReadyPartitionsSize += 1">{{$t('kylinLang.common.loadMore')}}</p>
+                </el-option-group>
+                <el-option-group
+                  class="group-partitions"
+                  :label="$t('notReadyPartitions')">
+                  <span class="partition-count">{{item.notReadyPartitions.length}}</span>
+                  <el-option
+                    v-for="item in item.notReadyPartitions.slice(0, item.pageSize * item.pageNotReadyPartitions)"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value">
+                  </el-option>
+                  <p class="page-value-more" v-show="item.pageNotReadyPartitions * item.pageSize < item.notReadyPartitions.length" @click.stop="item.pageNotReadyPartitions += 1">{{$t('kylinLang.common.loadMore')}}</p>
+                </el-option-group>
+              </el-select>
+              <p class="error-tip" v-if="incrementalBuildErrorList.includes(`${item.database}.${item.table}`)">{{$t('noPartitionValuesError')}}</p>
+            </el-col>
             <el-col :span="1">
               <el-tooltip effect="dark" :content="$t('detectPartition')" placement="top">
                 <div style="display: inline-block;">
                   <el-button
                     size="medium"
+                    :disabled="item.source_type !== 9"
                     :loading="item.isLoadingPartition"
                     icon="el-ksd-icon-data_range_search_old"
                     @click="handleLoadPartitionColumn(item)">
@@ -198,7 +239,8 @@ vuex.registerModule(['modals', 'SnapshotModel'], store)
       fetchDatabaseMoreTables: 'FETCH_DATABASE_MORE_TABLES',
       buildSnapshotTables: 'BUILD_SNAPSHOT_TABLES',
       fetchPartitionConfig: 'FETCH_PARTITION_CONFIG',
-      reloadPartitionColumn: 'RELOAD_PARTITION_COLUMN'
+      reloadPartitionColumn: 'RELOAD_PARTITION_COLUMN',
+      getSnapshotPartitionValues: 'GET_SNAPSHOT_PARTITION_VALUES'
     }),
     // Store方法注入
     ...mapMutations('SnapshotModel', {
@@ -252,6 +294,9 @@ export default class SnapshotModel extends Vue {
   }
   partitionOptions = {}
   emptyPartitionSetting = false
+  incrementalBuildErrorList = []
+  refreshSelectValue = true
+
   constructor () {
     super()
     this.getTableTree = getTableTree.bind(this)
@@ -537,6 +582,7 @@ export default class SnapshotModel extends Vue {
     this.partitionColumnData.page_offset = 0
     this.partitionColumnData.list = []
     this.partitionColumnData.excludeBroken = true
+    this.incrementalBuildErrorList = []
     this.step = 'one'
   }
   handleClose (isSubmit) {
@@ -546,15 +592,47 @@ export default class SnapshotModel extends Vue {
   }
 
   // 更改表分区列
-  changePartitionColumns (item) {
+  // self 控制 dom 是否重新渲染
+  async changePartitionColumns (item, self) {
     item.fetchError = false
-    if (item in this.partitionOptions) {
-      this.partitionOptions[`${item.database}.${item.table}`].partition_column = item.partition_column
-    } else {
-      this.partitionOptions[`${item.database}.${item.table}`] = {
-        partition_col: item.partition_column,
-        incremental_build: false
+    try {
+      if (item.partition_column) {
+        self.loadPatitionValues = true
+        const result = await this.getSnapshotPartitionValues({
+          project: this.currentSelectedProject,
+          table_cols: {
+            [`${item.database}.${item.table}`]: item.partition_column
+          }
+        })
+        const partitionValues = result.data.data
+        if (partitionValues && partitionValues[`${item.database}.${item.table}`]) {
+          const values = partitionValues[`${item.database}.${item.table}`]
+          self.readyPartitions = values.ready_partitions.map(it => ({label: it, value: it}))
+          self.notReadyPartitions = values.not_ready_partitions.map(it => ({label: it, value: it}))
+          // this.$set(item, 'readyPartitions', values.ready_partitions.map(it => ({label: it, value: it})))
+          // this.$set(item, 'notReadyPartitions', values.not_ready_partitions.map(it => ({label: it, value: it})))
+          this.refreshSelectValue = false
+          this.$nextTick(() => {
+            this.refreshSelectValue = true
+          })
+        } else {
+          item.partition_values = []
+          item.readyPartitions = []
+          item.notReadyPartitions = []
+        }
+        self.loadPatitionValues = false
+      } else {
+        item.partition_values = []
+        item.readyPartitions = []
+        item.notReadyPartitions = []
       }
+
+      this.partitionOptions[`${item.database}.${item.table}`] = {
+        partition_col: item.partition_column
+      }
+    } catch (e) {
+      self.loadPatitionValues = false
+      handleError(e)
     }
   }
 
@@ -586,7 +664,21 @@ export default class SnapshotModel extends Vue {
           if (`${item.database}.${item.table}` in this.partitionOptions) {
             partition_column = this.partitionOptions[`${item.database}.${item.table}`].partition_col
           }
-          return {...item, partition_column, isLoadingPartition: false, showMore: false, fetchError: false, undefinedPartitionColErrorTip: false}
+          return {
+            ...item,
+            partition_column,
+            partition_values: [],
+            isLoadingPartition: false,
+            showMore: false,
+            fetchError: false,
+            undefinedPartitionColErrorTip: false,
+            notReadyPartitions: [],
+            readyPartitions: [],
+            loadPatitionValues: false,
+            pageReadyPartitionsSize: 1,
+            pageNotReadyPartitions: 1,
+            pageSize: 100
+          }
         })
         this.partitionColumnData.total_size = results.total_size
         resolve(results)
@@ -603,8 +695,19 @@ export default class SnapshotModel extends Vue {
   }
   async submitPartition () {
     try {
+      const options = {}
+      this.partitionColumnData.list.forEach(item => {
+        options[`${item.database}.${item.table}`] = {
+          partition_col: item.partition_column,
+          incremental_build: !!item.partition_column,
+          partitions_to_build: item.partition_column ? item.partition_values : null
+        }
+      })
+      const incrementalBuildErrorList = Object.keys(options).filter(key => options[key].incremental_build && options[key].partitions_to_build.length === 0)
+      this.incrementalBuildErrorList = incrementalBuildErrorList
+      if (incrementalBuildErrorList.length > 0) return
       this.submitLoading = true
-      await this.buildSnapshotTables({project: this.currentSelectedProject, options: this.partitionOptions, tables: this.selectedTables, databases: this.selectedDatabases})
+      await this.buildSnapshotTables({project: this.currentSelectedProject, options: options, tables: this.selectedTables, databases: this.selectedDatabases})
       this.submitLoading = false
       this.$message({
         dangerouslyUseHTMLString: true,
@@ -644,7 +747,7 @@ export default class SnapshotModel extends Vue {
         }
         item.partition_column = results.partition_col || ''
         if (results.partition_col) {
-          this.changePartitionColumns({...results, partition_column: results.partition_col})
+          this.changePartitionColumns({...results, partition_column: results.partition_col}, item)
         }
       } catch (e) {
       }
@@ -660,6 +763,12 @@ export default class SnapshotModel extends Vue {
     this.partitionOptions = {}
     this.searchDBOrTableName = ''
   }
+
+  // 改变分区列的值
+  changePartitionValues (column) {
+    const index = this.incrementalBuildErrorList.findIndex(it => it === `${column.database}.${column.table}`)
+    index >= 0 && this.incrementalBuildErrorList.splice(index, 1)
+  }
 }
 </script>
 
@@ -672,6 +781,14 @@ export default class SnapshotModel extends Vue {
   .partition-setting-layout {
     padding: 20px;
     box-sizing: border-box;
+    .partition-value-select {
+      width: 100%;
+      &.is-error {
+        .el-input input {
+          border: 1px solid @error-color-1;
+        }
+      }
+    }
     .search-partition-input {
       width: 100%;
       text-align: right;
@@ -1090,6 +1207,22 @@ export default class SnapshotModel extends Vue {
     .load-more {
       line-height: inherit;
     }
+  }
+}
+.group-partitions {
+  .partition-count {
+    position: absolute;
+    top: 5px;
+    right: 16px;
+    font-size: 12px;
+    color: @text-disabled-color;
+  }
+  .page-value-more {
+    margin-top: 8px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    color: @text-disabled-color;
   }
 }
 </style>
