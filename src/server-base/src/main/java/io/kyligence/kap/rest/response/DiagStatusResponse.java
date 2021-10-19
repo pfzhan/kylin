@@ -32,4 +32,5 @@ public class DiagStatusResponse {
     private String error;
     private String stage;
     private Float progress;
+    private long duration;
 }

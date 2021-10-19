@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.rest.service;
 
-import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_FAILED;
-import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
-import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static io.kyligence.kap.tool.constant.DiagTypeEnum.FULL;
 import static io.kyligence.kap.tool.constant.DiagTypeEnum.JOB;
 import static io.kyligence.kap.tool.constant.DiagTypeEnum.QUERY;
+import static io.kyligence.kap.tool.constant.StageEnum.DONE;
+import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,9 +43,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.validation.constraints.NotNull;
 
-import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
-import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
-import io.kyligence.kap.tool.constant.DiagTypeEnum;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -69,11 +67,14 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.AuditLogReplayWorker;
+import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.rest.request.BackupRequest;
 import io.kyligence.kap.rest.request.DiagProgressRequest;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
 import io.kyligence.kap.tool.MetadataTool;
+import io.kyligence.kap.tool.constant.DiagTypeEnum;
 import io.kyligence.kap.tool.constant.StageEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -90,11 +91,13 @@ public class SystemService extends BasicService {
     @Data
     @NoArgsConstructor
     public static class DiagInfo {
+        private final long startTime = System.currentTimeMillis();
         private String stage = StageEnum.PREPARE.toString();
         private float progress = 0.0f;
         private File exportFile;
         private Future task;
         private DiagTypeEnum diagType;
+        private long updateTime;
 
         public DiagInfo(File exportFile, Future task, DiagTypeEnum diagType) {
             this.exportFile = exportFile;
@@ -211,8 +214,11 @@ public class SystemService extends BasicService {
             response.setStatus("999");
         }
         response.setError(cause == null ? ex.getMessage() : cause.getMessage());
-        exceptionMap.put(uuid, response);
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+        if (diagInfo != null) {
+            response.setDuration(System.currentTimeMillis() - diagInfo.getStartTime());
+        }
+        exceptionMap.put(uuid, response);
         FileUtils.deleteQuietly(diagInfo == null ? null : diagInfo.getExportFile());
         diagMap.invalidate(uuid);
     }
@@ -281,6 +287,11 @@ public class SystemService extends BasicService {
         response.setStatus("000");
         response.setStage(diagInfo.getStage());
         response.setProgress(diagInfo.getProgress());
+        long endTime = System.currentTimeMillis();
+        if (DONE.toString().equals(diagInfo.getStage())) {
+            endTime = diagInfo.getUpdateTime();
+        }
+        response.setDuration(endTime - diagInfo.startTime);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -292,6 +303,7 @@ public class SystemService extends BasicService {
         }
         diagInfo.setStage(diagProgressRequest.getStage());
         diagInfo.setProgress(diagProgressRequest.getProgress());
+        diagInfo.setUpdateTime(diagProgressRequest.getUpdateTime());
     }
 
     public void stopDiagTask(String uuid) {

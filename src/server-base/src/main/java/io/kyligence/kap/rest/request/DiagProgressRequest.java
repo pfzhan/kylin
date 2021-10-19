@@ -35,4 +35,6 @@ public class DiagProgressRequest {
     private String stage;
     @JsonProperty("progress")
     private float progress;
+    @JsonProperty("updateTime")
+    private long updateTime;
 }

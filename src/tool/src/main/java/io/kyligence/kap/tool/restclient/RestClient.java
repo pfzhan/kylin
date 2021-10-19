@@ -290,7 +290,7 @@ public class RestClient {
         }
     }
 
-    public boolean updateDiagProgress(String diagId, String stage, float progress) {
+    public boolean updateDiagProgress(String diagId, String stage, float progress, long updateTime) {
         String url = baseUrl + "/system/diag/progress";
         HttpPut put = newPut(url);
         HttpResponse response = null;
@@ -299,6 +299,7 @@ public class RestClient {
             paraMap.put("diag_id", diagId);
             paraMap.put("stage", stage);
             paraMap.put("progress", progress);
+            paraMap.put("updateTime", updateTime);
             put.setEntity(new StringEntity(new ObjectMapper().writeValueAsString(paraMap), "UTF-8"));
             response = client.execute(put);
             if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {

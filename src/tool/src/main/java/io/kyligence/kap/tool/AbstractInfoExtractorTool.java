@@ -325,7 +325,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         int serverPort = Integer.parseInt(getKylinConfig().getServerPort());
         RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
         timerExecutorService.scheduleWithFixedDelay(
-                () -> restClient.updateDiagProgress(diagId, getStage(), getProgress()), 0, interval, TimeUnit.SECONDS);
+                () -> restClient.updateDiagProgress(diagId, getStage(), getProgress(), System.currentTimeMillis()), 0, interval, TimeUnit.SECONDS);
     }
 
     private void reportDiagProgressImmediately(String diagId) {
@@ -334,7 +334,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         RestClient restClient = new RestClient("127.0.0.1", serverPort, null, null);
         boolean updateSuccess = false;
         while (retry-- > 0 && !updateSuccess) {
-            updateSuccess = restClient.updateDiagProgress(diagId, getStage(), getProgress());
+            updateSuccess = restClient.updateDiagProgress(diagId, getStage(), getProgress(), System.currentTimeMillis());
         }
     }
 
