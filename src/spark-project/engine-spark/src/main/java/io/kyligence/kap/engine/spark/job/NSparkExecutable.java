@@ -588,7 +588,8 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
     private void wrapClasspathConf(StringBuilder sb, String kylinJobJar) {
         final String jobJarName = Paths.get(kylinJobJar).getFileName().toString();
-        appendSparkConf(sb, "spark.executor.extraClassPath", jobJarName);
+        appendSparkConf(sb, "spark.executor.extraClassPath", isYarnCluster ? //
+                String.format(Locale.ROOT, "%s:%s", APP_JAR_NAME, jobJarName) : jobJarName);
         // In yarn cluster mode, make sure class SparkDriverHdfsLogAppender will be in NM container's classpath.
         appendSparkConf(sb, "spark.driver.extraClassPath", isYarnCluster ? //
                 String.format(Locale.ROOT, "%s:%s", APP_JAR_NAME, jobJarName) : kylinJobJar);
