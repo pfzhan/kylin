@@ -437,6 +437,11 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         String mergeJobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_MERGE.name());
         val mergeMeta = streamingJobManager.getStreamingJobByUuid(mergeJobId);
         Assert.assertEquals(mergeParam.toString(), mergeMeta.getParams().toString());
+
+        thrown.expect(KylinException.class);
+        buildParam.put(StreamingConstants.STREAMING_TABLE_REFRESH_INTERVAL, "2f");
+        streamingJobService.updateStreamingJobParams(PROJECT,
+                StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name()), buildParam);
     }
 
     @Test

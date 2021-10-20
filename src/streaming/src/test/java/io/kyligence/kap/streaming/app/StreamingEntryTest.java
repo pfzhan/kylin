@@ -171,6 +171,36 @@ public class StreamingEntryTest extends StreamingTestCase {
         clearCheckpoint(DATAFLOW_ID);
     }
 
+    @Test
+    public void testDimensionTableRefresh() {
+        val config = getTestConfig();
+        val source = createSparkKafkaSource(config);
+        source.enableMemoryStream(false);
+        source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
+        val dataflowId = "511a9163-7888-4a60-aa24-ae735937cc87";
+        val args = new String[] { PROJECT, dataflowId, "5", "" };
+        val entry = Mockito.spy(new StreamingEntry(args));
+        entry.setSparkSession(createSparkSession());
+        val tuple4 = entry.generateStreamQueryForOneModel(entry.ss, PROJECT, dataflowId, "");
+        entry.rateTriggerDuration_$eq(1000);
+        val flatTable = tuple4._3();
+        flatTable.tableRefreshInterval_$eq(5L);
+        Assert.assertEquals(dataflowId, flatTable.model().getId());
+        try {
+            entry.startTableRefreshThread(flatTable);
+            AwaitUtils.await(() -> {
+            }, 10000, () -> {
+                entry.refreshTable(flatTable);
+                Assert.assertEquals(0L, entry.tableRefreshAcc().get());
+                StreamingEntry.entry_$eq(entry);
+                StreamingEntry.stop();
+                entry.ss.stop();
+            });
+        } catch (Exception e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
     private void clearCheckpoint(String dataflowId) {
         val config = getTestConfig();
         val checkpointFile = new File(config.getStreamingBaseCheckpointLocation() + "/" + dataflowId);
