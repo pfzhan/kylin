@@ -71,17 +71,17 @@ export default {
     },
     // 更改当前诊断包生成的进度
     [types.SET_DUMP_PROGRESS] (state, data) {
-      const { status, id } = data
+      const { status, id, duration } = data
       if (!(id in state.diagDumpIds)) return
       if (status === '000') {
         const { stage, progress } = data
         // state.diagDumpIds[id] = {...state.diagDumpIds[id], ...{status, stage, progress}}
-        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, stage, progress, running: progress !== 1}}}}
+        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, stage, progress, duration, running: progress !== 1}}}}
       } else if (['001', '002', '999'].includes(status)) {
         const { stage, error } = data
-        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, stage, error, running: false}}}}
+        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, stage, error, duration, running: false}}}}
       } else {
-        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, running: false}}}}
+        state.diagDumpIds = {...state.diagDumpIds, ...{[id]: {...state.diagDumpIds[id], ...{status, duration, running: false}}}}
       }
     },
     // 更改诊断包选中状态

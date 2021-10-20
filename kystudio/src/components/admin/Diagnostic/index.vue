@@ -99,7 +99,10 @@
         <div class="download-progress">
           <div class="progress-item clearfix" v-for="item in diagDumpIds" :key="item.id">
             <div class="download-details">
-              <p class="title ksd-mb-8">{{ getTitle(item) }}<template v-if="item.tm"> ｜{{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color"></span></template></p>
+              <p class="title ksd-mb-8">{{ getTitle(item) }}
+                <template v-if="item.tm"> ｜{{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color"></span></template>
+                <template v-if="item.duration"> ｜{{item.duration | timeSize}}</template>
+              </p>
               <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" :icon-class="item.stage==='PREPARE'?'el-ksd-icon-time_22':''"></el-progress>
               <template v-if="item.status === '001'">
                 <p class="error-text">{{$t('requireOverTime1')}}<span class='retry-btn' @click="retryJob(item)">{{$t('retry')}}</span>{{$t('requireOverTime2')}}<a :href="$lang === 'en' ? 'https://docs.kyligence.io/books/v4.5/en/operation/diag.en.html' : 'https://docs.kyligence.io/books/v4.5/zh-cn/operation/diag.cn.html'" target="_blank">{{$t('manual')}}<i class="el-ksd-icon-export_22 export-icon"></i></a>{{$t('requireOverTime3')}}</p>
