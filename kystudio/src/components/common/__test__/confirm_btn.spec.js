@@ -22,6 +22,6 @@ describe('Component ConfirmBtn', () => {
   it('methods', () => {
     wrapper.vm.okFunc()
     expect(wrapper.emitted().okFunc).toEqual([[], []])
-    expect(wrapper.vm._data).toEqual({"visible": false})
+    expect(wrapper.vm._data).toEqual({'visible': false})
   })
 })

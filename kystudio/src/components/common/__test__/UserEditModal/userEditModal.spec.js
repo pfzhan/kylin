@@ -64,9 +64,8 @@ const root = {
   dispatch: function (name, params) { return UserEditStore.actions[name]({state: root.state, commit: root.commit, dispatch: root.dispatch}, params) }
 }
 
-
 const mockEventListener = jest.spyOn(document, 'addEventListener').mockImplementation()
-const mockRemoveEventListener = jest.spyOn(document, 'removeEventListener').mockImplementation()
+// const mockRemoveEventListener = jest.spyOn(document, 'removeEventListener').mockImplementation()
 const mockFormValidate = jest.fn().mockImplementation(() => {
   return new Promise(resolve => resolve(true))
 })
@@ -106,7 +105,7 @@ describe('Components UserEditModal', () => {
     expect(wrapper.vm.modalWidth).toBe('440px')
     wrapper.vm.$store.state.UserEditModal.editType = 'group'
     await wrapper.vm.$nextTick()
-    expect(wrapper.vm.modalWidth).toBe('660px')
+    expect(wrapper.vm.modalWidth).toBe('600px')
     expect(wrapper.vm.modalTitle).toBe('groupMembership')
     wrapper.vm.$store.state.UserEditModal.editType = 'new'
     await wrapper.vm.$nextTick()
@@ -125,7 +124,7 @@ describe('Components UserEditModal', () => {
     wrapper.vm.inputHandler('password', '123@abcde.^')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': 'ok', 'letter': 'ok', 'num': 'ok'})
     wrapper.vm.inputHandler('password', '@abcde.^')
-    expect(wrapper.vm.$data.pwdRuleList).toEqual({"char": "ok", "len": "ok", "letter": "ok", "num": "error"})
+    expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'ok', 'len': 'ok', 'letter': 'ok', 'num': 'error'})
 
     await wrapper.vm.fetchUserGroups()
     expect(mockApis.mockGetGroupList.mock.calls[0][1]).toEqual(undefined)
@@ -150,7 +149,7 @@ describe('Components UserEditModal', () => {
     wrapper.vm.blurHandler('newPassword')
     expect(wrapper.vm.$data.pwdRuleList).toEqual({'char': 'error', 'len': 'error', 'letter': 'error', 'num': 'error'})
 
-    expect(wrapper.vm.validate('username')).toBeInstanceOf(Function)
+    expect(wrapper.vm.validate('username')).toBeTruthy()
     expect(wrapper.vm.validate('password')).toBeTruthy()
 
     await wrapper.vm.submit()
@@ -180,12 +179,12 @@ describe('Components UserEditModal', () => {
 
     jest.clearAllTimers()
   })
-  it ('handle events', () => {
+  it('handle events', () => {
     const form = {
       username: 'admin',
       default_password: false,
       disabled: false,
-      authorities: ['ALL_USERS'],
+      authorities: ['ALL_USERS']
     }
     const $route = {
       params: {

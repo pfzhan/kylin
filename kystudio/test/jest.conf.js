@@ -21,15 +21,15 @@ module.exports = {
   // 所需忽略的文件
   testPathIgnorePatterns: ['<rootDir>/src/config'],
   testMatch: [
-    '<rootDir>/src/**/__test__/**/*.spec.js',
-    // '<rootDir>/src/components/project/__test__/project_list.spec.js'
+    '<rootDir>/src/**/__test__/**/*.spec.js'
+    // '<rootDir>/src/components/monitor/__test__/jobs.spec.js'
   ],
   setupFiles: ['<rootDir>/test/setup'],
   moduleNameMapper: {
     '^vue$': 'vue/dist/vue.common.js',
     '^src': '<rootDir>/src',
     '^assets': '<rootDir>/src/assets',
-    "components(.*)$": "<rootDir>/src/components/$1",
+    'components(.*)$': '<rootDir>/src/components/$1',
     // '^components': '<rootDir>/src/components',
     '^lessdir': '<rootDir>/src/less',
     '^util': '<rootDir>/src/util',
@@ -77,7 +77,7 @@ module.exports = {
     '!src/components/studio/Acceleration/*.vue',
     '!src/components/studio/Acceleration/acceleration_table.vue',
     '!src/components/monitor/admin.vue',
-    '!src/components/monitor/cluster.vue',
+    '!src/components/monitor/cluster.vue'
   ],
   // coverageReporters: ['json', 'lcovonly', 'text', 'clover'],
   coverageDirectory: './test/coverage',

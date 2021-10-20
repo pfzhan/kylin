@@ -668,7 +668,7 @@ export default class ModelEdit extends Vue {
   isShowCheckbox = false
   isShowMeaCheckbox = false
   isShowCCCheckbox = false
-    // 快捷编辑table操作 start
+  // 快捷编辑table操作 start
   showTableCoverDiv = false
   currentEditTable = null
   showEditAliasForm = false

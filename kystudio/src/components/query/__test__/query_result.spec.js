@@ -1,4 +1,4 @@
-import { shallowMount, mount } from '@vue/test-utils'
+import { shallowMount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import { localVue, mockEchartsEvent } from '../../../../test/common/spec_common'
 import queryResult from '../query_result'
@@ -32,7 +32,7 @@ const store = new Vuex.Store({
     },
     user: {
       currentUser: {
-        authorities: [{authority: "ROLE_ADMIN"}],
+        authorities: [{authority: 'ROLE_ADMIN'}],
         create_time: 1600148965832,
         defaultPassword: true,
         disabled: false,
@@ -41,9 +41,9 @@ const store = new Vuex.Store({
         locked: false,
         locked_time: 0,
         mvcc: 97,
-        username: "ADMIN",
-        uuid: "2400ccc1-8d17-44f9-bb5a-74def5286953",
-        version: "4.0.0.0",
+        username: 'ADMIN',
+        uuid: '2400ccc1-8d17-44f9-bb5a-74def5286953',
+        version: '4.0.0.0',
         wrong_time: 0
       }
     },
@@ -111,23 +111,22 @@ global.window.URL = {
 }
 global.navigator.msSaveBlob = mockSaveBlob
 
-
 describe('Component queryResult', () => {
   it('init', () => {
     // expect(wrapper.vm.$refs.tableLayout.bodyWrapper.addEventListener).toBeCalled()
-    expect(wrapper.vm.tableMeta).toEqual([{"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 91, "columnTypeName": "DATE", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_datekey", "name": "d_datekey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}, {"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 5, "columnTypeName": "number", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_cuskey", "name": "d_cuskey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}])
+    expect(wrapper.vm.tableMeta).toEqual([{'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 91, 'columnTypeName': 'DATE', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_datekey', 'name': 'd_datekey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}, {'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 5, 'columnTypeName': 'number', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_cuskey', 'name': 'd_cuskey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}])
     expect(wrapper.vm.currentPage).toBe(0)
-    expect(wrapper.vm.tableData).toEqual([["1992-01-01"]])
-    expect(wrapper.vm.pagerTableData).toEqual([["1992-01-01"]])
+    expect(wrapper.vm.tableData).toEqual([['1992-01-01']])
+    expect(wrapper.vm.pagerTableData).toEqual([['1992-01-01']])
 
     expect(queryResult.options.filters.filterNumbers(2)).toBe(2)
   })
   it('computed', async () => {
     expect(wrapper.vm.showExportCondition).toBeFalsy()
     expect(wrapper.vm.isAdmin).toBeTruthy()
-    expect(wrapper.vm.answeredBy).toEqual('HIVE')
-    expect(wrapper.vm.layoutIds).toBe('')
-    expect(wrapper.vm.insightBtnGroups).toEqual([{"text": "Data", "value": "data"}, {"text": "Visualization", "value": "visualization"}])
+    // expect(wrapper.vm.answeredBy).toEqual('HIVE')
+    // expect(wrapper.vm.layoutIds).toBe('')
+    expect(wrapper.vm.insightBtnGroups).toEqual([{'text': 'Data', 'value': 'data'}, {'text': 'Visualization', 'value': 'visualization'}])
     expect(wrapper.vm.displayOverSize).toBe()
     expect(wrapper.vm.snapshots).toEqual('')
 
@@ -143,8 +142,8 @@ describe('Component queryResult', () => {
     await wrapper.setProps({extraoption: extra})
     // await wrapper.update()
     expect(wrapper.vm.snapshots).toEqual('snapshots1, snapshots2')
-    expect(wrapper.vm.answeredBy).toBe('model_test')
-    expect(wrapper.vm.layoutIds).toBe('')
+    // expect(wrapper.vm.answeredBy).toBe('model_test')
+    // expect(wrapper.vm.layoutIds).toBe('')
 
     const extra2 = JSON.parse(JSON.stringify(extraoptions))
     extra2.realizations = [{
@@ -153,17 +152,19 @@ describe('Component queryResult', () => {
     }]
     await wrapper.setProps({extraoption: extra2})
     // await wrapper.update()
-    expect(wrapper.vm.layoutIds).toBe('5')
+    // expect(wrapper.vm.layoutIds).toBe('5')
 
     expect(wrapper.vm.isShowNotModelRangeTips).toBeFalsy()
 
     const extra3 = JSON.parse(JSON.stringify(extraoptions))
     extra3.realizations = [{
       modelAlias: 'model_test_1',
-      layoutId: -1
+      layoutId: -1,
+      indexType: null
     }, {
       modelAlias: 'model_test',
-      layoutId: null
+      layoutId: null,
+      indexType: null
     }]
     await wrapper.setProps({extraoption: extra3})
     // await wrapper.update()
@@ -174,28 +175,28 @@ describe('Component queryResult', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.noModelRangeTips).toBe('The query is out of the data range for serving queries. Please add segments accordingly.')
 
-    expect(wrapper.vm.querySteps).toEqual([{"duration": 274, "name": "totalDuration"}, {"duration": 208, "name": "PREPARATION"}, {"duration": 18, "group": "PREPARATION", "name": "GET_ACL_INFO"}, {"duration": 24, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}, {"duration": 154, "group": "PREPARATION", "name": "SQL_PARSE_AND_OPTIMIZE"}, {"duration": 12, "group": "PREPARATION", "name": "MODEL_MATCHING"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 25, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}])
+    expect(wrapper.vm.querySteps).toEqual([{'duration': 274, 'name': 'totalDuration'}, {'duration': 208, 'name': 'PREPARATION'}, {'duration': 18, 'group': 'PREPARATION', 'name': 'GET_ACL_INFO'}, {'duration': 24, 'group': 'PREPARATION', 'name': 'SQL_TRANSFORMATION'}, {'duration': 154, 'group': 'PREPARATION', 'name': 'SQL_PARSE_AND_OPTIMIZE'}, {'duration': 12, 'group': 'PREPARATION', 'name': 'MODEL_MATCHING'}, {'duration': 41, 'group': null, 'name': 'SQL_PUSHDOWN_TRANSFORMATION'}, {'duration': 25, 'group': null, 'name': 'PREPARE_AND_SUBMIT_JOB'}])
 
     const extra4 = JSON.parse(JSON.stringify(extraoptions))
     extra4.traces = [
       {
-        "name": "SQL_PUSHDOWN_TRANSFORMATION",
-        "group": null,
-        "duration": 41
+        'name': 'SQL_PUSHDOWN_TRANSFORMATION',
+        'group': null,
+        'duration': 41
       },
       {
-        "name": "PREPARE_AND_SUBMIT_JOB",
-        "group": null,
-        "duration": 15
+        'name': 'PREPARE_AND_SUBMIT_JOB',
+        'group': null,
+        'duration': 15
       },
       {
-        "name": "SQL_TRANSFORMATION",
-        "group": "PREPARATION",
-        "duration": 44
+        'name': 'SQL_TRANSFORMATION',
+        'group': 'PREPARATION',
+        'duration': 44
       }
     ]
     await wrapper.setProps({extraoption: extra4})
-    expect(wrapper.vm.querySteps).toEqual([{"duration": 100, "name": "totalDuration"}, {"duration": 44, "name": "PREPARATION"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 15, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}, {"duration": 44, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}])
+    expect(wrapper.vm.querySteps).toEqual([{'duration': 100, 'name': 'totalDuration'}, {'duration': 44, 'name': 'PREPARATION'}, {'duration': 41, 'group': null, 'name': 'SQL_PUSHDOWN_TRANSFORMATION'}, {'duration': 15, 'group': null, 'name': 'PREPARE_AND_SUBMIT_JOB'}, {'duration': 44, 'group': 'PREPARATION', 'name': 'SQL_TRANSFORMATION'}])
 
     // const extra5 = JSON.parse(JSON.stringify(extraoptions))
     // extra5.traces = []
@@ -204,12 +205,12 @@ describe('Component queryResult', () => {
   })
   it('methods', async () => {
     wrapper.vm.transDataForGrid()
-    expect(wrapper.vm.tableMeta).toEqual([{"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 91, "columnTypeName": "DATE", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_datekey", "name": "d_datekey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}, {"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 5, "columnTypeName": "number", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_cuskey", "name": "d_cuskey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}, {"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 91, "columnTypeName": "DATE", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_datekey", "name": "d_datekey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}, {"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 5, "columnTypeName": "number", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_cuskey", "name": "d_cuskey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}])
-    
+    expect(wrapper.vm.tableMeta).toEqual([{'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 91, 'columnTypeName': 'DATE', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_datekey', 'name': 'd_datekey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}, {'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 5, 'columnTypeName': 'number', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_cuskey', 'name': 'd_cuskey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}, {'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 91, 'columnTypeName': 'DATE', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_datekey', 'name': 'd_datekey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}, {'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 5, 'columnTypeName': 'number', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_cuskey', 'name': 'd_cuskey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}])
+
     wrapper.vm.toggleDetail()
     expect(wrapper.vm.showDetail).toBeTruthy()
 
-    expect(wrapper.vm.filterTableData()).toEqual([["1992-01-01"]])
+    expect(wrapper.vm.filterTableData()).toEqual([['1992-01-01']])
     await wrapper.setData({resultFilter: 'test'})
     // setTimeout(() => {
     //   expect(wrapper.vm.filterTableData()).toEqual([["1992-01-01"]])
@@ -229,10 +230,10 @@ describe('Component queryResult', () => {
     jest.runAllTimers()
     expect(wrapper.vm.currentPage).toBe(0)
 
-    wrapper.vm.changeDataType({value: 'visualization'})
-    expect(wrapper.vm.activeResultType).toBe('visualization')
+    wrapper.vm.changeDataType({name: 'visualization'})
+    // expect(wrapper.vm.activeResultType).toBe('visualization')
     await wrapper.vm.$nextTick()
-    expect(Object.keys(wrapper.vm.chartLayout)).toEqual(["setOption", "dispose", "resize"])
+    expect(Object.keys(wrapper.vm.chartLayout)).toEqual(['setOption', 'dispose', 'resize'])
     // await wrapper.vm.$nextTick()
     expect(mockEchartsEvent.setOption).toBeCalled()
 
@@ -255,7 +256,7 @@ describe('Component queryResult', () => {
 
     await wrapper.setData({tableMetaBackup: []})
     wrapper.vm.disabledChartType()
-    expect(wrapper.vm.chartTypeOptions).toEqual([{"isDisabled": true, "text": "lineChart", "value": "lineChart"}, {"isDisabled": true, "text": "barChart", "value": "barChart"}, {"isDisabled": true, "text": "pieChart", "value": "pieChart"}])
+    expect(wrapper.vm.chartTypeOptions).toEqual([{'isDisabled': true, 'text': 'lineChart', 'value': 'lineChart'}, {'isDisabled': true, 'text': 'barChart', 'value': 'barChart'}, {'isDisabled': true, 'text': 'pieChart', 'value': 'pieChart'}])
     expect(wrapper.vm.charts.type).toEqual('')
 
     await wrapper.setData({tableMetaBackup: [{
@@ -263,13 +264,13 @@ describe('Component queryResult', () => {
       caseSensitive: false,
       catelogName: null,
       columnType: 5,
-      columnTypeName: "number",
+      columnTypeName: 'number',
       currency: false,
       definitelyWritable: false,
       displaySize: 2147483647,
       isNullable: 1,
-      label: "d_cuskey",
-      name: "d_cuskey",
+      label: 'd_cuskey',
+      name: 'd_cuskey',
       precision: 0,
       readOnly: false,
       scale: 0,
@@ -280,18 +281,18 @@ describe('Component queryResult', () => {
       writable: false
     }]})
     wrapper.vm.disabledChartType()
-    expect(wrapper.vm.chartTypeOptions).toEqual([{"isDisabled": true, "text": "lineChart", "value": "lineChart"}, {"isDisabled": true, "text": "barChart", "value": "barChart"}, {"isDisabled": true, "text": "pieChart", "value": "pieChart"}])
+    expect(wrapper.vm.chartTypeOptions).toEqual([{'isDisabled': true, 'text': 'lineChart', 'value': 'lineChart'}, {'isDisabled': true, 'text': 'barChart', 'value': 'barChart'}, {'isDisabled': true, 'text': 'pieChart', 'value': 'pieChart'}])
     expect(wrapper.vm.charts.type).toEqual('')
 
     await wrapper.vm.exportData()
     await wrapper.vm.$nextTick()
-    expect(mockApi.mockExportCsv.mock.calls[0][1]).toEqual({"limit": 500, "project": "xm_test", "sql": "select * from SSB.DATES"})
+    expect(mockApi.mockExportCsv.mock.calls[0][1]).toEqual({'limit': 500, 'project': 'xm_test', 'sql': 'select * from SSB.DATES'})
     // expect(mockRevokeObjectURL).toBeCalled()
 
     global.window.navigator.msSaveOrOpenBlob = true
     await wrapper.vm.exportData()
     await wrapper.vm.$nextTick()
-    expect(mockApi.mockExportCsv.mock.calls[0][1]).toEqual({"limit": 500, "project": "xm_test", "sql": "select * from SSB.DATES"})
+    expect(mockApi.mockExportCsv.mock.calls[0][1]).toEqual({'limit': 500, 'project': 'xm_test', 'sql': 'select * from SSB.DATES'})
     // expect(mockSaveBlob).toBeCalled()
 
     wrapper.vm.$store._actions.EXPORT_CSV = [jest.fn().mockImplementation(() => {

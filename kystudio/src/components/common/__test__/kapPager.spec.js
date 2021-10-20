@@ -9,7 +9,7 @@ const wrapper = mount(kapPager, {
   localVue,
   propsData: {
     perPageSize: 10,
-    totalSize: 50,
+    totalSize: 50
 
   }
 })
@@ -26,5 +26,4 @@ describe('Component KapPager', () => {
     expect(mockCacheLocalStorage).toBeCalledWith('', 20)
   })
 })
-
 

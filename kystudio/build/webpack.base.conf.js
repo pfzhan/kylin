@@ -55,7 +55,10 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        include: [resolve('src'), resolve('test'), resolve('node_modules/vue-awesome')]
+        include: [resolve('src'), resolve('test'), resolve('node_modules/vue-awesome')],
+        options: {
+          presets: ['@babel/preset-env']
+        }
       },
       {
         test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,

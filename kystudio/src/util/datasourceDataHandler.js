@@ -59,7 +59,7 @@ export const render = {
               { isShowCancelSelected && isSelected ? (
                 <span class="ksd-mr-10" onClick={event => this.cancelSelected(data, node, event)}>{this.$t('cancelSelected')}</span>
               )
-               : null }
+                : null }
             </div>
             <div class="right fact-icon">
               {tags.map(tag => {

@@ -774,8 +774,8 @@ export default class IndexList extends Vue {
             this.$message({
               type: 'success',
               message: <span>{this.getAcceptIndexes(acceptIndexs) + this.acceptBaseIndex(result)}<a href="javascript:void();" onClick={() => this.buildIndex({layoutIds: [...result.added_layouts, ...this.getBaseIndexLayout(result)]})}>{
-                  this.canBuildIndex(acceptIndexs, result) ? this.$t('buildIndex') : ''
-                }</a></span>
+                this.canBuildIndex(acceptIndexs, result) ? this.$t('buildIndex') : ''
+              }</a></span>
             })
             this.recommendationsList.page_offset = 0
             this.getRecommendations('refreshCount')

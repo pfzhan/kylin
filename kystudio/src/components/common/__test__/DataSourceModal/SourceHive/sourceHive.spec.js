@@ -1,4 +1,4 @@
-import { shallowMount, mount } from '@vue/test-utils'
+import { shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../../test/common/spec_common'
 import SourceHive from '../../../DataSourceModal/SourceHive/SourceHive.vue'
 import areaLabel from '../../../../common/area_label.vue'
@@ -18,8 +18,8 @@ const mockApi = {
   loadHiveBasicDatabaseTables: jest.fn().mockImplementation(() => {
     return Promise.resolve({
       databases: [
-        {dbname: "BI", size: 2, tables: [{table_name: "TEST_DATA_TYPES", loaded: false}, {table_name: "TEST_MAP", loaded: false}]},
-        {dbname: "DEFAULT", size: 111, tables: [{table_name: "BITMAP_TABLE", loaded: false}, {table_name: "CALCS", loaded: true}, {table_name: "CG", loaded: false}]}
+        {dbname: 'BI', size: 2, tables: [{table_name: 'TEST_DATA_TYPES', loaded: false}, {table_name: 'TEST_MAP', loaded: false}]},
+        {dbname: 'DEFAULT', size: 111, tables: [{table_name: 'BITMAP_TABLE', loaded: false}, {table_name: 'CALCS', loaded: true}, {table_name: 'CG', loaded: false}]}
       ]
     })
   }),
@@ -87,5 +87,4 @@ describe('Component SourceHive', () => {
     // expect(wrapper.vm.treeData).toEqual()
   })
 })
-
 

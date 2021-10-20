@@ -5,7 +5,7 @@ import Diagnostic from '../../Diagnostic/index.vue'
 import * as util from '../../../../util'
 import * as business from '../../../../util/business'
 
-const mockGetQueryString = jest.spyOn(util, 'getQueryString').mockImplementation(() => 'iframe')
+// const mockGetQueryString = jest.spyOn(util, 'getQueryString').mockImplementation(() => 'iframe')
 const mockPostCloudUrlMessage = jest.spyOn(business, 'postCloudUrlMessage').mockImplementation()
 
 const mockApis = {
@@ -77,7 +77,10 @@ const wrapper = mount(Diagnostic, {
   store,
   mocks: {
     $route: {
-      name: ''
+      name: '',
+      query: {
+        previousPage: 'StreamingJob'
+      }
     },
     $router: {
       push: jest.fn()
@@ -93,24 +96,23 @@ const wrapper = mount(Diagnostic, {
 describe('Component Diagnostic', () => {
   it('init', () => {
     expect(mockApis.getServers).toBeCalled()
-    expect(wrapper.vm.serverOptions).toEqual([{"label": "sandbox.com(ALL)", "value": "sandbox.com"}])
-    expect(wrapper.vm.servers).toEqual(["sandbox.com"])
+    expect(wrapper.vm.serverOptions).toEqual([{'label': 'sandbox.com(ALL)', 'value': 'sandbox.com'}])
+    expect(wrapper.vm.servers).toEqual(['sandbox.com'])
     expect(mockApis.stopInterfaceCall).toBeCalled()
   })
   it('computed', () => {
-    expect(wrapper.vm.timeRange).toEqual([{"label": "lastHour", "text": "Last 1 Hour"}, {"label": "lastDay", "text": "Last 1 Day"}, {"label": "lastThreeDay", "text": "Last 3 Days"}, {"label": "lastMonth", "text": "Last 1 Month"}, {"label": "custom", "text": "Customize"}])
+    expect(wrapper.vm.timeRange).toEqual([{'label': 'lastHour', 'text': 'Last 1 Hour'}, {'label': 'lastDay', 'text': 'Last 1 Day'}, {'label': 'lastThreeDay', 'text': 'Last 3 Days'}, {'label': 'lastMonth', 'text': 'Last 1 Month'}, {'label': 'custom', 'text': 'Customize'}])
     expect(wrapper.vm.getDownloadNum).toBe('1/1')
     expect(wrapper.vm.getDateTimeValid).toBeFalsy()
-    expect(wrapper.vm.showManualDownloadLayout).toBeTruthy()
-    expect(wrapper.vm.getTitle({host: 'http://sandbox.com'})).toBe('http://sandbox.com(ALL)')
+    expect(wrapper.vm.getTitle({host: 'http://sandbox.com'})).toBe('sandbox.com(ALL)')
     expect(wrapper.vm.getTimes()).not.toBeNaN()
     expect(wrapper.vm.getTimes('2020-08-04')).toBe(1596499200000)
   })
   it('methods', async () => {
-    expect(wrapper.vm.setProgressColor({progress: 0, status: '000'})).toEqual({"color": "#0988DE"})
-    expect(wrapper.vm.setProgressColor({progress: 0.5, status: '000'})).toEqual({"color": "#0988DE"})
-    expect(wrapper.vm.setProgressColor({progress: 1, status: '000'})).toEqual({"status": "success"})
-    expect(wrapper.vm.setProgressColor({progress: 1, status: '999'})).toEqual({"status": "exception"})
+    expect(wrapper.vm.setProgressColor({progress: 0, status: '000'})).toEqual({'color': '#0988DE'})
+    expect(wrapper.vm.setProgressColor({progress: 0.5, status: '000'})).toEqual({'color': '#0988DE'})
+    expect(wrapper.vm.setProgressColor({progress: 1, status: '000'})).toEqual({'status': 'success'})
+    expect(wrapper.vm.setProgressColor({progress: 1, status: '999'})).toEqual({'status': 'exception'})
     wrapper.vm.onBlur()
     expect(wrapper.vm.validDateTime).toBeTruthy()
     wrapper.vm.changeTimeRange('lastHour')
@@ -129,15 +131,9 @@ describe('Component Diagnostic', () => {
     expect(wrapper.vm.dateTime.prev).toBe('')
     expect(wrapper.vm.dateTime.next).toBe('')
 
-    wrapper.vm.handleClose('header')
-    // wrapper.vm.$nextTick(() => {
-    expect(wrapper.vm.showPopoverTip).toBeTruthy()
-    // expect(wrapper.vm.closeFromHeader).toBeTruthy()
-    // })
     await wrapper.setData({ isRunning: false })
     wrapper.vm.handleClose('')
     // wrapper.vm.$nextTick(() => {
-    expect(wrapper.vm.showPopoverTip).toBeTruthy()
     // expect(wrapper.vm.closeFromHeader).toBeTruthy()
     expect(mockApis.removeDiagnosticTask).toBeCalled()
     expect(mockApis.resetDumpData).toBeCalled()
@@ -184,30 +180,32 @@ describe('Component Diagnostic', () => {
     expect(wrapper.vm.indeterminate).toBeFalsy()
     expect(wrapper.vm.checkAll).toBeTruthy()
 
-    wrapper.vm.downloadEvent()
+    wrapper.vm.downloadEvent({host: 'sandbox.com', id: 'front_2020_08_04_07_35_49_494298'})
     expect(mockApis.downloadDump).toBeCalled()
 
     wrapper.vm.goto('admin')
     expect(wrapper.vm.jumpPage).toBe('admin')
     expect(wrapper.emitted().close).toEqual([[], []])
-    expect(wrapper.vm.$router.push).toBeCalledWith('/admin/project')
+    expect(wrapper.vm.$router.push).toBeCalledWith('/admin/project?previousPage=undefined')
 
     await wrapper.setData({isRunning: true})
     wrapper.vm.goto('job')
-    expect(wrapper.vm.showPopoverTip).toBeTruthy()
-    expect(wrapper.vm.popperClass).toBe('jumpLinks')
     expect(wrapper.vm.popoverCallback).not.toEqual()
 
     wrapper.vm.gotoEventCallback()
-    // expect(wrapper.vm.$router.push).toBeCalledWith('/monitor/job')
-    expect(mockPostCloudUrlMessage.mock.calls[0][1]).toEqual({"name": "kapJob"})
+    expect(wrapper.vm.$router.push).toBeCalledWith(`/admin/project?previousPage=undefined`)
+    // expect(mockPostCloudUrlMessage.mock.calls[0][1]).toEqual([])
 
     jest.spyOn(util, 'getQueryString').mockImplementation(() => 'pc')
+    wrapper.vm.gotoEventCallback()
+    expect(wrapper.vm.$router.push).toBeCalledWith('/monitor/streamingJob')
+
+    wrapper.vm.$route.query.previousPage = 'job'
     wrapper.vm.gotoEventCallback()
     expect(wrapper.vm.$router.push).toBeCalledWith('/monitor/job')
 
     wrapper.vm.gotoWorkspaceList()
-    expect(mockPostCloudUrlMessage.mock.calls[1][1]).toEqual({"name": "Stack"})
+    expect(mockPostCloudUrlMessage.mock.calls[0][1]).toEqual({'name': 'Stack'})
 
     await wrapper.setData({dateTime: {prev: new Date('2021-03-01 11:13:00'), next: new Date('2021-03-01 14:41:09')}})
     wrapper.vm.$store._actions.GET_DUMP_REMOTE = [jest.fn().mockRejectedValue(false)]

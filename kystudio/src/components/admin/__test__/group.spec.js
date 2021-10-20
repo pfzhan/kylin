@@ -1,4 +1,4 @@
-import { shallowMount, mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import * as business from '../../../util/business'
 import Group from '../Group/index.vue'
@@ -55,7 +55,7 @@ const store = new Vuex.Store({
   }
 })
 
-const editModal = shallowMount(GroupEditModal, { localVue, store })
+// const editModal = shallowMount(GroupEditModal, { localVue, store })
 
 const wrapper = mount(Group, {
   store,

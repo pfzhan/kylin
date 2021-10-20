@@ -111,7 +111,7 @@ wrapper.vm.$refs = {
   }
 }
 
-describe('Component DataSourceBar', async () => {
+describe('Component DataSourceBar', () => {
   it('init', () => {
     wrapper.vm.$emit('filter', {target: {value: 'name'}})
     expect(wrapper.emitted().filter[0]).toEqual([{'target': {'value': 'name'}}])
@@ -144,7 +144,7 @@ describe('Component DataSourceBar', async () => {
     expect(wrapper.vm.showTreeFilter).toBeFalsy()
     await wrapper.setProps({ isShowDragWidthBar: true })
     // await wrapper.update()
-    expect(wrapper.vm.dataSourceStyle).toEqual({'width': '250px'})
+    expect(wrapper.vm.dataSourceStyle).toEqual({'width': '240px'})
     expect(wrapper.vm.databaseArray[0].type).toBe('database')
     expect(wrapper.vm.tableArray).toBeInstanceOf(Object)
     expect(wrapper.vm.columnArray).toEqual([])
@@ -234,7 +234,7 @@ describe('Component DataSourceBar', async () => {
     expect(_options.handleClick).toBeCalled()
 
     wrapper.vm.freshAutoCompleteWords()
-    expect(wrapper.emitted()['autoComplete'][0]).toEqual([[{"caption": "DB1", "id": "9.DB1", "meta": "database", "scope": 1, "value": "DB1"}, {"caption": "TABLE1_NEW", "id": undefined, "meta": "table", "scope": 1, "value": "TABLE1_NEW"}, {"caption": "DB1.TABLE1_NEW", "id": undefined, "meta": "table", "scope": 1, "value": "DB1.TABLE1_NEW"}]])
+    expect(wrapper.emitted()['autoComplete'][0]).toEqual([[{'caption': 'DB1', 'id': '9.DB1', 'meta': 'database', 'scope': 1, 'value': 'DB1'}, {'caption': 'DB1', 'id': '1.DB1', 'meta': 'database', 'scope': 1, 'value': 'DB1'}, {'caption': 'DB1', 'id': '8.DB1', 'meta': 'database', 'scope': 1, 'value': 'DB1'}, {'caption': 'TABLE1_NEW', 'id': undefined, 'meta': 'table', 'scope': 1, 'value': 'TABLE1_NEW'}, {'caption': 'TABLE1_NEW', 'id': undefined, 'meta': 'table', 'scope': 1, 'value': 'TABLE1_NEW'}, {'caption': 'TABLE1_NEW', 'id': undefined, 'meta': 'table', 'scope': 1, 'value': 'TABLE1_NEW'}, {'caption': 'DB1.TABLE1_NEW', 'id': undefined, 'meta': 'table', 'scope': 1, 'value': 'DB1.TABLE1_NEW'}, {'caption': 'DB1.TABLE1_NEW', 'id': undefined, 'meta': 'table', 'scope': 1, 'value': 'DB1.TABLE1_NEW'}, {'caption': 'DB1.TABLE1_NEW', 'id': undefined, 'meta': 'table', 'scope': 1, 'value': 'DB1.TABLE1_NEW'}]])
     expect(wrapper.vm.$data.allWords).toBeInstanceOf(Array)
     // expect(freshTreeOrder).toBeCalled()
 
@@ -299,7 +299,7 @@ describe('Component DataSourceBar', async () => {
     expect(handleSuccessAsync).toBeCalled()
 
     wrapper.vm.loadDataBases()
-    expect(wrapper.vm.$data.datasources.length).toBe(1)
+    expect(wrapper.vm.$data.datasources.length).toBe(0)
   })
 
   it('close modal', (done) => {
@@ -351,14 +351,14 @@ describe('DataSourceBar handlers', () => {
     expect(data.datasources).toBeInstanceOf(Array)
     expect(handlers.getWordsData({type: '', label: '', id: 4})).toEqual({meta: '', caption: '', value: '', id: 4, scope: 1})
     expect(handlers.getTableDBWordsData({type: 'table', database: 'SSB', label: 'SALES', id: 4})).toEqual({meta: 'table', caption: 'SSB.SALES', value: 'SSB.SALES', id: 4, scope: 1})
-    expect(handlers.getFirstTableData([{children: [{ children: [{dbname: 'DB1', size: 3, tables: []}] }]}])).toEqual({"dbname": "DB1", "size": 3, "tables": []})
+    expect(handlers.getFirstTableData([{children: [{ children: [{dbname: 'DB1', size: 3, tables: []}] }]}])).toEqual({'dbname': 'DB1', 'size': 3, 'tables': []})
     // {label: 'P_LINEORDER', database: 'SSB', datasource: 9, columns: [{cardinality: null, datatype: "varchar(4096)", id: "2", max_value: null, min_value: null, name: "D_DATE", null_count: null}]}
-    expect(handlers.getTableObj({hideFactIcon: false, foreignKeys: [], primaryKeys: []}, { datasource: 9, label: 'P_LINEORDER' }, { root_fact: false, lookup: true, columns: [{cardinality: null, datatype: "varchar(4096)", id: "2", max_value: null, min_value: null, name: "D_DATE", null_count: null}] }, false).__data).toBeTruthy()
+    expect(handlers.getTableObj({hideFactIcon: false, foreignKeys: [], primaryKeys: []}, { datasource: 9, label: 'P_LINEORDER' }, { root_fact: false, lookup: true, columns: [{cardinality: null, datatype: 'varchar(4096)', id: '2', max_value: null, min_value: null, name: 'D_DATE', null_count: null}] }, false).__data).toBeTruthy()
     wrapper.vm.$store.state.config.platform = 'iframe'
     expect(handlers.getDatasourceObj(wrapper.vm, 9)).toBeInstanceOf(Object)
     // expect(handlers.render.column.render((res) => res, { node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toEqual('div')
-    expect(handlers.render.column.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toBeInstanceOf(Object)
-    expect(handlers.render.table.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {label: 'TEST', tags: ['F', 'L', 'N'], dateRange: true, isTopSet: true, isHideFactIcon: false}, store: {}})).toBeInstanceOf(Object)
+    expect(handlers.render.column.render.call(wrapper.vm, wrapper.vm.$createElement, {node: null, data: {label: 'TEST', tags: ['FK', 'PK']}, store: {}})).toBeInstanceOf(Object)
+    expect(handlers.render.table.render.call(wrapper.vm, wrapper.vm.$createElement, {node: null, data: {label: 'TEST', tags: ['F', 'L', 'N'], dateRange: true, isTopSet: true, isHideFactIcon: false}, store: {}})).toBeInstanceOf(Object)
     expect(handlers.render.database.render(wrapper.vm.$createElement, { node: null, data: { label: 'TEST', isDefaultDB: true }, store: {} })).toBeInstanceOf(Object)
     expect(handlers.render.datasource.render.call(wrapper.vm, wrapper.vm.$createElement, { node: null, data: {sourceType: 9, label: 'SSB'}, store: {} })).toBeInstanceOf(Object)
   })

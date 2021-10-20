@@ -1,4 +1,4 @@
-import { mount, shallowMountMount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import * as business from '../../../util/business'
 import User from '../User/index.vue'
@@ -99,7 +99,7 @@ describe('Component User', () => {
     expect(wrapper.vm.$data.totalSize).toBe(50)
   })
   it('computed', async () => {
-    expect(wrapper.vm.currentGroup).toEqual({"group_name": "ROLE_ADMIN"})
+    expect(wrapper.vm.currentGroup).toEqual({'group_name': 'ROLE_ADMIN'})
     expect(wrapper.vm.isActionShow).toBe(1)
     expect(wrapper.vm.isMoreActionShow).toBe(1)
     expect(wrapper.vm.usersList).toBeInstanceOf(Array)
@@ -119,7 +119,7 @@ describe('Component User', () => {
     expect(mockUserByGroupName).toBeCalled()
 
     await wrapper.vm.dropUser({username: 'xx'})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user \"xx\"?', {'confirmButtonText': 'Delete'}, 'Delete User')
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user xx ?', {'confirmButtonText': 'Delete'}, 'Delete User')
     expect(mockRemoveUser).toBeCalled()
     expect(mockMessage).toBeCalled()
 
@@ -127,15 +127,15 @@ describe('Component User', () => {
       removeUser: jest.fn().mockRejectedValue(false)
     }
     await User.options.methods.dropUser.call(options, { username: 'xx' })
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user \"xx\"?', {'confirmButtonText': 'Delete'}, 'Delete User')
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to delete the user xx ?', {'confirmButtonText': 'Delete'}, 'Delete User')
     expect(mockHandleError).toBeCalled()
 
     await wrapper.vm.changeStatus({disabled: true, username: 'xx'})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to enable the user \"xx\"?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to enable the user xx ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Enable', 'type': 'warning'})
     expect(mockHandleError).toBeCalled()
 
     await wrapper.vm.changeStatus({disabled: false, username: 'xx'})
-    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to disable the user \"xx\"?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Disable', 'type': 'warning'})
+    expect(kapConfirmMockHandle).toHaveBeenCalledWith('Are you sure you want to disable the user xx ?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Disable', 'type': 'warning'})
     expect(mockHandleError).toBeCalled()
 
     const options3 = {

@@ -11,7 +11,7 @@ jest.useFakeTimers()
 const mockApis = {
   mockAddGroup: jest.fn().mockImplementation(),
   mockLoadUserList: jest.fn().mockImplementation(() => {
-    return Promise.resolve({data: {data: {limit: 1000, offset: 0, total_size: 3000, value: [{authorities: [{authority: 'ALL_USERS'}], defaultPassword: false, disabled: false, locked: false, username: 'admin'} ]}}})
+    return Promise.resolve({data: {data: {limit: 1000, offset: 0, total_size: 3000, value: [ {authorities: [{authority: 'ALL_USERS'}], defaultPassword: false, disabled: false, locked: false, username: 'admin'} ]}}})
   }),
   mockAddUsersToGroup: jest.fn().mockResolvedValue('')
 }
@@ -61,7 +61,7 @@ describe('Component GroupEditModal', () => {
     expect(wrapper.vm.modalTitle).toBe('createGroup')
     wrapper.vm.$store.state.GroupEditModal.editType = 'assign'
     await wrapper.vm.$nextTick()
-    expect(wrapper.vm.modalWidth).toBe('660px')
+    expect(wrapper.vm.modalWidth).toBe('600px')
     expect(wrapper.vm.modalTitle).toBe('assignUser')
 
     expect(wrapper.vm.totalUserData).toEqual([])
@@ -71,7 +71,7 @@ describe('Component GroupEditModal', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.$data.isFormShow).toBeTruthy()
     expect(wrapper.vm.$data.page_offset).toBe(1)
-    expect(wrapper.vm.$store.state.GroupEditModal.totalUsers).toEqual([{'key': 'admin', 'value': 'admin'}, {'key': 'test_01', 'value': 'test_01'}])
+    expect(wrapper.vm.$store.state.GroupEditModal.totalUsers).toEqual([{'key': 'admin', 'label': 'admin'}, {'key': 'test_01', 'label': 'test_01'}])
     expect(wrapper.vm.$data.searchValueLeft).toBe('')
     expect(mockApis.mockLoadUserList).toBeCalled()
     expect(wrapper.vm.$data.totalUsersSize).toBe(3000)
@@ -80,12 +80,12 @@ describe('Component GroupEditModal', () => {
     wrapper.setData({page_offset: 0})
     await wrapper.vm.$nextTick()
     wrapper.vm.autoLoadMoreData([{authorities: [{authority: 'ALL_USERS'}], defaultPassword: false, disabled: false, locked: false, username: 'kylin'}], '')
-    expect(mockApis.mockLoadUserList.mock.calls[2][1]).toEqual({'name': undefined, 'page_offset': 2, 'page_size': 1000})
+    expect(mockApis.mockLoadUserList.mock.calls[2][1]).toEqual({'name': undefined, 'page_offset': 2, 'page_size': 100})
     wrapper.setData({page_offset: 0})
     await wrapper.vm.$nextTick()
     wrapper.vm.autoLoadMoreData([{authorities: [{authority: 'ALL_USERS'}], defaultPassword: false, disabled: false, locked: false, username: 'kylin'}], 'user')
     expect(mockApis.mockLoadUserList).toBeCalled()
-    
+
     wrapper.vm.$refs.form = {
       validate: jest.fn().mockResolvedValue('')
     }
@@ -112,12 +112,12 @@ describe('Component GroupEditModal', () => {
 
     wrapper.vm.queryHandler('Unassigned Users', 'test')
     jest.runAllTimers()
-    expect(mockApis.mockLoadUserList.mock.calls[6][1]).toEqual({'name': 'test', 'page_offset': 0, 'page_size': 1000})
-    expect(wrapper.vm.$store.state.GroupEditModal.totalUsers).toEqual([])
+    // expect(mockApis.mockLoadUserList.mock.calls[6][1]).toEqual({'name': 'test', 'page_offset': 0, 'page_size': 1000})
+    expect(wrapper.vm.$store.state.GroupEditModal.totalUsers.length).toBe(32)
 
     wrapper.vm.queryHandler('Assigned Users', '')
     expect(wrapper.vm.$data.searchValueRight).toBe('')
-    expect(wrapper.vm.$data.totalSizes).toEqual([3000, 0])
+    expect(wrapper.vm.$data.totalSizes).toEqual([2998, 0])
   })
 })
 

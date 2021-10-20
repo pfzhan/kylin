@@ -791,7 +791,7 @@ export default class SettingAdvanced extends Vue {
           } else {
             // 利用H5 FORMDATA 同时传输多文件和数据
             if (await this.$refs['kerberos-setting-form'].validate()) {
-              let formData = new FormData()   // 利用H5 FORMDATA 同时传输多文件和数据
+              let formData = new FormData() // 利用H5 FORMDATA 同时传输多文件和数据
               formData.append('principal', this.form.principal)
               formData.append('file', this.form.file)
               let params = {
@@ -932,7 +932,7 @@ export default class SettingAdvanced extends Vue {
     const project = { ...this.project, alias: this.project.alias || this.project.project }
     switch (type) {
       // case 'accelerate-settings':
-        // return JSON.stringify(_getAccelerationSettings(form)) !== JSON.stringify(_getAccelerationSettings(project))
+      //   return JSON.stringify(_getAccelerationSettings(form)) !== JSON.stringify(_getAccelerationSettings(project))
       case 'defaultDB-settings':
         return JSON.stringify(_getDefaultDBSettings(form)) !== JSON.stringify(_getDefaultDBSettings(project))
       case 'job-alert':

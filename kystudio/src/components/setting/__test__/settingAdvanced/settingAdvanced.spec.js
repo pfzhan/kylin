@@ -211,7 +211,7 @@ wrapper.vm.$refs = {
 describe('Component SettingAdvanced', () => {
   it('init', () => {
     expect(mockApi.mockFetchDatabases.mock.calls[0][1]).toEqual({'projectName': 'kyligence', 'sourceType': 9})
-    expect(wrapper.vm.form).toEqual({'data_load_empty_notification_enabled': false, 'defaultDatabase': 'SSB', 'default_database': 'DEFAULT', 'expose_computed_column': true, 'file': null, 'fileList': [], 'job_error_notification_enabled': false, 'job_notification_emails': [''], 'principal': null, 'project': 'xm_test_1', 'scd2_enabled': false, 'yarn_queue': 'default'})
+    expect(wrapper.vm.form).toEqual({'data_load_empty_notification_enabled': false, 'defaultDatabase': 'SSB', 'default_database': 'DEFAULT', 'expose_computed_column': true, 'file': null, 'fileList': [], 'job_error_notification_enabled': false, 'job_notification_emails': [''], 'multi_partition_enabled': undefined, 'principal': null, 'project': 'xm_test_1', 'scd2_enabled': false, 'second_storage_enabled': undefined, 'second_storage_nodes': [], 'snapshot_manual_management_enabled': undefined, 'yarn_queue': 'default'})
     // expect(mockClearValidate).toBeCalled()
     expect(mockApi.mockLoadConfigByProject.mock.calls[0][1]).toEqual({'exact': true, 'page_offset': 0, 'page_size': 1, 'permission': 'ADMINISTRATION', 'project': 'xm_test_1'})
     expect(wrapper.vm.currentPage).toBe(0)
@@ -233,7 +233,7 @@ describe('Component SettingAdvanced', () => {
   })
   it('methods', async () => {
     await wrapper.vm.handleSwitch()
-    expect(mockKapConfirm).toBeCalledWith('With this switch OFF, computed columns won\'t be exposed to the connected BI tools or other systems. It might cause the connected systems unusable. Are you sure you want to turn it off?', {'confirmButtonText': 'Turn Off'})
+    expect(mockKapConfirm).toBeCalledWith('With this switch OFF, computed columns won\'t be exposed to the connected BI tools or other systems. It might cause the connected systems unusable. Are you sure you want to turn it off?', {'centerButton': true, 'confirmButtonText': 'Turn Off', 'type': 'warning'})
     expect(mockApi.mockUpdateExposeCCConfig.mock.calls[0][1]).toEqual({'expose_computed_column': undefined, 'project': 'xm_test_1'})
     expect(wrapper.emitted()['reload-setting']).toEqual([[]])
     expect(mockMessage).toBeCalledWith({'message': 'Updated successfully.', 'type': 'success'})
@@ -258,10 +258,10 @@ describe('Component SettingAdvanced', () => {
     const mockErrorValidate = jest.fn().mockResolvedValue(false)
     wrapper.vm.$refs = {
       'setDefaultDB': {
-        validate: mockValidate,
+        validate: mockValidate
       },
       'job-alert': {
-        validate: mockValidate,
+        validate: mockValidate
       },
       'yarn-setting-form': {
         validate: mockValidate
@@ -274,7 +274,7 @@ describe('Component SettingAdvanced', () => {
     await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit('defaultDB-settings', callback.successCallback, callback.errorCallback)
     jest.runAllTimers()
-    expect(mockKapConfirm).toBeCalledWith('Modifying the default database may result in saved queries or SQL files being unavailable. Please confirm whether to modify the default database to DEFAULT ?', 'Modify Default Database', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'Submit', 'type': 'warning'})
+    expect(mockKapConfirm).toBeCalledWith('Modifying the default database may result in saved queries or SQL files being unavailable. Please confirm whether to modify the default database to DEFAULT ?', 'Modify Default Database', {'cancelButtonText': 'Cancel', 'centerButton': true, 'confirmButtonText': 'Submit', 'type': 'warning'})
     expect(mockValidate).toBeCalled()
     // expect(mockApi.mockUpdateDefaultDBSettings).toBeCalled()
     // expect(callback.successCallback).toBeCalled()
@@ -297,7 +297,7 @@ describe('Component SettingAdvanced', () => {
     wrapper.setData({
       form: {
         ...wrapper.vm.form,
-        fileList: [{ 
+        fileList: [{
           name: 'test.keytab',
           percentage: 0,
           raw: {
@@ -332,14 +332,14 @@ describe('Component SettingAdvanced', () => {
     expect(wrapper.vm.form.fileList).toEqual([])
     expect(wrapper.vm.form.file).toBeNull()
     expect(wrapper.vm.$refs['kerberos-setting-form'].clearValidate).toBeCalled()
-    expect(mockKapConfirm).toBeCalledWith('Update successfully. The configuration will take effect after refreshing the datasource cache. Please confirm whether to refresh now. </br> Note: It will take a long time to refresh the cache. If you need to configure multiple projects, it is recommended to refresh when configuring the last project.', 'Refresh DataSource', {'cancelButtonText': 'Refresh Later', 'confirmButtonText': 'Refresh Now', 'dangerouslyUseHTMLString': true, 'type': 'warning'})
+    expect(mockKapConfirm).toBeCalledWith('Update successfully. The configuration will take effect after refreshing the datasource cache. Please confirm whether to refresh now. </br> Note: It will take a long time to refresh the cache. If you need to configure multiple projects, it is recommended to refresh when configuring the last project.', 'Refresh DataSource', {'cancelButtonText': 'Refresh Later', 'centerButton': true, 'confirmButtonText': 'Refresh Now', 'dangerouslyUseHTMLString': true, 'type': 'warning'})
     expect(mockApi.mockReloadHiveDBTables.mock.calls[0][1]).toEqual({'force': true, 'project': 'kyligence'})
     expect(callback.successCallback).toBeCalled()
     expect(wrapper.emitted()['reload-setting'].length).toBe(7)
 
     wrapper.vm.$refs = {
       'setDefaultDB': {
-        validate: mockErrorValidate,
+        validate: mockErrorValidate
       },
       'job-alert': {
         validate: mockErrorValidate,
@@ -403,7 +403,7 @@ describe('Component SettingAdvanced', () => {
       uid: 1598852854585,
       webkitRelativePath: ''
     }
-    const fileList = [{ 
+    const fileList = [{
       name: 'test.keytab',
       percentage: 0,
       raw: {
@@ -464,7 +464,6 @@ describe('Component SettingAdvanced', () => {
     expect(wrapper.vm.form.scd2_enabled).toBeFalsy()
     expect(mockHandleError).toBeCalled()
 
-
     await wrapper.vm.handleScdSetting(false)
     jest.runAllTimers()
     expect(mockApi.mockGetSCD2Model.mock.calls[0][1]).toEqual({'project': 'kyligence'})
@@ -475,7 +474,6 @@ describe('Component SettingAdvanced', () => {
     jest.clearAllTimers()
 
     wrapper.vm.$store._actions.TOGGLE_ENABLE_SCD = [jest.fn().mockResolvedValue(true)]
-
 
     await wrapper.vm.handleMulPartitionSetting(true)
     expect(mockApi.mockToggleMultiPartition.mock.calls[0][1]).toEqual({'multi_partition_enabled': true, 'project': 'kyligence'})
@@ -502,12 +500,11 @@ describe('Component SettingAdvanced', () => {
     expect(mockApi.mockUpdateMultiPartitionEnable.mock.calls[0][1]).toBeTruthy()
     expect(mockMessage).toBeCalledWith({'message': 'Updated successfully.', 'type': 'success'})
 
-
     wrapper.vm.$store._actions.GET_MULTI_PARTITION_MODEL = [jest.fn().mockRejectedValue(false)]
     await wrapper.vm.$nextTick()
     await wrapper.vm.handleMulPartitionSetting(false)
     expect(mockHandleError).toBeCalled()
-   
+
     wrapper.vm.$msgbox = jest.fn().mockRejectedValue(false)
     await wrapper.vm.$nextTick()
 
@@ -568,7 +565,7 @@ describe('Component SettingAdvanced', () => {
     expect(mockApi.mockCallProjectConfigModal.mock.calls[1][1]).toEqual({'editType': 'edit', 'form': {'key': 'kylin.snapshot.manual-management', 'value': 'true'}})
 
     await wrapper.vm.deleteConfig({key: 'kylin.snapshot.manual-management', value: 'true'})
-    expect(mockKapConfirm).toBeCalledWith('Are you sure you want to delete the custome configuration [kylin.snapshot.manual-management]?', 'Delete Configuration', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'OK', 'type': 'warning'})
+    expect(mockKapConfirm).toBeCalledWith('Are you sure you want to delete the custome configuration [kylin.snapshot.manual-management]?', 'Delete Configuration', {'cancelButtonText': 'Cancel', 'centerButton': true, 'confirmButtonText': 'OK', 'type': 'warning'})
     expect(mockApi.mockDeleteProjectConfig.mock.calls[0][1]).toEqual({'config_name': 'kylin.snapshot.manual-management', 'project': 'xm_test_1'})
     // expect(mockMessage).toBeCalledWith()
     expect(mockApi.mockLoadConfigByProject).toBeCalled()

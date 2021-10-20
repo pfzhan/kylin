@@ -48,8 +48,7 @@ export default {
       }
       if (query) {
         this.filterList = this.list.filter(item => {
-          return item[this.datamap['label']].toLowerCase()
-          .indexOf(query.toLowerCase()) > -1
+          return item[this.datamap['label']].toLowerCase().indexOf(query.toLowerCase()) > -1
         })
       } else {
         this.filterList = []

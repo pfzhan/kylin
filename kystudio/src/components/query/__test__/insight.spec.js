@@ -24,11 +24,11 @@ const mockApi = {
       limit: 10,
       offset: 0,
       value: [{
-        description: "",
-        id: "-1317973139",
-        name: "_fwewfe",
-        project: "xm_test",
-        sql: "select * from SSB.DATES_VIEW"
+        description: '',
+        id: '-1317973139',
+        name: '_fwewfe',
+        project: 'xm_test',
+        sql: 'select * from SSB.DATES_VIEW'
       }]
     })
   }),
@@ -50,7 +50,7 @@ const store = new Vuex.Store({
     },
     user: {
       currentUser: {
-        authorities: [{authority: "ROLE_ADMIN"}, {authority: "ALL_USERS"}],
+        authorities: [{authority: 'ROLE_ADMIN'}, {authority: 'ALL_USERS'}],
         create_time: 1600148965832,
         defaultPassword: true,
         disabled: false,
@@ -59,9 +59,9 @@ const store = new Vuex.Store({
         locked: false,
         locked_time: 0,
         mvcc: 50,
-        username: "ADMIN",
-        uuid: "2400ccc1-8d17-44f9-bb5a-74def5286953",
-        version: "4.0.0.0",
+        username: 'ADMIN',
+        uuid: '2400ccc1-8d17-44f9-bb5a-74def5286953',
+        version: '4.0.0.0',
         wrong_time: 0
       }
     }
@@ -126,8 +126,8 @@ const route = {
 
 describe('Component Insight', () => {
   it('init', () => {
-    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}])
-    expect(mockApi.mockGetSaveQueries.mock.calls[0][1]).toEqual({"limit": 10, "offset": 0, "project": "Kyligence"})
+    expect(wrapper.vm.editableTabs).toEqual([{'cancelQuery': false, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': '', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': null, 'spin': true, 'title': 'sqlEditor'}])
+    expect(mockApi.mockGetSaveQueries.mock.calls[0][1]).toEqual({'limit': 10, 'offset': 0, 'project': 'Kyligence'})
     expect(mockHandleSuccess).toBeCalled()
     expect(wrapper.vm.savedSize).toBe(1)
   })
@@ -135,15 +135,15 @@ describe('Component Insight', () => {
     expect(wrapper.vm.isAdmin).toBeTruthy()
   })
   it('methods', async () => {
-    wrapper.vm.handleAutoComplete([{ caption: "SSB", id: "9.SSB", meta: "database", scope: 1, value: "SSB" }])
+    wrapper.vm.handleAutoComplete([{ caption: 'SSB', id: '9.SSB', meta: 'database', scope: 1, value: 'SSB' }])
     expect(wrapper.vm.completeData.length).toBe(436)
     await wrapper.vm.openSaveQueryListDialog()
     expect(wrapper.vm.savedQueryListVisible).toBeTruthy()
     expect(wrapper.vm.queryCurrentPage).toBe(1)
     expect(wrapper.vm.checkedQueryList).toEqual([])
-    expect(mockApi.mockGetSaveQueries.mock.calls[0][1]).toEqual({"limit": 10, "offset": 0, "project": "Kyligence"})
+    expect(mockApi.mockGetSaveQueries.mock.calls[0][1]).toEqual({'limit': 10, 'offset': 0, 'project': 'Kyligence'})
     expect(mockHandleSuccess).toBeCalled()
-    expect(wrapper.vm.savedList).toEqual([{"description": "", "id": "-1317973139", "isShow": false, "name": "_fwewfe", "project": "xm_test", "sql": "select * from SSB.DATES_VIEW"}])
+    expect(wrapper.vm.savedList).toEqual([{'description': '', 'id': '-1317973139', 'isShow': false, 'name': '_fwewfe', 'project': 'xm_test', 'sql': 'select * from SSB.DATES_VIEW'}])
     expect(wrapper.vm.savedSize).toBe(1)
 
     await wrapper.vm.openSaveQueryDialog()
@@ -154,15 +154,15 @@ describe('Component Insight', () => {
     expect(wrapper.vm.savedList[0].isShow).toBeTruthy()
 
     wrapper.vm.resetQuery()
-    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}])
-    expect(mockApi.mockSetQueryTabs.mock.calls[0][1]).toEqual({"tabs": {"Kyligence": [{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}]}})
+    expect(wrapper.vm.editableTabs).toEqual([{'cancelQuery': false, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': '', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': null, 'spin': true, 'title': 'sqlEditor'}])
+    expect(mockApi.mockSetQueryTabs.mock.calls[0][1]).toEqual({'tabs': {'Kyligence': [{'cancelQuery': false, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': '', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': null, 'spin': true, 'title': 'sqlEditor'}]}})
 
     wrapper.vm.addTab('query', {
       limit: 500,
       offset: 0,
-      project: "xm_test",
-      sql: "select * from SSB.DATES_VIEW",
-      stopId: "query_1eiqct9fm"
+      project: 'xm_test',
+      sql: 'select * from SSB.DATES_VIEW',
+      stopId: 'query_1eiqct9fm'
     })
     expect(wrapper.vm.editableTabs.length).toBe(2)
 
@@ -170,7 +170,7 @@ describe('Component Insight', () => {
     expect(wrapper.vm.activeSubMenu).toBe('query1')
 
     wrapper.vm.delTab('query1')
-    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}])
+    expect(wrapper.vm.editableTabs).toEqual([{'cancelQuery': true, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': '', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': {'limit': 500, 'offset': 0, 'project': 'xm_test', 'sql': 'select * from SSB.DATES_VIEW', 'stopId': 'query_1eiqct9fm'}, 'spin': true, 'title': 'sqlEditor'}])
     expect(wrapper.vm.activeSubMenu).toEqual('WorkSpace')
 
     wrapper.vm.delTab('WorkSpace')
@@ -182,44 +182,44 @@ describe('Component Insight', () => {
     let data = {
       cancelQuery: true,
       extraoption: null,
-      i18n: "sqlEditor",
-      icon: "el-icon-loading",
+      i18n: 'sqlEditor',
+      icon: 'el-icon-loading',
       index: 0,
       isStop: false,
-      name: "WorkSpace",
+      name: 'WorkSpace',
       queryErrorInfo: undefined,
       queryObj: {
         limit: 500,
         offset: 0,
-        project: "xm_test",
-        sql: "select * from SSB.DATES_VIEW",
-        stopId: "query_1eiqdhq9u"
+        project: 'xm_test',
+        sql: 'select * from SSB.DATES_VIEW',
+        stopId: 'query_1eiqdhq9u'
       },
       spin: true,
-      title: "sqlEditor"
+      title: 'sqlEditor'
     }
     await wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, data]})
     // await wrapper.update()
     wrapper.vm.closeAllTabs()
-    expect(mockApi.mockStopQueryBuild.mock.calls[0][1]).toEqual({"id": "query_1eiqct9fm"})
+    expect(mockApi.mockStopQueryBuild.mock.calls[0][1]).toEqual({'id': 'query_1eiqct9fm'})
     expect(wrapper.vm.activeSubMenu).toBe('WorkSpace')
-    expect(wrapper.vm.editableTabs).toEqual([{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}])
+    expect(wrapper.vm.editableTabs).toEqual([{'cancelQuery': true, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': '', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': {'limit': 500, 'offset': 0, 'project': 'xm_test', 'sql': 'select * from SSB.DATES_VIEW', 'stopId': 'query_1eiqct9fm'}, 'spin': true, 'title': 'sqlEditor'}])
 
     wrapper.vm.pageCurrentChange()
     expect(wrapper.vm.queryCurrentPage).toBe(2)
-    expect(mockApi.mockGetSaveQueries.mock.calls[2][1]).toEqual({"limit": 10, "offset": 1, "project": "Kyligence"})
+    expect(mockApi.mockGetSaveQueries.mock.calls[2][1]).toEqual({'limit': 10, 'offset': 1, 'project': 'Kyligence'})
 
     await wrapper.vm.removeQuery({
-      description: "",
-      id: "-1317973139",
+      description: '',
+      id: '-1317973139',
       isShow: false,
-      name: "_fwewfe",
-      project: "xm_test",
-      sql: "select * from SSB.DATES_VIEW"
+      name: '_fwewfe',
+      project: 'xm_test',
+      sql: 'select * from SSB.DATES_VIEW'
     })
     // jest.runAllTimers()
     expect(mockKapConfirm).toBeCalledWith('Are you sure you want to delete _fwewfe?', null, 'Delete SQL')
-    expect(mockApi.mockDeleteQuery.mock.calls[0][1]).toEqual({"id": "-1317973139", "project": "Kyligence"})
+    expect(mockApi.mockDeleteQuery.mock.calls[0][1]).toEqual({'id': '-1317973139', 'project': 'Kyligence'})
     // expect(mockMessage).toBeCalled()
     expect(wrapper.vm.savedList.length).toBe(2)
 
@@ -240,10 +240,10 @@ describe('Component Insight', () => {
 
     const _data = {
       affectedRowCount: 0,
-      appMasterURL: "/kylin/sparder/SQL/execution/?id=2895",
+      appMasterURL: '/kylin/sparder/SQL/execution/?id=2895',
       columnMetas: [],
       duration: 413,
-      engineType: "HIVE",
+      engineType: 'HIVE',
       exception: false,
       exceptionMessage: null,
       hitExceptionCache: false,
@@ -254,14 +254,14 @@ describe('Component Insight', () => {
       partial: false,
       prepare: false,
       pushDown: true,
-      queryId: "334b5850-0c60-4b40-98ea-7d2a32689bf0",
+      queryId: '334b5850-0c60-4b40-98ea-7d2a32689bf0',
       queryStatistics: null,
       realizations: [],
       resultRowCount: 500,
       results: [],
       scanBytes: [0],
       scanRows: [500],
-      server: "sandbox.hortonworks.com:7072",
+      server: 'sandbox.hortonworks.com:7072',
       shufflePartitions: 1,
       signature: null,
       stopByUser: false,
@@ -309,14 +309,14 @@ describe('Component Insight', () => {
     wrapper.vm.cacheTabs(false)
     expect(mockApi.mockSetQueryTabs).toBeCalled()
     wrapper.vm.cacheTabs(true)
-    expect(mockApi.mockSetQueryTabs.mock.calls[10][1]).toEqual({"tabs": {"Kyligence": [{"cancelQuery": false, "extraoption": null, "i18n": "sqlEditor", "icon": "", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": null, "spin": true, "title": "sqlEditor"}]}})
+    expect(mockApi.mockSetQueryTabs.mock.calls[10][1]).toEqual({'tabs': {'Kyligence': [{'cancelQuery': false, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': '', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': null, 'spin': true, 'title': 'sqlEditor'}]}})
   })
   it('router', async () => {
-    const _data1 = [{"cancelQuery": true, "extraoption": null, "i18n": "sqlEditor", "icon": "el-icon-loading", "index": 0, "name": "WorkSpace", "queryErrorInfo": "", "queryObj": {"limit": 500, "offset": 0, "project": "xm_test", "sql": "select * from SSB.DATES_VIEW", "stopId": "query_1eiqct9fm"}, "spin": true, "title": "sqlEditor"}]
+    const _data1 = [{'cancelQuery': true, 'extraoption': null, 'i18n': 'sqlEditor', 'icon': 'el-icon-loading', 'index': 0, 'name': 'WorkSpace', 'queryErrorInfo': '', 'queryObj': {'limit': 500, 'offset': 0, 'project': 'xm_test', 'sql': 'select * from SSB.DATES_VIEW', 'stopId': 'query_1eiqct9fm'}, 'spin': true, 'title': 'sqlEditor'}]
     await wrapper.setData({editableTabs: [...wrapper.vm.editableTabs, ..._data1]})
     await wrapper.vm.$options.beforeRouteLeave.call(wrapper.vm, route.to, route.from, route.next)
     jest.runAllTimers()
-    expect(mockKapConfirm).toBeCalledWith('The currently running query would be stopped when leaving the page. Are you sure you want to leave?', {"cancelButtonText": "Cancel", "confirmButtonText": "OK", "type": "warning"}, 'Notification')
+    expect(mockKapConfirm).toBeCalledWith('The currently running query would be stopped when leaving the page. Are you sure you want to leave?', {'cancelButtonText': 'Cancel', 'confirmButtonText': 'OK', 'type': 'warning'}, 'Notification')
     expect(mockApi.mockSetQueryTabs).toBeCalled()
     expect(route.next).toBeCalled()
 

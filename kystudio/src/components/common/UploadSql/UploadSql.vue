@@ -952,7 +952,7 @@ export default class UploadSqlModel extends Vue {
     })
   }
   submitFiles () {
-    const formData = new FormData()   // 利用H5 FORMDATA 同时传输多文件和数据
+    const formData = new FormData() // 利用H5 FORMDATA 同时传输多文件和数据
     this.uploadItems.filter((item) => {
       return item.name.toLowerCase().indexOf('.txt') !== -1 || item.name.toLowerCase().indexOf('.sql') !== -1
     }).forEach(file => {

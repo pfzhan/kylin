@@ -123,8 +123,8 @@ let routerOptions = {
         name: 'SystemCapacity',
         path: 'admin/systemcapacity',
         component: () => import('../components/admin/SystemCapacity/index.vue'),
-        pathToRegexpOptions: {  // 路由正则匹配规则参数 options
-          sensitive: true  // 是否大小写敏感
+        pathToRegexpOptions: { // 路由正则匹配规则参数 options
+          sensitive: true // 是否大小写敏感
         }
       },
       {

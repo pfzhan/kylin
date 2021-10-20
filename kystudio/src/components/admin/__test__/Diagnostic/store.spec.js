@@ -18,7 +18,6 @@ let timer = {}
 const mockHandleError = jest.spyOn(util, 'handleError').mockRejectedValue(false)
 const mockDownloadFileByXMLHttp = jest.spyOn(util, 'downloadFileByXMLHttp').mockImplementation()
 
-
 const root = {
   state: DiagnosticStore.state,
   commit: function (name, params) { DiagnosticStore.mutations[name](root.state, params) },
@@ -84,7 +83,7 @@ describe('Diagnostic Store', () => {
     expect(mockGetStatusRemote).toBeCalled()
     const mockGetStatusRemote1 = jest.spyOn(api.system, 'getStatusRemote').mockImplementationOnce(() => {
       return new Promise(resolve => resolve({code: '000', data: {data: {error: null, progress: 0.5, stage: 'DONE', status: '000', uuid: 'front_2020_08_04_07_35_49_494298'}}, msg: ''}))
-    }) 
+    })
     await DiagnosticStore.actions[types.POLLING_STATUS_MSG](root, {host: 'http://sandbox.hortonworks.com:7070', id: 'front_2020_08_04_07_35_49_494298', isIframe: true})
     expect(mockGetStatusRemote1).toBeCalled()
     expect(mockDownloadFileByXMLHttp).toBeCalled()

@@ -446,7 +446,7 @@ export default class ModelAggregate extends Vue {
   switchIndexValue = 'index'
   switchModelType = 'BATCH' // 默认批数据 - BATCH, 流数据 - STREAMING
   isHaveComplementSegs = false
-  indexesByQueryHistory = true  // 是否获取查询相关的索引
+  indexesByQueryHistory = true // 是否获取查询相关的索引
   isShowRealTimeModelActionTips = true
   indexStat = {}
   // 打开高级设置
@@ -1054,10 +1054,10 @@ export default class ModelAggregate extends Vue {
         type: 'success',
         message: <span>{
           this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})
-          }{ this.model.model_type !== 'STREAMING'
-            ? <a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a>
-            : ''
-          }</span>
+        }{ this.model.model_type !== 'STREAMING'
+          ? <a href="javascript:void;" onClick={() => this.complementedIndexes('baseIndex', layoutIds.join(','))}>{this.$t('buildIndex')}</a>
+          : ''
+        }</span>
       })
       this.loadAggIndices()
       this.getIndexInfo()

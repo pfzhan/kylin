@@ -22,13 +22,13 @@ const wrapper = shallowMount(AboutKap, {
   }
 })
 
-delete window.location;
+delete window.location
 Object.defineProperty(window, 'location', {
-    value: {
-        href: '',
-        hash: ''
-    }
-});
+  value: {
+    href: '',
+    hash: ''
+  }
+})
 
 describe('Component about_kap', () => {
   it('init data', async () => {

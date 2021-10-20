@@ -415,19 +415,19 @@ export default class NewQuery extends Vue {
   }
   created () {
     this.editableTabs = this.getQueryTabs && this.getQueryTabs[this.currentSelectedProject]
-    ? this.getQueryTabs[this.currentSelectedProject]
-    : [{
-      title: 'sqlEditor',
-      i18n: 'sqlEditor',
-      name: 'WorkSpace',
-      icon: '',
-      spin: true,
-      extraoption: null,
-      queryErrorInfo: '',
-      queryObj: null,
-      index: 0,
-      cancelQuery: false
-    }]
+      ? this.getQueryTabs[this.currentSelectedProject]
+      : [{
+        title: 'sqlEditor',
+        i18n: 'sqlEditor',
+        name: 'WorkSpace',
+        icon: '',
+        spin: true,
+        extraoption: null,
+        queryErrorInfo: '',
+        queryObj: null,
+        index: 0,
+        cancelQuery: false
+      }]
     this.loadSavedQuerySize()
   }
 }

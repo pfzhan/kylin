@@ -1,4 +1,4 @@
-import { mount, shallowMount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import jobDialog from '../job_dialog'
@@ -53,12 +53,12 @@ describe('Component Job_dialog', () => {
   })
   it('methods', async () => {
     await wrapper.vm.downloadLogs()
-    expect(mockApi.downloadLogs.mock.calls[0][1]).toEqual({"jobId": "6728fe21-9535-4728-9e41-1e99b7f9387e", "project": "xm_test", "stepId": "6728fe21-9535-4728-9e41-1e99b7f9387e_01"})
+    expect(mockApi.downloadLogs.mock.calls[0][1]).toEqual({'jobId': '6728fe21-9535-4728-9e41-1e99b7f9387e', 'project': 'xm_test', 'stepId': '6728fe21-9535-4728-9e41-1e99b7f9387e_01'})
     expect(mockSaveBlob).toBeCalled()
 
     global.window.navigator.msSaveOrOpenBlob = false
     await wrapper.vm.downloadLogs()
-    expect(mockApi.downloadLogs.mock.calls[0][1]).toEqual({"jobId": "6728fe21-9535-4728-9e41-1e99b7f9387e", "project": "xm_test", "stepId": "6728fe21-9535-4728-9e41-1e99b7f9387e_01"})
+    expect(mockApi.downloadLogs.mock.calls[0][1]).toEqual({'jobId': '6728fe21-9535-4728-9e41-1e99b7f9387e', 'project': 'xm_test', 'stepId': '6728fe21-9535-4728-9e41-1e99b7f9387e_01'})
     expect(mockRevokeObjectURL).toBeCalled()
 
     wrapper.vm.$el.querySelectorAll = jest.fn().mockReturnValue([])

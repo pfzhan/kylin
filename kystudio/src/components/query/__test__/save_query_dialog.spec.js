@@ -57,13 +57,13 @@ describe('Component SaveQueryDialog', () => {
     expect(wrapper.vm.saveQueryMeta.sql).toBe('select * from SSB;')
   })
   it('methods', async () => {
-    await wrapper.setData({ saveQueryMeta: {...wrapper.vm.saveQueryMeta, name: 'test' }})
+    await wrapper.setData({saveQueryMeta: { ...wrapper.vm.saveQueryMeta, name: 'test' }})
     // await wrapper.update()
     await wrapper.vm.saveQuery()
-    expect(mockApi.mockSaveQuery.mock.calls[0][1]).toEqual({"description": "", "name": "", "project": "Kyligence", "sql": "select * from SSB;"})
+    expect(mockApi.mockSaveQuery.mock.calls[0][1]).toEqual({'description': '', 'name': '', 'project': 'Kyligence', 'sql': 'select * from SSB;'})
     expect(wrapper.vm.$refs.saveQueryForm.validate).toBeCalled()
-    expect(mockMessage).toBeCalledWith({"message": "Saved successfully.", "type": "success"})
-    expect(wrapper.vm.saveQueryMeta).toEqual({"description": "", "name": "", "project": "Kyligence", "sql": "select * from SSB;"})
+    expect(mockMessage).toBeCalledWith({'message': 'Saved successfully.', 'type': 'success'})
+    expect(wrapper.vm.saveQueryMeta).toEqual({'description': '', 'name': '', 'project': 'Kyligence', 'sql': 'select * from SSB;'})
     expect(wrapper.vm.saveQueryFormVisible).toBeFalsy()
     expect(wrapper.emitted().closeModal).toEqual([[true]])
 

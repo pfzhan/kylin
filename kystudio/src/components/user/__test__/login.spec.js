@@ -260,7 +260,7 @@ describe('Component Login', () => {
     expect(wrapper.vm.$data.hasLicense).toBeFalsy()
     expect(wrapper.vm.$data.loadCheck).toBeFalsy()
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.license-msg').findAll('el-button-stub').at(0).text()).toBe('I Know')
+    expect(wrapper.find('.license-msg').findAll('el-button-stub').at(0).text()).toBe('Got it')
     wrapper.find('.license-msg').findAll('el-button-stub').at(0).element.__vue__.$emit('click')
     expect(wrapper.vm.$data.showLicenseCheck).toBe(false)
     wrapper.setData({

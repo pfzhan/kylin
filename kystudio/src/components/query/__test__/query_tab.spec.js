@@ -1,4 +1,4 @@
-import { shallowMount, mount } from '@vue/test-utils'
+import { shallowMount } from '@vue/test-utils'
 import Vuex from 'vuex'
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
@@ -10,7 +10,7 @@ import kapNodata from 'components/common/nodata.vue'
 import commonTip from 'components/common/common_tip'
 import kapEditor from 'components/common/kap_editor'
 import editor from 'vue2-ace-editor'
-import { extraoptions, queryExportData } from './mock'
+import { extraoptions } from './mock'
 import * as business from '../../../util/business'
 
 jest.useFakeTimers()
@@ -48,7 +48,7 @@ const store = new Vuex.Store({
     },
     user: {
       currentUser: {
-        authorities: [{authority: "ROLE_ADMIN"}],
+        authorities: [{authority: 'ROLE_ADMIN'}],
         create_time: 1600148965832,
         defaultPassword: true,
         disabled: false,
@@ -57,9 +57,9 @@ const store = new Vuex.Store({
         locked: false,
         locked_time: 0,
         mvcc: 97,
-        username: "ADMIN",
-        uuid: "2400ccc1-8d17-44f9-bb5a-74def5286953",
-        version: "4.0.0.0",
+        username: 'ADMIN',
+        uuid: '2400ccc1-8d17-44f9-bb5a-74def5286953',
+        version: '4.0.0.0',
         wrong_time: 0
       }
     }
@@ -80,8 +80,8 @@ const store = new Vuex.Store({
 
 const mockMessage = jest.fn()
 
-const queryResultComp = shallowMount(queryResult, {localVue, store, propsData: {extraoption: extraoptions, isWorkspace: true, queryExportData, isStop: false}})
-const saveQueryDialogComp = shallowMount(saveQueryDialog, { localVue })
+// const queryResultComp = shallowMount(queryResult, {localVue, store, propsData: {extraoption: extraoptions, isWorkspace: true, queryExportData, isStop: false}})
+// const saveQueryDialogComp = shallowMount(saveQueryDialog, { localVue })
 
 const wrapper = shallowMount(queryTab, {
   localVue,
@@ -89,31 +89,31 @@ const wrapper = shallowMount(queryTab, {
   propsData: {
     tabsItem: {
       extraoption: null,
-      icon: "el-icon-ksd-good_health",
+      icon: 'el-icon-ksd-good_health',
       index: 1,
       isStop: false,
-      name: "query1",
+      name: 'query1',
       queryErrorInfo: undefined,
       queryObj: {
         limit: 500,
         offset: 0,
-        project: "xm_test",
-        sql: "select * from SSB.DATES",
-        stopId: "query_1ejc0c1m5"
+        project: 'xm_test',
+        sql: 'select * from SSB.DATES',
+        stopId: 'query_1ejc0c1m5'
       },
       spin: false,
-      title: "query1"
+      title: 'query1'
     },
     completeData: [
       {
-        caption: "DEFAULT",
+        caption: 'DEFAULT',
         exactMatch: 1,
-        id: "9.DEFAULT",
+        id: '9.DEFAULT',
         matchMask: 0,
-        meta: "database",
+        meta: 'database',
         scope: 1,
         score: -12,
-        value: "DEFAULT"
+        value: 'DEFAULT'
       }
     ],
     tipsName: ''
@@ -164,7 +164,7 @@ describe('Component queryTab', () => {
   it('methods', async () => {
     const mockCallback = jest.fn()
     wrapper.vm.checkLimitNum(null, 2147483648, mockCallback)
-    expect(mockMessage).toBeCalledWith({"closeOtherMessages": true, "message": "Please enter a value no larger than 2,147,483,647.", "type": "error"})
+    expect(mockMessage).toBeCalledWith({'closeOtherMessages': true, 'message': 'Please enter a value no larger than 2,147,483,647.', 'type': 'error'})
     expect(mockCallback).toBeCalled()
 
     wrapper.vm.checkLimitNum(null, 500, mockCallback)
@@ -185,7 +185,7 @@ describe('Component queryTab', () => {
     expect(wrapper.vm.queryForm.listRows).toBe(0)
 
     wrapper.vm.changeTrace()
-    expect(mockKapConfirm).toBeCalledWith('htraceTips')
+    expect(mockKapConfirm).toBeCalledWith('Please make sure Zipkin server is properly deployed according to the manual of performance diagnose package.', {centerButton: true})
 
     wrapper.vm.openSaveQueryDialog()
     expect(wrapper.vm.saveQueryFormVisible).toBeTruthy()
@@ -198,7 +198,7 @@ describe('Component queryTab', () => {
     //   wrapper.vm.$set(wrapper.vm, 'isWorkspace', true)
     //   await wrapper.vm.$nextTick()
     //   await wrapper.vm.submitQuery(true)
-    //   expect(wrapper.emitted().addTab[0][0]).toEqual("query")
+    //   expect(wrapper.emitted().addTab[0][0]).toEqual('query')
     // } catch (e) {}
 
     wrapper.vm.$set(wrapper.vm, 'isLoading', true)
@@ -220,15 +220,15 @@ describe('Component queryTab', () => {
     })]
     await wrapper.vm.queryResult()
     expect(mockHandleError).toBeCalled()
-    expect(wrapper.vm.$store.state.config).toEqual({"errorMsgBox": {"detail": {}, "isShow": true, "msg": "Request timed out!"}, "platform": "iframe"})
+    expect(wrapper.vm.$store.state.config).toEqual({'errorMsgBox': {'detail': {}, 'isShow': true, 'msg': 'The request timeout, please check the network situation and Kyligence Enterprise service instance status. If the resource group is turned on, please make sure that the project is bound to the query resource group and there are available query instances'}, 'platform': 'iframe'})
     expect(wrapper.emitted().changeView[3]).toEqual(undefined)
 
     wrapper.vm.$store._actions.QUERY_BUILD_TABLES = [jest.fn().mockImplementation(() => {
       return Promise.resolve({...extraoptions, isException: true})
     })]
     await wrapper.vm.queryResult()
-    expect(wrapper.vm.errinfo).toBeNull()
-    // expect(wrapper.emitted().changeView[4]).toEqual([1, {"affectedRowCount": 0, "appMasterURL": "/kylin/sparder/SQL/execution/?id=9317", "columnMetas": [{"autoIncrement": false, "caseSensitive": false, "catelogName": null, "columnType": 91, "columnTypeName": "DATE", "currency": false, "definitelyWritable": false, "displaySize": 2147483647, "isNullable": 1, "label": "d_datekey", "name": "d_datekey", "precision": 0, "readOnly": false, "scale": 0, "schemaName": null, "searchable": false, "signed": true, "tableName": null, "writable": false}], "duration": 662, "engineType": "HIVE", "exception": false, "exceptionMessage": null, "hitExceptionCache": false, "isException": true, "is_prepare": false, "is_stop_by_user": false, "is_timeout": false, "partial": false, "prepare": false, "pushDown": true, "queryId": "92ad159f-caa1-4483-a573-03c206cd5917", "queryStatistics": null, "realizations": [], "resultRowCount": 500, "results": [["1992-01-01"]], "scanBytes": [0], "scanRows": [1000], "server": "sandbox.hortonworks.com:7072", "shufflePartitions": 1, "signature": null, "stopByUser": false, "storageCacheUsed": false, "suite": null, "timeout": false, "totalScanBytes": 0, "totalScanRows": 1000, "traceUrl": null, "traces": [{"duration": 1, "group": "PREPARATION", "name": "GET_ACL_INFO"}, {"duration": 24, "group": "PREPARATION", "name": "SQL_TRANSFORMATION"}, {"duration": 194, "group": "PREPARATION", "name": "SQL_PARSE_AND_OPTIMIZE"}, {"duration": 12, "group": "PREPARATION", "name": "MODEL_MATCHING"}, {"duration": 41, "group": null, "name": "SQL_PUSHDOWN_TRANSFORMATION"}, {"duration": 75, "group": null, "name": "PREPARE_AND_SUBMIT_JOB"}]}, null])
+    expect(wrapper.vm.errinfo).toBe('The query fails.')
+    // expect(wrapper.emitted().changeView[4]).toEqual([1, {'affectedRowCount': 0, 'appMasterURL': '/kylin/sparder/SQL/execution/?id=9317', 'columnMetas': [{'autoIncrement': false, 'caseSensitive': false, 'catelogName': null, 'columnType': 91, 'columnTypeName': 'DATE', 'currency': false, 'definitelyWritable': false, 'displaySize': 2147483647, 'isNullable': 1, 'label': 'd_datekey', 'name': 'd_datekey', 'precision': 0, 'readOnly': false, 'scale': 0, 'schemaName': null, 'searchable': false, 'signed': true, 'tableName': null, 'writable': false}], 'duration': 662, 'engineType': 'HIVE', 'exception': false, 'exceptionMessage': null, 'hitExceptionCache': false, 'isException': true, 'is_prepare': false, 'is_stop_by_user': false, 'is_timeout': false, 'partial': false, 'prepare': false, 'pushDown': true, 'queryId': '92ad159f-caa1-4483-a573-03c206cd5917', 'queryStatistics': null, 'realizations': [], 'resultRowCount': 500, 'results': [['1992-01-01']], 'scanBytes': [0], 'scanRows': [1000], 'server': 'sandbox.hortonworks.com:7072', 'shufflePartitions': 1, 'signature': null, 'stopByUser': false, 'storageCacheUsed': false, 'suite': null, 'timeout': false, 'totalScanBytes': 0, 'totalScanRows': 1000, 'traceUrl': null, 'traces': [{'duration': 1, 'group': 'PREPARATION', 'name': 'GET_ACL_INFO'}, {'duration': 24, 'group': 'PREPARATION', 'name': 'SQL_TRANSFORMATION'}, {'duration': 194, 'group': 'PREPARATION', 'name': 'SQL_PARSE_AND_OPTIMIZE'}, {'duration': 12, 'group': 'PREPARATION', 'name': 'MODEL_MATCHING'}, {'duration': 41, 'group': null, 'name': 'SQL_PUSHDOWN_TRANSFORMATION'}, {'duration': 75, 'group': null, 'name': 'PREPARE_AND_SUBMIT_JOB'}]}, null])
 
     wrapper.vm.handleInputChange('n')
     // wrapper.vm.$nextTick(() => {
@@ -241,7 +241,7 @@ describe('Component queryTab', () => {
 
     await wrapper.vm.resetQuery()
     jest.runAllTimers()
-    expect(mockKapConfirm.mock.calls[1]).toEqual(["Are you sure you want to clear the SQL Editor?", {"cancelButtonText": "Cancel", "confirmButtonText": "Clear", "type": "warning"}])
+    expect(mockKapConfirm.mock.calls[1]).toEqual(['Are you sure you want to clear the SQL Editor?', {'cancelButtonText': 'Cancel', 'centerButton': true, 'confirmButtonText': 'Clear', 'type': 'warning'}])
     expect(wrapper.emitted().resetQuery).toEqual([[]])
     expect(wrapper.vm.$refs.insightBox.$emit).toBeCalledWith('setValue', '')
   })
@@ -264,7 +264,7 @@ describe('Component queryTab', () => {
 
     wrapper.vm.$options.methods.onTabsResultChange.call(_data)
     expect(_data.extraoptionObj).toEqual(extraoptions)
-    expect(_data.errinfo).toEqual({"detail": "", "isShow": true, "msg": "error"})
+    expect(_data.errinfo).toEqual({'detail': '', 'isShow': true, 'msg': 'error'})
 
     const _data1 = {
       extraoptionObj: null,

@@ -1,5 +1,5 @@
 import Vuex from 'vuex'
-import { shallowMount, mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import CapacityTopBar from '../../SystemCapacity/CapacityTopBar.vue'
 import * as util from '../../../../util/business'
@@ -93,7 +93,6 @@ describe('Components CapacityTopBar', () => {
     expect(wrapper.vm.getCapacityPrecent).toBe(0)
 
     expect(wrapper.vm.showLoadingStatus).toBeFalsy()
-    
   })
   it('methods', async () => {
     wrapper.vm.$store.state.capacity.systemCapacityInfo.fail = true

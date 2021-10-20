@@ -4,7 +4,7 @@ import AddCC from '../../StudioModel/AddCCModal/addcc.vue'
 import ccAddModalStore, {types} from '../../StudioModel/AddCCModal/store'
 import Vuex from 'vuex'
 
-jest.useFakeTimers() 
+jest.useFakeTimers()
 
 const mockApi = {
   mockLoadModelInfo: jest.fn().mockResolvedValue(true)
@@ -45,7 +45,7 @@ describe('Component AddCC', () => {
     jest.runAllTimers()
     expect(wrapper.vm.btnLoading).toBeFalsy()
     expect(wrapper.vm.$store.state.CCAddModal.isShow).toBeFalsy()
-    expect(wrapper.vm.$store.state.CCAddModal.form).toEqual({"currentCCForm": null, "modelInstance": null})
+    expect(wrapper.vm.$store.state.CCAddModal.form).toEqual({'currentCCForm': null, 'modelInstance': null})
 
     wrapper.vm.saveCCError()
     expect(wrapper.vm.btnLoading).toBeFalsy()
@@ -67,7 +67,7 @@ describe('Component AddCC', () => {
     wrapper.vm.closeModal(true)
     jest.runAllTimers(200)
     expect(wrapper.vm.$store.state.CCAddModal.callback).toBeCalledWith(true)
-    
+
     jest.clearAllTimers()
   })
   it('store', async () => {
@@ -81,7 +81,7 @@ describe('Component AddCC', () => {
     }
     ccAddModalStore.mutations[types.SET_MODAL_FORM](ccAddModalStore.state, state1)
     expect(ccAddModalStore.state.editCC).toBeTruthy()
-    expect(ccAddModalStore.state.form).toEqual({"currentCCForm": undefined, "modelInstance": undefined})
+    expect(ccAddModalStore.state.form).toEqual({'currentCCForm': undefined, 'modelInstance': undefined})
 
     ccAddModalStore.mutations[types.SHOW_MODAL](ccAddModalStore.state)
     expect(ccAddModalStore.state.isShow).toBeTruthy()

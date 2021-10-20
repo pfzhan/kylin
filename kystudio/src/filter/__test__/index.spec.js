@@ -1,6 +1,7 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+// import Vue from 'vue'
+import {localVue as Vue} from '../../../test/common/spec_common'
 import filterElements from '../index'
+import Vuex from 'vuex'
 
 describe('vue-filter', () => {
   Vue.use(Vuex)

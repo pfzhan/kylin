@@ -121,7 +121,7 @@ export default class TableColumns extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('kylinLang.dataSource.cardinality')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('cardinalityTip')}>
-       <span class='el-ksd-icon-more_info_22 ksd-fs-22'></span>
+        <span class='el-ksd-icon-more_info_22 ksd-fs-22'></span>
       </common-tip>
     </span>)
   }
@@ -129,7 +129,7 @@ export default class TableColumns extends Vue {
     return (<span class="ky-hover-icon" onClick={e => (e.stopPropagation())}>
       <span>{this.$t('kylinLang.dataSource.comment')}</span>&nbsp;
       <common-tip placement="top" content={this.$t('commentTip')}>
-       <span class='el-ksd-icon-more_info_22 ksd-fs-22'></span>
+        <span class='el-ksd-icon-more_info_22 ksd-fs-22'></span>
       </common-tip>
     </span>)
   }

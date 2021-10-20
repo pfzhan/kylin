@@ -1,17 +1,17 @@
 {
   "presets": [
-    ["es2015", { "modules": false }],
-    "stage-2"
+    "@babel/preset-env",
+    "@vue/babel-preset-jsx"
   ],
-  "plugins": ["transform-runtime", "transform-vue-jsx", "transform-decorators-legacy"],
+  "plugins": ["@babel/plugin-transform-runtime", ["@babel/plugin-proposal-decorators", { "legacy": true }]],
   "comments": false,
   "env": {
     "test": {
       "presets": [
-        ["es2015", { "targets": { "node": "current" }}],
-        "stage-2"
+        ["@babel/preset-env", { "targets": { "node": "current" }}],
+        "@vue/babel-preset-jsx"
       ],
-      "plugins": ["transform-runtime", "transform-decorators-legacy", "dynamic-import-node"]
+      "plugins": ["@babel/plugin-transform-runtime", ["@babel/plugin-proposal-decorators", { "legacy": true }], "@babel/plugin-syntax-dynamic-import"]
     }
   }
 }

@@ -6,7 +6,7 @@ import DataSourceModalStore from '../../DataSourceModal/store'
 import * as util from '../../../../util'
 import * as business from '../../../../util/business'
 import { states } from './mock'
-import mock from '../../../../../mock'
+// import mock from '../../../../../mock'
 
 const mockHandleError = jest.spyOn(business, 'handleError').mockImplementation(() => {})
 const mockHandleSuccessAsync = jest.spyOn(util, 'handleSuccessAsync').mockImplementation((res, callback) => {
@@ -89,12 +89,12 @@ describe('Component DataSourceModal', () => {
     expect(wrapper.vm.modalTitle).toBe('cloudHive')
     wrapper.vm.$store.state.config.platform = ''
     await wrapper.vm.$nextTick()
-    expect(wrapper.vm.modalTitle).toBe('loadhiveTables')
+    expect(wrapper.vm.modalTitle).toBe('loadTables')
 
     expect(wrapper.vm.modelWidth).toBe('960px')
     wrapper.vm.$store.state.DataSourceModal.editType = 'selectSource'
     await wrapper.vm.$nextTick()
-    expect(wrapper.vm.modelWidth).toBe('480px')
+    expect(wrapper.vm.modelWidth).toBe('600px')
     wrapper.vm.$store.state.DataSourceModal.editType = 'configSource'
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.modelWidth).toBe('780px')
@@ -120,7 +120,7 @@ describe('Component DataSourceModal', () => {
 
     await wrapper.vm.handleSubmit()
     expect(wrapper.vm.prevSteps).toEqual([])
-    expect(mockApi.mockImportTable.mock.calls[0][1]).toEqual({"data_source_type": 9, "databases": [], "need_sampling": true, "project": "xm_test", "sampling_rows": 20000000, "tables": ["DB1"]})
+    expect(mockApi.mockImportTable.mock.calls[0][1]).toEqual({'data_source_type': 9, 'databases': [], 'need_sampling': true, 'project': 'xm_test', 'sampling_rows': 20000000, 'tables': ['DB1']})
     expect(mockHandleSuccessAsync).toBeCalled()
 
     wrapper.vm.$store.state.DataSourceModal.form.samplingRows = 100
@@ -132,27 +132,28 @@ describe('Component DataSourceModal', () => {
     wrapper.vm.$store.state.DataSourceModal.editType = 'selectSource'
     await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
-    expect(mockApi.mockUpdateProjectDatasource.mock.calls[0][1]).toEqual({"project": "xm_test", "source_type": "9"})
+    expect(mockApi.mockUpdateProjectDatasource.mock.calls[0][1]).toEqual({'project': 'xm_test', 'source_type': '9'})
 
     wrapper.vm.$store.state.DataSourceModal.editType = 'configCsvStructure'
     await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
-    expect(mockApi.mockSaveCsvDataSourceInfo.mock.calls[0][1]).toEqual({"data": {"credential": "{}", "project": "xm_test", "tableData": undefined}, "type": "guide"})
+    expect(mockApi.mockSaveCsvDataSourceInfo.mock.calls[0][1]).toEqual({'data': {'credential': '{}', 'project': 'xm_test', 'tableData': undefined}, 'type': 'guide'})
     expect(mockHandleSuccessAsync).toBeCalled()
 
     wrapper.vm.$store.state.DataSourceModal.editType = 'configCsvSql'
     await wrapper.vm.$nextTick()
     await wrapper.vm.handleSubmit()
-    expect(mockApi.mockSaveCsvDataSourceInfo.mock.calls[1][1]).toEqual({"data": {"credential": "{}", "project": "xm_test"}, "type": "expert"})
+    expect(mockApi.mockSaveCsvDataSourceInfo.mock.calls[1][1]).toEqual({'data': {'credential': '{}', 'project': 'xm_test'}, 'type': 'expert'})
     expect(mockHandleSuccessAsync).toBeCalled()
 
     wrapper.vm.handleCancel()
-    expect(wrapper.vm.prevSteps).toEqual(["selectSource", "configCsvStructure"])
+    expect(wrapper.vm.prevSteps).toEqual([])
 
     wrapper.vm.$store.state.DataSourceModal.prevSteps = [9, 'selectSource']
     await wrapper.vm.$nextTick()
+
     wrapper.vm.handleCancel()
-    expect(wrapper.vm.$store.state.DataSourceModal.editType).toBe('configCsvStructure')
+    expect(wrapper.vm.$store.state.DataSourceModal.editType).toBe('selectSource')
 
     wrapper.vm.$store.state.DataSourceModal.prevSteps = []
     await wrapper.vm.$nextTick()
@@ -169,7 +170,7 @@ describe('Component DataSourceModal', () => {
     expect(wrapper.vm.$store.state.DataSourceModal.isShow).toBeFalsy()
   })
   it('store', () => {
-    DataSourceModalStore.actions['CALL_MODAL'](root, {editType: 9, project: {}, datasource: undefined, databaseSizeObj: null })
+    DataSourceModalStore.actions['CALL_MODAL'](root, { editType: 9, project: {}, datasource: undefined, databaseSizeObj: null })
     expect(DataSourceModalStore.state.isShow).toBeTruthy()
   })
 })

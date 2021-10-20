@@ -15,7 +15,7 @@ describe('api report', () => {
       data: {
         code: '000',
         data: {
-          content: 'test',
+          content: 'test'
         },
         msg: ''
       }
@@ -25,9 +25,9 @@ describe('api report', () => {
       resultData = {res, code, msg}
     }
     handleSuccess(result, callback)
-    expect(resultData).toEqual({"code": "000", "msg": "", "res": {"content": "test"}})
+    expect(resultData).toEqual({'code': '000', 'msg': '', 'res': {'content': 'test'}})
     handleSuccess(null, callback)
-    expect(resultData).toEqual({"res": null, "msg": "", "code": "000"})
+    expect(resultData).toEqual({'res': null, 'msg': '', 'code': '000'})
     expect(() => handleSuccess(null, '')).toThrow()
   })
 })

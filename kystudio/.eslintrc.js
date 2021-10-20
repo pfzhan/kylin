@@ -4,6 +4,7 @@ module.exports = {
   root: true,
   parser: 'babel-eslint',
   parserOptions: {
+    ecmaVersion: 2020,
     sourceType: 'module'
   },
   env: {
@@ -19,6 +20,8 @@ module.exports = {
   ],
   // add your custom rules here
   'rules': {
+    "no-unreachable": 0,
+    "no-control-regex": 0,
     // allow paren-less arrow functions
     'arrow-parens': 0,
     // allow async-await

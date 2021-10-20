@@ -61,7 +61,7 @@ const store = new Vuex.Store({
   }
 })
 
-const  wrapper = shallowMount(License, {
+const wrapper = shallowMount(License, {
   store,
   localVue,
   propsData: {
@@ -145,7 +145,7 @@ describe('Component License', () => {
 
     wrapper.vm.$store.state.system.serverAboutKap = {}
     await wrapper.vm.$nextTick()
-    wrapper.vm.successFile({'code': '000', data: {'ke.dates': '2021-03-01,2021-03-30', 'ke.license.category': '4.x', 'ke.license.info': 'Evaluation license for Kyligence Enterprise', 'ke.license.isCloud': false, 'ke.license.isEnterprise': false, 'ke.license.isEvaluation': true, 'ke.license.isTest': false, 'ke.license.level': 'professional', 'ke.license.nodes': 'Unlimited', 'ke.license.serviceEnd': '2021-03-30', 'ke.license.statement': 'Evaluation license for Kyligence Enterprise↵Category: 4.x↵SLA Service: NO↵Volume: 1↵Level: professional↵Insight License: 5 users; evaluation; 2019-06-01,2019-07-30↵', 'ke.license.volume': '1099511627776', 'version': '4' }, 'msg': ''})
+    wrapper.vm.successFile({'code': '000', data: { 'ke.dates': '2021-03-01,2021-03-30', 'ke.license.category': '4.x', 'ke.license.info': 'Evaluation license for Kyligence Enterprise', 'ke.license.isCloud': false, 'ke.license.isEnterprise': false, 'ke.license.isEvaluation': true, 'ke.license.isTest': false, 'ke.license.level': 'professional', 'ke.license.nodes': 'Unlimited', 'ke.license.serviceEnd': '2021-03-30', 'ke.license.statement': 'Evaluation license for Kyligence Enterprise↵Category: 4.x↵SLA Service: NO↵Volume: 1↵Level: professional↵Insight License: 5 users; evaluation; 2019-06-01,2019-07-30↵', 'ke.license.volume': '1099511627776', 'version': '4' }, 'msg': ''})
     jest.runAllTimers()
     expect(wrapper.vm.$store.state.system.serverAboutKap).toEqual({'code': '000', 'ke.dates': '2021-03-01,2021-03-30', 'ke.license.category': '4.x', 'ke.license.info': 'Evaluation license for Kyligence Enterprise', 'ke.license.isCloud': false, 'ke.license.isEnterprise': false, 'ke.license.isEvaluation': true, 'ke.license.isTest': false, 'ke.license.level': 'professional', 'ke.license.nodes': 'Unlimited', 'ke.license.serviceEnd': '2021-03-30', 'ke.license.statement': 'Evaluation license for Kyligence Enterprise↵Category: 4.x↵SLA Service: NO↵Volume: 1↵Level: professional↵Insight License: 5 users; evaluation; 2019-06-01,2019-07-30↵', 'ke.license.volume': '1099511627776', 'msg': '', 'version': '4'})
     expect(wrapper.emitted().validSuccess[3]).toEqual([true])

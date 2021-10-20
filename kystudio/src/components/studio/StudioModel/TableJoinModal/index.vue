@@ -609,25 +609,25 @@ export default class TableJoinModal extends Vue {
         await this.$msgbox({
           title: this.$t('kylinLang.common.tip'),
           message: <div>
-                      <span>{this.$t('deletePrecomputeJoinDialogTips')}</span>
-                      <div class="deleted-precompute-join-content">
-                        <el-collapse>
-                          {dimensions.length ? <el-collapse-item title={this.$t('dimensionCollapse', {num: dimensions.length})}>
-                            {dimensions.map(it => (<p>{it}</p>))}
-                          </el-collapse-item> : null}
-                          {measures.length ? <el-collapse-item title={this.$t('measureCollapse', {num: measures.length})}>
-                            {measures.map(it => (<p>{it}</p>))}
-                          </el-collapse-item> : null}
-                          {computed_columns.length ? <el-collapse-item title={this.$t('computedColumnCollapse', {num: computed_columns.length})}>
-                            {computed_columns.map(it => (<p>{it.columnName}</p>))}
-                          </el-collapse-item> : null}
-                          {(agg_index_count || table_index_count) ? <el-collapse-item title={this.$t('indexesCollapse', {num: agg_index_count + table_index_count})}>
-                            {agg_index_count ? <div>{this.$t('aggIndexes', {len: agg_index_count})}</div> : null}
-                            {table_index_count ? <div>{this.$t('tableIndexes', {len: table_index_count})}</div> : null}
-                          </el-collapse-item> : null}
-                        </el-collapse>
-                      </div>
-                    </div>,
+            <span>{this.$t('deletePrecomputeJoinDialogTips')}</span>
+            <div class="deleted-precompute-join-content">
+              <el-collapse>
+                {dimensions.length ? <el-collapse-item title={this.$t('dimensionCollapse', {num: dimensions.length})}>
+                  {dimensions.map(it => (<p>{it}</p>))}
+                </el-collapse-item> : null}
+                {measures.length ? <el-collapse-item title={this.$t('measureCollapse', {num: measures.length})}>
+                  {measures.map(it => (<p>{it}</p>))}
+                </el-collapse-item> : null}
+                {computed_columns.length ? <el-collapse-item title={this.$t('computedColumnCollapse', {num: computed_columns.length})}>
+                  {computed_columns.map(it => (<p>{it.columnName}</p>))}
+                </el-collapse-item> : null}
+                {(agg_index_count || table_index_count) ? <el-collapse-item title={this.$t('indexesCollapse', {num: agg_index_count + table_index_count})}>
+                  {agg_index_count ? <div>{this.$t('aggIndexes', {len: agg_index_count})}</div> : null}
+                  {table_index_count ? <div>{this.$t('tableIndexes', {len: table_index_count})}</div> : null}
+                </el-collapse-item> : null}
+              </el-collapse>
+            </div>
+          </div>,
           type: 'warning',
           cancelButtonText: this.$t('backEdit'),
           showCancelButton: true,

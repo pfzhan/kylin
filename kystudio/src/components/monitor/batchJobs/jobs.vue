@@ -973,14 +973,11 @@ export default class JobsList extends Vue {
   animatedNum (newValue, oldValue) {
     new TWEEN.Tween({
       number: oldValue
-    })
-    .to({
+    }).to({
       number: newValue
-    }, 500)
-    .onUpdate(tween => {
+    }, 500).onUpdate(tween => {
       this.selectedNumber = tween.number.toFixed(0)
-    })
-    .start()
+    }).start()
     function animate () {
       if (TWEEN.update()) {
         requestAnimationFrame(animate)

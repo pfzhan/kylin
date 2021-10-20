@@ -734,7 +734,7 @@ function licenseDom (id) {
       )
       parentList[id].observer = observer
       observer.observe(element, {
-        attributes: true,  // 监听 table 的 attributes 的改变
+        attributes: true, // 监听 table 的 attributes 的改变
         attributeFilter: ['drag-count']
       })
     }

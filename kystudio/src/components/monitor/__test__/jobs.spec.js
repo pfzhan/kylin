@@ -3,6 +3,7 @@ import { localVue } from '../../../../test/common/spec_common'
 import Vuex from 'vuex'
 import * as business from '../../../util/business'
 import * as utils from '../../../util/index'
+import * as handlers from '../batchJobs/handler'
 import JobsList from '../batchJobs/jobs.vue'
 import JobDialog from '../job_dialog.vue'
 import Diagnostic from '../../admin/Diagnostic/store.js'
@@ -22,7 +23,28 @@ const loadJobsList = jest.fn().mockImplementation(() => {
 const getJobDetail = jest.fn().mockImplementation(() => {
   return {
     then: (callback, errorCallback) => {
-      callback({id: 'job1', info: {}})
+      callback([{
+        ccmd_type: 'SHELL_CMD_HADOOP',
+        create_time: 1634699141016,
+        duration: 6293,
+        err_msg: null,
+        exec_cmd: null,
+        exec_end_time: 1634699148609,
+        exec_start_time: 1634699142316,
+        id: '8f793533-fd9c-c09b-1768-fd312b514cdf_00',
+        index_count: 0,
+        info: {
+          node_info: '10.3.0.206:7070',
+          job_params: ''
+        },
+        name: 'Detect Resource',
+        segment_sub_stages: null,
+        sequence_id: 0,
+        step_status: 'FINISHED',
+        sub_stages: null,
+        success_index_count: 0,
+        wait_time: 1300
+      }])
       errorCallback && errorCallback()
     }
   }
@@ -83,6 +105,8 @@ const mockKapWarn = jest.spyOn(business, 'kapWarn').mockImplementation(() => {
 })
 let mockGetQueryString = jest.spyOn(utils, 'getQueryString').mockImplementation(() => 'pc')
 let mockPostCloudUrlMessage = jest.spyOn(business, 'postCloudUrlMessage').mockImplementation()
+
+const mockGetStepStatusTips = jest.spyOn(handlers, 'getStepStatusTips').mockImplementation()
 
 const $message = {
   success: jest.fn(),
@@ -175,7 +199,8 @@ const wrapper = shallowMount(JobsList, {
     $route: {query: {modelAlias: null, jobStatus: null}},
     $router: {push: mockPush},
     postCloudUrlMessage: mockPostCloudUrlMessage,
-    getQueryString: mockGetQueryString
+    getQueryString: mockGetQueryString,
+    getStepStatusTips: mockGetStepStatusTips
   },
   components: {
     JobDialog,
@@ -253,7 +278,6 @@ describe('Component Monitor', () => {
     expect(wrapper.vm.getTargetSubject({target_subject: 'The model is deleted'})).toBe('The model is deleted')
     expect(wrapper.vm.getTargetSubject({target_subject: ''})).toBe('')
 
-
     wrapper.vm.$store.state.project.isAllProject = true
     await wrapper.vm.$nextTick()
     wrapper.vm.gotoModelList({ project: 'learn_kylin', target_subject: 'target_subject'})
@@ -273,13 +297,13 @@ describe('Component Monitor', () => {
     await wrapper.vm.$nextTick()
     wrapper.vm.gotoSnapshotList({project: 'kyligence'})
     expect(setProject.mock.calls[1][1]).toBe('kyligence')
-    expect(mockPostCloudUrlMessage.mock.calls[0][1]).toEqual({"name": "Snapshot", "params": {"table": undefined}})
+    expect(mockPostCloudUrlMessage.mock.calls[0][1]).toEqual({'name': 'Snapshot', 'params': {'table': undefined}})
 
     wrapper.vm.gotoModelList({ project: 'learn_kylin', target_subject: 'target_subject'})
     expect(clearTimeout).toBeCalled()
     expect(wrapper.vm.isPausePolling).toBeTruthy()
     expect(setProject).toBeCalled()
-    expect(mockPostCloudUrlMessage.mock.calls[1][1]).toEqual({"name": "ModelList", "params": {"modelAlias": "target_subject"}})
+    expect(mockPostCloudUrlMessage.mock.calls[1][1]).toEqual({'name': 'ModelList', 'params': {'modelAlias': 'target_subject'}})
 
     wrapper.vm.handleClearAllTags()
     expect(wrapper.vm.filter.page_offset).toEqual(0)
@@ -328,14 +352,14 @@ describe('Component Monitor', () => {
     // await wrapper.update()
     await wrapper.vm.getJobsList()
     expect(handleSuccess).toBeCalled()
-    expect(wrapper.vm.selectedJob.details).toEqual({id: 'job1', info: {}})
+    expect(wrapper.vm.selectedJob.details).toEqual([{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': null, 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': null, 'success_index_count': 0, 'wait_time': 1300}])
     expect(wrapper.vm.$refs.jobsTable.toggleRowSelection).toBeCalled()
 
     wrapper.vm.$store._actions.LOAD_JOBS_LIST = [jest.fn().mockImplementation(() => {
       return {
         then: (callback, errorCallback) => {
-        callback({total_size: 0, value: []})
-        errorCallback()
+          callback({total_size: 0, value: []})
+          errorCallback()
         }
       }
     })]
@@ -450,7 +474,6 @@ describe('Component Monitor', () => {
     wrapper.vm.batchDrop()
     expect(mockApi.mockCallGlobalDetailDialog).toBeCalled()
 
-
     await wrapper.setData({isSelectAll: false})
     await wrapper.vm.$nextTick()
 
@@ -527,44 +550,44 @@ describe('Component Monitor', () => {
     wrapper.vm.$store.state.project.isAllProject = true
     await wrapper.vm.$nextTick()
     await wrapper.vm.resume(['job1'], 'learn_kylin', 'batch', [{id: 'job1'}], [])
-    expect(mockCallGlobalDetail.mock.calls[0]).toEqual([[[{"id": "job1"}]], "Are you sure you want to resume 1 job record(s)?", "Resume Job", "tip", "Resume"])
+    expect(mockCallGlobalDetail.mock.calls[0]).toEqual([[[{'id': 'job1'}]], 'Are you sure you want to resume 1 job record(s)?', 'Resume Job', 'tip', 'Resume'])
     expect(resumeJob.mock.calls[1][1]).toEqual({job_ids: ['job1'], action: 'RESUME'})
 
     await wrapper.vm.resume('job1', 'learn_kylin', 'batchAll', '', [])
-    expect(mockCallGlobalDetail.mock.calls[1]).toEqual([[], "Are you sure you want to resume 20 job record(s)?", "Resume Job", "tip", "Resume"])
+    expect(mockCallGlobalDetail.mock.calls[1]).toEqual([[], 'Are you sure you want to resume 20 job record(s)?', 'Resume Job', 'tip', 'Resume'])
     expect(resumeJob.mock.calls[1][1]).toEqual({job_ids: ['job1'], action: 'RESUME'})
 
     await wrapper.vm.restart(['job1'], 'learn_kylin', 'batch', [{id: 'job1'}], [])
-    expect(mockCallGlobalDetail.mock.calls[2]).toEqual([[[{"id": "job1"}]], "Are you sure you want to restart 1 job record(s)?", "Restart Job", "tip", "Restart"])
-    expect(restartJob.mock.calls[1][1]).toEqual({"action": "RESTART", "job_ids": ["job1"]})
+    expect(mockCallGlobalDetail.mock.calls[2]).toEqual([[[{'id': 'job1'}]], 'Are you sure you want to restart 1 job record(s)?', 'Restart Job', 'tip', 'Restart'])
+    expect(restartJob.mock.calls[1][1]).toEqual({'action': 'RESTART', 'job_ids': ['job1']})
 
     await wrapper.vm.restart('job1', 'learn_kylin', 'batchAll', '', [])
-    expect(mockCallGlobalDetail.mock.calls[3]).toEqual([[], "Are you sure you want to restart 20 job record(s)?", "Restart Job", "tip", "Restart"])
-    expect(restartJob.mock.calls[1][1]).toEqual({"action": "RESTART", "job_ids": ["job1"]})
+    expect(mockCallGlobalDetail.mock.calls[3]).toEqual([[], 'Are you sure you want to restart 20 job record(s)?', 'Restart Job', 'tip', 'Restart'])
+    expect(restartJob.mock.calls[1][1]).toEqual({'action': 'RESTART', 'job_ids': ['job1']})
 
     await wrapper.vm.pause(['job1'], 'learn_kylin', 'batch', [{id: 'job1'}], [])
-    expect(mockCallGlobalDetail.mock.calls[4]).toEqual([[[{"id": "job1"}]], "Are you sure you want to pause 1 job record(s)?", "Pause Job", "tip", "Pause"])
+    expect(mockCallGlobalDetail.mock.calls[4]).toEqual([[[{'id': 'job1'}]], 'Are you sure you want to pause 1 job record(s)?', 'Pause Job', 'tip', 'Pause'])
     expect(pauseJob.mock.calls[1][1]).toEqual({job_ids: ['job1'], action: 'PAUSE'})
 
     await wrapper.vm.pause(['job1'], 'learn_kylin', 'batchAll', '', [])
-    expect(mockCallGlobalDetail.mock.calls[5]).toEqual([[], "Are you sure you want to pause 20 job record(s)?", "Pause Job", "tip", "Pause"])
+    expect(mockCallGlobalDetail.mock.calls[5]).toEqual([[], 'Are you sure you want to pause 20 job record(s)?', 'Pause Job', 'tip', 'Pause'])
     expect(pauseJob.mock.calls[1][1]).toEqual({job_ids: ['job1'], action: 'PAUSE'})
 
     await wrapper.vm.discard(['job1'], 'learn_kylin', 'batch', [{id: 'job1'}], [])
-    expect(mockCallGlobalDetail.mock.calls[6]).toEqual([[[{"id": "job1"}]], "Are you sure you want to discard the following job(s)? Discarding the highlighted job(s) might result in gaps between segments. The query results would be empty for those data ranges. Please note that the discarded jobs couldn’t be recovered.", "Discard Job", "warning", "Discard", true])
-    expect(discardJob.mock.calls[1][1]).toEqual({"action": "DISCARD", "job_ids": ["job1"]})
+    expect(mockCallGlobalDetail.mock.calls[6]).toEqual([[[{'id': 'job1'}]], 'Are you sure you want to discard the following job(s)? Discarding the highlighted job(s) might result in gaps between segments. The query results would be empty for those data ranges. Please note that the discarded jobs couldn’t be recovered.', 'Discard Job', 'warning', 'Discard', true])
+    expect(discardJob.mock.calls[1][1]).toEqual({'action': 'DISCARD', 'job_ids': ['job1']})
 
     await wrapper.vm.discard('job1', 'learn_kylin', 'batchAll', '', [])
-    expect(mockCallGlobalDetail.mock.calls[7]).toEqual([[], "Are you sure you want to discard the following job(s)? Please note that it couldn't be recovered.", "Discard Job", "warning", "Discard", true])
-    expect(discardJob.mock.calls[1][1]).toEqual({"action": "DISCARD", "job_ids": ["job1"]})
+    expect(mockCallGlobalDetail.mock.calls[7]).toEqual([[], "Are you sure you want to discard the following job(s)? Please note that it couldn't be recovered.", 'Discard Job', 'warning', 'Discard', true])
+    expect(discardJob.mock.calls[1][1]).toEqual({'action': 'DISCARD', 'job_ids': ['job1']})
     expect(wrapper.vm.filter.status).toEqual([])
 
     await wrapper.vm.drop(['job1'], 'learn_kylin', 'batch', [{id: 'job1'}], [])
-    expect(mockCallGlobalDetail.mock.calls[8]).toEqual([[[{"id": "job1"}]], "Are you sure you want to delete 1 job record(s)?", "Delete Job", "warning", "Delete"])
+    expect(mockCallGlobalDetail.mock.calls[8]).toEqual([[[{'id': 'job1'}]], 'Are you sure you want to delete 1 job record(s)?', 'Delete Job', 'warning', 'Delete'])
     expect(removeJobForAll.mock.calls[1][1]).toEqual({job_ids: ['job1']})
 
     await wrapper.vm.drop('job1', 'learn_kylin', 'batchAll', '', [])
-    expect(mockCallGlobalDetail.mock.calls[9]).toEqual([[], "Are you sure you want to delete 20 job record(s)?", "Delete Job", "warning", "Delete"])
+    expect(mockCallGlobalDetail.mock.calls[9]).toEqual([[], 'Are you sure you want to delete 20 job record(s)?', 'Delete Job', 'warning', 'Delete'])
     expect(removeJobForAll.mock.calls[1][1]).toEqual({job_ids: ['job1']})
 
     await wrapper.setData({ selectedJob: {id: 'job1'}, showStep: false })
@@ -577,9 +600,9 @@ describe('Component Monitor', () => {
     wrapper.vm.showLineSteps({id: 'job2'}, {property: 'icon'})
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.showStep).toBeTruthy()
-    expect(wrapper.vm.selectedJob).toEqual({"details": {"id": "job1", "info": {}}, "id": "job2"})
+    expect(wrapper.vm.selectedJob).toEqual({'details': [{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': null, 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': null, 'success_index_count': 0, 'wait_time': 1300}], 'id': 'job2'})
     expect(getJobDetail).toBeCalled()
-    expect(wrapper.vm.selectedJob.details).toEqual({"id": "job1", "info": {}})
+    expect(wrapper.vm.selectedJob.details).toEqual([{'ccmd_type': 'SHELL_CMD_HADOOP', 'create_time': 1634699141016, 'duration': 6293, 'err_msg': null, 'exec_cmd': null, 'exec_end_time': 1634699148609, 'exec_start_time': 1634699142316, 'id': '8f793533-fd9c-c09b-1768-fd312b514cdf_00', 'index_count': 0, 'info': {'job_params': '', 'node_info': '10.3.0.206:7070'}, 'name': 'Detect Resource', 'segment_sub_stages': null, 'sequence_id': 0, 'step_status': 'FINISHED', 'sub_stages': null, 'success_index_count': 0, 'wait_time': 1300}])
     expect(handleError).toBeCalled()
 
     wrapper.vm.clickFile({id: 'step1'})

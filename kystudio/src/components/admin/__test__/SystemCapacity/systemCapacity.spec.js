@@ -2,7 +2,7 @@ import Vuex from 'vuex'
 import { mount, shallowMount } from '@vue/test-utils'
 import { localVue } from '../../../../../test/common/spec_common'
 import SystemCapacity from '../../SystemCapacity/index.vue'
-import Charts from '../../SystemCapacity/charts'
+import charts from '../../../../util/charts'
 import KyligenceUI from 'kyligence-ui'
 import EmptyData from '../../../common/EmptyData/EmptyData.vue'
 import kapPager from '../../../common/kap_pager.vue'
@@ -41,10 +41,10 @@ const mockOnEvent = jest.fn().mockImplementation((name, callback) => {
 
 const mockEcharts = jest.spyOn(echarts, 'init').mockImplementation(() => {
   return {
-      hideLoading: jest.fn(),
-      setOption: jest.fn(),
-      showLoading: jest.fn(),
-      on: mockOnEvent
+    hideLoading: jest.fn(),
+    setOption: jest.fn(),
+    showLoading: jest.fn(),
+    on: mockOnEvent
   }
 })
 
@@ -87,7 +87,7 @@ const wrapper = mount(SystemCapacity, {
   store,
   localVue,
   mocks: {
-    echarts: mockEcharts,
+    echarts: mockEcharts
   },
   components: {
     EmptyData,
@@ -136,7 +136,7 @@ describe('Components SystemCapacity', () => {
     wrapper.vm.projectDetailsSortChange({prop: 'capacity', order: 'descending'})
     expect(wrapper.vm.$data.projectDetail).toEqual({'currentPage': 0, 'list': [], 'pageSize': 10, 'reverse': true, 'sort_by': 'capacity', 'totalSize': 10})
     expect(mockApis.mockGetPorjectCapacityDetails).toBeCalled()
-    
+
     wrapper.vm.pageCurrentChangeByDetail(1)
     expect(wrapper.vm.$data.projectDetail.currentPage).toBe(1)
     expect(mockApis.mockGetPorjectCapacityDetails).toBeCalled()
@@ -202,13 +202,13 @@ describe('Components SystemCapacity', () => {
     expect(options1.getSystemCapacity).toBeCalled()
     expect(options1.lineOptions).toBeNull()
 
-    const lineCharts = Charts.line(wrapper.vm, [1594166391126, 1594252763624], [3244484199, 234232432], wrapper.vm.$data.lineCharts)
+    const lineCharts = charts.line(wrapper.vm, [1594166391126, 1594252763624], [3244484199, 234232432], wrapper.vm.$data.lineCharts)
     expect(lineCharts.color).toEqual(['#15BDF1'])
     expect(lineCharts.xAxis.data).toEqual([1594166391126, 1594252763624])
     expect(lineCharts.series[0].data).toEqual([3244484199, 234232432])
     expect(lineCharts.tooltip.formatter({dataIndex: 1})).not.toBe('')
 
-    const lineCharts1 = Charts.line(wrapper.vm)
+    const lineCharts1 = charts.line(wrapper.vm)
     expect(lineCharts1.xAxis.data).toEqual([])
     expect(lineCharts1.series[0].data).toEqual([])
 
@@ -216,9 +216,9 @@ describe('Components SystemCapacity', () => {
       return res
     })
 
-    const treeMapCharts = Charts.treeMap(wrapper.vm, [{name: 'test', value: 30}, {name: 'test1', value: 50}], {encodeHTML: mockEncodeHtml})
+    const treeMapCharts = charts.treeMap(wrapper.vm, [{name: 'test', value: 30}, {name: 'test1', value: 50}], {encodeHTML: mockEncodeHtml})
     expect(treeMapCharts.series[0].data).toEqual([{name: 'test', value: 30}, {name: 'test1', value: 50}])
-    //expect(treeMapCharts.tooltip.formatter({data: {capacity: 121343243}, treePathInfo: [{name: 'test'}, {name: 'test1'}]})).toEqual("<div class=\"tooltip-title\">Project Name：test1</div>Data Volume Used: 121343243")
+    // expect(treeMapCharts.tooltip.formatter({data: {capacity: 121343243}, treePathInfo: [{name: 'test'}, {name: 'test1'}]})).toEqual("<div class=\"tooltip-title\">Project Name：test1</div>Data Volume Used: 121343243")
 
     wrapper.destroy()
     expect(mockRemoveEventListener).toBeCalled()
