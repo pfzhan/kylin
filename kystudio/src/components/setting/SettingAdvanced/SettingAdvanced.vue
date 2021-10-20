@@ -181,7 +181,7 @@
       </el-form>
     </EditableBlock>
     <!-- 分层存储 -->
-    <EditableBlock
+    <!-- <EditableBlock
       :header-content="$t('secondaryStorage')"
       :is-keep-editing="true"
       :is-edited="!form.second_storage_enabled&&isFormEdited(form, 'sec-storage') || (form.second_storage_enabled && new_nodes.length > 0)"
@@ -213,7 +213,7 @@
           </el-option>
         </el-select>
       </div>
-    </EditableBlock>
+    </EditableBlock> -->
     <!-- 多级分区 -->
     <EditableBlock
       :header-content="$t('mulPartitionSettings')"
@@ -511,9 +511,9 @@ export default class SettingAdvanced extends Vue {
     this.initForm()
     this.getConfigList()
     // 系统配置分层存储集群节点时可调用
-    if (this.$store.state.system.isShowSecondStorage) {
-      this.loadAvailableNodes()
-    }
+    // if (this.$store.state.system.isShowSecondStorage) {
+    //   this.loadAvailableNodes()
+    // }
   }
   async loadAvailableNodes () {
     const res = await this.fetchAvailableNodes()
