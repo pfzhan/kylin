@@ -24,23 +24,26 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
-
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecuteResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import lombok.val;
+import java.io.IOException;
 
 public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
+
+    private static final Logger logger = LoggerFactory.getLogger(NSparkCleanupAfterMergeStep.class);
+
     public NSparkCleanupAfterMergeStep() {
         this.setName(ExecutableConstants.STEP_NAME_CLEANUP);
     }
@@ -51,19 +54,24 @@ public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+
         String name = getParam(NBatchConstants.P_DATAFLOW_ID);
-        String[] segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS));
+        String[] segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS), ",");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(name);
 
-        val timeMachineEnabled = KylinConfig.getInstanceFromEnv().getTimeMachineEnabled();
+        boolean timeMachineEnabled = KylinConfig.getInstanceFromEnv().getTimeMachineEnabled();
+
         for (String segmentId : segmentIds) {
             String path = dataflow.getSegmentHdfsPath(segmentId);
             if (!timeMachineEnabled) {
                 try {
                     HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
+                    logger.info("The segment {} in dataflow {} has been successfully deleted, path : {}", //
+                            segmentId, name, path);
                 } catch (IOException e) {
-                    throw new ExecuteException("Can not delete segment: " + segmentId + ", in dataflow: " + name);
+                    logger.warn("Can not delete segment {} in dataflow {}." + //
+                            " Please try workaround thru garbage clean manually.", segmentId, name, e);
                 }
             }
         }
