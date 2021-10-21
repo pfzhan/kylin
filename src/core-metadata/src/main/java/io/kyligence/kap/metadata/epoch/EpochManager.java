@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.common.scheduler.SourceUsageVerifyNotifier;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -310,6 +311,7 @@ public class EpochManager implements IKeep {
 
             if (updateStarted.compareAndSet(false, true)) {
                 eventBusFactory.postAsync(new EpochStartedNotifier());
+                eventBusFactory.postAsync(new SourceUsageVerifyNotifier());
             }
         }
     }
