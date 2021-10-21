@@ -98,6 +98,7 @@ public class NDataflowCapabilityChecker {
             } else {
                 result.setSelectedCandidate(chosenCandidate);
             }
+            result.cost = (int) chosenCandidate.getCost();
         } else {
             result.capable = false;
         }

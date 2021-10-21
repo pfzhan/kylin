@@ -34,6 +34,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.spark.sql.SparderEnv;
@@ -195,6 +196,21 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         val layoutId = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
                 context.getSQLDigest()).getLayoutEntity().getId();
         Assert.assertEquals(20000000001L, layoutId);
+    }
+
+    @Test
+    public void testCapabilityResult() {
+        NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        String sql = "SELECT seller_ID FROM TEST_KYLIN_FACT "
+                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID";
+        OLAPContext context = prepareOlapContext(sql).get(0);
+        Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+        context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+        CapabilityResult result = NDataflowCapabilityChecker.check(dataflow, dataflow.getQueryableSegments(),
+                context.getSQLDigest());
+        Assert.assertNotNull(result);
+        Assert.assertEquals((int)result.getSelectedCandidate().getCost(), result.cost);
     }
 
     @Test
