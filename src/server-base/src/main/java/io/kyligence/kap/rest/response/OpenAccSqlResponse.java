@@ -37,29 +37,39 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class OpenSuggestionResponse implements Serializable {
-
-    @JsonProperty("models")
-    private List<OpenModelRecResponse> models = Lists.newArrayList();
+public class OpenAccSqlResponse implements Serializable {
 
     @JsonProperty("error_sqls")
     private List<String> errorSqlList = Lists.newArrayList();
+
+    @JsonProperty("optimized_models")
+    private List<OpenModelRecResponse> optimizedModels = Lists.newArrayList();
+
+    @JsonProperty("created_models")
+    private List<OpenModelRecResponse> createdModels = Lists.newArrayList();
 
     public static List<OpenModelRecResponse> convert(List<SuggestionResponse.ModelRecResponse> response) {
         return response.stream().map(OpenModelRecResponse::convert).collect(Collectors.toList());
     }
 
-    public static OpenSuggestionResponse from(SuggestionResponse innerResponse, List<String> sqls) {
-        OpenSuggestionResponse result = new OpenSuggestionResponse();
-        result.getModels().addAll(OpenSuggestionResponse.convert(innerResponse.getReusedModels()));
-        result.getModels().addAll(OpenSuggestionResponse.convert(innerResponse.getNewModels()));
+    public static OpenAccSqlResponse from(SuggestionResponse innerResponse, List<String> sqls) {
+        OpenAccSqlResponse result = new OpenAccSqlResponse();
+        result.getOptimizedModels().addAll(OpenSuggestionResponse.convert(innerResponse.getReusedModels()));
+        result.getCreatedModels().addAll(OpenSuggestionResponse.convert(innerResponse.getNewModels()));
         result.fillErrorSqlList(sqls);
         return result;
     }
 
     private void fillErrorSqlList(List<String> inputSqlList) {
         Set<String> normalRecommendedSqlSet = Sets.newHashSet();
-        for (OpenModelRecResponse modelResponse : getModels()) {
+        for (OpenModelRecResponse modelResponse : optimizedModels) {
+            modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
+                List<String> sqlList = layoutRecDetailResponse.getSqlList();
+                normalRecommendedSqlSet.addAll(sqlList);
+            });
+        }
+
+        for (OpenModelRecResponse modelResponse : createdModels) {
             modelResponse.getIndexes().forEach(layoutRecDetailResponse -> {
                 List<String> sqlList = layoutRecDetailResponse.getSqlList();
                 normalRecommendedSqlSet.addAll(sqlList);
@@ -72,4 +82,5 @@ public class OpenSuggestionResponse implements Serializable {
             }
         }
     }
+
 }

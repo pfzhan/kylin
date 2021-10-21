@@ -95,6 +95,7 @@ import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.JobInfoResponseWithFailure;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.OpenAccSqlResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse.IndexDetail;
 import io.kyligence.kap.rest.response.OpenModelValidationResponse;
@@ -546,6 +547,20 @@ public class OpenModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 new OpenRecApproveResponse(projectName, approvedModelIndexes), "");
     }
+
+    @ApiOperation(value = "/accelerateSql", tags = { "AI" })
+    @PostMapping(value = "/accelerate_sqls")
+    @ResponseBody
+    public EnvelopeResponse<OpenAccSqlResponse> accelerateSqls(@RequestBody OpenSqlAccelerateRequest request) {
+        String projectName = checkProjectName(request.getProject());
+        checkSqlIsNotNull(request.getSqls());
+        request.setProject(projectName);
+        request.setForce2CreateNewModel(false);
+        checkProjectNotSemiAuto(request.getProject());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestAndOptimizeModels(request),
+                "");
+    }
+
 
     @ApiOperation(value = "suggestModels", tags = { "AI" })
     @PostMapping(value = "/model_suggestion")

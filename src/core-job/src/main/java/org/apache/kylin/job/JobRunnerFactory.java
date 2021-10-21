@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -75,18 +74,14 @@ public class JobRunnerFactory {
         protected final KylinConfig kylinConfig;
         protected final String project;
         protected final List<String> originResources;
-        private Consumer<Properties> configUpdater;
 
         protected String metaDumpUrl;
         protected String jobId;
 
-        public String prepareEnv(String jobId) throws IOException {
+        public void init(String jobId) {
             this.jobId = jobId;
             val jobTmpDir = getJobTmpDir();
-            FileUtils.forceMkdir(new File(jobTmpDir));
-
             metaDumpUrl = kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=file://" + jobTmpDir + "/meta";
-            return jobTmpDir;
         }
 
         public void start(ExecutableApplication app, Map<String, String> args) throws Exception {
@@ -111,10 +106,6 @@ public class JobRunnerFactory {
             return KylinConfigBase.getKylinHome() + "/tmp/" + jobId;
         }
 
-        public void setConfigUpdater(Consumer<Properties> consumer) {
-            this.configUpdater = consumer;
-        }
-
         protected void attachMetadataAndKylinProps(boolean kylinPropsOnly) throws IOException {
             if (StringUtils.isEmpty(metaDumpUrl)) {
                 throw new RuntimeException("Missing metaUrl");
@@ -125,10 +116,8 @@ public class JobRunnerFactory {
                 org.apache.commons.io.FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
                 Properties props = kylinConfig.exportToProperties();
+                props.setProperty("kylin.query.queryhistory.url", kylinConfig.getMetadataUrl().toString());
                 props.setProperty("kylin.metadata.url", metaDumpUrl);
-                if (configUpdater != null) {
-                    configUpdater.accept(props);
-                }
 
                 if (kylinPropsOnly) {
                     ResourceStore.dumpKylinProps(tmpDir, props);

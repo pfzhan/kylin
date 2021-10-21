@@ -85,6 +85,10 @@ public class RawRecService {
         if (!(proposeContext instanceof ModelReuseContextOfSemiV2)) {
             return;
         }
+        //filter modelcontext(by create model)
+        proposeContext.setModelContexts(proposeContext.getModelContexts().stream()
+                .filter(modelContext -> modelContext.getOriginModel() != null).collect(Collectors.toList()));
+
         ModelReuseContextOfSemiV2 semiContextV2 = (ModelReuseContextOfSemiV2) proposeContext;
         Map<String, RawRecItem> nonLayoutUniqueFlagRecMap = semiContextV2.getExistingNonLayoutRecItemMap();
         transferAndSaveModelRelatedRecItems(semiContextV2, nonLayoutUniqueFlagRecMap);

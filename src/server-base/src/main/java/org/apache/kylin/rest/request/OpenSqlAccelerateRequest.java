@@ -52,6 +52,8 @@ public class OpenSqlAccelerateRequest implements Serializable, ProjectInsensitiv
     private boolean withEmptySegment = true;
     @JsonProperty("with_model_online")
     private boolean withModelOnline = false;
+    @JsonProperty("save_new_model")
+    private boolean saveNewModel = true;
     @JsonProperty("with_base_index")
     private boolean withBaseIndex = false;
 

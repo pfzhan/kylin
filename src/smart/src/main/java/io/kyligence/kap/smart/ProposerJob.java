@@ -111,78 +111,24 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         SmartConfig smartConfig = context.getSmartConfig();
         KylinConfig config = smartConfig.getKylinConfig();
         String project = context.getProject();
-        String[] sqls = context.getSqlArray();
-        FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(config, project);
-        Set<String> excludedTableSet = ruleManager.getExcludedTables();
 
-        List<String> resources = Lists.newArrayList();
-        Set<String> onlineModelIdSet = Sets.newHashSet();
-        Set<String> allModelNames = Sets.newHashSet();
-        String modelOptRule = context.getSmartConfig().getModelOptRule();
+        ProposerJobEnv jobEnv = new ProposerJobEnv(config, project, context);
+        String jobId = jobEnv.getJobId();
 
-        String jobId = generateJobId(project);
         AbstractJobRunner runner = null;
         try {
-            extractProjectResources(project, resources);
-            extractModelAndIndexPlanResources(config, project, resources, onlineModelIdSet, allModelNames,
-                    context.getRelatedModels());
-            extractTableResources(config, project, resources, context.getRelatedTables());
-            extractKafkaResources(config, project, resources, context.getRelatedTables());
 
-            runner = factoryBuilder.build(config, smartConfig.getProposeRunnerImpl(), project, resources);
-            runner.setConfigUpdater(props -> {
-                String key = "kylin.query.queryhistory.url";
-                props.setProperty(key, config.getMetadataUrl().toString());
-            });
-            Map<String, String> params = Maps.newHashMap();
+            jobEnv.buildJobEnv();
 
-            params.put(CONTEXT_CLASS, context.getClass().getName());
-            String jobTmpDir = runner.prepareEnv(jobId);
+            runner = factoryBuilder.build(config, smartConfig.getProposeRunnerImpl(), project, jobEnv.getResource());
+            runner.init(jobId);
+            runner.start(new ProposerJob(), jobEnv.getParams());
 
-            val contextParamsFile = jobTmpDir + "/context_params.json";
-            ContextParams contextParams = new ContextParams(project, context.isCanCreateNewModel(), modelOptRule,
-                    Lists.newArrayList(sqls), allModelNames, excludedTableSet, onlineModelIdSet);
-            JsonUtil.writeValue(new File(contextParamsFile), contextParams);
-            params.put(CONTEXT_PARAMS, contextParamsFile);
-
-            val contextOutputFile = jobTmpDir + "/context_output.json";
-            params.put(CONTEXT_OUTPUT, contextOutputFile);
-
-            // execute propose
-            runner.start(new ProposerJob(), params);
-
-            val output = JsonUtil.readValue(new File(contextOutputFile), ContextOutput.class);
-            val tables = NTableMetadataManager.getInstance(config, context.getProject()).getAllTablesMap();
-            output.getModelContextOutputs().forEach(modelOutput -> {
-                val originModel = modelOutput.getOriginModel();
-                if (originModel != null) {
-                    originModel.init(config, tables, Lists.newArrayList(), context.getProject());
-                }
-                val targetModel = modelOutput.getTargetModel();
-                if (targetModel != null) {
-                    targetModel.init(config, tables, Lists.newArrayList(), context.getProject());
-                }
-                modelOutput.getMeasureRecItemMap().forEach((key, m) -> {
-                    NDataModel.Measure measure = m.getMeasure();
-                    measure.getFunction().init(targetModel);
-                });
-            });
-            ContextOutput.merge(context, output);
+            mergeResultIntoContext(jobEnv);
         } catch (Exception e) {
             throw new KylinException(ServerErrorCode.EXEC_JOB_FAILED, "Failed to exec job " + jobId, e);
         } finally {
-            String jobContentZip = getJobTmpDir(jobId) + ".zip";
-            try {
-                SimpleTimeLimiter.create(ForkJoinPool.commonPool())
-                        .callWithTimeout(() -> uploadJobLog(project, jobId, jobContentZip), Duration.ofSeconds(10));
-            } catch (InterruptedException e) {
-                log.warn("Upload job Interrupted! The job id is: {}", jobId, e);
-                Thread.currentThread().interrupt();
-            } catch (Exception exception) {
-                log.warn("Upload Job Evidence failed! The job id is: {}", jobId, exception);
-            } finally {
-                FileUtils.deleteQuietly(new File(jobContentZip));
-            }
+            uploadLogs(jobEnv);
             if (runner != null) {
                 runner.cleanupEnv();
             }
@@ -190,90 +136,215 @@ public class ProposerJob extends ExecutableApplication implements IKeep {
         return context;
     }
 
-    private static void extractProjectResources(String project, List<String> resources) {
-        String projectPath = ResourceStore.PROJECT_ROOT + File.separator + project + ".json";
-        resources.add(projectPath);
-    }
+    private static class ProposerJobEnv {
+        String project;
+        KylinConfig config;
+        AbstractContext context;
+        String jobId;
 
-    private static void extractModelAndIndexPlanResources(KylinConfig config, String project, List<String> resources,
-            Set<String> onlineModelIdSet, Set<String> allModelNames, List<NDataModel> baseModels) {
-        Set<String> allModelIdSet = baseModels.stream().map(NDataModel::getUuid).collect(Collectors.toSet());
-        NDataflowManager.getInstance(config, project).listAllDataflows(true).forEach(df -> {
-            NDataModel model = df.getModel();
-            allModelNames.add(model.getAlias().toLowerCase(Locale.ROOT));
-            if (model.isBroken() || !allModelIdSet.contains(model.getUuid())) {
-                return;
-            }
-            if (model.isFusionModel()) {
-                return;
-            }
-            resources.add(model.getResourcePath());
-            resources.add(IndexPlan.concatResourcePath(model.getId(), project));
-            if (df.getStatus() == RealizationStatusEnum.ONLINE) {
-                onlineModelIdSet.add(model.getUuid());
-            }
-        });
-    }
+        // init after buildJobEnv
+        Set<String> onlineModelIdSet = Sets.newHashSet();
+        Set<String> allModelNames = Sets.newHashSet();
+        List<String> resources = Lists.newArrayList();
+        Map<String, String> params = Maps.newHashMap();
+        String contextOutputFile;
 
-    private static void extractTableResources(KylinConfig config, String project, List<String> resources,
-            Set<String> baseTables) {
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
-        baseTables.forEach(tableIdentity -> {
-            TableDesc tableDesc = tableManager.getTableDesc(tableIdentity);
-            if (tableDesc != null) {
-                String tablePath = tableDesc.getResourcePath();
-                if (StringUtils.isNotEmpty(tablePath)) {
-                    resources.add(tablePath);
+        public ProposerJobEnv(KylinConfig config, String project, AbstractContext context) {
+            this.project = project;
+            this.config = config;
+            this.context = context;
+            this.jobId = generateJobId(project);
+        }
+
+        public void buildJobEnv() throws IOException {
+            FileUtils.forceMkdir(new File(getJobTmpDir()));
+            extractDumpResource();
+            generateParams();
+        }
+
+        public String getJobTmpDir() {
+            return KylinConfigBase.getKylinHome() + "/tmp/" + jobId;
+        }
+
+        public void extractDumpResource() {
+            extractProjectResources();
+            extractModelAndIndexPlanResources();
+            extractTableResources();
+            extractKafkaResources();
+        }
+
+        private void extractProjectResources() {
+            String projectPath = ResourceStore.PROJECT_ROOT + "/" + project + ".json";
+            resources.add(projectPath);
+        }
+
+        private void extractModelAndIndexPlanResources() {
+            val baseModels = context.getRelatedModels();
+            Set<String> allModelIdSet = baseModels.stream().map(NDataModel::getUuid).collect(Collectors.toSet());
+            NDataflowManager.getInstance(config, project).listAllDataflows(true).forEach(df -> {
+                NDataModel model = df.getModel();
+                allModelNames.add(model.getAlias().toLowerCase(Locale.ROOT));
+                if (model.isBroken() || !allModelIdSet.contains(model.getUuid())) {
+                    return;
                 }
-                TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(tableDesc);
-                if (tableExtDesc != null) {
-                    String resourcePath = tableExtDesc.getResourcePath();
-                    if (StringUtils.isNotEmpty(resourcePath)) {
-                        resources.add(resourcePath);
+                if (model.isFusionModel()) {
+                    return;
+                }
+                resources.add(model.getResourcePath());
+                resources.add(IndexPlan.concatResourcePath(model.getId(), project));
+                if (df.getStatus() == RealizationStatusEnum.ONLINE) {
+                    onlineModelIdSet.add(model.getUuid());
+                }
+            });
+        }
+
+        private void extractTableResources() {
+            val baseTables = context.getRelatedTables();
+            NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
+            baseTables.forEach(tableIdentity -> {
+                TableDesc tableDesc = tableManager.getTableDesc(tableIdentity);
+                if (tableDesc != null) {
+                    String tablePath = tableDesc.getResourcePath();
+                    if (StringUtils.isNotEmpty(tablePath)) {
+                        resources.add(tablePath);
+                    }
+                    TableExtDesc tableExtDesc = tableManager.getTableExtIfExists(tableDesc);
+                    if (tableExtDesc != null) {
+                        String resourcePath = tableExtDesc.getResourcePath();
+                        if (StringUtils.isNotEmpty(resourcePath)) {
+                            resources.add(resourcePath);
+                        }
                     }
                 }
-            }
-        });
-    }
+            });
+        }
 
-    private static void extractKafkaResources(KylinConfig config, String project, List<String> resources,
-            Set<String> baseTables) {
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
-        Set<String> kafkaResources = Sets.newHashSet();
-        baseTables.forEach(tableIdentity -> {
-            TableDesc tableDesc = tableManager.getTableDesc(tableIdentity);
-            if (tableDesc == null) {
-                return;
-            }
-            if (tableDesc.getSourceType() == ISourceAware.ID_STREAMING) {
-                String tableKafkaPath = tableDesc.getKafkaConfig().getResourcePath();
-                if (StringUtils.isNotEmpty(tableKafkaPath)) {
-                    resources.add(tableKafkaPath);
+        private void extractKafkaResources() {
+            val baseTables = context.getRelatedTables();
+            NTableMetadataManager tableManager = NTableMetadataManager.getInstance(config, project);
+            Set<String> kafkaResources = Sets.newHashSet();
+            baseTables.forEach(tableIdentity -> {
+                TableDesc tableDesc = tableManager.getTableDesc(tableIdentity);
+                if (tableDesc == null) {
+                    return;
                 }
-            }
-        });
-        resources.addAll(kafkaResources);
+                if (tableDesc.getSourceType() == ISourceAware.ID_STREAMING) {
+                    String tableKafkaPath = tableDesc.getKafkaConfig().getResourcePath();
+                    if (StringUtils.isNotEmpty(tableKafkaPath)) {
+                        resources.add(tableKafkaPath);
+                    }
+                }
+            });
+            resources.addAll(kafkaResources);
+        }
+
+        public void generateParams() throws IOException {
+            String jobTmpDir = getJobTmpDir();
+            params.put(CONTEXT_CLASS, context.getClass().getName());
+
+            val contextParamsFile = jobTmpDir + "/context_params.json";
+            writeContextParams(contextParamsFile);
+            params.put(CONTEXT_PARAMS, contextParamsFile);
+
+            contextOutputFile = jobTmpDir + "/context_output.json";
+            params.put(CONTEXT_OUTPUT, contextOutputFile);
+        }
+
+        private void writeContextParams(String contextParamsFile) throws IOException {
+            FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(config, project);
+            Set<String> excludedTableSet = ruleManager.getExcludedTables();
+            String[] sqls = context.getSqlArray();
+
+            String modelOptRule = context.getSmartConfig().getModelOptRule();
+            ContextParams contextParams = new ContextParams(project, context.isCanCreateNewModel(), modelOptRule,
+                    Lists.newArrayList(sqls), allModelNames, excludedTableSet, onlineModelIdSet);
+
+            JsonUtil.writeValue(new File(contextParamsFile), contextParams);
+        }
+
+        public List<String> getResource() {
+            return resources;
+        }
+
+        public Map<String, String> getParams() {
+            return params;
+        }
+
+        public String getJobId() {
+            return jobId;
+        }
+
+        private String generateJobId(String project) {
+            return project + "-" + LocalDateTime.now(Clock.systemDefaultZone()).format(
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault(Locale.Category.FORMAT)));
+        }
+
+        public String getProject() {
+            return project;
+        }
+
+        public String getContextOutputFile() {
+            return contextOutputFile;
+        }
+
+        public KylinConfig getKylinConfig() {
+            return config;
+        }
+
+        public AbstractContext getContext() {
+            return context;
+        }
     }
 
-    private static boolean uploadJobLog(String project, String jobId, String jobContentZip) throws IOException {
-        ZipFileUtils.compressZipFile(getJobTmpDir(jobId), jobContentZip);
-        String jobDir = KylinConfig.getInstanceFromEnv().getJobTmpDir(project, true);
+    public static void mergeResultIntoContext(ProposerJobEnv env) throws IOException {
+        val output = JsonUtil.readValue(new File(env.getContextOutputFile()), ContextOutput.class);
+        initModelsForOutput(env.getProject(), env.getKylinConfig(), output);
+        ContextOutput.merge(env.getContext(), output);
+    }
+
+    public static void uploadLogs(ProposerJobEnv env) {
+        String jobContentZip = env.getJobTmpDir() + ".zip";
+        try {
+            SimpleTimeLimiter.create(ForkJoinPool.commonPool()).callWithTimeout(() -> uploadJobLog(env, jobContentZip),
+                    Duration.ofSeconds(10));
+        } catch (InterruptedException e) {
+            log.warn("Upload job Interrupted! The job id is: {}", env.getJobId(), e);
+            Thread.currentThread().interrupt();
+        } catch (Exception exception) {
+            log.warn("Upload Job Evidence failed {}", env.getJobId(), exception);
+        } finally {
+            FileUtils.deleteQuietly(new File(jobContentZip));
+        }
+    }
+
+    private static void initModelsForOutput(String project, KylinConfig config, ContextOutput output) {
+        val tables = NTableMetadataManager.getInstance(config, project).getAllTablesMap();
+        output.getModelContextOutputs().forEach(modelOutput -> {
+            val originModel = modelOutput.getOriginModel();
+            if (originModel != null) {
+                originModel.init(config, tables, Lists.newArrayList(), project);
+            }
+            val targetModel = modelOutput.getTargetModel();
+            if (targetModel != null) {
+                targetModel.init(config, tables, Lists.newArrayList(), project);
+            }
+            modelOutput.getMeasureRecItemMap().forEach((key, m) -> {
+                NDataModel.Measure measure = m.getMeasure();
+                measure.getFunction().init(targetModel);
+            });
+        });
+    }
+
+    private static boolean uploadJobLog(ProposerJobEnv env, String jobContentZip) throws IOException {
+        ZipFileUtils.compressZipFile(env.getJobTmpDir(), jobContentZip);
+        String jobDir = KylinConfig.getInstanceFromEnv().getJobTmpDir(env.getProject(), true);
         FileSystem fs = HadoopUtil.getFileSystem(jobDir);
 
         try (InputStream in = new FileInputStream(jobContentZip);
-                FSDataOutputStream out = fs.create(new Path(jobDir + jobId + ".zip"), true)) {
+                FSDataOutputStream out = fs.create(new Path(jobDir + env.getJobId() + ".zip"), true)) {
             IOUtils.copy(in, out);
         }
         return true;
-    }
-
-    private static String getJobTmpDir(String jobId) {
-        return KylinConfigBase.getKylinHome() + "/tmp/" + jobId;
-    }
-
-    private static String generateJobId(String project) {
-        return project + "-" + LocalDateTime.now(Clock.systemDefaultZone()).format(
-                DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault(Locale.Category.FORMAT)));
     }
 
     static final Option OPTION_META_DIR = OptionBuilder.getInstance().withArgName("meta").hasArg().isRequired(true)

@@ -220,6 +220,7 @@ import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.OpenAccSqlResponse;
 import io.kyligence.kap.rest.response.OpenSuggestionResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
@@ -2497,6 +2498,43 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(3,
                 indexMgr.getIndexPlan(normalResponse.getModels().get(0).getUuid()).getAllLayouts().size());
+    }
+
+    @Test
+    public void testAccSql() {
+        String project = "newten";
+        val projectMgr = NProjectManager.getInstance(getTestConfig());
+        projectMgr.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        });
+
+        String sql1 = "select test_order.order_id,buyer_id from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id,buyer_id";
+        val request = smartRequest(project, sql1);
+        request.setForce2CreateNewModel(false);
+        //create new model
+        OpenAccSqlResponse normalResponse = modelService.suggestAndOptimizeModels(request);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+        Assert.assertEquals(0, normalResponse.getOptimizedModels().size());
+
+        //create new model and add advice for model
+        String sql2 = "select max(buyer_id) from test_order "
+                + " join test_kylin_fact on test_order.order_id=test_kylin_fact.order_id "
+                + "group by test_order.order_id";
+        val request2 = smartRequest(project, sql2);
+        String sql3 = "select max(order_id) from test_order";
+        request2.getSqls().add(sql3);
+        request2.setForce2CreateNewModel(false);
+        normalResponse = modelService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(1, normalResponse.getCreatedModels().size());
+        Assert.assertEquals(1, normalResponse.getOptimizedModels().size());
+
+        //acc again, due to model online, so have no impact
+        normalResponse = modelService.suggestAndOptimizeModels(request2);
+        Assert.assertEquals(0, normalResponse.getCreatedModels().size());
+        Assert.assertEquals(2, normalResponse.getOptimizedModels().size());
+        Assert.assertEquals(2, normalResponse.getErrorSqlList().size());
     }
 
     @Test
