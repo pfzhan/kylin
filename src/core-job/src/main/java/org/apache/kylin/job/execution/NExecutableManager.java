@@ -678,6 +678,7 @@ public class NExecutableManager {
                         config.getRemoteSSHPassword());
             }
             try {
+                logger.info("will kill job pid is {}", pid);
                 exe.execute("kill -9 " + pid, null);
             } catch (ShellException e) {
                 logger.warn("failed to kill remote driver {} on {}", nodeInfo, pid, e);

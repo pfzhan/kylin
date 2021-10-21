@@ -65,6 +65,7 @@ public class UnitOfWork {
     public static final String GLOBAL_UNIT = "_global";
 
     public static final long DEFAULT_EPOCH_ID = -1L;
+    public static final int DEFAULT_MAX_RETRY = 3;
 
     private static EventBusFactory factory;
 
@@ -166,6 +167,9 @@ public class UnitOfWork {
                     val unitOfWork = UnitOfWork.get();
                     unitOfWork.getCurrentLock().unlock();
                     unitOfWork.cleanResource();
+                    if (params.getTempLockName() != null && !params.getTempLockName().equals(params.getUnitName())) {
+                        TransactionLock.removeLock(params.getTempLockName());
+                    }
                 } catch (IllegalStateException e) {
                     //has not hold the lock yet, it's ok
                     log.warn(e.getMessage());
@@ -186,7 +190,8 @@ public class UnitOfWork {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
         checkEpoch(params);
-        val lock = TransactionLock.getLock(project, readonly);
+        val lock = params.getTempLockName() == null ? TransactionLock.getLock(project, readonly)
+                : TransactionLock.getLock(params.getTempLockName(), readonly);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first

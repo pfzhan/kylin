@@ -49,7 +49,7 @@ public class UnitOfWorkParams<T> {
     private long epochId = UnitOfWork.DEFAULT_EPOCH_ID;
 
     @Builder.Default
-    private int maxRetry = 10;
+    private int maxRetry = 3;
 
     @Builder.Default
     private boolean readonly = false;
@@ -59,5 +59,7 @@ public class UnitOfWorkParams<T> {
 
     @Builder.Default
     private boolean skipAuditLog = false;
+
+    private String tempLockName;
 
 }

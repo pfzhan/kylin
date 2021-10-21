@@ -76,6 +76,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -257,7 +258,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
                 return 0;
-            }, context.getEpochId(), project);
+            }, project, UnitOfWork.DEFAULT_MAX_RETRY, context.getEpochId(), getTempLockName());
         }
 
         sparkJobHandler.prepareEnviroment(project, jobId, getParams());
@@ -419,17 +420,21 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
                         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                                 .updateJobOutput(getParentId(), getStatus(), updateInfo, null, null);
                         return null;
+                    }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
                     }, getProject());
                 } catch (Exception e) {
                     logger.warn("failed to record process id.");
                 }
             }
             return ExecuteResult.createSucceed(output);
-        } catch (Exception e) {
-            logger.warn("failed to execute spark submit command.");
-            wrapWithExecuteExceptionUpdateJobError(e);
-            return ExecuteResult.createError(e);
-        }
+        }catch(
+
+    Exception e)
+    {
+        logger.warn("failed to execute spark submit command.");
+        wrapWithExecuteExceptionUpdateJobError(e);
+        return ExecuteResult.createError(e);
+    }
     }
 
     public void killOrphanApplicationIfExists(String jobStepId) {
@@ -488,7 +493,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         } else {
             // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
             Map<String, RawResource> dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
+                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).maxRetry(1).processor(() -> {
                         Map<String, RawResource> retMap = Maps.newHashMap();
                         for (String resPath : getMetadataDumpList(config)) {
                             ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
@@ -758,7 +763,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         rewriteSpecifiedKrb5Conf(EXECUTOR_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
     }
 
-    //不需要这3个， -Dlog4j.configuration,-Dkap.spark.mountDir,-Dorg.xerial.snappy.tempdir
+    //no need this parameters: -Dlog4j.configuration,-Dkap.spark.mountDir,-Dorg.xerial.snappy.tempdir
     private void rewriteExecutorExtraJavaOptions(KylinConfig kylinConf, Map<String, String> sparkConf) {
         StringBuilder sb = new StringBuilder();
         if (sparkConf.containsKey(EXECUTOR_EXTRA_JAVA_OPTIONS)) {
