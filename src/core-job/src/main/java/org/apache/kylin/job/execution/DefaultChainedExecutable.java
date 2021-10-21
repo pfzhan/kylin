@@ -56,6 +56,7 @@ import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobStoppedException;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.guava20.shaded.common.collect.Lists;
@@ -110,7 +111,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null, null);
             return null;
-        }, getEpochId(), project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
     }
 
     @Override
@@ -205,7 +206,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
             return null;
 
-        }, getEpochId(), project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, getEpochId(), getTempLockName());
 
         // dispatch job-finished message out
         EventBusFactory.getInstance()

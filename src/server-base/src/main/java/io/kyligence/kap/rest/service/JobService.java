@@ -21,13 +21,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
+import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
+import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_ACTION_ILLEGAL;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_NOT_EXIST;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_STATUS_ILLEGAL;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.JOB_UPDATE_STATUS_FAILED;
+import static org.apache.kylin.common.exception.ServerErrorCode.JOB_NOT_EXIST;
 import static org.apache.kylin.query.util.AsyncQueryUtil.ASYNC_QUERY_JOB_ID_PRE;
 
 import java.io.IOException;
@@ -41,30 +42,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exception.ErrorCode;
-import org.apache.kylin.common.exception.ExceptionReason;
-import org.apache.kylin.common.exception.ExceptionResolve;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.JobExceptionReason;
-import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.common.JobUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobActionEnum;
@@ -75,14 +63,9 @@ import org.apache.kylin.job.dao.JobStatistics;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ChainedStageExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
-import org.apache.kylin.job.execution.StageBase;
-import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.DataResult;
@@ -92,6 +75,7 @@ import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
@@ -100,62 +84,51 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
-import io.kyligence.kap.common.scheduler.JobDiscardNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.FusionModel;
-import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.aspect.Transaction;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
-import io.kyligence.kap.rest.util.SparkHistoryUIUtil;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import lombok.val;
-import lombok.var;
 
 @Component("jobService")
-public class JobService extends BasicService implements JobSupporter {
+public class JobService extends BasicService {
 
-    //    @Autowired
-    //    @Qualifier("tableExtService")
-    //    private TableExtService tableExtService;
+    @Autowired
+    @Qualifier("tableExtService")
+    private TableExtService tableExtService;
 
     @Autowired
     private ProjectService projectService;
 
+    @Autowired
     private AclEvaluate aclEvaluate;
 
     @Autowired
     private ModelService modelService;
 
-    private static final Logger logger = LoggerFactory.getLogger("schedule");
+    private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
     private static final Map<String, String> jobTypeMap = Maps.newHashMap();
 
     private static final String TOTAL_DURATION = "total_duration";
     private static final String LAST_MODIFIED = "last_modified";
-    public static final String EXCEPTION_CODE_PATH = "exception_to_code.json";
-    public static final String EXCEPTION_CODE_DEFAULT = "KE-030001000";
 
     static {
         jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
@@ -163,12 +136,6 @@ public class JobService extends BasicService implements JobSupporter {
         jobTypeMap.put("INDEX_BUILD", "Build Index");
         jobTypeMap.put("INC_BUILD", "Load Data");
         jobTypeMap.put("TABLE_SAMPLING", "Sample Table");
-    }
-
-    @Autowired
-    public JobService setAclEvaluate(AclEvaluate aclEvaluate) {
-        this.aclEvaluate = aclEvaluate;
-        return this;
     }
 
     @VisibleForTesting
@@ -189,7 +156,6 @@ public class JobService extends BasicService implements JobSupporter {
                 .collect(Collectors.toSet());
         Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)
                 .collect(Collectors.toSet());
-        val conf = KylinConfig.getInstanceFromEnv();
         return jobs.stream().filter(((Predicate<ExecutablePO>) (executablePO -> {
             if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
                 return true;
@@ -201,7 +167,7 @@ public class JobService extends BasicService implements JobSupporter {
             if (StringUtils.isEmpty(subject)) {
                 return true;
             }
-            return StringUtils.containsIgnoreCase(JobUtil.deduceTargetSubject(executablePO), subject)
+            return StringUtils.containsIgnoreCase(getTargetSubjectAlias(executablePO), subject)
                     || StringUtils.containsIgnoreCase(executablePO.getId(), subject);
         }).and(executablePO -> {
             List<String> jobNames = jobFilter.getJobNames();
@@ -216,14 +182,6 @@ public class JobService extends BasicService implements JobSupporter {
             }
             //if filter on uuid, then it must be accurate
             return executablePO.getTargetModel().equals(jobFilter.getSubject().trim());
-        }).and(executablePO -> {
-            if (conf.streamingEnabled()) {
-                return true;
-            }
-            //filter out batch job of fusion model
-            val mgr = getManager(NDataModelManager.class, executablePO.getProject());
-            val model = mgr.getDataModelDesc(executablePO.getTargetModel());
-            return model == null || !model.isFusionModel();
         })).map(this::createExecutablePOSortBean).sorted(comparator).collect(Collectors.toList());
     }
 
@@ -232,8 +190,7 @@ public class JobService extends BasicService implements JobSupporter {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs);
         List<ExecutableResponse> result = PagingUtil.cutPage(beanList, offset, limit).stream()
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject())
-                        .fromPO(executablePO))
+                .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return new DataResult<>(sortTotalDurationList(result, jobFilter), beanList.size(), offset, limit);
     }
@@ -246,11 +203,24 @@ public class JobService extends BasicService implements JobSupporter {
         return result;
     }
 
+    private String getTargetSubjectAlias(ExecutablePO executablePO) {
+        val modelManager = NDataModelManager.getInstance(getConfig(), executablePO.getProject());
+        NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), executablePO.getProject())
+                .getDataModelDesc(executablePO.getTargetModel());
+        String targetModel = executablePO.getTargetModel();
+        String subjectAlia = null;
+        if (dataModelDesc != null) {
+            subjectAlia = modelManager.isModelBroken(targetModel)
+                    ? modelManager.getDataModelDescWithoutInit(targetModel).getAlias()
+                    : dataModelDesc.getAlias();
+        }
+        return subjectAlia;
+    }
+
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<ExecutablePO> jobs) {
         val beanList = filterAndSortExecutablePO(jobFilter, jobs).stream()//
                 .map(in -> in.getExecutablePO())
-                .map(executablePO -> getManager(NExecutableManager.class, executablePO.getProject())
-                        .fromPO(executablePO))
+                .map(executablePO -> getExecutableManager(executablePO.getProject()).fromPO(executablePO))
                 .map(this::convert).collect(Collectors.toList());
         return sortTotalDurationList(beanList, jobFilter);
     }
@@ -260,7 +230,7 @@ public class JobService extends BasicService implements JobSupporter {
         Preconditions.checkNotNull(filterEnum, "Can not find the JobTimeFilterEnum by code: %s",
                 jobFilter.getTimeFilter());
 
-        NExecutableManager executableManager = getManager(NExecutableManager.class, jobFilter.getProject());
+        NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
         // prepare time range
         Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         calendar.setTime(new Date());
@@ -282,7 +252,7 @@ public class JobService extends BasicService implements JobSupporter {
     public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
         executableResponseList.forEach(executableResponse -> {
             ExecutableResponse.OldParams oldParams = new ExecutableResponse.OldParams();
-            NDataModel nDataModel = modelService.getManager(NDataModelManager.class, executableResponse.getProject())
+            NDataModel nDataModel = modelService.getDataModelManager(executableResponse.getProject())
                     .getDataModelDesc(executableResponse.getTargetModel());
             String modelName = Objects.isNull(nDataModel) ? null : nDataModel.getAlias();
 
@@ -345,7 +315,7 @@ public class JobService extends BasicService implements JobSupporter {
         case ALL:
             return 0;
         default:
-            throw new KylinException(INVALID_PARAMETER, msg.getIllegalTimeFilter());
+            throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
         }
     }
 
@@ -368,42 +338,35 @@ public class JobService extends BasicService implements JobSupporter {
         case STOPPED:
             return ExecutableState.PAUSED;
         default:
-            throw new KylinException(INVALID_PARAMETER, msg.getIllegalExecutableState());
+            throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_EXECUTABLE_STATE());
         }
     }
 
     private void dropJob(String project, String jobId) {
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        NExecutableManager executableManager = getExecutableManager(project);
         executableManager.deleteJob(jobId);
     }
 
     @VisibleForTesting
     public void updateJobStatus(String jobId, String project, String action) throws IOException {
-        val executableManager = getManager(NExecutableManager.class, project);
+        val executableManager = getExecutableManager(project);
         UnitOfWorkContext.UnitTask afterUnitTask = () -> EventBusFactory.getInstance()
                 .postWithLimit(new JobReadyNotifier(project));
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
-            SecondStorageUtil.checkJobResume(project, jobId);
-            executableManager.updateJobError(jobId, null, null, null, null);
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
             break;
         case RESTART:
-            SecondStorageUtil.checkJobRestart(project, jobId);
             killExistApplication(project, jobId);
-            executableManager.updateJobError(jobId, null, null, null, null);
             executableManager.restartJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             break;
         case DISCARD:
             discardJob(project, jobId);
-            JobTypeEnum jobTypeEnum = executableManager.getJob(jobId).getJobType();
-            String jobType = jobTypeEnum == null ? "" : jobTypeEnum.name();
-            UnitOfWork.get().doAfterUnit(
-                    () -> EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
+            MetricsGroup.hostTagCounterInc(MetricsName.JOB_DISCARDED, MetricsCategory.PROJECT, project);
             break;
         case PAUSE:
             killExistApplication(project, jobId);
@@ -415,20 +378,21 @@ public class JobService extends BasicService implements JobSupporter {
 
     }
 
-    private void discardJob(String project, String jobId) {
-        AbstractExecutable job = getManager(NExecutableManager.class, project).getJob(jobId);
+    private void discardJob(String project, String jobId) throws IOException {
+        AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         if (ExecutableState.SUCCEED == job.getStatus()) {
-            throw new KylinException(JOB_UPDATE_STATUS_FAILED, "DISCARD", jobId, job.getStatus());
+            throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getInvalidJobStatusTransaction(), "DISCARD", jobId, job.getStatus()));
         }
         if (ExecutableState.DISCARDED == job.getStatus()) {
             return;
         }
         killExistApplication(job);
-        getManager(NExecutableManager.class, project).discardJob(job.getId());
+        getExecutableManager(project).discardJob(job.getId());
     }
 
     public void killExistApplication(String project, String jobId) {
-        AbstractExecutable job = getManager(NExecutableManager.class, project).getJob(jobId);
+        AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         killExistApplication(job);
     }
 
@@ -452,7 +416,7 @@ public class JobService extends BasicService implements JobSupporter {
         Preconditions.checkNotNull(jobId);
 
         for (ProjectInstance projectInstance : getReadableProjects()) {
-            NExecutableManager executableManager = getManager(NExecutableManager.class, projectInstance.getName());
+            NExecutableManager executableManager = getExecutableManager(projectInstance.getName());
             if (Objects.nonNull(executableManager.getJob(jobId))) {
                 return projectInstance.getName();
             }
@@ -471,7 +435,7 @@ public class JobService extends BasicService implements JobSupporter {
         String project = getProjectByJobId(jobId);
         Preconditions.checkNotNull(project, "Can not find the job: {}", jobId);
 
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        NExecutableManager executableManager = getExecutableManager(project);
         AbstractExecutable executable = executableManager.getJob(jobId);
 
         return convert(executable);
@@ -502,310 +466,28 @@ public class JobService extends BasicService implements JobSupporter {
 
     public List<ExecutableStepResponse> getJobDetail(String project, String jobId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        NExecutableManager executableManager = getExecutableManager(project);
         //executableManager.getJob only reply ChainedExecutable
         AbstractExecutable executable = executableManager.getJob(jobId);
         if (executable == null) {
-            throw new KylinException(JOB_NOT_EXIST, jobId);
+            throw new KylinException(JOB_NOT_EXIST,
+                    String.format(Locale.ROOT, "Can't find job %s Please check and try again.", jobId));
         }
-
-        // waite time in output
-        Map<String, String> waiteTimeMap;
-        val output = executable.getOutput();
-        try {
-            waiteTimeMap = JsonUtil.readValueAsMap(output.getExtra().getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-            waiteTimeMap = Maps.newHashMap();
-        }
-        final String targetSubject = executable.getTargetSubject();
         List<ExecutableStepResponse> executableStepList = new ArrayList<>();
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
-        for (AbstractExecutable task : tasks) {
-            final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
-                    getManager(NExecutableManager.class, project).getOutput(task.getId()), waiteTimeMap,
-                    output.getState());
-            if (task.getStatus() == ExecutableState.ERROR) {
-                executableStepResponse.setFailedStepId(output.getFailedStepId());
-                executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
-                executableStepResponse.setFailedStack(output.getFailedStack());
-                executableStepResponse.setFailedStepName(task.getName());
-
-                setExceptionResolveAndCodeAndReason(output, executableStepResponse);
-            }
-            if (task instanceof ChainedStageExecutable) {
-                Map<String, List<StageBase>> stagesMap = Optional.ofNullable(((NSparkExecutable) task).getStagesMap())
-                        .orElse(Maps.newHashMap());
-
-                Map<String, ExecutableStepResponse.SubStages> stringSubStageMap = Maps.newHashMap();
-                List<ExecutableStepResponse> subStages = Lists.newArrayList();
-
-                for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
-                    String segmentId = entry.getKey();
-                    ExecutableStepResponse.SubStages segmentSubStages = new ExecutableStepResponse.SubStages();
-
-                    List<StageBase> stageBases = Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList());
-                    List<ExecutableStepResponse> stageResponses = Lists.newArrayList();
-                    for (StageBase stage : stageBases) {
-                        val stageResponse = parseStageToExecutableStep(task, stage,
-                                getManager(NExecutableManager.class, project).getOutput(stage.getId(), segmentId));
-                        setStage(subStages, stageResponse);
-                        stageResponses.add(stageResponse);
-
-                        if (StringUtils.equals(output.getFailedStepId(), stage.getId())) {
-                            executableStepResponse.setFailedStepName(stage.getName());
-                        }
-                    }
-
-                    // table sampling and snapshot table don't have some segment
-                    if (!StringUtils.equals(task.getId(), segmentId)) {
-                        setSegmentSubStageParams(project, targetSubject, task, segmentId, segmentSubStages, stageBases,
-                                stageResponses, waiteTimeMap, output.getState());
-                        stringSubStageMap.put(segmentId, segmentSubStages);
-                    }
-                }
-                if (MapUtils.isNotEmpty(stringSubStageMap)) {
-                    executableStepResponse.setSegmentSubStages(stringSubStageMap);
-                }
-                if (CollectionUtils.isNotEmpty(subStages)) {
-                    executableStepResponse.setSubStages(subStages);
-                    if (MapUtils.isEmpty(stringSubStageMap) || stringSubStageMap.size() == 1) {
-                        val taskDuration = subStages.stream() //
-                                .map(ExecutableStepResponse::getDuration) //
-                                .mapToLong(Long::valueOf).sum();
-                        executableStepResponse.setDuration(taskDuration);
-
-                    }
-                }
-            }
-            executableStepList.add(executableStepResponse);
+        for (int i = 0; i < tasks.size(); ++i) {
+            AbstractExecutable task = tasks.get(i);
+            executableStepList.add(parseToExecutableStep(task, getExecutableManager(project).getOutput(task.getId())));
         }
         if (executable.getStatus() == ExecutableState.DISCARDED) {
-            executableStepList.forEach(executableStepResponse -> {
-                executableStepResponse.setStatus(JobStatusEnum.DISCARDED);
-                Optional.ofNullable(executableStepResponse.getSubStages()).orElse(Lists.newArrayList())
-                        .forEach(subtask -> subtask.setStatus(JobStatusEnum.DISCARDED));
-                val subStageMap = //
-                        Optional.ofNullable(executableStepResponse.getSegmentSubStages()).orElse(Maps.newHashMap());
-                for (Map.Entry<String, ExecutableStepResponse.SubStages> entry : subStageMap.entrySet()) {
-                    entry.getValue().getStage().forEach(stage -> stage.setStatus(JobStatusEnum.DISCARDED));
-                }
-            });
+            executableStepList
+                    .forEach(executableStepResponse -> executableStepResponse.setStatus(JobStatusEnum.DISCARDED));
         }
         return executableStepList;
 
     }
 
-    public void setExceptionResolveAndCodeAndReason(Output output, ExecutableStepResponse executableStepResponse) {
-        try {
-            val exceptionCode = getExceptionCode(output);
-            executableStepResponse.setFailedResolve(ExceptionResolve.getResolve(exceptionCode));
-            executableStepResponse.setFailedCode(ErrorCode.getLocalizedString(exceptionCode));
-            if (StringUtils.equals(exceptionCode, EXCEPTION_CODE_DEFAULT)) {
-                val reason = StringUtils.isBlank(output.getFailedReason())
-                        ? JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason()
-                        : JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason() + ": "
-                                + output.getFailedReason();
-                executableStepResponse.setFailedReason(reason);
-            } else {
-                executableStepResponse.setFailedReason(ExceptionReason.getReason(exceptionCode));
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            executableStepResponse
-                    .setFailedResolve(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve());
-            executableStepResponse.setFailedCode(JobErrorCode.JOB_BUILDING_ERROR.toErrorCode().getLocalizedString());
-            executableStepResponse
-                    .setFailedReason(JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason());
-        }
-    }
-
-    public String getExceptionCode(Output output) {
-        try {
-            var exceptionOrExceptionMessage = output.getFailedReason();
-
-            if (StringUtils.isBlank(exceptionOrExceptionMessage)) {
-                if (StringUtils.isBlank(output.getFailedStack())) {
-                    return EXCEPTION_CODE_DEFAULT;
-                }
-                exceptionOrExceptionMessage = output.getFailedStack().split("\n")[0];
-            }
-
-            val exceptionCodeStream = getClass().getClassLoader().getResource(EXCEPTION_CODE_PATH).openStream();
-            val exceptionCodes = JsonUtil.readValue(exceptionCodeStream, Map.class);
-            for (Object o : exceptionCodes.entrySet()) {
-                val exceptionCode = (Map.Entry) o;
-                if (StringUtils.contains(exceptionOrExceptionMessage, String.valueOf(exceptionCode.getKey()))
-                        || StringUtils.contains(String.valueOf(exceptionCode.getKey()), exceptionOrExceptionMessage)) {
-                    val code = exceptionCodes.getOrDefault(exceptionCode.getKey(), EXCEPTION_CODE_DEFAULT);
-                    return String.valueOf(code);
-                }
-            }
-            return EXCEPTION_CODE_DEFAULT;
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            return EXCEPTION_CODE_DEFAULT;
-        }
-    }
-
-    private void setSegmentSubStageParams(String project, String targetSubject, AbstractExecutable task,
-            String segmentId, ExecutableStepResponse.SubStages segmentSubStages, List<StageBase> stageBases,
-            List<ExecutableStepResponse> stageResponses, Map<String, String> waiteTimeMap, ExecutableState jobState) {
-        segmentSubStages.setStage(stageResponses);
-
-        // when job restart, taskStartTime is zero
-        if (CollectionUtils.isNotEmpty(stageResponses)) {
-            val taskStartTime = task.getStartTime();
-            var firstStageStartTime = stageResponses.get(0).getExecStartTime();
-            if (taskStartTime != 0 && firstStageStartTime == 0) {
-                firstStageStartTime = System.currentTimeMillis();
-            }
-            long waitTime = Long.parseLong(waiteTimeMap.getOrDefault(segmentId, "0"));
-            if (jobState != ExecutableState.PAUSED) {
-                waitTime = firstStageStartTime - taskStartTime + waitTime;
-            }
-            segmentSubStages.setWaitTime(waitTime);
-        }
-
-        val execStartTime = stageResponses.stream()//
-                .filter(ex -> ex.getStatus() != JobStatusEnum.PENDING)//
-                .map(ExecutableStepResponse::getExecStartTime)//
-                .min(Long::compare).orElse(0L);
-        segmentSubStages.setExecStartTime(execStartTime);
-
-        // If this segment has running stage, this segment is running, this segment doesn't have end time
-        // If this task is running and this segment has pending stage, this segment is running, this segment doesn't have end time
-        val stageStatuses = stageResponses.stream().map(ExecutableStepResponse::getStatus).collect(Collectors.toSet());
-        if (!stageStatuses.contains(JobStatusEnum.RUNNING)
-                && !(task.getStatus() == ExecutableState.RUNNING && stageStatuses.contains(JobStatusEnum.PENDING))) {
-            val execEndTime = stageResponses.stream()//
-                    .map(ExecutableStepResponse::getExecEndTime)//
-                    .max(Long::compare).orElse(0L);
-            segmentSubStages.setExecEndTime(execEndTime);
-        }
-
-        val segmentDuration = stageResponses.stream() //
-                .map(ExecutableStepResponse::getDuration) //
-                .mapToLong(Long::valueOf).sum();
-        segmentSubStages.setDuration(segmentDuration);
-
-        final Segments<NDataSegment> segmentsByRange = modelService.getSegmentsByRange(targetSubject, project, "", "");
-        final NDataSegment segment = segmentsByRange.stream()//
-                .filter(seg -> StringUtils.equals(seg.getId(), segmentId))//
-                .findFirst().orElse(null);
-        if (null != segment) {
-            val segRange = segment.getSegRange();
-            segmentSubStages.setName(segment.getName());
-            segmentSubStages.setStartTime(Long.parseLong(segRange.getStart().toString()));
-            segmentSubStages.setEndTime(Long.parseLong(segRange.getEnd().toString()));
-        }
-
-        /*
-         * In the segment details, the progress formula of each segment
-         *
-         * CurrentProgress = numberOfStepsCompleted / totalNumberOfSteps，Accurate to single digit percentage。
-         * This step only retains the steps in the parallel part of the Segment，
-         * Does not contain other public steps, such as detection resources, etc.。
-         *
-         * Among them, the progress of the "BUILD_LAYER"
-         *   step = numberOfCompletedIndexes / totalNumberOfIndexesToBeConstructed,
-         * the progress of other steps will not be refined
-         */
-        val stepCount = stageResponses.size() == 0 ? 1 : stageResponses.size();
-        val stepRatio = (float) ExecutableResponse.calculateSuccessStage(task, segmentId, stageBases, true) / stepCount;
-        segmentSubStages.setStepRatio(stepRatio);
-    }
-
-    private void setStage(List<ExecutableStepResponse> responses, ExecutableStepResponse newResponse) {
-        final ExecutableStepResponse oldResponse = responses.stream()
-                .filter(response -> response.getId().equals(newResponse.getId()))//
-                .findFirst().orElse(null);
-        if (null != oldResponse) {
-            /*
-             * As long as there is a task executing, the step of this step is executing;
-             * when all Segments are completed, the status of this step is changed to complete.
-             *
-             * if one segment is skip, other segment is success, the status of this step is success
-             */
-            Set<JobStatusEnum> jobStatusEnums = Sets.newHashSet(JobStatusEnum.ERROR, JobStatusEnum.STOPPED,
-                    JobStatusEnum.DISCARDED);
-            Set<JobStatusEnum> jobFinishOrSkip = Sets.newHashSet(JobStatusEnum.FINISHED, JobStatusEnum.SKIP);
-            if (oldResponse.getStatus() != newResponse.getStatus()
-                    && !jobStatusEnums.contains(oldResponse.getStatus())) {
-                if (jobStatusEnums.contains(newResponse.getStatus())) {
-                    oldResponse.setStatus(newResponse.getStatus());
-                } else if (jobFinishOrSkip.contains(newResponse.getStatus())
-                        && jobFinishOrSkip.contains(oldResponse.getStatus())) {
-                    oldResponse.setStatus(JobStatusEnum.FINISHED);
-                } else {
-                    oldResponse.setStatus(JobStatusEnum.RUNNING);
-                }
-            }
-
-            if (newResponse.getExecStartTime() != 0) {
-                oldResponse.setExecStartTime(Math.min(newResponse.getExecStartTime(), oldResponse.getExecStartTime()));
-            }
-            oldResponse.setExecEndTime(Math.max(newResponse.getExecEndTime(), oldResponse.getExecEndTime()));
-
-            val successIndex = oldResponse.getSuccessIndexCount() + newResponse.getSuccessIndexCount();
-            oldResponse.setSuccessIndexCount(successIndex);
-            val index = oldResponse.getIndexCount() + newResponse.getIndexCount();
-            oldResponse.setIndexCount(index);
-        } else {
-            ExecutableStepResponse res = new ExecutableStepResponse();
-            res.setId(newResponse.getId());
-            res.setName(newResponse.getName());
-            res.setSequenceID(newResponse.getSequenceID());
-            res.setExecStartTime(newResponse.getExecStartTime());
-            res.setExecEndTime(newResponse.getExecEndTime());
-            res.setDuration(newResponse.getDuration());
-            res.setWaitTime(newResponse.getWaitTime());
-            res.setIndexCount(newResponse.getIndexCount());
-            res.setSuccessIndexCount(newResponse.getSuccessIndexCount());
-            res.setStatus(newResponse.getStatus());
-            res.setCmdType(newResponse.getCmdType());
-            responses.add(res);
-        }
-    }
-
-    private ExecutableStepResponse parseStageToExecutableStep(AbstractExecutable task, StageBase stageBase,
-            Output stageOutput) {
-        ExecutableStepResponse result = new ExecutableStepResponse();
-        result.setId(stageBase.getId());
-        result.setName(stageBase.getName());
-        result.setSequenceID(stageBase.getStepId());
-
-        if (stageOutput == null) {
-            logger.warn("Cannot found output for task: id={}", stageBase.getId());
-            return result;
-        }
-        for (Map.Entry<String, String> entry : stageOutput.getExtra().entrySet()) {
-            if (entry.getKey() != null && entry.getValue() != null) {
-                result.putInfo(entry.getKey(), entry.getValue());
-            }
-        }
-        result.setStatus(stageOutput.getState().toJobStatus());
-        result.setExecStartTime(AbstractExecutable.getStartTime(stageOutput));
-        result.setExecEndTime(AbstractExecutable.getEndTime(stageOutput));
-        result.setCreateTime(AbstractExecutable.getCreateTime(stageOutput));
-
-        result.setDuration(AbstractExecutable.getDuration(stageOutput));
-
-        val indexCount = Optional.ofNullable(task.getParam(NBatchConstants.P_INDEX_COUNT)).orElse("0");
-        result.setIndexCount(Long.parseLong(indexCount));
-        if (result.getStatus() == JobStatusEnum.FINISHED) {
-            result.setSuccessIndexCount(Long.parseLong(indexCount));
-        } else {
-            val successIndexCount = stageOutput.getExtra().getOrDefault(NBatchConstants.P_INDEX_SUCCESS_COUNT, "0");
-            result.setSuccessIndexCount(Long.parseLong(successIndexCount));
-        }
-        return result;
-    }
-
-    // for ut
-    @VisibleForTesting
-    public ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
-            Map<String, String> waiteTimeMap, ExecutableState jobState) {
+    private ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(task.getId());
         result.setName(task.getName());
@@ -822,27 +504,11 @@ public class JobService extends BasicService implements JobSupporter {
                 result.putInfo(entry.getKey(), entry.getValue());
             }
         }
-        if (KylinConfig.getInstanceFromEnv().isHistoryServerEnable()
-                && result.getInfo().containsKey(ExecutableConstants.YARN_APP_ID)) {
-            result.putInfo(ExecutableConstants.SPARK_HISTORY_APP_URL,
-                    SparkHistoryUIUtil.getHistoryTrackerUrl(result.getInfo().get(ExecutableConstants.YARN_APP_ID)));
-        }
         result.setExecStartTime(AbstractExecutable.getStartTime(stepOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
         result.setCreateTime(AbstractExecutable.getCreateTime(stepOutput));
-
         result.setDuration(AbstractExecutable.getDuration(stepOutput));
-        // if resume job, need sum of waite time
-        long waiteTime = Long.parseLong(waiteTimeMap.getOrDefault(task.getId(), "0"));
-        if (jobState != ExecutableState.PAUSED) {
-            val taskWaitTime = task.getWaitTime();
-            // Refactoring: When task Wait Time is equal to waite Time, waiteTimeMap saves the latest waiting time
-            if (taskWaitTime != waiteTime) {
-                waiteTime = taskWaitTime + waiteTime;
-            }
-        }
-        result.setWaitTime(waiteTime);
-
+        result.setWaitTime(task.getWaitTime());
         if (task instanceof ShellExecutable) {
             result.setExecCmd(((ShellExecutable) task).getCmd());
         }
@@ -856,31 +522,6 @@ public class JobService extends BasicService implements JobSupporter {
         for (val job : jobs) {
             updateJobStatus(job.getId(), project, action);
         }
-    }
-
-    @Transaction(project = 0)
-    public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
-            String failedStack, String failedReason) {
-        if (StringUtils.isBlank(failedStepId)) {
-            return;
-        }
-        val executableManager = getManager(NExecutableManager.class, project);
-        executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
-    }
-
-    @Transaction(project = 0)
-    public void updateStageStatus(String project, String taskId, String segmentId, String status,
-            Map<String, String> updateInfo, String errMsg) {
-        final ExecutableState newStatus = convertToExecutableState(status);
-        val executableManager = getManager(NExecutableManager.class, project);
-        executableManager.updateStageStatus(taskId, segmentId, newStatus, updateInfo, errMsg);
-    }
-
-    public ExecutableState convertToExecutableState(String status) {
-        if (StringUtils.isBlank(status)) {
-            return null;
-        }
-        return ExecutableState.valueOf(status);
     }
 
     @Transaction(project = 1)
@@ -904,7 +545,7 @@ public class JobService extends BasicService implements JobSupporter {
     private void batchDropJob0(String project, List<String> jobIds, List<String> filterStatuses) {
         val jobs = getJobsByStatus(project, jobIds, filterStatuses);
 
-        NExecutableManager executableManager = getManager(NExecutableManager.class, project);
+        NExecutableManager executableManager = getExecutableManager(project);
         jobs.forEach(job -> executableManager.checkJobCanBeDeleted(job.getId()));
 
         jobs.forEach(job -> dropJob(project, job.getId()));
@@ -913,7 +554,7 @@ public class JobService extends BasicService implements JobSupporter {
     private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
         Preconditions.checkNotNull(project);
 
-        val executableManager = getManager(NExecutableManager.class, project);
+        val executableManager = getExecutableManager(project);
         List<ExecutableState> executableStates = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(filterStatuses)) {
             for (String status : filterStatuses) {
@@ -928,7 +569,7 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     @Transaction(project = 0)
-    public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) {
+    public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) throws IOException {
         aclEvaluate.checkProjectOperationPermission(project);
         batchDropJob0(project, jobIds, filterStatuses);
     }
@@ -946,7 +587,7 @@ public class JobService extends BasicService implements JobSupporter {
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
         aclEvaluate.checkProjectOperationPermission(project);
-        JobStatisticsManager manager = getManager(JobStatisticsManager.class, project);
+        JobStatisticsManager manager = getJobStatisticsManager(project);
         Pair<Integer, JobStatistics> stats = manager.getOverallJobStats(startTime, endTime);
         JobStatistics jobStatistics = stats.getSecond();
         return new JobStatisticsResponse(stats.getFirst(), jobStatistics.getTotalDuration(),
@@ -955,20 +596,18 @@ public class JobService extends BasicService implements JobSupporter {
 
     public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {
         aclEvaluate.checkProjectOperationPermission(project);
-        JobStatisticsManager manager = getManager(JobStatisticsManager.class, project);
-        if (dimension.equals("model")) {
+        JobStatisticsManager manager = getJobStatisticsManager(project);
+        if (dimension.equals("model"))
             return manager.getJobCountByModel(startTime, endTime);
-        }
 
         return manager.getJobCountByTime(startTime, endTime, dimension);
     }
 
     public Map<String, Double> getJobDurationPerByte(String project, long startTime, long endTime, String dimension) {
         aclEvaluate.checkProjectOperationPermission(project);
-        JobStatisticsManager manager = getManager(JobStatisticsManager.class, project);
-        if (dimension.equals("model")) {
+        JobStatisticsManager manager = getJobStatisticsManager(project);
+        if (dimension.equals("model"))
             return manager.getDurationPerByteByModel(startTime, endTime);
-        }
 
         return manager.getDurationPerByteByTime(startTime, endTime, dimension);
     }
@@ -987,17 +626,14 @@ public class JobService extends BasicService implements JobSupporter {
 
     public String getJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        val executableManager = getManager(NExecutableManager.class, project);
+        val executableManager = getExecutableManager(project);
         return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
-    @SneakyThrows
     public InputStream getAllJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        val executableManager = getManager(NExecutableManager.class, project);
-        val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
-        return Optional.ofNullable(output.getVerboseMsgStream()).orElse(
-                IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
+        val executableManager = getExecutableManager(project);
+        return executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE).getVerboseMsgStream();
     }
 
     /**
@@ -1013,19 +649,18 @@ public class JobService extends BasicService implements JobSupporter {
         if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
             return;
         }
-
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);
         extraInfo.put(ExecutableConstants.YARN_APP_URL, yarnAppUrl);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val executableManager = getManager(NExecutableManager.class, project);
+            val executableManager = getExecutableManager(project);
             executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
             return null;
         }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
+
     }
 
     public void updateSparkTimeInfo(String project, String jobId, String taskId, String waitTime, String buildTime) {
-
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_JOB_WAIT_TIME, waitTime);
         extraInfo.put(ExecutableConstants.YARN_JOB_RUN_TIME, buildTime);
@@ -1033,12 +668,12 @@ public class JobService extends BasicService implements JobSupporter {
         if (jobId.contains(ASYNC_QUERY_JOB_ID_PRE)) {
             return;
         }
-
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            val executableManager = getManager(NExecutableManager.class, project);
+            val executableManager = getExecutableManager(project);
             executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
             return null;
         }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, jobId);
+
     }
 
     public void checkJobStatus(List<String> jobStatuses) {
@@ -1049,8 +684,9 @@ public class JobService extends BasicService implements JobSupporter {
     }
 
     public void checkJobStatus(String jobStatus) {
+        Message msg = MsgPicker.getMsg();
         if (Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException(JOB_STATUS_ILLEGAL);
+            throw new KylinException(ILLEGAL_JOB_STATUS, msg.getILLEGAL_JOB_STATE());
         }
     }
 
@@ -1059,7 +695,8 @@ public class JobService extends BasicService implements JobSupporter {
         JobActionEnum.validateValue(action);
         JobStatusEnum jobStatusEnum = JobStatusEnum.valueOf(jobStatus);
         if (!jobStatusEnum.checkAction(JobActionEnum.valueOf(action))) {
-            throw new KylinException(JOB_ACTION_ILLEGAL, jobStatus, jobStatusEnum.getValidActions());
+            throw new KylinException(ILLEGAL_JOB_ACTION, String.format(Locale.ROOT,
+                    MsgPicker.getMsg().getILLEGAL_JOB_ACTION(), jobStatus, jobStatusEnum.getValidActions()));
         }
 
     }
@@ -1096,42 +733,9 @@ public class JobService extends BasicService implements JobSupporter {
         return sortBean;
     }
 
-    @Override
-    public void stopBatchJob(String project, TableDesc tableDesc) {
-        for (NDataModel tableRelatedModel : getManager(NDataflowManager.class, project)
-                .getModelsUsingTable(tableDesc)) {
-            stopBatchJobByModel(project, tableRelatedModel.getId());
-        }
-    }
-
-    private void stopBatchJobByModel(String project, String modelId) {
-
-        NDataModel model = getManager(NDataModelManager.class, project).getDataModelDesc(modelId);
-        FusionModelManager fusionModelManager = FusionModelManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        FusionModel fusionModel = fusionModelManager.getFusionModel(modelId);
-        if (!model.isFusionModel() || Objects.isNull(fusionModel)) {
-            logger.warn("model is not fusion model or fusion model is null, {}", modelId);
-            return;
-        }
-
-        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-        executableManager.getJobs().stream().map(executableManager::getJob).filter(
-                job -> StringUtils.equalsIgnoreCase(job.getTargetModelId(), fusionModel.getBatchModel().getUuid()))
-                .forEach(job -> {
-                    Set<ExecutableState> matchedExecutableStates = Stream
-                            .of(JobStatusEnum.FINISHED, JobStatusEnum.ERROR, JobStatusEnum.DISCARDED)
-                            .map(this::parseToExecutableState).collect(Collectors.toSet());
-                    if (!matchedExecutableStates.contains(job.getOutput().getState())) {
-                        executableManager.discardJob(job.getId());
-                    }
-                });
-    }
-
     @Setter
     @Getter
-    static class ExecutablePOSortBean {
+    static class ExecutablePOSortBean implements IKeep {
 
         private String project;
 

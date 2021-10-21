@@ -98,6 +98,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 import lombok.var;
 
@@ -534,12 +535,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             modelManager.dropModel(model);
             return null;
-        }, project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
+
         executableManager.addJob(job);
         getConditionFactory().untilAsserted(() -> {
             AbstractExecutable job1 = executableManager.getJob(job.getId());
@@ -569,12 +571,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             AbstractExecutable job1 = executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.ERROR, job1.getStatus());
         });
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             modelManager.dropModel(model);
             return null;
-        }, project);
+        }, project, UnitOfWork.DEFAULT_MAX_RETRY, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
+
         getConditionFactory().untilAsserted(() -> {
             AbstractExecutable job1 = executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
@@ -612,12 +615,13 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             final DefaultChainedExecutable job1 = (DefaultChainedExecutable) executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.PAUSED, job1.getTasks().get(0).getStatus());
         });
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             modelManager.dropModel(model);
             return null;
-        }, project);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, job.getId());
+
         getConditionFactory().untilAsserted(() -> {
             final AbstractExecutable job1 = executableManager.getJob(job.getId());
             Assert.assertEquals(ExecutableState.SUICIDAL, job1.getStatus());
@@ -869,7 +873,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
-    public void testJobDiscard_AfterSuccess() {
+    public void testJobDiscard_AfterSuccess() throws InterruptedException {
         changeSchedulerInterval();
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
@@ -884,12 +888,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
         job.addTask(task);
         executableManager.addJob(job);
-
         getConditionFactory().until(() -> job.getStatus() == ExecutableState.RUNNING);
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            executableManager.discardJob(job.getId());
-            return null;
-        }, project);
+        discardJobWithLock(job.getId());
 
         assertMemoryRestore(currMem);
         val output = executableManager.getOutput(job.getId());
@@ -997,10 +997,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                     && runningStatus.equals("inRunning");
         });
         assertMemoryRestore(currMem - job.computeStepDriverMemory());
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            executableManager.pauseJob(job.getId());
-            return null;
-        }, "default");
+        pauseJobWithLock(job.getId());
 
         getConditionFactory().untilAsserted(() -> {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
@@ -1593,31 +1590,31 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     private void restartJobWithLock(String id) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             getManager().restartJob(id);
             return null;
-        }, project);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, id);
     }
 
     private void resumeJobWithLock(String id) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             getManager().resumeJob(id);
             return null;
-        }, project);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, id);
     }
 
     private void pauseJobWithLock(String id) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             getManager().pauseJob(id);
             return null;
-        }, project);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, id);
     }
 
     private void discardJobWithLock(String id) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             getManager().discardJob(id);
             return null;
-        }, project);
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID, id);
     }
 
     private NExecutableManager getManager() {
