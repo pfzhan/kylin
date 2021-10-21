@@ -81,7 +81,12 @@ public enum QueryErrorCode implements ErrorCodeSupplier {
     INVALID_QUERY_PARAMS("KE-020050001"),
 
     // 20060XXX parse error
-    FAILED_PARSE_ERROR("KE-020060001");
+    FAILED_PARSE_ERROR("KE-020060001"),
+
+    // 20070XXX parse error
+    PROFILING_NOT_ENABLED("KE-020070001"),
+    PROFILING_ALREADY_STARTED("KE-020070002"),
+    PROFILER_ALREADY_DUMPED("KE-020070003");
 
     private final ErrorCode errorCode;
 

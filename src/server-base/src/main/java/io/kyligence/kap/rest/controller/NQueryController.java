@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import io.kyligence.kap.query.asyncprofiler.AsyncProfiling;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -72,6 +73,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -135,9 +137,42 @@ public class NQueryController extends NBasicController {
     @Autowired
     private QueryCacheManager queryCacheManager;
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     @Override
     protected Logger getLogger() {
         return logger;
+    }
+
+    @ApiOperation(value = "query", tags = { "QE" }, notes = "")
+    @GetMapping(value = "/profile/start")
+    @ResponseBody
+    public EnvelopeResponse<String> profile(@RequestParam(value = "params", required = false) String params) {
+        aclEvaluate.checkIsGlobalAdmin();
+        if (!KylinConfig.getInstanceFromEnv().asyncProfilingEnabled()) {
+            throw new KylinException(QueryErrorCode.PROFILING_NOT_ENABLED, "async profiling is not enabled");
+        }
+        AsyncProfiling.start(params);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "query", tags = { "QE" }, notes = "")
+    @GetMapping(value = "/profile/dump")
+    @ResponseBody
+    public EnvelopeResponse<String> stopProfile(
+            @RequestParam(value = "params", required = false) String params,
+            HttpServletResponse response) throws IOException {
+        aclEvaluate.checkIsGlobalAdmin();
+        if (!KylinConfig.getInstanceFromEnv().asyncProfilingEnabled()) {
+            throw new KylinException(QueryErrorCode.PROFILING_NOT_ENABLED, "async profiling is not enabled");
+        }
+        AsyncProfiling.dump(params);
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=\"ke-async-prof-result-" + System.currentTimeMillis() + ".zip\"");
+        AsyncProfiling.waitForResult(response.getOutputStream());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "query", tags = { "QE" }, notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")

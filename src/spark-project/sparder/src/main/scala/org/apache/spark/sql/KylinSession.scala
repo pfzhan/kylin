@@ -351,6 +351,15 @@ object KylinSession extends Logging {
         }
       }
 
+      if (kapConfig.getKylinConfig.asyncProfilingEnabled()) {
+        val plugins = sparkConf.get("spark.plugins", "")
+        if (plugins.isEmpty) {
+          sparkConf.set("spark.plugins", "io.kyligence.kap.query.asyncprofiler.AsyncProfilerSparkPlugin")
+        } else {
+          sparkConf.set("spark.plugins", "io.kyligence.kap.query.asyncprofiler.AsyncProfilerSparkPlugin," + plugins)
+        }
+      }
+
       sparkConf
     }
 

@@ -1467,6 +1467,18 @@ public abstract class KylinConfigBase implements Serializable {
     // QUERY
     // ============================================================================
 
+    public boolean asyncProfilingEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.async-profiler-enabled", TRUE));
+    }
+
+    public long asyncProfilingResultTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.query.async-profiler-result-timeout", "60s"), TimeUnit.MILLISECONDS);
+    }
+
+    public long asyncProfilingProfileTimeout() {
+        return TimeUtil.timeStringAs(getOptional("kylin.query.async-profiler-profile-timeout", "5m"), TimeUnit.MILLISECONDS);
+    }
+
     public boolean readSourceWithDefaultParallelism() {
         return Boolean.parseBoolean(getOptional("kylin.query.read-source-with-default-parallelism", FALSE));
     }

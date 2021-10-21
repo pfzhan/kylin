@@ -876,7 +876,12 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
         map.put("getSourceNameCaseSensitiveEnabled",
                 new PropertiesEntity("kylin.source.name-case-sensitive-enabled", "", false));
-
+        map.put("asyncProfilingEnabled",
+                new PropertiesEntity("kylin.query.async-profiler-enabled", "true", true));
+        map.put("asyncProfilingResultTimeout",
+                new PropertiesEntity("kylin.query.async-profiler-result-timeout", "60s", 60000L));
+        map.put("asyncProfilingProfileTimeout",
+                new PropertiesEntity("kylin.query.async-profiler-profile-timeout", "5m", 300000L));
     }
 
     @Before
@@ -903,7 +908,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(536, methodsCount);
+        Assert.assertEquals(539, methodsCount);
     }
 
     @Test
