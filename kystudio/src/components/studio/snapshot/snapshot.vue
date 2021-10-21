@@ -878,7 +878,7 @@ export default class Snapshot extends Vue {
         max-width: 94px;
         overflow-x: hidden;
         text-overflow: ellipsis;
-        vertical-align: middle;
+        vertical-align: middle !important;
       }
     }
   }

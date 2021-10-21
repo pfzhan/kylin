@@ -77,7 +77,7 @@
           </div>
           <div class="setting-item">
             <div class="setting-label font-medium">{{$t('password')}}</div>
-            <div class="setting-value fixed">••••••••</div>
+            <div class="setting-value fixed">••••••</div>
           </div>
           <div class="setting-item">
             <div class="setting-label font-medium">{{$t('driver')}}</div>
