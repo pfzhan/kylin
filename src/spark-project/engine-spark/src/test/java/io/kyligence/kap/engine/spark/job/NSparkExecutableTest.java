@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.Objects;
@@ -118,21 +116,23 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
         String kylinJobJar = System.getProperty("KYLIN_HOME") + "/lib/job.jar";
         String appArgs = "/tmp/output";
 
+        overwriteSystemProp("kylin.engine.spark.job-jar", kylinJobJar);
         {
-            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
+            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
             Assert.assertTrue(cmd.contains("spark-submit"));
-            Assert.assertTrue(cmd.contains("log4j.configurationFile=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
+            Assert.assertTrue(
+                    cmd.contains("log4j.configurationFile=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
             Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
             Assert.assertTrue(cmd.contains("spark.driver.log4j.appender.hdfs.File="));
             Assert.assertTrue(cmd.contains("kylin.hdfs.working.dir="));
         }
 
-        overwriteSystemProp("kylin.engine.extra-jars-path", "/this_new_path");
+        overwriteSystemProp("kylin.engine.extra-jars-path", "/this_new_path.jar");
         {
-            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, kylinJobJar, appArgs);
+            String cmd = sparkExecutable.generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
             Assert.assertNotNull(cmd);
-            Assert.assertTrue(cmd.contains("/this_new_path"));
+            Assert.assertTrue(cmd.contains("/this_new_path.jar"));
         }
     }
 }

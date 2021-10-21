@@ -60,8 +60,8 @@ class DFDictionaryBuilder(
       val kapConfig = KapConfig.wrap(config)
       if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform) || KapConfig.TDH_PLATFORM.equals(kapConfig.getKerberosPlatform)) {
         val sparkConf = ss.sparkContext.getConf
-        val principal = sparkConf.get("spark.yarn.principal")
-        val keytab = sparkConf.get("spark.yarn.keytab")
+        val principal = sparkConf.get("spark.kerberos.principal")
+        val keytab = sparkConf.get("spark.kerberos.keytab")
         logInfo(s"ZKJaasConfiguration principal: $principal, keyTab: $keytab")
         javax.security.auth.login.Configuration.setConfiguration(new ZKJaasConfiguration(principal, keytab))
       }

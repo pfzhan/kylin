@@ -72,7 +72,7 @@ public class NResourceDetectStep extends NSparkExecutable {
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
         Map<String, String> sparkConfigOverride = super.getSparkConfigOverride(config);
         log.info("spark.master override " + sparkConfigOverride.get(SPARK_MASTER));
-        if (!YARN_CLUSTER.equals(sparkConfigOverride.get(DEPLOY_MODE))) {
+        if (!CLUSTER_MODE.equals(sparkConfigOverride.get(DEPLOY_MODE))) {
             sparkConfigOverride.put("spark.master", "local");
         }
         log.info("spark.master already " + sparkConfigOverride.get(SPARK_MASTER));

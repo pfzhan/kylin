@@ -29,8 +29,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -99,24 +101,31 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
 
-    private static final String COMMA = ",";
-    private static final String DRIVER_OPS = "spark.driver.extraJavaOptions";
-    private static final String AM_OPS = "spark.yarn.am.extraJavaOptions";
-    private static final String EXECUTOR_OPS = "spark.executor.extraJavaOptions";
-    private static final String KRB5CONF_PROPS = "java.security.krb5.conf";
+    private static final String AM_EXTRA_JAVA_OPTIONS = "spark.yarn.am.extraJavaOptions";
+    private static final String DRIVER_EXTRA_JAVA_OPTIONS = "spark.driver.extraJavaOptions";
+    private static final String EXECUTOR_EXTRA_JAVA_OPTIONS = "spark.executor.extraJavaOptions";
     private static final String HADOOP_CONF_PATH = "./__spark_conf__/__hadoop_conf__/";
     private static final String APP_JAR_NAME = "__app__.jar";
+
+    private static final String SPARK_JARS_1 = "spark.jars";
+    private static final String SPARK_JARS_2 = "spark.yarn.dist.jars";
+    private static final String SPARK_FILES_1 = "spark.files";
+    private static final String SPARK_FILES_2 = "spark.yarn.dist.files";
+
+    private static final String COMMA = ",";
+    private static final String COLON = ":";
     private static final String EMPTY = "";
     private static final String EQUALS = "=";
     private static final String SPACE = " ";
+    private static final String SUBMIT_LINE_FORMAT = " \\\n";
+
+    private static final String DRIVER_EXTRA_CLASSPATH = "spark.driver.extraClassPath";
+    private static final String EXECUTOR_EXTRA_CLASSPATH = "spark.executor.extraClassPath";
 
     protected static final String SPARK_MASTER = "spark.master";
     protected static final String DEPLOY_MODE = "spark.submit.deployMode";
-    protected static final String YARN_CLUSTER = "cluster";
+    protected static final String CLUSTER_MODE = "cluster";
 
-    protected static final String HIVE_METASTORE_JARS = "spark.sql.hive.metastore.jars";
-
-    private volatile boolean isYarnCluster = false;
     private transient final List<StageBase> stages = Lists.newCopyOnWriteArrayList();
     private final Map<String, List<StageBase>> stagesMap = Maps.newConcurrentMap();
 
@@ -203,18 +212,14 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         }
         checkApplicationJar(config, kylinJobJar);
 
-        String hadoopConf = HadoopUtil.getHadoopConfDir();
+        String hadoopConfDir = HadoopUtil.getHadoopConfDir();
 
-        File hiveConfFile = new File(hadoopConf, "hive-site.xml");
+        File hiveConfFile = new File(hadoopConfDir, "hive-site.xml");
         if (!hiveConfFile.exists() && !config.isUTEnv()) {
-            throw new RuntimeException("Cannot find hive-site.xml in kylin_hadoop_conf_dir: " + hadoopConf + //
+            throw new RuntimeException("Cannot find hive-site.xml in kylin_hadoop_conf_dir: " + hadoopConfDir + //
                     ". In order to enable spark cubing, you must set kylin.env.hadoop-conf-dir to a dir which contains at least core-site.xml, hdfs-site.xml, hive-site.xml, mapred-site.xml, yarn-site.xml");
         }
 
-        String jars = getJars();
-        if (StringUtils.isEmpty(jars)) {
-            jars = kylinJobJar;
-        }
         deleteJobTmpDirectoryOnExists();
 
         onExecuteStart();
@@ -241,7 +246,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         if (config.isUTEnv()) {
             return runLocalMode(argsPath);
         } else {
-            return runSparkSubmit(hadoopConf, jars, kylinJobJar,
+            return runSparkSubmit(hadoopConfDir, kylinJobJar,
                     "-className " + getSparkSubmitClassName() + SPACE + argsPath);
         }
     }
@@ -358,12 +363,12 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
-    protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
+    protected ExecuteResult runSparkSubmit(String hadoopConfDir, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
 
         try {
             killOrphanApplicationIfExists(getId());
-            String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
+            String cmd = generateSparkCmd(hadoopConfDir, kylinJobJar, appArgs);
 
             CliCommandExecutor exec = new CliCommandExecutor();
             CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getParentId());
@@ -402,227 +407,73 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         }
     }
 
-    private Map<String, String> getSparkConf() {
-        KylinConfig config = getConfig();
-        KapConfig kapConfig = KapConfig.wrap(config);
-        final Map<String, String> sparkConf = getSparkConfigOverride(config);
-        // spark.master is sure here.
-        this.isYarnCluster = YARN_CLUSTER.equals(sparkConf.get(DEPLOY_MODE));
-
-        // append krb5.conf for -Djava.security.krb5.conf
-        if (Boolean.TRUE.equals(kapConfig.isKerberosEnabled())) {
-            wrapKrb5Conf(kapConfig, sparkConf);
-        }
-        // append executor global dict ops
-        wrapExecutorGlobalDictionary(config, sparkConf);
-        // append other driver ops
-        overrideDriverOps(config, sparkConf);
-        return sparkConf;
-    }
-
-    private void wrapKrb5Conf(KapConfig config, final Map<String, String> sparkConf) {
-        // Workaround when there is no underlying file: /etc/krb5.conf
-        String remoteKrb5 = HADOOP_CONF_PATH + config.getKerberosKrb5Conf();
-        ConfMap confMap = new ConfMap() {
-            @Override
-            public String get(String key) {
-                return sparkConf.get(key);
-            }
-
-            @Override
-            public void set(String key, String value) {
-                sparkConf.put(key, value);
-            }
-        };
-        // There are conventions here:
-        // a) krb5.conf is underlying ${KYLIN_HOME}/conf/
-        // b) krb5.conf is underlying ${KYLIN_HOME}/hadoop_conf/
-        // Wrap driver ops krb5.conf depends on deploy mode
-        if (isYarnCluster) {
-            // remote for 'yarn cluster'
-            wrapKrb5Conf(DRIVER_OPS, remoteKrb5, confMap);
-        } else {
-            // local for 'yarn client' & 'spark local'
-            wrapKrb5Conf(DRIVER_OPS, config.getKerberosKrb5ConfPath(), confMap);
-        }
-        wrapKrb5Conf(AM_OPS, remoteKrb5, confMap);
-        wrapKrb5Conf(EXECUTOR_OPS, remoteKrb5, confMap);
-    }
-
-    private void wrapExecutorGlobalDictionary(KylinConfig config, Map<String, String> sparkConf) {
-        StringBuilder sb = new StringBuilder();
-        if (sparkConf.containsKey(EXECUTOR_OPS)) {
-            sb.append(sparkConf.get(EXECUTOR_OPS));
-        }
-        sb.append(String.format(Locale.ROOT, " -Dkylin.dictionary.globalV2-store-class-name=%s ",
-                config.getGlobalDictV2StoreImpl()));
-        sparkConf.put(EXECUTOR_OPS, sb.toString());
-    }
-
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
-        Map<String, String> overrides = config.getSparkConfigOverride();
-        if (!overrides.containsKey("spark.driver.memory")) {
-            overrides.put("spark.driver.memory", computeStepDriverMemory() + "m");
+        Map<String, String> confMap = config.getSparkConfigOverride();
+        final String driverMemConf = "spark.driver.memory";
+        if (!confMap.containsKey(driverMemConf)) {
+            confMap.put(driverMemConf, computeStepDriverMemory() + "m");
         }
 
         if (UserGroupInformation.isSecurityEnabled()) {
-            overrides.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
+            confMap.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
-        return overrides;
+        return confMap;
     }
 
-    protected void overrideDriverOps(KylinConfig config, Map<String, String> sparkConf) {
-        StringBuilder sb = new StringBuilder();
-        if (sparkConf.containsKey(DRIVER_OPS)) {
-            sb.append(sparkConf.get(DRIVER_OPS).trim());
-        }
+    protected String generateSparkCmd(String hadoopConfDir, String kylinJobJar, String appArgs) {
+        // Hadoop conf dir.
+        StringBuilder cmdBuilder = new StringBuilder("export HADOOP_CONF_DIR=");
+        cmdBuilder.append(hadoopConfDir);
+        cmdBuilder.append(SPACE).append("&&");
 
-        KapConfig kapConfig = KapConfig.wrap(config);
+        // Spark submit.
+        cmdBuilder.append(SPACE).append(KylinConfigBase.getSparkHome()).append(File.separator);
+        cmdBuilder.append("bin/spark-submit");
+        cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-        String serverAddress = config.getServerAddress();
+        // Application main class.
+        cmdBuilder.append(SPACE).append("--class");
+        cmdBuilder.append(SPACE).append("io.kyligence.kap.engine.spark.application.SparkEntry");
+        cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-        String hdfsWorkingDir = config.getHdfsWorkingDirectory();
+        // Application name.
+        cmdBuilder.append(SPACE).append("--name");
+        cmdBuilder.append(SPACE).append(getJobNamePrefix()).append(getId());
+        cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-        String sparkDriverHdfsLogPath = null;
-        if (config instanceof KylinConfigExt) {
-            Map<String, String> extendedOverrides = ((KylinConfigExt) config).getExtendedOverrides();
-            if (Objects.nonNull(extendedOverrides)) {
-                sparkDriverHdfsLogPath = extendedOverrides.get("spark.driver.log4j.appender.hdfs.File");
-            }
-        }
-        if (kapConfig.isCloud()) {
-            String logLocalWorkingDirectory = config.getLogLocalWorkingDirectory();
-            if (StringUtils.isNotBlank(logLocalWorkingDirectory)) {
-                hdfsWorkingDir = logLocalWorkingDirectory;
-                sparkDriverHdfsLogPath = logLocalWorkingDirectory + sparkDriverHdfsLogPath;
-            }
-        }
-        sb.append(String.format(Locale.ROOT, " -Dkylin.hdfs.working.dir=%s ", hdfsWorkingDir));
-        sb.append(String.format(Locale.ROOT, " -Dspark.driver.log4j.appender.hdfs.File=%s ", sparkDriverHdfsLogPath));
-        wrapLog4jConf(sb, config);
-        sb.append(String.format(Locale.ROOT, " -Dspark.driver.rest.server.address=%s ", serverAddress));
-        sb.append(String.format(Locale.ROOT, " -Dspark.driver.param.taskId=%s ", getId()));
-        sb.append(String.format(Locale.ROOT, " -Dspark.driver.local.logDir=%s ", //
-                KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
-        sparkConf.put(DRIVER_OPS, sb.toString().trim());
-    }
+        final KylinConfig kylinConf = getConfig();
+        // Read only mappings.
+        final Map<String, String> sparkConf = getSparkConf(kylinConf);
 
-    private void wrapKrb5Conf(String key, String value, ConfMap confMap) {
-        // 'spark.yarn.am.extraJavaOptions', 'krb5.conf'
-        String extraOps = confMap.get(key);
-        if (Objects.isNull(extraOps)) {
-            extraOps = EMPTY;
-        }
-        if (extraOps.contains(KRB5CONF_PROPS)) {
-            return;
-        }
-        StringBuilder sb = new StringBuilder("-D");
-        sb.append(KRB5CONF_PROPS);
-        sb.append(EQUALS);
-        sb.append(value);
-        sb.append(SPACE);
-        sb.append(extraOps);
-        confMap.set(key, sb.toString());
-    }
+        // Spark jars.
+        cmdBuilder.append(SPACE).append("--jars");
+        cmdBuilder.append(SPACE).append(String.join(COMMA, getSparkJars(kylinConf, sparkConf)));
+        cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-    protected String generateSparkCmd(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(
-                "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
+        // Log4j config files.
+        cmdBuilder.append(SPACE).append("--files");
+        cmdBuilder.append(SPACE).append(String.join(COMMA, getSparkFiles(kylinConf, sparkConf)));
+        cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-        Map<String, String> sparkConf = getSparkConf();
-        for (Map.Entry<String, String> entry : sparkConf.entrySet()) {
-            appendSparkConf(sb, entry.getKey(), entry.getValue());
-        }
-        // extra classpath
-        wrapClasspathConf(sb, kylinJobJar);
+        // Spark conf.
+        // Maybe we would rewrite some confs, like 'extraJavaOptions', 'extraClassPath',
+        // and the confs rewrited should be removed from props thru #removeUnNecessaryDump.
+        wrapSparkConf(cmdBuilder, sparkConf);
 
-        // hive metastore jars
-        logger.info("Hive metastore jars: {}", sparkConf.get(HIVE_METASTORE_JARS));
-
-        // extra jars
-        final KylinConfig config = getConfig();
-        if (StringUtils.isNotEmpty(config.getExtraJarsPath())) {
-            jars = jars + COMMA + config.getExtraJarsPath();
-        }
-
-        // Kerberos
-        KapConfig kapConfig = KapConfig.wrap(config);
-        if (Boolean.TRUE.equals(kapConfig.isKerberosEnabled())) {
-            wrapKerberosConf(sb, kapConfig);
-        }
-
-        if (isYarnCluster) {
-            // http://spark.apache.org/docs/latest/running-on-yarn.html#important-notes
-            String driverLog4j = config.getLogSparkDriverPropertiesFile();
-            // Caution: an extra white space ended is essential.
-            String aliasedLog4j = String.format(Locale.ROOT, "%s#%s ", driverLog4j, //
-                    Paths.get(driverLog4j).getFileName().toString());
-            sb.append("--files ").append(aliasedLog4j);
-            final String aliasedJar = String.format(Locale.ROOT, "%s#%s", kylinJobJar, //
-                    Paths.get(kylinJobJar).getFileName().toString());
-            // Make sure class SparkDriverHdfsLogAppender will be in NM container's classpath.
-            if (StringUtils.isBlank(jars) || jars.equals(kylinJobJar)) {
-                jars = aliasedJar;
-            } else if (jars.contains(kylinJobJar)) {
-                jars = jars.replace(kylinJobJar, aliasedJar);
-            } else {
-                jars = String.format(Locale.ROOT, "%s,%s", jars, aliasedJar);
-            }
-        }
-
-        sb.append("--name ").append(getJobNamePrefix()).append("%s ");
-        sb.append("--jars %s %s %s ");
-
-        // Three parameters at most per line.
-        // kylinJobJar is the application-jar (of spark-submit),
+        // Application jar. KylinJobJar is the application-jar (of spark-submit),
         // path to a bundled jar including your application and all dependencies,
         // The URL must be globally visible inside of your cluster,
         // for instance, an hdfs:// path or a file:// path that is present on all nodes.
-        String cmd = String.format(Locale.ROOT, sb.toString(), hadoopConf, // 
-                KylinConfigBase.getSparkHome(), getId(), jars + getExtJar(), //
-                kylinJobJar, appArgs);
-        logger.info("spark submit cmd: {}", cmd);
-        return cmd;
-    }
+        cmdBuilder.append(SPACE).append(kylinJobJar);
+        cmdBuilder.append(SUBMIT_LINE_FORMAT);
 
-    private void wrapClasspathConf(StringBuilder sb, String kylinJobJar) {
-        final String jobJarName = Paths.get(kylinJobJar).getFileName().toString();
-        appendSparkConf(sb, "spark.executor.extraClassPath", isYarnCluster ? //
-                String.format(Locale.ROOT, "%s:%s", APP_JAR_NAME, jobJarName) : jobJarName);
-        // In yarn cluster mode, make sure class SparkDriverHdfsLogAppender will be in NM container's classpath.
-        appendSparkConf(sb, "spark.driver.extraClassPath", isYarnCluster ? //
-                String.format(Locale.ROOT, "%s:%s", APP_JAR_NAME, jobJarName) : kylinJobJar);
-    }
+        // Application parameter file.
+        cmdBuilder.append(SPACE).append(appArgs);
 
-    private void wrapLog4jConf(StringBuilder sb, KylinConfig config) {
-        // https://issues.apache.org/jira/browse/SPARK-16784
-        final String localLog4j = config.getLogSparkDriverPropertiesFile();
-        final String log4jName = Paths.get(localLog4j).getFileName().toString();
-        if (isYarnCluster || config.getSparkMaster().startsWith("k8s")) {
-            // Direct file name.
-            sb.append(String.format(Locale.ROOT, " -Dlog4j.configurationFile=%s ", log4jName));
-        } else {
-            // Use 'file:' as scheme.
-            sb.append(String.format(Locale.ROOT, " -Dlog4j.configurationFile=file:%s ", localLog4j));
-        }
-    }
+        final String command = cmdBuilder.toString();
+        logger.info("spark submit cmd: {}", command);
 
-    private void wrapKerberosConf(StringBuilder sb, KapConfig kapConfig) {
-        // conf name for spark 3
-        appendSparkConf(sb, "spark.kerberos.principal", kapConfig.getKerberosPrincipal());
-        appendSparkConf(sb, "spark.kerberos.keytab", kapConfig.getKerberosKeytabPath());
-        if (KapConfig.FI_PLATFORM.equals(kapConfig.getKerberosPlatform()) //
-                || KapConfig.TDH_PLATFORM.equals(kapConfig.getKerberosPlatform())
-                || Boolean.TRUE.equals(kapConfig.getPlatformZKEnable())) {
-            appendSparkConf(sb, "spark.yarn.zookeeper.principal", kapConfig.getKerberosZKPrincipal());
-            appendSparkConf(sb, "spark.yarn.jaas.conf", kapConfig.getKerberosJaasConfPath());
-        }
-    }
-
-    protected void appendSparkConf(StringBuilder sb, String key, String value) {
-        // Multiple parameters in "--conf" need to be enclosed in single quotes
-        sb.append(" --conf '").append(key).append(EQUALS).append(value).append("' ");
+        return command;
     }
 
     private ExecuteResult runLocalMode(String appArgs) {
@@ -691,9 +542,21 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     }
 
     private void removeUnNecessaryDump(Properties props) {
+        // Rewrited thru '--jars'.
+        props.remove("kylin.engine.spark-conf.spark.jars");
+        props.remove("kylin.engine.spark-conf.spark.yarn.dist.jars");
+        // Rewrited thru '--files'.
+        props.remove("kylin.engine.spark-conf.spark.files");
+        props.remove("kylin.engine.spark-conf.spark.yarn.dist.files");
+
+        // Rewrited.
         props.remove("kylin.engine.spark-conf.spark.driver.extraJavaOptions");
         props.remove("kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions");
         props.remove("kylin.engine.spark-conf.spark.executor.extraJavaOptions");
+
+        // Rewrited.
+        props.remove("kylin.engine.spark-conf.spark.driver.extraClassPath");
+        props.remove("kylin.engine.spark-conf.spark.executor.extraClassPath");
 
         props.remove("kylin.query.async-query.spark-conf.spark.yarn.am.extraJavaOptions");
         props.remove("kylin.query.async-query.spark-conf.spark.executor.extraJavaOptions");
@@ -810,5 +673,230 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     @Override
     public Map<String, List<StageBase>> getStagesMap() {
         return stagesMap;
+    }
+
+    private void wrapSparkConf(StringBuilder cmdBuilder, Map<String, String> sparkConf) {
+        for (Map.Entry<String, String> entry : sparkConf.entrySet()) {
+            switch (entry.getKey()) {
+            // Avoid duplicated from '--jars'
+            // Avoid duplicated from '--files'
+            case SPARK_JARS_1:
+            case SPARK_JARS_2:
+            case SPARK_FILES_1:
+            case SPARK_FILES_2:
+                // Do nothing.
+                break;
+            default:
+                appendSparkConf(cmdBuilder, entry.getKey(), entry.getValue());
+                break;
+            }
+        }
+    }
+
+    private boolean isClusterMode(Map<String, String> sparkConf) {
+        return CLUSTER_MODE.equals(sparkConf.get(DEPLOY_MODE));
+    }
+
+    private Map<String, String> getSparkConf() {
+        return getSparkConf(getConfig());
+    }
+
+    private Map<String, String> getSparkConf(KylinConfig kylinConf) {
+
+        KapConfig kapConf = KapConfig.wrap(kylinConf);
+
+        Map<String, String> sparkConf = getSparkConfigOverride(kylinConf);
+
+        // Rewrite kerberos conf.
+        rewriteKerberosConf(kapConf, sparkConf);
+
+        // Rewrite driver extra java options.
+        rewriteDriverExtraJavaOptions(kylinConf, kapConf, sparkConf);
+
+        // Rewrite executor extra java options.
+        rewriteExecutorExtraJavaOptions(kylinConf, sparkConf);
+
+        // Rewrite extra classpath.
+        rewriteExtraClasspath(kylinConf, sparkConf);
+
+        return Collections.unmodifiableMap(sparkConf);
+    }
+
+    private void rewriteDriverExtraJavaOptions(KylinConfig kylinConf, KapConfig kapConf, //
+            Map<String, String> sparkConf) {
+        StringBuilder sb = new StringBuilder();
+        if (sparkConf.containsKey(DRIVER_EXTRA_JAVA_OPTIONS)) {
+            sb.append(sparkConf.get(DRIVER_EXTRA_JAVA_OPTIONS));
+        }
+
+        String hdfsWorkingDir = kylinConf.getHdfsWorkingDirectory();
+        String sparkDriverHdfsLogPath = null;
+        if (kylinConf instanceof KylinConfigExt) {
+            Map<String, String> extendedOverrides = ((KylinConfigExt) kylinConf).getExtendedOverrides();
+            if (Objects.nonNull(extendedOverrides)) {
+                sparkDriverHdfsLogPath = extendedOverrides.get("spark.driver.log4j.appender.hdfs.File");
+            }
+        }
+        if (kapConf.isCloud()) {
+            String logLocalWorkingDirectory = kylinConf.getLogLocalWorkingDirectory();
+            if (StringUtils.isNotBlank(logLocalWorkingDirectory)) {
+                hdfsWorkingDir = logLocalWorkingDirectory;
+                sparkDriverHdfsLogPath = logLocalWorkingDirectory + sparkDriverHdfsLogPath;
+            }
+        }
+        sb.append(SPACE).append("-Dkylin.hdfs.working.dir=").append(hdfsWorkingDir);
+        sb.append(SPACE).append("-Dspark.driver.log4j.appender.hdfs.File=").append(sparkDriverHdfsLogPath);
+
+        // Log4j conf.
+        rewriteDriverLog4jConf(sb, kylinConf, sparkConf);
+
+        sb.append(SPACE).append("-Dspark.driver.rest.server.address=").append(kylinConf.getServerAddress());
+        sb.append(SPACE).append("-Dspark.driver.param.taskId=").append(getId());
+        sb.append(SPACE).append("-Dspark.driver.local.logDir=").append(KapConfig.getKylinLogDirAtBestEffort()) //
+                .append("/spark");
+
+        sparkConf.put(DRIVER_EXTRA_JAVA_OPTIONS, sb.toString().trim());
+    }
+
+    private void rewriteKerberosConf(KapConfig kapConf, final Map<String, String> sparkConf) {
+        if (Boolean.FALSE.equals(kapConf.isKerberosEnabled())) {
+            return;
+        }
+        // Yarn client will upload the related file automatically.
+        // We wouldn't put the file on --files.
+        sparkConf.put("spark.kerberos.principal", kapConf.getKerberosPrincipal());
+        sparkConf.put("spark.kerberos.keytab", kapConf.getKerberosKeytabPath());
+
+        // Workaround when there is no underlying file: /etc/krb5.conf
+        String remoteKrb5 = HADOOP_CONF_PATH + kapConf.getKerberosKrb5Conf();
+        ConfMap confMap = new ConfMap() {
+            @Override
+            public String get(String key) {
+                return sparkConf.get(key);
+            }
+
+            @Override
+            public void set(String key, String value) {
+                sparkConf.put(key, value);
+            }
+        };
+        // There are conventions here:
+        // a) krb5.conf is underlying ${KYLIN_HOME}/conf/
+        // b) krb5.conf is underlying ${KYLIN_HOME}/hadoop_conf/
+        // Wrap driver ops krb5.conf depends on deploy mode
+        if (isClusterMode(sparkConf)) {
+            // remote for 'yarn cluster'
+            rewriteSpecifiedKrb5Conf(DRIVER_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+        } else {
+            // local for 'yarn client' & 'spark local'
+            rewriteSpecifiedKrb5Conf(DRIVER_EXTRA_JAVA_OPTIONS, kapConf.getKerberosKrb5ConfPath(), confMap);
+        }
+        rewriteSpecifiedKrb5Conf(AM_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+        rewriteSpecifiedKrb5Conf(EXECUTOR_EXTRA_JAVA_OPTIONS, remoteKrb5, confMap);
+    }
+
+    private void rewriteExecutorExtraJavaOptions(KylinConfig kylinConf, Map<String, String> sparkConf) {
+        StringBuilder sb = new StringBuilder();
+        if (sparkConf.containsKey(EXECUTOR_EXTRA_JAVA_OPTIONS)) {
+            sb.append(sparkConf.get(EXECUTOR_EXTRA_JAVA_OPTIONS));
+        }
+        sb.append(SPACE).append("-Dkylin.dictionary.globalV2-store-class-name=") //
+                .append(kylinConf.getGlobalDictV2StoreImpl());
+        sparkConf.put(EXECUTOR_EXTRA_JAVA_OPTIONS, sb.toString().trim());
+    }
+
+    private void rewriteSpecifiedKrb5Conf(String key, String value, ConfMap confMap) {
+        String originOptions = confMap.get(key);
+        if (Objects.isNull(originOptions)) {
+            originOptions = EMPTY;
+        }
+        if (originOptions.contains("-Djava.security.krb5.conf")) {
+            return;
+        }
+        String newOptions = "-Djava.security.krb5.conf=" + value + SPACE + originOptions;
+        confMap.set(key, newOptions.trim());
+    }
+
+    private void rewriteExtraClasspath(KylinConfig kylinConf, Map<String, String> sparkConf) {
+        // Add extra jars to driver/executor classpath.
+        // In yarn cluster mode, make sure class SparkDriverHdfsLogAppender & SparkExecutorHdfsLogAppender
+        // (assembled in the kylinJobJar)
+        // will be in NM container's classpath.
+
+        // Cluster mode.
+        if (isClusterMode(sparkConf)) {
+            // On yarn cluster mode,
+            // application jar (kylinJobJar here) would ln as '__app__.jar'.
+            Set<String> sparkJars = Sets.newLinkedHashSet();
+            sparkJars.add(APP_JAR_NAME);
+            sparkJars.addAll(getSparkJars(kylinConf, sparkConf));
+            final String jointJarNames = String.join(COLON, //
+                    sparkJars.stream().map(jar -> Paths.get(jar).getFileName().toString()).collect(Collectors.toSet()));
+            sparkConf.put(DRIVER_EXTRA_CLASSPATH, jointJarNames);
+            sparkConf.put(EXECUTOR_EXTRA_CLASSPATH, jointJarNames);
+            return;
+        }
+
+        // Client mode.
+        Set<String> sparkJars = getSparkJars(kylinConf, sparkConf);
+        sparkConf.put(DRIVER_EXTRA_CLASSPATH, String.join(COLON, sparkJars));
+        sparkConf.put(EXECUTOR_EXTRA_CLASSPATH, String.join(COLON, //
+                sparkJars.stream().map(jar -> Paths.get(jar).getFileName().toString()).collect(Collectors.toSet())));
+    }
+
+    private void rewriteDriverLog4jConf(StringBuilder sb, KylinConfig config, Map<String, String> sparkConf) {
+        // https://issues.apache.org/jira/browse/SPARK-16784
+        final String localLog4j = config.getLogSparkDriverPropertiesFile();
+        final String remoteLog4j = Paths.get(localLog4j).getFileName().toString();
+        if (isClusterMode(sparkConf) || config.getSparkMaster().startsWith("k8s")) {
+            // Direct file name.
+            sb.append(SPACE).append("-Dlog4j.configurationFile=").append(remoteLog4j);
+        } else {
+            // Use 'file:' as scheme.
+            sb.append(SPACE).append("-Dlog4j.configurationFile=file:").append(localLog4j);
+        }
+    }
+
+    protected void appendSparkConf(StringBuilder sb, String confKey, String confValue) {
+        // Multiple parameters in "--conf" need to be enclosed in single quotes
+        sb.append(" --conf '").append(confKey).append(EQUALS).append(confValue).append("' ");
+        sb.append(SUBMIT_LINE_FORMAT);
+    }
+
+    private Set<String> getSparkJars(KylinConfig kylinConf, Map<String, String> sparkConf) {
+        Set<String> jarPaths = Sets.newLinkedHashSet();
+        // Client mode, application jar (kylinJobJar here) wouldn't ln as '__app__.jar'.
+        // Cluster mode, application jar (kylinJobJar here) would be uploaded automatically & ln as '__app__.jar'.
+        jarPaths.add(kylinConf.getKylinJobJarPath());
+        jarPaths.add(kylinConf.getExtraJarsPath());
+        jarPaths.add(getJars());
+        jarPaths.add(getExtJar());
+        jarPaths.add(sparkConf.get(SPARK_JARS_1));
+        jarPaths.add(sparkConf.get(SPARK_JARS_2));
+
+        LinkedHashSet<String> sparkJars = jarPaths.stream() //
+                .filter(StringUtils::isNotEmpty) //
+                .flatMap(p -> Arrays.stream(StringUtils.split(p, COMMA))) //
+                .filter(jar -> jar.endsWith(".jar")) //
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return Collections.unmodifiableSet(sparkJars);
+    }
+
+    private Set<String> getSparkFiles(KylinConfig kylinConf, Map<String, String> sparkConf) {
+        Set<String> filePaths = Sets.newLinkedHashSet();
+        filePaths.add(kylinConf.getLogSparkAppMasterPropertiesFile());
+        filePaths.add(kylinConf.getLogSparkDriverPropertiesFile());
+        filePaths.add(kylinConf.getLogSparkExecutorPropertiesFile());
+        filePaths.add(sparkConf.get(SPARK_FILES_1));
+        filePaths.add(sparkConf.get(SPARK_FILES_2));
+
+        LinkedHashSet<String> sparkFiles = filePaths.stream() //
+                .filter(StringUtils::isNotEmpty) //
+                .flatMap(p -> Arrays.stream(StringUtils.split(p, COMMA))) //
+                .filter(StringUtils::isNotEmpty) //
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return Collections.unmodifiableSet(sparkFiles);
     }
 }

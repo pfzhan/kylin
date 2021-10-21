@@ -80,12 +80,12 @@ public class AsyncQueryJob extends NSparkExecutable {
     }
 
     @Override
-    protected ExecuteResult runSparkSubmit(String hadoopConf, String jars, String kylinJobJar, String appArgs) {
+    protected ExecuteResult runSparkSubmit(String hadoopConf, String kylinJobJar, String appArgs) {
         val patternedLogger = new BufferedLogger(logger);
 
         try {
             killOrphanApplicationIfExists(getId());
-            String cmd = generateSparkCmd(hadoopConf, jars, kylinJobJar, appArgs);
+            String cmd = generateSparkCmd(hadoopConf, kylinJobJar, appArgs);
             CliCommandExecutor exec = new CliCommandExecutor();
             CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, getId());
             return ExecuteResult.createSucceed(r.getCmd());
@@ -140,10 +140,6 @@ public class AsyncQueryJob extends NSparkExecutable {
         if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
         }
-        String jars = getJars();
-        if (StringUtils.isEmpty(jars)) {
-            jars = kylinJobJar;
-        }
 
         ObjectMapper fieldOnlyMapper = new ObjectMapper();
         fieldOnlyMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
@@ -178,7 +174,7 @@ public class AsyncQueryJob extends NSparkExecutable {
             throw new ExecuteException("kylin properties or meta dump failed", e);
         }
 
-        return runSparkSubmit(getHadoopConfDir(), jars, kylinJobJar,
+        return runSparkSubmit(getHadoopConfDir(), kylinJobJar,
                 "-className io.kyligence.kap.engine.spark.job.AsyncQueryApplication "
                         + createArgsFileOnHDFS(config, getId()));
     }
