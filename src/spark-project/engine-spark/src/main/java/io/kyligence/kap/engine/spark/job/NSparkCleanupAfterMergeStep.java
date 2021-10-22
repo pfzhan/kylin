@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
@@ -64,15 +65,20 @@ public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
 
         for (String segmentId : segmentIds) {
             String path = dataflow.getSegmentHdfsPath(segmentId);
-            if (!timeMachineEnabled) {
-                try {
-                    HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
-                    logger.info("The segment {} in dataflow {} has been successfully deleted, path : {}", //
-                            segmentId, name, path);
-                } catch (IOException e) {
-                    logger.warn("Can not delete segment {} in dataflow {}." + //
-                            " Please try workaround thru garbage clean manually.", segmentId, name, e);
+            if (!SecondStorageUtil.isModelEnable(dataflow.getProject(), dataflow.getModel().getUuid())) {
+                if (!timeMachineEnabled) {
+                    try {
+                        HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
+                        logger.info("The segment {} in dataflow {} has been successfully deleted, path : {}", //
+                                segmentId, name, path);
+                    } catch (IOException e) {
+                        logger.warn("Can not delete segment {} in dataflow {}." + //
+                                " Please try workaround thru garbage clean manually.", segmentId, name, e);
+                    }
                 }
+            } else {
+                logger.info("ClickHouse is enabled for the model, please delete segments {} in dataflow {} manually.", //
+                        segmentIds, name);
             }
         }
 
