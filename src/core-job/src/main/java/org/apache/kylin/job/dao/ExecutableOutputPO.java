@@ -103,6 +103,15 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("err_msg")
     private String errMsg;
 
+    @JsonProperty("err_step_id")
+    private String errStepId;
+
+    @JsonProperty("err_segment_id")
+    private String errSegmentId;
+
+    @JsonProperty("err_stack")
+    private String errStack;
+
     public void addStartTime(long time) {
         //when ready -> suicidal/discarded, the start time is 0
         if (startTime == 0) {

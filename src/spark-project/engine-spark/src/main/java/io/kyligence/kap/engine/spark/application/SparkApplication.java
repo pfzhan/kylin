@@ -445,6 +445,7 @@ public abstract class SparkApplication implements Application, IKeep {
 
     private void waiteForResource(SparkConf sparkConf, KylinBuildEnv buildEnv) throws Exception {
         val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
+        infos.recordStageId(waiteForResource.getId());
         waiteForResource.onStageStart();
         waiteForResource.execute();
     }

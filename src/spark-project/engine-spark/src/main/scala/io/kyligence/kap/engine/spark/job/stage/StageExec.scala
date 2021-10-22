@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job.stage
 
+import com.google.common.base.Throwables
 import io.kyligence.kap.engine.spark.application.SparkApplication
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.metadata.cube.model.{NBatchConstants, NDataSegment}
 import org.apache.kylin.common.util.JsonUtil
 import org.apache.kylin.job.execution.ExecutableState
@@ -57,7 +59,7 @@ trait StageExec extends Logging {
   }
 
   def updateStageInfo(taskId: String, segmentId: String, project: String, status: String,
-                          errMsg: String, updateInfo: util.HashMap[String, String]): Unit = {
+                      errMsg: String, updateInfo: util.HashMap[String, String]): Unit = {
     val context = getJobContext
 
     val url = "/kylin/api/jobs/stage/status"
@@ -114,6 +116,11 @@ trait StageExec extends Logging {
     try {
       execute()
       result = true
+    } catch {
+      case throwable: Throwable =>
+        KylinBuildEnv.get().buildJobInfos.recordSegmentId(getSegmentId)
+        KylinBuildEnv.get().buildJobInfos.recordStageId(getId)
+        Throwables.propagate(throwable)
     } finally onStageFinished(result)
   }
 

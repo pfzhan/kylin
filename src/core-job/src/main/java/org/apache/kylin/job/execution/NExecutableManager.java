@@ -483,6 +483,9 @@ public class NExecutableManager {
         result.setCreateTime(jobOutput.getCreateTime());
         result.setByteSize(jobOutput.getByteSize());
         result.setShortErrMsg(jobOutput.getErrMsg());
+        result.setErrStepId(jobOutput.getErrStepId());
+        result.setErrSegmentId(jobOutput.getErrSegmentId());
+        result.setErrStack(jobOutput.getErrStack());
         return result;
     }
 
@@ -1131,6 +1134,17 @@ public class NExecutableManager {
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
             Set<String> removeInfo, String output, long byteSize) {
         updateJobOutput(taskOrJobId, newStatus, updateInfo, removeInfo, output, byteSize, null);
+    }
+
+    /** just used to update job error mess */
+    public void updateJobError(String jobId, String errStepId, String errSegmentId, String errStack) {
+        executableDao.updateJob(jobId, job -> {
+            ExecutableOutputPO jobOutput = job.getOutput();
+            jobOutput.setErrStepId(errStepId);
+            jobOutput.setErrSegmentId(errSegmentId);
+            jobOutput.setErrStack(errStack);
+            return true;
+        });
     }
 
     /** just used to update stage */

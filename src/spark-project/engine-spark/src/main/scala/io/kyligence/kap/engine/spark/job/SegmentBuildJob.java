@@ -84,6 +84,7 @@ public class SegmentBuildJob extends SegmentJob {
     protected final void doExecute() throws Exception {
         val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
         waiteForResource.onStageFinished(true);
+        infos.recordStageId("");
         // tryRefreshSnapshots();
         REFRESH_SNAPSHOTS.create(this, null, null).toWork();
 

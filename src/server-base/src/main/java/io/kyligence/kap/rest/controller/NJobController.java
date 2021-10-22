@@ -59,6 +59,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.common.persistence.transaction.UpdateJobStatusEventNotifier;
 import io.kyligence.kap.common.scheduler.EventBusFactory;
+import io.kyligence.kap.rest.request.JobErrorRequest;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
@@ -254,6 +255,27 @@ public class NJobController extends NBasicController {
 
     /**
      * RPC Call
+     *
+     * @param errorRequest
+     * @return
+     */
+    @ApiOperation(value = "updateJobError", tags = { "DW" }, notes = "Update Body: job error")
+    @PutMapping(value = "error")
+    @ResponseBody
+    public EnvelopeResponse<String> updateJobError(@RequestBody JobErrorRequest errorRequest) {
+        if (StringUtils.isBlank(errorRequest.getProject()) && StringUtils.isBlank(errorRequest.getJobId())) {
+            throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to update stage status");
+        }
+        checkProjectName(errorRequest.getProject());
+        logger.info("updateJobError errorRequest is : {}", errorRequest);
+
+        jobService.updateJobError(errorRequest.getProject(), errorRequest.getJobId(), errorRequest.getErrStepId(),
+                errorRequest.getErrSegmentId(), errorRequest.getErrStack());
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    /**
+     * RPC Call
      * 
      * @param stageRequest
      * @return
@@ -267,9 +289,8 @@ public class NJobController extends NBasicController {
         }
         checkProjectName(stageRequest.getProject());
         logger.info("updateStageStatus stageRequest is : {}", stageRequest);
-        jobService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(),
-                stageRequest.getSegmentId(), stageRequest.getStatus(), stageRequest.getUpdateInfo(),
-                stageRequest.getErrMsg());
+        jobService.updateStageStatus(stageRequest.getProject(), stageRequest.getTaskId(), stageRequest.getSegmentId(),
+                stageRequest.getStatus(), stageRequest.getUpdateInfo(), stageRequest.getErrMsg());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

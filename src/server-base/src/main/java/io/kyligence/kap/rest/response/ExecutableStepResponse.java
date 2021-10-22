@@ -85,6 +85,21 @@ public class ExecutableStepResponse {
     @JsonProperty("err_msg")
     private String shortErrMsg;
 
+    @JsonProperty("err_step_name")
+    private String errStepName;
+
+    @JsonProperty("err_step_id")
+    private String errStepId;
+
+    @JsonProperty("err_segment_id")
+    private String errSegmentId;
+
+    @JsonProperty("err_stack")
+    private String errStack;
+
+    @JsonProperty("err_resolve")
+    private String errResolve;
+
     public void putInfo(String key, String value) {
         getInfo().put(key, value);
     }

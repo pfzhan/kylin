@@ -23,14 +23,17 @@
 package org.apache.spark.application
 
 import io.kyligence.kap.common.util.Unsafe
-
-import java.util
-import java.util.concurrent.CountDownLatch
 import io.kyligence.kap.engine.spark.application.SparkApplication
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
+import org.apache.commons.lang.StringUtils
+import org.apache.commons.lang3.exception.ExceptionUtils
+import org.apache.kylin.common.util.JsonUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.KylinJobEventLoop
+
+import java.util
+import java.util.concurrent.CountDownLatch
 
 /**
  * Spark driver part, construct the real spark job [SparkApplication]
@@ -105,6 +108,7 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     try {
       logError(s"Job failed eventually. Reason: ${jf.reason}", jf.throwable)
       KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(new util.HashMap, jf.throwable))
+      updateJobErrorInfo(jf.throwable)
       stop()
     } finally {
       statusCode = 1
@@ -116,5 +120,31 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     monitor.stop()
     worker.stop()
     eventLoop.stop()
+  }
+
+  def updateJobErrorInfo(throwable: Throwable): Unit = {
+    val infos = KylinBuildEnv.get().buildJobInfos
+    val context = worker.getApplication
+
+    val project = context.getProject
+    val jobId = context.getJobId
+
+    val stageId = infos.getStageId
+    val jobStepId = StringUtils.replace(infos.getJobStepId, SparkApplication.JOB_NAME_PREFIX, "")
+    val errStepId = if (StringUtils.isBlank(stageId)) jobStepId else stageId
+
+    val errSegmentId = infos.getSegmentId
+    val errStack = ExceptionUtils.getStackTrace(throwable)
+    val url = "/kylin/api/jobs/error"
+
+    val payload: util.HashMap[String, Object] = new util.HashMap[String, Object](5)
+    payload.put("project", project)
+    payload.put("job_id", jobId)
+    payload.put("err_step_id", errStepId)
+    payload.put("err_segment_id", errSegmentId)
+    payload.put("err_stack", errStack)
+    val json = JsonUtil.writeValueAsString(payload)
+
+    context.updateSparkJobInfo(url, json)
   }
 }

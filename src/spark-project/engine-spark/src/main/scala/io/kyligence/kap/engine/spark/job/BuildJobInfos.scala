@@ -22,12 +22,12 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import java.util
-
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NDataLayout, NDataSegment}
 import org.apache.spark.application.RetryInfo
 import org.apache.spark.sql.execution.SparkPlan
+
+import java.util
 
 class BuildJobInfos {
   // BUILD
@@ -65,6 +65,10 @@ class BuildJobInfos {
   private var waitStartTime: Long = 0L
 
   private var jobStepId = ""
+
+  private var segmentId = ""
+
+  private var stageId = ""
 
   def startJob(): Unit = {
     jobStartTime = System.currentTimeMillis()
@@ -202,6 +206,22 @@ class BuildJobInfos {
 
   def getJobStepId: String = {
     jobStepId
+  }
+
+  def recordSegmentId(errSegmentId: String): Unit = {
+    segmentId = errSegmentId
+  }
+
+  def getSegmentId: String = {
+    segmentId
+  }
+
+  def recordStageId(errStageId: String): Unit = {
+    stageId = errStageId
+  }
+
+  def getStageId: String = {
+    stageId
   }
 
   def clear(): Unit = {

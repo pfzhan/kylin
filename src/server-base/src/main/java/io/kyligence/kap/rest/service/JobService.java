@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import lombok.SneakyThrows;
-import org.apache.commons.io.IOUtils;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
@@ -52,6 +50,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -122,6 +121,7 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;
 
@@ -146,6 +146,9 @@ public class JobService extends BasicService {
 
     private static final String TOTAL_DURATION = "total_duration";
     private static final String LAST_MODIFIED = "last_modified";
+    public static final String EXCEPTION_RESOLVE_PATH = "exception_resolve.json";
+    public static final String EXCEPTION_RESOLVE_DEFAULT = "{\"en\": \"/monitor/exception_resolve.html\","
+            + "\"zh-cn\": \"/monitor/exception_resolve.html\"}";
 
     static {
         jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
@@ -502,6 +505,17 @@ public class JobService extends BasicService {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
                     getExecutableManager(project).getOutput(task.getId()), waiteTimeMap, output.getState(),
                     pausedTimeMap);
+            if (StringUtils.startsWith(output.getErrStepId(), task.getId())) {
+                executableStepResponse.setErrStepId(output.getErrStepId());
+                executableStepResponse.setErrSegmentId(output.getErrSegmentId());
+                executableStepResponse.setErrStack(output.getErrStack());
+                val exception = output.getErrStack().split("\n")[0];
+                val exceptionResolve = getExceptionResolve(exception);
+                executableStepResponse.setErrResolve(exceptionResolve);
+                if (StringUtils.equals(output.getErrStepId(), task.getId())) {
+                    executableStepResponse.setErrStepName(task.getName());
+                }
+            }
             if (task instanceof ChainedStageExecutable) {
                 Map<String, List<StageBase>> stagesMap = Optional.ofNullable(((NSparkExecutable) task).getStagesMap())
                         .orElse(Maps.newHashMap());
@@ -522,6 +536,10 @@ public class JobService extends BasicService {
                                 getExecutableManager(project).getOutput(stage.getId(), segmentId), pausedTime);
                         setStage(subStages, stageResponse);
                         stageResponses.add(stageResponse);
+
+                        if (StringUtils.equals(output.getErrStepId(), stage.getId())) {
+                            executableStepResponse.setErrStepName(stage.getName());
+                        }
                     }
 
                     // table sampling and snapshot table don't have some segment
@@ -554,6 +572,24 @@ public class JobService extends BasicService {
         }
         return executableStepList;
 
+    }
+
+    public String getExceptionResolve(String exceptionOrExceptionMessage) {
+        try {
+            val is = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
+            val exceptionResolve = JsonUtil.readValue(is, Map.class);
+            for (Object o : exceptionResolve.entrySet()) {
+                val entry = (Map.Entry) o;
+                if (StringUtils.contains(exceptionOrExceptionMessage, String.valueOf(entry.getKey()))) {
+                    val resolve = exceptionResolve.getOrDefault(entry.getKey(), EXCEPTION_RESOLVE_DEFAULT);
+                    return JsonUtil.writeValueAsString(resolve);
+                }
+            }
+            return EXCEPTION_RESOLVE_DEFAULT;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return EXCEPTION_RESOLVE_DEFAULT;
+        }
     }
 
     private long getSegmentDuration(long execStartTime, long execEndTime) {
@@ -770,6 +806,15 @@ public class JobService extends BasicService {
         for (val job : jobs) {
             updateJobStatus(job.getId(), project, action);
         }
+    }
+
+    @Transaction(project = 0)
+    public void updateJobError(String project, String jobId, String errStepId, String errSegmentId, String errStack) {
+        val executableManager = getExecutableManager(project);
+        if (StringUtils.isBlank(errStepId)) {
+            return;
+        }
+        executableManager.updateJobError(jobId, errStepId, errSegmentId, errStack);
     }
 
     @Transaction(project = 0)

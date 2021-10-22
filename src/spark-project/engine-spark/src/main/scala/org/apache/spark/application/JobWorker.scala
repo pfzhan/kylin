@@ -32,6 +32,8 @@ import org.apache.spark.scheduler.KylinJobEventLoop
 class JobWorker(application: SparkApplication, args: Array[String], eventLoop: KylinJobEventLoop) extends Logging {
   private val pool = Executors.newSingleThreadExecutor()
 
+  def getApplication: SparkApplication = application
+
   eventLoop.registerListener(new KylinJobListener {
     override def onReceive(event: KylinJobEvent): Unit = {
       event match {

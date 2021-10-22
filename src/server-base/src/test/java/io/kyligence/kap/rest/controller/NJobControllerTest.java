@@ -51,6 +51,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.JobErrorRequest;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
@@ -292,6 +293,26 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testUpdateJobError() throws Exception {
+        JobErrorRequest request = new JobErrorRequest();
+        request.setProject("default");
+        request.setJobId("b");
+        request.setErrStepId("c");
+        request.setErrSegmentId("d");
+        request.setErrStack("error");
+
+        Mockito.doNothing().when(jobService).updateJobError(request.getProject(), request.getJobId(),
+                request.getErrStepId(), request.getErrSegmentId(), request.getErrStack());
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/error") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).updateJobError(request);
+    }
+
+    @Test
     public void testUpdateStageStatus() throws Exception {
         StageRequest request = new StageRequest();
         request.setProject("default");
@@ -300,7 +321,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
         request.setStatus("RUNNING");
         Mockito.doNothing().when(jobService).updateStageStatus(request.getProject(), request.getTaskId(),
                 request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
@@ -314,9 +335,9 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
         request.setStatus("RUNNING");
         Mockito.doNothing().when(jobService).updateStageStatus(request.getProject(), request.getTaskId(),
                 request.getSegmentId(), request.getStatus(), request.getUpdateInfo(), request.getErrMsg());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/stage/status") //
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError()).andReturn();
 
         Mockito.verify(nJobController).updateStageStatus(request);
