@@ -1243,9 +1243,12 @@ public class TableService extends BasicService {
         result.setRemoveDimCount(context.getRemoveAffectedModels().values().stream()
                 .map(AffectedModelContext::getDimensions).mapToLong(Set::size).sum());
         result.setDataTypeChangeColumnCount(context.getChangeTypeColumns().size());
+
         val schemaChanged = result.getAddColumnCount() > 0 || result.getRemoveColumnCount() > 0
                 || result.getDataTypeChangeColumnCount() > 0;
-        result.setSnapshotDeleted(schemaChanged);
+        val originTable = getTableManager(project).getTableDesc(context.getTableDesc().getIdentity());
+        result.setSnapshotDeleted(schemaChanged && originTable.getLastSnapshotPath() != null);
+
         val projectInstance = getProjectManager().getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());
