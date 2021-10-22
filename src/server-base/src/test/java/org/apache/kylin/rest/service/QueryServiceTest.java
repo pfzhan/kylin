@@ -1808,6 +1808,159 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
     }
 
+    @Test
+    public void testQueryWithParamWhenTransformWithToSubQuery() {
+        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ReplaceStringWithVarchar,"
+                + "org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,"
+                + "io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,"
+                + "org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,"
+                + "io.kyligence.kap.query.util.WithToSubQueryTransformer");
+
+        PrepareSqlStateParam[] params1 = new PrepareSqlStateParam[2];
+        params1[0] = new PrepareSqlStateParam(Double.class.getCanonicalName(), "123.1");
+        params1[1] = new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123");
+        String originSql1 = "with t1 as (select ORDER_ID, PRICE > ? from test_kylin_fact where ORDER_ID = ?)\n, "
+                + "t2 as (select bf from test_kylin_fact)\n" + "select * from t1 where ORDER_ID = '100'\n" //
+                + "union all\n" //
+                + "select * from t1 where ORDER_ID = '200'";
+        String filledSql1 = "with t1 as (select ORDER_ID, PRICE > 123.1 from test_kylin_fact where ORDER_ID = 123)\n"
+                + ", t2 as (select bf from test_kylin_fact)\n" + "select * from t1 where ORDER_ID = '100'\n"
+                + "union all\n" + "select * from t1 where ORDER_ID = '200'";
+        String transformedFilledSql1 = "SELECT *\n" + "FROM (SELECT ORDER_ID, PRICE > 123.1\n"
+                + "FROM TEST_KYLIN_FACT\n" + "WHERE ORDER_ID = 123) AS T1\n" + "WHERE ORDER_ID = '100'\n"
+                + "UNION ALL\n" + "SELECT *\n" + "FROM (SELECT ORDER_ID, PRICE > 123.1\n" + "FROM TEST_KYLIN_FACT\n"
+                + "WHERE ORDER_ID = 123) AS T1\n" + "WHERE ORDER_ID = '200'";
+        queryWithParamWhenTransformWithToSubQuery(params1, originSql1, filledSql1, transformedFilledSql1);
+
+        PrepareSqlStateParam[] params2 = new PrepareSqlStateParam[1];
+        params2[0] = new PrepareSqlStateParam(Double.class.getCanonicalName(), "456.1");
+        String originSql2 = "with t1 as\n"
+                + " (select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as sum_price, PRICE > ?\n"
+                + " from test_kylin_fact\n" + "inner JOIN edw.test_cal_dt as test_cal_dt\n"
+                + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n" + " inner JOIN test_category_groupings\n"
+                + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
+                + " inner JOIN edw.test_sites as test_sites\n"
+                + " ON test_kylin_fact.lstg_site_id = test_sites.site_id\n"
+                + " group by test_cal_dt.week_beg_dt, PRICE)\n" + "\n" + "SELECT sum(sum_price) AS \"COL\"\n"
+                + " FROM t1 HAVING COUNT(1)>0 limit 10";
+        String filledSql2 = "with t1 as\n"
+                + " (select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as sum_price, PRICE > 456.1\n"
+                + " from test_kylin_fact\n" + "inner JOIN edw.test_cal_dt as test_cal_dt\n"
+                + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n" + " inner JOIN test_category_groupings\n"
+                + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id\n"
+                + " inner JOIN edw.test_sites as test_sites\n"
+                + " ON test_kylin_fact.lstg_site_id = test_sites.site_id\n"
+                + " group by test_cal_dt.week_beg_dt, PRICE)\n" + "\n" + "SELECT sum(sum_price) AS \"COL\"\n"
+                + " FROM t1 HAVING COUNT(1)>0 limit 10";
+        String transformedFilledSql2 = "SELECT SUM(SUM_PRICE) AS COL\n"
+                + "FROM (SELECT TEST_CAL_DT.WEEK_BEG_DT, SUM(TEST_KYLIN_FACT.PRICE) AS SUM_PRICE, PRICE > 456.1\n"
+                + "FROM TEST_KYLIN_FACT\n"
+                + "INNER JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
+                + "INNER JOIN TEST_CATEGORY_GROUPINGS ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n"
+                + "INNER JOIN EDW.TEST_SITES AS TEST_SITES ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n"
+                + "GROUP BY TEST_CAL_DT.WEEK_BEG_DT, PRICE) AS T1\n" + "HAVING COUNT(1) > 0";
+        queryWithParamWhenTransformWithToSubQuery(params2, originSql2, filledSql2, transformedFilledSql2);
+
+        String originSql3 = "with t1 as (select * from test_kylin_fact),\n"
+                + "\t t2 as (select ORDER_ID, PRICE, CAL_DT from test_kylin_fact union all select ORDER_ID, PRICE, CAL_DT from t1),\n"
+                + "\t t3 as (select sum(PRICE) as sum_price, order_id, CAL_DT from t2 group by order_id, CAL_DT order by order_id)\n"
+                + "select * from t3 limit 10";
+        String transformedFilledSql3 = "SELECT *\n" + "FROM (SELECT SUM(PRICE) AS SUM_PRICE, ORDER_ID, CAL_DT\n"
+                + "FROM (SELECT ORDER_ID, PRICE, CAL_DT\n" + "FROM TEST_KYLIN_FACT\n" + "UNION ALL\n"
+                + "SELECT ORDER_ID, PRICE, CAL_DT\n" + "FROM (SELECT *\n" + "FROM TEST_KYLIN_FACT) AS T1) AS T2\n"
+                + "GROUP BY ORDER_ID, CAL_DT\n" + "ORDER BY ORDER_ID) AS T3\n" + "FETCH NEXT 10 ROWS ONLY";
+        queryWithParamWhenTransformWithToSubQuery(null, originSql3, originSql3, transformedFilledSql3);
+
+        String originSql4 = "with t1 as (select TEST_KYLIN_FACT.DEAL_AMOUNT from TEST_KYLIN_FACT as TEST_KYLIN_FACT\n"
+                + "LEFT JOIN TEST_ORDER as TEST_ORDER\n" + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n"
+                + "LEFT JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n"
+                + "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n"
+                + "LEFT JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" + "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n"
+                + "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES as TEST_SITES\n" + "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n"
+                + "LEFT JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n"
+                + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n"
+                + "LEFT JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
+                + "LEFT JOIN TEST_COUNTRY as SELLER_COUNTRY\n"
+                + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY\n"
+                + "LEFT JOIN TEST_COUNTRY as BUYER_COUNTRY\n"
+                + "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY),\n"
+                + "\t t2 as (select * from t1 union all select * from t1)\n" + "select * from t2 limit 10";
+        String transformedFilledSql4 = "SELECT *\n" + "FROM (SELECT *\n" + "FROM (SELECT TEST_KYLIN_FACT.DEAL_AMOUNT\n"
+                + "FROM TEST_KYLIN_FACT AS TEST_KYLIN_FACT\n"
+                + "LEFT JOIN TEST_ORDER AS TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n"
+                + "LEFT JOIN EDW.TEST_SELLER_TYPE_DIM AS TEST_SELLER_TYPE_DIM ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n"
+                + "LEFT JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_CATEGORY_GROUPINGS AS TEST_CATEGORY_GROUPINGS ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES AS TEST_SITES ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n"
+                + "LEFT JOIN TEST_ACCOUNT AS SELLER_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n"
+                + "LEFT JOIN TEST_ACCOUNT AS BUYER_ACCOUNT ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
+                + "LEFT JOIN TEST_COUNTRY AS SELLER_COUNTRY ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY\n"
+                + "LEFT JOIN TEST_COUNTRY AS BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY) AS T1\n"
+                + "UNION ALL\n" + "SELECT *\n" + "FROM (SELECT TEST_KYLIN_FACT.DEAL_AMOUNT\n"
+                + "FROM TEST_KYLIN_FACT AS TEST_KYLIN_FACT\n"
+                + "LEFT JOIN TEST_ORDER AS TEST_ORDER ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n"
+                + "LEFT JOIN EDW.TEST_SELLER_TYPE_DIM AS TEST_SELLER_TYPE_DIM ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n"
+                + "LEFT JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
+                + "LEFT JOIN TEST_CATEGORY_GROUPINGS AS TEST_CATEGORY_GROUPINGS ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n"
+                + "LEFT JOIN EDW.TEST_SITES AS TEST_SITES ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n"
+                + "LEFT JOIN TEST_ACCOUNT AS SELLER_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n"
+                + "LEFT JOIN TEST_ACCOUNT AS BUYER_ACCOUNT ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
+                + "LEFT JOIN TEST_COUNTRY AS SELLER_COUNTRY ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY\n"
+                + "LEFT JOIN TEST_COUNTRY AS BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY) AS T1) AS T2\n"
+                + "FETCH NEXT 10 ROWS ONLY";
+        queryWithParamWhenTransformWithToSubQuery(null, originSql4, originSql4, transformedFilledSql4);
+    }
+
+    private void queryWithParamWhenTransformWithToSubQuery(PrepareSqlStateParam[] params, String originSql,
+            String filledSql, String transformedFilledSql) {
+        // prepare query request
+        final PrepareSqlRequest request = new PrepareSqlRequest();
+        request.setProject("default");
+        request.setSql(originSql);
+        request.setParams(params);
+        final QueryContext queryContext = QueryContext.current();
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+
+        // 1. validate transform with to sub query when replace-dynamic-params open
+        overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "true");
+        queryService.doQueryWithCache(request);
+        Assert.assertEquals(queryContext.getUserSQL(), originSql);
+        // sql after massage will transformed and filled params
+        Assert.assertTrue(queryContext.getMetrics().getOlapCause().getMessage().contains(transformedFilledSql));
+        // validate sql Metrics for query history(pushdown). sql reset to filledSql after pushdown(on tryPushDownSelectQuery).
+        QueryMetricsContext.start(queryContext.getQueryId(), "");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+        if (params != null) {
+            Assert.assertEquals(filledSql, queryContext.getMetrics().getCorrectedSql());
+            Assert.assertEquals(filledSql, QueryMetricsContext.collect(queryContext).getSql());
+        } else {
+            Assert.assertEquals(transformedFilledSql, queryContext.getMetrics().getCorrectedSql());
+            Assert.assertEquals(transformedFilledSql, QueryMetricsContext.collect(queryContext).getSql());
+        }
+        QueryMetricsContext.reset();
+        // validate sql Metrics for query history(model)
+        queryContext.getMetrics().setCorrectedSql(transformedFilledSql);
+        QueryMetricsContext.start(queryContext.getQueryId(), "");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+        Assert.assertEquals(transformedFilledSql, QueryMetricsContext.collect(queryContext).getSql());
+        QueryMetricsContext.reset();
+
+        // 2. validate transform with to sub query when replace-dynamic-params close
+        overwriteSystemProp("kylin.query.replace-dynamic-params-enabled", "false");
+        queryService.doQueryWithCache(request);
+        Assert.assertEquals(queryContext.getUserSQL(), originSql);
+        // when replace-dynamic-params close, transform with to subQuery close too
+        Assert.assertTrue(queryContext.getMetrics().getOlapCause().getMessage().contains(originSql));
+        // validate sql Metrics for query history(pushdown)
+        Assert.assertEquals(filledSql, queryContext.getMetrics().getCorrectedSql());
+        QueryMetricsContext.start(queryContext.getQueryId(), "");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+        Assert.assertEquals(filledSql, QueryMetricsContext.collect(queryContext).getSql());
+        QueryMetricsContext.reset();
+    }
+
     private void updateProjectConfig(String project, String property, String value) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         projectManager.updateProject(project,
