@@ -71,7 +71,7 @@ public abstract class IndexMatcher {
     final Map<String, List<Integer>> foreignKeyColumnIds;
     final ImmutableMultimap<Integer, Integer> fk2Pk;
 
-    final Map<Integer, DeriveInfo> defaultDeriveCollector = Maps.newHashMap();
+    final Map<Integer, DeriveInfo> toManyDerivedInfoMap = Maps.newHashMap();
 
     IndexMatcher(SQLDigest sqlDigest, ChooserContext chooserContext, Set<String> excludedTables) {
         this.sqlDigest = sqlDigest;
@@ -92,11 +92,12 @@ public abstract class IndexMatcher {
         model.getJoinTables().forEach(joinTableDesc -> {
             if (checker.getExcludedLookups().contains(joinTableDesc.getTable())) {
                 JoinDesc join = joinTableDesc.getJoin();
-                if (!needJoinSnapshot(join)) {
+                if (!joinTableDesc.isToManyJoinRelation() || !needJoinSnapshot(join)) {
                     return;
                 }
                 int foreignKeyId = foreignKeyColumnIds.get(joinTableDesc.getAlias()).get(0);
-                defaultDeriveCollector.put(foreignKeyId,
+                int primaryKeyId = primaryKeyColumnIds.get(joinTableDesc.getAlias()).get(0);
+                toManyDerivedInfoMap.put(primaryKeyId,
                         new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, join, Lists.newArrayList(foreignKeyId), false));
             }
         });
@@ -120,7 +121,7 @@ public abstract class IndexMatcher {
 
         }
 
-        needDeriveCollector.putAll(defaultDeriveCollector);
+        needDeriveCollector.putAll(toManyDerivedInfoMap);
     }
 
     private boolean needJoinSnapshot(JoinDesc join) {

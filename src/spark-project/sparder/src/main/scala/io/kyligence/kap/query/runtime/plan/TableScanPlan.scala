@@ -174,9 +174,12 @@ object TableScanPlan extends LogEx {
     dimensionsD.addAll(otherDimsD)
     val model = context.getCandidate.getLayoutEntity.getModel
     context.getCandidate.getDerivedToHostMap.asScala.toList.foreach(m => {
-      if (m._2.`type` == DeriveInfo.DeriveType.LOOKUP
-        && !m._2.isOneToOne && mapping.getIndexOf(model.getColRef(m._1)) != -1) {
-        dimensionsD.add(model.getColRef(m._1))
+      if (m._2.`type` == DeriveInfo.DeriveType.LOOKUP && !m._2.isOneToOne) {
+        m._2.columns.asScala.foreach(derivedId => {
+          if (mapping.getIndexOf(model.getColRef(derivedId)) != -1) {
+            dimensionsD.add(model.getColRef(derivedId))
+          }
+        })
       }
     })
     val gtColIdx = mapping.getDimIndices(dimensionsD) ++ mapping
