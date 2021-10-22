@@ -471,6 +471,20 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetModelDescWithTableRefsAndCCInfo() throws Exception {
+        String project = "default";
+        String modelAlias = "model1";
+        mockGetModelName(modelAlias, project, RandomUtil.randomUUIDStr());
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andReturn();
+        Mockito.verify(openModelController).getModelDesc(project, modelAlias);
+        Assert.assertNotNull(result.getResponse().getContentAsString().contains("all_table_refs"));
+        Assert.assertNotNull(result.getResponse().getContentAsString().contains("computed_columns"));
+    }
+
+    @Test
     public void testGetModelDescForStreaming() throws Exception {
         String project = "streaming_test";
         String modelAlias = "model_streaming";

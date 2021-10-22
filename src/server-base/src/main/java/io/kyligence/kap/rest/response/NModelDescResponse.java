@@ -26,14 +26,17 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.kylin.metadata.model.TableRef;
 
 @Data
 public class NModelDescResponse implements Serializable {
@@ -57,6 +60,10 @@ public class NModelDescResponse implements Serializable {
     private List<NDataModel.Measure> measures;
     @JsonProperty("aggregation_groups")
     private List<AggGroupResponse> aggregationGroups;
+    @JsonProperty("all_table_refs")
+    private Set<TableRef> allTableRefs;
+    @JsonProperty("computed_columns")
+    private List<ComputedColumnDesc> computedColumnDescs;
 
     @Data
     @AllArgsConstructor

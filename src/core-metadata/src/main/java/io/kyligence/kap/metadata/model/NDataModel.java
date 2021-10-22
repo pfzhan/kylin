@@ -411,6 +411,7 @@ public class NDataModel extends RootPersistentEntity {
         this.recommendationsCount = other.recommendationsCount;
         this.modelType = other.modelType;
         this.fusionId = other.fusionId;
+        this.allTableRefs = other.allTableRefs;
     }
 
     public KylinConfig getConfig() {
