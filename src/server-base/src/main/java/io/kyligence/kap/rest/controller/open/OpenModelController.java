@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -701,6 +702,17 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(project);
         String modelId = getModel(modelAlias, projectName).getId();
         modelController.exportModel(modelId, projectName, exportAs, element, host, port, request, response);
+    }
+
+    @ApiOperation(value = "updateModelName", tags = { "AI" })
+    @PutMapping(value = "/{model_name}/name")
+    @ResponseBody
+    public EnvelopeResponse<String> updateModelName(@PathVariable("model_name") String modelAlias,
+                                                    @RequestBody ModelUpdateRequest modelRenameRequest) {
+        String projectName = checkProjectName(modelRenameRequest.getProject());
+        String modelId = getModel(modelAlias, projectName).getId();
+        checkRequiredArg(NModelController.MODEL_ID, modelId);
+        return modelController.updateModelName(modelId, modelRenameRequest);
     }
 
     private void checkProjectMLP(String project) {

@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -854,6 +855,24 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(MsgPicker.getMsg().getINDEX_SORT_BY_ERROR(), e.getMessage());
         }
     }
+
+    @Test
+    public void testOpenapiUpdateModelName() throws Exception{
+        String project = "default";
+        String new_model_name = "newName";
+        String model = "model1";
+        mockGetModelName(model, project, RandomUtil.randomUUIDStr());
+        ModelUpdateRequest modelUpdateRequest = new ModelUpdateRequest();
+        modelUpdateRequest.setProject(project);
+        modelUpdateRequest.setNewModelName(new_model_name);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/name", model)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(modelUpdateRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).updateModelName(model, modelUpdateRequest);
+    }
+
 
     private void changeProjectToSemiAutoMode(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
