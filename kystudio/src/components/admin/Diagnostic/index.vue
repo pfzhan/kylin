@@ -428,7 +428,8 @@ export default class Diagnostic extends Vue {
       if (this.isQueryHistory) {
         await this.getQueryDiagnostic({
           host: `http://${host.trim()}`,
-          ...data
+          ...data,
+          tm: this.getTimes()
           // isIframe: this.$store.state.config.platform === 'iframe'
         }).then(() => {
           // apiErrorNum += 1
