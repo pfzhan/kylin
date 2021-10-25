@@ -24,9 +24,10 @@
 
 package io.kyligence.kap.query.asyncprofiler
 
+import io.kyligence.kap.common.obf.IKeep
 import org.apache.spark.api.plugin.{DriverPlugin, ExecutorPlugin, SparkPlugin}
 
-class AsyncProfilerSparkPlugin extends SparkPlugin {
+class AsyncProfilerSparkPlugin extends SparkPlugin with IKeep {
 
   override def driverPlugin(): DriverPlugin = new AsyncProfilerDriverPlugin
 

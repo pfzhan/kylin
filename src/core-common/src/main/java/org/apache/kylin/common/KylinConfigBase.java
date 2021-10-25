@@ -1468,7 +1468,8 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
 
     public boolean asyncProfilingEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.query.async-profiler-enabled", TRUE));
+        return !Boolean.parseBoolean(System.getProperty("spark.local", FALSE))
+                && Boolean.parseBoolean(getOptional("kylin.query.async-profiler-enabled", TRUE));
     }
 
     public long asyncProfilingResultTimeout() {

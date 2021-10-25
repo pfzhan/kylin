@@ -28,10 +28,11 @@ import java.util
 import java.util.concurrent.{Executors, TimeUnit}
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
+import io.kyligence.kap.common.obf.IKeep
 import org.apache.spark.api.plugin.{ExecutorPlugin, PluginContext}
 import org.apache.spark.internal.Logging
 
-class AsyncProfilerExecutorPlugin extends ExecutorPlugin with Logging {
+class AsyncProfilerExecutorPlugin extends ExecutorPlugin with IKeep with Logging {
 
   private val checkingInterval: Long = 1000
   private var ctx: PluginContext = _

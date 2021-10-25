@@ -26,11 +26,12 @@ package io.kyligence.kap.query.asyncprofiler
 
 import java.util
 
+import io.kyligence.kap.common.obf.IKeep
 import org.apache.spark.SparkContext
 import org.apache.spark.api.plugin.{DriverPlugin, PluginContext}
 import org.apache.spark.internal.Logging
 
-class AsyncProfilerDriverPlugin extends DriverPlugin with Logging {
+class AsyncProfilerDriverPlugin extends DriverPlugin with IKeep with Logging {
 
   override def init(sc: SparkContext, pluginContext: PluginContext): util.Map[String, String] = super.init(sc, pluginContext)
 

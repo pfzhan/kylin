@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.query.asyncprofiler;
 
+import io.kyligence.kap.common.obf.IKeep;
+
 import java.io.IOException;
 
-public class AsyncProfiler {
+public class AsyncProfiler implements IKeep {
 
     private static final String LOCAL_DEV_LIB_PATH =
             "../spark-project/sparder/src/main/resources/async-profiler-lib/macOS/libasyncProfiler.so";
@@ -36,14 +38,15 @@ public class AsyncProfiler {
 
     public static synchronized AsyncProfiler getInstance() throws IOException {
         if (profiler == null) {
-            boolean isLocalDev = Boolean.parseBoolean(System.getProperty("async.profiler.dev", "false"));
-            profiler = new AsyncProfiler(isLocalDev);
+            profiler = new AsyncProfiler();
         }
         return profiler;
     }
 
-    private AsyncProfiler(boolean localDev) throws IOException {
-        if (localDev) {
+    private AsyncProfiler() throws IOException {
+        boolean isTestingOnLocalMac = System.getProperty("os.name", "").contains("Mac")
+                || System.getProperty("os.name", "").contains("OS X");
+        if (isTestingOnLocalMac) {
             System.load(new java.io.File(LOCAL_DEV_LIB_PATH).getAbsolutePath());
         } else {
             final java.nio.file.Path tmpLib = java.io.File.createTempFile("libasyncProfiler", ".so").toPath();
