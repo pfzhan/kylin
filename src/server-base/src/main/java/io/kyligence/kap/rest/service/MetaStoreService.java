@@ -41,6 +41,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -125,6 +126,7 @@ public class MetaStoreService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(MetaStoreService.class);
     private static final String META_ROOT_PATH = "/";
 
+    private static final String BASE_CUBOID_ALWAYS_VALID_KEY = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
     private static final Pattern MD5_PATTERN = Pattern.compile(".*([a-fA-F\\d]{32})\\.zip");
 
     @Autowired
@@ -236,7 +238,12 @@ public class MetaStoreService extends BasicService {
                 IndexPlan copyIndexPlan = indexPlanManager.copy(indexPlanManager.getIndexPlan(modelId));
 
                 if (!exportOverProps) {
-                    copyIndexPlan.setOverrideProps(Maps.newLinkedHashMap());
+                    LinkedHashMap<String, String> overridePropes = Maps.newLinkedHashMap();
+                    if (copyIndexPlan.getOverrideProps().get(BASE_CUBOID_ALWAYS_VALID_KEY) != null) {
+                        overridePropes.put(BASE_CUBOID_ALWAYS_VALID_KEY,
+                                copyIndexPlan.getOverrideProps().get(BASE_CUBOID_ALWAYS_VALID_KEY));
+                    }
+                    copyIndexPlan.setOverrideProps(overridePropes);
                     modelDesc.setSegmentConfig(new SegmentConfig());
                 }
 

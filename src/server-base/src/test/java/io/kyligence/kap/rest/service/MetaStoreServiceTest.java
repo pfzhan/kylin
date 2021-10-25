@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.common.constant.Constants.KE_VERSION;
@@ -38,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -102,6 +101,7 @@ import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.candidate.JdbcRawRecStore;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelImportRequest;
 import io.kyligence.kap.rest.response.ModelPreviewResponse;
 import lombok.val;
@@ -169,6 +169,16 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         List<NDataModel> dataModelList = dataflowList.stream().filter(df -> !df.checkBrokenWithRelatedInfo())
                 .map(NDataflow::getModel).collect(Collectors.toList());
         List<String> modelIdList = dataModelList.stream().map(NDataModel::getId).collect(Collectors.toList());
+        val modelConfigRequest = new ModelConfigRequest();
+        String modelId = modelIdList.get(0);
+        String affectProp = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
+        modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>() {
+            {
+                put(affectProp, "false");
+            }
+        });
+        modelService.updateModelConfig(getProject(), modelId, modelConfigRequest);
+
         ByteArrayOutputStream byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
                 modelIdList, false, false, false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
@@ -197,6 +207,7 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, getProject());
         Assert.assertTrue(indexPlanManager.listAllIndexPlans().stream()
                 .anyMatch(indexPlan -> !indexPlan.getOverrideProps().isEmpty()));
+        Assert.assertEquals("false", indexPlanManager.getIndexPlan(modelId).getOverrideProps().get(affectProp));
     }
 
     @Test
@@ -217,7 +228,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
             String path = entry.getKey();
             if (path.endsWith(".json")) {
                 RawResource rawResource = entry.getValue();
-                String jsonString = IOUtils.toString(rawResource.getByteSource().openStream(), StandardCharsets.UTF_8).trim();
+                String jsonString = IOUtils.toString(rawResource.getByteSource().openStream(), StandardCharsets.UTF_8)
+                        .trim();
                 Assert.assertEquals(JsonUtil.readValueAsTree(jsonString).toPrettyString(), jsonString);
             }
         }
@@ -244,7 +256,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         Assert.assertEquals(4, rawRecItems1.size());
         // export recommendations
         val byteArrayOutputStream = metaStoreService.getCompressedModelMetadata(getProject(),
-                Lists.newArrayList("1af229fb-bb2c-42c5-9663-2bd92b50a861", "7212bf0c-0716-4cef-b623-69c161981262"), true, false, false);
+                Lists.newArrayList("1af229fb-bb2c-42c5-9663-2bd92b50a861", "7212bf0c-0716-4cef-b623-69c161981262"),
+                true, false, false);
         Assert.assertTrue(ArrayUtils.isNotEmpty(byteArrayOutputStream.toByteArray()));
         val rawResourceMap = getRawResourceFromZipFile(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
 
