@@ -303,12 +303,12 @@
                     <i class="el-icon-time"></i>
                     {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
                   </span> -->
-                  <!-- <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR'" :closable="false">
+                  <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR' && step.err_step_name" :closable="false">
                     <p slot="title">
-                      错误提示的文案
+                      {{$t('errorStepTips', {name: getSubTasksName(step.err_step_name)})}}
                       <el-button nobg-text size="small" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
                     </p>
-                  </el-alert> -->
+                  </el-alert>
                   <el-alert class="ksd-mb-8" type="tip" show-icon v-if="'segment_sub_stages' in step && step.segment_sub_stages && Object.keys(step.segment_sub_stages).length > 1" :closable="false">
                     <p slot="title">{{$t('buildSegmentTips', {segments: Object.keys(step.segment_sub_stages).length, successLen: getSegmentStatusLen(step, 'FINISHED'), pendingLen: getSegmentStatusLen(step, 'PENDING'), runningLen: getSegmentStatusLen(step, 'RUNNING')})}}
                       <el-button nobg-text size="small" @click="viewSegmentDetails(step, step.id)">{{$t('viewDetails')}}</el-button>

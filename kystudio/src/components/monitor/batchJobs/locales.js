@@ -141,7 +141,8 @@ export default {
     step_error_stop: 'Stopped',
     step_discarded: 'Discarded',
     step_stopped: 'Paused',
-    step_skip: 'Skipped'
+    step_skip: 'Skipped',
+    errorStepTips: 'Job interrupted, "{name}" step error'
   },
   'zh-cn': {
     dataRange: '数据范围',
@@ -285,6 +286,7 @@ export default {
     step_error_stop: '已停止',
     step_discarded: '已丢弃',
     step_stopped: ' 已暂停',
-    step_skip: '已跳过'
+    step_skip: '已跳过',
+    errorStepTips: '任务中断，"{name}"步骤错误'
   }
 }
