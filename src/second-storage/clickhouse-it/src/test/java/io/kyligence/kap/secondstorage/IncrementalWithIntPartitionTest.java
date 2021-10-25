@@ -140,6 +140,13 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
 
         mergeSegments(segs);
         Assert.assertEquals(1, dataflowManager.getDataflow(modelId).getQueryableSegments().size());
+        checkSizeInNode();
+        secondStorageService.sizeInNode(project);
+        checkSizeInNode();
+    }
+
+    private void checkSizeInNode() {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
         val expectSegments = dataflowManager.getDataflow(modelId).getSegments().stream().map(NDataSegment::getId).collect(Collectors.toSet());
         val tableData = tableFlowManager.orElseThrow(null).get(modelId).orElseThrow(null).getTableDataList().get(0);

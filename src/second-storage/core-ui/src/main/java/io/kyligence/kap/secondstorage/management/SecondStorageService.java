@@ -396,6 +396,8 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             });
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        // refresh size in clickhouse node
+        sizeInNode(project);
     }
 
     @Transaction(project = 0)
@@ -417,7 +419,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         SecondStorageUtil.checkSecondStorageData(project);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         List<TableFlow> tableFlows = SecondStorageUtil.listTableFlow(config, project);
-
+        NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         SecondStorageProjectModelSegment projectModelSegment = new SecondStorageProjectModelSegment();
         Map<String, SecondStorageModelSegment> modelSegmentMap = new HashMap<>();
@@ -425,15 +427,19 @@ public class SecondStorageService extends BasicService implements SecondStorageU
             String uuid = tableFlow.getUuid();
             Map<String, SecondStorageSegment> segmentRangeMap = new HashMap<>();
             NDataflow dataflow = dataflowManager.getDataflow(tableFlow.getUuid());
-            for(TableData tableData : tableFlow.getTableDataList()) {
-                for(TablePartition tablePartition : tableData.getPartitions()) {
+            for (TableData tableData : tableFlow.getTableDataList()) {
+                for (TablePartition tablePartition : tableData.getPartitions()) {
                     SegmentRange<Long> segmentRange = dataflow.getSegment(tablePartition.getSegmentId()).getSegRange();
                     segmentRangeMap.put(tablePartition.getSegmentId(),
-                            new SecondStorageSegment(tablePartition.getSegmentId(), segmentRange.getStart(), segmentRange.getEnd()));
+                            new SecondStorageSegment(tablePartition.getSegmentId(), segmentRange));
                 }
             }
-
-            SecondStorageModelSegment modelSegment = new SecondStorageModelSegment(tableFlow.getUuid(), segmentRangeMap);
+            val model = modelManager.getDataModelDesc(tableFlow.getUuid());
+            String dateFormat = null;
+            if (model.isIncrementBuildOnExpertMode()) {
+                dateFormat = model.getPartitionDesc().getPartitionDateFormat();
+            }
+            SecondStorageModelSegment modelSegment = new SecondStorageModelSegment(tableFlow.getUuid(), dateFormat, segmentRangeMap);
             modelSegmentMap.put(uuid, modelSegment);
         }
         projectModelSegment.setProject(project);
@@ -445,8 +451,6 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         DefaultSecondStorageProperties defaultSecondStorageProperties = new DefaultSecondStorageProperties(properties);
         MetadataOperator metadataOperator = SecondStorageFactoryUtils.createMetadataOperator(STORAGE_SEGMENT_METADATA_FACTORY, defaultSecondStorageProperties);
         metadataOperator.sizeInNode();
-
-        return;
     }
 
     public List<ProjectNode> projectNodes(String project) {

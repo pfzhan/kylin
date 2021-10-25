@@ -226,6 +226,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         Unsafe.setProperty(CONFIG_CLICKHOUSE_QUERY_CATALOG, queryCatalog);
         secondStorageEndpoint.refreshConf();
         Mockito.verify(aclEvaluate).checkIsGlobalAdmin();
+        secondStorageService.sizeInNode(project);
 
         //build
         NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);

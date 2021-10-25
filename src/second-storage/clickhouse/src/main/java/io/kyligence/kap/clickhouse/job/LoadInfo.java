@@ -23,21 +23,7 @@
  */
 package io.kyligence.kap.clickhouse.job;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
-
-import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
-import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.metadata.model.SegmentRange;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -47,6 +33,15 @@ import io.kyligence.kap.secondstorage.metadata.TableData;
 import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import lombok.val;
+import org.apache.kylin.common.util.RandomUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class LoadInfo {
     final NDataModel model;
@@ -169,17 +164,14 @@ public class LoadInfo {
         }
         val metric = new ClickHouseTableStorageMetric(Arrays.asList(this.nodeNames));
         metric.collect();
-        Map<String, Long> sizeInNode;
+
         Preconditions.checkNotNull(targetDatabase);
         Preconditions.checkNotNull(targetTable);
-        if (segment.getSegRange().isInfinite()) {
-            sizeInNode = metric.getByPartitions(targetDatabase, targetTable, Collections.singletonList("tuple()"));
-        } else {
-            SimpleDateFormat partitionFormat = new SimpleDateFormat(model.getPartitionDesc().getPartitionDateFormat(), Locale.getDefault(Locale.Category.FORMAT));
-            sizeInNode = metric.getByPartitions(targetDatabase, targetTable,
-                    SecondStorageDateUtils.splitByDay((SegmentRange<Long>) segment.getSegRange()).stream()
-                            .map(partitionFormat::format).collect(Collectors.toList()));
+        String dateFormat = null;
+        if (model.isIncrementBuildOnExpertMode()) {
+            dateFormat = model.getPartitionDesc().getPartitionDateFormat();
         }
+        Map<String, Long> sizeInNode = metric.getByPartitions(targetDatabase, targetTable, segment.getSegRange(), dateFormat);
         return TablePartition.builder().setSegmentId(segmentId).setShardNodes(Arrays.asList(nodeNames))
                 .setId(RandomUtil.randomUUIDStr()).setNodeFileMap(nodeFileMap).setSizeInNode(sizeInNode).build();
     }

@@ -50,7 +50,6 @@ import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SizeInNodeResponse;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
-import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
 import io.kyligence.kap.secondstorage.util.SecondStorageSqlUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,12 +58,10 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -164,40 +161,33 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
         ClickHouseTableStorageMetric storageMetric = new ClickHouseTableStorageMetric(new ArrayList<>(nodes));
         storageMetric.collect();
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            tableFlows.stream().forEach(tableFlow -> {
+            tableFlows.forEach(tableFlow -> {
                 tableFlow.update(copied -> {
-                    copied.getTableDataList().stream().forEach(tableData -> {
+                    copied.getTableDataList().forEach(tableData -> {
                         List<TablePartition> tablePartitions = tableData.getPartitions();
                         for (TablePartition tablePartition : tablePartitions) {
-                            SecondStorageSegment secondStorageSegment = modelSegmentMap.get(tableFlow.getUuid()).getSegmentMap().get(tablePartition.getSegmentId());
-                            List<String> partitions = Collections.singletonList("tuple()");
-                            if(!SecondStorageDateUtils.isInfinite(secondStorageSegment.getStart(), secondStorageSegment.getEnd())) {
-                                partitions = SecondStorageDateUtils.splitByDayStr(secondStorageSegment.getStart(), secondStorageSegment.getEnd());
-                            }
-                            Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(), partitions
-                                            .stream().map(Objects::toString).collect(Collectors.toList()));
-
+                            SecondStorageModelSegment modelSegment = modelSegmentMap.get(tableFlow.getUuid());
+                            SecondStorageSegment secondStorageSegment = modelSegment.getSegmentMap().get(tablePartition.getSegmentId());
+                            Map<String, Long> sizeInNodeMap = storageMetric.getByPartitions(tableData.getDatabase(), tableData.getTable(), secondStorageSegment.getSegmentRange(), modelSegment.getDateFormat());
                             Set<String> existShardNodes = new HashSet<>(tablePartition.getShardNodes());
                             List<String> addShardNodes = nodes.stream()
                                     .filter(node -> !existShardNodes.contains(node))
                                     .collect(Collectors.toList());
 
-                            tablePartition.getSizeInNode().entrySet().stream().forEach(
+                            tablePartition.getSizeInNode().entrySet().forEach(
                                     e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
                             );
 
                             List<String> shardNodes = new ArrayList<>(tablePartition.getShardNodes());
                             shardNodes.addAll(addShardNodes);
 
-                            Map<String, Long> sizeInNode = new HashMap<>();
-                            sizeInNode.putAll(tablePartition.getSizeInNode());
+                            Map<String, Long> sizeInNode = new HashMap<>(tablePartition.getSizeInNode());
 
-                            sizeInNode.entrySet().stream().forEach(
+                            sizeInNode.entrySet().forEach(
                                     e -> e.setValue(sizeInNodeMap.getOrDefault(e.getKey(), 0L))
                             );
 
-                            Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>();
-                            nodeFileMap.putAll(tablePartition.getNodeFileMap());
+                            Map<String, List<SegmentFileStatus>> nodeFileMap = new HashMap<>(tablePartition.getNodeFileMap());
 
                             for (String node : addShardNodes) {
                                 sizeInNode.put(node, sizeInNodeMap.getOrDefault(node, 0L));

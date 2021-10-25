@@ -27,14 +27,25 @@ import java.util.Map;
 
 public class SecondStorageModelSegment {
     private String uuid;
+    private String dateFormat;
     private Map<String, SecondStorageSegment> segmentMap;
 
     public SecondStorageModelSegment() {
     }
 
-    public SecondStorageModelSegment(String uuid, Map<String, SecondStorageSegment> segmentMap) {
+    public SecondStorageModelSegment(String uuid, String dateFormat, Map<String, SecondStorageSegment> segmentMap) {
         this.uuid = uuid;
+        this.dateFormat = dateFormat;
         this.segmentMap = segmentMap;
+    }
+
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public SecondStorageModelSegment setDateFormat(final String dateFormat) {
+        this.dateFormat = dateFormat;
+        return this;
     }
 
     public String getUuid() {

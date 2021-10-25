@@ -23,38 +23,22 @@
  */
 package io.kyligence.kap.secondstorage.config;
 
+import org.apache.kylin.metadata.model.SegmentRange;
+
 public class SecondStorageSegment {
     private String segmentId;
-    private long start;
-    private long end;
+    private SegmentRange segmentRange;
 
-    public SecondStorageSegment(String segmentId, long start, long end) {
+    public SecondStorageSegment(String segmentId, SegmentRange segmentRange) {
         this.segmentId = segmentId;
-        this.start = start;
-        this.end = end;
+        this.segmentRange = segmentRange;
     }
 
     public String getSegmentId() {
         return segmentId;
     }
 
-    public void setSegmentId(String segmentId) {
-        this.segmentId = segmentId;
-    }
-
-    public long getStart() {
-        return start;
-    }
-
-    public void setStart(long start) {
-        this.start = start;
-    }
-
-    public long getEnd() {
-        return end;
-    }
-
-    public void setEnd(long end) {
-        this.end = end;
+    public SegmentRange getSegmentRange() {
+        return segmentRange;
     }
 }
