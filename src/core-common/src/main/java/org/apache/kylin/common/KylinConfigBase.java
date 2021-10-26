@@ -2401,6 +2401,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.source.hive.table-access-filter-enabled", "false"));
     }
 
+    public String[] getHiveDatabases() {
+        return getOptionalStringArray("kylin.source.hive.databases", new String[0]);
+    }
+
     private double safeParseDouble(String value, double defaultValue) {
         double result = defaultValue;
         if (StringUtils.isEmpty(value)) {

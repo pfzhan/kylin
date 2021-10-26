@@ -1118,7 +1118,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         });
         Assert.assertEquals(response.getDatabases().size(), 3);
         Assert.assertEquals(response.getDatabases().get(0).getTables().size()
-                        + response.getDatabases().get(1).getTables().size() + response.getDatabases().get(2).getTables().size(),
+                + response.getDatabases().get(1).getTables().size() + response.getDatabases().get(2).getTables().size(),
                 20);
 
         response = tableService.getProjectTables("default", "TEST", 0, 14, true, (databaseName, tableName) -> {
@@ -1191,9 +1191,23 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testloadProjectHiveTableNameToCacheImmediately() throws Exception {
         List<?> tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
         Assert.assertEquals(tables.size(), 0);
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.source.hive.databases", "default");
+        Assert.assertEquals(1, KylinConfig.getInstanceFromEnv().getHiveDatabases().length);
         tableService.loadProjectHiveTableNameToCacheImmediately("default", true);
         tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
-        Assert.assertEquals(tables.size(), 6);
+        Assert.assertEquals(0, tables.size());
+
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("default").getConfig()
+                .setProperty("kylin.source.hive.databases", "ssb");
+        tableService.loadProjectHiveTableNameToCacheImmediately("default", true);
+        tables = tableService.getTableNameResponsesInCache("default", "SSB", "");
+        Assert.assertEquals(6, tables.size());
+
+        NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("default").setPrincipal("default");
+        tableService.loadHiveTableNameToCache();
+        tables = tableService.getTableNameResponsesInCache("default", "EDW", "");
+        Assert.assertEquals(0, tables.size());
     }
 
     @Test

@@ -30,6 +30,8 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIE
 import java.io.File;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,6 +50,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
@@ -92,25 +95,42 @@ public class NHiveTableName implements Runnable {
         logger.info("Now start load hive table name");
         long now = System.currentTimeMillis();
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        Map<String, UserGroupInformation> ugiInfos = Maps.newHashMap();
-        ugiInfos.put(UserGroupInformation.getLoginUser().getUserName(), UserGroupInformation.getLoginUser());
+        Map<String, Pair<String, UserGroupInformation>> ugiInfos = Maps.newHashMap();
+        ugiInfos.put(UserGroupInformation.getLoginUser().getUserName(),
+                Pair.newPair("", UserGroupInformation.getLoginUser()));
         projectManager.listAllProjects().stream().filter(p -> StringUtils.isNotBlank(p.getPrincipal()))
                 .forEach(project -> {
                     try {
                         UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project.getName());
-                        ugiInfos.put(geHiveInfoKeyByProjectName(project.getName()), ugi);
+                        ugiInfos.put(geHiveInfoKeyByProjectName(project.getName()),
+                                Pair.newPair(project.getName(), ugi));
                     } catch (Exception e) {
                         logger.error("The kerberos information of the project {} is incorrect.", project.getName());
                     }
                 });
 
         ugiInfos.entrySet().forEach(info -> {
-            NHiveSourceInfo hiveSourceInfo = fetchUGITables(info.getValue());
+            val pair = info.getValue();
+            NHiveSourceInfo hiveSourceInfo = fetchUGITables(pair.getSecond(), getHiveFilterList(pair.getFirst()));
             setAllTables(hiveSourceInfo, info.getKey());
         });
 
         long timeInterval = (System.currentTimeMillis() - now) / 1000;
         logger.info("Load hive table name successful within {} second", timeInterval);
+    }
+
+    private List<String> getHiveFilterList(String project) {
+        if (StringUtils.isEmpty(project)) {
+            return Collections.emptyList();
+        }
+        val config = KylinConfig.getInstanceFromEnv();
+        String[] databases = NProjectManager.getInstance(config).getProject(project).getConfig().getHiveDatabases();
+        if (databases.length == 0) {
+            databases = config.getHiveDatabases();
+        }
+        return Arrays.stream(databases) //
+                .map(str -> str.toUpperCase(Locale.ROOT)) //
+                .collect(Collectors.toList());
     }
 
     private void checkIsAllNode() {
@@ -161,7 +181,7 @@ public class NHiveTableName implements Runnable {
 
         if (force && !isRunnings.get(keyName)) {
             isRunnings.put(keyName, true);
-            NHiveSourceInfo sourceInfo = fetchUGITables(ugi);
+            NHiveSourceInfo sourceInfo = fetchUGITables(ugi, getHiveFilterList(project));
             setAllTables(sourceInfo, keyName);
             isRunnings.put(keyName, false);
             lastLoadTimes.put(keyName, System.currentTimeMillis());
@@ -173,14 +193,13 @@ public class NHiveTableName implements Runnable {
         return response;
     }
 
-    public NHiveSourceInfo fetchUGITables(UserGroupInformation ugi) {
+    public NHiveSourceInfo fetchUGITables(UserGroupInformation ugi, List<String> filterList) {
         logger.info("Load hive tables from ugi {}", ugi.getUserName());
         NHiveSourceInfo sourceInfo = null;
         if (UserGroupInformation.isSecurityEnabled()) {
-            sourceInfo = ugi.doAs((PrivilegedAction<NHiveSourceInfo>) this::fetchTables);
-
+            sourceInfo = ugi.doAs((PrivilegedAction<NHiveSourceInfo>) () -> fetchTables(filterList));
         } else {
-            sourceInfo = fetchTables();
+            sourceInfo = fetchTables(filterList);
         }
 
         return sourceInfo;
@@ -195,10 +214,11 @@ public class NHiveTableName implements Runnable {
         });
     }
 
-    public NHiveSourceInfo fetchTables() {
+    public NHiveSourceInfo fetchTables(List<String> filterList) {
         NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
         try {
             List<String> dbs = explr.listDatabases().stream().map(str -> str.toUpperCase(Locale.ROOT))
+                    .filter(str -> filterList.isEmpty() || filterList.contains(str)) //
                     .collect(Collectors.toList());
             Map<String, List<String>> newTables = listTables(dbs);
             sourceInfo.setTables(newTables);
