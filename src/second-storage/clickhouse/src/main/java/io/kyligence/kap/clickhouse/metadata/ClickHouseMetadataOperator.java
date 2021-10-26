@@ -51,6 +51,7 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SizeInNodeResponse;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
 import io.kyligence.kap.secondstorage.util.SecondStorageSqlUtils;
+import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
@@ -165,6 +166,7 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                 tableFlow.update(copied -> {
                     copied.getTableDataList().forEach(tableData -> {
                         List<TablePartition> tablePartitions = tableData.getPartitions();
+                        val newTablePartitions = new ArrayList<TablePartition>();
                         for (TablePartition tablePartition : tablePartitions) {
                             SecondStorageModelSegment modelSegment = modelSegmentMap.get(tableFlow.getUuid());
                             SecondStorageSegment secondStorageSegment = modelSegment.getSegmentMap().get(tablePartition.getSegmentId());
@@ -200,8 +202,9 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
                                     .setShardNodes(shardNodes)
                                     .setSizeInNode(sizeInNode)
                                     .setNodeFileMap(nodeFileMap);
-                            tableData.addPartition(builder.build());
+                            newTablePartitions.add(builder.build());
                         }
+                        newTablePartitions.forEach(tableData::addPartition);
                     });
                 });
             });
