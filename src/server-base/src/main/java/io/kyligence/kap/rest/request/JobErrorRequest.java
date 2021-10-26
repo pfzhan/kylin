@@ -34,10 +34,10 @@ public class JobErrorRequest implements ProjectInsensitiveRequest {
     private String project;
     @JsonProperty("job_id")
     private String jobId;
-    @JsonProperty("err_step_id")
-    private String errStepId;
-    @JsonProperty("err_segment_id")
-    private String errSegmentId;
-    @JsonProperty("err_stack")
-    private String errStack;
+    @JsonProperty("failed_step_id")
+    private String failedStepId;
+    @JsonProperty("failed_segment_id")
+    private String failedSegmentId;
+    @JsonProperty("failed_stack")
+    private String failedStack;
 }

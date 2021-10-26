@@ -279,8 +279,7 @@ public abstract class AbstractExecutable implements Executable {
             });
         } else if (result.skip()) {
             wrapWithCheckQuit(() -> {
-                updateJobOutput(project, getId(), ExecutableState.SKIP, result.getExtraInfo(), result.output(),
-                        null);
+                updateJobOutput(project, getId(), ExecutableState.SKIP, result.getExtraInfo(), result.output(), null);
             });
         } else {
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_FAILED_STEP_ATTEMPTED, MetricsCategory.PROJECT, project,
@@ -311,12 +310,12 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
-            String output, String errMsg, Consumer<String> hook) {
-        updateJobOutput(project, jobId, newStatus, info, output, this.getLogPath(), errMsg, hook);
+            String output, String failedMsg, Consumer<String> hook) {
+        updateJobOutput(project, jobId, newStatus, info, output, this.getLogPath(), failedMsg, hook);
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
-            String output, String logPath, String errMsg, Consumer<String> hook) {
+            String output, String logPath, String failedMsg, Consumer<String> hook) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -332,7 +331,7 @@ public abstract class AbstractExecutable implements Executable {
                     executableManager.makeStageError(jobId);
                 }
             }
-            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, errMsg);
+            executableManager.updateJobOutput(jobId, newStatus, existedInfo, null, null, 0, failedMsg);
             if (hook != null) {
                 hook.accept(jobId);
             }

@@ -82,23 +82,23 @@ public class ExecutableStepResponse {
     @JsonProperty("info")
     private ConcurrentHashMap<String, String> info = new ConcurrentHashMap<String, String>();
 
-    @JsonProperty("err_msg")
+    @JsonProperty("failed_msg")
     private String shortErrMsg;
 
-    @JsonProperty("err_step_name")
-    private String errStepName;
+    @JsonProperty("failed_step_name")
+    private String failedStepName;
 
-    @JsonProperty("err_step_id")
-    private String errStepId;
+    @JsonProperty("failed_step_id")
+    private String failedStepId;
 
-    @JsonProperty("err_segment_id")
-    private String errSegmentId;
+    @JsonProperty("failed_segment_id")
+    private String failedSegmentId;
 
-    @JsonProperty("err_stack")
-    private String errStack;
+    @JsonProperty("failed_stack")
+    private String failedStack;
 
-    @JsonProperty("err_resolve")
-    private String errResolve;
+    @JsonProperty("failed_resolve")
+    private String failedResolve;
 
     public void putInfo(String key, String value) {
         getInfo().put(key, value);

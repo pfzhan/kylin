@@ -398,34 +398,34 @@ public class StageTest extends NLocalFileMetadataTestCase {
         var jobOutput = new ExecutableOutputPO();
         var newStatus = ExecutableState.RUNNING;
         Map<String, String> updateInfo = Maps.newHashMap();
-        var errMsg = "123";
+        var failedMsg = "123";
         var isRestart = false;
 
         jobOutput.setStatus(ExecutableState.PAUSED.toString());
         newStatus = ExecutableState.ERROR;
-        var flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+        var flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertFalse(flag);
         Assert.assertEquals(jobOutput.getStatus(), "PAUSED");
 
         jobOutput.setStatus(ExecutableState.SKIP.toString());
         newStatus = ExecutableState.SUCCEED;
-        flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+        flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertFalse(flag);
         Assert.assertEquals(jobOutput.getStatus(), "SKIP");
 
         jobOutput.setStatus(ExecutableState.READY.toString());
         newStatus = ExecutableState.SUCCEED;
-        flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+        flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertTrue(flag);
         Assert.assertEquals(jobOutput.getStatus(), "SUCCEED");
-        Assert.assertEquals(jobOutput.getErrMsg(), errMsg);
+        Assert.assertEquals(jobOutput.getFailedMsg(), failedMsg);
         Assert.assertEquals(jobOutput.getInfo().get(NBatchConstants.P_INDEX_SUCCESS_COUNT), "0");
 
         jobOutput.setStatus(ExecutableState.SKIP.toString());
         newStatus = ExecutableState.READY;
         isRestart = true;
         updateInfo.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "123");
-        flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+        flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertTrue(flag);
         Assert.assertEquals(jobOutput.getStatus(), "READY");
         Assert.assertEquals(jobOutput.getStartTime(), 0);

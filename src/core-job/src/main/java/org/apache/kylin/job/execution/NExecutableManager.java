@@ -482,10 +482,10 @@ public class NExecutableManager {
         result.setWaitTime(jobOutput.getWaitTime());
         result.setCreateTime(jobOutput.getCreateTime());
         result.setByteSize(jobOutput.getByteSize());
-        result.setShortErrMsg(jobOutput.getErrMsg());
-        result.setErrStepId(jobOutput.getErrStepId());
-        result.setErrSegmentId(jobOutput.getErrSegmentId());
-        result.setErrStack(jobOutput.getErrStack());
+        result.setShortErrMsg(jobOutput.getFailedMsg());
+        result.setFailedStepId(jobOutput.getFailedStepId());
+        result.setFailedSegmentId(jobOutput.getFailedSegmentId());
+        result.setFailedStack(jobOutput.getFailedStack());
         return result;
     }
 
@@ -508,14 +508,12 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
             JobTypeEnum... jobTypes) {
-        return listExecutablePOByModelAndStatus(model, predicate, jobTypes)
-                .stream()
-                .map(this::fromPO)
+        return listExecutablePOByModelAndStatus(model, predicate, jobTypes).stream().map(this::fromPO)
                 .collect(Collectors.toList());
     }
 
     public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                               List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
+            List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
         boolean allPass = Array.isEmpty(jobTypes);
         return jobs.stream() //
                 .filter(job -> job.getTargetModel() != null) //
@@ -526,7 +524,7 @@ public class NExecutableManager {
     }
 
     public List<ExecutablePO> listExecutablePOByModelAndStatus(String model, Predicate<ExecutableState> predicate,
-                                                               JobTypeEnum... jobTypes) {
+            JobTypeEnum... jobTypes) {
         return listExecutablePOByModelAndStatus(model, predicate, executableDao.getJobs(), jobTypes);
     }
 
@@ -540,22 +538,19 @@ public class NExecutableManager {
         if (CollectionUtils.isEmpty(executables)) {
             return 0L;
         }
-        return executables.stream()
-                .max(Comparator.comparingLong(exec -> exec.getOutput().getEndTime()))
-                .map(exec -> AbstractExecutable.getDuration(getOutput(exec.getId())))
-                .orElse(0L);
+        return executables.stream().max(Comparator.comparingLong(exec -> exec.getOutput().getEndTime()))
+                .map(exec -> AbstractExecutable.getDuration(getOutput(exec.getId()))).orElse(0L);
     }
 
-    public long getMaxDurationRunningExecDurationByModel(String modelId, List<ExecutablePO> jobs, JobTypeEnum... jobTypes) {
+    public long getMaxDurationRunningExecDurationByModel(String modelId, List<ExecutablePO> jobs,
+            JobTypeEnum... jobTypes) {
         List<ExecutablePO> executables = listExecutablePOByModelAndStatus(modelId,
                 state -> ExecutableState.RUNNING == state, jobs, jobTypes);
         if (CollectionUtils.isEmpty(executables)) {
             return 0L;
         }
-        return executables.stream()
-                .map(exec -> AbstractExecutable.getDuration(getOutput(exec.getId())))
-                .max(Long::compareTo)
-                .orElse(0L);
+        return executables.stream().map(exec -> AbstractExecutable.getDuration(getOutput(exec.getId())))
+                .max(Long::compareTo).orElse(0L);
     }
 
     public List<AbstractExecutable> listExecByJobTypeAndStatus(Predicate<ExecutableState> predicate,
@@ -1137,24 +1132,24 @@ public class NExecutableManager {
     }
 
     /** just used to update job error mess */
-    public void updateJobError(String jobId, String errStepId, String errSegmentId, String errStack) {
+    public void updateJobError(String jobId, String failedStepId, String failedSegmentId, String failedStack) {
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput = job.getOutput();
-            jobOutput.setErrStepId(errStepId);
-            jobOutput.setErrSegmentId(errSegmentId);
-            jobOutput.setErrStack(errStack);
+            jobOutput.setFailedStepId(failedStepId);
+            jobOutput.setFailedSegmentId(failedSegmentId);
+            jobOutput.setFailedStack(failedStack);
             return true;
         });
     }
 
     /** just used to update stage */
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
-            Map<String, String> updateInfo, String errMsg) {
-        updateStageStatus(taskOrJobId, segmentId, newStatus, updateInfo, errMsg, false);
+            Map<String, String> updateInfo, String failedMsg) {
+        updateStageStatus(taskOrJobId, segmentId, newStatus, updateInfo, failedMsg, false);
     }
 
     public void updateStageStatus(String taskOrJobId, String segmentId, ExecutableState newStatus,
-            Map<String, String> updateInfo, String errMsg, Boolean isRestart) {
+            Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             final List<Map<String, List<ExecutablePO>>> collect = job.getTasks().stream()//
@@ -1175,7 +1170,7 @@ public class NExecutableManager {
 
                 ExecutableOutputPO stageOutput = stage.getOutput();
                 assertOutputNotNull(stageOutput, taskOrJobId, segmentId);
-                return setStageOutput(stageOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+                return setStageOutput(stageOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
             } else {
                 for (Map<String, List<ExecutablePO>> stageMap : collect) {
                     for (Map.Entry<String, List<ExecutablePO>> entry : stageMap.entrySet()) {
@@ -1188,7 +1183,8 @@ public class NExecutableManager {
                         }
                         ExecutableOutputPO stageOutput = stage.getOutput();
                         assertOutputNotNull(stageOutput, taskOrJobId);
-                        val flag = setStageOutput(stageOutput, taskOrJobId, newStatus, updateInfo, errMsg, isRestart);
+                        val flag = setStageOutput(stageOutput, taskOrJobId, newStatus, updateInfo, failedMsg,
+                                isRestart);
                         if (!flag) {
                             return false;
                         }
@@ -1201,7 +1197,7 @@ public class NExecutableManager {
 
     @VisibleForTesting
     public boolean setStageOutput(ExecutableOutputPO jobOutput, String taskOrJobId, ExecutableState newStatus,
-            Map<String, String> updateInfo, String errMsg, Boolean isRestart) {
+            Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
         ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());
         if (newStatus != null && oldStatus != newStatus) {
             if (!ExecutableState.isValidStateTransfer(oldStatus, newStatus)) {
@@ -1228,7 +1224,7 @@ public class NExecutableManager {
         });
         jobOutput.setInfo(info);
         jobOutput.setLastModified(System.currentTimeMillis());
-        jobOutput.setErrMsg(errMsg);
+        jobOutput.setFailedMsg(failedMsg);
         return true;
     }
 
@@ -1281,7 +1277,7 @@ public class NExecutableManager {
     }
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
-            Set<String> removeInfo, String output, long byteSize, String errMsg) {
+            Set<String> removeInfo, String output, long byteSize, String failedMsg) {
         val jobId = extractJobId(taskOrJobId);
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput;
@@ -1330,7 +1326,7 @@ public class NExecutableManager {
                 jobOutput.setByteSize(byteSize);
             }
 
-            jobOutput.setErrMsg(errMsg);
+            jobOutput.setFailedMsg(failedMsg);
 
             if (needDestroyProcess(oldStatus, newStatus)) {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);

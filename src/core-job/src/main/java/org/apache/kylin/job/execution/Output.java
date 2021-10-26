@@ -71,9 +71,9 @@ public interface Output {
 
     String getShortErrMsg();
 
-    String getErrStepId();
+    String getFailedStepId();
 
-    String getErrSegmentId();
+    String getFailedSegmentId();
 
-    String getErrStack();
+    String getFailedStack();
 }

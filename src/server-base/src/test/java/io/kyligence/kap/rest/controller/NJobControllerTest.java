@@ -297,12 +297,12 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
         JobErrorRequest request = new JobErrorRequest();
         request.setProject("default");
         request.setJobId("b");
-        request.setErrStepId("c");
-        request.setErrSegmentId("d");
-        request.setErrStack("error");
+        request.setFailedStepId("c");
+        request.setFailedSegmentId("d");
+        request.setFailedStack("error");
 
         Mockito.doNothing().when(jobService).updateJobError(request.getProject(), request.getJobId(),
-                request.getErrStepId(), request.getErrSegmentId(), request.getErrStack());
+                request.getFailedStepId(), request.getFailedSegmentId(), request.getFailedStack());
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/error") //
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

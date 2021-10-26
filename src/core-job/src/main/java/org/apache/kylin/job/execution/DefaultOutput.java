@@ -68,8 +68,8 @@ public class DefaultOutput implements Output {
     private long createTime;
     private long byteSize;
     private String shortErrMsg;
-    private String errStepId;
-    private String errSegmentId;
-    private String errStack;
+    private String failedStepId;
+    private String failedSegmentId;
+    private String failedStack;
 
 }

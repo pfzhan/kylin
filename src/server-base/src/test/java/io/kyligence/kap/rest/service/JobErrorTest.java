@@ -114,8 +114,8 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetExceptionResolve() throws IOException {
-        val is = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
-        val map = JsonUtil.readValue(is, Map.class);
+        val exceptionResolveStream = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
+        val map = JsonUtil.readValue(exceptionResolveStream, Map.class);
 
         var exceptionResolve = jobService.getExceptionResolve(null);
 
@@ -140,21 +140,21 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
         val project = getProject();
         val jobId = executable.getId();
-        var errStepId = RandomUtil.randomUUIDStr();
-        var errSegmentId = RandomUtil.randomUUIDStr();
-        var errStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
+        var failedStepId = RandomUtil.randomUUIDStr();
+        var failedSegmentId = RandomUtil.randomUUIDStr();
+        var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
 
-        jobService.updateJobError(project, jobId, errStepId, errSegmentId, errStack);
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack);
         var output = manager.getJob(jobId).getOutput();
-        Assert.assertEquals(errStepId, output.getErrStepId());
-        Assert.assertEquals(errSegmentId, output.getErrSegmentId());
-        Assert.assertEquals(errStack, output.getErrStack());
+        Assert.assertEquals(failedStepId, output.getFailedStepId());
+        Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
+        Assert.assertEquals(failedStack, output.getFailedStack());
 
-        jobService.updateJobError(project, jobId, "", errSegmentId, errStack);
+        jobService.updateJobError(project, jobId, "", failedSegmentId, failedStack);
         output = manager.getJob(jobId).getOutput();
-        Assert.assertEquals(errStepId, output.getErrStepId());
-        Assert.assertEquals(errSegmentId, output.getErrSegmentId());
-        Assert.assertEquals(errStack, output.getErrStack());
+        Assert.assertEquals(failedStepId, output.getFailedStepId());
+        Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
+        Assert.assertEquals(failedStack, output.getFailedStack());
     }
 
     @Test
@@ -167,27 +167,27 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         val jobId = executable.getId();
-        var errStepId = RandomUtil.randomUUIDStr();
-        var errSegmentId = RandomUtil.randomUUIDStr();
-        var errStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
+        var failedStepId = RandomUtil.randomUUIDStr();
+        var failedSegmentId = RandomUtil.randomUUIDStr();
+        var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
 
-        manager.updateJobError(jobId, errStepId, errSegmentId, errStack);
+        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
         var output = manager.getJob(jobId).getOutput();
-        Assert.assertEquals(errStepId, output.getErrStepId());
-        Assert.assertEquals(errSegmentId, output.getErrSegmentId());
-        Assert.assertEquals(errStack, output.getErrStack());
+        Assert.assertEquals(failedStepId, output.getFailedStepId());
+        Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
+        Assert.assertEquals(failedStack, output.getFailedStack());
 
-        manager.updateJobError(jobId, "", errSegmentId, errStack);
+        manager.updateJobError(jobId, "", failedSegmentId, failedStack);
         output = manager.getJob(jobId).getOutput();
-        Assert.assertEquals("", output.getErrStepId());
-        Assert.assertEquals(errSegmentId, output.getErrSegmentId());
-        Assert.assertEquals(errStack, output.getErrStack());
+        Assert.assertEquals("", output.getFailedStepId());
+        Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
+        Assert.assertEquals(failedStack, output.getFailedStack());
 
-        manager.updateJobError(jobId, errStepId, null, errStack);
+        manager.updateJobError(jobId, failedStepId, null, failedStack);
         output = manager.getJob(jobId).getOutput();
-        Assert.assertEquals(errStepId, output.getErrStepId());
-        Assert.assertNull(output.getErrSegmentId());
-        Assert.assertEquals(errStack, output.getErrStack());
+        Assert.assertEquals(failedStepId, output.getFailedStepId());
+        Assert.assertNull(output.getFailedSegmentId());
+        Assert.assertEquals(failedStack, output.getFailedStack());
     }
 
     @Test
@@ -223,23 +223,23 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         val jobId = executable.getId();
-        var errStepId = logicStep2.getId();
-        var errSegmentId = segmentId;
-        var errStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
-        manager.updateJobError(jobId, errStepId, errSegmentId, errStack);
+        var failedStepId = logicStep2.getId();
+        var failedSegmentId = segmentId;
+        var failedStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
+        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
 
         var jobDetail = jobService.getJobDetail(getProject(), executable.getId());
         Assert.assertEquals(1, jobDetail.size());
         var stepResponse = jobDetail.get(0);
-        Assert.assertEquals(errStepId, stepResponse.getErrStepId());
-        Assert.assertEquals(errSegmentId, stepResponse.getErrSegmentId());
-        Assert.assertEquals(errStack, stepResponse.getErrStack());
-        Assert.assertEquals(logicStep2.getName(), stepResponse.getErrStepName());
+        Assert.assertEquals(failedStepId, stepResponse.getFailedStepId());
+        Assert.assertEquals(failedSegmentId, stepResponse.getFailedSegmentId());
+        Assert.assertEquals(failedStack, stepResponse.getFailedStack());
+        Assert.assertEquals(logicStep2.getName(), stepResponse.getFailedStepName());
 
-        val is = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
-        val map = JsonUtil.readValue(is, Map.class);
-        val dateFormatNotMatchException = errStack.split("\n")[0];
+        val exceptionResolveStream = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
+        val map = JsonUtil.readValue(exceptionResolveStream, Map.class);
+        val dateFormatNotMatchException = failedStack.split("\n")[0];
         Assert.assertEquals(JsonUtil.writeValueAsString(map.get(dateFormatNotMatchException)),
-                stepResponse.getErrResolve());
+                stepResponse.getFailedResolve());
     }
 }

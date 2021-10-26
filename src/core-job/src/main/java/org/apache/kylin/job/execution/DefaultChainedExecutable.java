@@ -250,10 +250,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         // Hook method, default action is doing nothing
     }
 
-    private void updateToFinalState(ExecutableState finalState, Consumer<String> hook, String errMsg) {
+    private void updateToFinalState(ExecutableState finalState, Consumer<String> hook, String failedMsg) {
         //to final state, regardless of isStoppedNonVoluntarily, otherwise a paused job might fail to suicide
         if (!getOutput().getState().isFinalState()) {
-            updateJobOutput(getProject(), getId(), finalState, null, null, errMsg, hook);
+            updateJobOutput(getProject(), getId(), finalState, null, null, failedMsg, hook);
         }
     }
 

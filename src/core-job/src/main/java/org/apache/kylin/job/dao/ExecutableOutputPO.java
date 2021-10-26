@@ -100,17 +100,17 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("byte_size")
     private long byteSize;
 
-    @JsonProperty("err_msg")
-    private String errMsg;
+    @JsonProperty("failed_msg")
+    private String failedMsg;
 
-    @JsonProperty("err_step_id")
-    private String errStepId;
+    @JsonProperty("failed_step_id")
+    private String failedStepId;
 
-    @JsonProperty("err_segment_id")
-    private String errSegmentId;
+    @JsonProperty("failed_segment_id")
+    private String failedSegmentId;
 
-    @JsonProperty("err_stack")
-    private String errStack;
+    @JsonProperty("failed_stack")
+    private String failedStack;
 
     public void addStartTime(long time) {
         //when ready -> suicidal/discarded, the start time is 0

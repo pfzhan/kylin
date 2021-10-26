@@ -131,18 +131,18 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
 
     val stageId = infos.getStageId
     val jobStepId = StringUtils.replace(infos.getJobStepId, SparkApplication.JOB_NAME_PREFIX, "")
-    val errStepId = if (StringUtils.isBlank(stageId)) jobStepId else stageId
+    val failedStepId = if (StringUtils.isBlank(stageId)) jobStepId else stageId
 
-    val errSegmentId = infos.getSegmentId
-    val errStack = ExceptionUtils.getStackTrace(throwable)
+    val failedSegmentId = infos.getSegmentId
+    val failedStack = ExceptionUtils.getStackTrace(throwable)
     val url = "/kylin/api/jobs/error"
 
     val payload: util.HashMap[String, Object] = new util.HashMap[String, Object](5)
     payload.put("project", project)
     payload.put("job_id", jobId)
-    payload.put("err_step_id", errStepId)
-    payload.put("err_segment_id", errSegmentId)
-    payload.put("err_stack", errStack)
+    payload.put("failed_step_id", failedStepId)
+    payload.put("failed_segment_id", failedSegmentId)
+    payload.put("failed_stack", failedStack)
     val json = JsonUtil.writeValueAsString(payload)
 
     context.updateSparkJobInfo(url, json)

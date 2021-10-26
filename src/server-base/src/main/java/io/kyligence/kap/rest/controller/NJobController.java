@@ -269,8 +269,8 @@ public class NJobController extends NBasicController {
         checkProjectName(errorRequest.getProject());
         logger.info("updateJobError errorRequest is : {}", errorRequest);
 
-        jobService.updateJobError(errorRequest.getProject(), errorRequest.getJobId(), errorRequest.getErrStepId(),
-                errorRequest.getErrSegmentId(), errorRequest.getErrStack());
+        jobService.updateJobError(errorRequest.getProject(), errorRequest.getJobId(), errorRequest.getFailedStepId(),
+                errorRequest.getFailedSegmentId(), errorRequest.getFailedStack());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

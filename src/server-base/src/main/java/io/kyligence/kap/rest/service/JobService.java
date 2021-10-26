@@ -505,15 +505,15 @@ public class JobService extends BasicService {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
                     getExecutableManager(project).getOutput(task.getId()), waiteTimeMap, output.getState(),
                     pausedTimeMap);
-            if (StringUtils.startsWith(output.getErrStepId(), task.getId())) {
-                executableStepResponse.setErrStepId(output.getErrStepId());
-                executableStepResponse.setErrSegmentId(output.getErrSegmentId());
-                executableStepResponse.setErrStack(output.getErrStack());
-                val exception = output.getErrStack().split("\n")[0];
+            if (StringUtils.startsWith(output.getFailedStepId(), task.getId())) {
+                executableStepResponse.setFailedStepId(output.getFailedStepId());
+                executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
+                executableStepResponse.setFailedStack(output.getFailedStack());
+                val exception = output.getFailedStack().split("\n")[0];
                 val exceptionResolve = getExceptionResolve(exception);
-                executableStepResponse.setErrResolve(exceptionResolve);
-                if (StringUtils.equals(output.getErrStepId(), task.getId())) {
-                    executableStepResponse.setErrStepName(task.getName());
+                executableStepResponse.setFailedResolve(exceptionResolve);
+                if (StringUtils.equals(output.getFailedStepId(), task.getId())) {
+                    executableStepResponse.setFailedStepName(task.getName());
                 }
             }
             if (task instanceof ChainedStageExecutable) {
@@ -537,8 +537,8 @@ public class JobService extends BasicService {
                         setStage(subStages, stageResponse);
                         stageResponses.add(stageResponse);
 
-                        if (StringUtils.equals(output.getErrStepId(), stage.getId())) {
-                            executableStepResponse.setErrStepName(stage.getName());
+                        if (StringUtils.equals(output.getFailedStepId(), stage.getId())) {
+                            executableStepResponse.setFailedStepName(stage.getName());
                         }
                     }
 
@@ -576,8 +576,8 @@ public class JobService extends BasicService {
 
     public String getExceptionResolve(String exceptionOrExceptionMessage) {
         try {
-            val is = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
-            val exceptionResolve = JsonUtil.readValue(is, Map.class);
+            val exceptionResolveStream = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
+            val exceptionResolve = JsonUtil.readValue(exceptionResolveStream, Map.class);
             for (Object o : exceptionResolve.entrySet()) {
                 val entry = (Map.Entry) o;
                 if (StringUtils.contains(exceptionOrExceptionMessage, String.valueOf(entry.getKey()))) {
@@ -809,12 +809,13 @@ public class JobService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateJobError(String project, String jobId, String errStepId, String errSegmentId, String errStack) {
-        val executableManager = getExecutableManager(project);
-        if (StringUtils.isBlank(errStepId)) {
+    public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
+            String failedStack) {
+        if (StringUtils.isBlank(failedStepId)) {
             return;
         }
-        executableManager.updateJobError(jobId, errStepId, errSegmentId, errStack);
+        val executableManager = getExecutableManager(project);
+        executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
     }
 
     @Transaction(project = 0)
