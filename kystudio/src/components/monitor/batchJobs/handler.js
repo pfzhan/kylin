@@ -1,5 +1,25 @@
 import Vue from 'vue'
 
+export function getStepLineName (that, name) {
+  const stepMap = {
+    'Detect Resource': that.$t('detectResource'),
+    'Load Data To Index': that.$t('loadDataToIndex'),
+    'Merge Segment Data': that.$t('mergeSegmentData'),
+    'Clean Up Old Segment': that.$t('cleanUpOldSegment'),
+    'Update Metadata': that.$t('updateMetadata'),
+    'Table Sampling': that.$t('tableSampling'),
+    'Build Snapshot': that.$t('buildSnapshot'),
+    'STEP_EXPORT_TO_SECOND_STORAGE': that.$t('exportSecondaryStorage'),
+    'STEP_REFRESH_SECOND_STORAGE': that.$t('refreshSecondaryStorage'),
+    'STEP_MERGE_SECOND_STORAGE': that.$t('mergeSecondaryStorage'),
+    'STEP_SECOND_STORAGE_MODEL_CLEAN': that.$t('delSecondaryStorage'),
+    'STEP_SECOND_STORAGE_NODE_CLEAN': that.$t('delSecondaryStorage'),
+    'STEP_SECOND_STORAGE_SEGMENT_CLEAN': that.$t('delSecondaryStorage'),
+    'Clean Up Intermediate Table': that.$t('clearUpIntermediateTable')
+  }
+  return stepMap[name]
+}
+
 // 子步骤名称
 export function getSubTasksName (that, name) {
   const subTaskNameMap = {

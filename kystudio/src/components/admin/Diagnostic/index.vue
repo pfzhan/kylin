@@ -100,7 +100,7 @@
           <div class="progress-item clearfix" v-for="item in diagDumpIds" :key="item.id">
             <div class="download-details">
               <p class="title ksd-mb-8">{{ getTitle(item) }}
-                <template v-if="item.tm"> ｜{{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color"></span></template>
+                <!-- <template v-if="item.tm"> ｜{{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color"></span></template> -->
                 <template v-if="item.duration"> ｜{{item.duration | timeSize}}</template>
               </p>
               <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" :icon-class="item.stage==='PREPARE'?'el-ksd-icon-time_22':''"></el-progress>
@@ -129,7 +129,7 @@
     </div>
     <template>
       <div slot="footer">
-        <el-button size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button size="medium" @click="handleClose">{{$t('cancel')}}</el-button>
         <el-button type="primary" size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length ">{{$t('generateBtn')}}</el-button>
       </div>
     </template>

@@ -303,9 +303,9 @@
                     <i class="el-icon-time"></i>
                     {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
                   </span> -->
-                  <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR' && step.err_step_name" :closable="false">
+                  <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR'" :closable="false">
                     <p slot="title">
-                      {{$t('errorStepTips', {name: getSubTasksName(step.err_step_name)})}}
+                      {{step.failed_step_name ? $t('errorStepTips', {name: getSubTasksName(step.failed_step_name)}) : $t('errorStepTips', {name: getStepLineName(step.name)})}}
                       <el-button nobg-text size="small" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
                     </p>
                   </el-alert>
@@ -440,7 +440,7 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmt
 import Diagnostic from 'components/admin/Diagnostic/index'
 import BuildSegmentDetail from './buildSegmentDetail.vue'
 import jobErrorDetail from './jobErrorDetail.vue'
-import { getSubTasksName, getSubTaskStatus, formatTime, getStepStatusTips } from './handler'
+import { getSubTasksName, getSubTaskStatus, formatTime, getStepStatusTips, getStepLineName } from './handler'
 // import subTasks from './subTasks.json'
 @Component({
   methods: {
@@ -487,6 +487,7 @@ export default class JobsList extends Vue {
   pageRefTags = pageRefTags
   getSubTasksName = (name) => getSubTasksName(this, name)
   getStepStatusTips = (status) => getStepStatusTips(this, status)
+  getStepLineName = (name) => getStepLineName(this, name)
   project = localStorage.getItem('selected_project')
   filterName = ''
   filterStatus = []
@@ -609,26 +610,6 @@ export default class JobsList extends Vue {
   closeSegmentDetail () {
     this.showSegmentDetails = false
     this.expandSegmentDetailId = ''
-  }
-
-  getStepLineName (name) {
-    const stepMap = {
-      'Detect Resource': this.$t('detectResource'),
-      'Load Data To Index': this.$t('loadDataToIndex'),
-      'Merge Segment Data': this.$t('mergeSegmentData'),
-      'Clean Up Old Segment': this.$t('cleanUpOldSegment'),
-      'Update Metadata': this.$t('updateMetadata'),
-      'Table Sampling': this.$t('tableSampling'),
-      'Build Snapshot': this.$t('buildSnapshot'),
-      'STEP_EXPORT_TO_SECOND_STORAGE': this.$t('exportSecondaryStorage'),
-      'STEP_REFRESH_SECOND_STORAGE': this.$t('refreshSecondaryStorage'),
-      'STEP_MERGE_SECOND_STORAGE': this.$t('mergeSecondaryStorage'),
-      'STEP_SECOND_STORAGE_MODEL_CLEAN': this.$t('delSecondaryStorage'),
-      'STEP_SECOND_STORAGE_NODE_CLEAN': this.$t('delSecondaryStorage'),
-      'STEP_SECOND_STORAGE_SEGMENT_CLEAN': this.$t('delSecondaryStorage'),
-      'Clean Up Intermediate Table': this.$t('clearUpIntermediateTable')
-    }
-    return stepMap[name]
   }
 
   getStatusIcons (step) {

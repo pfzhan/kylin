@@ -7,8 +7,8 @@
     :close-on-click-modal="false">
     <span slot="title">{{$t('errorDetail')}}</span>
     <div class="error-contain">
-      <p class="error-title">{{$t('errorStepTips', {name: getSubTasksName(currentErrorJob.err_step_name)})}}</p>
-      <!-- <el-button class="error-solution-btn ksd-mt-8" v-show="currentErrorJob.err_resolve" @click="jumpToManual" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button> -->
+      <p class="error-title">{{$t('errorStepTips', {name: currentErrorJob.failed_step_name ? getSubTasksName(currentErrorJob.failed_step_name) : getStepLineName(currentErrorJob.name)})}}</p>
+      <!-- <el-button class="error-solution-btn ksd-mt-8" v-show="currentErrorJob.failed_resolve" @click="jumpToManual" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button> -->
       <div class="error-trace-msg ksd-mt-8">{{getErrorTrace}}</div>
       <el-button class="view-details-btn ksd-mt-8" v-if="showViewMore" @click="showMore = !showMore" nobg-text :iconr="showMore ? 'el-ksd-icon-arrow_up_16' : 'el-ksd-icon-arrow_down_16'">{{$t('viewMore')}}</el-button>
       <build-segment-detail v-if="showMore" :segmentTesks="currentErrorJob.segment_sub_tasks" :jobStatus="currentErrorJob.step_status"/>
@@ -24,7 +24,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import buildSegmentDetail from './buildSegmentDetail.vue'
 import locales from './locales'
-import { getSubTasksName } from './handler'
+import { getSubTasksName, getStepLineName } from './handler'
 
 @Component({
   props: {
@@ -42,10 +42,11 @@ import { getSubTasksName } from './handler'
 })
 export default class jobErrorDetail extends Vue {
   getSubTasksName = (name) => getSubTasksName(this, name)
+  getStepLineName = (name) => getStepLineName(this, name)
   showMore = false
 
   get getErrorTrace () {
-    return this.currentErrorJob?.err_stack ?? ''
+    return this.currentErrorJob?.failed_stack ?? ''
   }
 
   get showViewMore () {
@@ -54,7 +55,7 @@ export default class jobErrorDetail extends Vue {
 
   // 跳转至手册
   jumpToManual () {
-    const manualAddrs = this.currentErrorJob.err_resolve
+    const manualAddrs = this.currentErrorJob.failed_resolve
     if (manualAddrs) {
       const {en, 'zh-cn': zhAddr} = JSON.parse(manualAddrs)
       const tag = document.createElement('a')
