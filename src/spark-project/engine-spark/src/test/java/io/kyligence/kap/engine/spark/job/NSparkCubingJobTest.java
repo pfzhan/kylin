@@ -312,6 +312,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         //validate lastBuildTime
         oneSeg = dsMgr.getDataflow(dfName).getSegment(oneSeg.getId());
         Assert.assertTrue(oneSeg.getLastBuildTime() > startLong);
+        getLookTables(df).forEach(table -> Assert.assertTrue(table.getSnapshotTotalRows() > 0));
     }
 
     @Test
