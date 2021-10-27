@@ -1860,6 +1860,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getPROJECT_LOCKED() {
+        return "当前项目中有正在进行的分层存储重分布任务，请稍后再试。";
+    }
+
+    @Override
     public String getFIX_STREAMING_SEGMENT() {
         return "无法修复流数据模型的 Segment。";
     }

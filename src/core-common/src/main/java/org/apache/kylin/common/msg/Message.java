@@ -1641,6 +1641,10 @@ public class Message {
         return "Can’t turn on the tiered storage at the moment. Please add the time partition column as dimension, and update the base table index.";
     }
 
+    public String getPROJECT_LOCKED() {
+        return "There is tiered storage rebalance job running in progress, please try again later.";
+    }
+
     public String getFIX_STREAMING_SEGMENT() {
         return "Can’t fix segment in streaming model.";
     }

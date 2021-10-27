@@ -30,6 +30,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
@@ -41,6 +42,8 @@ import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCKING;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.manager.JobManager;
@@ -204,5 +207,66 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
             Assert.assertFalse(count.isEmpty());
             return count.get(0);
         }
+    }
+
+    @Test
+    public void testRefreshSegmentWhenLocked() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val seg = dataflowManager.getDataflow(modelId).getSegments().getFirstSegment();
+        secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "LOCK");
+        try {
+            refreshSegment(seg.getId());
+        } catch (Exception e) {
+            KylinException cause = (KylinException) e.getCause();
+            Assert.assertEquals(SECOND_STORAGE_PROJECT_LOCKING.toErrorCode(), cause.getErrorCode());
+            secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "UNLOCK");
+            return;
+        }
+        Assert.fail();
+    }
+
+    private void refreshSegment(String segId) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val dfMgr = NDataflowManager.getInstance(config, getProject());
+        val df = dfMgr.getDataflow(modelId);
+        val jobManager = JobManager.getInstance(config, getProject());
+        NDataSegment newSeg = dfMgr.refreshSegment(df, df.getSegment(segId).getSegRange());
+        val jobParam = new JobParam(newSeg, df.getModel().getId(), enableTestUser.getUser());
+        val jobId = jobManager.refreshSegmentJob(jobParam);
+        waitJobFinish(project, jobId);
+    }
+
+    @Test
+    public void testMergeSegmentsWhenLocked() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
+        // clean first segment
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "LOCK");
+        try {
+            mergeSegments(segs);
+        } catch (Exception e) {
+            KylinException cause = (KylinException) e.getCause();
+            Assert.assertEquals(SECOND_STORAGE_PROJECT_LOCKING.toErrorCode(), cause.getErrorCode());
+            secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "UNLOCK");
+            return;
+        }
+        Assert.fail();
+    }
+
+    @Test
+    public void testCheckLock() {
+        secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "LOCK");
+        try {
+            LockTypeEnum.checkLock(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(project));
+        } catch (KylinException e) {
+            Assert.assertEquals(SECOND_STORAGE_PROJECT_LOCKING.toErrorCode(), e.getErrorCode());
+            secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "UNLOCK");
+            return;
+        }
+        Assert.fail();
     }
 }

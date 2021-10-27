@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -179,6 +181,10 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
         JobStepType.CUBING.createStep(job, config);
         JobStepType.UPDATE_METADATA.createStep(job, config);
         if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())) {
+            // can't refresh segment when second storage do rebalanced
+            if (Objects.equals(jobType, JobTypeEnum.INDEX_REFRESH)) {
+                SecondStorageUtil.validateProjectLock(df.getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()));
+            }
             boolean hasBaseIndex = layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex);
             if (Objects.equals(jobType, JobTypeEnum.INDEX_BUILD) || Objects.equals(jobType, JobTypeEnum.INC_BUILD)) {
                 if (hasBaseIndex) {

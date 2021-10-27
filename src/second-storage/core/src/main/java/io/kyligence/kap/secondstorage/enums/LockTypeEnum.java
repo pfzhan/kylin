@@ -25,6 +25,7 @@ package io.kyligence.kap.secondstorage.enums;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,13 +109,13 @@ public enum LockTypeEnum {
     public static void checkLock(String requestLock, List<String> existLocks) {
         if (requestLock == null) return;
         if (locked(Arrays.asList(requestLock), existLocks)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, "project is locking."));
+            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_LOCKED()));
         }
     }
 
     public static void checkLocks(List<String> requestLocks, List<String> existLocks) {
         if (locked(requestLocks, existLocks)) {
-            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, "project is locking."));
+            throw new KylinException(SECOND_STORAGE_PROJECT_LOCKING, String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_LOCKED()));
         }
     }
 

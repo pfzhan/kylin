@@ -24,6 +24,7 @@
 package io.kyligence.kap.secondstorage.enums;
 
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -49,13 +50,13 @@ public class LockTypeEnumTest {
         LockTypeEnum.checkLocks(null, existLocks);
 
         Exception exception = Assertions.assertThrows(KylinException.class, () -> LockTypeEnum.checkLocks(requestLocks, existLocks));
-        Assertions.assertEquals(exception.getMessage(), "project is locking.");
+        Assertions.assertEquals(exception.getMessage(), MsgPicker.getMsg().getPROJECT_LOCKED());
 
         Exception exception2 = Assertions.assertThrows(KylinException.class, () -> LockTypeEnum.checkLocks(requestLocks, existLocks2));
-        Assertions.assertEquals(exception2.getMessage(), "project is locking.");
+        Assertions.assertEquals(exception2.getMessage(), MsgPicker.getMsg().getPROJECT_LOCKED());
 
         Exception exception3 = Assertions.assertThrows(KylinException.class, () -> LockTypeEnum.checkLocks(existLocks2, requestLocks));
-        Assertions.assertEquals(exception3.getMessage(), "project is locking.");
+        Assertions.assertEquals(exception3.getMessage(), MsgPicker.getMsg().getPROJECT_LOCKED());
 
         LockTypeEnum.checkLocks(existLocks2, requestLocks2);
     }

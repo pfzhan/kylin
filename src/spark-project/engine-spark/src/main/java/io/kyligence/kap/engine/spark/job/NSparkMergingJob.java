@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.MERGE_JOB_FACTORY;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -144,9 +146,10 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         final Segments<NDataSegment> mergingSegments = df.getMergingSegments(mergedSegment);
         cleanStep.setParam(NBatchConstants.P_SEGMENT_IDS,
                 String.join(",", NSparkCubingUtil.toSegmentIds(mergingSegments)));
-
         if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())
                 && layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex)) {
+            // can't merge segment when second storage do rebalanced
+            SecondStorageUtil.validateProjectLock(df.getProject(), Collections.singletonList(LockTypeEnum.LOAD.name()));
             AbstractExecutable mergeStep = JobStepType.SECOND_STORAGE_MERGE.createStep(job, config);
             mergeStep.setParam(SecondStorageConstants.P_MERGED_SEGMENT_ID, mergedSegment.getId());
             mergeStep.setParam(NBatchConstants.P_SEGMENT_IDS,
