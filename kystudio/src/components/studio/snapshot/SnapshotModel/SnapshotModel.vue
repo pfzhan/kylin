@@ -697,6 +697,7 @@ export default class SnapshotModel extends Vue {
     try {
       const options = {}
       this.partitionColumnData.list.forEach(item => {
+        if (!item.partition_column) return
         options[`${item.database}.${item.table}`] = {
           partition_col: item.partition_column,
           incremental_build: !!item.partition_column,

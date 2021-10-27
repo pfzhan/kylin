@@ -303,13 +303,13 @@
                     <i class="el-icon-time"></i>
                     {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
                   </span> -->
-                  <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status=='ERROR'" :closable="false">
+                  <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status === 'ERROR'" :closable="false">
                     <p slot="title">
                       {{step.failed_step_name ? $t('errorStepTips', {name: getSubTasksName(step.failed_step_name)}) : $t('errorStepTips', {name: getStepLineName(step.name)})}}
-                      <el-button nobg-text size="small" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
+                      <el-button nobg-text size="small" v-if="step.failed_stack" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
                     </p>
                   </el-alert>
-                  <el-alert class="ksd-mb-8" type="tip" show-icon v-if="'segment_sub_stages' in step && step.segment_sub_stages && Object.keys(step.segment_sub_stages).length > 1" :closable="false">
+                  <el-alert class="ksd-mb-8" type="tip" show-icon v-if="step.step_status !== 'ERROR' && 'segment_sub_stages' in step && step.segment_sub_stages && Object.keys(step.segment_sub_stages).length > 1" :closable="false">
                     <p slot="title">{{$t('buildSegmentTips', {segments: Object.keys(step.segment_sub_stages).length, successLen: getSegmentStatusLen(step, 'FINISHED'), pendingLen: getSegmentStatusLen(step, 'PENDING'), runningLen: getSegmentStatusLen(step, 'RUNNING')})}}
                       <el-button nobg-text size="small" @click="viewSegmentDetails(step, step.id)">{{$t('viewDetails')}}</el-button>
                     </p>
@@ -1420,7 +1420,7 @@ export default class JobsList extends Vue {
   // 显示错误详情
   viewErrorDetails (step) {
     this.showErrorDetails = true
-    this.currentErrorJob = step
+    this.currentErrorJob = {...step, segment_sub_stages: this.definitionStopErrorStatus(step)}
   }
 }
 </script>

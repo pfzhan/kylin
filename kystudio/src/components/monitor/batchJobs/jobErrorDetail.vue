@@ -11,7 +11,7 @@
       <!-- <el-button class="error-solution-btn ksd-mt-8" v-show="currentErrorJob.failed_resolve" @click="jumpToManual" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button> -->
       <div class="error-trace-msg ksd-mt-8">{{getErrorTrace}}</div>
       <el-button class="view-details-btn ksd-mt-8" v-if="showViewMore" @click="showMore = !showMore" nobg-text :iconr="showMore ? 'el-ksd-icon-arrow_up_16' : 'el-ksd-icon-arrow_down_16'">{{$t('viewMore')}}</el-button>
-      <build-segment-detail v-if="showMore" :segmentTesks="currentErrorJob.segment_sub_tasks" :jobStatus="currentErrorJob.step_status"/>
+      <build-segment-detail v-if="showMore" :segmentTesks="currentErrorJob.segment_sub_stages" :jobStatus="currentErrorJob.step_status"/>
     </div>
     <span slot="footer" class="dialog-footer">
       <!-- <el-button type="primary" size="medium" @click="closeErrorDetail">{{$t('kylinLang.common.IKnow')}}</el-button> -->
@@ -46,11 +46,11 @@ export default class jobErrorDetail extends Vue {
   showMore = false
 
   get getErrorTrace () {
-    return this.currentErrorJob?.failed_stack ?? ''
+    return this.currentErrorJob?.failed_stack ?? this.$t('noErrorMsg')
   }
 
   get showViewMore () {
-    return this.currentErrorJob.segment_sub_tasks && Object.keys(this.currentErrorJob.segment_sub_tasks).length > 1
+    return this.currentErrorJob.segment_sub_stages && Object.keys(this.currentErrorJob.segment_sub_stages).length > 1
   }
 
   // 跳转至手册
@@ -86,6 +86,7 @@ export default class jobErrorDetail extends Vue {
       background: @ke-background-color-secondary;
       color: @text-normal-color;
       max-height: 372px;
+      min-height: 200px;
       overflow: auto;
       padding: 8px;
       box-sizing: border-box;

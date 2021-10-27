@@ -696,8 +696,9 @@ export default class Snapshot extends Vue {
         table_cols: tableCols
       })
       const partitionValues = results.data.data
+      const snapshots = JSON.parse(JSON.stringify(this.multipleSelection))
       if (partitionValues) {
-        this.multipleSelection.forEach(item => {
+        snapshots.forEach(item => {
           if (`${item.database}.${item.table}` in partitionValues && partitionValues[`${item.database}.${item.table}`]) {
             item.partition_values = []
             item['readyPartitions'] = partitionValues[`${item.database}.${item.table}`].ready_partitions.map(it => ({label: it, value: it}))
@@ -705,6 +706,7 @@ export default class Snapshot extends Vue {
           }
         })
       }
+      this.$set(this, 'multipleSelection', snapshots)
       this.loadSnapshotValues = false
     } catch (e) {
       this.loadSnapshotValues = false
