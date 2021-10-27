@@ -277,46 +277,48 @@
           show-overflow-tooltip
           width="231">
           <template slot-scope="scope">
-            <template v-if="refreshType === 'custom'">
-              <el-select
-                :class="['partition-value-select', {'is-error': incrementalBuildErrorList.includes(`${scope.row.database}.${scope.row.table}`)}]"
-                v-model="scope.row.partition_values"
-                :disabled="!scope.row.select_partition_col"
-                multiple
-                @change="changePartitionValues(scope)"
-                :placeholder="scope.row.select_partition_col && (scope.row.readyPartitions.length > 0 || scope.row.notReadyPartitions.length > 0) ? $t('kylinLang.common.pleaseSelect') : ''"
-                collapse-tags
-                filterable>
-                <el-option-group
-                  class="group-partitions"
-                  :label="$t('readyPartitions')">
-                  <span class="partition-count">{{scope.row.readyPartitions.length}}</span>
-                  <el-option
-                    v-for="item in scope.row.readyPartitions.slice(0, scope.row.pageReadyPartitionsSize * scope.row.pageSize)"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value">
-                  </el-option>
-                  <p class="page-value-more" v-show="scope.row.pageReadyPartitionsSize * scope.row.pageSize < scope.row.readyPartitions.length" @click.stop="scope.row.pageReadyPartitionsSize += 1">{{$t('kylinLang.common.loadMore')}}</p>
-                </el-option-group>
-                <el-option-group
-                  class="group-partitions"
-                  :label="$t('notReadyPartitions')">
-                  <span class="partition-count">{{scope.row.notReadyPartitions.length}}</span>
-                  <el-option
-                    v-for="item in scope.row.notReadyPartitions.slice(0, scope.row.pageNotReadyPartitions * scope.row.pageSize)"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value">
-                  </el-option>
-                  <p class="page-value-more" v-show="scope.row.pageNotReadyPartitions * scope.row.pageSize < scope.row.notReadyPartitions.length" @click.stop="scope.row.pageNotReadyPartitions += 1">{{$t('kylinLang.common.loadMore')}}</p>
-                </el-option-group>
-              </el-select>
-              <p class="error-tip" v-if="incrementalBuildErrorList.includes(`${scope.row.database}.${scope.row.table}`)">{{$t('noPartitionValuesError')}}</p>
-            </template>
-            <template v-else>
-              <span v-if="!scope.row.select_partition_col">-</span>
-              <div class="partition-values" v-else><el-tag class="partition-value-tag ksd-mr-2" :title="tag.value" size="small" v-for="tag in scope.row.readyPartitions" :key="tag.value">{{tag.value}}</el-tag></div>
+            <template v-if="!loadSnapshotValues">
+              <template v-if="refreshType === 'custom'">
+                <el-select
+                  :class="['partition-value-select', {'is-error': incrementalBuildErrorList.includes(`${scope.row.database}.${scope.row.table}`)}]"
+                  v-model="scope.row.partition_values"
+                  :disabled="!scope.row.select_partition_col"
+                  multiple
+                  @change="changePartitionValues(scope)"
+                  :placeholder="scope.row.select_partition_col && (scope.row.readyPartitions.length > 0 || scope.row.notReadyPartitions.length > 0) ? $t('kylinLang.common.pleaseSelect') : ''"
+                  collapse-tags
+                  filterable>
+                  <el-option-group
+                    class="group-partitions"
+                    :label="$t('readyPartitions')">
+                    <span class="partition-count">{{scope.row.readyPartitions.length}}</span>
+                    <el-option
+                      v-for="item in scope.row.readyPartitions.slice(0, scope.row.pageReadyPartitionsSize * scope.row.pageSize)"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value">
+                    </el-option>
+                    <p class="page-value-more" v-show="scope.row.pageReadyPartitionsSize * scope.row.pageSize < scope.row.readyPartitions.length" @click.stop="scope.row.pageReadyPartitionsSize += 1">{{$t('kylinLang.common.loadMore')}}</p>
+                  </el-option-group>
+                  <el-option-group
+                    class="group-partitions"
+                    :label="$t('notReadyPartitions')">
+                    <span class="partition-count">{{scope.row.notReadyPartitions.length}}</span>
+                    <el-option
+                      v-for="item in scope.row.notReadyPartitions.slice(0, scope.row.pageNotReadyPartitions * scope.row.pageSize)"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value">
+                    </el-option>
+                    <p class="page-value-more" v-show="scope.row.pageNotReadyPartitions * scope.row.pageSize < scope.row.notReadyPartitions.length" @click.stop="scope.row.pageNotReadyPartitions += 1">{{$t('kylinLang.common.loadMore')}}</p>
+                  </el-option-group>
+                </el-select>
+                <p class="error-tip" v-if="incrementalBuildErrorList.includes(`${scope.row.database}.${scope.row.table}`)">{{$t('noPartitionValuesError')}}</p>
+              </template>
+              <template v-else>
+                <span v-if="!scope.row.select_partition_col">-</span>
+                <div class="partition-values" v-else><el-tag class="partition-value-tag ksd-mr-2" :title="tag.value" size="small" v-for="tag in scope.row.readyPartitions" :key="tag.value">{{tag.value}}</el-tag></div>
+              </template>
             </template>
           </template>
         </el-table-column>
