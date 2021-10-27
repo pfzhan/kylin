@@ -25,6 +25,7 @@
 package io.kyligence.kap.secondstorage;
 
 import com.google.common.collect.ImmutableMap;
+import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -38,6 +39,7 @@ import io.kyligence.kap.secondstorage.test.EnableTestUser;
 import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -53,6 +55,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -153,5 +156,53 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         Assert.assertTrue(tableData.containSegments(expectSegments));
         Long wholeSize = tableData.getPartitions().get(0).getSizeInNode().values().stream().reduce(Long::sum).orElse(0L);
         Assert.assertTrue(wholeSize > 0);
+    }
+
+    @Test
+    public void testRemoveSegmentFromSecondStorage() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val jobs = executableManager.listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
+        jobs.forEach(job -> waitJobFinish(getProject(), job.getId()));
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        val tableData = tableFlowManager.orElseThrow(null).get(modelId).orElseThrow(null).getTableDataList().get(0);
+        Assert.assertEquals(1, tableData.getPartitions().size());
+        val count = getModelRowCount(project, modelId);
+        Assert.assertTrue(count > 0);
+        // clean first segment
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val request = new StorageRequest();
+        request.setProject(project);
+        request.setModel(modelId);
+        secondStorageEndpoint.cleanStorage(request, segs.subList(0, 1));
+
+        val jobs2 = executableManager.listExecByModelAndStatus(modelId, ExecutableState::isRunning, null);
+        jobs2.forEach(job -> waitJobFinish(getProject(), job.getId()));
+
+        val tableData2 = tableFlowManager.orElseThrow(null).get(modelId).orElseThrow(null).getTableDataList().get(0);
+        Assert.assertEquals(0, tableData2.getPartitions().size());
+        val newCount = getModelRowCount(project, modelId);
+        Assert.assertTrue(newCount == 0);
+    }
+
+    private int getModelRowCount(String project, String modelId) throws SQLException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        val database = NameUtil.getDatabase(config, project);
+        val table = NameUtil.getTable(modelId, 20000000001L);
+        val node = SecondStorageNodeHelper.getAllNames().get(0);
+        val jdbcUrl = SecondStorageNodeHelper.resolve(node);
+        try (ClickHouse clickHouse = new ClickHouse(jdbcUrl)) {
+            val count = clickHouse.query("select count(*) from `" + database + "`.`" + table + "`", rs -> {
+                try {
+                    return rs.getInt(1);
+                } catch (SQLException e) {
+                    return ExceptionUtils.rethrow(e);
+                }
+            });
+            Assert.assertFalse(count.isEmpty());
+            return count.get(0);
+        }
     }
 }

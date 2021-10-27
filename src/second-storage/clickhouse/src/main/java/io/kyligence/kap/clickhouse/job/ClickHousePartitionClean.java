@@ -49,6 +49,7 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
     private String database;
     private String table;
     private Map<String, SegmentRange<Long>> segmentRangeMap;
+    private String dateFormat;
 
     public ClickHousePartitionClean() {
         setName(STEP_SECOND_STORAGE_SEGMENT_CLEAN);
@@ -60,6 +61,15 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
 
     public ClickHousePartitionClean setSegmentRangeMap(Map<String, SegmentRange<Long>> segmentRangeMap) {
         this.segmentRangeMap = segmentRangeMap;
+        return this;
+    }
+
+    public String getDateFormat() {
+        return dateFormat;
+    }
+
+    public ClickHousePartitionClean setDateFormat(final String dateFormat) {
+        this.dateFormat = dateFormat;
         return this;
     }
 
@@ -83,9 +93,9 @@ public class ClickHousePartitionClean extends AbstractClickHouseClean {
                             database = NameUtil.getDatabase(dataflow);
                             table = NameUtil.getTable(dataflow, tableFlow.getTableDataList().get(0).getLayoutID());
                             ShardCleaner shardCleaner = segmentRangeMap.get(segment).isInfinite()
-                                    ? new ShardCleaner(node, database, table, null, true)
+                                    ? new ShardCleaner(node, database, table, null, true, null)
                                     : new ShardCleaner(node, database, table,
-                                    SecondStorageDateUtils.splitByDay(segmentRangeMap.get(segment)));
+                                    SecondStorageDateUtils.splitByDay(segmentRangeMap.get(segment)), dateFormat);
                             shardCleaners.add(shardCleaner);
                         }
                     });

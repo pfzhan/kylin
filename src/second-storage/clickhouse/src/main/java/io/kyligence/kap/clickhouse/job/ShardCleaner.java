@@ -24,18 +24,8 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import java.sql.Date;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Objects;
-
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.msgpack.core.Preconditions;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.ddl.AlterTable;
@@ -43,8 +33,19 @@ import io.kyligence.kap.secondstorage.ddl.DropDatabase;
 import io.kyligence.kap.secondstorage.ddl.DropTable;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import lombok.Getter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.msgpack.core.Preconditions;
+
+import java.sql.Date;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 @Getter
 @Slf4j
@@ -59,6 +60,8 @@ public class ShardCleaner {
     private List<Date> partitions;
     @JsonProperty("isFull")
     private boolean isFull = false;
+    @JsonProperty("dateFormat")
+    private String dateFormat;
 
     @JsonIgnore
     private ClickHouse clickHouse;
@@ -67,24 +70,29 @@ public class ShardCleaner {
     }
 
     public ShardCleaner(String node, String database) {
-        this(node, database, null, null);
+        this(node, database, null, null, null);
     }
 
     public ShardCleaner(String node, String database, String table) {
-        this(node, database, table, null);
+        this(node, database, table, null, null);
     }
 
-    public ShardCleaner(String node, String database, String table, List<Date> partitions) {
-        this(node, database, table, partitions, false);
+    public ShardCleaner(String node, String database, String table, List<Date> partitions, String dateFormat) {
+        this(node, database, table, partitions, false, dateFormat);
     }
 
-    public ShardCleaner(String node, String database, String table, List<Date> partitions, boolean isFull) {
+    public ShardCleaner(String node, String database, String table, List<Date> partitions, boolean isFull, String dateFormat) {
         this.node = Preconditions.checkNotNull(node);
         this.database = Preconditions.checkNotNull(database);
         this.table = table;
         this.partitions = partitions;
         this.isFull = isFull;
+        this.dateFormat = dateFormat;
         Preconditions.checkState(!(isFull && CollectionUtils.isNotEmpty(partitions)));
+        if (!isFull && CollectionUtils.isNotEmpty(partitions)) {
+            Preconditions.checkState(!StringUtils.isEmpty(dateFormat),
+                    "incremental build should have partition dateformat");
+        }
     }
 
     public ClickHouse getClickHouse() {
@@ -124,9 +132,10 @@ public class ShardCleaner {
             cleanTable();
         } else {
             log.debug("drop partitions in table {}.{}: {}", database, table, partitions);
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat, Locale.ROOT);
             for (val partition : partitions) {
                 alterTable = new AlterTable(TableIdentifier.table(database, table), new AlterTable.ManipulatePartition(
-                        Objects.toString(partition), AlterTable.PartitionOperation.DROP));
+                        simpleDateFormat.format(partition), AlterTable.PartitionOperation.DROP));
                 Preconditions.checkNotNull(getClickHouse()).apply(alterTable.toSql(getRender()));
             }
         }

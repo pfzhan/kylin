@@ -143,7 +143,8 @@ public class SecondStorageJavaTest implements JobWaiter {
         NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataflow = dataflowManager.getDataflow(modelId);
-        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());val request = new StorageRequest();
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val request = new StorageRequest();
         triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
         try {
             triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);

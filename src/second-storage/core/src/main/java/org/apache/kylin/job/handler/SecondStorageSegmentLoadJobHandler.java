@@ -100,6 +100,8 @@ public class SecondStorageSegmentLoadJobHandler extends AbstractJobHandler {
         Set<String> targetSegs = new HashSet<>(jobParam.getTargetSegments());
         List<String> failedSegs = executables.stream().flatMap(executable -> executable.getTargetSegments().stream())
                 .filter(targetSegs::contains).collect(Collectors.toList());
+
+        // segment doesn't have base table index
         List<String> noBaseIndexSegs = targetSegs.stream().filter(seg -> {
             NDataSegment segment = dataflow.getSegment(seg);
             return segment.getIndexPlan().getAllLayouts().stream().anyMatch(SecondStorageUtil::isBaseTableIndex);

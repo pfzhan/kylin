@@ -27,6 +27,7 @@ package io.kyligence.kap.clickhouse.job;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.SecondStorageCleanJobBuildParams;
@@ -78,6 +79,11 @@ public class ClickHouseSegmentCleanJob extends DefaultChainedExecutable {
         step.setParams(getParams());
         Map<String, SegmentRange<Long>> segmentRangeMap = new HashMap<>(builder.segments.size());
         builder.getSegments().forEach(seg -> segmentRangeMap.put(seg.getId(), seg.getSegRange()));
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), builder.getProject());
+        val model = modelManager.getDataModelDesc(builder.getModelId());
+        if (model.isIncrementBuildOnExpertMode()) {
+            step.setDateFormat(model.getPartitionDesc().getPartitionDateFormat());
+        }
         step.setSegmentRangeMap(segmentRangeMap);
         step.init();
         addTask(step);
