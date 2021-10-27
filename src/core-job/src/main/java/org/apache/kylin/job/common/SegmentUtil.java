@@ -89,13 +89,13 @@ public class SegmentUtil {
             return SegmentStatusEnumToDisplay.REFRESHING;
         }
 
-        if (SegmentStatusEnum.WARNING == segment.getStatus()) {
-            return SegmentStatusEnumToDisplay.WARNING;
-        }
-
         if (CollectionUtils.isNotEmpty(overlapSegs)) {
             Preconditions.checkState(CollectionUtils.isNotEmpty(overlapSegs.getSegments(SegmentStatusEnum.NEW)));
             return SegmentStatusEnumToDisplay.LOCKED;
+        }
+
+        if (SegmentStatusEnum.WARNING == segment.getStatus()) {
+            return SegmentStatusEnumToDisplay.WARNING;
         }
 
         if (anyIndexJobRunning(segment, executables)) {

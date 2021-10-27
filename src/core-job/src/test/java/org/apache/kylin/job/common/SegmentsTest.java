@@ -101,6 +101,40 @@ public class SegmentsTest {
     }
 
     @Test
+    public void testGetSegmentStatusToDisplay_Warn_Refreshing() {
+        Segments segments = new Segments();
+        val seg = new NDataSegment();
+        seg.setId(RandomUtil.randomUUIDStr());
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        seg.setStatus(SegmentStatusEnum.WARNING);
+        segments.add(seg);
+
+        val newSeg = new NDataSegment();
+        newSeg.setId(RandomUtil.randomUUIDStr());
+        newSeg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        newSeg.setStatus(SegmentStatusEnum.NEW);
+        segments.add(newSeg);
+        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, newSeg, null);
+        Assert.assertEquals(status, SegmentStatusEnumToDisplay.REFRESHING);
+
+        SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
+        Assert.assertEquals(status2, SegmentStatusEnumToDisplay.LOCKED);
+    }
+
+    @Test
+    public void testGetSegmentStatusToDisplay_Warn() {
+        Segments segments = new Segments();
+        val seg = new NDataSegment();
+        seg.setId(RandomUtil.randomUUIDStr());
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        seg.setStatus(SegmentStatusEnum.WARNING);
+        segments.add(seg);
+
+        SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
+        Assert.assertEquals(status2, SegmentStatusEnumToDisplay.WARNING);
+    }
+
+    @Test
     public void testGetSegmentStatusToDisplay_Merging() {
         Segments segments = new Segments();
         val seg = new NDataSegment();
