@@ -471,4 +471,8 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
         return configurer.isCaseSensitive();
     }
 
+    protected void addConnectionProperty(String name, String value){
+        dataSource.addConnectionProperty(name, value);
+    }
+
 }
