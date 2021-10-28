@@ -465,6 +465,7 @@ export default class Snapshot extends Vue {
       })
       const options = {}
       this.multipleSelection.forEach(item => {
+        if (!item.select_partition_col) return
         options[`${item.database}.${item.table}`] = {
           partition_col: item.select_partition_col,
           incremental_build: !!item.select_partition_col && this.refreshType !== 'full',
