@@ -63,6 +63,15 @@ public class EscapeTransformerTest {
     }
 
     @Test
+    public void testStrings() {
+        String originalSQL = "select N'foo', x'foo', X'foo', _a'foo', U&'foo' from tbl where bar = N'a' and bar='a'";
+        String expectedSQL = "select N'foo', x'foo', X'foo', _a'foo', U&'foo' from tbl where bar = N'a' and bar = 'a'";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
     public void testSqlwithComment() {
         String originalSQL = "select --test comment will remove\n \"--wont remove in quote\", /* will remove multi line comment*/ { fn count(*) } from tbl";
         String expectedSQL = "select\n \"--wont remove in quote\", count(*) from tbl";
