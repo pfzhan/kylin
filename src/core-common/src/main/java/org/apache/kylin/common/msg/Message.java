@@ -1573,6 +1573,10 @@ public class Message {
         return "Can’t turn off the tiered storage at the moment. Model “%s” an ongoing load data job of tiered storage. Please try again later.\n";
     }
 
+    public String getSECOND_STORAGE_CONCURRENT_OPERATE() {
+        return "Another tiered storage task is running. Please try again later.";
+    }
+
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
         return "Can’t turn off the tiered storage at the moment. Project “%s” an ongoing load data job of tiered storage. Please try again later.\n";
     }

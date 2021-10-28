@@ -1780,6 +1780,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSECOND_STORAGE_CONCURRENT_OPERATE() {
+        return "存在相关的分层存储的任务正在运行，请稍后重试。";
+    }
+
+    @Override
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
         return "当前无法关闭分层存储。项目 “%s” 正在进行加载数据到分层存储的任务，请稍后重试。\n";
     }

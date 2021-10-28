@@ -50,6 +50,7 @@ import io.kyligence.kap.secondstorage.test.SharedSparkSession;
 import io.kyligence.kap.secondstorage.test.utils.JobWaiter;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
+import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
 import org.apache.kylin.common.exception.KylinException;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
@@ -160,8 +161,47 @@ public class SecondStorageJavaTest implements JobWaiter {
         val request = new RecoverRequest();
         request.setProject(project);
         request.setModelName(modelName);
-        secondStorageService.disableModelSecondStorage(project, modelId);
+        val jobId = secondStorageService.disableModelSecondStorage(project, modelId);
+        waitJobFinish(project, jobId);
         secondStorageEndpoint.recoverModel(request);
+        Assert.fail();
+    }
+
+    @Test
+    public void testRecoverModelWhenHasLoadTask() throws Exception {
+        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
+        val request = new RecoverRequest();
+        request.setProject(project);
+        request.setModelName(modelName);
+        try {
+            secondStorageEndpoint.recoverModel(request);
+        } catch (KylinException e) {
+            Assert.assertEquals(SECOND_STORAGE_JOB_EXISTS.toErrorCode(), e.getErrorCode());
+            return;
+        }
+        Assert.fail();
+    }
+
+    @Test
+    public void testCleanSegmentWhenHasLoadTask() throws Exception {
+        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
+        val request = new StorageRequest();
+        request.setProject(project);
+        request.setModel(modelId);
+        try {
+            secondStorageEndpoint.cleanStorage(request, segs);
+        } catch (KylinException e) {
+            Assert.assertEquals(SECOND_STORAGE_JOB_EXISTS.toErrorCode(), e.getErrorCode());
+            return;
+        }
         Assert.fail();
     }
 

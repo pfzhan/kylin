@@ -66,6 +66,7 @@ import io.kyligence.kap.secondstorage.metadata.TableFlow;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.TableSyncResponse;
+import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -197,6 +198,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         val config = KylinConfig.getInstanceFromEnv();
         val modelManager = NDataModelManager.getInstance(config, project);
         val model = modelManager.getDataModelDescByAlias(modelName).getUuid();
+        SecondStorageJobUtil.validateModel(project, model);
         Preconditions.checkState(SecondStorageUtil.isModelEnable(project, model),
                 "model %s doesn't enable tiered storage.", model);
 
@@ -324,6 +326,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
     @Transaction(project = 0)
     public String triggerSegmentsClean(String project, String model, Set<String> segIds) {
         SecondStorageUtil.validateProjectLock(project, Arrays.asList(LockTypeEnum.LOAD.name()));
+        SecondStorageJobUtil.validateSegment(project, model, Lists.newArrayList(segIds));
         Preconditions.checkState(SecondStorageUtil.isModelEnable(project, model));
         SecondStorageUtil.cleanSegments(project, model, segIds);
         val jobHandler = new SecondStorageSegmentCleanJobHandler();

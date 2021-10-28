@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.kylin.common.exception.JobErrorCode.JOB_CONFIGURATION_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
@@ -3371,7 +3372,7 @@ public class ModelService extends BasicService {
     public List<JobInfoResponse.JobInfo> exportSegmentToSecondStorage(String project, String model,
             String[] segmentIds) {
         aclEvaluate.checkProjectOperationPermission(project);
-
+        SecondStorageJobUtil.validateSegment(project, model, Arrays.asList(segmentIds));
         checkSegmentsExistById(model, project, segmentIds);
         checkSegmentsStatus(model, project, segmentIds, SegmentStatusEnumToDisplay.LOADING,
                 SegmentStatusEnumToDisplay.REFRESHING, SegmentStatusEnumToDisplay.MERGING,
