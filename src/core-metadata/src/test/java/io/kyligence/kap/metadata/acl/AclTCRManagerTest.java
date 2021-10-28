@@ -105,6 +105,19 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetAclTCRs() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
+        manager.getAclTCRs(user1, Sets.newHashSet("g1", "g2"));
+    }
+
+    @Test
+    public void testBatchGetAclTCRs() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
+        getTestConfig().setProperty("kylin.query.batch-get-row-acl-enabled", "true");
+        manager.getAclTCRs(user1, Sets.newHashSet("g1", "g2"));
+    }
+
+    @Test
     public void testGetAuthorizedColumns() {
         AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
         // test authorized columns -- all

@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.exception.KylinException;
@@ -200,5 +201,40 @@ public class OpenUserControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(openUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
+    }
+
+    @Test
+    public void testBatchAddUsers() throws Exception {
+        List<ManagedUser> users = new ArrayList<>();
+        {
+            ManagedUser user = new ManagedUser();
+            user.setPassword("KYLIN");
+            user.setUsername("u1");
+        }
+        {
+            ManagedUser user = new ManagedUser();
+            user.setPassword("KYLIN");
+            user.setUsername("u2");
+        }
+        {
+            ManagedUser user = new ManagedUser();
+            user.setPassword("KYLIN");
+            user.setUsername("u3");
+        }
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(users))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openUserController).batchCreate(users);
+    }
+
+    @Test
+    public void testBatchDelUsers() throws Exception {
+        List<String> users = Arrays.asList("u1", "u2", "u3");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(users))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openUserController).batchDelete(users);
     }
 }

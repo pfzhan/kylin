@@ -22,13 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.exception.KylinException;
@@ -137,11 +136,13 @@ public class NUserGroupControllerTest {
     public void testGetUserWithGroup() throws Exception {
         Integer allDataSize = 20;
         Integer pageSize = 10;
-        Mockito.doReturn(Lists.newArrayList(new UserGroup[allDataSize])).when(userGroupService).getUserGroupsFilterByGroupName(Mockito.anyString());
-        Mockito.doReturn(Lists.newArrayList(new UserGroupResponseKI[pageSize])).when(userGroupService).getUserGroupResponse(Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(new UserGroup[allDataSize])).when(userGroupService)
+                .getUserGroupsFilterByGroupName(Mockito.anyString());
+        Mockito.doReturn(Lists.newArrayList(new UserGroupResponseKI[pageSize])).when(userGroupService)
+                .getUserGroupResponse(Mockito.any());
         MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/users_with_group")
-                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0").param("page_size", pageSize.toString())
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0")
+                .param("page_size", pageSize.toString()).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Assert.assertTrue(mvcResult.getResponse().getContentAsString().contains(allDataSize.toString()));
     }
@@ -193,6 +194,26 @@ public class NUserGroupControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).addOrDelUsers(Mockito.any(UpdateGroupRequest.class));
+    }
+
+    @Test
+    public void testBatchAddGroups() throws Exception {
+        List<String> groupList = Arrays.asList("g1", "g2", "g3");
+        Mockito.doNothing().when(userGroupService).addGroups(groupList);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(groupList))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nUserGroupController).batchAddUserGroups(groupList);
+    }
+
+    @Test
+    public void testBatchDelGroups() throws Exception {
+        List<String> groupList = Arrays.asList("g1", "g2");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(groupList))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
+        Mockito.verify(nUserGroupController).batchDelUserGroup(groupList);
     }
 
     private List<ManagedUser> mockManagedUser() {

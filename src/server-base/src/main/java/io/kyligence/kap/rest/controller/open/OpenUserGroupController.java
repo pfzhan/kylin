@@ -164,4 +164,20 @@ public class OpenUserGroupController extends NBasicController {
             throws IOException {
         return userGroupController.addOrDelUsers(updateGroupRequest);
     }
+
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_name; Update Param: group_name")
+    @PostMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchAddUserGroups(@RequestBody List<String> groups) {
+        return userGroupController.batchAddUserGroups(groups);
+    }
+
+    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_name; Update Param: group_name")
+    @DeleteMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchDelUserGroup(@RequestBody List<String> groups) throws IOException {
+        return userGroupController.batchDelUserGroup(groups);
+    }
 }

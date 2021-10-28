@@ -26,6 +26,9 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -166,5 +169,26 @@ public class OpenUserGroupControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openUserGroupController).addOrDelUsersInGroup(Mockito.any(UpdateGroupRequest.class));
+    }
+
+    @Test
+    public void testBatchAddGroups() throws Exception {
+        List<String> groupList = Arrays.asList("g1", "g2", "g3");
+        Mockito.doNothing().when(userGroupService).addGroups(groupList);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(groupList))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openUserGroupController).batchAddUserGroups(groupList);
+    }
+
+    @Test
+    public void testBatchDelGroups() throws Exception {
+        List<String> groupList = Arrays.asList("g1", "g2", "g3");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(groupList))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openUserGroupController).batchDelUserGroup(groupList);
     }
 }

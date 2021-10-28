@@ -124,4 +124,21 @@ public class OpenUserController extends NBasicController {
     public EnvelopeResponse<String> deleteUser(@RequestBody ManagedUser request) {
         return userController.delete(request.getUsername());
     }
+
+    @ApiOperation(value = "deleteUser", tags = { "MID" })
+    @DeleteMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchDelete(@RequestBody List<String> usernames) throws IOException {
+        return userController.batchDelete(usernames);
+    }
+
+    @ApiOperation(value = "createUser", tags = {
+            "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @PostMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchCreate(@RequestBody List<ManagedUser> users) throws IOException {
+        return userController.batchCreate(users);
+    }
 }

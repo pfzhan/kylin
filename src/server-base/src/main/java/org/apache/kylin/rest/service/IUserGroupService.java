@@ -82,4 +82,6 @@ public interface IUserGroupService {
     Map<String, List<String>> getUserAndUserGroup() throws IOException;
 
     List<UserGroupResponseKI> getUserGroupResponse(List<UserGroup> userGroups) throws IOException;
+
+    void addGroups(List<String> groups);
 }

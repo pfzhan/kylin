@@ -157,7 +157,8 @@ public class NUserController extends NBasicController {
         CreateAdminUserUtils.createAllAdmins(userService, env);
     }
 
-    @ApiOperation(value = "createUser", tags = { "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @ApiOperation(value = "createUser", tags = {
+            "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -190,7 +191,8 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "updateUser", tags = { "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @ApiOperation(value = "updateUser", tags = {
+            "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
     @PutMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -204,9 +206,11 @@ public class NUserController extends NBasicController {
         }
 
         if (StringUtils.equals(getPrincipal(), user.getUsername())) {
-            Set<String> userGroupSet = user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toSet());
+            Set<String> userGroupSet = user.getAuthorities().stream().map(SimpleGrantedAuthority::getAuthority)
+                    .collect(Collectors.toSet());
             Set<String> currentUserGroupSet = userGroupService.listUserGroups(user.getUsername());
-            boolean roleChange = !(userGroupSet.size() == currentUserGroupSet.size()) || !(userGroupSet.containsAll(currentUserGroupSet));
+            boolean roleChange = !(userGroupSet.size() == currentUserGroupSet.size())
+                    || !(userGroupSet.containsAll(currentUserGroupSet));
             if (roleChange) {
                 throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_EDIT_FORBIDDEN());
             }
@@ -278,6 +282,63 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
+    @ApiOperation(value = "deleteUser", tags = { "MID" })
+    @DeleteMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchDelete(@RequestBody List<String> usernames) throws IOException {
+        val msg = MsgPicker.getMsg();
+
+        checkProfile();
+        usernames.forEach(this::checkUsername);
+
+        String currentUser = getPrincipal();
+        usernames.forEach(username -> {
+            if (StringUtils.equals(currentUser, username)) {
+                throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
+            }
+        });
+        List<ManagedUser> existedUsers = userService.listUsers();
+
+        List<String> notInList = usernames.stream()
+                .filter(t -> existedUsers.stream().map(ManagedUser::getUsername).noneMatch(a -> a.equalsIgnoreCase(t)))
+                .collect(Collectors.toList());
+        if (notInList.size() > 0) {
+            throw new KylinException(USER_NOT_EXIST,
+                    String.format(Locale.ROOT, msg.getUSER_NOT_FOUND(), String.join(",", notInList)));
+        }
+
+        usernames.forEach(username -> {
+            accessService.checkDefaultAdmin(username, false);
+            accessService.revokeProjectPermission(username, MetadataConstants.TYPE_USER);
+            aclTCRService.revokeAclTCR(username, true);
+            EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(username, true));
+            userService.deleteUser(username);
+        });
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "createUser", tags = {
+            "MID" }, notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @PostMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchCreate(@RequestBody List<ManagedUser> users) throws IOException {
+        for (ManagedUser user : users) {
+            checkUsername(user.getUsername());
+            val password = pwdBase64Decode(user.getPassword());
+            checkPasswordLength(password);
+            checkPasswordCharacter(password);
+            checkUserGroupNotEmpty(user.getAuthorities());
+            checkUserGroupExists(user.getAuthorities());
+            checkUserGroupNotDuplicated(user.getAuthorities());
+            user.setPassword(password);
+            createAdminUser(user);
+        }
+
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
     //@DeleteMapping(value = "/{username:.+}")
     //@ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -309,7 +370,8 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "listAllUsers", tags = { "MID" }, notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "listAllUsers", tags = {
+            "MID" }, notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -484,7 +546,7 @@ public class NUserController extends NBasicController {
     }
 
     private String getPrincipal() {
-        String userName = null;
+        String userName;
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {

@@ -31,9 +31,9 @@ import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETE
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -50,6 +50,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.request.AclTCRRequest;
@@ -81,7 +84,7 @@ public class OpenAclTCRController extends NBasicController {
         requests.stream().forEach(request -> Optional.ofNullable(request.getTables()).orElse(Lists.newArrayList())
                 .stream().forEach(table -> {
                     table.setRowFilter(null);
-        }));
+                }));
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             sid = makeUserNameCaseInSentive(sid);
             mergeSidAclTCR(project, sid, true, requests);
@@ -107,14 +110,30 @@ public class OpenAclTCRController extends NBasicController {
         aclTCRService.mergeAclTCR(project, sid, principal, requests);
     }
 
-    @ApiOperation(value = "updateProjectAcl With New Foramt", tags = { "MID" },
-            notes = "Update URL: {project}; Update Param: project")
+    @ApiOperation(value = "updateProjectAcl With New Foramt", tags = {
+            "MID" }, notes = "Update URL: {project}; Update Param: project")
+    @PutMapping(value = "/batch/{sid_type:.+}")
+    @ResponseBody
+    public EnvelopeResponse<String> batchUpdateProject(@PathVariable("sid_type") String sidType,
+            @RequestParam("project") String project, @RequestBody Map<String, List<AclTCRRequest>> requests)
+            throws IOException {
+        checkProjectName(project);
+        Preconditions.checkState(sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP));
+        AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
+        for (Map.Entry<String, List<AclTCRRequest>> entry : requests.entrySet()) {
+            mergeSidAclTCR(project, entry.getKey(), false, entry.getValue());
+        }
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateProjectAcl With New Foramt", tags = {
+            "MID" }, notes = "Update URL: {project}; Update Param: project")
     @PutMapping(value = "/{sid_type:.+}/{sid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectV2(@PathVariable("sid_type") String sidType, //
-                                                  @PathVariable("sid") String sid, //
-                                                  @RequestParam("project") String project, //
-                                                  @RequestBody List<AclTCRRequest> requests) throws IOException {
+            @PathVariable("sid") String sid, //
+            @RequestParam("project") String project, //
+            @RequestBody List<AclTCRRequest> requests) throws IOException {
         checkProjectName(project);
         AclPermissionUtil.checkAclUpdatable(project, aclTCRService.getCurrentUserGroups());
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {

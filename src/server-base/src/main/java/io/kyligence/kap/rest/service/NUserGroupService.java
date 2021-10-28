@@ -63,8 +63,8 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.NUserGroupManager;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
-import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import io.kyligence.kap.rest.aspect.Transaction;
+import io.kyligence.kap.rest.response.UserGroupResponseKI;
 import lombok.val;
 
 @Component("nUserGroupService")
@@ -263,6 +263,13 @@ public class NUserGroupService implements IUserGroupService {
             result.add(new UserGroupResponseKI(group.getUuid(), group.getGroupName(), groupMembers));
         }
         return result;
+    }
+
+    @Override
+    @Transaction
+    public void addGroups(List<String> groups) {
+        aclEvaluate.checkIsGlobalAdmin();
+        getUserGroupManager().batchAdd(groups);
     }
 
     protected List<UserGroup> getUserGroupSpecialUuid() {

@@ -35,8 +35,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
-import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -60,6 +58,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.common.persistence.transaction.AclTCRRevokeEventNotifier;
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.usergroup.UserGroup;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
@@ -85,7 +85,8 @@ public class NUserGroupController extends NBasicController {
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
-    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
+    @ApiOperation(value = "getUsersByGroup", tags = {
+            "MID" }, notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/group_members/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -109,8 +110,8 @@ public class NUserGroupController extends NBasicController {
             userService.completeUserInfo(user);
         }
 
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, DataResult.get(subList, members, pageOffset, pageSize),
-                "get groups members");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
+                DataResult.get(subList, members, pageOffset, pageSize), "get groups members");
     }
 
     @ApiOperation(value = "groups", tags = { "MID" })
@@ -122,7 +123,8 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, groups, "get groups");
     }
 
-    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
+    @ApiOperation(value = "getUsersByGroup", tags = {
+            "MID" }, notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
     @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON,
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
@@ -147,7 +149,8 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, userGroupService.getUserAndUserGroup(), "");
     }
 
-    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_name; Update Param: group_name")
+    @ApiOperation(value = "getUsersByGroup", tags = {
+            "MID" }, notes = "Update URL: group_name; Update Param: group_name")
     @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -157,7 +160,8 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "add user group");
     }
 
-    @ApiOperation(value = "getUsersByGroup", tags = { "MID" }, notes = "Update URL: group_name; Update Param: group_name")
+    @ApiOperation(value = "getUsersByGroup", tags = {
+            "MID" }, notes = "Update URL: group_name; Update Param: group_name")
     @DeleteMapping(value = "/{uuid:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -179,6 +183,31 @@ public class NUserGroupController extends NBasicController {
         checkGroupName(updateGroupRequest.getGroup());
         userGroupService.modifyGroupUsers(updateGroupRequest.getGroup(), updateGroupRequest.getUsers());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "modify users in user group");
+    }
+
+    @ApiOperation(value = "getUsersByGroup", tags = {
+            "MID" }, notes = "Update URL: group_name; Update Param: group_name")
+    @PostMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchAddUserGroups(@RequestBody List<String> groups) {
+        groups.forEach(this::checkGroupName);
+        userGroupService.addGroups(groups);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "batch add user groups");
+    }
+
+    @ApiOperation(value = "getUsersByGroup", tags = {
+            "MID" }, notes = "Update URL: group_name; Update Param: group_name")
+    @DeleteMapping(value = "/batch")
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<String> batchDelUserGroup(@RequestBody List<String> groups) throws IOException {
+        for (String group : groups) {
+            userGroupService.deleteGroup(group);
+            aclTCRService.revokeAclTCR(group, false);
+            EventBusFactory.getInstance().postAsync(new AclTCRRevokeEventNotifier(group, true));
+        }
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "batch del user group");
     }
 
     public void checkGroupName(String groupName) {

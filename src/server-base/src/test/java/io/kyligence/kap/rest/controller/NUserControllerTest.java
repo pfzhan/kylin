@@ -22,8 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
@@ -34,6 +32,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -507,7 +506,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
 
         Mockito.doReturn(true).when(userGroupService).exists("ALL_USERS");
-        Mockito.doReturn(new HashSet<String>(){{add(Constant.GROUP_ALL_USERS);}}).when(userGroupService).listUserGroups(user.getUsername());
+        Mockito.doReturn(new HashSet<String>() {
+            {
+                add(Constant.GROUP_ALL_USERS);
+            }
+        }).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
@@ -526,20 +529,27 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         List<SimpleGrantedAuthority> groups = Lists.newArrayList(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS),
                 new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS));
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
-        Mockito.doReturn(new HashSet<String>(){{add(Constant.GROUP_ALL_USERS);}}).when(userGroupService).listUserGroups(user.getUsername());
+        Mockito.doReturn(new HashSet<String>() {
+            {
+                add(Constant.GROUP_ALL_USERS);
+            }
+        }).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
         user.setGrantedAuthorities(groups);
         thrown.expect(KylinException.class);
         thrown.expectMessage("Values in authorities can't be duplicated.");
         nUserController.updateUser(user);
     }
+
     @Test
     public void testUpdateOwnUserType() throws Exception {
         val user = new ManagedUser("ADMIN", pwdEncoder.encode("KYLIN"), false);
-        HashSet<String> groups = new HashSet<String>() {{
-            add(Constant.GROUP_ALL_USERS);
-            add(Constant.ROLE_ADMIN);
-        }};
+        HashSet<String> groups = new HashSet<String>() {
+            {
+                add(Constant.GROUP_ALL_USERS);
+                add(Constant.ROLE_ADMIN);
+            }
+        };
         Mockito.doReturn(groups).when(userGroupService).listUserGroups(user.getUsername());
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         Mockito.doReturn(true).when(userGroupService).exists(Constant.GROUP_ALL_USERS);
@@ -549,5 +559,65 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));
+    }
+
+    @Test
+    public void testBatchAddUsers() throws Exception {
+        List<ManagedUser> users = new ArrayList<>();
+        {
+            ManagedUser user = new ManagedUser();
+            user.setPassword("KYLIN");
+            user.setUsername("u1");
+        }
+        {
+            ManagedUser user = new ManagedUser();
+            user.setPassword("KYLIN");
+            user.setUsername("u2");
+        }
+        {
+            ManagedUser user = new ManagedUser();
+            user.setPassword("KYLIN");
+            user.setUsername("u3");
+        }
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(users))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nUserController).batchCreate(users);
+    }
+
+    @Test
+    public void testBatchDelUsersNotFound() throws Exception {
+        List<String> users = Arrays.asList("u1", "u2", "u3");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(users))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
+        Mockito.verify(nUserController).batchDelete(users);
+    }
+
+    @Test
+    public void testBatchDelUsers() throws Exception {
+        List<String> users = Arrays.asList("u1", "u2", "u3");
+        List<ManagedUser> managedUsers = new ArrayList<>();
+        {
+            ManagedUser user = new ManagedUser();
+            user.setUsername("u1");
+            managedUsers.add(user);
+        }
+        {
+            ManagedUser user = new ManagedUser();
+            user.setUsername("u2");
+            managedUsers.add(user);
+        }
+        {
+            ManagedUser user = new ManagedUser();
+            user.setUsername("u3");
+            managedUsers.add(user);
+        }
+        Mockito.doReturn(managedUsers).when(userService).listUsers();
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/batch").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(users))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
+        Mockito.verify(nUserController).batchDelete(users);
     }
 }

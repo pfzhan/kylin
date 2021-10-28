@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -104,6 +105,32 @@ public class NUserGroupManager implements IKeep {
             }
         }
         return null;
+    }
+
+    public List<String> getRealUserGroupByNames(List<String> names) {
+        List<String> result = Lists.newArrayList();
+        List<String> allGroups = getAllGroupNames();
+        for (String tmp : names) {
+            for (String name : allGroups) {
+                if (StringUtils.endsWithIgnoreCase(tmp, name)) {
+                    result.add(tmp);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    public void batchAdd(List<String> names) {
+        List<String> realGroups = getRealUserGroupByNames(names);
+        if (realGroups.size() > 0) {
+            throw new KylinException(DUPLICATE_USERGROUP_NAME,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getUSERGROUP_EXIST(), String.join(",", realGroups)));
+        }
+        for (String name : names) {
+            UserGroup userGroup = new UserGroup(name);
+            crud.save(userGroup);
+        }
     }
 
     public void add(String name) {

@@ -872,6 +872,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 "default", Lists.newArrayList("default")));
         map.put("getSparkEngineBuildStepsToSkip", new PropertiesEntity("kylin.engine.steps.skip", "", ""));
         map.put("getAutoModelViewEnabled", new PropertiesEntity("kylin.query.auto-model-view-enabled", "false", false));
+        map.put("isBatchGetRowAclEnabled", new PropertiesEntity("kylin.query.batch-get-row-acl-enabled", "false", false));
         map.put("getCheckResourceTimeLimit",
                 new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
         map.put("getSourceNameCaseSensitiveEnabled",

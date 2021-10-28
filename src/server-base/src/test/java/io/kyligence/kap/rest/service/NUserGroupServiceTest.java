@@ -212,6 +212,12 @@ public class NUserGroupServiceTest extends ServiceTestBase {
         checkDelUserGroupWithException(GROUP_ALL_USERS);
     }
 
+    @Test
+    public void testAddGroups() throws IOException {
+        userGroupService.addGroups(Arrays.asList("g1", "g2", "g3"));
+        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAllUserGroups());
+    }
+
     private void checkDelUserGroupWithException(String groupName) {
         try {
             userGroupService.deleteGroup(groupName);

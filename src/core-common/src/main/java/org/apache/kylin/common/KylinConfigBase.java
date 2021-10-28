@@ -2973,6 +2973,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.build.resource.check-retry-limit-minutes", "10"));
     }
 
+    public boolean isBatchGetRowAclEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.batch-get-row-acl-enabled", FALSE));
+    }
+
     public boolean isAdaptiveSpanningTreeEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.engine.adaptive-spanning-tree-enabled", FALSE));
     }
