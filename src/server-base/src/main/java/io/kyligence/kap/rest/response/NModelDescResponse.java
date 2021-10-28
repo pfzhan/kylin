@@ -36,7 +36,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TableDesc;
 
 @Data
 public class NModelDescResponse implements Serializable {
@@ -60,8 +60,8 @@ public class NModelDescResponse implements Serializable {
     private List<NDataModel.Measure> measures;
     @JsonProperty("aggregation_groups")
     private List<AggGroupResponse> aggregationGroups;
-    @JsonProperty("all_table_refs")
-    private Set<TableRef> allTableRefs;
+    @JsonProperty("all_tables")
+    private Set<TableDesc> allTables;
     @JsonProperty("computed_columns")
     private List<ComputedColumnDesc> computedColumnDescs;
 

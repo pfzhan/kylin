@@ -4076,7 +4076,7 @@ public class ModelService extends BasicService {
         response.setProject(model.getProject());
         response.setDescription(model.getDescription());
         response.setComputedColumnDescs(model.getComputedColumnDescs());
-        response.setAllTableRefs(model.getAllTableRefs());
+        response.setAllTables(model.getAllTableRefs().stream().map(TableRef::getTableDesc).collect(Collectors.toSet()));
 
         response.setMeasures(model.getMeasures());
         List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream() //
