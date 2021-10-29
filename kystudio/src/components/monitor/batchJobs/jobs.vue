@@ -793,10 +793,11 @@ export default class JobsList extends Vue {
               if (selectedIndex !== -1) {
                 this.getJobDetail({project: this.selectedJob.project, job_id: this.selectedJob.id}).then((res) => {
                   handleSuccess(res, (data) => {
+                    const result = data.map(it => ({...it, sub_stages: it.sub_stages ?? [], segment_sub_stages: it.segment_sub_stages ?? []}))
                     this.selectedJob = this.jobsList[selectedIndex]
-                    this.selectedJob['details'] = data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : item.sub_stages}))
+                    this.selectedJob['details'] = result.map(item => ({...item, step_status: this.exChangeErrorStop(item, result), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, result) : item.sub_stages}))
                     if (this.expandSegmentDetailId) {
-                      const jobDetail = data.filter(it => it.id === this.expandSegmentDetailId)
+                      const jobDetail = result.filter(it => it.id === this.expandSegmentDetailId)
                       const detail = this.definitionStopErrorStatus(jobDetail[0])
                       this.segmentDetails = detail
                       this.currentJobStatus = jobDetail[0].step_status
@@ -1346,7 +1347,7 @@ export default class JobsList extends Vue {
       this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
-            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : item.sub_stages})))
+            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : (item.sub_stages ?? []), segment_sub_stages: item.segment_sub_stages ?? []})))
             this.isShowJobBtn()
             // this.setRightBarTop()
           })
