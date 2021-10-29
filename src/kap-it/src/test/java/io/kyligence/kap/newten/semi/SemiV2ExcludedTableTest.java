@@ -582,7 +582,7 @@ public class SemiV2ExcludedTableTest extends SemiAutoTestBase {
         List<AbstractContext.ModelContext> modelContexts = context.getModelContexts();
         Assert.assertEquals(1, modelContexts.size());
         NDataModel modelBeforeGenerateRecItems = modelContexts.get(0).getTargetModel();
-        Assert.assertEquals(0, modelBeforeGenerateRecItems.getAllNamedColumns().size());
+        Assert.assertEquals(17, modelBeforeGenerateRecItems.getAllNamedColumns().size());
         Assert.assertEquals(1, modelBeforeGenerateRecItems.getAllMeasures().size());
         Assert.assertEquals(0, modelBeforeGenerateRecItems.getComputedColumnDescs().size());
     }

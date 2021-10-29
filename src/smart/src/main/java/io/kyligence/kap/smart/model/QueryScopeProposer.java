@@ -179,6 +179,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             Set<TblColRef> allColumns = new TreeSet<>(Comparator.comparing(TblColRef::getIdentity));
             allColumns.addAll(allTableColumns);
             if (skipSuggestDimensions) {
+                inheritAllNameColumn(allColumns);
                 return;
             }
 
@@ -203,6 +204,15 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
                 if (isNewDimension) {
                     addDimRecommendation(candidateNamedColumns.get(tblColRef.getIdentity()), tblColRef);
+                }
+            });
+        }
+
+        private void inheritAllNameColumn(Set<TblColRef> allColumns) {
+            allColumns.forEach(tblColRef -> {
+                if (!candidateNamedColumns.containsKey(tblColRef.getIdentity())) {
+                    final NamedColumn column = transferToNamedColumn(tblColRef, ColumnStatus.EXIST);
+                    candidateNamedColumns.put(tblColRef.getIdentity(), column);
                 }
             });
         }
