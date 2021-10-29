@@ -121,7 +121,7 @@ export function getDatasourceObj (that, sourceType) {
   const { override_kylin_properties } = that.currentProjectData
   const { projectName, customTreeTitle } = that
   const sourceName = sourceTypes[sourceType]
-  let sourceNameStr = 'kylin.source.jdbc.source.enable' in override_kylin_properties && override_kylin_properties['kylin.source.jdbc.source.enable'] === 'true'
+  let sourceNameStr = 'kylin.source.jdbc.source.enable' in override_kylin_properties && override_kylin_properties['kylin.source.jdbc.source.enable'] === 'true' && override_kylin_properties['kylin.source.default'] === '8'
     ? override_kylin_properties['kylin.source.jdbc.source.name'] || sourceNameMapping[sourceName]
     : sourceNameMapping[sourceName]
   if (that.$store.state.config.platform === 'iframe' && sourceNameStr.toLocaleLowerCase() === 'hive') {

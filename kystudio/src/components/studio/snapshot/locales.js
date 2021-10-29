@@ -112,7 +112,7 @@ export default {
     fullRefresh: '全量刷新',
     incrementalFresh: '增量刷新',
     customRefresh: '自定义分区值刷新',
-    incrementalFreshTip: '对于设置了源表分区的快照，将仅刷新新增的分区值数据（已构建的历史数据不刷新）。建议历史数据无更新时选择',
+    incrementalFreshTip: '对于设置了源表分区的快照，将仅刷新新增的分区值数据（已构建的历史数据不刷新）。建议历史数据无更新时选择。',
     customRefreshTip: '按照所选分区值刷新数据',
     fullFreshTip: '刷新全部数据',
     readyPartitions: '已构建',
