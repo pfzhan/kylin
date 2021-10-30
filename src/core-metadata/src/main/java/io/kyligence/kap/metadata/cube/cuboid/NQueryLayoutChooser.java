@@ -100,6 +100,14 @@ public class NQueryLayoutChooser {
         val aggIndexMatcher = new AggIndexMatcher(sqlDigest, chooserContext, excludedTables, isReplaceCount);
         val tableIndexMatcher = new TableIndexMatcher(sqlDigest, chooserContext, excludedTables,
                 dataflow.getConfig().isUseTableIndexAnswerNonRawQuery());
+        // bail out if both agg index are invalid
+        // invalid matcher may caused by
+        // 1. cc col is not present in the model
+        // 2. dynamic params ? present in query like select sum(col/?) from ...,
+        //    see io.kyligence.kap.query.DynamicQueryTest.testDynamicParamOnAgg
+        if (!aggIndexMatcher.valid() && !tableIndexMatcher.valid()) {
+            return null;
+        }
         for (NDataLayout dataLayout : commonLayouts) {
             log.trace("Matching layout {}", dataLayout);
             CapabilityResult tempResult = new CapabilityResult();

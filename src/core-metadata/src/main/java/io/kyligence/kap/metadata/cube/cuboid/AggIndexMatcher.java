@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,25 +57,44 @@ import lombok.extern.slf4j.Slf4j;
 public class AggIndexMatcher extends IndexMatcher {
 
     private final boolean isReplaceCount;
-    private final Set<Integer> sqlColumns;
+    private Set<Integer> sqlColumns;
     private final Map<FunctionDesc, List<Integer>> functionCols = Maps.newHashMap();
+    private final boolean valid;
 
     public AggIndexMatcher(SQLDigest sqlDigest, ChooserContext model, Set<String> excludedTables,
             boolean isReplaceCount) {
         super(sqlDigest, model, excludedTables);
         this.isReplaceCount = isReplaceCount;
-        this.sqlColumns = Stream.concat(sqlDigest.filterColumns.stream(), sqlDigest.groupbyColumns.stream())
-                .map(tblColMap::get).collect(Collectors.toSet());
+        valid = init();
+    }
 
-        sqlDigest.aggregations.forEach(agg -> {
-            functionCols.put(agg, agg.getSourceColRefs().stream().map(tblColMap::get).filter(Objects::nonNull)
-                    .collect(Collectors.toList()));
-        });
+    private boolean init() {
+        // cols may have null values as the CC col in query may not present in the model
+        sqlColumns = Stream.concat(sqlDigest.filterColumns.stream(), sqlDigest.groupbyColumns.stream())
+                .map(tblColMap::get).collect(Collectors.toSet());
+        if (sqlColumns.contains(null)) {
+            return false;
+        }
+
+        for (FunctionDesc agg : sqlDigest.aggregations) {
+            List<Integer> cols = agg.getSourceColRefs().stream().map(tblColMap::get).collect(Collectors.toList());
+            for (Integer col : cols) {
+                if (col == null) {
+                    return false;
+                }
+            }
+            functionCols.put(agg, cols);
+        }
+        return true;
+    }
+
+    public boolean valid() {
+        return valid;
     }
 
     @Override
     MatchResult match(LayoutEntity layout) {
-        if (!needAggIndexMatch(layout.getIndex())) {
+        if (!needAggIndexMatch(layout.getIndex()) || !valid) {
             return new MatchResult(false);
         }
         log.trace("Matching agg index");
@@ -154,8 +172,7 @@ public class AggIndexMatcher extends IndexMatcher {
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
 
-            Set<Integer> leftUnmatchedCols = functionCols.get(functionDesc).stream().filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+            Set<Integer> leftUnmatchedCols = Sets.newHashSet(functionCols.get(functionDesc));
             indexEntity.getDimensions().forEach(leftUnmatchedCols::remove);
             if (isBatchFusionModel) {
                 leftUnmatchedCols.addAll(layoutEntity.getStreamingColumns().keySet());

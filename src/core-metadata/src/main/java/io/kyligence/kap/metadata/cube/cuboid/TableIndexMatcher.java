@@ -43,17 +43,28 @@ import lombok.extern.slf4j.Slf4j;
 public class TableIndexMatcher extends IndexMatcher {
 
     private final boolean isUseTableIndexAnswerNonRawQuery;
-    private final Set<Integer> sqlColumns;
+    private Set<Integer> sqlColumns;
+    private final boolean valid;
 
     public TableIndexMatcher(SQLDigest sqlDigest, ChooserContext chooserContext, Set<String> excludedTables,
                              boolean isUseTableIndexAnswerNonRawQuery) {
         super(sqlDigest, chooserContext, excludedTables);
         this.isUseTableIndexAnswerNonRawQuery = isUseTableIndexAnswerNonRawQuery;
-        this.sqlColumns = sqlDigest.allColumns.stream().map(tblColMap::get).collect(Collectors.toSet());
+        valid = init();
+    }
+
+    private boolean init() {
+        // cols may have null values as the CC col in query may not present in the model
+        sqlColumns = sqlDigest.allColumns.stream().map(tblColMap::get).collect(Collectors.toSet());
+        return !sqlColumns.contains(null);
+    }
+
+    public boolean valid() {
+        return valid;
     }
 
     public MatchResult match(LayoutEntity layout) {
-        if (!needTableIndexMatch(layout.getIndex())) {
+        if (!needTableIndexMatch(layout.getIndex()) || !valid) {
             return new MatchResult(false);
         }
 

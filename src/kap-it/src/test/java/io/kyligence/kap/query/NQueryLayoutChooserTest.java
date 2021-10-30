@@ -74,6 +74,61 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
     private static final String PROJECT = "default";
 
     @Test
+    public void testCCNullChecking() {
+        { // agg index matcher - null in grp by cols
+            String sql = "select distinct DEAL_AMOUNT from test_kylin_fact \n";
+            OLAPContext context = prepareOlapContext(sql).get(0);
+            val modelWithCCId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+            NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(modelWithCCId);
+            Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+
+            // prepare metadata
+            // add a lowest cost layout
+            val modelWithNoCCId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+            NDataflow dataflowNoCC = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(modelWithNoCCId);
+            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC, dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
+            Assert.assertNull(matchResult);
+        }
+        { // agg index matcher - null in agg col
+            String sql = "select sum(DEAL_AMOUNT) from test_kylin_fact \n";
+            OLAPContext context = prepareOlapContext(sql).get(0);
+            val modelWithCCId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+            NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(modelWithCCId);
+            Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+
+            // prepare metadata
+            // add a lowest cost layout
+            val modelWithNoCCId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+            NDataflow dataflowNoCC = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(modelWithNoCCId);
+            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC, dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
+            Assert.assertNull(matchResult);
+        }
+        { // table index matcher
+            String sql = "select DEAL_AMOUNT from test_kylin_fact \n";
+            OLAPContext context = prepareOlapContext(sql).get(0);
+            val modelWithCCId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+            NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(modelWithCCId);
+            Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
+            context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
+
+            // prepare metadata
+            // add a lowest cost layout
+            val modelWithNoCCId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
+            NDataflow dataflowNoCC = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(modelWithNoCCId);
+            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC, dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
+            Assert.assertNull(matchResult);
+        }
+    }
+
+    @Test
     public void testSelectIndexInOneModel() {
         // 1. test match aggIndex
         String sql = "select CAL_DT, count(price) as GMV from test_kylin_fact \n"
