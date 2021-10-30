@@ -7,7 +7,7 @@
     :close-on-click-modal="false">
     <span slot="title">{{$t('errorDetail')}}</span>
     <div class="error-contain">
-      <p class="error-title">{{$t('errorStepTips', {name: currentErrorJob.failed_step_name ? getSubTasksName(currentErrorJob.failed_step_name) : getStepLineName(currentErrorJob.name)})}}</p>
+      <p class="error-title">{{$t('errorStepTips', {name: currentErrorJob.failed_step_name ? (getSubTasksName(currentErrorJob.failed_step_name) || getStepLineName(currentErrorJob.name)) : getStepLineName(currentErrorJob.name)})}}</p>
       <!-- <el-button class="error-solution-btn ksd-mt-8" v-show="currentErrorJob.failed_resolve" @click="jumpToManual" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button> -->
       <div class="error-trace-msg ksd-mt-8">{{getErrorTrace}}</div>
       <el-button class="view-details-btn ksd-mt-8" v-if="showViewMore" @click="showMore = !showMore" nobg-text :iconr="showMore ? 'el-ksd-icon-arrow_up_16' : 'el-ksd-icon-arrow_down_16'">{{$t('viewMore')}}</el-button>

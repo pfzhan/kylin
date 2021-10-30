@@ -305,7 +305,7 @@
                   </span> -->
                   <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status === 'ERROR'" :closable="false">
                     <p slot="title">
-                      {{step.failed_step_name ? $t('errorStepTips', {name: getSubTasksName(step.failed_step_name)}) : $t('errorStepTips', {name: getStepLineName(step.name)})}}
+                      {{step.failed_step_name ? $t('errorStepTips', {name: getSubTasksName(step.failed_step_name) || getStepLineName(step.name)}) : $t('errorStepTips', {name: getStepLineName(step.name)})}}
                       <el-button nobg-text size="small" v-if="step.failed_stack" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
                     </p>
                   </el-alert>
