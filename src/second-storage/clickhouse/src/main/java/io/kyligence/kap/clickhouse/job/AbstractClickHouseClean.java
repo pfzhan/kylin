@@ -27,7 +27,6 @@ package io.kyligence.kap.clickhouse.job;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -82,16 +81,6 @@ public abstract class AbstractClickHouseClean extends AbstractExecutable {
             this.nodeCount = Integer.parseInt(this.getParam(CLICKHOUSE_NODE_COUNT_PARAM));
         } catch (IOException e) {
             ExceptionUtils.rethrow(e);
-        }
-    }
-
-    private static <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
-        try {
-            return lambda.call();
-        } catch (ExecuteException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ExecuteException(e);
         }
     }
 

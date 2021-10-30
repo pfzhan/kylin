@@ -35,12 +35,10 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -61,6 +59,7 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.Manager;
 import io.kyligence.kap.secondstorage.metadata.NodeGroup;
 import io.kyligence.kap.secondstorage.metadata.PartitionType;
@@ -78,17 +77,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ClickHouseLoad extends AbstractExecutable {
-
-    private static <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
-        try {
-            return lambda.call();
-        } catch (ExecuteException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ExecuteException(e);
-        }
-    }
-
     public static final String SOURCE_URL = "source_url";
     public static final String ROOT_PATH = "root_path";
 

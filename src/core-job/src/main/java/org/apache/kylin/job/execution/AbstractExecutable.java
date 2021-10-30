@@ -53,12 +53,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.RandomUtil;
@@ -798,4 +800,28 @@ public abstract class AbstractExecutable implements Executable {
                 .toString();
     }
 
+    protected <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
+        Exception exception = null;
+        try {
+            return lambda.call();
+        } catch (ExecuteException e) {
+            exception = e;
+            throw e;
+        } catch (Exception e) {
+            exception = e;
+            throw new ExecuteException(e);
+        } finally {
+            if (null != exception) {
+                wrapWithExecuteExceptionUpdateJobError(exception);
+            }
+        }
+    }
+
+    private void wrapWithExecuteExceptionUpdateJobError(Exception exception) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            getExecutableManager(project).updateJobError(getId(), getId(), null,
+                    ExceptionUtils.getStackTrace(exception));
+            return null;
+        }, getEpochId(), project);
+    }
 }
