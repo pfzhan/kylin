@@ -35,6 +35,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.rest.constant.Constant;
@@ -110,6 +111,34 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     private String getProject() {
         return "default";
+    }
+
+    @Test
+    public void teestWrapWithExecuteException() throws ExecuteException {
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        manager.addJob(executable);
+
+        val jobId = executable.getId();
+        var failedStepId = executable.getId();
+        var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
+
+        executable.wrapWithExecuteException(() -> null);
+        var output = manager.getJob(jobId).getOutput();
+        Assert.assertEquals(null, output.getFailedStepId());
+
+        try {
+            executable.wrapWithExecuteException(() -> {
+                throw new KylinException(FAILED_UPDATE_JOB_STATUS, "test");
+            });
+            Assert.fail();
+        } catch (ExecuteException e) {
+            output = manager.getJob(jobId).getOutput();
+            Assert.assertEquals(failedStepId, output.getFailedStepId());
+        }
     }
 
     @Test

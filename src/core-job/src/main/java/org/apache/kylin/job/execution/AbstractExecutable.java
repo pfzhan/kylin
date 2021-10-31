@@ -57,6 +57,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -800,7 +801,8 @@ public abstract class AbstractExecutable implements Executable {
                 .toString();
     }
 
-    protected <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
+    @VisibleForTesting
+    public <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
         Exception exception = null;
         try {
             return lambda.call();
