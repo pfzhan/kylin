@@ -681,6 +681,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.server.https.enable", FALSE));
     }
 
+    public Boolean isQueryNodeRequestForwardEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.request-forward-enabled", TRUE));
+    }
+
     public int getServerHttpsPort() {
         return Integer.parseInt(getOptional("kylin.server.https.port", "7443"));
     }

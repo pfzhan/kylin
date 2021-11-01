@@ -696,7 +696,6 @@ public class Message {
         return "The current used system capacity exceeds the license’s limit. Please upload a new license, or contact Kyligence.";
     }
 
-
     public String getLicenseNoLicense() {
         return "No license file. Please contact Kyligence.";
     }
@@ -1155,7 +1154,6 @@ public class Message {
         return getBadSqlColumnNotFoundReason();
     }
 
-
     public String getProjectNumOverThreshold() {
         return "Failed to create a new project. The number of projects exceeds the maximum: {%s}. Please delete other abandoned projects before trying to create new ones or contact the administrator to adjust the maximum number of projects.";
     }
@@ -1192,6 +1190,10 @@ public class Message {
 
     public String getJobNodeInvalid() {
         return "Can’t execute this request on job node. Please check and try again.";
+    }
+
+    public String getQUERY_NODE_INVALID(String url) {
+        return "Can’t execute this request on Query node. Please check and try again.";
     }
 
     public String getInvalidTimeFormat() {
