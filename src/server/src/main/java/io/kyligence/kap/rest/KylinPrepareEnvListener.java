@@ -67,7 +67,11 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         }
 
         if (env.acceptsProfiles("sandbox")) {
-            setSandboxEnvs();
+            if (env.acceptsProfiles("docker")) {
+                setSandboxEnvs("../../dev-support/sandbox/conf");
+            } else {
+                setSandboxEnvs("../examples/test_case_data/sandbox");
+            }
         } else if (env.acceptsProfiles("dev")) {
             setLocalEnvs();
         }
@@ -96,12 +100,12 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         }
     }
 
-    private static void setSandboxEnvs() {
-        File dir1 = new File("../examples/test_case_data/sandbox");
+    private static void setSandboxEnvs(String sandboxEnvPath) {
+        File dir1 = new File(sandboxEnvPath);
         ClassUtil.addClasspath(dir1.getAbsolutePath());
         Unsafe.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
 
-        Unsafe.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
+        Unsafe.setProperty("kylin.hadoop.conf.dir", sandboxEnvPath);
         Unsafe.setProperty("hdp.version", "current");
 
     }
