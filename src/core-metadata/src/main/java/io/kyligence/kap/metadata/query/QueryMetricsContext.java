@@ -137,8 +137,8 @@ public class QueryMetricsContext extends QueryMetrics {
             this.cacheType = KylinConfig.getInstanceFromEnv().isRedisEnabled()
                     ? QueryHistory.CacheType.REDIS.name() : QueryHistory.CacheType.EHCACHE.name();
         }
-
         this.resultRowCount = context.getMetrics().getResultRowCount();
+        this.queryMsg = context.getMetrics().getQueryMsg();
 
         this.isIndexHit = !context.getMetrics().isException() && !context.getQueryTagInfo().isPushdown()
                 && !this.engineType.equals(QueryHistory.EngineType.CONSTANTS.name());
@@ -164,6 +164,7 @@ public class QueryMetricsContext extends QueryMetrics {
 
         queryHistoryInfo.setQuerySnapshots(querySnapshots);
         queryHistoryInfo.setCacheType(this.cacheType);
+        queryHistoryInfo.setQueryMsg(this.queryMsg);
         this.queryHistoryInfo = queryHistoryInfo;
 
 

@@ -1775,7 +1775,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getQUERY_HISTORY_COLUMN_META() {
-        return "查询开始时间,查询耗时,查询 ID,SQL 语句,查询对象,查询状态,查询节点,查询用户\n";
+        return "查询开始时间,查询耗时,查询 ID,SQL 语句,查询对象,查询状态,查询节点,查询用户,查询信息\n";
     }
 
     @Override

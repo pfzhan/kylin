@@ -58,4 +58,6 @@ public class QueryHistoryInfoResponse implements Serializable {
     private List<QueryHistoryInfo.QueryTraceSpan> traces = new ArrayList<>();
     @JsonProperty("cache_type")
     private String cacheType;
+    @JsonProperty("query_msg")
+    private String queryMsg;
 }

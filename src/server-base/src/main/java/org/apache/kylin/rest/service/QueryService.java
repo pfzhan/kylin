@@ -666,10 +666,10 @@ public class QueryService extends BasicService {
             if (errMsg == null) {
                 errMsg = e.getMessage();
             }
-
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
             queryContext.getMetrics().setFinalCause(e);
+            queryContext.getMetrics().setQueryMsg(errMsg);
             queryContext.getQueryTagInfo().setPushdown(false);
 
             if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {

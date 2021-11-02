@@ -71,6 +71,7 @@ public class QueryMetrics implements IKeep {
 
     protected boolean isCacheHit;
     protected String cacheType;
+    protected String queryMsg;
     protected boolean isIndexHit;
     protected boolean isTimeout;
 

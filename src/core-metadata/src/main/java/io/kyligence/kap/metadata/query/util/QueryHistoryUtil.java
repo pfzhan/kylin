@@ -54,11 +54,14 @@ public class QueryHistoryUtil {
         } else {
             answerBy = queryHistory.getEngineType();
         }
+        String queryMsg = queryHistory.getQueryHistoryInfo().getQueryMsg();
+        if (StringUtils.isNotEmpty(queryMsg)) {
+            queryMsg = "\"" + queryMsg.replace("\"", "\"\"") + "\"";
+        }
 
-        return StringUtils.join(
-                Lists.newArrayList(formatQueryTime, queryHistory.getDuration() + "ms", queryHistory.getQueryId(),
-                        "\"" + queryHistory.getSql().replaceAll("\"", "\"\"") + "\"", answerBy,
-                        queryHistory.getQueryStatus(), queryHistory.getHostName(), queryHistory.getQuerySubmitter()),
+        return StringUtils.join(Lists.newArrayList(formatQueryTime, queryHistory.getDuration() + "ms",
+                queryHistory.getQueryId(), "\"" + queryHistory.getSql().replace("\"", "\"\"") + "\"", answerBy,
+                queryHistory.getQueryStatus(), queryHistory.getHostName(), queryHistory.getQuerySubmitter(), queryMsg),
                 ',').replaceAll("\n|\r", " ");
     }
 }

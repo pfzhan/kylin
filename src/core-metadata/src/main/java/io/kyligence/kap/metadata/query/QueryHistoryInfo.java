@@ -61,6 +61,8 @@ public class QueryHistoryInfo implements Serializable {
     private List<QueryTraceSpan> traces = new ArrayList<>();
     @JsonProperty("cache_type")
     private String cacheType;
+    @JsonProperty("query_msg")
+    private String queryMsg;
 
     public QueryHistoryInfo(boolean exactlyMatch, Integer scanSegmentNum, boolean executionError) {
         this.exactlyMatch = exactlyMatch;

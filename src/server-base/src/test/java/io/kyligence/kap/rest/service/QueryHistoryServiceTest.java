@@ -731,10 +731,10 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         }).when(servletOutputStream).write(any(byte[].class));
 
         queryHistoryService.downloadQueryHistories(request, response, ZoneOffset.ofHours(8), 8, false);
-        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n"
-                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN\n",
+        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter,Query Message\n"
+                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n",
                 baos.toString(StandardCharsets.UTF_8.name()));
     }
 
@@ -801,12 +801,12 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
             }
         }).when(servletOutputStream1).write(any(byte[].class));
         queryHistoryService.downloadQueryHistories(request, response1, ZoneOffset.ofHours(8), 8, false);
-        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n"
-                + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:26:02 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:25:52 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:25:42 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:25:32 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN\n",
+        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter,Query Message\n"
+                + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:26:02 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:25:52 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:25:42 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:25:32 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n",
                 baos1.toString(StandardCharsets.UTF_8.name()));
 
         overwriteSystemProp("kylin.query.query-history-download-batch-size", "3");
@@ -825,9 +825,9 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         }).when(servletOutputStream2).write(any(byte[].class));
 
         queryHistoryService.downloadQueryHistories(request, response2, ZoneOffset.ofHours(8), 8, false);
-        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter\n"
-                + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n"
-                + "2020-01-29 23:26:02 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN\n",
+        assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter,Query Message\n"
+                + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                + "2020-01-29 23:26:02 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n",
                 baos2.toString(StandardCharsets.UTF_8.name()));
     }
 
