@@ -39,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.Singletons;
+import org.apache.kylin.common.util.CompressionUtils;
 import org.apache.kylin.rest.util.SerializeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -331,9 +332,13 @@ public class RedisCache implements KylinCache {
                 if (jedisCluster.getClusterNodes().isEmpty()) {
                     recoverInstance();
                 }
+                logger.trace("redis get start");
                 sqlResp = jedisCluster.get(realKey);
+                logger.trace("redis get done, size = {}bytes", sqlResp.length);
             } else {
+                logger.trace("redis get start");
                 sqlResp = singleRedisGet(realKey);
+                logger.trace("redis get done, size = {}bytes", sqlResp.length);
             }
         } catch (JedisConnectionException | JedisClusterException e) {
             logger.error("Get jedis connection failed: ", e);
@@ -347,6 +352,7 @@ public class RedisCache implements KylinCache {
         }
         if (sqlResp != null) {
             Object result = convertByteToObject(sqlResp);
+            logger.trace("redis result deserialized");
             return result;
         }
         return null;
@@ -461,7 +467,7 @@ public class RedisCache implements KylinCache {
 
     private byte[] convertValueToByte(Object value) {
         try {
-            return SerializeUtil.serialize(value);
+            return CompressionUtils.compress(SerializeUtil.serialize(value));
         } catch (Exception e) {
             logger.error("serialize failed!", e);
             return null;
@@ -493,7 +499,7 @@ public class RedisCache implements KylinCache {
 
     private Object convertByteToObject(byte[] bytes) {
         try {
-            return SerializeUtil.deserialize(bytes);
+            return SerializeUtil.deserialize(CompressionUtils.decompress(bytes));
         } catch (Exception e) {
             logger.error("deserialize fail!", e);
             return null;
