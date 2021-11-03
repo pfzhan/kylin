@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import java.io.IOException
-import java.util.concurrent.Executors
-
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.utils.LogUtils
 import io.kyligence.kap.metadata.model.NTableMetadataManager
@@ -36,6 +33,8 @@ import org.apache.kylin.metadata.model.TableDesc
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.utils.ProxyThreadUtils
 
+import java.io.IOException
+import java.util.concurrent.Executors
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -120,7 +119,11 @@ class SnapshotPartitionBuilder extends SnapshotBuilder {
     sourceData = sourceData.filter(newFilter(partitionCol, partition, tableDesc.findColumnByName(partitionCol).getType))
 
     sourceData = sourceData.selectExpr(sourceData.columns.filter(!_.equals(partitionCol)).map("`" + _ + "`"): _*)
-    val partitionName = partitionCol + '=' + partition
+
+    var newPartition = partition.replaceAll(" ", "_")
+    newPartition = newPartition.replaceAll(":", "_")
+
+    val partitionName = partitionCol + '=' + newPartition
     val resourcePath = snapshotTablePath + "/" + partitionName
 
 
