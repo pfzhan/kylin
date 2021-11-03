@@ -55,6 +55,17 @@ class ExecutorMemoryRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val userDefinedMemory = helper.getConf(SparkConfHelper.EXECUTOR_MEMORY)
     if (StringUtils.isNotBlank(userDefinedMemory)) {
+      // executor memory can not exceed ApplicationMaster single container maximum memory
+      val maxResourceMemory = helper.getClusterManager.fetchMaximumResourceAllocation.memory
+      val mp = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
+      val userDefinedMemoryMb = Utils.byteStringAsMb(userDefinedMemory)
+      val maxMemoryMb = maxResourceMemory * mp
+      if (userDefinedMemoryMb > maxMemoryMb) {
+        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, maxMemoryMb.toInt + "MB")
+        log.warn(s"Our application has requested $userDefinedMemoryMb MB per executor more than the maximum allocation " +
+          s"memory capability of the cluster $maxMemoryMb MB per container. Set spark.executor.memory with " +
+          s"$maxMemoryMb MB.")
+      }
       return
     }
     if (StringUtils.isBlank(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))) {
