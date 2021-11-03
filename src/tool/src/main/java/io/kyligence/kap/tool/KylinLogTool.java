@@ -23,7 +23,28 @@
  */
 package io.kyligence.kap.tool;
 
-import static io.kyligence.kap.common.constant.Constants.KE_LICENSE;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.query.util.ILogExtractor;
+import io.kyligence.kap.tool.util.ToolUtil;
+import lombok.val;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import scala.collection.JavaConversions;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -51,29 +72,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.RandomUtil;
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.query.util.ILogExtractor;
-import io.kyligence.kap.tool.util.ToolUtil;
-import lombok.val;
-import scala.collection.JavaConversions;
+import static io.kyligence.kap.common.constant.Constants.KE_LICENSE;
 
 public class KylinLogTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -101,7 +100,7 @@ public class KylinLogTool {
             "kylin.query.log", "kylin.smart.log", "kylin.build.log");
 
     private static final Set<String> queryDiagExcludedLogs = Sets.newHashSet("kylin.log", "kylin.schedule.log",
-             "kylin.smart.log", "kylin.build.log");
+            "kylin.smart.log", "kylin.build.log");
 
     private static ExtractLogByRangeTool DEFAULT_EXTRACT_LOG_BY_RANGE
             = new ExtractLogByRangeTool(LOG_PATTERN, LOG_TIME_PATTERN, SECOND_DATE_FORMAT);
@@ -832,6 +831,7 @@ public class KylinLogTool {
             File jobLogsDir = new File(exportDir, "job_history");
             FileUtils.forceMkdir(jobLogsDir);
             FileSystem fs = HadoopUtil.getFileSystem(logDir);
+
             for (String appId : appIds) {
                 if (StringUtils.isNotEmpty(appId)) {
                     copyJobEventLog(fs, appId, logDir, jobLogsDir);
@@ -850,11 +850,17 @@ public class KylinLogTool {
         if (Thread.currentThread().isInterrupted()) {
             throw new InterruptedException("Job eventLog task is interrupt");
         }
+        String eventPath = logDir + "/" + appId + "*";
+
+        FileStatus[] eventLogsStatus = fs.globStatus(new Path(eventPath));
+        Path[] listedPaths = FileUtil.stat2Paths(eventLogsStatus);
+
         logger.info("Copy appId {}.", appId);
-        String eventPath = logDir + "/" + appId;
-        FileStatus fileStatus = fs.getFileStatus(new Path(eventPath));
-        if (fileStatus != null) {
-            fs.copyToLocalFile(false, fileStatus.getPath(), new Path(exportDir.getAbsolutePath()), true);
+        for (Path path : listedPaths) {
+            FileStatus fileStatus = fs.getFileStatus(path);
+            if (fileStatus != null) {
+                fs.copyToLocalFile(false, fileStatus.getPath(), new Path(exportDir.getAbsolutePath()), true);
+            }
         }
     }
 
@@ -931,8 +937,8 @@ public class KylinLogTool {
     }
 
     private static String getSourceLogPath(KylinConfig kylinConfig, DateTime date) {
-            return SparkLogExtractorFactory.create(kylinConfig).getSparderLogsDir(kylinConfig)
-                    + File.separator + date.toString("yyyy-MM-dd");
+        return SparkLogExtractorFactory.create(kylinConfig).getSparderLogsDir(kylinConfig)
+                + File.separator + date.toString("yyyy-MM-dd");
     }
 
     private static boolean checkTimeRange(long startTime, long endTime) {
