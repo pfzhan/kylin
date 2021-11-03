@@ -123,7 +123,9 @@ object AsyncProfiling extends Logging {
   }
 
   def waitForResult(outStream: OutputStream): Unit = {
-    cachedResult.await(resultCollectionTimeout, TimeUnit.MILLISECONDS)
+    if (!cachedResult.await(resultCollectionTimeout, TimeUnit.MILLISECONDS)) {
+      logWarning(s"timeout while waiting for profile result")
+    }
     logDebug(s"profiler stopped and result dumped to $localCacheDir")
     ZipFileUtils.compressZipFile(localCacheDir.getAbsolutePath, outStream)
   }
