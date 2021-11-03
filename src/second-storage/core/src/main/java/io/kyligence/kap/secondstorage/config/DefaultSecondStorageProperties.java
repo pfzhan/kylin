@@ -58,6 +58,7 @@ public class DefaultSecondStorageProperties implements SecondStorageProperties {
         }
     }
 
+    @Override
     public Properties getProperties() {
         return properties;
     }

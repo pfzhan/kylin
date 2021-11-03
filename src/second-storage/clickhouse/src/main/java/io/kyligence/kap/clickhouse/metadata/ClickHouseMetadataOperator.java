@@ -71,7 +71,7 @@ public class ClickHouseMetadataOperator implements MetadataOperator {
 
     private final SecondStorageProperties properties;
 
-    public ClickHouseMetadataOperator(DefaultSecondStorageProperties properties) {
+    public ClickHouseMetadataOperator(SecondStorageProperties properties) {
         this.properties = new DefaultSecondStorageProperties(properties.getProperties());
     }
 

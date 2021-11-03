@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.clickhouse;
 
-import static io.kyligence.kap.secondstorage.factory.SecondStorageFactoryConstant.STORAGE_SEGMENT_METADATA_FACTORY;
+import io.kyligence.kap.clickhouse.factory.ClickHouseOperatorFactory;
+import io.kyligence.kap.secondstorage.factory.SecondStorageDatabaseOperatorFactory;
+import io.kyligence.kap.secondstorage.factory.SecondStorageMetadataFactory;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_JOB_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_MODEL_CLEAN_FACTORY;
 import static org.apache.kylin.job.factory.JobFactoryConstant.STORAGE_NODE_CLEAN_FACTORY;
@@ -137,6 +139,7 @@ public class ClickHouseStorage implements SecondStoragePlugin {
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageRefreshStep.class, ClickHouseRefresh::new);
         SecondStorageStepFactory.register(SecondStorageStepFactory.SecondStorageMergeStep.class, ClickHouseMerge::new);
 
-        SecondStorageFactoryUtils.register(STORAGE_SEGMENT_METADATA_FACTORY, new ClickHouseMetadataFactory());
+        SecondStorageFactoryUtils.register(SecondStorageMetadataFactory.class, new ClickHouseMetadataFactory());
+        SecondStorageFactoryUtils.register(SecondStorageDatabaseOperatorFactory.class, new ClickHouseOperatorFactory());
     }
 }

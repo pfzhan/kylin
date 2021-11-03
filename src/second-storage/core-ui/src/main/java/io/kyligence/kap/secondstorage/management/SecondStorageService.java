@@ -73,6 +73,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.SecondStorageConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
+import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.job.SecondStorageJobParamUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -105,11 +108,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static io.kyligence.kap.secondstorage.factory.SecondStorageFactoryConstant.STORAGE_SEGMENT_METADATA_FACTORY;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCK_FAIL;
-import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
 
 public class SecondStorageService extends BasicService implements SecondStorageUpdater {
     private static final Logger logger = LoggerFactory.getLogger(SecondStorageService.class);
@@ -409,7 +407,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         properties.put(SecondStorageConstants.PROJECT, project);
         DefaultSecondStorageProperties defaultSecondStorageProperties = new DefaultSecondStorageProperties(properties);
 
-        MetadataOperator metadataOperator = SecondStorageFactoryUtils.createMetadataOperator(STORAGE_SEGMENT_METADATA_FACTORY, defaultSecondStorageProperties);
+        MetadataOperator metadataOperator = SecondStorageFactoryUtils.createMetadataOperator(defaultSecondStorageProperties);
         TableSyncResponse response = metadataOperator.tableSync();
 
         sizeInNode(project);
@@ -452,7 +450,7 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         properties.put(SecondStorageConstants.PROJECT_MODEL_SEGMENT_PARAM, projectModelSegment);
 
         DefaultSecondStorageProperties defaultSecondStorageProperties = new DefaultSecondStorageProperties(properties);
-        MetadataOperator metadataOperator = SecondStorageFactoryUtils.createMetadataOperator(STORAGE_SEGMENT_METADATA_FACTORY, defaultSecondStorageProperties);
+        MetadataOperator metadataOperator = SecondStorageFactoryUtils.createMetadataOperator(defaultSecondStorageProperties);
         metadataOperator.sizeInNode();
     }
 

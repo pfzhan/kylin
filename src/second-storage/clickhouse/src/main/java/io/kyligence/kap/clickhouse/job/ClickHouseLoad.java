@@ -266,7 +266,7 @@ public class ClickHouseLoad extends AbstractExecutable {
             }
             ShardOptions options = new ShardOptions(ShardOptions.buildReplicaSharding(nodeGroups));
             boolean isIncremental = mc.isIncremental(getSegmentIds());
-            DataLoader dataLoader = new DataLoader(mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
+            DataLoader dataLoader = new DataLoader(getId(), mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
             val replicaNum = options.replicaShards().length;
             List<List<LoadInfo>> tempLoadInfos = new ArrayList<>();
             val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);

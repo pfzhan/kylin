@@ -34,6 +34,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 public class NameUtil {
 
     private static final int UUID_LENGTH = RandomUtil.randomUUIDStr().length();
+    public static final String TEMP_TABLE_FLAG = "temp";
 
     private NameUtil() {
     }
@@ -64,12 +65,16 @@ public class NameUtil {
 
     // reverse
     public static String recoverProject(String database, KylinConfig config) {
-       return database.substring(databasePrefix(config).length() + 1);
+        return database.substring(databasePrefix(config).length() + 1);
     }
 
-    public static Pair<String, Long> recoverLayout(String table){
+    public static Pair<String, Long> recoverLayout(String table) {
         String model = table.substring(0, UUID_LENGTH).replace("_", "-");
-        Long layout = Long.parseLong(table.substring(UUID_LENGTH+1));
+        Long layout = Long.parseLong(table.substring(UUID_LENGTH + 1));
         return Pair.newPair(model, layout);
+    }
+
+    public static boolean isTempTable(String table) {
+        return table.contains(TEMP_TABLE_FLAG);
     }
 }

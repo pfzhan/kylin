@@ -48,4 +48,9 @@ public class ManagementConfig implements IKeep {
         return new SecondStorageService();
     }
 
+    @Bean("secondStorageScheduleService")
+    SecondStorageScheduleService secondStorageScheduleService() {
+        return new SecondStorageScheduleService();
+    }
+
 }

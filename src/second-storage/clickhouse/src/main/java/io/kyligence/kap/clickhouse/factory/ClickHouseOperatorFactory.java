@@ -21,36 +21,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.secondstorage.ddl.exp;
 
-import io.kyligence.kap.secondstorage.ddl.visitor.RenderVisitor;
-import io.kyligence.kap.secondstorage.ddl.visitor.Renderable;
-import org.apache.commons.lang.StringUtils;
+package io.kyligence.kap.clickhouse.factory;
 
-public class TableIdentifier implements Renderable {
-    public static final char TABLE_ESCAPE = '`';
-    private final String database;
-    private final String table;
+import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
+import io.kyligence.kap.secondstorage.database.DatabaseOperator;
+import io.kyligence.kap.secondstorage.factory.SecondStorageDatabaseOperatorFactory;
 
-    private TableIdentifier(String database, String table) {
-        this.database = database;
-        this.table = table;
-    }
-
-    public String table() {
-        if (StringUtils.isNotEmpty(database)) {
-            return TABLE_ESCAPE + database + TABLE_ESCAPE + '.' + TABLE_ESCAPE + table + TABLE_ESCAPE;
-        } else {
-            return TABLE_ESCAPE + table + TABLE_ESCAPE;
-        }
-    }
-
+public class ClickHouseOperatorFactory implements SecondStorageDatabaseOperatorFactory {
     @Override
-    public void accept(RenderVisitor visitor) {
-        visitor.visit(this);
-    }
-
-    public static TableIdentifier table(String database, String table) {
-        return new TableIdentifier(database, table);
+    public DatabaseOperator createDatabaseOperator(final String jdbcUrl) {
+        return new ClickHouseOperator(jdbcUrl);
     }
 }

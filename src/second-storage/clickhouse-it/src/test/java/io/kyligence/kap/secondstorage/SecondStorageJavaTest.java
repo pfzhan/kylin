@@ -27,8 +27,13 @@ package io.kyligence.kap.secondstorage;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import static io.kyligence.kap.clickhouse.ClickHouseConstants.CONFIG_CLICKHOUSE_QUERY_CATALOG;
+import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
+import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
+import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.clickhouse.job.ClickHouseModelCleanJob;
 import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
+import io.kyligence.kap.clickhouse.job.Engine;
 import io.kyligence.kap.common.util.Unsafe;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -39,7 +44,9 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
+import io.kyligence.kap.secondstorage.management.SecondStorageScheduleService;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
 import io.kyligence.kap.secondstorage.management.request.RecoverRequest;
 import io.kyligence.kap.secondstorage.management.request.StorageRequest;
@@ -55,6 +62,7 @@ import org.apache.kylin.common.exception.KylinException;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -90,6 +98,7 @@ public class SecondStorageJavaTest implements JobWaiter {
             project, Collections.singletonList(modelId), "src/test/resources/ut_meta");
     @Rule
     public TestRule rule = RuleChain.outerRule(enableTestUser).around(test);
+    private SecondStorageScheduleService secondStorageScheduleService = new SecondStorageScheduleService();
     private SecondStorageService secondStorageService = new SecondStorageService();
     private SecondStorageEndpoint secondStorageEndpoint = new SecondStorageEndpoint();
     private AclEvaluate aclEvaluate = Mockito.mock(AclEvaluate.class);
@@ -292,5 +301,41 @@ public class SecondStorageJavaTest implements JobWaiter {
         String sql = "select sum(PRICE) from TEST_KYLIN_FACT group by PRICE";
         NExecAndComp.queryWithKapWithMeta(project, "left", Pair.newPair("query_table_index1", sql), null);
         Assert.assertTrue(OLAPContext.getNativeRealizations().stream().allMatch(NativeQueryRealization::isSecondStorage));
+    }
+
+    @Test
+    public void testClickHouseOperator() throws Exception {
+        val jdbcUrl = SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0));
+        ClickHouseOperator operator = new ClickHouseOperator(SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0)));
+        val databases = operator.listDatabases();
+        Assert.assertEquals(2, databases.size());
+        ClickHouse clickHouse = new ClickHouse(jdbcUrl);
+        clickHouse.apply("CREATE TABLE test(a int) engine=Memory()");
+        val tables = operator.listTables("default");
+        Assert.assertEquals(1, tables.size());
+        operator.dropTable("default", "test");
+        val remainingTables = operator.listTables("default");
+        Assert.assertEquals(0, remainingTables.size());
+        operator.close();
+        clickHouse.close();
+    }
+
+    @Test
+    public void testSchedulerService() throws Exception {
+        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        val jdbcUrl = SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0));
+        ClickHouse clickHouse = new ClickHouse(jdbcUrl);
+        ClickHouseOperator operator = new ClickHouseOperator(SecondStorageNodeHelper.resolve(SecondStorageNodeHelper.getAllNames().get(0)));
+        val render = new ClickHouseRender();
+        val fakeJobId = RandomUtil.randomUUIDStr();
+        val tempTable = fakeJobId + "@" + "test_temp";
+        val database = NameUtil.getDatabase(KylinConfig.getInstanceFromEnv(), project);
+        clickHouse.apply(ClickHouseCreateTable.createCKTable(database, tempTable)
+                .columns(new ColumnWithType("i1", "Int32"))
+                .columns(new ColumnWithType("i2", "Nullable(Int64)"))
+                .engine(Engine.DEFAULT).toSql(render));
+        secondStorageScheduleService.secondStorageTempTableCleanTask();
+        val tables = operator.listTables(database);
+        Assert.assertFalse(tables.contains(tempTable));
     }
 }

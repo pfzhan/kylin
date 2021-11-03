@@ -21,10 +21,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.secondstorage.factory;
 
-public class SecondStorageFactoryConstant {
+package io.kyligence.kap.secondstorage.database;
 
-    public static final String STORAGE_SEGMENT_METADATA_FACTORY = "STORAGE_SEGMENT_METADATA_FACTORY";
+import java.io.Closeable;
+import java.util.List;
 
+public interface DatabaseOperator extends Closeable {
+    List<String> listDatabases();
+
+    List<String> listTables(String database);
+
+    void dropTable(String database, String table);
 }

@@ -114,12 +114,14 @@ public class DataLoader {
         return ColumnMapping.kapColumnToSecondStorageColumn(col);
     }
 
+    private final String executableId;
     private final String database;
     private final Function<LayoutEntity, String> prefixTableName;
     private final Engine tableEngine;
     private final boolean isIncremental;
 
-    public DataLoader(String database, Function<LayoutEntity, String> prefixTableName, Engine tableEngine, boolean isIncremental) {
+    public DataLoader(String executableId, String database, Function<LayoutEntity, String> prefixTableName, Engine tableEngine, boolean isIncremental) {
+        this.executableId = executableId;
         this.database = database;
         this.prefixTableName = prefixTableName;
         this.tableEngine = tableEngine;
@@ -140,6 +142,7 @@ public class DataLoader {
                 final List<String> listParquet = loadInfo.getShardFiles().get(idx);
 
                 val builder = ShardLoader.ShardLoadContext.builder().jdbcURL(SecondStorageNodeHelper.resolve(nodeName))
+                        .executableId(executableId)
                         .database(database).layout(loadInfo.getLayout()).parquetFiles(listParquet)
                         .tableEngine(tableEngine).destTableName(prefixTableName.apply(loadInfo.getLayout()));
                 if (isIncremental) {

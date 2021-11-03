@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.secondstorage.factory;
 
-import io.kyligence.kap.secondstorage.config.DefaultSecondStorageProperties;
+import io.kyligence.kap.secondstorage.config.SecondStorageProperties;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 
 public interface SecondStorageMetadataFactory extends SecondStorageFactory {
-    MetadataOperator createMetadataOperator(DefaultSecondStorageProperties properties);
+    MetadataOperator createMetadataOperator(SecondStorageProperties properties);
 }

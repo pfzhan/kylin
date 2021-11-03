@@ -24,19 +24,12 @@
 
 package io.kyligence.kap.clickhouse.job;
 
-import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
-import static io.kyligence.kap.clickhouse.job.DataLoader.getPrefixColumn;
-
-import java.sql.Date;
-import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
+import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
+import static io.kyligence.kap.clickhouse.job.DataLoader.getPrefixColumn;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.ddl.AlterTable;
 import io.kyligence.kap.secondstorage.ddl.CreateDatabase;
 import io.kyligence.kap.secondstorage.ddl.DropTable;
@@ -48,6 +41,13 @@ import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.val;
+
+import java.sql.Date;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 @Getter
 public class ShardLoader {
@@ -77,9 +77,9 @@ public class ShardLoader {
         this.partitionFormat = context.partitionFormat;
         this.incremental = partitionColumn != null;
         this.destTableName = context.destTableName;
-        this.insertTempTableName = destTableName + "_temp";
-        this.destTempTableName = destTableName + "_temp_tmp";
-        this.likeTempTableName = destTableName + "_temp_ke_like";
+        this.insertTempTableName = context.executableId + "@" + destTableName + "_temp";
+        this.destTempTableName = context.executableId + "@" + destTableName + "_" + NameUtil.TEMP_TABLE_FLAG + "_tmp";
+        this.likeTempTableName = context.executableId + "@" + destTableName + "_" + NameUtil.TEMP_TABLE_FLAG + "_ke_like";
         this.targetPartitions = context.targetPartitions;
     }
 
@@ -141,6 +141,7 @@ public class ShardLoader {
 
     @Builder
     public static class ShardLoadContext {
+        String executableId;
         String jdbcURL;
         String database;
         LayoutEntity layout;

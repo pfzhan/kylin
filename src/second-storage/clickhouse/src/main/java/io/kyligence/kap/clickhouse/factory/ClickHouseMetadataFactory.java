@@ -24,13 +24,13 @@
 package io.kyligence.kap.clickhouse.factory;
 
 import io.kyligence.kap.clickhouse.metadata.ClickHouseMetadataOperator;
-import io.kyligence.kap.secondstorage.config.DefaultSecondStorageProperties;
+import io.kyligence.kap.secondstorage.config.SecondStorageProperties;
 import io.kyligence.kap.secondstorage.factory.SecondStorageMetadataFactory;
 
 public class ClickHouseMetadataFactory implements SecondStorageMetadataFactory {
 
     @Override
-    public ClickHouseMetadataOperator createMetadataOperator(DefaultSecondStorageProperties properties) {
+    public ClickHouseMetadataOperator createMetadataOperator(SecondStorageProperties properties) {
         ClickHouseMetadataOperator operator = new ClickHouseMetadataOperator(properties);
         return operator;
     }

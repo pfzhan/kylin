@@ -23,23 +23,32 @@
  */
 package io.kyligence.kap.secondstorage.factory;
 
-import io.kyligence.kap.secondstorage.config.DefaultSecondStorageProperties;
+import com.google.common.base.Preconditions;
+import io.kyligence.kap.secondstorage.config.SecondStorageProperties;
+import io.kyligence.kap.secondstorage.database.DatabaseOperator;
 import io.kyligence.kap.secondstorage.metadata.MetadataOperator;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SecondStorageFactoryUtils {
-    private static final Map<String, SecondStorageMetadataFactory> FACTORY_MAP = new ConcurrentHashMap<>();
+    private static final Map<Class<? extends SecondStorageFactory>, SecondStorageFactory> FACTORY_MAP = new ConcurrentHashMap<>();
 
-    public static void register(String factoryName, SecondStorageMetadataFactory factory) {
-        FACTORY_MAP.put(factoryName, factory);
+    public static void register(Class<? extends SecondStorageFactory> type, SecondStorageFactory factory) {
+        Preconditions.checkArgument(type.isAssignableFrom(factory.getClass()), String.format(Locale.ROOT, "type %s is not assignable from %s",
+                type.getName(), factory.getClass().getName()));
+        FACTORY_MAP.put(type, factory);
     }
 
 
-    public static MetadataOperator createMetadataOperator(String factoryName, DefaultSecondStorageProperties properties) {
-        MetadataOperator metadataOperator = FACTORY_MAP.get(factoryName).createMetadataOperator(properties);
-        return metadataOperator;
+    public static MetadataOperator createMetadataOperator(SecondStorageProperties properties) {
+        SecondStorageMetadataFactory factory = (SecondStorageMetadataFactory) FACTORY_MAP.get(SecondStorageMetadataFactory.class);
+        return factory.createMetadataOperator(properties);
     }
 
+    public static DatabaseOperator createDatabaseOperator(String jdbcUrl) {
+        SecondStorageDatabaseOperatorFactory factory = (SecondStorageDatabaseOperatorFactory) FACTORY_MAP.get(SecondStorageDatabaseOperatorFactory.class);
+        return factory.createDatabaseOperator(jdbcUrl);
+    }
 }

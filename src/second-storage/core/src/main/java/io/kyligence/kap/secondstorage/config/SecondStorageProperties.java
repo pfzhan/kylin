@@ -24,9 +24,12 @@
 package io.kyligence.kap.secondstorage.config;
 
 import java.util.Optional;
+import java.util.Properties;
 
 public interface SecondStorageProperties {
     <T> T get(ConfigOption<T> option);
 
     <T> Optional<T> getOptional(ConfigOption<T> option);
+
+    Properties getProperties();
 }

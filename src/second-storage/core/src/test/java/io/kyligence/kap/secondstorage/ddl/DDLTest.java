@@ -40,13 +40,13 @@ public class DDLTest {
     @Test
     public void testDropTable(){
         final DropTable drop = DropTable.dropTable("pufa", "xx");
-        assertEquals("DROP TABLE if exists pufa.xx", drop.toSql());
+        assertEquals("DROP TABLE if exists `pufa`.`xx`", drop.toSql());
     }
 
     @Test
     public void testRenameTable(){
         final RenameTable drop = RenameTable.renameSource("pufa", "xx_temp").to("pufa", "xx");
-        assertEquals("RENAME TABLE pufa.xx_temp TO pufa.xx", drop.toSql());
+        assertEquals("RENAME TABLE `pufa`.`xx_temp` TO `pufa`.`xx`", drop.toSql());
     }
 
     @Test
@@ -54,19 +54,19 @@ public class DDLTest {
         final CreateTable<?> create =
                 CreateTable.create("pufa", "xx")
                 .columns(new ColumnWithType("a", "int"));
-        assertEquals("CREATE TABLE if not exists pufa.xx(a int)", create.toSql());
+        assertEquals("CREATE TABLE if not exists `pufa`.`xx`(a int)", create.toSql());
 
         // test create table with nullable
         final CreateTable<?> create2 =
                 CreateTable.create("pufa", "xx")
                         .columns(new ColumnWithType("a", "int", true));
-        assertEquals("CREATE TABLE if not exists pufa.xx(a Nullable(int))", create2.toSql());
+        assertEquals("CREATE TABLE if not exists `pufa`.`xx`(a Nullable(int))", create2.toSql());
     }
 
     @Test
     public void testInsertInto() {
         final InsertInto insertInto = InsertInto.insertInto("pufa", "xx").from("pufa", "ut");
-        assertEquals("INSERT INTO pufa.xx SELECT * FROM pufa.ut", insertInto.toSql());
+        assertEquals("INSERT INTO `pufa`.`xx` SELECT * FROM `pufa`.`ut`", insertInto.toSql());
     }
 
     @Test
@@ -75,7 +75,7 @@ public class DDLTest {
                 InsertInto.insertInto("pufa", "xx").set("column1", 42).set(
                         "column2", "xyz");
         assertEquals(
-                "INSERT INTO pufa.xx (column1, column2) VALUES (42, 'xyz')",
+                "INSERT INTO `pufa`.`xx` (column1, column2) VALUES (42, 'xyz')",
                 insertInto.toSql());
     }
 
@@ -84,6 +84,6 @@ public class DDLTest {
         final Select select = new Select(TableIdentifier.table("test", "table"))
                 .column(ColumnWithAlias.builder().distinct(true).name("col1").alias("value1").build())
                 .column(ColumnWithAlias.builder().distinct(false).name("col2").build());
-        assertEquals("SELECT DISTINCT `col1` AS value1, `col2` FROM test.table", select.toSql());
+        assertEquals("SELECT DISTINCT `col1` AS value1, `col2` FROM `test`.`table`", select.toSql());
     }
 }

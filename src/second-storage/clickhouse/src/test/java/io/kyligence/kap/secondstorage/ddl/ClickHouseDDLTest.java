@@ -40,13 +40,13 @@ public class ClickHouseDDLTest {
                         .columns(new ColumnWithType("a", "int"))
                         .engine("MergeTree()");
         final ClickHouseRender render = new ClickHouseRender();
-        assertEquals("CREATE TABLE if not exists pufa.xx(a int) ENGINE = MergeTree() ORDER BY tuple()", create.toSql(render));
+        assertEquals("CREATE TABLE if not exists `pufa`.`xx`(a int) ENGINE = MergeTree() ORDER BY tuple()", create.toSql(render));
 
         final ClickHouseCreateTable create2 =
                 ClickHouseCreateTable.createCKTable("pufa", "xx")
                         .columns(new ColumnWithType("a", "int"))
                         .engine("MergeTree()");
-        assertEquals("CREATE TABLE pufa.xx(a int) ENGINE = MergeTree() ORDER BY tuple()", create2.toSql(render));
+        assertEquals("CREATE TABLE `pufa`.`xx`(a int) ENGINE = MergeTree() ORDER BY tuple()", create2.toSql(render));
     }
 
     @Test
@@ -56,7 +56,7 @@ public class ClickHouseDDLTest {
                         .likeTable("pufa", "xx")
                         .engine("HDFS(xxx)");
         final ClickHouseRender render = new ClickHouseRender();
-        assertEquals("CREATE TABLE if not exists pufa.ut AS pufa.xx ENGINE = HDFS(xxx)", createLike.toSql(render));
+        assertEquals("CREATE TABLE if not exists `pufa`.`ut` AS `pufa`.`xx` ENGINE = HDFS(xxx)", createLike.toSql(render));
     }
 
     @Test
@@ -66,7 +66,7 @@ public class ClickHouseDDLTest {
                 new AlterTable.ManipulatePartition("2020-01-01",
                         TableIdentifier.table("test", "table2"), AlterTable.PartitionOperation.MOVE));
         final ClickHouseRender render = new ClickHouseRender();
-        assertEquals("ALTER TABLE test.table1 MOVE PARTITION '2020-01-01' TO TABLE test.table2",
+        assertEquals("ALTER TABLE `test`.`table1` MOVE PARTITION '2020-01-01' TO TABLE `test`.`table2`",
                 alterTable.toSql(render));
     }
 
@@ -76,7 +76,7 @@ public class ClickHouseDDLTest {
                 TableIdentifier.table("test", "table1"),
                 new AlterTable.ManipulatePartition("2020-01-01", AlterTable.PartitionOperation.DROP));
         final ClickHouseRender render = new ClickHouseRender();
-        assertEquals("ALTER TABLE test.table1 DROP PARTITION '2020-01-01'",
+        assertEquals("ALTER TABLE `test`.`table1` DROP PARTITION '2020-01-01'",
                 alterTable.toSql(render));
     }
 
