@@ -1812,12 +1812,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryWithParamWhenTransformWithToSubQuery() {
-        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ReplaceStringWithVarchar,"
-                + "org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,"
-                + "io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,"
-                + "org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,"
-                + "io.kyligence.kap.query.util.WithToSubQueryTransformer");
-
+        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.util.WithToSubQueryTransformer");
         PrepareSqlStateParam[] params1 = new PrepareSqlStateParam[2];
         params1[0] = new PrepareSqlStateParam(Double.class.getCanonicalName(), "123.1");
         params1[1] = new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123");
