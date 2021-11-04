@@ -1684,4 +1684,45 @@ public class Message {
     public String getParamTooLarge() {
         return "The parameter '%s' is too large, maximum %s byte.";
     }
+
+    // KAP query sql blacklist
+    public String getSQL_BLACKLIST_ITEM_ID_EMPTY() {
+        return "The id of blacklist item can not be empty.";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_REGEX_AND_SQL_EMPTY() {
+        return "The regex and sql of blacklist item can not all be empty.";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_PROJECT_EMPTY() {
+        return "The project of blacklist item can not be empty.";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_ID_EXISTS() {
+        return "Sql blacklist item id already exist.";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_ID_NOT_EXISTS() {
+        return "Sql blacklist item id not exists.";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_REGEX_EXISTS() {
+        return "Sql blacklist item regex already exist. Blacklist item id: %s .";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_SQL_EXISTS() {
+        return "Sql blacklist item sql already exist. Blacklist item id: %s .";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_ID_TO_DELETE_EMPTY() {
+        return "The id of sql blacklist item to delete can not be empty.";
+    }
+
+    public String getSQL_BLACKLIST_QUERY_REJECTED() {
+        return "Query is rejected by blacklist, blacklist item id: %s.";
+    }
+
+    public String getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED() {
+        return "Query is rejected by blacklist because concurrent limit is exceeded, blacklist item id: %s, concurrent limit: {%s}";
+    }
 }

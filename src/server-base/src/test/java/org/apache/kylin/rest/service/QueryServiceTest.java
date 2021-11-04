@@ -84,6 +84,8 @@ import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.blacklist.SQLBlacklistItem;
+import org.apache.kylin.query.blacklist.SQLBlacklistManager;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryParams;
 import org.apache.kylin.query.util.QueryUtil;
@@ -1966,4 +1968,33 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         projectManager.updateProject(project,
                 copyForWrite -> copyForWrite.getOverrideKylinProps().put(property, value));
     }
+
+    @Test
+    public void testQueryWhenHitBlacklist() throws Exception {
+        overwriteSystemProp("kylin.query.blacklist-enabled", "true");
+        final String project = "default";
+        final String sql = "select count(*) from test_kylin_fact";
+
+        stubQueryConnection(sql, project);
+        mockOLAPContext();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        SQLResponse sqlResponse = queryService.doQueryWithCache(request);
+        Assert.assertFalse(sqlResponse.isException());
+
+        SQLBlacklistManager sqlBlacklistManager = SQLBlacklistManager.getInstance(KylinConfig.getInstanceFromEnv());
+        SQLBlacklistItem sqlBlacklistItem = new SQLBlacklistItem();
+        sqlBlacklistItem.setId("1");
+        sqlBlacklistItem.setSql("select count(*) from test_kylin_fact");
+        sqlBlacklistManager.addSqlBlacklistItem(project, sqlBlacklistItem);
+
+        sqlResponse = queryService.doQueryWithCache(request);
+        Assert.assertTrue(sqlResponse.isException());
+        Assert.assertEquals(sqlResponse.getExceptionMessage(), "Query is rejected by blacklist, blacklist item id: 1.");
+        queryCacheManager.clearQueryCache(request);
+    }
+
 }

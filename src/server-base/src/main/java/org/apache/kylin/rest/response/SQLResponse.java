@@ -98,6 +98,10 @@ public class SQLResponse implements Serializable {
 
     private String appMasterURL = "";
 
+    @Getter
+    @Setter
+    protected int failTimes = -1;
+
     @JsonProperty("appMasterURL")
     public String getAppMasterURL() {
         if (storageCacheUsed) {

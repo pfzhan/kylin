@@ -48,9 +48,11 @@ import static org.apache.kylin.common.QueryTrace.GET_ACL_INFO;
 import static org.apache.kylin.common.exception.ServerErrorCode.ACCESS_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
+import static org.apache.kylin.common.exception.ServerErrorCode.BLACKLIST_EXCEEDED_CONCURRENT_LIMIT;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USER_NAME;
 import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.BLACKLIST_QUERY_REJECTED;
 import static org.apache.kylin.common.exception.ServerErrorCode.SAVE_QUERY_FAILED;
 import static org.apache.kylin.common.exception.SystemErrorCode.JOBNODE_API_INVALID;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
@@ -76,9 +78,11 @@ import java.util.stream.Collectors;
 import com.google.common.base.Joiner;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.rest.service.AclTCRService;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -109,7 +113,11 @@ import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.SlowQueryDetector;
+import org.apache.kylin.query.blacklist.SQLBlacklistItem;
+import org.apache.kylin.query.blacklist.SQLBlacklistManager;
 import org.apache.kylin.query.calcite.KEDialect;
 import org.apache.kylin.query.exception.UserStopQueryException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -435,6 +443,9 @@ public class QueryService extends BasicService {
             response.setTraces(QueryContext.currentTrace().spans().stream()
                     .map(span -> new SQLResponseTrace(span.getName(), span.getGroup(), span.getDuration()))
                     .collect(Collectors.toList()));
+            if (null == response.getExceptionMessage()) {
+                removeExceptionCache(sqlRequest);
+            }
             return response;
         } finally {
             QueryLimiter.release();
@@ -512,11 +523,15 @@ public class QueryService extends BasicService {
             // remove comment
             removeComment(sqlRequest, queryContext);
 
+            applyQuerySqlBlacklist(sqlRequest);
+
             // convert CREATE ... to WITH ...
             sqlResponse = QueryUtils.handleTempStatement(sqlRequest, kylinConfig);
 
             // search cache
-            sqlResponse = searchCache(sqlRequest, sqlResponse, kylinConfig);
+            if (sqlResponse == null && kylinConfig.isQueryCacheEnabled()) {
+                sqlResponse = searchCache(sqlRequest, kylinConfig);
+            }
 
             // real execution if required
             if (sqlResponse == null) {
@@ -534,11 +549,6 @@ public class QueryService extends BasicService {
 
             sqlResponse.setServer(clusterManager.getLocalServer());
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
-            if (sqlResponse.isStorageCacheUsed()) {
-                sqlResponse.setDuration(0);
-            } else {
-                sqlResponse.setDuration(QueryContext.currentMetrics().duration());
-            }
             logQuery(sqlRequest, sqlResponse);
 
             addToQueryHistory(sqlResponse, sqlRequest);
@@ -572,19 +582,24 @@ public class QueryService extends BasicService {
         sqlRequest.setSql(QueryUtil.removeCommentInSql(userSQL));
     }
 
-    private SQLResponse searchCache(SQLRequest sqlRequest, SQLResponse sqlResponse, KylinConfig kylinConfig) {
-        if (sqlResponse == null && isQueryCacheEnabled(kylinConfig)
-                && !QueryContext.current().getQueryTagInfo().isAsyncQuery()) {
-            logger.info("[query cache log] try to search query cache");
-            sqlResponse = queryCacheManager.searchQuery(sqlRequest);
-            if (sqlResponse != null) {
-                collectToQueryContext(sqlResponse);
-                QueryContext.currentTrace().clear();
-                QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
-                QueryContext.currentTrace().endLastSpan();
-            }
+    private SQLResponse searchCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {
+        SQLResponse response = queryCacheManager.getFromExceptionCache(sqlRequest);
+        if (response != null && isFailTimesExceedThreshold(response, kylinConfig)) {
+            logger.info("The sqlResponse is found in EXCEPTION_QUERY_CACHE");
+            response.setHitExceptionCache(true);
+        } else {
+            response = queryCacheManager.searchSuccessCache(sqlRequest);
         }
-        return sqlResponse;
+        if (response != null) {
+            logger.info("The sqlResponse is found in SUCCESS_QUERY_CACHE");
+            response.setStorageCacheUsed(true);
+            response.setDuration(0);
+            collectToQueryContext(response);
+            QueryContext.currentTrace().clear();
+            QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
+            QueryContext.currentTrace().endLastSpan();
+        }
+        return response;
     }
 
     private void addToQueryHistory(SQLResponse sqlResponse, SQLRequest sqlRequest) {
@@ -673,18 +688,125 @@ public class QueryService extends BasicService {
             sqlResponse.setTimeout(queryContext.getQueryTagInfo().isTimeout());
 
             setAppMaterURL(sqlResponse);
-
-            if (queryCacheEnabled && e.getCause() != null
-                    && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
-                queryCacheManager.cacheFailedQuery(sqlRequest, sqlResponse);
+            sqlResponse.setDuration(QueryContext.currentMetrics().duration());
+            if (queryCacheEnabled && e.getCause() != null) {
+                putIntoExceptionCache(sqlRequest, sqlResponse, e);
             }
         }
         return sqlResponse;
     }
 
+    private void putIntoExceptionCache(SQLRequest sqlRequest, SQLResponse sqlResponse, Throwable e) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        // always cache ResourceLimitExceededException
+        if (e.getCause() != null && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
+            queryCacheManager.cacheFailedQuery(sqlRequest, sqlResponse);
+            return;
+        }
+        if (!isQueryExceptionCacheEnabled(kylinConfig)) {
+            return;
+        }
+        if (noNeedCache(sqlResponse, kylinConfig, e)) {
+            return;
+        }
+        SQLResponse cachedSqlResponse = queryCacheManager.getFromExceptionCache(sqlRequest);
+        if (null == cachedSqlResponse) {
+            sqlResponse.setFailTimes(1);
+            queryCacheManager.putIntoExceptionCache(sqlRequest, sqlResponse);
+        } else {
+            int failCount = cachedSqlResponse.getFailTimes();
+            sqlResponse.setFailTimes(failCount + 1);
+            queryCacheManager.updateIntoExceptionCache(sqlRequest, sqlResponse);
+        }
+    }
+
+    private boolean noNeedCache(SQLResponse sqlResponse, KylinConfig kylinConfig, Throwable e) {
+        if (sqlResponse.getDuration() < kylinConfig.getQueryExceptionCacheThresholdDuration()) {
+            logger.info("Query duration has not exceed threshold, will not cache.");
+            return true;
+        }
+        Throwable rootCause = ExceptionUtils.getRootCause(e);
+        return rootCause instanceof NoRealizationFoundException
+                || rootCause instanceof RoutingIndicatorException
+                || rootCause instanceof NotSupportedSQLException
+                || rootCause instanceof SqlValidatorException;
+    }
+
+    private boolean isFailTimesExceedThreshold(SQLResponse sqlResponse, KylinConfig kylinConfig) {
+        int failTimes = sqlResponse.getFailTimes();
+        // always return cached ResourceLimitExceededException
+        if (failTimes < 0) {
+            return true;
+        }
+        return kylinConfig.isQueryExceptionCacheEnabled()
+                && failTimes >= kylinConfig.getQueryExceptionCacheThresholdTimes();
+    }
+
+    private void removeExceptionCache(SQLRequest sqlRequest) {
+        if (!isQueryExceptionCacheEnabled(KylinConfig.getInstanceFromEnv())) {
+            return;
+        }
+        if (null == queryCacheManager.getFromExceptionCache(sqlRequest)) {
+            return;
+        }
+        if (!queryCacheManager.getCache().remove(QueryCacheManager.Type.EXCEPTION_QUERY_CACHE.rootCacheName,
+                sqlRequest.getProject(), sqlRequest.getCacheKey())) {
+            logger.info("Remove cache failed");
+        }
+    }
+
     private boolean isQueryCacheEnabled(KylinConfig kylinConfig) {
         return checkCondition(kylinConfig.isQueryCacheEnabled(), "query cache disabled in KylinConfig") && //
                 checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles");
+    }
+
+    private boolean isQueryExceptionCacheEnabled(KylinConfig kylinConfig) {
+        return checkCondition(kylinConfig.isQueryExceptionCacheEnabled(),
+                "query exception cache disabled in KylinConfig") && //
+                checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles");
+    }
+
+    private void applyQuerySqlBlacklist(SQLRequest sqlRequest) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!kylinConfig.isQueryBlacklistEnabled()) {
+            return;
+        }
+        SQLBlacklistItem sqlBlacklistItem = matchSqlBlacklist(sqlRequest);
+        if (null == sqlBlacklistItem) {
+            return;
+        }
+        int concurrentLimit = sqlBlacklistItem.getConcurrentLimit();
+        if (concurrentLimit == 0) {
+            throw new KylinException(BLACKLIST_QUERY_REJECTED,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_REJECTED(), sqlBlacklistItem.getId()));
+        }
+        if (getSqlConcurrentCount(sqlBlacklistItem) >= concurrentLimit) {
+            throw new KylinException(BLACKLIST_EXCEEDED_CONCURRENT_LIMIT,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), sqlBlacklistItem.getId(), concurrentLimit));
+        }
+    }
+
+    private SQLBlacklistItem matchSqlBlacklist(SQLRequest sqlRequest) {
+        try {
+            SQLBlacklistManager sqlBlacklistManager = SQLBlacklistManager.getInstance(KylinConfig.getInstanceFromEnv());
+            String project = sqlRequest.getProject();
+            String sql = sqlRequest.getSql();
+            return sqlBlacklistManager.matchSqlBlacklist(project, sql);
+        } catch (Exception e) {
+            logger.error("Match sql blacklist failed.", e);
+            return null;
+        }
+    }
+
+    private int getSqlConcurrentCount(SQLBlacklistItem sqlBlacklistItem) {
+        int concurrentCount = 0;
+        Collection<SlowQueryDetector.QueryEntry> runningQueries = slowQueryDetector.getRunningQueries().values();
+        for (SlowQueryDetector.QueryEntry query : runningQueries) {
+            if (sqlBlacklistItem.match(query.getSql())) {
+                concurrentCount++;
+            }
+        }
+        return concurrentCount;
     }
 
     boolean isACLDisabledOrAdmin(String project, QueryContext.AclInfo aclInfo) {

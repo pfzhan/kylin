@@ -3012,4 +3012,25 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean skipCheckFlatTable() {
         return Boolean.parseBoolean(getOptional("kylin.model.skip-flattable-check", FALSE));
     }
+
+    public boolean isQueryExceptionCacheEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.exception-cache-enabled", FALSE));
+    }
+
+    public int getQueryExceptionCacheThresholdTimes() {
+        return Integer.parseInt(this.getOptional("kylin.query.exception-cache-threshold-times", "2"));
+    }
+
+    public int getQueryExceptionCacheThresholdDuration() {
+        return Integer.parseInt(this.getOptional("kylin.query.exception-cache-threshold-duration", "2000"));
+    }
+
+    public boolean isQueryBlacklistEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.blacklist-enabled", FALSE));
+    }
+
+    public long getEhcacheTimeToIdleSecondsForException() {
+        return Long.parseLong(getOptional("kylin.cache.ehcache.exception-time-to-idle-seconds", "600"));
+    }
+
 }

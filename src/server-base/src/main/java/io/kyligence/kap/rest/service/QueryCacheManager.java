@@ -141,6 +141,27 @@ public class QueryCacheManager {
         }
     }
 
+
+    public void putIntoExceptionCache(SQLRequest req, SQLResponse resp) {
+        try {
+            kylinCache.put(Type.EXCEPTION_QUERY_CACHE.rootCacheName, req.getProject(), req.getCacheKey(), resp);
+        } catch (Exception e) {
+            logger.error("ignore cache error", e);
+        }
+    }
+
+    public void updateIntoExceptionCache(SQLRequest req, SQLResponse resp) {
+        try {
+            kylinCache.update(Type.EXCEPTION_QUERY_CACHE.rootCacheName, req.getProject(), req.getCacheKey(), resp);
+        } catch (Exception e) {
+            logger.error("ignore cache error", e);
+        }
+    }
+
+    public SQLResponse getFromExceptionCache(SQLRequest req) {
+        return searchFailedCache(req);
+    }
+
     public SQLResponse doSearchQuery(QueryCacheManager.Type type, SQLRequest sqlRequest) {
         Object response = kylinCache.get(type.rootCacheName, sqlRequest.getProject(),
                 sqlRequest.getCacheKey());
@@ -151,7 +172,7 @@ public class QueryCacheManager {
         return (SQLResponse) response;
     }
 
-    private SQLResponse searchSuccessCache(SQLRequest sqlRequest) {
+    public SQLResponse searchSuccessCache(SQLRequest sqlRequest) {
         SQLResponse cached = doSearchQuery(Type.SUCCESS_QUERY_CACHE, sqlRequest);
         if (cached == null) {
             logger.info("[query cache log] No success cache searched");
@@ -173,7 +194,7 @@ public class QueryCacheManager {
         return cached;
     }
 
-    private SQLResponse searchFailedCache(SQLRequest sqlRequest) {
+    public SQLResponse searchFailedCache(SQLRequest sqlRequest) {
         SQLResponse cached = doSearchQuery(Type.EXCEPTION_QUERY_CACHE, sqlRequest);
         if (cached == null) {
             logger.info("[query cache log] No failed cache searched");
@@ -298,5 +319,10 @@ public class QueryCacheManager {
             RedisCache.recoverInstance();
             logger.info("[query cache log] Redis client recover successfully.");
         }
+    }
+
+    //for test
+    public KylinCache getCache() {
+        return kylinCache;
     }
 }

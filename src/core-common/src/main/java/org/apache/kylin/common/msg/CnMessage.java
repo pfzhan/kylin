@@ -1913,4 +1913,45 @@ public class CnMessage extends Message {
     public String getParamTooLarge() {
         return "参数 '%s' 太长， 最大 %s 字节。";
     }
+
+    // KAP query sql blacklist
+    public String getSQL_BLACKLIST_ITEM_ID_EMPTY() {
+        return "黑名单条目 id 不能为空";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_REGEX_AND_SQL_EMPTY() {
+        return "黑名单条目正则表达式和 sql 不能都为空";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_PROJECT_EMPTY() {
+        return "黑名单所属项目不能为空";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_ID_EXISTS() {
+        return "黑名单条目 id 不能为空";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_ID_NOT_EXISTS() {
+        return "黑名单条目 id 已存在";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_REGEX_EXISTS() {
+        return "黑名单条目正则表达式已存在";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_SQL_EXISTS() {
+        return "黑名单条目 sql 已存在";
+    }
+
+    public String getSQL_BLACKLIST_ITEM_ID_TO_DELETE_EMPTY() {
+        return "待删除的黑名单条目 id 不能为空";
+    }
+
+    public String getSQL_BLACKLIST_QUERY_REJECTED() {
+        return "查询被黑名单终止, 黑名单条目 id: %s.";
+    }
+
+    public String getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED() {
+        return "查询被黑名单终止，因为超出了并发限制, 黑名单条目 id: %s, 并发限制: {%s}";
+    }
 }

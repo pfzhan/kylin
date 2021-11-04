@@ -89,7 +89,7 @@ public class SlowQueryDetector extends Thread {
             return;
         }
         runningQueries.put(currentThread(), new QueryEntry(System.currentTimeMillis(), currentThread(),
-                QueryContext.current().getQueryId(), stopId, false));
+                QueryContext.current().getQueryId(), QueryContext.current().getUserSQL(), stopId, false));
     }
 
     public void queryEnd() {
@@ -163,6 +163,7 @@ public class SlowQueryDetector extends Thread {
         final long startTime;
         final Thread thread;
         final String queryId;
+        final String sql;
         final String stopId;
         boolean isStopByUser;
 
