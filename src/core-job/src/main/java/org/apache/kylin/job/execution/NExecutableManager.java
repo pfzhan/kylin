@@ -1134,6 +1134,10 @@ public class NExecutableManager {
     /** just used to update job error mess */
     public void updateJobError(String taskOrJobId, String failedStepId, String failedSegmentId, String failedStack) {
         val jobId = extractJobId(taskOrJobId);
+        // job's error is step's error, need not update again
+        if (StringUtils.equals(jobId, failedStepId)) {
+            return;
+        }
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput = job.getOutput();
             jobOutput.setFailedStepId(failedStepId);

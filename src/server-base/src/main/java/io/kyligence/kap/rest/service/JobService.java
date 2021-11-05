@@ -505,16 +505,14 @@ public class JobService extends BasicService {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
                     getExecutableManager(project).getOutput(task.getId()), waiteTimeMap, output.getState(),
                     pausedTimeMap);
-            if (StringUtils.startsWith(output.getFailedStepId(), task.getId())) {
+            if (task.getStatus() == ExecutableState.ERROR) {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
                 executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
                 executableStepResponse.setFailedStack(output.getFailedStack());
                 val exception = output.getFailedStack().split("\n")[0];
                 val exceptionResolve = getExceptionResolve(exception);
                 executableStepResponse.setFailedResolve(exceptionResolve);
-                if (StringUtils.equals(output.getFailedStepId(), task.getId())) {
-                    executableStepResponse.setFailedStepName(task.getName());
-                }
+                executableStepResponse.setFailedStepName(task.getName());
             }
             if (task instanceof ChainedStageExecutable) {
                 Map<String, List<StageBase>> stagesMap = Optional.ofNullable(((NSparkExecutable) task).getStagesMap())

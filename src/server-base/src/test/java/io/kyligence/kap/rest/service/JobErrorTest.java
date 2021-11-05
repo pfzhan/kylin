@@ -36,6 +36,7 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.rest.constant.Constant;
@@ -114,24 +115,29 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void teestWrapWithExecuteException() throws ExecuteException {
+    public void testWrapWithExecuteException() throws ExecuteException {
         val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
         executable.setId(RandomUtil.randomUUIDStr());
         executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject(getProject());
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, RandomUtil.randomUUIDStr());
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
+        executable.addTask(sparkExecutable);
         manager.addJob(executable);
 
         val jobId = executable.getId();
-        var failedStepId = executable.getId();
-        var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
+        var failedStepId = sparkExecutable.getId();
 
-        executable.wrapWithExecuteException(() -> null);
+        sparkExecutable.wrapWithExecuteException(() -> null);
         var output = manager.getJob(jobId).getOutput();
-        Assert.assertEquals(null, output.getFailedStepId());
+        Assert.assertNull(output.getFailedStepId());
 
         try {
-            executable.wrapWithExecuteException(() -> {
+            sparkExecutable.wrapWithExecuteException(() -> {
                 throw new KylinException(FAILED_UPDATE_JOB_STATUS, "test");
             });
             Assert.fail();
@@ -200,8 +206,14 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedSegmentId = RandomUtil.randomUUIDStr();
         var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
 
-        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
+        manager.updateJobError(jobId, jobId, failedSegmentId, failedStack);
         var output = manager.getJob(jobId).getOutput();
+        Assert.assertNull(output.getFailedStepId());
+        Assert.assertNull(output.getFailedSegmentId());
+        Assert.assertNull(output.getFailedStack());
+
+        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
+        output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
         Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
         Assert.assertEquals(failedStack, output.getFailedStack());
@@ -255,6 +267,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedStepId = logicStep2.getId();
         var failedSegmentId = segmentId;
         var failedStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.ERROR, null, null, "test output");
         manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
 
         var jobDetail = jobService.getJobDetail(getProject(), executable.getId());

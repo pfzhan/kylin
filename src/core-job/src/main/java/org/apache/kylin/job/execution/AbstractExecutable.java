@@ -57,7 +57,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -76,6 +75,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -365,7 +365,6 @@ public abstract class AbstractExecutable implements Executable {
 
     @Override
     public final ExecuteResult execute(ExecutableContext executableContext) throws ExecuteException {
-
         logger.info("Executing AbstractExecutable {}", this.getDisplayName());
         this.context = executableContext;
         ExecuteResult result;
@@ -379,7 +378,7 @@ public abstract class AbstractExecutable implements Executable {
             }
 
             try {
-                result = doWork(executableContext);
+                result = wrapWithExecuteException(() -> doWork(executableContext));
             } catch (JobStoppedException jse) {
                 // job quits voluntarily or non-voluntarily, in this case, the job is "finished"
                 // we createSucceed() to run onExecuteFinished()
