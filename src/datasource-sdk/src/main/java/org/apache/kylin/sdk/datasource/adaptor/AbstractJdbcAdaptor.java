@@ -23,20 +23,6 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
-import com.google.common.base.Joiner;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
-import org.apache.kylin.sdk.datasource.framework.FixedCachedRowSetImpl;
-import org.apache.kylin.sdk.datasource.framework.conv.DefaultConfigurer;
-import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
-import org.apache.kylin.sdk.datasource.framework.def.DataSourceDef;
-import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.rowset.CachedRowSet;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
@@ -48,6 +34,23 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
+import javax.sql.rowset.CachedRowSet;
+
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.sdk.datasource.framework.FixedCachedRowSetImpl;
+import org.apache.kylin.sdk.datasource.framework.conv.DefaultConfigurer;
+import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
+import org.apache.kylin.sdk.datasource.framework.def.DataSourceDef;
+import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 /**
  * Extends this Abstract class to create Adaptors for new jdbc data source.
@@ -69,7 +72,7 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
     private static Joiner joiner = Joiner.on("_");
 
     // Used by DefaultSourceConnector just for build, do not abuse it!
-    protected AbstractJdbcAdaptor(){
+    protected AbstractJdbcAdaptor() {
         this.dataSource = null;
         this.config = null;
         this.dataSourceDef = null;
@@ -171,6 +174,27 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
         } else {
             return dataSource.getConnection();
         }
+    }
+
+    public void setDefaultDb(Connection connection, String db) throws SQLException {
+        //do nothing ,implement by sub class
+        //connection.setSchema(db) or connection.setCatalog(db);
+
+    }
+
+    /**
+     * Create a new <C>java.sql.Connection</C> for this JDBC source.
+     *
+     * @return
+     * @throws SQLException
+     */
+    public Connection getConnectionWithDefaultDB(String dbName) throws SQLException {
+        Connection connection = getConnection();
+        if (StringUtils.isNotBlank(dbName)) {
+            setDefaultDb(connection, dbName);
+        }
+        return connection;
+
     }
 
     /**
@@ -471,7 +495,7 @@ public abstract class AbstractJdbcAdaptor implements Closeable {
         return configurer.isCaseSensitive();
     }
 
-    protected void addConnectionProperty(String name, String value){
+    protected void addConnectionProperty(String name, String value) {
         dataSource.addConnectionProperty(name, value);
     }
 

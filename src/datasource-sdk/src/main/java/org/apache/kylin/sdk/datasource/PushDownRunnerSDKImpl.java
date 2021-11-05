@@ -31,6 +31,7 @@ import java.sql.Statement;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.DBUtils;
@@ -39,6 +40,7 @@ import org.apache.kylin.sdk.datasource.framework.JdbcConnector;
 import org.apache.kylin.sdk.datasource.framework.SourceConnectorFactory;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -59,7 +61,12 @@ public class PushDownRunnerSDKImpl implements IPushDownRunner {
         ResultSet rs = null;
         ResultSetMetaData metaData;
         int columnCount;
-        try (Connection conn = dataSource.getConnection(); Statement state = conn.createStatement()) {
+        String dbName = null;
+        if (StringUtils.isNotBlank(project)) {
+            dbName = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getDefaultDatabase(project);
+        }
+        try (Connection conn = dataSource.getConnectionWithDefaultDb(dbName);
+                Statement state = conn.createStatement()) {
             log.info("SDK push down sql is [{}]", query);
             rs = state.executeQuery(query);
 

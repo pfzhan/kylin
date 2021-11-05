@@ -23,6 +23,7 @@
  */
 package org.apache.kylin.sdk.datasource.adaptor;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,5 +45,10 @@ public class H2Adaptor extends DefaultAdaptor {
                 filtered.add(schema);
         }
         return filtered;
+    }
+
+    @Override
+    public void setDefaultDb(Connection connection, String db) throws SQLException {
+        connection.setSchema(db);
     }
 }

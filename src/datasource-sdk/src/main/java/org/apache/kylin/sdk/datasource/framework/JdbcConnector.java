@@ -23,8 +23,16 @@
  */
 package org.apache.kylin.sdk.datasource.framework;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
+import java.io.Closeable;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import javax.sql.rowset.CachedRowSet;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.sdk.datasource.adaptor.AbstractJdbcAdaptor;
@@ -34,14 +42,8 @@ import org.apache.kylin.sdk.datasource.framework.conv.SqlConverter;
 import org.apache.kylin.sdk.datasource.framework.def.DataSourceDef;
 import org.apache.kylin.sdk.datasource.framework.def.DataSourceDefProvider;
 
-import javax.sql.rowset.CachedRowSet;
-import java.io.Closeable;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.regex.Pattern;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 
 public class JdbcConnector implements Closeable {
 
@@ -198,6 +200,10 @@ public class JdbcConnector implements Closeable {
 
     public Connection getConnection() throws SQLException {
         return adaptor.getConnection();
+    }
+
+    public Connection getConnectionWithDefaultDb(String dbName) throws SQLException {
+        return adaptor.getConnectionWithDefaultDB(dbName);
     }
 
     public String getPropertyValue(String key, String defaultValue) {
