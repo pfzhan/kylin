@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -133,7 +135,6 @@ public class MultiPartitionDesc implements Serializable, IKeep {
         return partitionIds;
     }
 
-
     public MultiPartitionDesc.PartitionInfo getPartitionInfo(long id) {
         return partitionInfoMap.get(id);
     }
@@ -165,7 +166,7 @@ public class MultiPartitionDesc implements Serializable, IKeep {
 
         @Override
         public String buildMultiPartitionCondition(final PartitionDesc partDesc, final MultiPartitionDesc multiPartDesc,
-                                                   final LinkedList<Long> partitionIds, final ISegment seg, final SegmentRange segRange) {
+                final LinkedList<Long> partitionIds, final ISegment seg, final SegmentRange segRange) {
             String timeRange;
             if (Objects.isNull(partDesc) || Objects.isNull(partDesc.getPartitionDateColumn())
                     || Objects.isNull(segRange) || segRange.isInfinite()) {
@@ -192,7 +193,7 @@ public class MultiPartitionDesc implements Serializable, IKeep {
         }
 
         public static String buildMLPCondition(final MultiPartitionDesc multiPartDesc, final ISegment seg,
-                                               List<Long> partitionIDs) {
+                List<Long> partitionIDs) {
             if (CollectionUtils.isEmpty(partitionIDs)) {
                 return null;
             }
@@ -204,12 +205,22 @@ public class MultiPartitionDesc implements Serializable, IKeep {
             for (int i = 0; i < columnRefs.size(); i++) {
                 final int x = i;
                 String item = columnRefs.get(x).getExpressionInSourceDB() + " in (" + //
-                        values.stream().map(a -> "'" + a[x] + "'").collect(Collectors.joining(", ")) + //
-                        ")";
+                        values.stream().map(a -> generateFormattedValue(columnRefs.get(x).getType(), a[x]))
+                                .collect(Collectors.joining(", "))
+                        + ")";
                 conditions.add(item);
             }
+
             return String.join(" and ", conditions);
         }
+    }
+
+    public static String generateFormattedValue(DataType dataType, String value) {
+        if (dataType.isBoolean()) {
+            return String.format(Locale.ROOT, "cast('%s' as boolean)", value);
+        }
+        return String.format(Locale.ROOT, "'%s'", value);
+
     }
 
     public MultiPartitionDesc(LinkedList<String> columns) {
