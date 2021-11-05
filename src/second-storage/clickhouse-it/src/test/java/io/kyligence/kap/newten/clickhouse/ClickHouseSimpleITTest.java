@@ -652,7 +652,11 @@ public class ClickHouseSimpleITTest extends NLocalWithSparkSessionTest {
             }
 
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-            Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            if ("table_index_incremental".equals(getProject())) {
+                Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            } else if ("table_index".equals(getProject())) {
+                Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            }
 
             // check http server
             checkHttpServer();

@@ -136,4 +136,45 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
                 + ") a"));
         NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null);
     }
+
+    @Test
+    public void testCountDistinctQueryRetry() throws Exception {
+        overwriteSystemProp("kylin.query.use-tableindex-answer-non-raw-query", "true");
+        overwriteSystemProp("kylin.query.convert-count-distinct-expression-enabled", "true");
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
+        fullBuildCube("975ae5ed-e670-3613-5e80-f9def911c632", getProject());
+        fullBuildCube("acfde546-2cc9-4eec-bc92-e3bd46d4e2bf", getProject());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("query_count_distinct", "SELECT Count(DISTINCT CASE\n"
+                + "                        WHEN KYLIN_FACT.lstg_format_name = 'ABIN' THEN\n"
+                + "                        KYLIN_FACT.test_count_distinct_bitmap\n"
+                + "                        ELSE Cast(NULL AS VARCHAR(1))\n"
+                + "                      END) AS TEMP___________299162,\n" + "       Count(DISTINCT CASE\n"
+                + "                        WHEN KYLIN_FACT.lstg_format_name = 'Auction' THEN\n"
+                + "                        KYLIN_FACT.order_id\n" + "                        ELSE Cast(NULL AS FLOAT)\n"
+                + "                      END) AS TEMP_________,\n" + "       Count(DISTINCT lstg_format_name)\n"
+                + "FROM  (SELECT price,\n" + "              lstg_site_id,\n" + "              cal_dt,\n"
+                + "              test_count_distinct_bitmap,\n" + "              lstg_format_name,\n"
+                + "              test_kylin_fact.order_id AS ORDER_ID,\n"
+                + "              test_order.order_id      AS test_order_id\n" + "       FROM   test_kylin_fact\n"
+                + "              left join test_order\n"
+                + "                     ON test_kylin_fact.order_id = test_order.order_id)\n" + "      KYLIN_FACT\n"
+                + "      left join(SELECT KYLIN_FACT . lstg_site_id AS X____,\n"
+                + "                       SUM(KYLIN_FACT . price)   AS X_measure__0\n"
+                + "                FROM  (SELECT price,\n" + "                              lstg_site_id,\n"
+                + "                              cal_dt,\n"
+                + "                              test_count_distinct_bitmap,\n"
+                + "                              lstg_format_name,\n"
+                + "                              test_kylin_fact.order_id AS ORDER_ID,\n"
+                + "                              test_order.order_id      AS test_order_id\n"
+                + "                       FROM   test_kylin_fact\n"
+                + "                              left join test_order\n"
+                + "                                     ON test_kylin_fact.order_id =\n"
+                + "                                        test_order.order_id\n" + "                      )\n"
+                + "                      KYLIN_FACT\n" + "                GROUP  BY KYLIN_FACT. lstg_site_id) t0\n"
+                + "             ON KYLIN_FACT.lstg_site_id = t0.x____\n"
+                + "WHERE  KYLIN_FACT.cal_dt = DATE '2012-01-01' "));
+        NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null);
+    }
 }

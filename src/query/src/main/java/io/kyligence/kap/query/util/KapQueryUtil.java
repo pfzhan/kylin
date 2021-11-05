@@ -244,7 +244,7 @@ public class KapQueryUtil {
             Join join = (Join) relNode;
             int offset = 0;
             for (RelNode input : join.getInputs()) {
-                if (colIdx >= offset && colIdx < input.getRowType().getFieldCount()) {
+                if (colIdx >= offset && colIdx < offset + input.getRowType().getFieldCount()) {
                     return isPlainTableColumn(colIdx - offset, input);
                 }
                 offset += input.getRowType().getFieldCount();

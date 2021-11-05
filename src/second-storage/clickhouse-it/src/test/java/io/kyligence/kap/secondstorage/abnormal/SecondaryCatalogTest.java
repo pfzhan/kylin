@@ -83,7 +83,7 @@ public class SecondaryCatalogTest {
             //build
             NLocalWithSparkSessionTest.fullBuildAllCube(cubeName, project);
             NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            Assert.assertEquals(1, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
+            Assert.assertEquals(3, SecondStorageUtil.setSecondStorageSizeInfo(modelManager.listAllModels()).size());
 
             // check
             test.checkHttpServer();

@@ -56,6 +56,7 @@ import org.apache.kylin.common.ReadFsSwitch;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.AsyncQueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -294,23 +295,32 @@ public class QueryExec {
             QueryContext.current().getQueryTagInfo().setConstantQuery(true);
             return new CalciteQueryPlanExec().executeToIterable(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
-            RuntimeException lastException = null;
-            for (RelNode rel : rels) {
-                try {
-                    return new SparderQueryPlanExec().executeToIterable(rel, dataContext);
-                } catch (NoRealizationFoundException e) {
-                    lastException = e;
-                } catch (IllegalArgumentException e) {
-                    if (e.getMessage().contains("Unsupported function name BITMAP_UUID")) {
-                        lastException = e;
-                    } else {
-                        throw e;
+            return sparderQuery(rels);
+        }
+    }
+
+    private ExecuteResult sparderQuery(List<RelNode> rels) {
+        RuntimeException lastException = null;
+        for (RelNode rel : rels) {
+            try {
+                OLAPContext.clearThreadLocalContexts();
+                OLAPContext.clearParameter();
+                return new SparderQueryPlanExec().executeToIterable(rel, dataContext);
+            } catch (NoRealizationFoundException e) {
+                lastException = e;
+            } catch (IllegalArgumentException e) {
+                if (e.getMessage().contains("Unsupported function name BITMAP_UUID")) {
+                    if (rels.size() > 1) {
+                        logger.error("Optimized relNode query fail, try origin relNode.", e);
                     }
+                    lastException = e;
+                } else {
+                    throw e;
                 }
             }
-            assert lastException != null;
-            throw lastException;
         }
+        assert lastException != null;
+        throw lastException;
     }
 
     private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig,
