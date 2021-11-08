@@ -25,7 +25,6 @@
 package io.kyligence.kap.query.util;
 
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -73,9 +72,13 @@ public class SparkJobTraceTest extends NLocalFileMetadataTestCase {
     public void testSparkSqlClientTrace() {
         String sql = "select * from TEST_KYLIN_FACT";
         SparkSqlClient.executeSql(ss, sql, RandomUtil.randomUUID(), "tpch");
-        Assert.assertEquals(3, QueryContext.currentTrace().spans().size());
-        Assert.assertEquals(QueryTrace.WAIT_FOR_EXECUTION, QueryContext.currentTrace().spans().get(0).getName());
-        Assert.assertEquals(QueryTrace.EXECUTION, QueryContext.currentTrace().spans().get(1).getName());
-        Assert.assertEquals(QueryTrace.FETCH_RESULT, QueryContext.currentTrace().spans().get(2).getName());
+        Assert.assertEquals(0, QueryContext.currentTrace().spans().size());
+        String queryId = QueryContext.current().getQueryId();
+        SparkJobTraceMetric sparkJobTraceMetric = SparkJobTrace.getSparkJobTraceMetric(queryId);
+        Assert.assertNotNull(sparkJobTraceMetric);
+        Assert.assertEquals(-1, sparkJobTraceMetric.getPrepareAndSubmitJobMs());
+        Assert.assertTrue(sparkJobTraceMetric.getWaitForExecutionMs() > 0);
+        Assert.assertTrue(sparkJobTraceMetric.getExecutionMs() > 0);
+        Assert.assertTrue(sparkJobTraceMetric.getFetchResultMs() >= 0);
     }
 }

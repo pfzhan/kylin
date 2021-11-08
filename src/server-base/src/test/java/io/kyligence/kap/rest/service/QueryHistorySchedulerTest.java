@@ -25,9 +25,11 @@ package io.kyligence.kap.rest.service;
 
 import static org.awaitility.Awaitility.await;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.QueryTrace;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,9 +37,10 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.query.util.SparkJobTraceMetric;
 
 public class QueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
 
@@ -142,5 +145,47 @@ public class QueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
         }
         // lost 500 queryHistory
         Assert.assertEquals(500, queryHistoryScheduler.queryMetricsQueue.size());
+    }
+
+    @Test
+    public void testCollectedFinished() {
+        QueryHistoryScheduler queryHistoryScheduler = QueryHistoryScheduler.getInstance();
+        String queryId = "12sy4s87-f912-6dw2-a1e1-8ff3234u2e6b1";
+        long prepareAndSubmitJobMs = 10;
+        long waitForExecutionMs = 200;
+        long executionMs = 1200;
+        long fetchResultMs = 20;
+        SparkJobTraceMetric sparkJobTraceMetric = new SparkJobTraceMetric(prepareAndSubmitJobMs, waitForExecutionMs,
+                executionMs, fetchResultMs);
+        QueryMetrics queryMetrics = new QueryMetrics(queryId, "192.168.1.6:7070");
+        queryMetrics.setQueryDuration(5578L);
+        queryMetrics.setQueryTime(1584888338274L);
+        QueryHistoryInfo queryHistoryInfo = new QueryHistoryInfo();
+        List<QueryHistoryInfo.QueryTraceSpan> queryTraceSpans = new ArrayList<>();
+        queryTraceSpans.add(new QueryHistoryInfo.QueryTraceSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB,
+                QueryTrace.SPAN_GROUPS.get(QueryTrace.WAIT_FOR_EXECUTION), 0));
+        queryHistoryInfo.setTraces(queryTraceSpans);
+        queryMetrics.setQueryHistoryInfo(queryHistoryInfo);
+        Boolean isCollectedFinished = queryHistoryScheduler.isCollectedFinished(queryId, sparkJobTraceMetric,
+                queryMetrics);
+        Assert.assertTrue(isCollectedFinished);
+        List<QueryHistoryInfo.QueryTraceSpan> newQueryTraceSpans = queryMetrics.getQueryHistoryInfo().getTraces();
+        Assert.assertEquals(prepareAndSubmitJobMs, newQueryTraceSpans.get(0).getDuration());
+        Assert.assertEquals(waitForExecutionMs, newQueryTraceSpans.get(1).getDuration());
+        Assert.assertEquals(executionMs, newQueryTraceSpans.get(2).getDuration());
+        Assert.assertTrue(newQueryTraceSpans.get(3).getDuration() > 0);
+        queryTraceSpans = new ArrayList<>();
+        queryMetrics.getQueryHistoryInfo().setTraces(queryTraceSpans);
+        queryTraceSpans.add(new QueryHistoryInfo.QueryTraceSpan(QueryTrace.PREPARE_AND_SUBMIT_JOB,
+                QueryTrace.SPAN_GROUPS.get(QueryTrace.WAIT_FOR_EXECUTION), 0));
+        isCollectedFinished = queryHistoryScheduler.isCollectedFinished(queryId, null, queryMetrics);
+        Assert.assertTrue(isCollectedFinished);
+        newQueryTraceSpans = queryMetrics.getQueryHistoryInfo().getTraces();
+        Assert.assertEquals(1, newQueryTraceSpans.size());
+        queryMetrics.setQueryDuration(5000);
+        queryMetrics.setQueryTime(System.currentTimeMillis());
+        isCollectedFinished = queryHistoryScheduler.isCollectedFinished(queryId, null, queryMetrics);
+        Assert.assertFalse(isCollectedFinished);
+        Assert.assertEquals(1, queryHistoryScheduler.queryMetricsQueue.size());
     }
 }

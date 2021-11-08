@@ -44,6 +44,11 @@ public class QueryTraceTest {
 
         trace.amendLast("span 2", trace.getLastSpan().get().start + trace.getLastSpan().get().getDuration() + 1000);
         assertTimeEqual(1100, trace.getLastSpan().get().duration);
+
+        trace.startSpan("span 3");
+        long duration = trace.calculateDuration("span 3",
+                trace.getLastSpan().get().start + trace.getLastSpan().get().getDuration() + 1000);
+        assertTimeEqual(999, duration);
     }
 
     @Test

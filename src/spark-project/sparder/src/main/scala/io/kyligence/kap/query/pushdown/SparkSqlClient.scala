@@ -122,7 +122,8 @@ object SparkSqlClient {
         return (Lists.newArrayList(), 0, fieldList)
       }
       QueryContext.currentTrace().endLastSpan()
-      val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), SparderEnv.getSparkSession.sparkContext)
+      val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace()
+        , QueryContext.current().getQueryId, SparderEnv.getSparkSession.sparkContext)
       val results = df.toIterator()
       val resultRows = results._1
       val resultSize = results._2

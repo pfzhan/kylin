@@ -544,7 +544,6 @@ public class QueryService extends BasicService {
 
             QueryUtils.updateQueryContextSQLMetrics();
             QueryContext.currentTrace().endLastSpan();
-            QueryContext.currentTrace().amendLast(FETCH_RESULT, System.currentTimeMillis());
             QueryContext.currentMetrics().setQueryEndTime(System.currentTimeMillis());
 
             sqlResponse.setServer(clusterManager.getLocalServer());

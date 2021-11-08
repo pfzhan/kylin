@@ -690,4 +690,16 @@ public class KapConfig {
     public boolean isOnlyPlanInSparkEngine() {
         return Boolean.parseBoolean(config.getOptional("kylin.query.only-plan-with-spark-engine", FALSE));
     }
+
+    public long getSparkJobTraceTimeoutMs() {
+        return Long.parseLong(config.getOptional("kylin.query.spark-job-trace-timeout-ms", "8000"));
+    }
+
+    public int getSparkJobTraceCacheMax() {
+        return Integer.parseInt(config.getOptional("kylin.query.spark-job-trace-cache-max", "1000"));
+    }
+
+    public int getSparkJobTraceParallelMax() {
+        return Integer.parseInt(config.getOptional("kylin.query.spark-job-trace-parallel-max", "50"));
+    }
 }

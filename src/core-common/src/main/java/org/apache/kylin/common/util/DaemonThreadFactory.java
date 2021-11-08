@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,15 +42,29 @@
  */
 package org.apache.kylin.common.util;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 /**
  */
 public class DaemonThreadFactory implements ThreadFactory {
+    private String poolName = null;
+
+    public DaemonThreadFactory() {
+    }
+
+    public DaemonThreadFactory(String poolName) {
+        this.poolName = poolName;
+    }
+
     @Override
     public Thread newThread(Runnable r) {
         Thread t = Executors.defaultThreadFactory().newThread(r);
+        if (StringUtils.isNotBlank(poolName)) {
+            t.setName(poolName.concat("-") + t.getId());
+        }
         t.setDaemon(true);
         return t;
     }

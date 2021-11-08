@@ -30,8 +30,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.Singletons;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -40,8 +44,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import io.kyligence.kap.query.util.SparkJobTrace;
+import io.kyligence.kap.query.util.SparkJobTraceMetric;
 
 public class QueryHistoryScheduler {
 
@@ -51,7 +58,13 @@ public class QueryHistoryScheduler {
 
     private ScheduledExecutorService writeQueryHistoryScheduler;
 
+    private long sparkJobTraceTimeoutMs;
+    private boolean isQuerySparkJobTraceEnabled;
+
     public void init() throws Exception {
+        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+        sparkJobTraceTimeoutMs = kapConfig.getSparkJobTraceTimeoutMs();
+        isQuerySparkJobTraceEnabled = kapConfig.isQuerySparkJobTraceEnabled();
         writeQueryHistoryScheduler = Executors.newScheduledThreadPool(1,
                 new NamedThreadFactory("WriteQueryHistoryWorker"));
         KylinConfig kyinConfig = KylinConfig.getInstanceFromEnv();
@@ -96,7 +109,17 @@ public class QueryHistoryScheduler {
             try {
                 List<QueryMetrics> metrics = Lists.newArrayList();
                 queryMetricsQueue.drainTo(metrics);
-                queryHistoryDAO.insert(metrics);
+                List<QueryMetrics> insertMetrics;
+                if (isQuerySparkJobTraceEnabled && metrics.size() > 0) {
+                    insertMetrics = metrics.stream().filter(queryMetrics -> {
+                        String queryId = queryMetrics.getQueryId();
+                        SparkJobTraceMetric sparkJobTraceMetric = SparkJobTrace.getSparkJobTraceMetric(queryId);
+                        return isCollectedFinished(queryId, sparkJobTraceMetric, queryMetrics);
+                    }).collect(Collectors.toList());
+                } else {
+                    insertMetrics = metrics;
+                }
+                queryHistoryDAO.insert(insertMetrics);
             } catch (Throwable th) {
                 logger.error("Error when write query history", th);
             }
@@ -104,4 +127,38 @@ public class QueryHistoryScheduler {
 
     }
 
+    public boolean isCollectedFinished(String queryId, SparkJobTraceMetric sparkJobTraceMetric,
+            QueryMetrics queryMetrics) {
+        if (sparkJobTraceMetric != null) {
+            // queryHistoryInfo collect asynchronous metrics
+            List<QueryHistoryInfo.QueryTraceSpan> queryTraceSpans = queryMetrics.getQueryHistoryInfo().getTraces();
+            AtomicLong timeCostSum = new AtomicLong(0);
+            queryTraceSpans.forEach(span -> {
+                if (QueryTrace.PREPARE_AND_SUBMIT_JOB.equals(span.getName())) {
+                    span.setDuration(sparkJobTraceMetric.getPrepareAndSubmitJobMs());
+                }
+                timeCostSum.addAndGet(span.getDuration());
+            });
+            queryTraceSpans.add(new QueryHistoryInfo.QueryTraceSpan(QueryTrace.WAIT_FOR_EXECUTION,
+                    QueryTrace.SPAN_GROUPS.get(QueryTrace.WAIT_FOR_EXECUTION),
+                    sparkJobTraceMetric.getWaitForExecutionMs()));
+            timeCostSum.addAndGet(sparkJobTraceMetric.getWaitForExecutionMs());
+            queryTraceSpans.add(new QueryHistoryInfo.QueryTraceSpan(QueryTrace.EXECUTION,
+                    QueryTrace.SPAN_GROUPS.get(QueryTrace.EXECUTION), sparkJobTraceMetric.getExecutionMs()));
+            timeCostSum.addAndGet(sparkJobTraceMetric.getExecutionMs());
+            queryTraceSpans.add(new QueryHistoryInfo.QueryTraceSpan(QueryTrace.FETCH_RESULT,
+                    QueryTrace.SPAN_GROUPS.get(QueryTrace.FETCH_RESULT),
+                    queryMetrics.getQueryDuration() - timeCostSum.get()));
+            return true;
+        } else if ((System.currentTimeMillis()
+                - (queryMetrics.getQueryTime() + queryMetrics.getQueryDuration())) > sparkJobTraceTimeoutMs) {
+            logger.warn(
+                    "QueryMetrics timeout lost spark job trace kylin.query.spark-job-trace-timeout-ms={} queryId:{}",
+                    sparkJobTraceTimeoutMs, queryId);
+            return true;
+        } else {
+            offerQueryHistoryQueue(queryMetrics);
+            return false;
+        }
+    }
 }

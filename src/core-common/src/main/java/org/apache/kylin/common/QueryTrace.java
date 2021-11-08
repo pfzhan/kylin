@@ -24,15 +24,15 @@
 
 package org.apache.kylin.common;
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 public class QueryTrace {
 
@@ -51,7 +51,7 @@ public class QueryTrace {
 
     // group name
     static final String PREPARATION = "PREPARATION";
-    static final Map<String, String> SPAN_GROUPS = new HashMap<>();
+    public static final Map<String, String> SPAN_GROUPS = new HashMap<>();
     static {
         SPAN_GROUPS.put(GET_ACL_INFO, PREPARATION);
         SPAN_GROUPS.put(SQL_TRANSFORMATION, PREPARATION);
@@ -90,6 +90,24 @@ public class QueryTrace {
             if (spans.get(i).name.equals(name)) {
                 spans.get(i).duration = endAt - spans.get(i).start;
                 return;
+            }
+        }
+    }
+
+    public long calculateDuration(String name, long endAt) {
+        for (int i = spans.size() - 1; i >= 0; i--) {
+            if (spans.get(i).name.equals(name)) {
+                long duration = endAt - spans.get(i).start;
+                return duration;
+            }
+        }
+        return -1;
+    }
+
+    public void setDuration(String name, long duration) {
+        for (int i = spans.size() - 1; i >= 0; i--) {
+            if (spans.get(i).name.equals(name)) {
+                spans.get(i).duration = duration;
             }
         }
     }

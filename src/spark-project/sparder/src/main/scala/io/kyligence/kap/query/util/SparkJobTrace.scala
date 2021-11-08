@@ -24,8 +24,13 @@
 
 package io.kyligence.kap.query.util
 
+import java.util.concurrent._
+
+import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
-import org.apache.kylin.common.QueryTrace
+import io.kyligence.kap.query.util.SparkJobTrace.{jobTraceThreadPool, sparkJobTraceCache}
+import org.apache.kylin.common.util.DaemonThreadFactory
+import org.apache.kylin.common.{KapConfig, QueryTrace}
 import org.apache.spark.SparkContext
 import org.apache.spark.metrics.AppStatus
 
@@ -34,10 +39,30 @@ import org.apache.spark.metrics.AppStatus
  */
 class SparkJobTrace(jobGroup: String,
                     queryTrace: QueryTrace,
+                    queryId: String,
                     sparkContext: SparkContext,
                     startAt: Long = System.currentTimeMillis()) extends LogEx {
 
   val appStatus = new AppStatus(sparkContext)
+
+  /**
+   * called right after spark job done, then asynchronous collect metrics
+   */
+  def jobFinished(): Unit = {
+    try {
+      queryTrace.setDuration(QueryTrace.PREPARE_AND_SUBMIT_JOB, 0)
+      val currentTimestamp = System.currentTimeMillis()
+      jobTraceThreadPool.submit(new Runnable {
+        override def run(): Unit = {
+          calculateAndEstimateDurations(currentTimestamp)
+        }
+      })
+    } catch {
+      case e =>
+        logWarning("Having exception lost spark job trace task queryId: " + queryId + " kylin.query.spark-job-trace-parallel-max" +
+          SparkJobTrace.sparkJobTraceCacheMax, e)
+    }
+  }
 
   /**
    * called right after job execution is done and the helper will calculate and estimate
@@ -59,23 +84,23 @@ class SparkJobTrace(jobGroup: String,
    * Long, it may imply the executor-core config is not insufficient for the number of tasks,
    * or the cluster is in heavy work load
    */
-  def jobFinished(): Unit = {
+  def calculateAndEstimateDurations(currentTimestamp: Long): Unit = {
     try {
       val jobDataSeq = appStatus.getJobData(jobGroup)
 
       if (jobDataSeq.isEmpty) {
-        endAbnormalExecutionTrace()
         return
       }
 
-      var jobExecutionTime = System.currentTimeMillis() - startAt
+      var jobExecutionTime = currentTimestamp - startAt
       val submissionTime = jobDataSeq.map(_.submissionTime).min
+      var prepareAndSubmitJobTime = 0L;
       if (submissionTime.isDefined) {
-        queryTrace.amendLast(QueryTrace.PREPARE_AND_SUBMIT_JOB, submissionTime.get.getTime)
+        prepareAndSubmitJobTime = queryTrace.calculateDuration(QueryTrace.PREPARE_AND_SUBMIT_JOB, submissionTime.get.getTime)
       }
       val completionTime = jobDataSeq.map(_.completionTime).max
       if (submissionTime.isDefined) {
-        jobExecutionTime = completionTime.map(_.getTime).getOrElse(System.currentTimeMillis()) - submissionTime.get.getTime
+        jobExecutionTime = completionTime.map(_.getTime).getOrElse(currentTimestamp) - submissionTime.get.getTime
       }
 
       val jobMetrics = jobDataSeq.map(_.jobId)
@@ -94,15 +119,14 @@ class SparkJobTrace(jobGroup: String,
       val getResultTime = jobMetrics._2 * jobExecutionTime / sum
       val launchDelayTime = launchDelayTimeSum * jobExecutionTime / sum
 
-      queryTrace.appendSpan(QueryTrace.WAIT_FOR_EXECUTION, launchDelayTime.longValue());
-      queryTrace.appendSpan(QueryTrace.EXECUTION, computingTime.longValue());
-      queryTrace.appendSpan(QueryTrace.FETCH_RESULT, getResultTime.longValue());
+      sparkJobTraceCache.put(queryId, new SparkJobTraceMetric(prepareAndSubmitJobTime, launchDelayTime.longValue()
+        , computingTime.longValue(), getResultTime.longValue()))
     } catch {
       case e =>
         logWarning(s"Failed trace spark job execution for $jobGroup", e)
-        endAbnormalExecutionTrace()
     }
   }
+
 
   /**
    * called right after result transformation is done to count the
@@ -120,4 +144,26 @@ class SparkJobTrace(jobGroup: String,
     queryTrace.appendSpan(QueryTrace.EXECUTION, System.currentTimeMillis() - startAt);
     queryTrace.appendSpan(QueryTrace.FETCH_RESULT, 0);
   }
+
+}
+
+object SparkJobTrace {
+
+  val kapConfig = KapConfig.getInstanceFromEnv
+  val sparkJobTraceParallelMax = kapConfig.getSparkJobTraceParallelMax
+  val sparkJobTraceCacheMax = kapConfig.getSparkJobTraceCacheMax
+  val sparkJobTraceTimeoutMs = kapConfig.getSparkJobTraceTimeoutMs
+
+  val jobTraceThreadPool: ThreadPoolExecutor = new ThreadPoolExecutor(0, sparkJobTraceParallelMax, 60L, TimeUnit.SECONDS
+    , new SynchronousQueue[Runnable], new DaemonThreadFactory("handler-job-trace-thread-pool"))
+
+  val sparkJobTraceCache: Cache[String, SparkJobTraceMetric] = CacheBuilder.newBuilder
+    .maximumSize(sparkJobTraceCacheMax)
+    .expireAfterAccess(sparkJobTraceTimeoutMs + 20000, TimeUnit.MILLISECONDS)
+    .build()
+
+  def getSparkJobTraceMetric(queryId: String): SparkJobTraceMetric = {
+    sparkJobTraceCache.getIfPresent(queryId)
+  }
+
 }

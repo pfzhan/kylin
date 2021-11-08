@@ -297,6 +297,12 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.influxdb.https.unsafe-ssl.enabled", "true", true));
         map.put("isOnlyPlanInSparkEngine",
                 new PropertiesEntity("kylin.query.only-plan-with-spark-engine", "false", false));
+        map.put("getSparkJobTraceTimeoutMs",
+                new PropertiesEntity("kylin.query.spark-job-trace-timeout-ms", "8000", 8000L));
+        map.put("getSparkJobTraceCacheMax",
+                new PropertiesEntity("kylin.query.spark-job-trace-cache-max", "1000", 1000));
+        map.put("getSparkJobTraceParallelMax",
+                new PropertiesEntity("kylin.query.spark-job-trace-parallel-max", "50", 50));
     }
 
     @Before
@@ -315,7 +321,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(126, methodsCount);
+        Assert.assertEquals(129, methodsCount);
     }
 
     @Test

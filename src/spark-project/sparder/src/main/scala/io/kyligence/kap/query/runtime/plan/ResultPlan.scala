@@ -94,7 +94,7 @@ object ResultPlan extends LogEx {
       logDebug(s"source_scan_rows is ${QueryContext.current().getMetrics.getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
       QueryContext.currentTrace().endLastSpan()
-      val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
+      val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), QueryContext.current().getQueryId, sparkContext)
       val results = df.toIterator()
       val resultRows = results._1
       val resultSize = results._2
@@ -192,7 +192,7 @@ object ResultPlan extends LogEx {
     df.sparkSession.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_EXECUTION_ID, queryExecutionId)
 
     QueryContext.currentTrace().endLastSpan()
-    val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), sparkContext)
+    val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace(), QueryContext.current().getQueryId, sparkContext)
     format match {
       case "json" => df.write.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZ").option("encoding", encode)
         .option("charset", "utf-8").mode(SaveMode.Append).json(path)
