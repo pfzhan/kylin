@@ -338,4 +338,29 @@ public class SecondStorageJavaTest implements JobWaiter {
         val tables = operator.listTables(database);
         Assert.assertFalse(tables.contains(tempTable));
     }
+
+    @Test
+    public void testCleanModelWhenTableNotExists() throws Exception {
+        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        val node = SecondStorageNodeHelper.getAllNames().get(0);
+        val jdbc = SecondStorageNodeHelper.resolve(node);
+        ClickHouse clickHouse = new ClickHouse(jdbc);
+        val table = NameUtil.getTable(modelId, 20000000001L);
+        val database = NameUtil.getDatabase(KylinConfig.getInstanceFromEnv(), project);
+        clickHouse.apply("DROP TABLE " + database + "." + table);
+        val jobId = triggerModelCleanJob(project, modelId, enableTestUser.getUser());
+        waitJobFinish(project, jobId);
+    }
+
+    @Test
+    public void testCleanModelWhenDatabaseNotExists() throws Exception {
+        NLocalWithSparkSessionTest.fullBuildAllCube(modelId, project);
+        val node = SecondStorageNodeHelper.getAllNames().get(0);
+        val jdbc = SecondStorageNodeHelper.resolve(node);
+        ClickHouse clickHouse = new ClickHouse(jdbc);
+        val database = NameUtil.getDatabase(KylinConfig.getInstanceFromEnv(), project);
+        clickHouse.apply("DROP DATABASE " + database);
+        val jobId = triggerModelCleanJob(project, modelId, enableTestUser.getUser());
+        waitJobFinish(project, jobId);
+    }
 }

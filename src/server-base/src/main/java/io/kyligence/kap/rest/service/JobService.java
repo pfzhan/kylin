@@ -962,7 +962,7 @@ public class JobService extends BasicService {
         val executableManager = getExecutableManager(project);
         val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
         return Optional.ofNullable(output.getVerboseMsgStream())
-                .orElse(IOUtils.toInputStream(output.getVerboseMsg(), "UTF-8"));
+                .orElse(IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
     }
 
     /**

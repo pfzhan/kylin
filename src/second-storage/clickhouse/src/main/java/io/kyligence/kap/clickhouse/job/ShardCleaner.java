@@ -26,6 +26,7 @@ package io.kyligence.kap.clickhouse.job;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.ddl.AlterTable;
@@ -126,6 +127,17 @@ public class ShardCleaner {
     }
 
     public void cleanPartitions() throws SQLException {
+        val operator = new ClickHouseOperator(Preconditions.checkNotNull(getClickHouse()));
+        val databases = operator.listDatabases();
+        if (!databases.contains(database)) {
+            log.info("database {} doesn't exist, skip clean partitions {}", database, partitions);
+            return;
+        }
+        val tables = operator.listTables(database);
+        if (!tables.contains(table)) {
+            log.info("table {}.{} doesn't exist, skip clean partitions {}", database, table, partitions);
+            return;
+        }
         Preconditions.checkNotNull(table);
         AlterTable alterTable;
         if (isFull) {

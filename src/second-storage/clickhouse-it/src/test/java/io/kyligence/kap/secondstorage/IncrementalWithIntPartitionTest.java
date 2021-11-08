@@ -25,6 +25,7 @@
 package io.kyligence.kap.secondstorage;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -268,5 +269,38 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
             return;
         }
         Assert.fail();
+    }
+
+    @Test
+    public void testCleanSegmentWhenDatabaseNotExists() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        val node = SecondStorageNodeHelper.getAllNames().get(0);
+        val jdbc = SecondStorageNodeHelper.resolve(node);
+        ClickHouse clickHouse = new ClickHouse(jdbc);
+        val database = NameUtil.getDatabase(KylinConfig.getInstanceFromEnv(), project);
+        clickHouse.apply("DROP DATABASE " + database);
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val jobId = secondStorageService.triggerSegmentsClean(project, modelId, Sets.newHashSet(segs));
+        waitJobFinish(project, jobId);
+    }
+
+    @Test
+    public void testCleanSegmentWhenModelNotExists() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        val node = SecondStorageNodeHelper.getAllNames().get(0);
+        val jdbc = SecondStorageNodeHelper.resolve(node);
+        ClickHouse clickHouse = new ClickHouse(jdbc);
+        val table = NameUtil.getTable(modelId, 20000000001L);
+        val database = NameUtil.getDatabase(KylinConfig.getInstanceFromEnv(), project);
+        clickHouse.apply("DROP TABLE " + database + "." + table);
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val jobId = secondStorageService.triggerSegmentsClean(project, modelId, Sets.newHashSet(segs));
+        waitJobFinish(project, jobId);
     }
 }

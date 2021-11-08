@@ -49,6 +49,10 @@ public class ClickHouseOperator implements DatabaseOperator {
         }
     }
 
+    public ClickHouseOperator(ClickHouse clickHouse) {
+        this.clickHouse = clickHouse;
+    }
+
     @SneakyThrows
     @Override
     public List<String> listDatabases() {
