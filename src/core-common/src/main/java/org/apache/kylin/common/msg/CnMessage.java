@@ -1489,6 +1489,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getQueryNodeInvalid() {
+        return "该请求无法在查询节点执行。请检查后重试。";
+    }
+
+    @Override
     public String getWriteInMaintenanceMode() {
         return "系统已进入维护模式，元数据相关操作暂不可用。请稍后再试。";
     }
