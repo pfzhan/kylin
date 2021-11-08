@@ -789,6 +789,9 @@ export default class SnapshotModel extends Vue {
           border: 1px solid @error-color-1;
         }
       }
+      .el-input__inner {
+        padding-left: 15px
+      }
     }
     .search-partition-input {
       width: 100%;

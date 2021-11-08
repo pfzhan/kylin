@@ -854,6 +854,9 @@ export default class Snapshot extends Vue {
           border: 1px solid @error-color-1;
         }
       }
+      .el-input__inner {
+        padding-left: 15px
+      }
     }
     .partition-column {
       height: 24px;
