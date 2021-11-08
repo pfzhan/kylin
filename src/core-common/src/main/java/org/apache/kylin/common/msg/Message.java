@@ -1192,7 +1192,7 @@ public class Message {
         return "Can’t execute this request on job node. Please check and try again.";
     }
 
-    public String getQUERY_NODE_INVALID(String url) {
+    public String getQueryNodeInvalid() {
         return "Can’t execute this request on Query node. Please check and try again.";
     }
 

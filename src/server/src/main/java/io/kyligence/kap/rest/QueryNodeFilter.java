@@ -215,9 +215,10 @@ public class QueryNodeFilter implements Filter {
 
                 if (Boolean.FALSE.equals(kylinConfig.isQueryNodeRequestForwardEnabled())
                         && kylinConfig.isQueryNodeOnly()) {
-                    request.setAttribute(ERROR, new KylinException(QUERYNODE_API_INVALID,
-                            MsgPicker.getMsg().getQUERY_NODE_INVALID(servletRequest.getRequestURI())));
+                    request.setAttribute(ERROR,
+                            new KylinException(QUERYNODE_API_INVALID, MsgPicker.getMsg().getQueryNodeInvalid()));
                     request.getRequestDispatcher(API_ERROR).forward(request, response);
+                    return;
                 }
             } catch (CannotCreateTransactionException e) {
                 writeConnectionErrorResponse(servletRequest, servletResponse);
