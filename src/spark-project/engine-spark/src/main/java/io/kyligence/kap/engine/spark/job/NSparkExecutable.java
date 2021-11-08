@@ -392,7 +392,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         }
     }
 
-    protected void killOrphanApplicationIfExists(String jobStepId) {
+    public void killOrphanApplicationIfExists(String jobStepId) {
         try {
             val sparkConf = getSparkConf();
             val sparkMaster = sparkConf.getOrDefault(SPARK_MASTER, "local");

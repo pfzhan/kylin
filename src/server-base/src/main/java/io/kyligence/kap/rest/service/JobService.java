@@ -386,6 +386,7 @@ public class JobService extends BasicService {
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
             break;
         case RESTART:
+            killExistApplication(project, jobId);
             executableManager.restartJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             break;
@@ -397,6 +398,7 @@ public class JobService extends BasicService {
                     () -> EventBusFactory.getInstance().postAsync(new JobDiscardNotifier(project, jobType)));
             break;
         case PAUSE:
+            killExistApplication(project, jobId);
             executableManager.pauseJob(jobId);
             break;
         default:
@@ -414,7 +416,23 @@ public class JobService extends BasicService {
         if (ExecutableState.DISCARDED == job.getStatus()) {
             return;
         }
+        killExistApplication(job);
         getExecutableManager(project).discardJob(job.getId());
+    }
+
+    public void killExistApplication(String project, String jobId){
+        AbstractExecutable job = getExecutableManager(project).getJob(jobId);
+        killExistApplication(job);
+    }
+
+    public void killExistApplication(AbstractExecutable job){
+        if (job instanceof ChainedExecutable) {
+            // if job's task is running spark job, will kill this application
+            ((ChainedExecutable) job).getTasks().stream() //
+                    .filter(task -> task.getStatus() == ExecutableState.RUNNING) //
+                    .filter(task -> task instanceof NSparkExecutable) //
+                    .forEach(task -> ((NSparkExecutable) task).killOrphanApplicationIfExists(task.getId()));
+        }
     }
 
     /**

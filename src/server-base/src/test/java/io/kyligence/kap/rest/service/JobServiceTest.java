@@ -1334,4 +1334,19 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         }, project);
     }
 
+    @Test
+    public void testKillExistApplication() {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        addSegment(executable);
+        val task = new NSparkExecutable();
+        task.setProject(getProject());
+        addSegment(task);
+        executable.addTask(task);
+        manager.addJob(executable);
+        jobService.killExistApplication(executable);
+
+        jobService.killExistApplication(getProject(), executable.getId());
+    }
 }
