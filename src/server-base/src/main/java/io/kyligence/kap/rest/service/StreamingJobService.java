@@ -463,15 +463,11 @@ public class StreamingJobService extends BasicService {
         Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.getDefault(Locale.Category.FORMAT));
         if (timeFilter > 0) {
             long startTime;
-            switch (timeFilter) {
-            case 1:
-            case 3:
-            case 7:
-                calendar.add(Calendar.DAY_OF_MONTH, -timeFilter);
-                startTime = calendar.getTimeInMillis();
-                break;
-            default:
+            if (timeFilter > 7 * 24 * 60) {
                 throw new KylinException(INVALID_PARAMETER, msg.getILLEGAL_TIME_FILTER());
+            } else {
+                calendar.add(Calendar.MINUTE, -timeFilter);
+                startTime = calendar.getTimeInMillis();
             }
             val statsMgr = StreamingJobStatsManager.getInstance();
             val statsList = statsMgr.queryStreamingJobStats(startTime, jobId);

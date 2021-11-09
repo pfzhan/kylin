@@ -299,13 +299,13 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     public void testGetStreamingJobDataStats() throws Exception {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
-        val meta1 = streamingJobService.getStreamingJobDataStats(jobId, 1);
+        val meta1 = streamingJobService.getStreamingJobDataStats(jobId, 24 * 60);
         Assert.assertEquals("500,400", StringUtils.join(meta1.getDataLatencyHist(), ","));
         Assert.assertEquals("32,8", StringUtils.join(meta1.getConsumptionRateHist(), ","));
         Assert.assertEquals("1200,3200", StringUtils.join(meta1.getProcessingTimeHist(), ","));
-        val meta3 = streamingJobService.getStreamingJobDataStats(jobId, 3);
+        val meta3 = streamingJobService.getStreamingJobDataStats(jobId, 3 * 24 * 60);
         Assert.assertNotNull(meta3);
-        val meta7 = streamingJobService.getStreamingJobDataStats(jobId, 7);
+        val meta7 = streamingJobService.getStreamingJobDataStats(jobId, 7 * 24 * 60);
         Assert.assertNotNull(meta7);
         val meta8 = streamingJobService.getStreamingJobDataStats(jobId, 0);
         Assert.assertNull(meta8.getConsumptionRateHist());
@@ -317,7 +317,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = mockStreamingJobDataStats(jobId);
         try {
-            streamingJobService.getStreamingJobDataStats(jobId, 9);
+            streamingJobService.getStreamingJobDataStats(jobId, 9 * 24 * 60);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
         } finally {
