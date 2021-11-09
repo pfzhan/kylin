@@ -35,12 +35,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -69,6 +69,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -82,6 +83,7 @@ import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.OpenBatchApproveRecItemsRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
@@ -99,11 +101,11 @@ import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.OpenAccSqlResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse.IndexDetail;
-import io.kyligence.kap.rest.response.OpenModelValidationResponse;
 import io.kyligence.kap.rest.response.OpenOptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse;
 import io.kyligence.kap.rest.response.OpenRecApproveResponse.RecToIndexResponse;
 import io.kyligence.kap.rest.response.OpenSuggestionResponse;
+import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.OptRecLayoutsResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
@@ -111,6 +113,8 @@ import io.kyligence.kap.rest.service.FusionIndexService;
 import io.kyligence.kap.rest.service.FusionModelService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptRecService;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 import io.kyligence.kap.tool.bisync.SyncContext;
 import io.swagger.annotations.ApiOperation;
@@ -444,49 +448,57 @@ public class OpenModelController extends NBasicController {
         String projectName = checkProjectName(request.getProject());
         checkSqlIsNotNull(request.getSqls());
         request.setProject(projectName);
-        List<NDataModel> models = modelService.couldAnsweredByExistedModels(request.getProject(), request.getSqls());
+        AbstractContext proposeContext = modelService.probeRecommendation(request.getProject(), request.getSqls());
+        List<NDataModel> models = proposeContext.getProposedModels();
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS,
                 models.stream().map(NDataModel::getAlias).collect(Collectors.toList()), "");
     }
 
     @VisibleForTesting
-    public OpenModelValidationResponse batchSqlValidate(String project, List<String> sqls) {
+    public OpenValidationResponse batchSqlValidate(String project, List<String> sqls) {
         Set<String> normalSqls = Sets.newHashSet();
         Set<String> errorSqls = Sets.newHashSet();
-        Set<OpenModelValidationResponse.ErrorSqlDetail> errorSqlDetailSet = Sets.newHashSet();
+        Set<OpenValidationResponse.ErrorSqlDetail> errorSqlDetailSet = Sets.newHashSet();
 
-        val validatedSqls = favoriteRuleService.batchSqlValidate(sqls, project);
-        for (val entry : validatedSqls.entrySet()) {
-            String sql = entry.getKey();
-            if (entry.getValue().isCapable()) {
+        Map<String, SQLValidateResult> validatedSqls = favoriteRuleService.batchSqlValidate(sqls, project);
+        validatedSqls.forEach((sql, validateResult) -> {
+            if (validateResult.isCapable()) {
                 normalSqls.add(sql);
             } else {
-                SQLValidateResult validateResult = entry.getValue();
                 errorSqls.add(sql);
-                errorSqlDetailSet
-                        .add(new OpenModelValidationResponse.ErrorSqlDetail(sql, validateResult.getSqlAdvices()));
+                errorSqlDetailSet.add(new OpenValidationResponse.ErrorSqlDetail(sql, validateResult.getSqlAdvices()));
             }
-        }
+        });
 
-        Map<String, List<NDataModel>> answeredModels = modelService.answeredByExistedModels(project, normalSqls);
-        Map<String, List<String>> validSqls = answeredModels.keySet().stream()
-                .collect(Collectors.toMap(sql -> sql,
-                        sql -> answeredModels.get(sql).stream().map(NDataModel::getAlias).collect(Collectors.toList()),
-                        (a, b) -> b));
-
-        return new OpenModelValidationResponse(validSqls, Lists.newArrayList(errorSqls),
+        AbstractContext proposeContext = modelService.probeRecommendation(project, Lists.newArrayList(normalSqls));
+        Map<String, NDataModel> uuidToModelMap = proposeContext.getRelatedModels().stream()
+                .collect(Collectors.toMap(NDataModel::getUuid, Function.identity()));
+        Map<String, Set<String>> answeredModelAlias = Maps.newHashMap();
+        proposeContext.getAccelerateInfoMap().forEach((sql, accelerationInfo) -> {
+            answeredModelAlias.putIfAbsent(sql, Sets.newHashSet());
+            Set<AccelerateInfo.QueryLayoutRelation> relatedLayouts = accelerationInfo.getRelatedLayouts();
+            if (CollectionUtils.isNotEmpty(relatedLayouts)) {
+                relatedLayouts.forEach(info -> {
+                    String alias = uuidToModelMap.get(info.getModelId()).getAlias();
+                    answeredModelAlias.get(sql).add(alias);
+                });
+            }
+        });
+        Map<String, List<String>> validSqlToModels = Maps.newHashMap();
+        answeredModelAlias.forEach((sql, aliasSet) -> validSqlToModels.put(sql, Lists.newArrayList(aliasSet)));
+        return new OpenValidationResponse(validSqlToModels, Lists.newArrayList(errorSqls),
                 Lists.newArrayList(errorSqlDetailSet));
     }
 
     @ApiOperation(value = "answeredByExistedModel", tags = { "AI" })
     @PostMapping(value = "/model_validation")
     @ResponseBody
-    public EnvelopeResponse<OpenModelValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
+    public EnvelopeResponse<OpenValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
         String projectName = checkProjectName(request.getProject());
         request.setProject(projectName);
         aclEvaluate.checkProjectWritePermission(request.getProject());
         checkNotEmpty(request.getSqls());
-        OpenModelValidationResponse response = batchSqlValidate(request.getProject(), request.getSqls());
+        OpenValidationResponse response = batchSqlValidate(request.getProject(), request.getSqls());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
     }
 
@@ -558,10 +570,8 @@ public class OpenModelController extends NBasicController {
         request.setProject(projectName);
         request.setForce2CreateNewModel(false);
         checkProjectNotSemiAuto(request.getProject());
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestAndOptimizeModels(request),
-                "");
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelService.suggestAndOptimizeModels(request), "");
     }
-
 
     @ApiOperation(value = "suggestModels", tags = { "AI" })
     @PostMapping(value = "/model_suggestion")
@@ -708,7 +718,7 @@ public class OpenModelController extends NBasicController {
     @PutMapping(value = "/{model_name}/name")
     @ResponseBody
     public EnvelopeResponse<String> updateModelName(@PathVariable("model_name") String modelAlias,
-                                                    @RequestBody ModelUpdateRequest modelRenameRequest) {
+            @RequestBody ModelUpdateRequest modelRenameRequest) {
         String projectName = checkProjectName(modelRenameRequest.getProject());
         String modelId = getModel(modelAlias, projectName).getId();
         checkRequiredArg(NModelController.MODEL_ID, modelId);

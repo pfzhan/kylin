@@ -353,7 +353,7 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
 
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
 
         // after cutting context, change "DEFAULT.KYLIN_CAL_DT" to be a incremental load table
         val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
@@ -361,10 +361,10 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
         table.setIncrementLoading(true);
         tableManager.updateTableDesc(table);
 
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
-        smartMaster.selectIndexPlan();
-        smartMaster.optimizeIndexPlan();
+        smartMaster.getProposer("ModelSelectProposer").execute();
+        smartMaster.getProposer("ModelOptProposer").execute();
+        smartMaster.getProposer("IndexPlanSelectProposer").execute();
+        smartMaster.getProposer("IndexPlanOptProposer").execute();
         context.saveMetadata();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
@@ -434,9 +434,9 @@ public class SmartMasterTest extends AutoTestOnLearnKylinData {
                 + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sqlStatements);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
+        smartMaster.getProposer("ModelSelectProposer").execute();
+        smartMaster.getProposer("ModelOptProposer").execute();
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         String[] namedColumns = model.getAllNamedColumns().stream().map(NDataModel.NamedColumn::getAliasDotColumn)
                 .sorted().toArray(String[]::new);

@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -99,8 +98,6 @@ public class RawRecService {
             throw new IllegalStateException(RawRecService.ACCELERATION_INTERRUPT_BY_USER);
         }
         saveLayoutRawRecItems(layoutRecItems, semiContextV2.getProject());
-        Set<String> modelIds = layoutRecItems.stream().map(RawRecItem::getModelID).collect(Collectors.toSet());
-        modelIds.forEach(modelId -> optRecService.updateRecommendationCount(semiContextV2.getProject(), modelId));
     }
 
     public void generateRawRecommendations(String project, List<QueryHistory> queryHistories, boolean isManual) {

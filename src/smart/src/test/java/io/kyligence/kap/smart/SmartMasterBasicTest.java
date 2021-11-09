@@ -102,7 +102,7 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         Assert.assertEquals(1, smartContext.getModelContexts().size());
         AbstractContext.ModelContext mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getModelTree());
@@ -111,13 +111,13 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertEquals(kylinSalesTblDesc, modelTree.getRootFactTable());
 
         // select model
-        smartMaster.selectModel();
+        smartMaster.getProposer("ModelSelectProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNull(mdCtx.getTargetModel());
         Assert.assertNull(mdCtx.getOriginModel());
 
         // optimize model
-        smartMaster.optimizeModel();
+        smartMaster.getProposer("ModelOptProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         NDataModel model = mdCtx.getTargetModel();
         Assert.assertNotNull(model);
@@ -126,13 +126,13 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertFalse(model.getEffectiveMeasures().isEmpty());
 
         // select IndexPlan
-        smartMaster.selectIndexPlan();
+        smartMaster.getProposer("IndexPlanSelectProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNull(mdCtx.getOriginIndexPlan());
         Assert.assertNull(mdCtx.getTargetIndexPlan());
 
         // optimize IndexPlan
-        smartMaster.optimizeIndexPlan();
+        smartMaster.getProposer("IndexPlanOptProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         Assert.assertNotNull(indexPlan);
@@ -183,7 +183,7 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         Assert.assertEquals(1, smartContext.getModelContexts().size());
         AbstractContext.ModelContext mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getModelTree());
@@ -192,13 +192,13 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertEquals(kylinSalesTblDesc, modelTree.getRootFactTable());
 
         // select model
-        smartMaster.selectModel();
+        smartMaster.getProposer("ModelSelectProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getTargetModel());
         Assert.assertNotNull(mdCtx.getOriginModel());
 
         // optimize model
-        smartMaster.optimizeModel();
+        smartMaster.getProposer("ModelOptProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         NDataModel model = mdCtx.getTargetModel();
         Assert.assertEquals(kylinSalesTblDesc, model.getRootFactTable().getTableDesc());
@@ -207,13 +207,13 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertFalse(model.getEffectiveMeasures().isEmpty());
 
         // select IndexPlan
-        smartMaster.selectIndexPlan();
+        smartMaster.getProposer("IndexPlanSelectProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx.getTargetIndexPlan());
         Assert.assertNotNull(mdCtx.getOriginIndexPlan());
 
         // optimize IndexPlan
-        smartMaster.optimizeIndexPlan();
+        smartMaster.getProposer("IndexPlanOptProposer").execute();
         mdCtx = smartContext.getModelContexts().get(0);
         IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
         Assert.assertNotNull(indexPlan);
@@ -263,18 +263,18 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         Assert.assertEquals(2, smartContext.getModelContexts().size());
 
         // select Model
-        smartMaster.selectModel();
+        smartMaster.getProposer("ModelSelectProposer").execute();
         for (AbstractContext.ModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNull(modelContext.getOriginModel());
             Assert.assertNull(modelContext.getTargetModel());
         }
 
         // optimize Model
-        smartMaster.optimizeModel();
+        smartMaster.getProposer("ModelOptProposer").execute();
         NDataModel model0 = smartContext.getModelContexts().get(0).getTargetModel();
         Assert.assertNotNull(model0);
         Assert.assertEquals(48, model0.getEffectiveCols().size());
@@ -287,14 +287,14 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertEquals(1, model1.getEffectiveMeasures().size());
 
         // select IndexPlan
-        smartMaster.selectIndexPlan();
+        smartMaster.getProposer("IndexPlanSelectProposer").execute();
         for (AbstractContext.ModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNull(modelContext.getOriginIndexPlan());
             Assert.assertNull(modelContext.getTargetIndexPlan());
         }
 
         // optimize IndexPlan
-        smartMaster.optimizeIndexPlan();
+        smartMaster.getProposer("IndexPlanOptProposer").execute();
         IndexPlan indexPlan0 = smartContext.getModelContexts().get(0).getTargetIndexPlan();
         Assert.assertNotNull(indexPlan0);
         Assert.assertEquals(1, indexPlan0.getAllIndexes().size());
@@ -371,28 +371,28 @@ public class SmartMasterBasicTest extends AutoTestOnLearnKylinData {
         Assert.assertNotNull(smartContext);
 
         // analyze SQL
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         Assert.assertEquals(3, smartContext.getModelContexts().size());
         Assert.assertEquals(11, collectAllOlapContexts(smartContext).size());
 
         // select model
-        smartMaster.selectModel();
+        smartMaster.getProposer("ModelSelectProposer").execute();
         for (AbstractContext.ModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNotNull(modelContext.getOriginModel());
             Assert.assertNotNull(modelContext.getTargetModel());
         }
 
         // optimize model
-        smartMaster.optimizeModel();
+        smartMaster.getProposer("ModelOptProposer").execute();
 
         // select IndexPlan
-        smartMaster.selectIndexPlan();
+        smartMaster.getProposer("IndexPlanSelectProposer").execute();
         for (AbstractContext.ModelContext modelContext : smartContext.getModelContexts()) {
             Assert.assertNotNull(modelContext.getOriginIndexPlan());
         }
 
         // optimize IndexPlan
-        smartMaster.optimizeIndexPlan();
+        smartMaster.getProposer("IndexPlanOptProposer").execute();
         List<IndexEntity> allProposedIndexes = Lists.newArrayList();
         smartContext.getModelContexts().forEach(modelContext -> {
             allProposedIndexes.addAll(modelContext.getTargetIndexPlan().getAllIndexes());

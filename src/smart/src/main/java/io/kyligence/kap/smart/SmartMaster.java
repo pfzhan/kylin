@@ -36,95 +36,41 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.Getter;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Getter
 public class SmartMaster {
 
-    @Getter
-    public final AbstractContext context;
-    private final ProposerProvider proposerProvider;
     private final String project;
+    public final AbstractContext context;
 
     public SmartMaster(AbstractContext proposeContext) {
         this.context = proposeContext;
         this.project = proposeContext.getProject();
-        this.proposerProvider = ProposerProvider.create(context);
     }
 
-    @VisibleForTesting
-    public void analyzeSQLs() {
-        long start = System.currentTimeMillis();
-        log.info("Start sql analysis.");
-        proposerProvider.getSQLAnalysisProposer().execute();
-        val nums = getAccelerationNumMap();
-        log.info("SQL analysis completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
-                System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
-                nums.get(AccStatusType.FAILED));
-    }
-
-    @VisibleForTesting
-    public void selectModel() {
-        long start = System.currentTimeMillis();
-        log.info("Start model selection.");
-        proposerProvider.getModelSelectProposer().execute();
-        val nums = getAccelerationNumMap();
-        log.info("Model selection completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
-                System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
-                nums.get(AccStatusType.FAILED));
-    }
-
-    @VisibleForTesting
-    public void optimizeModel() {
-        long start = System.currentTimeMillis();
-        log.info("Start model optimization.");
-        proposerProvider.getModelOptProposer().execute();
-        val nums = getAccelerationNumMap();
-        log.info("Model optimization completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
-                System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
-                nums.get(AccStatusType.FAILED));
-    }
-
-    @VisibleForTesting
-    public void selectIndexPlan() {
-        long start = System.currentTimeMillis();
-        log.info("Start indexPlan selection.");
-        proposerProvider.getIndexPlanSelectProposer().execute();
-        val nums = getAccelerationNumMap();
-        log.info("IndexPlan selection completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
-                System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
-                nums.get(AccStatusType.FAILED));
-    }
-
-    @VisibleForTesting
-    public void optimizeIndexPlan() {
-        long start = System.currentTimeMillis();
-        log.info("Start indexPlan optimization.");
-        proposerProvider.getIndexPlanOptProposer().execute();
-        val nums = getAccelerationNumMap();
-        log.info("IndexPlan optimization completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
-                System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
-                nums.get(AccStatusType.FAILED));
+    public AbstractProposer getProposer(String name) {
+        for (AbstractProposer proposer : getContext().getProcessProposers().getProposerList()) {
+            if (proposer.getIdentifierName().equalsIgnoreCase(name)) {
+                return proposer;
+            }
+        }
+        for (AbstractProposer proposer : getContext().getProcessProposers().getProposerList()) {
+            if (proposer.getIdentifierName().equalsIgnoreCase(name)) {
+                return proposer;
+            }
+        }
+        throw new IllegalArgumentException("Wrong proposer name: " + name);
     }
 
     /**
      * This method will invoke when there is no need transaction.
      */
     public void executePropose() {
-        preProcessWithoutTransaction();
-        processWithTransaction();
-    }
-
-    private void preProcessWithoutTransaction() {
         getContext().getPreProcessProposers().execute();
-    }
-
-    private void processWithTransaction() {
         getContext().getProcessProposers().execute();
     }
 
@@ -139,41 +85,17 @@ public class SmartMaster {
     void runWithContext(Consumer<AbstractContext> hook) {
         long start = System.currentTimeMillis();
         try {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
-                @Override
-                public void preProcess() {
-                    preProcessWithoutTransaction();
-                }
-
-                @Override
-                public Object process() {
-                    processWithTransaction();
-                    getContext().saveMetadata();
-                    if (hook != null) {
-                        hook.accept(getContext());
-                    }
-                    return null;
-                }
-
-                @Override
-                public void onProcessError(Throwable throwable) {
-                    recordError(throwable);
-                }
-            }, project);
+            getContext().getPreProcessProposers().execute();
+            getContext().getProcessProposers().execute();
+            getContext().saveMetadata();
+            if (hook != null) {
+                hook.accept(getContext());
+            }
+        } catch (Exception exception) {
+            recordError(exception);
         } finally {
             log.info("The whole process of {} takes {}ms", context.getIdentifier(), System.currentTimeMillis() - start);
-            saveAccelerationInfoInTransaction();
-        }
-    }
-
-    private void saveAccelerationInfoInTransaction() {
-        try {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                genDiagnoseInfo();
-                return null;
-            }, project);
-        } catch (Exception e) {
-            log.error("save acceleration info error", e);
+            genDiagnoseInfo();
         }
     }
 
@@ -184,29 +106,15 @@ public class SmartMaster {
         });
     }
 
-    private Map<AccStatusType, Integer> getAccelerationNumMap() {
-        Map<AccStatusType, Integer> result = Maps.newHashMap();
-        result.putIfAbsent(AccStatusType.SUCCESS, 0);
-        result.putIfAbsent(AccStatusType.PENDING, 0);
-        result.putIfAbsent(AccStatusType.FAILED, 0);
-        val accelerateInfoMap = context.getAccelerateInfoMap();
-        for (Map.Entry<String, AccelerateInfo> entry : accelerateInfoMap.entrySet()) {
-            if (entry.getValue().isPending()) {
-                result.computeIfPresent(AccStatusType.PENDING, (k, v) -> v + 1);
-            } else if (entry.getValue().isFailed()) {
-                result.computeIfPresent(AccStatusType.FAILED, (k, v) -> v + 1);
-            } else {
-                result.computeIfPresent(AccStatusType.SUCCESS, (k, v) -> v + 1);
-            }
-        }
-        return result;
-    }
-
     enum AccStatusType {
         SUCCESS, PENDING, FAILED
     }
 
     private void genDiagnoseInfo() {
+        if (context == null) {
+            log.error("Unlikely exception without proposing context!");
+            return;
+        }
         Map<String, AccelerateInfo> accelerationMap = context.getAccelerateInfoMap();
         Map<String, Set<String>> failureMap = Maps.newHashMap();
         int pendingNum = 0;

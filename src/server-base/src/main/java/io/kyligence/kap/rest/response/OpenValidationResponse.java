@@ -38,7 +38,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OpenModelValidationResponse implements Serializable {
+public class OpenValidationResponse implements Serializable {
     @JsonProperty("valid_sqls")
     private Map<String, List<String>> validSqls;
     @JsonProperty("error_sqls")
@@ -48,7 +48,7 @@ public class OpenModelValidationResponse implements Serializable {
 
     @Data
     @AllArgsConstructor
-    public static class ErrorSqlDetail implements Serializable{
+    public static class ErrorSqlDetail implements Serializable {
         @JsonProperty("sql")
         private String sql;
         @JsonProperty("sql_advices")

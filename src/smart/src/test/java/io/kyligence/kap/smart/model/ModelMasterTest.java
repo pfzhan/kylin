@@ -61,7 +61,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
 
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.ModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -133,7 +133,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
         };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
 
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.ModelContext mdCtx = ctx.getModelContexts().get(0);
@@ -215,7 +215,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
                 + "INNER JOIN KYLIN_COUNTRY as BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY \n" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
 
         AbstractContext ctx = smartMaster.getContext();
         Assert.assertEquals(1, ctx.getModelContexts().size());
@@ -249,7 +249,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
         {
             val context = AccelerationContextUtil.newSmartContext(conf, proj, sqls);
             SmartMaster smartMaster = new SmartMaster(context);
-            smartMaster.analyzeSQLs();
+            smartMaster.getProposer("SQLAnalysisProposer").execute();
 
             AbstractContext ctx = smartMaster.getContext();
             Assert.assertEquals(1, ctx.getModelContexts().size());
@@ -259,7 +259,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
         {
             val context = AccelerationContextUtil.newSmartContext(conf, proj, sqls);
             SmartMaster smartMaster = new SmartMaster(context);
-            smartMaster.analyzeSQLs();
+            smartMaster.getProposer("SQLAnalysisProposer").execute();
 
             AbstractContext ctx = smartMaster.getContext();
             Assert.assertEquals(2, ctx.getModelContexts().size());
@@ -285,7 +285,7 @@ public class ModelMasterTest extends AutoTestOnLearnKylinData {
                 + "left JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID " };
         AbstractContext context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         ModelMaster modelMaster = new ModelMaster(smartMaster.getContext().getModelContexts().get(0));
         NDataModel dataModel = modelMaster.proposeInitialModel();
 

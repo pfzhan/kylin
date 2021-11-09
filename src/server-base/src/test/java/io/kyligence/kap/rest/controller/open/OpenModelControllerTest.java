@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -81,6 +80,7 @@ import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.CheckSegmentRequest;
 import io.kyligence.kap.rest.request.IndexesToSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.MultiPartitionMappingRequest;
 import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.PartitionsBuildRequest;
@@ -91,7 +91,7 @@ import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.OpenGetIndexResponse;
-import io.kyligence.kap.rest.response.OpenModelValidationResponse;
+import io.kyligence.kap.rest.response.OpenValidationResponse;
 import io.kyligence.kap.rest.response.SegmentPartitionResponse;
 import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.FusionIndexService;
@@ -476,10 +476,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String project = "default";
         String modelAlias = "model1";
         mockGetModelName(modelAlias, project, RandomUtil.randomUUIDStr());
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andReturn();
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(openModelController).getModelDesc(project, modelAlias);
         Assert.assertNotNull(result.getResponse().getContentAsString().contains("all_table_refs"));
         Assert.assertNotNull(result.getResponse().getContentAsString().contains("computed_columns"));
@@ -575,7 +575,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
-        Mockito.doReturn(new OpenModelValidationResponse()).when(openModelController).batchSqlValidate("default", sqls);
+        Mockito.doReturn(new OpenValidationResponse()).when(openModelController).batchSqlValidate("default", sqls);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/model_validation")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
@@ -857,7 +857,7 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testOpenapiUpdateModelName() throws Exception{
+    public void testOpenapiUpdateModelName() throws Exception {
         String project = "default";
         String new_model_name = "newName";
         String model = "model1";
@@ -866,13 +866,11 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         modelUpdateRequest.setProject(project);
         modelUpdateRequest.setNewModelName(new_model_name);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/name", model)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonUtil.writeValueAsString(modelUpdateRequest))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(modelUpdateRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).updateModelName(model, modelUpdateRequest);
     }
-
 
     private void changeProjectToSemiAutoMode(String project) {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());

@@ -52,17 +52,17 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
         String expectedModelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, DEFAULT_PROJECT, sqls);
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
 
         // validate select the expected model
-        smartMaster.selectModel();
+        smartMaster.getProposer("ModelSelectProposer").execute();
         AbstractContext ctx = smartMaster.getContext();
         AbstractContext.ModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertEquals(expectedModelId, mdCtx.getTargetModel().getUuid());
         Assert.assertEquals(expectedModelId, mdCtx.getOriginModel().getUuid());
 
         // validate select the expected CubePlan
-        smartMaster.selectIndexPlan();
+        smartMaster.getProposer("IndexPlanSelectProposer").execute();
         Assert.assertEquals(expectedModelId, mdCtx.getOriginIndexPlan().getUuid());
         Assert.assertEquals(expectedModelId, mdCtx.getTargetIndexPlan().getUuid());
     }

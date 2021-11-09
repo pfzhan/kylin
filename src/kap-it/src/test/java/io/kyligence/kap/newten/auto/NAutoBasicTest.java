@@ -327,14 +327,14 @@ public class NAutoBasicTest extends NAutoTestBase {
 
         val context = AccelerationContextUtil.newSmartContext(kylinConfig, project, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
+        smartMaster.getProposer("ModelSelectProposer").execute();
 
         // assert everything is ok after select model
         val accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sql).isNotSucceed());
         Assert.assertTrue(accelerateInfoMap.get(sql).getRelatedLayouts().isEmpty());
-        smartMaster.optimizeModel();
+        smartMaster.getProposer("ModelOptProposer").execute();
 
         // assert it failed in the step of optimize model
         final List<AbstractContext.ModelContext> modelContexts = smartMaster.getContext().getModelContexts();

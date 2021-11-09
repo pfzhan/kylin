@@ -207,16 +207,17 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
                     context.getSQLDigest());
             Assert.assertNotNull(pair);
             Assert.assertEquals(1, pair.getCapabilityResult().influences.size());
-            Assert.assertFalse(pair.getCapabilityResult().influences.get(0) instanceof CapabilityResult.DimensionAsMeasure);
-            Assert.assertEquals(context.allColumns,
-                    Sets.newHashSet(pair.getCapabilityResult().influences.get(0).getInvolvedMeasure().getFunction().getColRefs()));
+            Assert.assertFalse(
+                    pair.getCapabilityResult().influences.get(0) instanceof CapabilityResult.DimensionAsMeasure);
+            Assert.assertEquals(context.allColumns, Sets.newHashSet(
+                    pair.getCapabilityResult().influences.get(0).getInvolvedMeasure().getFunction().getColRefs()));
         }
     }
 
     private List<OLAPContext> getOlapContext(String sql) {
         val context = new SmartContext(KylinConfig.getInstanceFromEnv(), getProject(), new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         List<OLAPContext> ctxs = Lists.newArrayList();
         smartMaster.getContext().getModelContexts()
                 .forEach(nModelContext -> ctxs.addAll(nModelContext.getModelTree().getOlapContexts()));

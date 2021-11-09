@@ -1662,6 +1662,15 @@ public class ModelService extends BasicService {
     }
 
     public void batchCreateModel(String project, List<ModelRequest> newModels, List<ModelRequest> reusedModels) {
+        checkNewModels(project, newModels);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            saveNewModelsAndIndexes(project, newModels);
+            updateReusedModelsAndIndexPlans(project, reusedModels);
+            return null;
+        }, project);
+    }
+
+    private void checkNewModels(String project, List<ModelRequest> newModels) {
         aclEvaluate.checkProjectWritePermission(project);
         checkDuplicateAliasInModelRequests(newModels);
         for (ModelRequest modelRequest : newModels) {
@@ -1669,12 +1678,6 @@ public class ModelService extends BasicService {
             modelRequest.setProject(project);
             doCheckBeforeModelSave(project, modelRequest);
         }
-
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            saveNewModelsAndIndexes(project, newModels);
-            updateReusedModelsAndIndexPlans(project, reusedModels);
-            return null;
-        }, project);
     }
 
     private void saveNewModelsAndIndexes(String project, List<ModelRequest> newModels) {
@@ -1859,7 +1862,6 @@ public class ModelService extends BasicService {
         }, project);
     }
 
-
     public OpenSuggestionResponse suggestOrOptimizeModels(OpenSqlAccelerateRequest request) {
         SuggestionResponse innerResponse = suggestOptimizeModels(request, false);
         return OpenSuggestionResponse.from(innerResponse, request.getSqls());
@@ -1873,53 +1875,62 @@ public class ModelService extends BasicService {
     public SuggestionResponse suggestOptimizeModels(OpenSqlAccelerateRequest request, boolean createNewModel) {
         AbstractContext proposeContext = suggestModel(request.getProject(), request.getSqls(),
                 !request.getForce2CreateNewModel(), createNewModel);
-        SuggestionResponse innerResponse = buildModelSuggestionResponse(proposeContext);
-
-
-        SmartConfig config = proposeContext.getSmartConfig();
-        if (config.getModelOptRule().equalsIgnoreCase(AbstractJoinRule.APPEND) && request.isAcceptRecommendation()) {
-            saveNewModel(request.getProject(), innerResponse.getNewModels(), request.isWithEmptySegment(),
-                    request.isWithModelOnline(), request.isWithBaseIndex());
-            saveRecResult(innerResponse, request.getProject());
+        if (request.isAcceptRecommendation()) {
+            return saveModelAndApproveRecommendations(proposeContext, request);
         } else {
-
-            if (request.isSaveNewModel()) {
-                saveNewModel(request.getProject(), innerResponse.getNewModels(), request.isWithEmptySegment(),
-                        request.isWithModelOnline(), request.isWithBaseIndex());
-            }
-
-            if (request.isAcceptRecommendation()) {
-                saveRecResult(innerResponse, request.getProject());
-            } else {
-                saveProposedJoinRelations(innerResponse.getReusedModels(), proposeContext);
-                rawRecService.transferAndSaveRecommendations(proposeContext);
-            }
-
+            return saveModelAndRecommendations(proposeContext, request);
         }
+    }
+
+    private SuggestionResponse saveModelAndRecommendations(AbstractContext proposeContext,
+            OpenSqlAccelerateRequest request) {
+        SuggestionResponse innerResponse = buildModelSuggestionResponse(proposeContext);
+        List<ModelRequest> modelRequests = convertToModelRequest(innerResponse.getNewModels(), request);
+        checkNewModels(request.getProject(), modelRequests);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            if (request.isSaveNewModel()) {
+                saveNewModelsAndIndexes(request.getProject(), modelRequests);
+            }
+            saveProposedJoinRelations(innerResponse.getReusedModels(), proposeContext);
+            rawRecService.transferAndSaveRecommendations(proposeContext);
+            Set<String> modelIds = proposeContext.getModelContexts().stream() //
+                    .map(ModelContext::getTargetModel) //
+                    .filter(Objects::nonNull).map(NDataModel::getId) //
+                    .collect(Collectors.toSet());
+            optRecService.updateRecommendationCount(proposeContext.getProject(), modelIds);
+            return null;
+        }, request.getProject());
         return innerResponse;
     }
 
-    private void saveNewModel(String project, List<ModelRecResponse> newModels, boolean withEmptySegment,
-            boolean onlineNewModel, boolean withBaseIndex) {
-        List<ModelRequest> modelRequests = newModels.stream().map(modelResponse -> {
+    private SuggestionResponse saveModelAndApproveRecommendations(AbstractContext proposeContext,
+            OpenSqlAccelerateRequest request) {
+        SuggestionResponse innerResponse = buildModelSuggestionResponse(proposeContext);
+        List<ModelRequest> modelRequests = convertToModelRequest(innerResponse.getNewModels(), request);
+        checkNewModels(request.getProject(), modelRequests);
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            saveNewModelsAndIndexes(request.getProject(), modelRequests);
+            saveRecResult(innerResponse, request.getProject());
+            return null;
+        }, request.getProject());
+
+        return innerResponse;
+    }
+
+    private List<ModelRequest> convertToModelRequest(List<ModelRecResponse> newModels,
+            OpenSqlAccelerateRequest request) {
+        return newModels.stream().map(modelResponse -> {
             ModelRequest modelRequest = new ModelRequest(modelResponse);
             modelRequest.setIndexPlan(modelResponse.getIndexPlan());
-            modelRequest.setWithEmptySegment(withEmptySegment);
-            modelRequest.setWithModelOnline(onlineNewModel);
-            modelRequest.setWithBaseIndex(withBaseIndex);
+            modelRequest.setWithEmptySegment(request.isWithEmptySegment());
+            modelRequest.setWithModelOnline(request.isWithModelOnline());
+            modelRequest.setWithBaseIndex(request.isWithBaseIndex());
             return modelRequest;
         }).collect(Collectors.toList());
-        if (CollectionUtils.isNotEmpty(modelRequests)) {
-            batchCreateModel(project, modelRequests, Lists.newArrayList());
-        }
     }
 
     public NDataModel createModel(String project, ModelRequest modelRequest) {
-        aclEvaluate.checkProjectWritePermission(project);
-        validatePartitionDateColumn(modelRequest);
-        // for probing date-format is a time-costly action, it cannot be called in a transaction
-        doCheckBeforeModelSave(project, modelRequest);
-
+        checkNewModels(project, Lists.newArrayList(modelRequest));
         return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataModel model = saveModel(project, modelRequest);
             modelRequest.setUuid(model.getUuid());
@@ -1932,28 +1943,7 @@ public class ModelService extends BasicService {
         }, project);
     }
 
-    public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
-        Map<String, List<NDataModel>> result = Maps.newHashMap();
-        if (CollectionUtils.isEmpty(sqls)) {
-            return result;
-        }
-
-        for (String sql : sqls) {
-            if (result.containsKey(sql)) {
-                result.get(sql).addAll(couldAnsweredByExistedModels(project, Lists.newArrayList(sql)));
-            } else {
-                result.put(sql, couldAnsweredByExistedModels(project, Lists.newArrayList(sql)));
-            }
-        }
-
-        return result;
-    }
-
-    public List<NDataModel> couldAnsweredByExistedModels(String project, List<String> sqls) {
-        if (CollectionUtils.isEmpty(sqls)) {
-            return Lists.newArrayList();
-        }
-
+    public AbstractContext probeRecommendation(String project, List<String> sqls) {
         if (isProjectNotExist(project)) {
             throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
@@ -1963,8 +1953,7 @@ public class ModelService extends BasicService {
                 sqls.toArray(new String[0]));
         ProposerJob.propose(proposeContext,
                 (config, runnerType, projectName, resources) -> new InMemoryJobRunner(config, projectName, resources));
-        return proposeContext.getProposedModels().stream().filter(model -> !model.isStreaming())
-                .collect(Collectors.toList());
+        return proposeContext;
     }
 
     public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
@@ -1973,7 +1962,10 @@ public class ModelService extends BasicService {
             return true;
         }
 
-        return CollectionUtils.isNotEmpty(couldAnsweredByExistedModels(project, sqls));
+        AbstractContext proposeContext = probeRecommendation(project, sqls);
+        List<NDataModel> models = proposeContext.getProposedModels().stream().filter(model -> !model.isStreaming())
+                .collect(Collectors.toList());
+        return CollectionUtils.isNotEmpty(models);
     }
 
     private void checkBatchSqlSize(KylinConfig kylinConfig, List<String> sqls) {
@@ -3137,8 +3129,13 @@ public class ModelService extends BasicService {
     }
 
     void preProcessBeforeModelSave(NDataModel model, String project) {
-        model.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataflowManager(project).listUnderliningDataModels(), project, false, true);
+        if (!model.getComputedColumnDescs().isEmpty()) {
+            model.init(getConfig(), getTableManager(project).getAllTablesMap(),
+                    getDataflowManager(project).listUnderliningDataModels(), project, false, true);
+        } else {
+            model.init(getConfig(), getTableManager(project).getAllTablesMap(), Lists.newArrayList(), project, false,
+                    true);
+        }
 
         massageModelFilterCondition(model);
 

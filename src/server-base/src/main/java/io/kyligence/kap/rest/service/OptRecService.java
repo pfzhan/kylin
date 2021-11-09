@@ -626,8 +626,7 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
         String modelId = request.getModelId();
 
         if (!FusionIndexService.checkUpdateIndexEnabled(project, modelId)) {
-            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE,
-                    MsgPicker.getMsg().getSTREAMING_INDEXES_APPROVE());
+            throw new KylinException(STREAMING_INDEX_UPDATE_DISABLE, MsgPicker.getMsg().getSTREAMING_INDEXES_APPROVE());
         }
 
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(
@@ -1032,6 +1031,20 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             layoutRecResponseList.add(response);
         });
         return layoutRecResponseList;
+    }
+
+    public void updateRecommendationCount(String project, Set<String> modelList) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            modelList.forEach(modelId -> {
+                NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                int size = getOptRecLayoutsResponseInner(project, modelId, OptRecService.ALL).getSize();
+                NDataModel dataModel = mgr.getDataModelDesc(modelId);
+                if (dataModel != null && !dataModel.isBroken() && dataModel.getRecommendationsCount() != size) {
+                    mgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setRecommendationsCount(size));
+                }
+            });
+            return null;
+        }, project);
     }
 
     public void updateRecommendationCount(String project, String modelId) {

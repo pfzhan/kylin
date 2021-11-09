@@ -89,7 +89,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
             val modelWithNoCCId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
             NDataflow dataflowNoCC = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                     .getDataflow(modelWithNoCCId);
-            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC, dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
+            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC,
+                    dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
             Assert.assertNull(matchResult);
         }
         { // agg index matcher - null in agg col
@@ -106,7 +107,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
             val modelWithNoCCId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
             NDataflow dataflowNoCC = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                     .getDataflow(modelWithNoCCId);
-            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC, dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
+            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC,
+                    dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
             Assert.assertNull(matchResult);
         }
         { // table index matcher
@@ -123,7 +125,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
             val modelWithNoCCId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
             NDataflow dataflowNoCC = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                     .getDataflow(modelWithNoCCId);
-            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC, dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
+            val matchResult = NQueryLayoutChooser.selectLayoutCandidate(dataflowNoCC,
+                    dataflowNoCC.getQueryableSegments(), context.getSQLDigest());
             Assert.assertNull(matchResult);
         }
     }
@@ -150,8 +153,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
         NDataflow newDf = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NLayoutCandidate pair = NQueryLayoutChooser
-                .selectLayoutCandidate(newDf, newDf.getQueryableSegments(), context.getSQLDigest());
+        NLayoutCandidate pair = NQueryLayoutChooser.selectLayoutCandidate(newDf, newDf.getQueryableSegments(),
+                context.getSQLDigest());
         Assert.assertNotNull(pair);
         Assert.assertEquals(10001L, pair.getLayoutEntity().getId());
         Assert.assertFalse(pair.getLayoutEntity().getIndex().isTableIndex());
@@ -239,17 +242,18 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
 
         // prepare table desc snapshot path
-        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject()).getTableDesc("DEFAULT.TEST_ACCOUNT")
-                .setLastSnapshotPath("default/table_snapshot/DEFAULT.TEST_ACCOUNT/d6ba492b-13bf-444d-b6e3-71bfa903344d");
+        NTableMetadataManager.getInstance(dataflow.getConfig(), dataflow.getProject())
+                .getTableDesc("DEFAULT.TEST_ACCOUNT").setLastSnapshotPath(
+                        "default/table_snapshot/DEFAULT.TEST_ACCOUNT/d6ba492b-13bf-444d-b6e3-71bfa903344d");
 
         String sql = "select b.ACCOUNT_BUYER_LEVEL from \"DEFAULT\".\"TEST_KYLIN_FACT\" a\n"
-                + "left join \"DEFAULT\".\"TEST_ACCOUNT\" b\n"
-                + "on a.SELLER_ID = b.ACCOUNT_ID";
+                + "left join \"DEFAULT\".\"TEST_ACCOUNT\" b\n" + "on a.SELLER_ID = b.ACCOUNT_ID";
         OLAPContext context = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
         context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-        val layoutId = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
-                context.getSQLDigest()).getLayoutEntity().getId();
+        val layoutId = NQueryLayoutChooser
+                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest())
+                .getLayoutEntity().getId();
         Assert.assertEquals(20000000001L, layoutId);
     }
 
@@ -257,15 +261,14 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
     public void testCapabilityResult() {
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
-        String sql = "SELECT seller_ID FROM TEST_KYLIN_FACT "
-                + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID";
+        String sql = "SELECT seller_ID FROM TEST_KYLIN_FACT " + "LEFT JOIN TEST_ACCOUNT ON SELLER_ID = ACCOUNT_ID";
         OLAPContext context = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
         context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
         CapabilityResult result = NDataflowCapabilityChecker.check(dataflow, dataflow.getQueryableSegments(),
                 context.getSQLDigest());
         Assert.assertNotNull(result);
-        Assert.assertEquals((int)result.getSelectedCandidate().getCost(), result.cost);
+        Assert.assertEquals((int) result.getSelectedCandidate().getCost(), result.cost);
     }
 
     @Test
@@ -361,8 +364,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 .getDataflow("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
         context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-        NLayoutCandidate pair = NQueryLayoutChooser
-                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+        NLayoutCandidate pair = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context.getSQLDigest());
 
         Assert.assertNotNull(pair);
         List<NDataModel.Measure> allMeasures = dataflow.getModel().getAllMeasures();
@@ -381,40 +384,40 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         OLAPContext context1 = prepareOlapContext(sql1).get(0);
         Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
         context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
-        NLayoutCandidate pair1 = NQueryLayoutChooser
-                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context1.getSQLDigest());
+        NLayoutCandidate pair1 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context1.getSQLDigest());
         Assert.assertFalse(pair1.getLayoutEntity().getIndex().isTableIndex());
 
         String sql2 = "select max(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context2 = prepareOlapContext(sql2).get(0);
         Map<String, String> sqlAlias2ModelName2 = RealizationChooser.matchJoins(dataflow.getModel(), context2);
         context2.fixModel(dataflow.getModel(), sqlAlias2ModelName2);
-        NLayoutCandidate pair2 = NQueryLayoutChooser
-                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context2.getSQLDigest());
+        NLayoutCandidate pair2 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context2.getSQLDigest());
         Assert.assertFalse(pair2.getLayoutEntity().getIndex().isTableIndex());
 
         String sql3 = "select min(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context3 = prepareOlapContext(sql3).get(0);
         Map<String, String> sqlAlias2ModelName3 = RealizationChooser.matchJoins(dataflow.getModel(), context3);
         context3.fixModel(dataflow.getModel(), sqlAlias2ModelName3);
-        val pair3 = NQueryLayoutChooser
-                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context3.getSQLDigest());
+        val pair3 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context3.getSQLDigest());
         Assert.assertFalse(pair3.getLayoutEntity().getIndex().isTableIndex());
 
         String sql4 = "select count(ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context4 = prepareOlapContext(sql4).get(0);
         Map<String, String> sqlAlias2ModelName4 = RealizationChooser.matchJoins(dataflow.getModel(), context4);
         context4.fixModel(dataflow.getModel(), sqlAlias2ModelName4);
-        val pair4 = NQueryLayoutChooser
-                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context4.getSQLDigest());
+        val pair4 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context4.getSQLDigest());
         Assert.assertFalse(pair4.getLayoutEntity().getIndex().isTableIndex());
 
         String sql5 = "select count(distinct ORDER_ID) from TEST_KYLIN_FACT";
         OLAPContext context5 = prepareOlapContext(sql5).get(0);
         Map<String, String> sqlAlias2ModelName5 = RealizationChooser.matchJoins(dataflow.getModel(), context5);
         context5.fixModel(dataflow.getModel(), sqlAlias2ModelName5);
-        val pair5 = NQueryLayoutChooser
-                .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context5.getSQLDigest());
+        val pair5 = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                context5.getSQLDigest());
         Assert.assertFalse(pair5.getLayoutEntity().getIndex().isTableIndex());
     }
 
@@ -552,7 +555,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
     @Test
     public void testDimensionAsMeasure_CountDistinctComplexExpr() throws Exception {
-        val sql1 = new String[] { "select cal_dt, price, item_count from test_kylin_fact group by cal_dt, price, item_count" };
+        val sql1 = new String[] {
+                "select cal_dt, price, item_count from test_kylin_fact group by cal_dt, price, item_count" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
         val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(null);
@@ -620,8 +624,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                         .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
                 Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
                 context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-                val pair = NQueryLayoutChooser
-                        .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+                val pair = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                        context.getSQLDigest());
                 Assert.assertEquals(20000010001L, pair.getLayoutEntity().getId());
             }
         } finally {
@@ -683,8 +687,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                     .getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
             Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
             context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-            val pair = NQueryLayoutChooser
-                    .selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(), context.getSQLDigest());
+            val pair = NQueryLayoutChooser.selectLayoutCandidate(dataflow, dataflow.getQueryableSegments(),
+                    context.getSQLDigest());
             Assert.assertEquals(1L, pair.getLayoutEntity().getId());
         } finally {
             getTestConfig().setProperty("kylin.query.join-match-optimization-enabled", "false");
@@ -699,7 +703,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
                 // table index on test_acc
                 "select * from test_account",
                 // table index on test_kylin_fact
-                "select * from test_kylin_fact"};
+                "select * from test_kylin_fact" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
         val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(null);
@@ -707,10 +711,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         AccelerationContextUtil.onlineModel(context);
         buildAllCubes(getTestConfig(), "newten");
 
-        val sql2 = "select sum(price)\n"
-                + "from test_kylin_fact inner join test_account\n"
-                + "on seller_id = account_id\n"
-                + "where cal_dt <> date'2012-01-01'\n"
+        val sql2 = "select sum(price)\n" + "from test_kylin_fact inner join test_account\n"
+                + "on seller_id = account_id\n" + "where cal_dt <> date'2012-01-01'\n"
                 + "and account_id in (select max(account_id) - 1000 from test_account)";
 
         List<Pair<String, String>> query = new ArrayList<>();
@@ -721,10 +723,8 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
 
     @Test
     public void testAggpushdownWithMultipleAgg() throws Exception {
-        val sql1 = new String[] {
-                "select * from TEST_KYLIN_FACT",
-                "select * from TEST_ACCOUNT",
-                "select * from TEST_COUNTRY"};
+        val sql1 = new String[] { "select * from TEST_KYLIN_FACT", "select * from TEST_ACCOUNT",
+                "select * from TEST_COUNTRY" };
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), "newten", sql1);
         val smartMaster = new SmartMaster(context);
         smartMaster.runUtWithContext(null);
@@ -732,22 +732,16 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
         AccelerationContextUtil.onlineModel(context);
         buildAllCubes(getTestConfig(), "newten");
 
-        val sql2 = "select d.ACCOUNT_CONTACT from\n"
-                + "TEST_KYLIN_FACT c\n"
-                + "inner join (\n"
-                + "select a.ACCOUNT_ID, a.ACCOUNT_COUNTRY, e.COUNTRY, a.ACCOUNT_CONTACT\n"
-                + "from TEST_ACCOUNT a\n"
+        val sql2 = "select d.ACCOUNT_CONTACT from\n" + "TEST_KYLIN_FACT c\n" + "inner join (\n"
+                + "select a.ACCOUNT_ID, a.ACCOUNT_COUNTRY, e.COUNTRY, a.ACCOUNT_CONTACT\n" + "from TEST_ACCOUNT a\n"
 
-                + "inner join TEST_COUNTRY e\n"
-                + "on a.ACCOUNT_COUNTRY = e.COUNTRY\n"
+                + "inner join TEST_COUNTRY e\n" + "on a.ACCOUNT_COUNTRY = e.COUNTRY\n"
 
-                + "inner join TEST_KYLIN_FACT b\n"
-                + "on a.ACCOUNT_ID = b.SELLER_ID\n"
+                + "inner join TEST_KYLIN_FACT b\n" + "on a.ACCOUNT_ID = b.SELLER_ID\n"
                 + "and b.LSTG_FORMAT_NAME = e.NAME\n"
 
                 + "group by a.ACCOUNT_ID, a.ACCOUNT_COUNTRY, e.COUNTRY, a.ACCOUNT_CONTACT\n"
-                + ") d on c.SELLER_ID = d.ACCOUNT_ID\n"
-                + "group by d.ACCOUNT_CONTACT";
+                + ") d on c.SELLER_ID = d.ACCOUNT_ID\n" + "group by d.ACCOUNT_CONTACT";
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(new Pair<>("aggPushdownWithMultipleAgg", sql2));
@@ -791,7 +785,7 @@ public class NQueryLayoutChooserTest extends NAutoTestBase {
     private List<OLAPContext> prepareOlapContext(String sql) {
         val context = AccelerationContextUtil.newSmartContext(getTestConfig(), PROJECT, new String[] { sql });
         SmartMaster smartMaster = new SmartMaster(context);
-        smartMaster.analyzeSQLs();
+        smartMaster.getProposer("SQLAnalysisProposer").execute();
         List<OLAPContext> ctxs = Lists.newArrayList();
         smartMaster.getContext().getModelContexts()
                 .forEach(nModelContext -> ctxs.addAll(nModelContext.getModelTree().getOlapContexts()));

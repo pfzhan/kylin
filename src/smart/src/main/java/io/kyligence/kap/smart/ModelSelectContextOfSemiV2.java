@@ -24,17 +24,22 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.ImmutableList;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.AbstractJoinRule;
+import io.kyligence.kap.smart.model.ModelTree;
 
 public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
 
@@ -73,6 +78,33 @@ public class ModelSelectContextOfSemiV2 extends AbstractSemiContextV2 {
                 .filter(model -> getExtraMeta().getOnlineModelIds().contains(model.getUuid()))
                 .collect(Collectors.toList());
 
+    }
+
+    /**
+     * For ModelSelectContextOfSemiV2 this method was used for record the relation of sql and model.
+     */
+    @Override
+    public void handleExceptionAfterModelSelect() {
+        for (ModelContext modelContext : getModelContexts()) {
+            ModelTree modelTree = modelContext.getModelTree();
+            if (modelTree == null) {
+                continue;
+            }
+            NDataModel originModel = modelContext.getOriginModel();
+            Collection<OLAPContext> olapContexts = modelTree.getOlapContexts();
+            if (CollectionUtils.isEmpty(olapContexts)) {
+                continue;
+            }
+            olapContexts.forEach(ctx -> {
+                AccelerateInfo accelerateInfo = getAccelerateInfoMap().get(ctx.sql);
+                if (originModel != null) {
+                    AccelerateInfo.QueryLayoutRelation relation = new AccelerateInfo.QueryLayoutRelation(ctx.sql,
+                            originModel.getUuid(), -1, originModel.getSemanticVersion());
+                    relation.setModelId(originModel.getId());
+                    accelerateInfo.getRelatedLayouts().add(relation);
+                }
+            });
+        }
     }
 
     @Override
