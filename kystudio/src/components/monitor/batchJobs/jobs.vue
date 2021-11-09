@@ -898,9 +898,11 @@ export default class JobsList extends Vue {
   isShowJobBtn (e) {
     if (!e) return
     const sTop = e.target.scrollTop
+    const rightDetailH = document.getElementById('rightDetail') && document.getElementById('rightDetail').clientHeight
     let jobBtn = document.getElementById('jobDetailBtn')
     if (jobBtn) {
-      jobBtn.style.cssText = `top: ${sTop + 20}px;`
+      const top = sTop > (rightDetailH - 20) ? rightDetailH - 70 : sTop
+      jobBtn.style.cssText = `top: ${top + 20}px;`
     }
   }
   // setRightBarTop () {

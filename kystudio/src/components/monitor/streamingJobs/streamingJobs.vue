@@ -167,11 +167,14 @@
         <el-col :span="6" v-if="showStep" id="rightDetail" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}">
           <el-tabs v-model="jobDetailTab" @tab-click="handleChangeTab">
             <el-tab-pane :label="$t('dataStatistics')" name="statistics">
-              <el-radio-group v-model="time_filter" @change="getChartData">
-                <el-radio-button label="1">{{$t('1d')}}</el-radio-button>
-                <el-radio-button label="3">{{$t('3d')}}</el-radio-button>
-                <el-radio-button label="7">{{$t('7d')}}</el-radio-button>
-              </el-radio-group>
+              <el-select class="ksd-fright" size="small" v-model="time_filter">
+                <el-option
+                  v-for="item in filterOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+                </el-option>
+              </el-select>
               <div v-if="!isNoStatisticsData">
                 <div class="data-consumption-chart">
                   <div class="chart-title">{{$t('consumptionRate')}}</div>
@@ -197,7 +200,7 @@
               <kap-nodata v-else :content="$t('isNoRecords')"></kap-nodata>
             </el-tab-pane>
           </el-tabs>
-          <div class='job-btn' id="jobDetailBtn" v-show="isShowBtn" :class="{'is-filter-list': filterTags.length}" @click='showStep=false'><i class='el-icon-ksd-more_02' aria-hidden='true'></i></div>
+          <div class='job-btn' id="jobDetailBtn" v-show="isShowBtn" :class="{'is-filter-list': filterTags.length}" @click='showStep=false'><i class='el-ksd-icon-arrow_right_16' aria-hidden='true'></i></div>
         </el-col>
       </el-row>
     </div>
@@ -219,7 +222,7 @@
         <el-row :gutter="10" class="ksd-mt-10" v-for="(item, index) in paramsConfigs" :key="index">
           <el-col :span="14">
             <el-input v-model.trim="paramsConfigs[index][0]"
-              :disabled="paramsConfigs[index] && paramsConfigs[index][2].isDefault"
+              :disabled="paramsConfigs[index] && !!paramsConfigs[index][2].isDefault"
               :class="{'is-mul-key': paramsConfigs[index][2].isMulParamsKey, 'is-empty': paramsConfigs[index][2].isEmpty&&!paramsConfigs[index][0]}"
               @change="handleValidateParamsKey()"
               :placeholder="$t('pleaseInputKey')"></el-input>
@@ -347,6 +350,15 @@ export default class StreamingJobsList extends Vue {
   settingJob = null
   selectedJobRecords = []
   modelFilteArr = []
+  filterOptions = [
+    {value: '30', label: this.$t('30m')},
+    {value: '60', label: this.$t('1h')},
+    {value: '360', label: this.$t('6h')},
+    {value: '720', label: this.$t('12h')},
+    {value: '1440', label: this.$t('1d')},
+    {value: '4320', label: this.$t('3d')},
+    {value: '10080', label: this.$t('7d')}
+  ]
   jobTypeFilteArr = ['STREAMING_BUILD', 'STREAMING_MERGE']
   allStatus = ['STARTING', 'RUNNING', 'STOPPING', 'ERROR', 'STOPPED']
   buildDefaultParams = ['spark.master', 'spark.driver.memory', 'spark.executor.instances', 'spark.executor.cores', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'kylin.streaming.duration', 'kylin.streaming.job-retry-enabled', 'kylin.streaming.kafka-conf.maxOffsetsPerTrigger']
@@ -357,7 +369,7 @@ export default class StreamingJobsList extends Vue {
   consumpChart = null
   latencyChart = null
   processingChart = null
-  time_filter = 7
+  time_filter = '30'
   isShowBtn = true
   isMulParamsKey = false
   dialogVisible = false
@@ -374,7 +386,7 @@ export default class StreamingJobsList extends Vue {
 
   // 模型无索引时不让启动任务
   setJobSelectable (row) {
-    return row.model_indexes && row.model_indexes > 0 && !row.model_broken && row.partition_desc && row.partition_desc.partition_date_column
+    return row.model_indexes && row.model_indexes > 0 && !row.model_broken && !!row.partition_desc && !!row.partition_desc.partition_date_column
   }
 
   disableStartJobTips (row) {
@@ -942,8 +954,26 @@ export default class StreamingJobsList extends Vue {
       this.loadModelObjectList()
     }
   }
+  isShowJobBtn (e) {
+    if (!e) return
+    const sTop = e.target.scrollTop
+    const rightDetailH = document.getElementById('rightDetail') && document.getElementById('rightDetail').clientHeight
+    let jobBtn = document.getElementById('jobDetailBtn')
+    if (jobBtn) {
+      const top = sTop > (rightDetailH - 20) ? rightDetailH - 70 : sTop
+      jobBtn.style.cssText = `top: ${top + 20}px;`
+    }
+  }
+  mounted () {
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').addEventListener('scroll', this.isShowJobBtn, false)
+    }
+  }
   beforeDestroy () {
-    window.clearTimeout(this.stCycle)
+    clearTimeout(this.stCycle)
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').removeEventListener('scroll', this.isShowJobBtn, false)
+    }
   }
   showDiagnosisDetail (id) {
     this.diagnosticId = id
@@ -988,6 +1018,7 @@ export default class StreamingJobsList extends Vue {
       border: 0;
       padding: 16px 0 16px 16px !important;
       min-height: calc(~'100vh - 168px');
+      position: relative;
       &.is-admin-tips {
         min-height: calc(~'100vh - 205px');
       }
@@ -1000,24 +1031,24 @@ export default class StreamingJobsList extends Vue {
         }
       }
       .job-btn {
-        position: fixed;
-        right: 415px;
-        top: 230px;
+        position: absolute;
+        // right: 345px;
+        left: -9px;
+        top: 20px;
         height: 24px;
         width: 24px;
-        line-height: 24px;
-        padding-left: 0px;
-        font-size: 12px;
         border-radius: 100%;
         box-shadow: 0px 2px 8px rgba(50, 73, 107, 0.24);
         cursor: pointer;
         text-align: center;
         background-color: @fff;
+        z-index: 10;
         &.is-filter-list {
           top: 270px;
         }
         i {
-          transform: scale(0.8);
+          font-size: 16px;
+          margin-top: 2px;
         }
         &:hover {
           background-color: @ke-color-primary-hover;

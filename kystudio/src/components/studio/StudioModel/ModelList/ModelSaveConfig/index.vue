@@ -230,7 +230,7 @@
         <div class="ksd-title-label-mini ksd-mb-8">
           {{$t('dataFilterCond')}}
           <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
-            <i class="el-ksd-icon-more_info_16 ksd-fs-16"></i>
+            <i class="el-ksd-icon-more_info_16 ksd-fs-16 ksd-mb-2"></i>
           </el-tooltip>
         </div>
         <el-alert
