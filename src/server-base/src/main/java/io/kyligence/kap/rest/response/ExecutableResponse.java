@@ -30,6 +30,7 @@ import java.util.Optional;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.SecondStorageCleanJobUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -52,6 +53,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;
 
@@ -106,8 +108,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private Object tag;
     @JsonProperty("snapshot_data_range")
     private String snapshotDataRange;
-    private final static String SNAPSHOT_FULL_RANGE = "FULL";
-    private final static String SNAPSHOT_INC_RANGE = "INC";
+    private static final String SNAPSHOT_FULL_RANGE = "FULL";
+    private static final String SNAPSHOT_INC_RANGE = "INC";
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -202,8 +204,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
                 Map<String, List<StageBase>> stageMap = Optional.ofNullable(stageExecutable.getStagesMap())
                         .orElse(Maps.newHashMap());
-                var taskMapStageCount = Optional.of(stageMap.values()).orElse(Lists.newArrayList())
-                        .stream().findFirst().orElse(Lists.newArrayList()).size();
+                var taskMapStageCount = Optional.of(stageMap.values()).orElse(Lists.newArrayList()).stream().findFirst()
+                        .orElse(Lists.newArrayList()).size();
 
                 if (0 != taskMapStageCount) {
                     // calculate sum step count, second step and stage is duplicate
@@ -261,6 +263,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         return successStages;
     }
 
+    @SneakyThrows
     private static String getDataRangeBySnapshotJob(NSparkSnapshotJob snapshotJob) {
         boolean increment = false;
         if ("true".equals(snapshotJob.getParam(NBatchConstants.P_INCREMENTAL_BUILD))) {
@@ -272,9 +275,11 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
             return SNAPSHOT_FULL_RANGE;
         }
         if (partitionToBuild != null) {
-            return partitionToBuild;
+            List<String> partitions = JsonUtil.readValueAsList(partitionToBuild);
+            partitions.sort(String::compareTo);
+            return JsonUtil.writeValueAsString(partitions);
         }
-        if (partitionToBuild == null && increment) {
+        if (increment) {
             return SNAPSHOT_INC_RANGE;
         } else {
             return SNAPSHOT_FULL_RANGE;

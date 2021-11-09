@@ -407,17 +407,24 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         snapshotJob.setProject("default");
         Map params = new HashMap<String, String>();
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
-        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[1,2,3]");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         snapshotJob.setParams(params);
         ExecutableResponse response = ExecutableResponse.create(snapshotJob);
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
-        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[1,2,3]");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         snapshotJob.setParams(params);
         response = ExecutableResponse.create(snapshotJob);
-        assert response.getSnapshotDataRange().equals("[1,2,3]");
+        assert response.getSnapshotDataRange().equals("[\"1\",\"2\",\"3\"]");
+
+        params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"3\",\"2\",\"1\"]");
+        snapshotJob.setParams(params);
+        response = ExecutableResponse.create(snapshotJob);
+        assert response.getSnapshotDataRange().equals("[\"1\",\"2\",\"3\"]");
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
@@ -435,7 +442,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "true");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, null);
-        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[1,2,3]");
+        params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         snapshotJob.setParams(params);
         response = ExecutableResponse.create(snapshotJob);
         assert response.getSnapshotDataRange().equals("FULL");
