@@ -2832,6 +2832,11 @@ public class ModelService extends BasicService {
         request.setSimplifiedDimensions(modelDesc.getAllNamedColumns().stream()
                 .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList()));
         request.setComputedColumnDescs(modelDesc.getComputedColumnDescs());
+
+        if (SecondStorageUtil.isModelEnable(modelDesc.getProject(), modelDesc.getId())) {
+            request.setWithSecondStorage(true);
+        }
+
         return request;
     }
 

@@ -5463,6 +5463,35 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testConvertToRequestWithCH() throws IOException {
+        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val project = "default";
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, project);
+        SecondStorageUtil.initModelMetaData("default", model);
+        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
+        ModelRequest request = new ModelRequest();
+        request.setWithSecondStorage(true);
+        request.setUuid(model);
+        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
+                any(BuildBaseIndexResponse.class));
+
+        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+        modelService.changeSecondStorageIfNeeded(project, request, changedResponse);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+
+        val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
+        Assert.assertTrue(modelRequest.isWithSecondStorage());
+    }
+
+    @Test
     public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -6543,14 +6572,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
         SuggestionResponse response = modelService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
         Assert.assertTrue(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).isTableIndex());
-        Assert.assertTrue(IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
+        Assert.assertTrue(
+                IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
 
         // after agg push down, propose two agg index
         overwriteSystemProp("kylin.query.calcite.aggregate-pushdown-enabled", "TRUE");
         proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
         response = modelService.buildModelSuggestionResponse(proposeContext);
         Assert.assertEquals(2, response.getNewModels().get(0).getIndexPlan().getIndexes().size());
-        Assert.assertTrue(IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).getId()));
-        Assert.assertTrue(IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
+        Assert.assertTrue(
+                IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).getId()));
+        Assert.assertTrue(
+                IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
     }
 }
