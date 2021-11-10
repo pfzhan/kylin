@@ -118,8 +118,7 @@ public class JobKiller {
             val config = KylinConfig.getInstanceFromEnv();
             if (!StringUtils.isEmpty(jobMeta.getNodeInfo())) {
                 String host = jobMeta.getNodeInfo().split(":")[0];
-                if (!host.equals(AddressUtil.getLocalInstance().split(":")[0])
-                        && !host.equals(AddressUtil.getZkLocalInstance().split(":")[0])) {
+                if (!AddressUtil.isSameHost(host)) {
                     exec.setRunAtRemote(host, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
                             config.getRemoteSSHPassword());
                 } else {
@@ -135,12 +134,12 @@ public class JobKiller {
         String nodeInfo = jobMeta.getNodeInfo();
         int statusCode = -1;
 
-        try {
-            String jobId = StreamingUtils.getJobId(jobMeta.getModelId(), jobMeta.getJobType().name());
-            int retryCnt = 0;
+        String jobId = StreamingUtils.getJobId(jobMeta.getModelId(), jobMeta.getJobType().name());
+        int retryCnt = 0;
 
-            boolean forced = false;
-            while (retryCnt++ < 6) {
+        boolean forced = false;
+        while (retryCnt++ < 6) {
+            try {
                 int errCode = grepProcess(exec, strLogger, jobId);
                 if (errCode == 0) {
                     if (!strLogger.getContents().isEmpty()) {
@@ -154,10 +153,10 @@ public class JobKiller {
                     }
                 }
                 StreamingUtils.sleep(1000L * retryCnt);
-            }
 
-        } catch (ShellException e) {
-            logger.warn("failed to kill driver {} on {}", nodeInfo, jobMeta.getProcessId());
+            } catch (ShellException e) {
+                logger.warn("failed to kill driver {} on {}", nodeInfo, jobMeta.getProcessId());
+            }
         }
         return statusCode;
     }

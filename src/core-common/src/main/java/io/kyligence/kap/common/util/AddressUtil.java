@@ -90,8 +90,20 @@ public class AddressUtil implements IKeep {
         if (StringUtils.isNotBlank(localIpAddress)) {
             return localIpAddress;
         }
-        try(InetUtils inetUtils = new InetUtils(new InetUtilsProperties())) {
-           return inetUtils.findFirstNonLoopbackHostInfo().getIpAddress();
+        try (InetUtils inetUtils = new InetUtils(new InetUtilsProperties())) {
+            return inetUtils.findFirstNonLoopbackHostInfo().getIpAddress();
+        }
+    }
+
+    public static boolean isSameHost(String driverHost) {
+        try {
+            val serverIp = AddressUtil.getLocalInstance().split(":")[0];
+            val driverHostAddr = InetAddress.getByName(driverHost).getHostAddress();
+            val keHost = AddressUtil.getZkLocalInstance().split(":")[0];
+            return StringUtils.equals(driverHostAddr, serverIp) || driverHost.equals(keHost);
+        } catch (UnknownHostException e) {
+            log.warn("use the InetAddress get host name failed! ", e);
+            return false;
         }
     }
 }
