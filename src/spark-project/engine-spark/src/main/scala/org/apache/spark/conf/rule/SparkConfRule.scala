@@ -54,17 +54,31 @@ sealed trait SparkConfRule extends Logging {
 class ExecutorMemoryRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val userDefinedMemory = helper.getConf(SparkConfHelper.EXECUTOR_MEMORY)
+    val userDefinedOverHeaMemory = helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD)
     if (StringUtils.isNotBlank(userDefinedMemory)) {
       // executor memory can not exceed ApplicationMaster single container maximum memory
       val maxResourceMemory = helper.getClusterManager.fetchMaximumResourceAllocation.memory
       val mp = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
       val userDefinedMemoryMb = Utils.byteStringAsMb(userDefinedMemory)
       val maxMemoryMb = maxResourceMemory * mp
+      // maybe also include memoryOverhead
+      if (StringUtils.isNotBlank(userDefinedOverHeaMemory)) {
+        val userDefinedOverHeaMemoryMb = Utils.byteStringAsMb(userDefinedOverHeaMemory)
+        if (userDefinedMemoryMb > maxMemoryMb || (userDefinedMemoryMb + userDefinedOverHeaMemoryMb) > maxMemoryMb) {
+          val executorActualMemory = maxMemoryMb - userDefinedOverHeaMemoryMb - 1
+          helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, executorActualMemory.toInt + "MB")
+          log.warn(s"Our application has requested $userDefinedMemoryMb MB per executor more than the maximum allocation " +
+            s"memory capability of the cluster $maxMemoryMb MB per container. Set spark.executor.memory with " +
+            s"$executorActualMemory MB.")
+        }
+        return
+      }
       if (userDefinedMemoryMb > maxMemoryMb) {
-        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, maxMemoryMb.toInt + "MB")
+        val executorActualMemory = maxMemoryMb - 1
+        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, executorActualMemory.toInt + "MB")
         log.warn(s"Our application has requested $userDefinedMemoryMb MB per executor more than the maximum allocation " +
           s"memory capability of the cluster $maxMemoryMb MB per container. Set spark.executor.memory with " +
-          s"$maxMemoryMb MB.")
+          s"$executorActualMemory MB.")
       }
       return
     }
