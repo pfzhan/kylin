@@ -25,12 +25,16 @@ package io.kyligence.kap.rest.config.initialize;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
+import io.kyligence.kap.rest.service.SourceUsageService;
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -44,12 +48,18 @@ import lombok.val;
 
 public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
 
+    @InjectMocks
+    private SourceUsageUpdateListener updateListener = Mockito.spy(SourceUsageUpdateListener.class);
+
+    @Mock
+    private SourceUsageService sourceUsageService = Mockito.spy(SourceUsageService.class);
 
     @Before
     public void setUp() {
         this.createTestMetadata();
         getTestConfig().setMetadataUrl("test" + System.currentTimeMillis()
                 + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+        ReflectionTestUtils.setField(updateListener, "sourceUsageService", sourceUsageService);
     }
 
     @After
@@ -77,7 +87,6 @@ public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
         }
 
         ReflectionTestUtils.invokeMethod(epochManager, "insertOrUpdateEpoch", epoch);
-        SourceUsageUpdateListener updateListener = new SourceUsageUpdateListener();
 
         // _global epoch owner
         updateListener.onUpdate(new SourceUsageUpdateNotifier());
@@ -107,7 +116,6 @@ public class SourceUsageUpdateListenerTest extends LogOutputTestCase {
         }
 
         ReflectionTestUtils.invokeMethod(epochManager, "insertOrUpdateEpoch", epoch);
-        SourceUsageUpdateListener updateListener = new SourceUsageUpdateListener();
 
         // _global epoch owner
         updateListener.onVerify(new SourceUsageVerifyNotifier());

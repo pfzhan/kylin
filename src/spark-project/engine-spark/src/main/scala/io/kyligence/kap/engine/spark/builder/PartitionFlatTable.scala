@@ -22,7 +22,7 @@
 
 package io.kyligence.kap.engine.spark.builder
 
-import io.kyligence.kap.metadata.cube.model.PartitionFlatTableDesc
+import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 

@@ -32,6 +32,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.service.SourceUsageService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -42,6 +43,7 @@ import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
 import org.apache.spark.sql.catalyst.catalog.SessionCatalog;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Maps;
@@ -71,14 +73,16 @@ public class SourceUsageUpdateListener {
     private final ScheduledExecutorService scheduler = //
             ThreadUtils.newDaemonSingleThreadScheduledExecutor("sourceUsage");
 
+    @Autowired
+    SourceUsageService sourceUsageService;
+
     @Subscribe
     public void onUpdate(SourceUsageUpdateNotifier notifier) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         EpochManager epochManager = EpochManager.getInstance(kylinConfig);
         if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
             log.debug("Start to update source usage...");
-            SourceUsageManager sourceUsageManager = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv());
-            SourceUsageRecord sourceUsageRecord = sourceUsageManager.refreshLatestSourceUsageRecord();
+            SourceUsageRecord sourceUsageRecord = sourceUsageService.refreshLatestSourceUsageRecord();
 
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv()).updateSourceUsage(sourceUsageRecord);

@@ -26,10 +26,11 @@ package io.kyligence.kap.engine.spark.job.stage.build.partition
 
 import io.kyligence.kap.engine.spark.job.SegmentJob
 import io.kyligence.kap.engine.spark.job.stage.BuildParam
+import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.PartitionTreeBuilder
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, PartitionFlatTableDesc}
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.spark.sql.{Dataset, Row}
 
 class PartitionMaterializedFactTableView(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)

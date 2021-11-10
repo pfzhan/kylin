@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.model;
+package io.kyligence.kap.engine.spark.model;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +31,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -47,8 +51,10 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree;
 import io.kyligence.kap.metadata.model.NDataModel;
 
+@Slf4j
 public class SegmentFlatTableDesc {
     protected final KylinConfig config;
+    protected final KapConfig kapConfig;
     protected final NDataSegment dataSegment;
     protected final AdaptiveSpanningTree spanningTree;
 
@@ -58,12 +64,15 @@ public class SegmentFlatTableDesc {
     protected final NDataModel dataModel;
     protected final IndexPlan indexPlan;
 
+    private final IndexDependencyParser parser;
+
     // By design. Historical debt, wait for reconstruction.
     private final Map<String, Integer> columnIdMap = Maps.newHashMap();
 
     private final List<TblColRef> columns = Lists.newLinkedList();
     private final List<Integer> columnIds = Lists.newArrayList();
     private final Map<Integer, String> columnId2Canonical = Maps.newHashMap();
+    private final Map<String, String> canonical2Table = Maps.newHashMap();
 
     private final List<String> relatedTables = Lists.newArrayList();
 
@@ -82,6 +91,7 @@ public class SegmentFlatTableDesc {
     public SegmentFlatTableDesc(KylinConfig config, NDataSegment dataSegment, AdaptiveSpanningTree spanningTree,
             List<String> relatedTables) {
         this.config = config;
+        this.kapConfig = KapConfig.getInstanceFromEnv();
         this.dataSegment = dataSegment;
         this.spanningTree = spanningTree;
 
@@ -91,6 +101,7 @@ public class SegmentFlatTableDesc {
         this.dataModel = dataSegment.getModel();
         this.indexPlan = dataSegment.getIndexPlan();
         this.relatedTables.addAll(relatedTables);
+        this.parser = new IndexDependencyParser(dataModel);
 
         // Initialize flat table columns.
         initColumns();
@@ -169,6 +180,9 @@ public class SegmentFlatTableDesc {
         return columnId2Canonical.get(columnId);
     }
 
+    public String getTableName(String canonicalName) {
+        return canonical2Table.get(canonicalName);
+    }
     // Join lookup tables
     public boolean shouldJoinLookupTables() {
 
@@ -278,5 +292,16 @@ public class SegmentFlatTableDesc {
         columnIdMap.put(colRef.getIdentity(), id);
         columnIds.add(id);
         columnId2Canonical.put(id, colRef.getCanonicalName());
+        canonical2Table.put(colRef.getCanonicalName(), colRef.getTable());
+
+
+        if (kapConfig.isSourceUsageUnwrapComputedColumn() && colRef.getColumnDesc().isComputedColumn()) {
+            try {
+                parser.unwrapComputeColumn(colRef.getExpressionInSourceDB()).forEach(this::addColumn);
+            } catch (Exception e) {
+                log.warn("UnWrap computed column {} in project {} model {} exception", colRef.getExpressionInSourceDB(),
+                        dataModel.getProject(), dataModel.getAlias(), e);
+            }
+        }
     }
 }

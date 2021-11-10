@@ -156,6 +156,26 @@ class IndexDependencyParser(val model: NDataModel) {
     allTablesAlias.add(model.getRootFactTable.getAlias)
   }
 
+
+  def unwrapComputeColumn(ccInnerExpression: String): java.util.Set[TblColRef] = {
+    val result: util.Set[TblColRef] = Sets.newHashSet()
+    val originDf = generateFullFlatTableDF(SparderEnv.getSparkSession, model)
+    val colFields = originDf.schema.fields
+    val ccDs = originDf.selectExpr(NSparkCubingUtil.convertFromDot(ccInnerExpression))
+    ccDs.schema.fields.foreach(fieldName => {
+      colFields.foreach(col => {
+        if (StringUtils.containsIgnoreCase(fieldName.name, col.name)) {
+          val tableAndCol = col.name.split(NSparkCubingUtil.SEPARATOR)
+          val ref = model.findColumn(tableAndCol(0), tableAndCol(1))
+          if (ref != null) {
+            result.add(ref)
+          }
+        }
+      })
+    })
+    result
+  }
+
   private def initFilterConditionTableNames(originDf: Dataset[Row], colFields: Array[StructField]): Unit =
     if (StringUtils.isNotEmpty(model.getFilterCondition)) {
       val whereDs = originDf.selectExpr(NSparkCubingUtil.convertFromDot(model.getFilterCondition))

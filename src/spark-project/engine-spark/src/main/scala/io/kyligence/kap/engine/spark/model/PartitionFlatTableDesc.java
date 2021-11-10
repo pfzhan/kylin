@@ -22,12 +22,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.model;
+package io.kyligence.kap.engine.spark.model;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 
@@ -41,7 +42,7 @@ public class PartitionFlatTableDesc extends SegmentFlatTableDesc {
     private final List<Long> partitions;
 
     public PartitionFlatTableDesc(KylinConfig config, NDataSegment dataSegment, AdaptiveSpanningTree spanningTree, //
-            String jobId, List<Long> partitions) {
+                                  String jobId, List<Long> partitions) {
         super(config, dataSegment, spanningTree);
         Preconditions.checkNotNull(jobId);
         Preconditions.checkNotNull(partitions);

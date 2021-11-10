@@ -31,12 +31,14 @@ import io.kyligence.kap.engine.spark.builder._
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil.convertFromDot
 import io.kyligence.kap.engine.spark.job.stage.{BuildParam, StageExec}
 import io.kyligence.kap.engine.spark.job.{FiltersUtil, SegmentJob, TableMetaManager}
+import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, SegmentFlatTableDesc}
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import io.kyligence.kap.metadata.model.{NDataModel, NTableMetadataManager}
 import io.kyligence.kap.query.util.KapQueryUtil
 import org.apache.commons.lang3.StringUtils
+import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model._
@@ -55,8 +57,8 @@ import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.{Failure, Success, Try}
 
 abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
-                              private val dataSegment: NDataSegment,
-                              private val buildParam: BuildParam)
+                                    private val dataSegment: NDataSegment,
+                                    private val buildParam: BuildParam)
   extends BuildStage(jobContext, dataSegment, buildParam) with StageExec {
   override def getJobContext(): SparkApplication = jobContext
 
@@ -415,8 +417,55 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
 
   private def evaluateColumnBytes(totalCount: Long, //
                                   sampled: Map[String, Long]): Map[String, Long] = {
-    val multiple = if (totalCount < sampleRowCount) 1f else totalCount.toFloat / sampleRowCount
-    sampled.mapValues(bytes => (bytes * multiple).toLong)
+    val tableMetadataManager = NTableMetadataManager.getInstance(config, project)
+    val tableSizeMap: mutable.Map[String, Long] = mutable.Map()
+
+    sampled.map {
+      case (column, bytes) =>
+        var total: Long = totalCount
+        val tableName = tableDesc.getTableName(column)
+        try {
+          if (!dataModel.isFactTable(tableName)) {
+            if (tableSizeMap.contains(tableName)) {
+              // get from map cache , in case of calculating same table several times
+              total = tableSizeMap(tableName).longValue()
+              logInfo(s"Find $column's table $tableName count $total from cache")
+            } else {
+              val catalogStatistics = TableMetaManager.getTableMeta(tableDesc.getTableName(column))
+              if (catalogStatistics.isDefined) {
+                total = catalogStatistics.get.rowCount.get.longValue()
+                logInfo(s"Find $column's table $tableName count $total from catalog")
+              } else {
+                val tableMetadataDesc = tableMetadataManager.getTableDesc(tableDesc.getTableName(column))
+                if (tableMetadataDesc != null) {
+                  val tableExtDesc = tableMetadataManager.getTableExtIfExists(tableMetadataDesc)
+                  if (tableExtDesc.getTotalRows > 0) {
+                    total = tableExtDesc.getTotalRows
+                    logInfo(s"Find $column's table $tableName count $total from table ext")
+                  } else if (tableMetadataDesc.getLastSnapshotPath != null) {
+                    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
+                    val fs = HadoopUtil.getWorkingFileSystem
+                    val path = new Path(baseDir, tableMetadataDesc.getLastSnapshotPath)
+                    if (fs.exists(path)) {
+                      total = sparkSession.read.parquet(path.toString).count()
+                      logInfo(s"Calculate $column's table $tableName count $total " +
+                        s"from parquet ${tableMetadataDesc.getLastSnapshotPath}")
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          case throwable: Throwable =>
+            logWarning(s"Calculate $column's table $tableName count exception", throwable)
+        } finally {
+          tableSizeMap(tableName) = total
+        }
+
+        val multiple = 1.0 * total / sampleRowCount
+        column -> (bytes * multiple).toLong
+    }
   }
 
   // Copied from DFChooser.

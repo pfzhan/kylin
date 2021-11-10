@@ -28,7 +28,8 @@ import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
 import io.kyligence.kap.engine.spark.job.{PartitionExec, SegmentJob}
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, PartitionFlatTableDesc}
+import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Dataset, Row}
 

@@ -23,6 +23,7 @@
 package io.kyligence.kap.engine.spark.builder
 
 import io.kyligence.kap.engine.spark.job.FiltersUtil
+import io.kyligence.kap.engine.spark.model.SegmentFlatTableDesc
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.AdaptiveSpanningTree.AdaptiveTreeBuilder
 import io.kyligence.kap.metadata.cube.model._

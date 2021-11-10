@@ -26,9 +26,10 @@ package io.kyligence.kap.engine.spark.job
 
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.builder.PartitionFlatTable
+import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.{PartitionTreeBuilder, PartitionTreeNode}
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, PartitionFlatTableDesc}
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils

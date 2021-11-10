@@ -31,9 +31,10 @@ import io.kyligence.kap.engine.spark.job.stage.BuildParam
 import io.kyligence.kap.engine.spark.job.stage.build.BuildStage
 import io.kyligence.kap.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
 import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, PartitionExec, SanityChecker, SegmentJob}
+import io.kyligence.kap.engine.spark.model.PartitionFlatTableDesc
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree
 import io.kyligence.kap.metadata.cube.cuboid.PartitionSpanningTree.PartitionTreeNode
-import io.kyligence.kap.metadata.cube.model.{PartitionFlatTableDesc, _}
+import io.kyligence.kap.metadata.cube.model._
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils

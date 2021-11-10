@@ -303,6 +303,8 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.query.spark-job-trace-cache-max", "1000", 1000));
         map.put("getSparkJobTraceParallelMax",
                 new PropertiesEntity("kylin.query.spark-job-trace-parallel-max", "50", 50));
+        map.put("isSourceUsageUnwrapComputedColumn",
+                new PropertiesEntity("kylin.metadata.history-source-usage-unwrap-computed-column", "true", true));
     }
 
     @Before
@@ -321,7 +323,7 @@ public class KapConfigTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(129, methodsCount);
+        Assert.assertEquals(130, methodsCount);
     }
 
     @Test
