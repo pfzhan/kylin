@@ -1793,29 +1793,18 @@ public class ModelService extends BasicService {
                 copyForWrite.keepColumnOrder();
                 copyForWrite.keepMeasureOrder();
             });
-
             // update IndexPlan
             IndexPlan indexPlan = modelRequest.getIndexPlan();
             Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
             indexPlan.getAllLayouts().forEach(layout -> layoutMap.putIfAbsent(layout.getId(), layout));
             indexPlanManager.updateIndexPlan(modelRequest.getId(), copyForWrite -> {
-                Map<IndexEntity.IndexIdentifier, IndexEntity> existingIndexMap = copyForWrite.getAllIndexesMap();
+                IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
                 for (LayoutRecDetailResponse recItem : recItems) {
                     long layoutId = recItem.getIndexId();
                     LayoutEntity layout = layoutMap.get(layoutId);
-                    IndexEntity.IndexIdentifier indexIdentifier = layout.getIndex().createIndexIdentifier();
-                    if (existingIndexMap.containsKey(indexIdentifier)) {
-                        IndexEntity index = existingIndexMap.get(indexIdentifier);
-                        if (index.getLayout(layoutId) == null) {
-                            index.getLayouts().add(layout);
-                        }
-                    } else {
-                        IndexEntity index = layout.getIndex();
-                        existingIndexMap.putIfAbsent(indexIdentifier, index);
-                        copyForWrite.getIndexes().add(index);
-                    }
-                    copyForWrite.setApprovedAdditionalRecs(copyForWrite.getApprovedAdditionalRecs() + 1);
+                    updateHandler.add(layout, IndexEntity.isAggIndex(recItem.getIndexId()));
                 }
+                updateHandler.complete();
             });
             optRecService.updateRecommendationCount(project, modelRequest.getUuid());
             baseIndexUpdater.update(indexPlanService);

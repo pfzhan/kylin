@@ -783,6 +783,44 @@ public class SemiV2CITest extends SemiAutoTestBase {
         Assert.assertEquals(1, newIndexPlan.getAllLayouts().size());
     }
 
+    @Test
+    public void testSuggestModelAddSameIndexDiffLayout() {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        // prepare an origin model
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, getProject(),
+                new String[] { "select count(*) from test_kylin_fact where price = 1 group by lstg_format_name" });
+        SmartMaster smartMaster = new SmartMaster(smartContext);
+        smartMaster.runUtWithContext(null);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        String modelID = modelContexts.get(0).getTargetModel().getUuid();
+
+        // change to semi-auto
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), getProject());
+
+        // suggest model, add same index but not same layout
+        List<String> sqlList = ImmutableList
+                .of("select count(*) from test_kylin_fact where lstg_format_name = '1' group by price");
+        AbstractContext proposeContext = modelService.suggestModel(getProject(), sqlList, true, true);
+        SuggestionResponse suggestionResp = modelService.buildModelSuggestionResponse(proposeContext);
+
+        List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResp.getReusedModels();
+        Assert.assertEquals(1, reusedModels.size());
+        List<SuggestionResponse.ModelRecResponse> newModels = suggestionResp.getNewModels();
+        Assert.assertEquals(0, newModels.size());
+        // Mock modelRequest and save
+        List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
+        List<ModelRequest> newModelRequests = mockModelRequest(newModels);
+        modelService.batchCreateModel(getProject(), newModelRequests, reusedModelRequests);
+
+        IndexPlan newIndexPlan = indexPlanManager.getIndexPlan(modelID);
+        Assert.assertEquals(2, newIndexPlan.getAllLayouts().size());
+    }
+
     private List<ModelRequest> mockModelRequest(List<SuggestionResponse.ModelRecResponse> modelResponses) {
         List<ModelRequest> modelRequestList = Lists.newArrayList();
         modelResponses.forEach(model -> {
