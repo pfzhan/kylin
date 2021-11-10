@@ -63,6 +63,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
@@ -170,6 +171,10 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         result.setFirst(rangeToSplit);
         result.setSecond(volatileRanges);
         return result;
+    }
+
+    public static Segments<NDataSegment> empty() {
+        return new Segments<>();
     }
 
     public T getFirstSegment() {

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.kylin.common.exception.JobErrorCode.JOB_CONFIGURATION_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.COMPUTED_COLUMN_CASCADE_ERROR;
@@ -277,6 +276,7 @@ import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
+import io.kyligence.kap.secondstorage.util.SecondStorageJobUtil;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.AbstractContext.ModelContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
@@ -1052,6 +1052,9 @@ public class ModelService extends BasicService {
     public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(modelId);
+        if (df == null) {
+            return Segments.empty();
+        }
         SegmentRange filterRange = getSegmentRangeByModel(project, modelId, start, end);
         return df.getSegmentsByRange(filterRange);
     }

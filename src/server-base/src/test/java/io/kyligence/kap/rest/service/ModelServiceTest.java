@@ -599,6 +599,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetSegmentsWhenModelDelete() {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        modelService.dropModel(modelId, getProject());
+        Segments<NDataSegment> segments = modelService.getSegmentsByRange(modelId, "default", "0", "" + Long.MAX_VALUE);
+        Assert.assertEquals(0, segments.size());
+    }
+
+    @Test
     public void testGetSegmentNotFullIndex() {
         String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
