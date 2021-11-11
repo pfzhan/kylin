@@ -78,7 +78,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ImportModelContext implements IKeep {
+public class ImportModelContext implements AutoCloseable, IKeep {
 
     public static final String MODEL_REC_PATH = "/%s/rec/%s.json";
 
@@ -502,5 +502,15 @@ public class ImportModelContext implements IKeep {
         rawRecItem.setRecEntity(
                 RawRecItem.toRecItem(recItemNode.get("recEntity").toString(), (byte) rawRecItem.getType().id()));
         return rawRecItem;
+    }
+
+    @Override
+    public void close() {
+        if (targetResourceStore != null) {
+            targetResourceStore.close();
+        }
+        if(importResourceStore != null) {
+            importResourceStore.close();
+        }
     }
 }

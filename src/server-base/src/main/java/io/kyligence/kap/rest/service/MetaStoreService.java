@@ -382,9 +382,9 @@ public class MetaStoreService extends BasicService {
 
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
 
-        ImportModelContext context = getImportModelContext(targetProject, rawResourceMap, request);
-
-        return checkModelMetadata(targetProject, context, uploadFile);
+        try (ImportModelContext context = getImportModelContext(targetProject, rawResourceMap, request)) {
+            return checkModelMetadata(targetProject, context, uploadFile);
+        }
     }
 
     public SchemaChangeCheckResult checkModelMetadata(String targetProject, ImportModelContext context,
@@ -575,11 +575,21 @@ public class MetaStoreService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
 
         List<Exception> exceptions = new ArrayList<>();
-
         val rawResourceMap = getRawResourceFromUploadFile(metadataFile);
+        try (val importModelContext = getImportModelContext(project, rawResourceMap, request)) {
+            innerImportModelMetadata(project, metadataFile, request, importModelContext, exceptions);
+        }
+        if (!exceptions.isEmpty()) {
+            String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
 
-        val importModelContext = getImportModelContext(project, rawResourceMap, request);
+            throw new KylinException(MODEL_IMPORT_ERROR,
+                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
+                    exceptions);
+        }
+    }
 
+    private void innerImportModelMetadata(String project, MultipartFile metadataFile, ModelImportRequest request,
+            ImportModelContext importModelContext, List<Exception> exceptions) throws IOException {
         val schemaChangeCheckResult = checkModelMetadata(project, importModelContext, metadataFile);
 
         val importDataModelManager = NDataModelManager.getInstance(importModelContext.getTargetKylinConfig(), project);
@@ -599,38 +609,30 @@ public class MetaStoreService extends BasicService {
                     val importDataModel = importDataModelManager.getDataModelDescByAlias(modelImport.getOriginalName());
                     val nDataModel = importDataModelManager.copyForWrite(importDataModel);
 
-                    // delete index, then remove dimension or measure
-                    val targetIndexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getOriginalName())
-                            .copy();
+                        // delete index, then remove dimension or measure
+                        val targetIndexPlan = importIndexPlanManager
+                                .getIndexPlanByModelAlias(modelImport.getOriginalName()).copy();
 
-                    boolean hasModelOverrideProps = (nDataModel.getSegmentConfig() != null
-                            && nDataModel.getSegmentConfig().getAutoMergeEnabled() != null
-                            && nDataModel.getSegmentConfig().getAutoMergeEnabled())
-                            || (!targetIndexPlan.getOverrideProps().isEmpty());
+                        boolean hasModelOverrideProps = (nDataModel.getSegmentConfig() != null
+                                && nDataModel.getSegmentConfig().getAutoMergeEnabled() != null
+                                && nDataModel.getSegmentConfig().getAutoMergeEnabled())
+                                || (!targetIndexPlan.getOverrideProps().isEmpty());
 
-                    val modelSchemaChange = schemaChangeCheckResult.getModels().get(modelImport.getTargetName());
+                        val modelSchemaChange = schemaChangeCheckResult.getModels().get(modelImport.getTargetName());
 
-                    removeIndexes(project, modelSchemaChange, targetIndexPlan);
-                    updateModel(project, nDataModel, modelImport, hasModelOverrideProps);
-                    updateIndexPlan(project, nDataModel, targetIndexPlan, hasModelOverrideProps);
-                    addWhiteListIndex(project, modelSchemaChange, targetIndexPlan);
+                        removeIndexes(project, modelSchemaChange, targetIndexPlan);
+                        updateModel(project, nDataModel, modelImport, hasModelOverrideProps);
+                        updateIndexPlan(project, nDataModel, targetIndexPlan, hasModelOverrideProps);
+                        addWhiteListIndex(project, modelSchemaChange, targetIndexPlan);
 
-                    importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
-                            importModelContext.getTargetKylinConfig());
+                        importRecommendations(project, nDataModel.getUuid(), importDataModel.getUuid(),
+                                importModelContext.getTargetKylinConfig());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Import model {} exception", modelImport.getOriginalName(), e);
+                    exceptions.add(e);
                 }
-            } catch (Exception e) {
-                logger.warn("Import model {} exception", modelImport.getOriginalName(), e);
-                exceptions.add(e);
             }
-        }
-
-        if (!exceptions.isEmpty()) {
-            String details = exceptions.stream().map(Exception::getMessage).collect(Collectors.joining("\n"));
-
-            throw new KylinException(MODEL_IMPORT_ERROR,
-                    String.format(Locale.ROOT, "%s%n%s", MsgPicker.getMsg().getIMPORT_MODEL_EXCEPTION(), details),
-                    exceptions);
-        }
     }
 
     private void validateModelImport(String project, ModelImportRequest.ModelImport modelImport,
