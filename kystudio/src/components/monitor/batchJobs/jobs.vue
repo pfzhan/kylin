@@ -137,10 +137,10 @@
           <el-table-column
             width="140"
             sortable="custom"
-            prop="total_duration"
+            prop="duration"
             :label="$t('totalDuration')">
             <template slot-scope="scope">
-              {{scope.row.total_duration/60/1000 | number(2) }}  mins
+              {{scope.row.duration/60/1000 | number(2) }}  mins
             </template>
           </el-table-column>
           <el-table-column
@@ -212,7 +212,7 @@
                     <el-tag
                       size="small"
                       :type="getJobStatusTag">
-                      {{selectedJob.job_status}}
+                      {{selectedJob.job_status === 'STOPPED' ? 'PAUSED' : selectedJob.job_status}}
                     </el-tag>
                   </span>
                 </p>
@@ -305,7 +305,7 @@
                   </span> -->
                   <el-alert class="ksd-mb-8" type="error" show-icon v-if="step.step_status === 'ERROR'" :closable="false">
                     <p slot="title">
-                      {{step.failed_step_name ? $t('errorStepTips', {name: getSubTasksName(step.failed_step_name) || getStepLineName(step.name)}) : $t('errorStepTips', {name: getStepLineName(step.name)})}}
+                      <p class="err-msg">{{getErrorReson(step)}}</p>
                       <el-button nobg-text size="small" v-if="step.failed_stack" @click="viewErrorDetails(step)">{{$t('viewDetails')}}</el-button>
                     </p>
                   </el-alert>
@@ -559,6 +559,10 @@ export default class JobsList extends Vue {
 
   get isShowAdminTips () {
     return this.$store.state.user.isShowAdminTips && this.isAdminRole && this.$store.state.config.platform !== 'iframe' && !this.$store.state.system.isShowGlobalAlter
+  }
+
+  getErrorReson (step) {
+    return `${step.failed_code ?? ''}${step.failed_reason ?? (step.failed_step_name ? this.$t('errorStepTips', {name: this.getSubTasksName(step.failed_step_name) || this.getStepLineName(step.name)}) : this.$t('errorStepTips', {name: this.getStepLineName(step.name)}))}`
   }
 
   @Watch('$store.state.project.isAllProject')
@@ -1763,6 +1767,15 @@ export default class JobsList extends Vue {
                   margin-right: 3px;
                   color: #A5B2C5;
                 }
+              }
+              .err-msg {
+                display: -webkit-box;
+                /*! autoprefixer: off */
+                -webkit-box-orient: vertical;
+                /* autoprefixer: on */
+                -webkit-line-clamp: 3;
+                overflow: hidden;
+                position: relative;
               }
               .duration-details {
                 color: @ke-color-primary;

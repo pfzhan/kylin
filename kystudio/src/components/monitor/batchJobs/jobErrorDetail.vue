@@ -7,8 +7,8 @@
     :close-on-click-modal="false">
     <span slot="title">{{$t('errorDetail')}}</span>
     <div class="error-contain">
-      <p class="error-title">{{$t('errorStepTips', {name: currentErrorJob.failed_step_name ? (getSubTasksName(currentErrorJob.failed_step_name) || getStepLineName(currentErrorJob.name)) : getStepLineName(currentErrorJob.name)})}}</p>
-      <!-- <el-button class="error-solution-btn ksd-mt-8" v-show="currentErrorJob.failed_resolve" @click="jumpToManual" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button> -->
+      <p class="error-title">{{getErrorReason}}</p>
+      <el-button class="error-solution-btn ksd-mt-8" v-show="currentErrorJob.failed_resolve" @click="jumpToManual" nobg-text iconr="el-ksd-icon-spark_link_16">{{$t('resolveErrorBtn')}}</el-button>
       <div class="error-trace-msg ksd-mt-8">{{getErrorTrace}}</div>
       <el-button class="view-details-btn ksd-mt-8" v-if="showViewMore" @click="showMore = !showMore" nobg-text :iconr="showMore ? 'el-ksd-icon-arrow_up_16' : 'el-ksd-icon-arrow_down_16'">{{$t('viewMore')}}</el-button>
       <build-segment-detail v-if="showMore" :segmentTesks="currentErrorJob.segment_sub_stages" :jobStatus="currentErrorJob.step_status"/>
@@ -53,13 +53,16 @@ export default class jobErrorDetail extends Vue {
     return this.currentErrorJob.segment_sub_stages && Object.keys(this.currentErrorJob.segment_sub_stages).length > 1
   }
 
+  get getErrorReason () {
+    return `${this.currentErrorJob.failed_code ?? ''}${this.currentErrorJob.failed_reason ?? (this.$t('errorStepTips', {name: this.currentErrorJob.failed_step_name ? (this.getSubTasksName(this.currentErrorJob.failed_step_name) || this.getStepLineName(this.currentErrorJob.name)) : this.getStepLineName(this.currentErrorJob.name)}))}`
+  }
+
   // 跳转至手册
   jumpToManual () {
     const manualAddrs = this.currentErrorJob.failed_resolve
     if (manualAddrs) {
-      const {en, 'zh-cn': zhAddr} = JSON.parse(manualAddrs)
       const tag = document.createElement('a')
-      tag.href = this.$lang === 'en' ? `https://docs.kyligence.io/books/v4.5/en${en}` : `https://docs.kyligence.io/books/v4.5/zh-cn${zhAddr}`
+      tag.href = `https://docs.kyligence.io/books/v4.5${manualAddrs}`
       tag.target = '_blank'
       tag.click()
     }
@@ -90,7 +93,7 @@ export default class jobErrorDetail extends Vue {
       overflow: auto;
       padding: 8px;
       box-sizing: border-box;
-      word-break: break-word;
+      white-space: pre-wrap;
     }
   }
 </style>
