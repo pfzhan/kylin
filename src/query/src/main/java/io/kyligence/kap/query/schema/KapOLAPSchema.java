@@ -51,6 +51,10 @@ public class KapOLAPSchema extends OLAPSchema {
         return createTableMap();
     }
 
+    public boolean hasTables() {
+        return tables != null && !tables.isEmpty();
+    }
+
     private Map<String, Table> createTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 

@@ -277,8 +277,16 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             int start = startEndPos.getFirst();
             int end = startEndPos.getSecond();
             ComputedColumnDesc cc = toBeReplaced.getFirst();
-            String alias = queryAliasMatchInfo.getAliasMapping().inverse().get(cc.getTableAlias());
 
+            String alias = null;
+            if (queryAliasMatchInfo.isModelView()) {
+                // get alias with model alias
+                // as table of cc in model view is model view table itself
+                alias = queryAliasMatchInfo.getAliasMapping().inverse()
+                        .get(queryAliasMatchInfo.getModel().getAlias());
+            } else {
+                alias = queryAliasMatchInfo.getAliasMapping().inverse().get(cc.getTableAlias());
+            }
             if (alias == null) {
                 throw new IllegalStateException(cc.getExpression() + " expression of cc " + cc.getFullName()
                         + " is found in query but its table ref " + cc.getTableAlias() + " is missing in query");
@@ -382,14 +390,22 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
         // find whether user input sql's tree node equals computed columns's define expression
         for (SqlNode inputNode : inputNodes) {
-            if (ExpressionComparator.isNodeEqual(inputNode, ccExpressionNode, matchInfo,
-                    new AliasDeduceImpl(matchInfo))) {
+            if (isNodesEqual(matchInfo, ccExpressionNode, inputNode)) {
                 matchedNodes.add(inputNode);
             }
-
         }
 
         return matchedNodes;
+    }
+
+    private boolean isNodesEqual(QueryAliasMatchInfo matchInfo, SqlNode ccExpressionNode, SqlNode inputNode) {
+        if (matchInfo.isModelView()) {
+            return ExpressionComparator.isNodeEqual(inputNode, ccExpressionNode,
+                    new ModelViewSqlNodeComparator(matchInfo.getModel()));
+        } else {
+            return ExpressionComparator.isNodeEqual(inputNode, ccExpressionNode, matchInfo,
+                    new AliasDeduceImpl(matchInfo));
+        }
     }
 
     private static List<SqlNode> collectInputNodes(SqlSelect select) {
@@ -654,6 +670,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
             //give each data model a chance to rewrite, choose the model that generates most changes
             for (NDataModel model : dataModels) {
+                // try match entire sub query with model
                 QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
                 if (info == null) {
                     continue;

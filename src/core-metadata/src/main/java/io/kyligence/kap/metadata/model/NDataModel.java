@@ -1310,6 +1310,13 @@ public class NDataModel extends RootPersistentEntity {
                 .map(NamedColumn::getId).findAny().orElse(-1);
     }
 
+    public NamedColumn getColumnByColumnNameInModel(String name) {
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
+        return allNamedColumns.stream()
+                .filter(col -> col.name.equalsIgnoreCase(name) && col.isExist())
+                .findFirst().orElse(null);
+    }
+
     public String getColumnNameByColumnId(int id) {
         Preconditions.checkArgument(Objects.nonNull(effectiveCols));
         return effectiveCols.containsKey(id) ? effectiveCols.get(id).getAliasDotName() : null;

@@ -59,7 +59,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.ColumnRowType;
-import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.query.schema.OLAPTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,15 +87,20 @@ public class QueryAliasMatcher {
     private static final ColumnRowType SUBQUERY_TAG = new ColumnRowType(null);
     private static final String[] COLUMN_ARRAY_MARKER = new String[0];
 
+    static final ColumnRowType MODEL_VIEW_COLUMN_ROW_TYPE = new ColumnRowType(new ArrayList<>());
+
     //capture all the join within a SqlSelect's from clause, won't go into any subquery
     private class SqlJoinCapturer extends SqlBasicVisitor<SqlNode> {
+
         private List<JoinDesc> joinDescs;
         private LinkedHashMap<String, ColumnRowType> alias2CRT = Maps.newLinkedHashMap(); // aliasInQuery => ColumnRowType representing the alias table
+        private String modelName;
 
         private boolean foundJoinOnCC = false;
 
-        SqlJoinCapturer() {
+        SqlJoinCapturer(String modelName) {
             this.joinDescs = new ArrayList<>();
+            this.modelName = modelName;
         }
 
         List<JoinDesc> getJoinDescs() {
@@ -113,7 +117,7 @@ public class QueryAliasMatcher {
             }
             ColumnRowType first = Iterables.getFirst(alias2CRT.values(), null);
             Preconditions.checkNotNull(first);
-            if (first.getAllColumns() == null) {
+            if (first.getAllColumns() == null || first.getAllColumns().isEmpty()) {
                 return null;
             }
             return first.getAllColumns().get(0).getTableRef();
@@ -219,6 +223,11 @@ public class QueryAliasMatcher {
         private ColumnRowType buildColumnRowType(String alias, String schemaName, String tableName) {
             OLAPTable olapTable = getTable(schemaName.toUpperCase(Locale.ROOT), tableName);
 
+            // check if it is the model view
+            if (olapTable == null && (schemaName.equalsIgnoreCase(project) && tableName.equalsIgnoreCase(modelName))) {
+                return MODEL_VIEW_COLUMN_ROW_TYPE;
+            }
+
             List<TblColRef> columns = new ArrayList<>();
             if (olapTable != null) {
                 TableRef tableRef = TblColRef.tableForUnknownModel(alias, olapTable.getSourceTable());
@@ -235,7 +244,10 @@ public class QueryAliasMatcher {
         private OLAPTable getTable(String schemaName, String tableName) {
             Map<String, OLAPTable> localTables = schemaTables.get(schemaName);
             if (localTables == null) {
-                OLAPSchema olapSchema = getSchema(schemaName);
+                KapOLAPSchema olapSchema = getSchema(schemaName);
+                if (!olapSchema.hasTables()) {
+                    return null;
+                }
                 localTables = Maps.newHashMap();
                 for (Map.Entry<String, Table> entry : olapSchema.getTableMap().entrySet()) {
                     localTables.put(entry.getKey(), (OLAPTable) entry.getValue());
@@ -245,17 +257,13 @@ public class QueryAliasMatcher {
             return localTables.get(tableName);
         }
 
-        private OLAPSchema getSchema(String name) {
-            OLAPSchema olapSchema = schemaMap.get(name);
-            if (olapSchema == null) {
-                olapSchema = new KapOLAPSchema(project, name,
-                        NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                                .listTablesGroupBySchema().get(name),
-                        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                                .getModelsGroupbyTable());
-                schemaMap.put(name, olapSchema);
-            }
-            return olapSchema;
+        private KapOLAPSchema getSchema(String name) {
+            return schemaMap.computeIfAbsent(name, schemaName ->
+                    new KapOLAPSchema(project, schemaName,
+                    NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                            .listTablesGroupBySchema().get(schemaName),
+                    NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                            .getModelsGroupbyTable()));
         }
 
         private Pair<String, String> getSchemaAndTable(SqlIdentifier tableIdentifier) {
@@ -439,7 +447,7 @@ public class QueryAliasMatcher {
 
     private final String project;
     private final String defaultSchema;
-    private final Map<String, OLAPSchema> schemaMap = Maps.newHashMap();
+    private final Map<String, KapOLAPSchema> schemaMap = Maps.newHashMap();
     private final Map<String, Map<String, OLAPTable>> schemaTables = Maps.newHashMap();
 
     public QueryAliasMatcher(String project, String defaultSchema) {
@@ -447,6 +455,14 @@ public class QueryAliasMatcher {
         this.defaultSchema = defaultSchema;
     }
 
+    /**
+     * match `sqlSelect` with the model in terms of join relations
+     * @param model
+     * @param sqlSelect
+     * @return QueryAliasMatchInfo with
+     *    1. the map(table alias in sql -> column row type)
+     *    2. match result map(table alias in sql -> table alias in model)
+     */
     public QueryAliasMatchInfo match(NDataModel model, SqlSelect sqlSelect) {
         if (sqlSelect.getFrom() == null || SqlKind.VALUES == sqlSelect.getFrom().getKind()) {
             return null;
@@ -455,6 +471,8 @@ public class QueryAliasMatcher {
         SqlSelect subQuery = getSubquery(sqlSelect.getFrom());
         boolean reUseSubqeury = false;
 
+        // find subquery with permutation only projection
+        // for which the project can be eliminated
         if (subQuery != null) {
 
             if (subQuery.getSelectList().size() == 1 && subQuery.getSelectList().get(0).toString().equals("*")
@@ -465,15 +483,25 @@ public class QueryAliasMatcher {
             }
         }
 
-        SqlJoinCapturer sqlJoinCapturer = new SqlJoinCapturer();
+        SqlJoinCapturer sqlJoinCapturer = new SqlJoinCapturer(model.getAlias());
 
         if (reUseSubqeury) {
+            // if it's just a permutation only project, use the inner subQuery
             subQuery.getFrom().accept(sqlJoinCapturer);
         } else {
             sqlSelect.getFrom().accept(sqlJoinCapturer);
         }
 
+        // collect columnRowType and join relations
         LinkedHashMap<String, ColumnRowType> queryAlias = sqlJoinCapturer.getAlias2CRT();
+
+        // return if matches one single model view
+        if (queryAlias.size() == 1) {
+            Map.Entry<String, ColumnRowType> entry = queryAlias.entrySet().iterator().next();
+            if (entry.getValue() == MODEL_VIEW_COLUMN_ROW_TYPE) {
+                return QueryAliasMatchInfo.fromModelView(entry.getKey(), model);
+            }
+        }
 
         List<JoinDesc> joinDescs = sqlJoinCapturer.getJoinDescs();
         TableRef firstTable = sqlJoinCapturer.getFirstTable();
@@ -501,6 +529,7 @@ public class QueryAliasMatcher {
             joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(ccAliasMatch, true));
         }
 
+        // try match the subquery with model
         Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), projectConfig.isQueryMatchPartialInnerJoinModel());
         if (matches == null || matches.isEmpty()) {
             return null;

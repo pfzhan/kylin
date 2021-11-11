@@ -25,6 +25,8 @@ package io.kyligence.kap.query.util;
 
 import java.util.LinkedHashMap;
 
+import com.google.common.collect.HashBiMap;
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.query.relnode.ColumnRowType;
 
 import com.google.common.collect.BiMap;
@@ -35,13 +37,35 @@ public class QueryAliasMatchInfo extends AliasMapping {
     // each alias's ColumnRowType
     private LinkedHashMap<String, ColumnRowType> alias2CRT;
 
+    // for model view
+    private NDataModel model;
+
     public QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> alias2CRT) {
         super(aliasMapping);
         this.alias2CRT = alias2CRT;
     }
 
+    private QueryAliasMatchInfo(BiMap<String, String> aliasMapping, NDataModel model) {
+        super(aliasMapping);
+        this.model = model;
+    }
+
+    public static QueryAliasMatchInfo fromModelView(String queryTableAlias, NDataModel model) {
+        BiMap<String, String> map = HashBiMap.create();
+        map.put(queryTableAlias, model.getAlias());
+        return new QueryAliasMatchInfo(map, model);
+    }
+
     LinkedHashMap<String, ColumnRowType> getAlias2CRT() {
         return alias2CRT;
+    }
+
+    public boolean isModelView() {
+        return model != null;
+    }
+
+    public NDataModel getModel() {
+        return model;
     }
 
 }
