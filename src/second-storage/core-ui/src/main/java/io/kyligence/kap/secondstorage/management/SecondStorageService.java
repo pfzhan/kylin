@@ -281,15 +281,34 @@ public class SecondStorageService extends BasicService implements SecondStorageU
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
 
-    public Map<String, String> projectClean(List<String> projects) {
+    public Map<String, Map<String, String>> projectClean(List<String> projects) {
         projects.forEach(project -> {
             projectValidate(project);
         });
-        Map<String, String> resultMap = new HashMap<>();
+        Map<String, Map<String, String>> resultMap = new HashMap<>();
         for (String project : projects) {
-            resultMap.put(project, triggerProjectClean(project));
+            resultMap.put(project, triggerProjectSegmentClean(project));
         }
         return resultMap;
+    }
+
+    private Map<String, String> triggerProjectSegmentClean(String project) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val modelManager = NDataModelManager.getInstance(config, project);
+
+        Map<String, String> resultMap = new HashMap<>();
+        for (String model : modelManager.listAllModelIds()) {
+            resultMap.put(model, triggerModelSegmentClean(project, model));
+        }
+        return resultMap;
+    }
+
+    private String triggerModelSegmentClean(String project, String model) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+        val segments = dataflowManager.getDataflow(model).getSegments().stream().map(NDataSegment::getId)
+                .collect(Collectors.toSet());
+        return triggerSegmentsClean(project, model, segments);
     }
 
     private void projectValidate(String project) {

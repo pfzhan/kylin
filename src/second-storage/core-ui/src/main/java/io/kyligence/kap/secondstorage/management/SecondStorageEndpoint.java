@@ -234,7 +234,7 @@ public class SecondStorageEndpoint extends NBasicController {
     }
 
     @PostMapping(value = "/project/clean")
-    public EnvelopeResponse<Map<String, String>> projectClean(@RequestBody ProjectCleanRequest request) {
+    public EnvelopeResponse<Map<String, Map<String, String>>> projectClean(@RequestBody ProjectCleanRequest request) {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, secondStorageService.projectClean(request.getProjects()), "");
     }
 

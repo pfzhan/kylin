@@ -60,6 +60,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -302,5 +303,17 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
         val jobId = secondStorageService.triggerSegmentsClean(project, modelId, Sets.newHashSet(segs));
         waitJobFinish(project, jobId);
+    }
+
+    @Test
+    public void testCleanProjectSegments() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        val jobId = secondStorageService.projectClean(Arrays.asList(project));
+        waitJobFinish(project, jobId.get(project).get(modelId));
+
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        val tableData = tableFlowManager.orElseThrow(null).get(modelId).orElseThrow(null).getTableDataList().get(0);
+        Assert.assertEquals(0, tableData.getPartitions().size());
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, modelId));
     }
 }
