@@ -429,7 +429,7 @@ public class RealizationChooser {
         val prunedSegments = candidate.getPrunedSegments();
         val prunedPartitions = candidate.getPrunedPartitions();
         if (layoutCandidate.isEmptyCandidate()) {
-            context.setLayoutId(null);
+            context.setLayoutId(-1L);
             context.setEmptyLayout(true);
             logger.info("for context {}, chose empty layout", context.getCtxId());
             return;
