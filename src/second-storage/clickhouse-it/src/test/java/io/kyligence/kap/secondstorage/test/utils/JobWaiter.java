@@ -55,6 +55,14 @@ public interface JobWaiter {
         }
     }
 
+    default void waitJobEnd(String project, String jobId) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NExecutableManager executableManager = NExecutableManager.getInstance(config, project);
+        DefaultChainedExecutable job = (DefaultChainedExecutable) executableManager.getJob(jobId);
+        await().atMost(300, TimeUnit.SECONDS).until(() -> !job.getStatus().isProgressing());
+        Assert.assertFalse(job.getStatus().isProgressing());
+    }
+
     default String triggerClickHouseLoadJob(String project, String modelId, String userName, List<String> segIds) {
         AbstractJobHandler localHandler = new SecondStorageSegmentLoadJobHandler();
         JobParam jobParam = SecondStorageJobParamUtil.of(project, modelId, userName, segIds.stream());

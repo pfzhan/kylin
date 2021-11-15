@@ -90,6 +90,7 @@ public class ClickHouseJob extends DefaultChainedExecutable {
 
         AbstractExecutable step = new ClickHouseLoad();
         step.setProject(getProject());
+        step.setTargetSubject(getTargetSubject());
         step.setJobType(getJobType());
         step.setParams(getParams());
         addTask(step);

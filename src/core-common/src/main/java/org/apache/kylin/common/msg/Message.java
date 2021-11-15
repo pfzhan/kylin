@@ -1586,6 +1586,10 @@ public class Message {
         return "Can’t turn off the tiered storage at the moment. Project “%s” an ongoing load data job of tiered storage. Please try again later.\n";
     }
 
+    public String getJOB_RESTART_FAILED() {
+        return "Tiered storage task doesn't support restart.\n";
+    }
+
     public String getINVALID_BROKER_DEFINITION() {
         return "The broker filed can’t be empty. Please check and try again.";
     }

@@ -39,12 +39,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.secondstorage.SecondStorageLockUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions;
 
 import com.google.common.base.Preconditions;
@@ -72,8 +77,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * The mechanism we used is unique for ClickHouse That‘s why we name it {@link ClickHouseLoad} instead of NJDBCLoad.
- *
- *
  */
 @Slf4j
 public class ClickHouseLoad extends AbstractExecutable {
@@ -85,6 +88,7 @@ public class ClickHouseLoad extends AbstractExecutable {
     }
 
     private List<List<LoadInfo>> loadInfos = null;
+    private LoadContext loadContext;
 
     public List<List<LoadInfo>> getLoadInfos() {
         return loadInfos;
@@ -237,7 +241,8 @@ public class ClickHouseLoad extends AbstractExecutable {
      * extend point for subclass
      */
     protected void init() {
-        // do nothing
+        this.loadContext = new LoadContext(this);
+        this.loadState();
     }
 
     protected void preCheck() {
@@ -246,62 +251,72 @@ public class ClickHouseLoad extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        init();
-        preCheck();
-        final MethodContext mc = new MethodContext(this);
-        return wrapWithExecuteException(() -> {
-            val isIncrementalBuild = mc.isIncremental(getSegmentIds());
-            Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(mc.config, mc.project);
-            List<NodeGroup> allGroup = nodeGroupManager.listAll();
-            for (NodeGroup nodeGroup : allGroup) {
-                if (LockTypeEnum.locked(Arrays.asList(LockTypeEnum.LOAD.name()), nodeGroup.getLockTypes())) {
-                    logger.info("project={} has been locked, skip the step", mc.getProject());
-                    return ExecuteResult.createSkip();
+        SegmentRange<Long> range = new SegmentRange.TimePartitionedSegmentRange(getDataRangeStart(), getDataRangeEnd());
+        SecondStorageLockUtils.acquireLock(getTargetModelId(), range).lock();
+        try {
+            init();
+            preCheck();
+            final MethodContext mc = new MethodContext(this);
+            return wrapWithExecuteException(() -> {
+                Manager<NodeGroup> nodeGroupManager = SecondStorage.nodeGroupManager(mc.config, mc.project);
+                List<NodeGroup> allGroup = nodeGroupManager.listAll();
+                for (NodeGroup nodeGroup : allGroup) {
+                    if (LockTypeEnum.locked(Arrays.asList(LockTypeEnum.LOAD.name()), nodeGroup.getLockTypes())) {
+                        logger.info("project={} has been locked, skip the step", mc.getProject());
+                        return ExecuteResult.createSkip();
+                    }
                 }
-            }
-            String[][] nodeGroups = new String[allGroup.size()][];
-            ListIterator<NodeGroup> it = allGroup.listIterator();
-            while (it.hasNext()) {
-                nodeGroups[it.nextIndex()] = it.next().getNodeNames().toArray(new String[0]);
-            }
-            ShardOptions options = new ShardOptions(ShardOptions.buildReplicaSharding(nodeGroups));
-            boolean isIncremental = mc.isIncremental(getSegmentIds());
-            DataLoader dataLoader = new DataLoader(getId(), mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
-            val replicaNum = options.replicaShards().length;
-            List<List<LoadInfo>> tempLoadInfos = new ArrayList<>();
-            val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);
-            val partitions = tableFlowManager.listAll().stream()
-                    .flatMap(tableFlow -> tableFlow.getTableDataList().stream())
-                    .flatMap(tableData -> tableData.getPartitions().stream()).collect(Collectors.toList());
-            Map<String, Long> nodeSizeMap = new HashMap<>();
-            partitions.forEach(partition -> partition.getNodeFileMap().forEach((node, files) -> {
-                Long size = nodeSizeMap.computeIfAbsent(node, n -> 0L);
-                size = size + files.stream().map(SegmentFileStatus::getLen).reduce(Long::sum).orElse(0L);
-                nodeSizeMap.put(node, size);
-            }));
-            for (val shards : options.replicaShards()) {
-                val sortedShards = Arrays.stream(shards)
-                        .sorted(Comparator.comparingLong(node -> nodeSizeMap.getOrDefault(node, 0L)))
-                        .collect(Collectors.toList());
-                List<LoadInfo> infoList = distributeLoad(mc.df, mc.indexPlan(), mc.tablePlan(),
-                        sortedShards.toArray(new String[] {}));
-                infoList = preprocessLoadInfo(infoList);
-                tempLoadInfos.add(infoList);
-            }
-            this.loadInfos = IntStream.range(0, tempLoadInfos.get(0).size()).mapToObj(idx -> {
-                List<LoadInfo> loadInfoBatch = new ArrayList<>(replicaNum);
-                for (val item : tempLoadInfos) {
-                    loadInfoBatch.add(item.get(idx));
+                String[][] nodeGroups = new String[allGroup.size()][];
+                ListIterator<NodeGroup> it = allGroup.listIterator();
+                while (it.hasNext()) {
+                    nodeGroups[it.nextIndex()] = it.next().getNodeNames().toArray(new String[0]);
                 }
-                return loadInfoBatch;
-            }).collect(Collectors.toList());
+                ShardOptions options = new ShardOptions(ShardOptions.buildReplicaSharding(nodeGroups));
+                boolean isIncremental = mc.isIncremental(getSegmentIds());
+                DataLoader dataLoader = new DataLoader(getId(), mc.getDatabase(), mc.getPrefixTableName(), createTableEngine(), isIncremental);
+                val replicaNum = options.replicaShards().length;
+                List<List<LoadInfo>> tempLoadInfos = new ArrayList<>();
+                val tableFlowManager = SecondStorage.tableFlowManager(mc.config, mc.project);
+                val partitions = tableFlowManager.listAll().stream()
+                        .flatMap(tableFlow -> tableFlow.getTableDataList().stream())
+                        .flatMap(tableData -> tableData.getPartitions().stream()).collect(Collectors.toList());
+                Map<String, Long> nodeSizeMap = new HashMap<>();
+                partitions.forEach(partition -> partition.getNodeFileMap().forEach((node, files) -> {
+                    Long size = nodeSizeMap.computeIfAbsent(node, n -> 0L);
+                    size = size + files.stream().map(SegmentFileStatus::getLen).reduce(Long::sum).orElse(0L);
+                    nodeSizeMap.put(node, size);
+                }));
+                for (val shards : options.replicaShards()) {
+                    val sortedShards = Arrays.stream(shards)
+                            .sorted(Comparator.comparingLong(node -> nodeSizeMap.getOrDefault(node, 0L)))
+                            .collect(Collectors.toList());
+                    List<LoadInfo> infoList = distributeLoad(mc.df, mc.indexPlan(), mc.tablePlan(),
+                            sortedShards.toArray(new String[]{}));
+                    infoList = preprocessLoadInfo(infoList);
+                    tempLoadInfos.add(infoList);
+                }
+                this.loadInfos = IntStream.range(0, tempLoadInfos.get(0).size()).mapToObj(idx -> {
+                    List<LoadInfo> loadInfoBatch = new ArrayList<>(replicaNum);
+                    for (val item : tempLoadInfos) {
+                        loadInfoBatch.add(item.get(idx));
+                    }
+                    return loadInfoBatch;
+                }).collect(Collectors.toList());
 
-            for (List<LoadInfo> infoBatch : loadInfos)
-                dataLoader.load(infoBatch);
-
-            updateMeta();
-            return ExecuteResult.createSucceed();
-        });
+                for (List<LoadInfo> infoBatch : loadInfos)
+                    dataLoader.load(infoBatch, this.loadContext);
+                if (isPaused()) {
+                    saveState();
+                }
+                if (isPaused() || isDiscarded()) {
+                    throw new JobStoppedException("job stop manually.");
+                }
+                updateMeta();
+                return ExecuteResult.createSucceed();
+            });
+        } finally {
+            SecondStorageLockUtils.unlock(getTargetModelId(), range);
+        }
     }
 
     protected void updateMeta() {
@@ -316,4 +331,33 @@ public class ClickHouseLoad extends AbstractExecutable {
                                     isIncrementalBuild ? PartitionType.INCREMENTAL : PartitionType.FULL)));
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
+
+    public boolean isDiscarded() {
+        return ExecutableState.DISCARDED == SecondStorageUtil.getJobStatus(project, getParentId());
+    }
+
+    public boolean isPaused() {
+        return ExecutableState.PAUSED == SecondStorageUtil.getJobStatus(project, getParentId());
+    }
+
+    public void saveState() {
+        Preconditions.checkNotNull(loadContext, "load context can't be null");
+        Map<String, String> info = new HashMap<>();
+        info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, loadContext.serializeToString());
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val manager = this.getManager();
+            manager.updateJobOutput(getParentId(), null, info, null, null);
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+    }
+
+
+    public void loadState() {
+        Preconditions.checkNotNull(loadContext, "load context can't be null");
+        val state = getManager().getOutputFromHDFSByJobId(getParentId()).getExtra().get(LoadContext.CLICKHOUSE_LOAD_CONTEXT);
+        if (!StringUtils.isEmpty(state)) {
+            loadContext.deserializeToString(state);
+        }
+    }
+
 }

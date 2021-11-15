@@ -34,6 +34,7 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -144,5 +145,10 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
         Mockito.when(executableManager.getJob("job1")).thenReturn(job1);
         Mockito.when(executableManager.getJob("job2")).thenReturn(job2);
         Assert.assertEquals(2, SecondStorageUtil.findSecondStorageRelatedJobByProject("test").size());
+    }
+
+    @Test
+    public void checkJobRestartWhenNotEnable() {
+        SecondStorageUtil.checkJobRestart("default", RandomUtil.randomUUIDStr());
     }
 }

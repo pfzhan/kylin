@@ -48,7 +48,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.JobErrorCode;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -75,6 +77,8 @@ public class SecondStorageUtil {
     public static final Set<JobTypeEnum> RELATED_JOBS = Sets.newHashSet(
             Arrays.asList(JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INC_BUILD,
                     JobTypeEnum.INDEX_MERGE, JobTypeEnum.EXPORT_TO_SECOND_STORAGE));
+    public static final Set<JobTypeEnum> BUILD_JOBS = Sets.newHashSet(JobTypeEnum.INDEX_BUILD, JobTypeEnum.INDEX_REFRESH, JobTypeEnum.INC_BUILD,
+            JobTypeEnum.INDEX_MERGE);
 
     private SecondStorageUtil() {
     }
@@ -332,11 +336,34 @@ public class SecondStorageUtil {
 
     public static List<NodeGroup> listNodeGroup(KylinConfig config, String project) {
         Optional<Manager<NodeGroup>> optional = nodeGroupManager(config, project);
-        if(optional.isPresent()) {
+        if (optional.isPresent()) {
             Manager<NodeGroup> nodeGroupManager = optional.get();
             return nodeGroupManager.listAll();
         }
         return Collections.emptyList();
     }
 
+    public static ExecutableState getJobStatus(String project, String jobId) {
+        NExecutableManager manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return manager.getJob(jobId).getStatus();
+    }
+
+    public static void checkJobRestart(String project, String jobId) {
+        if (!isProjectEnable(project)) return;
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
+        JobTypeEnum type = abstractExecutable.getJobType();
+        boolean canRestart = type != JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
+
+        ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
+                .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
+        if (BUILD_JOBS.contains(jobDetail.getJobType())) {
+            long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
+            // build job can't restart when second storage step is running
+            canRestart = finishedCount < 3;
+        }
+        if (!canRestart) {
+            throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJOB_RESTART_FAILED());
+        }
+    }
 }

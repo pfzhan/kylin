@@ -1794,6 +1794,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getJOB_RESTART_FAILED() {
+        return "分层存储任务不支持重启操作.\n";
+    }
+
+    @Override
     public String getINVALID_BROKER_DEFINITION() {
         return "Broker 信息不可为空，请检查后重试。";
     }

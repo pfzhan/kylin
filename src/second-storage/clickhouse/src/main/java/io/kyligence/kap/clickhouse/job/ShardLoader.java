@@ -40,6 +40,7 @@ import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithAlias;
 import io.kyligence.kap.secondstorage.ddl.exp.TableIdentifier;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.sql.Date;
@@ -48,8 +49,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Getter
+@Slf4j
 public class ShardLoader {
     private final ClickHouse clickHouse;
     private final String database;
@@ -95,20 +98,27 @@ public class ShardLoader {
         batchMovePartition(partitions, committedPartition);
     }
 
-    public void setup() throws SQLException {
+    public void setup(boolean newJob) throws SQLException {
         //1. prepare database and temp table
         final CreateDatabase createDb = CreateDatabase.createDatabase(database);
         clickHouse.apply(createDb.toSql(render));
-        createTable(insertTempTableName, layout, partitionColumn, true);
+        if (newJob) {
+            createTable(insertTempTableName, layout, partitionColumn, true);
+        }
         createTable(likeTempTableName, layout, partitionColumn, false);
     }
 
-    public void loadDataIntoTempTable() throws SQLException {
+    public List<String> loadDataIntoTempTable(List<String> history, AtomicBoolean stopped) throws SQLException {
         // 2 insert into temp
+        List<String> completeFiles = new ArrayList<>();
         for (int index = 0; index < parquetFiles.size(); index++) {
+            if (stopped.get()) break;
+            if (history.contains(parquetFiles.get(index))) continue;
             loadOneFile(insertTempTableName, parquetFiles.get(index),
                     String.format(Locale.ROOT, "%s_src_%05d", destTableName, index));
+            completeFiles.add(parquetFiles.get(index));
         }
+        return completeFiles;
     }
 
     private boolean tableNotExistError(SQLException e) {
@@ -185,10 +195,20 @@ public class ShardLoader {
         }
     }
 
-    public void cleanUp() throws SQLException {
-        dropTable(insertTempTableName);
+    public void cleanUp(boolean keepInsertTempTable) throws SQLException {
+        if (!keepInsertTempTable) {
+            dropTable(insertTempTableName);
+        }
         dropTable(destTempTableName);
         dropTable(likeTempTableName);
+    }
+
+    public void cleanUpQuietly(boolean keepInsertTempTable) {
+        try {
+            this.cleanUp(keepInsertTempTable);
+        } catch (SQLException e) {
+            log.error("clean temp table on {} failed.", clickHouse.getPreprocessedUrl(), e);
+        }
     }
 
     private void createTable(String table, LayoutEntity layout, String partitionBy, boolean addPrefix)

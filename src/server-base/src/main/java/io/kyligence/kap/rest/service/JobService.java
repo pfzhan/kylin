@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
@@ -386,6 +387,7 @@ public class JobService extends BasicService {
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
             break;
         case RESTART:
+            SecondStorageUtil.checkJobRestart(project, jobId);
             killExistApplication(project, jobId);
             executableManager.restartJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);

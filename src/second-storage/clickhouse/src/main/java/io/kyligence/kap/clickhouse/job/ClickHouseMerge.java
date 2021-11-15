@@ -53,6 +53,7 @@ public class ClickHouseMerge extends ClickHouseLoad {
 
     @Override
     protected void init() {
+        super.init();
         oldSegmentIds = Sets.newHashSet(getParam(NBatchConstants.P_SEGMENT_IDS).split(","));
         targetSegmentId = getParam(SecondStorageConstants.P_MERGED_SEGMENT_ID);
         Preconditions.checkNotNull(targetSegmentId);

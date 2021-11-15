@@ -85,7 +85,7 @@ public class EnableClickHouseJob extends EnableScheduler implements JobWaiter {
     protected void after() {
         val execManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val jobs = execManager.getAllExecutables();
-        jobs.forEach(job -> waitJobFinish(project, job.getId()));
+        jobs.forEach(job -> waitJobEnd(project, job.getId()));
         val jobInfo = secondStorageService.changeProjectSecondStorageState(project, null, false);
         try {
             waitJobFinish(project, jobInfo.orElseThrow(null).getJobId());

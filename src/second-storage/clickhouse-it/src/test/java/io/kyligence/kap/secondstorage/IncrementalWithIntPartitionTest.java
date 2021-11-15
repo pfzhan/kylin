@@ -192,7 +192,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         Assert.assertTrue(newCount == 0);
     }
 
-    private int getModelRowCount(String project, String modelId) throws SQLException {
+    public static int getModelRowCount(String project, String modelId) throws SQLException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val database = NameUtil.getDatabase(config, project);
         val table = NameUtil.getTable(modelId, 20000000001L);

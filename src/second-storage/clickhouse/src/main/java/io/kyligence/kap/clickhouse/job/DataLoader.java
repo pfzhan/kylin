@@ -24,6 +24,21 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.secondstorage.ColumnMapping;
+import io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil;
+import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
+import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
+import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
+import lombok.val;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.common.util.SetThreadName;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.datatype.DataType;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,22 +51,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-
-import io.kyligence.kap.secondstorage.ColumnMapping;
-import io.kyligence.kap.secondstorage.util.SecondStorageDateUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.common.util.SetThreadName;
-import org.apache.kylin.metadata.datatype.DataType;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
-import io.kyligence.kap.secondstorage.ddl.exp.ColumnWithType;
-import lombok.val;
 
 public class DataLoader {
 
@@ -128,7 +129,7 @@ public class DataLoader {
         this.isIncremental = isIncremental;
     }
 
-    public void load(List<LoadInfo> loadInfoBatch) throws InterruptedException, ExecutionException, SQLException {
+    public void load(List<LoadInfo> loadInfoBatch, LoadContext loadContext) throws InterruptedException, ExecutionException, SQLException {
         val totalJdbcNum = loadInfoBatch.stream().mapToInt(item -> item.getNodeNames().length).sum();
 
         List<ShardLoader> shardLoaders = new ArrayList<>(totalJdbcNum + 2);
@@ -169,12 +170,17 @@ public class DataLoader {
         CountDownLatch latch = new CountDownLatch(totalJdbcNum);
         List<Future<?>> futureList = Lists.newArrayList();
 
+        AtomicBoolean stopFlag = new AtomicBoolean();
+        SecondStorageConcurrentTestUtil.wait(SecondStorageConcurrentTestUtil.WAIT_PAUSED);
+
         for (ShardLoader shardLoader : shardLoaders) {
             Future<?> future = executorService.submit(() -> {
                 try (SetThreadName ignored = new SetThreadName("Shard %s",
                         shardLoader.getClickHouse().getShardName())) {
-                    shardLoader.setup();
-                    shardLoader.loadDataIntoTempTable();
+                    shardLoader.setup(loadContext.isNewJob());
+                    val files = shardLoader.loadDataIntoTempTable(loadContext.getHistory(), stopFlag);
+                    files.forEach(loadContext::finishSingleFile);
+                    // save progress
                     return true;
                 } finally {
                     latch.countDown();
@@ -182,15 +188,23 @@ public class DataLoader {
             });
             futureList.add(future);
         }
-
-        latch.await();
+        boolean paused;
+        do {
+            stopFlag.set(loadContext.getJobStatus() == ExecutableState.DISCARDED
+                    || loadContext.getJobStatus() == ExecutableState.PAUSED);
+            paused = loadContext.getJobStatus() == ExecutableState.PAUSED;
+        } while (!latch.await(5, TimeUnit.SECONDS));
 
         try {
             for (Future<?> future : futureList) {
                 future.get();
             }
-            for (ShardLoader shardLoader : shardLoaders) {
-                shardLoader.commit();
+            stopFlag.set(loadContext.getJob().isDiscarded() || loadContext.getJob().isPaused());
+            if (!stopFlag.get()) {
+                // commit data when job finish normally
+                for (ShardLoader shardLoader : shardLoaders) {
+                    shardLoader.commit();
+                }
             }
         } catch (SQLException e) {
             for (ShardLoader shardLoader : shardLoaders) {
@@ -199,7 +213,8 @@ public class DataLoader {
             ExceptionUtils.rethrow(e);
         } finally {
             for (ShardLoader shardLoader : shardLoaders) {
-                shardLoader.cleanUp();
+                // if paused skip clean insert temp table
+                shardLoader.cleanUpQuietly(paused);
             }
         }
     }
