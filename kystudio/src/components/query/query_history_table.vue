@@ -66,13 +66,13 @@
                 </kap-editor>
               </el-col>
               <el-col :span="9">
-                <div class="ksd-list ksd-table-list history_detail_table" :id="'detailTable_' + props.row.query_id">
+                <div class="ksd-list history_detail_table" :id="'detailTable_' + props.row.query_id">
                   <p class="list">
-                    <span class="label">{{$t('kylinLang.query.query_id')}}</span>
+                    <span class="label">{{$t('kylinLang.query.query_id')}}:</span>
                     <span class="text">{{props.row.query_id}}</span>
                   </p>
                   <p class="list">
-                    <span class="label">{{$t('kylinLang.query.duration')}}</span>
+                    <span class="label">{{$t('kylinLang.query.duration')}}:</span>
                     <span class="text">
                       <el-popover
                         placement="bottom"
@@ -97,60 +97,70 @@
                       <span v-else>{{Math.round(props.row.duration / 1000 * 100) / 100}}s</span>
                     </span>
                   </p>
-                  <p class="list" :class="{'active': props.row.hightlight_realizations}" v-if="!(props.row.engine_type === 'NATIVE'&&!(props.row.realizations && getRealizations2(props.row.realizations).length))">
-                    <span class="label">{{$t('kylinLang.query.answered_by')}}</span>
-                    <span class="text">
-                      <span class="realization-tags" v-if="props.row.realizations && getRealizations2(props.row.realizations).length">
-                        <span v-for="(item, index) in getRealizations2(props.row.realizations)" :key="item.modelId">
-                          <template v-if="'visible' in item && !item.visible">
-                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
-                          </template>
-                          <template v-else>
-                            <span @click="openIndexDialog(item, getRealizations2(props.row.realizations))" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
-                          </template>
+                  <template v-if="props.row.query_status === 'SUCCEEDED'">
+                    <p class="list" :class="{'active': props.row.hightlight_realizations}" v-if="!(props.row.engine_type === 'NATIVE'&&!(props.row.realizations && getRealizations2(props.row.realizations).length))">
+                      <span class="label">{{$t('kylinLang.query.answered_by')}}:</span>
+                      <span class="text">
+                        <span class="realization-tags" v-if="props.row.realizations && getRealizations2(props.row.realizations).length">
+                          <span v-for="(item, index) in getRealizations2(props.row.realizations)" :key="item.modelId">
+                            <template v-if="'visible' in item && !item.visible">
+                              <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                            </template>
+                            <template v-else>
+                              <span @click="openIndexDialog(item, getRealizations2(props.row.realizations))" :class="{'model-tag': item.valid, 'disable': !item.valid || item.indexType === 'Table Snapshot'}">{{item.modelAlias}}</span><span>{{`${index !== getRealizations2(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
+                            </template>
+                          </span>
+                        </span>
+                        <span v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></span>
+                      </span>
+                    </p>
+                    <p class="list" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
+                      <span class="label">{{$t('kylinLang.query.index_id')}}:</span>
+                      <span class="text">
+                        <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in getRealizations(props.row.realizations)" :key="item.layoutId">
+                          <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
+                            <span @click="openLayoutDetails(item)">{{item.layoutId}}</span>
+                          </el-tooltip>
+                          <el-tag size="mini" v-if="item.streamingLayout" class="ksd-ml-2" style="cursor:default">{{$t('streamingTag')}}</el-tag>
+                          <el-tooltip placement="top" :content="$t('secStorage')">
+                            <el-icon v-if="item.secondStorage" class="ksd-fs-22" name="el-ksd-icon-tieredstorage_22" type="mult"></el-icon>
+                          </el-tooltip><span>{{`${index !== getRealizations(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
                         </span>
                       </span>
-                      <span v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></span>
-                    </span>
-                  </p>
-                  <p class="list" v-if="props.row.realizations && getRealizations(props.row.realizations).length && getLayoutIds(props.row.realizations)">
-                    <span class="label">{{$t('kylinLang.query.index_id')}}</span>
-                    <span class="text">
-                      <span :class="['realizations-layout-id', {'is-disabled': !item.layoutExist}]" v-for="(item, index) in getRealizations(props.row.realizations)" :key="item.layoutId">
-                        <el-tooltip placement="top" :content="$t('unExistLayoutTip')" :disabled="item.layoutExist">
-                          <span @click="openLayoutDetails(item)">{{item.layoutId}}</span>
-                        </el-tooltip>
-                        <el-tag size="mini" v-if="item.streamingLayout" class="ksd-ml-2" style="cursor:default">{{$t('streamingTag')}}</el-tag>
-                        <el-tooltip placement="top" :content="$t('secStorage')">
-                          <el-icon v-if="item.secondStorage" class="ksd-fs-22" name="el-ksd-icon-tieredstorage_22" type="mult"></el-icon>
-                        </el-tooltip><span>{{`${index !== getRealizations(props.row.realizations).length - 1 ? $t('kylinLang.common.comma') : ''}`}}</span>
-                      </span>
-                    </span>
-                  </p>
-                  <p class="list" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
-                    <span class="label">{{$t('kylinLang.query.snapshot')}}</span>
-                    <span class="text">{{getSnapshots(props.row.realizations)}}</span>
-                  </p>
-                  <p class="list">
-                    <span class="label">{{$t('kylinLang.query.total_scan_count')}}</span>
-                    <span class="text">{{props.row.total_scan_count | filterNumbers}}</span>
-                  </p>
-                  <p class="list">
-                    <span class="label">{{$t('kylinLang.query.total_scan_bytes')}}</span>
-                    <span class="text">{{props.row.total_scan_bytes | filterNumbers}}</span>
-                  </p>
-                  <p class="list">
-                    <span class="label">{{$t('kylinLang.query.result_row_count')}}</span>
-                    <span class="text">{{props.row.result_row_count | filterNumbers}}</span>
-                  </p>
-                  <p class="list">
-                    <span class="label">{{$t('kylinLang.query.cache_hit')}}</span>
-                    <span class="text">{{props.row.cache_hit}}</span>
-                  </p>
-                  <p class="list" v-if="props.row.query_history_info && !!props.row.query_history_info.cache_type">
-                    <span class="label">{{$t('kylinLang.query.cache_type')}}</span>
-                    <span class="text">{{props.row.query_history_info.cache_type}}</span>
-                  </p>
+                    </p>
+                    <p class="list" v-if="props.row.realizations && props.row.realizations.length && getSnapshots(props.row.realizations)">
+                      <span class="label">{{$t('kylinLang.query.snapshot')}}:</span>
+                      <span class="text">{{getSnapshots(props.row.realizations)}}</span>
+                    </p>
+                    <p class="list">
+                      <span class="label">{{$t('kylinLang.query.total_scan_count')}}:</span>
+                      <span class="text">{{props.row.total_scan_count | filterNumbers}}</span>
+                    </p>
+                    <p class="list">
+                      <span class="label">{{$t('kylinLang.query.total_scan_bytes')}}:</span>
+                      <span class="text">{{props.row.total_scan_bytes | filterNumbers}}</span>
+                    </p>
+                    <p class="list">
+                      <span class="label">{{$t('kylinLang.query.result_row_count')}}:</span>
+                      <span class="text">{{props.row.result_row_count | filterNumbers}}</span>
+                    </p>
+                    <p class="list">
+                      <span class="label">{{$t('kylinLang.query.cache_hit')}}:</span>
+                      <span class="text">{{props.row.cache_hit}}</span>
+                    </p>
+                    <p class="list" v-if="props.row.query_history_info && !!props.row.query_history_info.cache_type">
+                      <span class="label">{{$t('kylinLang.query.cache_type')}}:</span>
+                      <span class="text">{{props.row.query_history_info.cache_type}}</span>
+                    </p>
+                  </template>
+                  <el-alert
+                    v-else
+                    type="error"
+                    :closable="false"
+                    class="ksd-mt-8"
+                    show-icon>
+                    <span slot="title">{{$t('queryError')}}<span class="ky-a-like" @click="openErrorDialog(props.row.query_history_info.query_msg)">{{$t('viewDetails')}}</span></span>
+                  </el-alert>
                 </div>
               </el-col>
             </el-row>
@@ -263,6 +273,15 @@
       :queryServer='queryServer'
       :jobStatus='jobStatus'
     />
+    <el-dialog
+      :visible.sync="queryErrorVisible"
+      width="600px"
+      class="query-error-dialog"
+      status-icon="el-ksd-icon-error_24"
+      :close-on-click-modal="false">
+      <span slot="title">{{$t('errorTitle')}}</span>
+      <pre class="error-block">{{errinfo}}</pre>
+    </el-dialog>
   </div>
 </template>
 
@@ -344,7 +363,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       filteredTotalSize: '{totalSize} result(s)',
       secStorage: 'Tiered Storage',
       streamingTag: 'streming',
-      downloadQueryDiagnosticPackage: 'Download Query Diagnostic Package'
+      downloadQueryDiagnosticPackage: 'Download Query Diagnostic Package',
+      queryError: 'Query error.',
+      viewDetails: 'View Details',
+      errorTitle: 'Error Details'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -384,7 +406,10 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       filteredTotalSize: '{totalSize} 条结果',
       secStorage: '分层存储',
       streamingTag: '流数据',
-      downloadQueryDiagnosticPackage: '下载查询诊断包'
+      downloadQueryDiagnosticPackage: '下载查询诊断包',
+      queryError: '查询错误。',
+      viewDetails: '查看详情',
+      errorTitle: '错误详情'
     }
   },
   filters: {
@@ -427,7 +452,14 @@ export default class QueryHistoryTable extends Vue {
   showDiagnostic = false
   queryId = ''
   queryServer = ''
-  jobStatus=''
+  jobStatus = ''
+  queryErrorVisible = false
+  errinfo = ''
+
+  openErrorDialog (errinfo) {
+    this.errinfo = errinfo
+    this.queryErrorVisible = true
+  }
 
   @Watch('queryHistoryData')
   onQueryHistoryDataChange (val) {
@@ -1071,9 +1103,6 @@ export default class QueryHistoryTable extends Vue {
         .el-col {
           position: relative;
           .history_detail_table{
-            .label {
-              width: 100px;
-            }
             .duration {
               color: @base-color;
               cursor: pointer;
@@ -1278,6 +1307,19 @@ export default class QueryHistoryTable extends Vue {
           color: @base-color;
         }
       }
+    }
+  }
+  .query-error-dialog {
+    .error-block {
+      height: 200px;
+      overflow-y: auto;
+      background-color: @ke-background-color-secondary;
+      border: 1px solid @ke-border-secondary;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .el-dialog__body {
+      padding-bottom: 32px !important;
     }
   }
   .duration-popover {
