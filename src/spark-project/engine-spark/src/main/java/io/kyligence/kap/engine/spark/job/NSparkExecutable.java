@@ -173,7 +173,12 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
     private String getDistMetaFs() {
         String defaultFs = HadoopUtil.getWorkingFileSystem().getUri().toString();
         String engineWriteFs = KylinConfig.getInstanceFromEnv().getEngineWriteFs();
-        return StringUtils.isBlank(engineWriteFs) ? defaultFs : engineWriteFs;
+        String result = StringUtils.isBlank(engineWriteFs) ? defaultFs : engineWriteFs;
+        if (result.startsWith(HadoopUtil.MAPR_FS_PREFIX)) {
+            return HadoopUtil.MAPR_FS_PREFIX;
+        } else {
+            return result;
+        }
     }
 
     protected void setDistMetaUrl(StorageURL storageURL) {

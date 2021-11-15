@@ -86,8 +86,8 @@ public class HadoopUtil {
         hadoopConfig.set(conf);
     }
 
-    private static final String FILE_PREFIX = "file://";
-    private static final String MAPR_FS_PREFIX = "maprfs://";
+    public static final String FILE_PREFIX = "file://";
+    public static final String MAPR_FS_PREFIX = "maprfs://";
 
     public static Configuration getCurrentConfiguration() {
         if (hadoopConfig.get() == null) {
@@ -271,13 +271,13 @@ public class HadoopUtil {
     }
 
     public static String getPathWithoutScheme(String path) {
-        if (path.startsWith(FILE_PREFIX) || path.startsWith(MAPR_FS_PREFIX))
+        if (path.startsWith(FILE_PREFIX))
             return path;
 
         if (path.startsWith("file:")) {
             path = path.replace("file:", FILE_PREFIX);
-        } else if (path.startsWith("maprfs:")) {
-            path = path.replace("maprfs:", MAPR_FS_PREFIX);
+        } else if (path.startsWith(MAPR_FS_PREFIX)) {
+            path = path.replace(MAPR_FS_PREFIX, "");
         } else {
             path = Path.getPathWithoutSchemeAndAuthority(new Path(path)).toString() + "/";
         }
