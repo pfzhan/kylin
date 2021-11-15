@@ -337,6 +337,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getPROJECT_DROP_FAILED_JOBS_NOT_KILLED() {
+        return "无法删除项目 \"%s\"，请先终止处于以下状态的任务： 运行阶段，初始阶段，暂停阶段。";
+    }
+
+    @Override
     public String getSQL_LIST_IS_EMPTY() {
         return "请输入参数 “sqls“。";
     }
@@ -553,8 +558,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getUSER_IN_LOCKED_STATUS(long leftSeconds, long nextLockSeconds) {
-        return "为了账号安全，用户 %s 被锁定。请在 " + formatSeconds(leftSeconds) + "后再试。"
-                + formatNextLockDuration(nextLockSeconds);
+        return "为了账号安全，用户 %s 被锁定。请在 " + formatSeconds(leftSeconds) + "后再试。" + formatNextLockDuration(nextLockSeconds);
     }
 
     @Override

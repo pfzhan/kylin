@@ -427,6 +427,11 @@ public class Message {
         return "Can't delete project \"%s\". Please disable tiered storage firstly.";
     }
 
+    public String getPROJECT_DROP_FAILED_JOBS_NOT_KILLED() {
+        return "Can't delete project \"%s\". Please have all jobs in running/pending status been killed before "
+                + "dropping the project";
+    }
+
     public String getPROJECT_UNMODIFIABLE_REASON() {
         return "Model recommendation is not supported for this project at the moment. Please turn on the recommendation mode in project setting, and try again.";
     }

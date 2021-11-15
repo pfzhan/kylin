@@ -45,7 +45,11 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
+import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -657,10 +661,39 @@ public class ProjectServiceTest extends ServiceTestBase {
             projectService.createProject(project, projectInstance);
             return null;
         }, project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.dropProject(project);
+            return null;
+        }, project);
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        Assert.assertNull(prjManager.getProject(project));
+        Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
+    }
+
+    @Test
+    public void testDropProjectWithAllJobsBeenKilled() {
+        KylinConfig.getInstanceFromEnv().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+        val project = "project13";
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName(project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(project, projectInstance);
+            return null;
+        }, project);
 
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
         scheduler.init(new JobEngineConfig(getTestConfig()));
         Assert.assertTrue(scheduler.hasStarted());
+        NExecutableManager jobMgr = NExecutableManager.getInstance(getTestConfig(), project);
+
+        val job1 = new DefaultChainedExecutable();
+        job1.setProject(project);
+        val task1 = new ShellExecutable();
+        job1.addTask(task1);
+        jobMgr.addJob(job1);
+
+        jobMgr.updateJobOutput(job1.getId(), ExecutableState.DISCARDED, null, null, null);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             projectService.dropProject(project);
@@ -669,6 +702,50 @@ public class ProjectServiceTest extends ServiceTestBase {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
         Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
+    }
+
+    @Test
+    public void testDropProjectWithoutAllJobsBeenKilled() {
+        KylinConfig.getInstanceFromEnv().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+        val project = "project13";
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName(project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(project, projectInstance);
+            return null;
+        }, project);
+
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        scheduler.init(new JobEngineConfig(getTestConfig()));
+        Assert.assertTrue(scheduler.hasStarted());
+        NExecutableManager jobMgr = NExecutableManager.getInstance(getTestConfig(), project);
+
+        val job1 = new DefaultChainedExecutable();
+        job1.setProject(project);
+        val task1 = new ShellExecutable();
+        job1.addTask(task1);
+        jobMgr.addJob(job1);
+
+        val job2 = new DefaultChainedExecutable();
+        job2.setProject(project);
+        val task2 = new ShellExecutable();
+        job2.addTask(task2);
+        jobMgr.addJob(job2);
+
+        val job3 = new DefaultChainedExecutable();
+        job3.setProject(project);
+        val task3 = new ShellExecutable();
+        job3.addTask(task3);
+        jobMgr.addJob(job3);
+
+        jobMgr.updateJobOutput(job2.getId(), ExecutableState.RUNNING, null, null, null);
+        jobMgr.updateJobOutput(job3.getId(), ExecutableState.PAUSED, null, null, null);
+
+        Assert.assertThrows(KylinException.class, () -> projectService.dropProject(project));
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        Assert.assertNotNull(prjManager.getProject(project));
+        Assert.assertNotNull(NDefaultScheduler.getInstanceByProject(project));
     }
 
     @Test
