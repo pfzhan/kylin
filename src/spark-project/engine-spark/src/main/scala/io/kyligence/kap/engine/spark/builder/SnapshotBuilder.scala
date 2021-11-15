@@ -122,23 +122,22 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
   }
 
   private def updateTableSnapshot(project: String, table: TableDesc, resultMap: util.Map[String, Result]): Unit = {
-    val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
-    val copy = tableMetadataManager.copyForWrite(table)
-    copy.setLastSnapshotPath(resultMap.get(copy.getIdentity).path)
-    val fs = HadoopUtil.getWorkingFileSystem
-    val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
-    var snapshotSize = 0L
-    val fullSnapShotPath = baseDir + copy.getLastSnapshotPath
-    try {
-      snapshotSize = HadoopUtil.getContentSummary(fs, new Path(fullSnapShotPath)).getLength
-    } catch {
-      case e: Throwable => logWarning(s"Fetch snapshot size for ${copy.getIdentity} from ${fullSnapShotPath}", e)
-    }
-    copy.setLastSnapshotSize(snapshotSize)
-
     // define the updating operations
     class TableUpdateOps extends UnitOfWork.Callback[TableDesc] {
       override def process(): TableDesc = {
+        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
+        val copy = tableMetadataManager.copyForWrite(table)
+        copy.setLastSnapshotPath(resultMap.get(copy.getIdentity).path)
+        val fs = HadoopUtil.getWorkingFileSystem
+        val baseDir = KapConfig.getInstanceFromEnv.getMetadataWorkingDirectory
+        var snapshotSize = 0L
+        val fullSnapShotPath = baseDir + copy.getLastSnapshotPath
+        try {
+          snapshotSize = HadoopUtil.getContentSummary(fs, new Path(fullSnapShotPath)).getLength
+        } catch {
+          case e: Throwable => logWarning(s"Fetch snapshot size for ${copy.getIdentity} from ${fullSnapShotPath}", e)
+        }
+        copy.setLastSnapshotSize(snapshotSize)
         tableMetadataManager.updateTableDesc(copy)
         copy
       }
@@ -147,22 +146,21 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
   }
 
   private def updateTable(project: String, table: String, map: util.Map[String, Result]): Unit = {
-    val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
-    var tableExt = tableMetadataManager.getOrCreateTableExt(table)
-    tableExt = tableMetadataManager.copyForWrite(tableExt)
-    var tableDesc = tableMetadataManager.getTableDesc(table);
-    var tableDescCopy = tableMetadataManager.copyForWrite(tableDesc)
-
-    val result = map.get(tableDescCopy.getIdentity)
-    if (result.totalRows != -1) {
-      tableExt.setOriginalSize(result.originalSize)
-      tableExt.setTotalRows(result.totalRows)
-      tableDescCopy.setSnapshotTotalRows(result.totalRows)
-    }
-
     // define the updating operations
     class TableUpdateOps extends UnitOfWork.Callback[TableExtDesc] {
       override def process(): TableExtDesc = {
+        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv, project)
+        var tableExt = tableMetadataManager.getOrCreateTableExt(table)
+        tableExt = tableMetadataManager.copyForWrite(tableExt)
+        var tableDesc = tableMetadataManager.getTableDesc(table);
+        var tableDescCopy = tableMetadataManager.copyForWrite(tableDesc)
+
+        val result = map.get(tableDescCopy.getIdentity)
+        if (result.totalRows != -1) {
+          tableExt.setOriginalSize(result.originalSize)
+          tableExt.setTotalRows(result.totalRows)
+          tableDescCopy.setSnapshotTotalRows(result.totalRows)
+        }
         tableMetadataManager.saveTableExt(tableExt)
         tableMetadataManager.updateTableDesc(tableDescCopy)
         tableExt
