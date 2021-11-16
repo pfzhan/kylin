@@ -68,15 +68,15 @@ else
 fi
 
 # check SUBMIT permission
-submit_str=SUBMIT_APPLICATIONS
-st_submit=`mapred queue -showacls | awk '$1=="'$kylin_storage_queue'" {print $2}'`
-en_submit=`mapred queue -showacls | awk '$1=="'$kylin_engine_queue'" {print $2}'`
+submit_reg='.*SUBMIT_APPLICATIONS.*'
+storage_submit_info=`mapred queue -showacls | awk '$1=="'$kylin_storage_queue'" {print $2}'`
+engine_submit_info=`mapred queue -showacls | awk '$1=="'$kylin_engine_queue'" {print $2}'`
 
-if [[ $submit_str =~ $st_submit  ]] && [[ $submit_str =~ $en_submit ]];then
+if [[ "$storage_submit_info" =~ $submit_reg ]] && [[ "$engine_submit_info" =~ $submit_reg ]];then
   echo "'$kylin_principal' can submit to '$kylin_storage_queue' and '$kylin_engine_queue'"
-elif [[ $submit_str =~ $st_submit  ]];then
+elif [[ "$storage_submit_info" =~ $submit_reg ]];then
   quit "ERROR: Checking Spark Queue failed, '$kylin_principal' can not submit task to '$kylin_engine_queue'"
-elif [[ $submit_str =~ $en_submit ]];then
+elif [[ "$engine_submit_info" =~ $submit_reg ]];then
   quit "ERROR: Checking Spark Queue failed, '$kylin_principal' can not submit task to  '$kylin_storage_queue'"
 else
   quit "ERROR: Checking Spark Queue failed, '$kylin_principal' can not submit task to  '$kylin_storage_queue' and '$kylin_engine_queue'"
@@ -84,14 +84,14 @@ fi
 
 # check the queue is running or not
 running_str=running
-st_running=`mapred queue -info $kylin_storage_queue | awk '$2=="State" {print $4}'`
-en_running=`mapred queue -info $kylin_engine_queue | awk '$2=="State" {print $4}'`
+storage_running_info=`mapred queue -info $kylin_storage_queue | awk '$2=="State" {print $4}'`
+engine_running_info=`mapred queue -info $kylin_engine_queue | awk '$2=="State" {print $4}'`
 
-if [ $st_running = $running_str ] && [ $en_running = $running_str ];then
+if [ $storage_running_info = $running_str ] && [ $engine_running_info = $running_str ];then
   echo "'$kylin_storage_queue' and '$kylin_engine_queue' are running"
-elif [ $st_running = $running_str ];then
+elif [ $storage_running_info = $running_str ];then
   quit "ERROR: Checking Spark Queue failed, '$kylin_engine_queue' is not running"
-elif [ $en_running = $running_str ];then
+elif [ $engine_running_info = $running_str ];then
   quit "ERROR: Checking Spark Queue failed, '$kylin_storage_queue' is not running"
 else
   quit "ERROR: Checking Spark Queue failed, '$kylin_storage_queue' and '$kylin_engine_queue' are not running"

@@ -43,34 +43,54 @@ kylin_engine_host=`$KYLIN_HOME/bin/get-properties.sh kylin.engine.spark-conf.spa
 #ipv4 or ipv6
 ip_reg='^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){6}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^::([0-9a-fA-F]{1,4}:){0,4}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:):([0-9a-fA-F]{1,4}:){0,3}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){2}:([0-9a-fA-F]{1,4}:){0,2}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){3}:([0-9a-fA-F]{1,4}:){0,1}((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){4}:((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^:((:[0-9a-fA-F]{1,4}){1,6}|:)$|^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,5}|:)$|^([0-9a-fA-F]{1,4}:){2}((:[0-9a-fA-F]{1,4}){1,4}|:)$|^([0-9a-fA-F]{1,4}:){3}((:[0-9a-fA-F]{1,4}){1,3}|:)$|^([0-9a-fA-F]{1,4}:){4}((:[0-9a-fA-F]{1,4}){1,2}|:)$|^([0-9a-fA-F]{1,4}:){5}:([0-9a-fA-F]{1,4})?$|^([0-9a-fA-F]{1,4}:){6}:$'
 
-# flag variable to indicate whether the host is valid or not
-storage_host_vaild=false
-engine_host_vaild=false
+# 0:succeed 1:ERROR 4:WARN
+status=0
+log_str="Current kylin_engine_master is '$kylin_engine_master'.\n"
 
 # kylin_storage_host need to be checked every time
-if [[ "$kylin_storage_host" =~ $ip_reg ]];then
-  storage_host_vaild=true
+if [ -z $kylin_storage_host ];then
+  log_str=$log_str"WARN: 'kylin.storage.columnar.spark-conf.spark.driver.host' is missed, it may cause some problems.\n"
+  status=4
+else
+  if [[ "$kylin_storage_host" =~ $ip_reg ]];then
+    log_str=$log_str"PASS: 'kylin.storage.columnar.spark-conf.spark.driver.host' is valid, checking passed.\n"
+  else
+    log_str=$log_str"ERROR: 'kylin.storage.columnar.spark-conf.spark.driver.host:' '$kylin_storage_host' is not a valid ip address, checking failed.\n"
+    status=1
+  fi
 fi
 
 # kylin_engine_host need to be a valid ip address when kylin_engine_master is "yarn-client" or "yarn"
 # and it should not be set when kylin_engine_master is "yarn-cluster"
-if [[ "cluster" =~ $kylin_engine_master ]];then
-  if [ ${#kylin_engine_host} = 0 ];then
-    engine_host_vaild=true
+# check engine driver host
+if [[ "$kylin_engine_master" =~ .*cluster$ ]];then
+  if [ -z $kylin_engine_host ];then
+    log_str=$log_str"PASS: 'kylin.engine.spark-conf.spark.driver.host' should not be set when kylin_engine_master is 'yarn-cluster', checking passed"
+  else
+    log_str=$log_str"ERROR: 'kylin.engine.spark-conf.spark.driver.host'should not be set when kylin_engine_master is 'yarn-cluster', but it is set as '$kylin_engine_host', checking failed"
+    status=1
   fi
-elif [[ "$kylin_engine_host" =~ $ip_reg ]];then
-    engine_host_vaild=true
-fi
-
-echo -e "Current kylin_engine_master is '$kylin_engine_master'\nNote: kylin_engine_host need to be a valid ip address when kylin_engine_master is 'yarn-client' or 'yarn'and it should not be set when kylin_engine_master is 'yarn-cluster'"
-if $storage_host_vaild && $engine_host_vaild;then
-  echo "kylin.storage.host '$kylin_storage_host' and kylin.engine.host '$kylin_engine_host' are valid"
-elif $storage_host_vaild;then
-  quit "ERROR: Checking Spark Driver Host failed, kylin.engine.host '$kylin_engine_host' is not valid',please check the logs/check-env.out for the details."
-elif $engine_host_vaild;then
-  quit "ERROR: Checking Spark Driver Host failed, kylin.storage.host '$kylin_storage_host' is not valid',please check the logs/check-env.out for the details."
 else
-  quit "ERROR: Checking Spark Driver Host failed, kylin.engine.host '$kylin_engine_host' and kylin.storage.host '$kylin_storage_host' are not valid, please check the logs/check-env.out for the details."
+  if [[ "$kylin_engine_host" =~ $ip_reg ]];then
+    log_str=$log_str"PASS: 'kylin.engine.spark-conf.spark.driver.host' is valid, checking passed."
+  elif [ -z $kylin_engine_host ];then
+    log_str=$log_str"WARN: 'kylin.engine.spark-conf.spark.driver.host' is missed, it may cause some problems."
+    if [ $status = 0 ];then
+      status=4
+    fi
+  else
+    log_str=$log_str"ERROR: 'kylin.engine.spark-conf.spark.driver.host:' '$kylin_engine_host' is not a valid ip address, checking failed."
+    status=1
+  fi
 fi
 
-echo "Checking Spark Driver Host succeed"
+echo -e $log_str
+
+if [ $status = 0 ];then
+  echo "Checking Spark Driver Host succeed"
+  exit 0
+elif [ $status = 1 ];then
+  quit "ERROR: $log_str"
+elif [ $status = 4 ]; then
+  exit 4
+fi

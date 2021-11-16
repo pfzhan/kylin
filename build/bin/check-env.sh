@@ -79,6 +79,11 @@ if [[ "$CHECKENV_ING" == "" ]]; then
                     echo "...................................................[`setColor 32 PASS`]"
                 elif [[ $rtn == 3 ]]; then
                     echo "...................................................[`setColor 33 SKIP`]"
+                elif [[ $rtn == 4 ]];then
+                    echo "...................................................[`setColor 33 WARN`]"
+                    WARN_INFO=`tail -n 3 ${LOG}`
+                    echo `setColor 33 "WARNING:"`
+                    echo -e "$WARN_INFO"  | sed 's/^/    &/g'
                 else
                     echo "...................................................[`setColor 31 FAIL`]"
                     cat  ${ERRORS} >> ${LOG}
