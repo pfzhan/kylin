@@ -449,8 +449,6 @@ public class NExecutableManager {
         return new SequenceInputStream(inputStreamVector.elements());
     }
 
-    //for ut
-    @VisibleForTesting
     public InputStream getLogStream(String resPath) {
         try {
             FileSystem fs = HadoopUtil.getWorkingFileSystem();
@@ -749,7 +747,6 @@ public class NExecutableManager {
         updateJobOutput(jobId, ExecutableState.READY, pausedTime);
     }
 
-    @VisibleForTesting
     public Map<String, String> getPausedTime(AbstractExecutable job) {
         try {
             val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
@@ -990,7 +987,6 @@ public class NExecutableManager {
         job.onExecuteStopHook();
     }
 
-    @VisibleForTesting
     public void updateStagePaused(AbstractExecutable job) {
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
@@ -1011,7 +1007,6 @@ public class NExecutableManager {
         }
     }
 
-    @VisibleForTesting
     public Map<String, String> getWaiteTime(AbstractExecutable job) {
         try {
             val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
@@ -1058,7 +1053,6 @@ public class NExecutableManager {
         }
     }
 
-    @VisibleForTesting
     public ExecutableOutputPO getJobOutput(String taskOrJobId, String segmentId) {
         val jobId = extractJobId(taskOrJobId);
         val executablePO = executableDao.getJobByUuid(jobId);
@@ -1200,7 +1194,6 @@ public class NExecutableManager {
         });
     }
 
-    @VisibleForTesting
     public boolean setStageOutput(ExecutableOutputPO jobOutput, String taskOrJobId, ExecutableState newStatus,
             Map<String, String> updateInfo, String failedMsg, Boolean isRestart) {
         ExecutableState oldStatus = ExecutableState.valueOf(jobOutput.getStatus());

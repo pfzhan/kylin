@@ -196,8 +196,16 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
         return this.getParam(NBatchConstants.P_DIST_META_URL);
     }
 
+    public void waiteForResourceStart() {
+        // mark waiteForResource stage start
+        getExecutableManager(getProject()) //
+                .updateStageStatus(getId() + "_00", null, ExecutableState.RUNNING, null, null);
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        waiteForResourceStart();
+
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = getConfig();
 

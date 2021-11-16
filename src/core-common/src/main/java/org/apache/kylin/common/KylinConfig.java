@@ -638,7 +638,6 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-    @VisibleForTesting
     public Properties reloadKylinConfig2Properties(Properties properties) {
         Properties result = BCC.check(properties);
         result.setProperty(BCC.check("kylin.metadata.url.identifier"), getMetadataUrlPrefixFromProperties(properties));
@@ -657,29 +656,24 @@ public class KylinConfig extends KylinConfigBase {
         return result;
     }
 
-    @VisibleForTesting
     public String getMetadataUrlPrefixFromProperties(Properties properties) {
         return getMetadataUrlFromProperties(properties).getIdentifier();
     }
 
-    @VisibleForTesting
     public StorageURL getMetadataUrlFromProperties(Properties properties) {
         return StorageURL.valueOf(getOptionalFromProperties("kylin.metadata.url", "kylin_metadata@jdbc", properties));
     }
 
-    @VisibleForTesting
     public String getOptionalFromProperties(String prop, String dft, Properties properties) {
         final String property = System.getProperty(prop);
         return property != null ? getSubstitutor().replace(property)
                 : getSubstitutor().replace(properties.getProperty(prop, dft));
     }
 
-    @VisibleForTesting
     public String getChannelFromProperties(Properties properties) {
         return getOptionalFromProperties("kylin.env.channel", "on-premises", properties);
     }
 
-    @VisibleForTesting
     public String getMetadataUrlUniqueIdFromProperties(Properties properties) {
         if (KapConfig.CHANNEL_CLOUD.equalsIgnoreCase(getChannelFromProperties(properties))) {
             return getMetadataUrlPrefixFromProperties(properties);
@@ -693,7 +687,6 @@ public class KylinConfig extends KylinConfigBase {
         return instanceId;
     }
 
-    @VisibleForTesting
     public String getHdfsWorkingDirectoryFromProperties(Properties properties) {
         String root = getOptionalFromProperties(DATA_WORKING_DIR_PROP, null, properties);
         boolean compriseMetaId = false;

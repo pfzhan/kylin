@@ -78,13 +78,11 @@ public class SegmentBuildJob extends SegmentJob {
         }
         val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
         waiteForResource.onStageFinished(true);
+        infos.recordStageId("");
     }
 
     @Override
     protected final void doExecute() throws Exception {
-        val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
-        waiteForResource.onStageFinished(true);
-        infos.recordStageId("");
         // tryRefreshSnapshots();
         REFRESH_SNAPSHOTS.create(this, null, null).toWork();
 
@@ -142,9 +140,12 @@ public class SegmentBuildJob extends SegmentJob {
                 GENERATE_FLAT_TABLE.createStage(this, seg, buildParam, exec);
                 GATHER_FLAT_TABLE_STATS.createStage(this, seg, buildParam, exec);
                 BUILD_LAYER.createStage(this, seg, buildParam, exec);
-                REFRESH_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
 
                 buildSegment(seg, exec);
+
+                val refreshColumnBytes = REFRESH_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
+                refreshColumnBytes.onStageStart();
+                refreshColumnBytes.execute();
             } catch (IOException e) {
                 Throwables.propagate(e);
             }

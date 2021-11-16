@@ -119,7 +119,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setId(abstractExecutable.getId());
         executableResponse.setExecStartTime(abstractExecutable.getStartTime());
         executableResponse.setCreateTime(abstractExecutable.getCreateTime());
-        executableResponse.setDuration(abstractExecutable.getDuration());
+        executableResponse.setDuration(abstractExecutable.getDurationWithoutPausedTime());
         executableResponse.setLastModified(abstractExecutable.getLastModified());
         executableResponse.setTargetModel(abstractExecutable.getTargetSubject());
         executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());

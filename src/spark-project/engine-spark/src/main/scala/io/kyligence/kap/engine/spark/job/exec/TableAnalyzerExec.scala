@@ -33,7 +33,8 @@ class TableAnalyzerExec(id: String) extends BuildExec(id) {
 
   def analyzerTable(): Unit = {
     for (stage <- subStages.asScala) {
-      stage.toWork()
+      stage.onStageStart()
+      stage.execute()
     }
   }
 

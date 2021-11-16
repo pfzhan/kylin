@@ -46,6 +46,7 @@ import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IllegalFormatException;
@@ -55,6 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -62,6 +64,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
@@ -75,7 +78,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -647,6 +649,44 @@ public abstract class AbstractExecutable implements Executable {
         return getEndTime(getOutput());
     }
 
+    // just using to get job duration in get job list
+    public long getDurationWithoutPausedTime() {
+        // waite time in output
+        Map<String, String> pausedTimeMap;
+        try {
+            pausedTimeMap = JsonUtil
+                    .readValueAsMap(getOutput().getExtra().getOrDefault(NBatchConstants.P_PAUSED_TIME, "{}"));
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+            pausedTimeMap = Maps.newHashMap();
+        }
+        var duration = getDuration();
+        if (this instanceof ChainedExecutable) {
+            val tasks = ((ChainedExecutable) this).getTasks();
+            val jobAtomicDuration = new AtomicLong(0);
+            val finalPausedTimeMap = pausedTimeMap;
+            tasks.forEach(task -> {
+                long pausedTime = Long.parseLong(finalPausedTimeMap.getOrDefault(task.getId(), "0"));
+                var taskDuration = task.getDuration() - pausedTime;
+                if (task instanceof ChainedStageExecutable) {
+                    val stagesMap = ((ChainedStageExecutable) task).getStagesMap();
+                    if (stagesMap.size() == 1) {
+                        for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
+                            taskDuration = entry.getValue().stream().map(stage -> {
+                                val pausedStage = entry.getKey() + stage.getId();
+                                val stagePausedTime = finalPausedTimeMap.getOrDefault(pausedStage, "0");
+                                return getDuration(stage.getOutput(entry.getKey())) - Long.parseLong(stagePausedTime);
+                            }).mapToLong(Long::valueOf).sum();
+                        }
+                    }
+                }
+                jobAtomicDuration.addAndGet(taskDuration);
+            });
+            duration = jobAtomicDuration.get();
+        }
+        return duration;
+    }
+
     public long getDuration() {
         return getDuration(getOutput());
     }
@@ -800,7 +840,6 @@ public abstract class AbstractExecutable implements Executable {
                 .toString();
     }
 
-    @VisibleForTesting
     public <T> T wrapWithExecuteException(final Callable<T> lambda) throws ExecuteException {
         Exception exception = null;
         try {

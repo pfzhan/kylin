@@ -65,9 +65,12 @@ public class SegmentMergeJob extends SegmentJob {
                 val buildParam = new BuildParam();
                 MERGE_FLAT_TABLE.createStage(this, seg, buildParam, exec);
                 MERGE_INDICES.createStage(this, seg, buildParam, exec);
-                MERGE_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
 
                 exec.mergeSegment();
+
+                val mergeColumnBytes = MERGE_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
+                mergeColumnBytes.onStageStart();
+                mergeColumnBytes.execute();
             } catch (IOException e) {
                 Throwables.propagate(e);
             }

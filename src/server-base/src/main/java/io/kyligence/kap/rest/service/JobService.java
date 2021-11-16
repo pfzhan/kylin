@@ -422,12 +422,12 @@ public class JobService extends BasicService {
         getExecutableManager(project).discardJob(job.getId());
     }
 
-    public void killExistApplication(String project, String jobId){
+    public void killExistApplication(String project, String jobId) {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         killExistApplication(job);
     }
 
-    public void killExistApplication(AbstractExecutable job){
+    public void killExistApplication(AbstractExecutable job) {
         if (job instanceof ChainedExecutable) {
             // if job's task is running spark job, will kill this application
             ((ChainedExecutable) job).getTasks().stream() //
@@ -569,6 +569,14 @@ public class JobService extends BasicService {
                 }
                 if (MapUtils.isNotEmpty(stringSubStageMap)) {
                     executableStepResponse.setSegmentSubStages(stringSubStageMap);
+                    if (stringSubStageMap.size() == 1) {
+                        for (Map.Entry<String, ExecutableStepResponse.SubStages> entry : stringSubStageMap.entrySet()) {
+                            val taskDuration = entry.getValue().getStage().stream()
+                                    .map(ExecutableStepResponse::getDuration) //
+                                    .mapToLong(Long::valueOf).sum();
+                            executableStepResponse.setDuration(taskDuration);
+                        }
+                    }
                 }
                 if (CollectionUtils.isNotEmpty(subStages)) {
                     executableStepResponse.setSubStages(subStages);
@@ -844,7 +852,6 @@ public class JobService extends BasicService {
         executableManager.updateStageStatus(taskId, segmentId, newStatus, updateInfo, errMsg);
     }
 
-    @VisibleForTesting
     public ExecutableState convertToExecutableState(String status) {
         if (StringUtils.isBlank(status)) {
             return null;
