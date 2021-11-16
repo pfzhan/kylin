@@ -103,10 +103,10 @@ public class AsyncTaskServiceTest extends NLocalFileMetadataTestCase {
         // prepare query history to RDBMS
         RDBMSQueryHistoryDAO queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         queryHistoryDAO.deleteAllQueryHistory();
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, true));
-        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, false));
-        QueryMetrics queryMetrics = RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311512000L, 1L, true, PROJECT, false);
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311572000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311632000L, 1L, true, PROJECT, true));
+        queryHistoryDAO.insert(RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311692000L, 1L, true, PROJECT, false));
+        QueryMetrics queryMetrics = RDBMSQueryHistoryDaoTest.createQueryMetrics(1580311752000L, 1L, true, PROJECT, false);
         queryMetrics.setSql("select * from PRT LIMIT 500");
         queryMetrics.setQueryStatus("FAILED");
         queryMetrics.getQueryHistoryInfo().setQueryMsg("From line 1, column 15 to line 1, column 17: Object 'PRT' not found while executing SQL: " + "\"select * from PRT LIMIT 500\"");
@@ -131,10 +131,10 @@ public class AsyncTaskServiceTest extends NLocalFileMetadataTestCase {
 
         queryHistoryService.downloadQueryHistories(request, response, ZoneOffset.ofHours(8), 8, false);
         assertEquals("\uFEFFStart Time,Duration,Query ID,SQL Statement,Answered by,Query Status,Query Node,Submitter,Query Message\n"
-                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
-                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select * from PRT LIMIT 500\",CONSTANTS,FAILED,,ADMIN,\"From line 1, column 15 to line 1, column 17: Object 'PRT' not found while executing SQL: \"\"select * from PRT LIMIT 500\"\"\"\n"
-                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n"
-                        + "2020-01-29 23:25:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n",
+                        + "2020-01-29 23:29:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select * from PRT LIMIT 500\",CONSTANTS,FAILED,,ADMIN,\"From line 1, column 15 to line 1, column 17: Object 'PRT' not found while executing SQL: \"\"select * from PRT LIMIT 500\"\"\"\n"
+                        + "2020-01-29 23:28:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",CONSTANTS,SUCCEEDED,,ADMIN,\n"
+                        + "2020-01-29 23:27:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n"
+                        + "2020-01-29 23:26:12 GMT+8,1ms,6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1,\"select LSTG_FORMAT_NAME from KYLIN_SALES LIMIT 500\",\"[Deleted Model,Deleted Model]\",SUCCEEDED,,ADMIN,\n",
                 baos.toString(StandardCharsets.UTF_8.name()));
         
         overwriteSystemProp("kylin.query.query-history-download-timeout-seconds", "3s");
