@@ -21,30 +21,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package org.apache.kylin.common.exception;
 
-public enum JobErrorCode implements ErrorCodeSupplier {
-
+public enum JobExceptionResolve implements ExceptionResolveSupplier{
     JOB_BUILDING_ERROR("KE-030001000"),
-    SANITY_CHECK_ERROR("KE-030001001"),
-    JOB_CONFIGURATION_ERROR("KE-030001002"),
+
     JOB_DATE_FORMAT_NOT_MATCH_ERROR("KE-030001003"),
     JOB_OUT_OF_MEMORY_ERROR("KE-030001004"),
     JOB_NO_SPACE_LEFT_ON_DEVICE_ERROR("KE-030001005"),
-    JOB_CLASS_NOT_FOUND_ERROR("KE-030001006"),
+    JOB_CLASS_NOT_FOUND_ERROR("KE-030001006");
 
-    SECOND_STORAGE_SEGMENTS_CONFLICTS("KE-030002001"),
-    SECOND_STORAGE_JOB_EXISTS("KE-030002002"),
-    SECOND_STORAGE_PROJECT_JOB_EXISTS("KE-030002003");
 
-    private final ErrorCode errorCode;
+    private final ExceptionResolve resolve;
 
-    JobErrorCode(String code) {
-        errorCode = new ErrorCode(code);
+    JobExceptionResolve(String code) {
+        resolve = new ExceptionResolve(code);
     }
 
     @Override
-    public ErrorCode toErrorCode() {
-        return errorCode;
+    public ExceptionResolve toExceptionResolve() {
+        return resolve;
     }
 }

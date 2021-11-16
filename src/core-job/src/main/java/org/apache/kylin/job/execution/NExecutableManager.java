@@ -484,6 +484,7 @@ public class NExecutableManager {
         result.setFailedStepId(jobOutput.getFailedStepId());
         result.setFailedSegmentId(jobOutput.getFailedSegmentId());
         result.setFailedStack(jobOutput.getFailedStack());
+        result.setFailedReason(jobOutput.getFailedReason());
         return result;
     }
 
@@ -1126,7 +1127,8 @@ public class NExecutableManager {
     }
 
     /** just used to update job error mess */
-    public void updateJobError(String taskOrJobId, String failedStepId, String failedSegmentId, String failedStack) {
+    public void updateJobError(String taskOrJobId, String failedStepId, String failedSegmentId, String failedStack,
+            String failedReason) {
         val jobId = extractJobId(taskOrJobId);
         // job's error is step's error, need not update again
         if (StringUtils.equals(jobId, failedStepId)) {
@@ -1137,6 +1139,7 @@ public class NExecutableManager {
             jobOutput.setFailedStepId(failedStepId);
             jobOutput.setFailedSegmentId(failedSegmentId);
             jobOutput.setFailedStack(failedStack);
+            jobOutput.setFailedReason(failedReason);
             return true;
         });
     }

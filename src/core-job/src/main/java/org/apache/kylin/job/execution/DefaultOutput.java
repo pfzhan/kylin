@@ -71,5 +71,6 @@ public class DefaultOutput implements Output {
     private String failedStepId;
     private String failedSegmentId;
     private String failedStack;
+    private String failedReason;
 
 }

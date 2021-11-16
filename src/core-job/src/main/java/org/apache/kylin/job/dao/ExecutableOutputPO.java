@@ -112,6 +112,9 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("failed_stack")
     private String failedStack;
 
+    @JsonProperty("failed_reason")
+    private String failedReason;
+
     public void addStartTime(long time) {
         //when ready -> suicidal/discarded, the start time is 0
         if (startTime == 0) {

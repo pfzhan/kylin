@@ -100,6 +100,12 @@ public class ExecutableStepResponse {
     @JsonProperty("failed_resolve")
     private String failedResolve;
 
+    @JsonProperty("failed_reason")
+    private String failedReason;
+
+    @JsonProperty("failed_code")
+    private String failedCode;
+
     public void putInfo(String key, String value) {
         getInfo().put(key, value);
     }

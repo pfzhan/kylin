@@ -76,4 +76,6 @@ public interface Output {
     String getFailedSegmentId();
 
     String getFailedStack();
+
+    String getFailedReason();
 }

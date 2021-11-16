@@ -40,4 +40,6 @@ public class JobErrorRequest implements ProjectInsensitiveRequest {
     private String failedSegmentId;
     @JsonProperty("failed_stack")
     private String failedStack;
+    @JsonProperty("failed_reason")
+    private String failedReason;
 }

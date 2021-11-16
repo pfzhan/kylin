@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
-import static io.kyligence.kap.rest.service.JobService.EXCEPTION_RESOLVE_DEFAULT;
-import static io.kyligence.kap.rest.service.JobService.EXCEPTION_RESOLVE_PATH;
+import static io.kyligence.kap.rest.service.JobService.EXCEPTION_CODE_DEFAULT;
+import static io.kyligence.kap.rest.service.JobService.EXCEPTION_CODE_PATH;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 
 import java.io.IOException;
@@ -33,6 +33,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ExceptionReason;
+import org.apache.kylin.common.exception.ExceptionResolve;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.JobExceptionReason;
+import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
@@ -73,6 +79,7 @@ import io.kyligence.kap.engine.spark.job.step.NStageForMerge;
 import io.kyligence.kap.engine.spark.job.step.NStageForSnapshot;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
+import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
 import lombok.var;
 
@@ -157,20 +164,98 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetExceptionResolve() throws IOException {
-        val exceptionResolveStream = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
-        val map = JsonUtil.readValue(exceptionResolveStream, Map.class);
+    public void testGetExceptionCode() throws IOException {
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        manager.addJob(executable);
 
-        var exceptionResolve = jobService.getExceptionResolve(null);
+        val exceptionCodeStream = getClass().getClassLoader().getResource(EXCEPTION_CODE_PATH).openStream();
+        val map = JsonUtil.readValue(exceptionCodeStream, Map.class);
+        var expectedCode = EXCEPTION_CODE_DEFAULT;
 
-        var expectedResolve = EXCEPTION_RESOLVE_DEFAULT;
-        Assert.assertEquals(expectedResolve, exceptionResolve);
+        var exceptionCode = jobService.getExceptionCode(executable.getOutput());
+        Assert.assertEquals(expectedCode, exceptionCode);
 
-        val dateFormatNotMatch = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
-        val dateFormatNotMatchException = dateFormatNotMatch.split("\n")[0];
-        exceptionResolve = jobService.getExceptionResolve(dateFormatNotMatchException);
-        expectedResolve = JsonUtil.writeValueAsString(map.get(dateFormatNotMatchException));
-        Assert.assertEquals(expectedResolve, exceptionResolve);
+        val project = getProject();
+        val jobId = executable.getId();
+        var failedStepId = RandomUtil.randomUUIDStr();
+        var failedSegmentId = RandomUtil.randomUUIDStr();
+        var failedStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
+        var failedReason = "date format not match";
+
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, null, null);
+        exceptionCode = jobService.getExceptionCode(executable.getOutput());
+        Assert.assertEquals(expectedCode, exceptionCode);
+
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, null);
+        exceptionCode = jobService.getExceptionCode(executable.getOutput());
+        expectedCode = String.valueOf(map.get(failedReason));
+        Assert.assertEquals(expectedCode, exceptionCode);
+
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, "test", failedReason);
+        exceptionCode = jobService.getExceptionCode(executable.getOutput());
+        Assert.assertEquals(expectedCode, exceptionCode);
+
+    }
+
+    @Test
+    public void testSetExceptionResolveAndCode() {
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        manager.addJob(executable);
+
+        val project = getProject();
+        val jobId = executable.getId();
+        var failedStepId = RandomUtil.randomUUIDStr();
+        var failedSegmentId = RandomUtil.randomUUIDStr();
+        var failedStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
+        var failedReason = "date format not match";
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, failedReason);
+
+        ExecutableStepResponse executableStepResponse = new ExecutableStepResponse();
+        jobService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionReason().getReason(),
+                executableStepResponse.getFailedReason());
+
+        ErrorCode.setMsg("en");
+        ExceptionResolve.setLang("en");
+        jobService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionReason().getReason(),
+                executableStepResponse.getFailedReason());
+
+        // test default reason / code / resolve
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, "test");
+        jobService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_BUILDING_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason() + ": test",
+                executableStepResponse.getFailedReason());
+
+        ErrorCode.setMsg("en");
+        ExceptionResolve.setLang("en");
+        jobService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
+        Assert.assertEquals(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve(),
+                executableStepResponse.getFailedResolve());
+        Assert.assertEquals(JobErrorCode.JOB_BUILDING_ERROR.toErrorCode().getLocalizedString(),
+                executableStepResponse.getFailedCode());
+        Assert.assertEquals(JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason() + ": test",
+                executableStepResponse.getFailedReason());
     }
 
     @Test
@@ -187,18 +272,21 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedStepId = RandomUtil.randomUUIDStr();
         var failedSegmentId = RandomUtil.randomUUIDStr();
         var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
+        var failedReason = new KylinException(FAILED_UPDATE_JOB_STATUS, "test").getMessage();
 
-        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack);
+        jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, failedReason);
         var output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
         Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
         Assert.assertEquals(failedStack, output.getFailedStack());
+        Assert.assertEquals(failedReason, output.getFailedReason());
 
-        jobService.updateJobError(project, jobId, "", failedSegmentId, failedStack);
+        jobService.updateJobError(project, jobId, "", failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
         Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
         Assert.assertEquals(failedStack, output.getFailedStack());
+        Assert.assertEquals(failedReason, output.getFailedReason());
     }
 
     @Test
@@ -214,34 +302,39 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedStepId = RandomUtil.randomUUIDStr();
         var failedSegmentId = RandomUtil.randomUUIDStr();
         var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
+        var failedReason = new KylinException(FAILED_UPDATE_JOB_STATUS, "test").getMessage();
 
-        manager.updateJobError(jobId, jobId, failedSegmentId, failedStack);
+        manager.updateJobError(jobId, jobId, failedSegmentId, failedStack, failedReason);
         var output = manager.getJob(jobId).getOutput();
         Assert.assertNull(output.getFailedStepId());
         Assert.assertNull(output.getFailedSegmentId());
         Assert.assertNull(output.getFailedStack());
+        Assert.assertNull(output.getFailedReason());
 
-        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
+        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
         Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
         Assert.assertEquals(failedStack, output.getFailedStack());
+        Assert.assertEquals(failedReason, output.getFailedReason());
 
-        manager.updateJobError(jobId, "", failedSegmentId, failedStack);
+        manager.updateJobError(jobId, "", failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals("", output.getFailedStepId());
         Assert.assertEquals(failedSegmentId, output.getFailedSegmentId());
         Assert.assertEquals(failedStack, output.getFailedStack());
+        Assert.assertEquals(failedReason, output.getFailedReason());
 
-        manager.updateJobError(jobId, failedStepId, null, failedStack);
+        manager.updateJobError(jobId, failedStepId, null, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
         Assert.assertNull(output.getFailedSegmentId());
         Assert.assertEquals(failedStack, output.getFailedStack());
+        Assert.assertEquals(failedReason, output.getFailedReason());
     }
 
     @Test
-    public void testGetJobDetail() throws IOException {
+    public void testGetJobDetail() {
         val segmentId = RandomUtil.randomUUIDStr();
         val segmentId2 = RandomUtil.randomUUIDStr();
         val errMsg = "test output";
@@ -276,22 +369,24 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedStepId = logicStep2.getId();
         var failedSegmentId = segmentId;
         var failedStack = ExceptionUtils.getStackTrace(new NoRetryException("date format not match"));
+        var failedReason = "date format not match";
+        var failedResolve = JobExceptionResolve.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionResolve();
+        var failedCode = JobErrorCode.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toErrorCode();
         manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.ERROR, null, null, "test output");
-        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
+        manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
 
+        ExceptionReason.setLang("en");
         var jobDetail = jobService.getJobDetail(getProject(), executable.getId());
         Assert.assertEquals(1, jobDetail.size());
         var stepResponse = jobDetail.get(0);
         Assert.assertEquals(failedStepId, stepResponse.getFailedStepId());
         Assert.assertEquals(failedSegmentId, stepResponse.getFailedSegmentId());
         Assert.assertEquals(failedStack, stepResponse.getFailedStack());
+        Assert.assertEquals(JobExceptionReason.JOB_DATE_FORMAT_NOT_MATCH_ERROR.toExceptionReason().getReason(),
+                stepResponse.getFailedReason());
         Assert.assertEquals(logicStep2.getName(), stepResponse.getFailedStepName());
-
-        val exceptionResolveStream = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
-        val map = JsonUtil.readValue(exceptionResolveStream, Map.class);
-        val dateFormatNotMatchException = failedStack.split("\n")[0];
-        Assert.assertEquals(JsonUtil.writeValueAsString(map.get(dateFormatNotMatchException)),
-                stepResponse.getFailedResolve());
+        Assert.assertEquals(failedResolve.getResolve(), stepResponse.getFailedResolve());
+        Assert.assertEquals(failedCode.getLocalizedString(), stepResponse.getFailedCode());
     }
 
     @Test

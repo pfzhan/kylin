@@ -256,21 +256,21 @@ public class NJobController extends NBasicController {
     /**
      * RPC Call
      *
-     * @param errorRequest
+     * @param request
      * @return
      */
     @ApiOperation(value = "updateJobError", tags = { "DW" }, notes = "Update Body: job error")
     @PutMapping(value = "error")
     @ResponseBody
-    public EnvelopeResponse<String> updateJobError(@RequestBody JobErrorRequest errorRequest) {
-        if (StringUtils.isBlank(errorRequest.getProject()) && StringUtils.isBlank(errorRequest.getJobId())) {
+    public EnvelopeResponse<String> updateJobError(@RequestBody JobErrorRequest request) {
+        if (StringUtils.isBlank(request.getProject()) && StringUtils.isBlank(request.getJobId())) {
             throw new KylinException(EMPTY_JOB_ID, "At least one job should be selected to update stage status");
         }
-        checkProjectName(errorRequest.getProject());
-        logger.info("updateJobError errorRequest is : {}", errorRequest);
+        checkProjectName(request.getProject());
+        logger.info("updateJobError errorRequest is : {}", request);
 
-        jobService.updateJobError(errorRequest.getProject(), errorRequest.getJobId(), errorRequest.getFailedStepId(),
-                errorRequest.getFailedSegmentId(), errorRequest.getFailedStack());
+        jobService.updateJobError(request.getProject(), request.getJobId(), request.getFailedStepId(),
+                request.getFailedSegmentId(), request.getFailedStack(), request.getFailedReason());
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 

@@ -108,7 +108,7 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     try {
       logError(s"Job failed eventually. Reason: ${jf.reason}", jf.throwable)
       KylinBuildEnv.get().buildJobInfos.recordJobRetryInfos(RetryInfo(new util.HashMap, jf.throwable))
-      updateJobErrorInfo(jf.throwable)
+      updateJobErrorInfo(jf)
       stop()
     } finally {
       statusCode = 1
@@ -122,7 +122,7 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     eventLoop.stop()
   }
 
-  def updateJobErrorInfo(throwable: Throwable): Unit = {
+  def updateJobErrorInfo(jf: JobFailed): Unit = {
     val infos = KylinBuildEnv.get().buildJobInfos
     val context = worker.getApplication
 
@@ -134,7 +134,8 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     val failedStepId = if (StringUtils.isBlank(stageId)) jobStepId else stageId
 
     val failedSegmentId = infos.getSegmentId
-    val failedStack = ExceptionUtils.getStackTrace(throwable)
+    val failedStack = ExceptionUtils.getStackTrace(jf.throwable)
+    val failedReason = jf.reason
     val url = "/kylin/api/jobs/error"
 
     val payload: util.HashMap[String, Object] = new util.HashMap[String, Object](5)
@@ -143,6 +144,7 @@ class JobWorkSpace(eventLoop: KylinJobEventLoop, monitor: JobMonitor, worker: Jo
     payload.put("failed_step_id", failedStepId)
     payload.put("failed_segment_id", failedSegmentId)
     payload.put("failed_stack", failedStack)
+    payload.put("failed_reason", failedReason)
     val json = JsonUtil.writeValueAsString(payload)
 
     context.updateSparkJobInfo(url, json)

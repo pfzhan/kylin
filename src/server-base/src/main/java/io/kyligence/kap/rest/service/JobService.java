@@ -54,6 +54,12 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ExceptionReason;
+import org.apache.kylin.common.exception.ExceptionResolve;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.JobExceptionReason;
+import org.apache.kylin.common.exception.JobExceptionResolve;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -147,9 +153,8 @@ public class JobService extends BasicService {
 
     private static final String TOTAL_DURATION = "total_duration";
     private static final String LAST_MODIFIED = "last_modified";
-    public static final String EXCEPTION_RESOLVE_PATH = "exception_resolve.json";
-    public static final String EXCEPTION_RESOLVE_DEFAULT = "{\"en\": \"/monitor/exception_resolve.html\","
-            + "\"zh-cn\": \"/monitor/exception_resolve.html\"}";
+    public static final String EXCEPTION_CODE_PATH = "exception_to_code.json";
+    public static final String EXCEPTION_CODE_DEFAULT = "KE-030001000";
 
     static {
         jobTypeMap.put("INDEX_REFRESH", "Refresh Data");
@@ -529,10 +534,9 @@ public class JobService extends BasicService {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
                 executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
                 executableStepResponse.setFailedStack(output.getFailedStack());
-                val exception = output.getFailedStack().split("\n")[0];
-                val exceptionResolve = getExceptionResolve(exception);
-                executableStepResponse.setFailedResolve(exceptionResolve);
                 executableStepResponse.setFailedStepName(task.getName());
+
+                setExceptionResolveAndCodeAndReason(output, executableStepResponse);
             }
             if (task instanceof ChainedStageExecutable) {
                 Map<String, List<StageBase>> stagesMap = Optional.ofNullable(((NSparkExecutable) task).getStagesMap())
@@ -600,21 +604,55 @@ public class JobService extends BasicService {
 
     }
 
-    public String getExceptionResolve(String exceptionOrExceptionMessage) {
+    public void setExceptionResolveAndCodeAndReason(Output output, ExecutableStepResponse executableStepResponse) {
         try {
-            val exceptionResolveStream = getClass().getClassLoader().getResource(EXCEPTION_RESOLVE_PATH).openStream();
-            val exceptionResolve = JsonUtil.readValue(exceptionResolveStream, Map.class);
-            for (Object o : exceptionResolve.entrySet()) {
-                val entry = (Map.Entry) o;
-                if (StringUtils.contains(exceptionOrExceptionMessage, String.valueOf(entry.getKey()))) {
-                    val resolve = exceptionResolve.getOrDefault(entry.getKey(), EXCEPTION_RESOLVE_DEFAULT);
-                    return JsonUtil.writeValueAsString(resolve);
-                }
+            val exceptionCode = getExceptionCode(output);
+            executableStepResponse.setFailedResolve(ExceptionResolve.getResolve(exceptionCode));
+            executableStepResponse.setFailedCode(ErrorCode.getLocalizedString(exceptionCode));
+            if (StringUtils.equals(exceptionCode, EXCEPTION_CODE_DEFAULT)) {
+                val reason = StringUtils.isBlank(output.getFailedReason())
+                        ? JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason()
+                        : JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason() + ": "
+                                + output.getFailedReason();
+                executableStepResponse.setFailedReason(reason);
+            } else {
+                executableStepResponse.setFailedReason(ExceptionReason.getReason(exceptionCode));
             }
-            return EXCEPTION_RESOLVE_DEFAULT;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
-            return EXCEPTION_RESOLVE_DEFAULT;
+            executableStepResponse
+                    .setFailedResolve(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve());
+            executableStepResponse.setFailedCode(JobErrorCode.JOB_BUILDING_ERROR.toErrorCode().getLocalizedString());
+            executableStepResponse
+                    .setFailedReason(JobExceptionReason.JOB_BUILDING_ERROR.toExceptionReason().getReason());
+        }
+    }
+
+    public String getExceptionCode(Output output) {
+        try {
+            var exceptionOrExceptionMessage = output.getFailedReason();
+
+            if (StringUtils.isBlank(exceptionOrExceptionMessage)) {
+                if (StringUtils.isBlank(output.getFailedStack())) {
+                    return EXCEPTION_CODE_DEFAULT;
+                }
+                exceptionOrExceptionMessage = output.getFailedStack().split("\n")[0];
+            }
+
+            val exceptionCodeStream = getClass().getClassLoader().getResource(EXCEPTION_CODE_PATH).openStream();
+            val exceptionCodes = JsonUtil.readValue(exceptionCodeStream, Map.class);
+            for (Object o : exceptionCodes.entrySet()) {
+                val exceptionCode = (Map.Entry) o;
+                if (StringUtils.contains(exceptionOrExceptionMessage, String.valueOf(exceptionCode.getKey()))
+                        || StringUtils.contains(String.valueOf(exceptionCode.getKey()), exceptionOrExceptionMessage)) {
+                    val code = exceptionCodes.getOrDefault(exceptionCode.getKey(), EXCEPTION_CODE_DEFAULT);
+                    return String.valueOf(code);
+                }
+            }
+            return EXCEPTION_CODE_DEFAULT;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return EXCEPTION_CODE_DEFAULT;
         }
     }
 
@@ -836,12 +874,12 @@ public class JobService extends BasicService {
 
     @Transaction(project = 0)
     public void updateJobError(String project, String jobId, String failedStepId, String failedSegmentId,
-            String failedStack) {
+            String failedStack, String failedReason) {
         if (StringUtils.isBlank(failedStepId)) {
             return;
         }
         val executableManager = getExecutableManager(project);
-        executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack);
+        executableManager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
     }
 
     @Transaction(project = 0)
