@@ -19,7 +19,7 @@
       <div class="setting-item" v-if="project.maintain_model_type==='MANUAL_MAINTAIN'">
         <span class="setting-label font-medium">
           {{$t('enableSemiAutomatic')}}
-          <span class="beta-label">BETA</span>
+          <!-- <span class="beta-label">BETA</span> -->
         </span>
         <span class="setting-value fixed">
           <el-switch
@@ -649,7 +649,7 @@ export default class SettingBasic extends Vue {
               msg: this.$t('turnOffTips'),
               title: this.$t('turnOff') + this.$t('enableSemiAutomatic'),
               dialogType: 'warning',
-              isBeta: true,
+              isBeta: false,
               wid: '600px',
               showDetailBtn: false,
               dangerouslyUseHTMLString: true,
@@ -662,7 +662,7 @@ export default class SettingBasic extends Vue {
               msg: (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') ? this.$t('turnOnTipsInCloud') : this.$t('turnOnTips'),
               title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
               dialogType: 'warning',
-              isBeta: true,
+              isBeta: false,
               wid: '400px',
               isCenterBtn: true,
               showDetailBtn: false,

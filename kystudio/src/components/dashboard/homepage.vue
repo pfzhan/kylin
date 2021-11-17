@@ -404,7 +404,7 @@ export default class Homepage extends Vue {
         msg: (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') ? this.$t('turnOnTipsInCloud') : this.$t('turnOnTips'),
         title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
         dialogType: 'warning',
-        isBeta: true,
+        isBeta: false,
         wid: '600px',
         showDetailBtn: false,
         dangerouslyUseHTMLString: true,
