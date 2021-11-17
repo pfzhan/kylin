@@ -233,6 +233,8 @@ function clearRedundantProcess {
         if [ "$pidKeep" -ne 0 ]
         then
             echo $pidKeep > ${KYLIN_HOME}/pid
+        else
+            rm ${KYLIN_HOME}/pid
         fi
         if [ "$pidRedundant" -ne 0 ]
         then
@@ -242,6 +244,8 @@ function clearRedundantProcess {
 }
 
 function startKE(){
+    clearRedundantProcess
+
     if [ -f "${KYLIN_HOME}/pid" ]; then
         PID=`cat ${KYLIN_HOME}/pid`
         if ps -p $PID > /dev/null; then
