@@ -415,7 +415,7 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
     Statistics(totalRowCount, evaluated)
   }
 
-  private def evaluateColumnBytes(totalCount: Long, //
+  private[build] def evaluateColumnBytes(totalCount: Long, //
                                   sampled: Map[String, Long]): Map[String, Long] = {
     val tableMetadataManager = NTableMetadataManager.getInstance(config, project)
     val tableSizeMap: mutable.Map[String, Long] = mutable.Map()
@@ -463,7 +463,8 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
           tableSizeMap(tableName) = total
         }
 
-        val multiple = 1.0 * total / sampleRowCount
+        val realSampledCount = if (totalCount < sampleRowCount) totalCount else sampleRowCount
+        val multiple = 1.0 * total / realSampledCount
         column -> (bytes * multiple).toLong
     }
   }
