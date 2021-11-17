@@ -55,6 +55,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -72,6 +73,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.exception.ResourceLimitExceededException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -1992,4 +1994,73 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         queryCacheManager.clearQueryCache(request);
     }
 
+    @Test
+    public void testQueryWhenHitBlacklistConcurrent() throws Exception {
+        overwriteSystemProp("kylin.query.blacklist-enabled", "true");
+        overwriteSystemProp("kylin.query.cache-enabled", "false");
+        final String project = "default";
+        final String sql = "select count(*) from test_kylin_fact";
+
+        stubQueryConnection(sql, project);
+        mockOLAPContext();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        SQLResponse sqlResponse = queryService.doQueryWithCache(request);
+        Assert.assertFalse(sqlResponse.isException());
+
+        SQLBlacklistManager sqlBlacklistManager = SQLBlacklistManager.getInstance(KylinConfig.getInstanceFromEnv());
+        SQLBlacklistItem sqlBlacklistItem = new SQLBlacklistItem();
+        sqlBlacklistItem.setId("1");
+        sqlBlacklistItem.setConcurrentLimit(1);
+        sqlBlacklistItem.setSql("select count(*) from test_kylin_fact");
+        sqlBlacklistManager.addSqlBlacklistItem(project, sqlBlacklistItem);
+
+        SQLResponse resp = queryService.doQueryWithCache(request);
+        queryService.slowQueryDetector.queryStart("1"); // pretending that the query is started
+        Assert.assertFalse(resp.isException());
+
+        SQLResponse resp1 = queryService.doQueryWithCache(request);
+        Assert.assertTrue(resp1.isException());
+        Assert.assertEquals(
+                String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), "1", 1),
+                resp1.getExceptionMessage());
+    }
+
+    @Test
+    public void testExceptionCache() throws Exception {
+        overwriteSystemProp("kylin.query.cache-enabled", "false");
+        overwriteSystemProp("kylin.query.exception-cache-enabled", "true");
+        overwriteSystemProp("kylin.query.exception-cache-threshold-times", "2");
+        overwriteSystemProp("kylin.query.exception-cache-threshold-duration", "100");
+
+        final String project = "default";
+        final String sql = "select count(*) from test_kylin_fact";
+
+        stubQueryConnection(sql, project);
+        mockOLAPContext();
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+        Mockito.when(SpringContext.getBean(QueryService.class)).thenReturn(queryService);
+        SQLResponse sqlResponse = queryService.doQueryWithCache(request);
+        sqlResponse.setException(true);
+        sqlResponse.setExceptionMessage("error");
+
+        overwriteSystemProp("kylin.query.cache-enabled", "true");
+        sqlResponse.setDuration(200);
+        queryService.putIntoExceptionCache(request, sqlResponse, new RuntimeException("foo"));
+        val ret1 = queryService.doQueryWithCache(request);
+        Assert.assertFalse(ret1.isException());
+
+        sqlResponse.setDuration(200);
+        queryService.putIntoExceptionCache(request, sqlResponse, new RuntimeException("foo"));
+        sqlResponse.setDuration(200);
+        queryService.putIntoExceptionCache(request, sqlResponse, new RuntimeException("foo"));
+        val ret2 = queryService.doQueryWithCache(request);
+        Assert.assertTrue(ret2.isException());
+    }
 }

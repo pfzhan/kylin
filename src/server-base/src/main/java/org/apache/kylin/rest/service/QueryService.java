@@ -695,7 +695,8 @@ public class QueryService extends BasicService {
         return sqlResponse;
     }
 
-    private void putIntoExceptionCache(SQLRequest sqlRequest, SQLResponse sqlResponse, Throwable e) {
+    @VisibleForTesting
+    public void putIntoExceptionCache(SQLRequest sqlRequest, SQLResponse sqlResponse, Throwable e) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         // always cache ResourceLimitExceededException
         if (e.getCause() != null && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
