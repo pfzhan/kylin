@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -45,6 +47,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecItem;
 import io.kyligence.kap.metadata.recommendation.v2.OptRecV2TestBase;
 import io.kyligence.kap.rest.request.OptRecRequest;
@@ -151,6 +154,55 @@ public class OptRecServiceGeneralTest extends OptRecV2TestBase {
         Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
         Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
 
+        List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
+                .add(ImmutableList.of(1, 100000)) //
+                .add(ImmutableList.of(0, 100000, 100001)) //
+                .add(ImmutableList.of(11, 100000, 100002)).build();
+        checkIndexPlan(layoutColOrder, getIndexPlan());
+    }
+
+    private void asyncApprove(CountDownLatch countDownLatch, OptRecRequest recRequest) throws Exception {
+        new Thread(() -> {
+            try {
+                optRecService.approve(getProject(), recRequest);
+            } finally {
+                countDownLatch.countDown();
+            }
+        }).start();
+    }
+
+    private long workTime(long ms) {
+        final long l = System.currentTimeMillis();
+        while (System.currentTimeMillis() <= l + ms) {
+            return System.currentTimeMillis();
+        }
+        return l;
+    }
+
+    @Test
+    public void testApproveConcurrenBatch() throws Exception {
+        List<Integer> addLayoutId = Lists.newArrayList(3, 6);
+        prepare(addLayoutId);
+        OptRecRequest recRequest = buildOptRecRequest(addLayoutId);
+        Semaphore semaphore = new Semaphore(0);
+        new Thread(() -> {
+            semaphore.release();
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                workTime(3000L);
+                return null;
+            }, getProject());
+        }).start();
+
+        semaphore.acquire();
+        int times = 2;
+        CountDownLatch countDownLatch = new CountDownLatch(times);
+        for (int i = 0; i < times; i++) {
+            asyncApprove(countDownLatch, recRequest);
+        }
+        countDownLatch.await();
+        NDataModel dataModel = getModel();
+        Assert.assertEquals(ImmutableSet.of(0, 1, 11), dataModel.getEffectiveDimensions().keySet());
+        Assert.assertEquals(ImmutableSet.of(100000, 100001, 100002), dataModel.getEffectiveMeasures().keySet());
         List<List<Integer>> layoutColOrder = ImmutableList.<List<Integer>> builder() //
                 .add(ImmutableList.of(1, 100000)) //
                 .add(ImmutableList.of(0, 100000, 100001)) //

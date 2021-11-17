@@ -375,6 +375,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             List<Long> layoutIds = Lists.newArrayList();
             logBeginRewrite("augment IndexPlan");
             NIndexPlanManager indexMgr = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataModelDesc(recommendation.getUuid());
+
             indexMgr.updateIndexPlan(recommendation.getUuid(), copyForWrite -> {
                 IndexPlan.IndexPlanUpdateHandler updateHandler = copyForWrite.createUpdateHandler();
                 for (RawRecItem rawRecItem : recItems) {
@@ -392,7 +395,9 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
                     List<Integer> nSortBy = translateToRealIds(sortBy, "SortByColumns");
                     List<Integer> nPartitionBy = translateToRealIds(partitionBy, "PartitionByColumns");
 
-                    if (Sets.newHashSet(nColOrder).size() != colOrder.size()) {
+                    if (isInvalidColId(nColOrder, model) || isInvalidColId(nShardBy, model)
+                            || isInvalidColId(nSortBy, model) || isInvalidColId(nPartitionBy, model)
+                            || (Sets.newHashSet(nColOrder).size() != colOrder.size())) {
                         log.error("Fail to rewrite illegal RawRecItem({})", rawRecItem.getId());
                         continue;
                     }
@@ -414,6 +419,15 @@ public class OptRecService extends BasicService implements ModelUpdateListener {
             });
             logFinishRewrite("augment IndexPlan");
             return layoutIds;
+        }
+
+        private boolean isInvalidColId(List<Integer> cols, NDataModel model) {
+            for (Integer colId : cols) {
+                if (!model.getEffectiveCols().containsKey(colId) && !model.getEffectiveMeasures().containsKey(colId)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private List<Integer> translateToRealIds(List<Integer> virtualIds, String layoutPropType) {
