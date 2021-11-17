@@ -343,9 +343,17 @@ public class SecondStorageJavaTest implements JobWaiter {
                 .columns(new ColumnWithType("i1", "Int32"))
                 .columns(new ColumnWithType("i2", "Nullable(Int64)"))
                 .engine(Engine.DEFAULT).toSql(render));
+
+        val srcTempTable = fakeJobId + "@" + "test_src_0";
+        clickHouse.apply(ClickHouseCreateTable.createCKTable(database, srcTempTable)
+                .columns(new ColumnWithType("i1", "Int32"))
+                .columns(new ColumnWithType("i2", "Nullable(Int64)"))
+                .engine(Engine.DEFAULT).toSql(render));
+
         secondStorageScheduleService.secondStorageTempTableCleanTask();
         val tables = operator.listTables(database);
         Assert.assertFalse(tables.contains(tempTable));
+        Assert.assertFalse(tables.contains(srcTempTable));
     }
 
     private void cleanSegments(List<String> segs) {

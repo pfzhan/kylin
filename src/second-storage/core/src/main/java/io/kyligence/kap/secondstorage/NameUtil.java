@@ -35,6 +35,7 @@ public class NameUtil {
 
     private static final int UUID_LENGTH = RandomUtil.randomUUIDStr().length();
     public static final String TEMP_TABLE_FLAG = "temp";
+    public static final String TEMP_SRC_TABLE_FLAG = "src";
 
     private NameUtil() {
     }
@@ -75,6 +76,6 @@ public class NameUtil {
     }
 
     public static boolean isTempTable(String table) {
-        return table.contains(TEMP_TABLE_FLAG);
+        return table.contains(TEMP_TABLE_FLAG) || table.contains(TEMP_SRC_TABLE_FLAG);
     }
 }

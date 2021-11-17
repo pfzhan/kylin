@@ -115,7 +115,7 @@ public class ShardLoader {
             if (stopped.get()) break;
             if (history.contains(parquetFiles.get(index))) continue;
             loadOneFile(insertTempTableName, parquetFiles.get(index),
-                    String.format(Locale.ROOT, "%s_src_%05d", destTableName, index));
+                    String.format(Locale.ROOT, "%s_src_%05d", insertTempTableName, index));
             completeFiles.add(parquetFiles.get(index));
         }
         return completeFiles;
