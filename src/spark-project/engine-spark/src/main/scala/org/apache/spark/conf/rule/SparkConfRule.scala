@@ -54,32 +54,7 @@ sealed trait SparkConfRule extends Logging {
 class ExecutorMemoryRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val userDefinedMemory = helper.getConf(SparkConfHelper.EXECUTOR_MEMORY)
-    val userDefinedOverHeaMemory = helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD)
     if (StringUtils.isNotBlank(userDefinedMemory)) {
-      // executor memory can not exceed ApplicationMaster single container maximum memory
-      val maxResourceMemory = helper.getClusterManager.fetchMaximumResourceAllocation.memory
-      val mp = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
-      val userDefinedMemoryMb = Utils.byteStringAsMb(userDefinedMemory)
-      val maxMemoryMb = maxResourceMemory * mp
-      // maybe also include memoryOverhead
-      if (StringUtils.isNotBlank(userDefinedOverHeaMemory)) {
-        val userDefinedOverHeaMemoryMb = Utils.byteStringAsMb(userDefinedOverHeaMemory)
-        if (userDefinedMemoryMb > maxMemoryMb || (userDefinedMemoryMb + userDefinedOverHeaMemoryMb) > maxMemoryMb) {
-          val executorActualMemory = maxMemoryMb - userDefinedOverHeaMemoryMb - 1
-          helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, executorActualMemory.toInt + "MB")
-          log.warn(s"Our application has requested $userDefinedMemoryMb MB per executor more than the maximum allocation " +
-            s"memory capability of the cluster $maxMemoryMb MB per container. Set spark.executor.memory with " +
-            s"$executorActualMemory MB.")
-        }
-        return
-      }
-      if (userDefinedMemoryMb > maxMemoryMb) {
-        val executorActualMemory = maxMemoryMb - 1
-        helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, executorActualMemory.toInt + "MB")
-        log.warn(s"Our application has requested $userDefinedMemoryMb MB per executor more than the maximum allocation " +
-          s"memory capability of the cluster $maxMemoryMb MB per container. Set spark.executor.memory with " +
-          s"$executorActualMemory MB.")
-      }
       return
     }
     if (StringUtils.isBlank(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))) {
@@ -89,7 +64,7 @@ class ExecutorMemoryRule extends SparkConfRule {
     val sourceMB = Utils.byteStringAsMb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
     val sourceGB = sourceMB / 1000
     val hasCountDistinct = helper.hasCountDistinct
-    val memory = sourceGB match {
+    var memory = sourceGB match {
       case _ if `sourceGB` >= 100 && `hasCountDistinct` =>
         "20GB"
       case _ if (`sourceGB` >= 100) || (`sourceGB` >= 10 && `hasCountDistinct`) =>
@@ -100,6 +75,14 @@ class ExecutorMemoryRule extends SparkConfRule {
         "4GB"
       case _ =>
         "1GB"
+    }
+    if (helper.getClusterManager.fetchMaximumResourceAllocation != null) {
+      val maxResourceMemory = helper.getClusterManager.fetchMaximumResourceAllocation.memory
+      val mp = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
+      val maxMemoryMb = maxResourceMemory * mp
+      if (Utils.byteStringAsMb(memory) > maxMemoryMb) {
+        memory = (maxMemoryMb - 1).toInt + "MB"
+      }
     }
     helper.setConf(SparkConfHelper.EXECUTOR_MEMORY, memory)
   }

@@ -387,4 +387,19 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.applySparkConf(sparkConf);
         Assert.assertEquals("default", sparkConf.get(SparkConfHelper.DEFAULT_QUEUE));
     }
+
+    @Test
+    public void testAutoSetSparkExecutorMemory() throws JsonProcessingException {
+        SparkConfHelper helper = new SparkConfHelper();
+        // mock yarn max ApplicationMaster memory and cores
+        Mockito.when(clusterManager.fetchMaximumResourceAllocation()).thenReturn(new ResourceInfo(1024, 100));
+        helper.setClusterManager(clusterManager);
+        helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1073741824000b");
+        helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
+        SparkConf sparkConf = new SparkConf();
+        helper.generateSparkConf();
+        helper.applySparkConf(sparkConf);
+        // 1024 * 0.9 = 921.6 - 1 = 920.6 ~ 920 MB
+        Assert.assertEquals("920MB", sparkConf.get(SparkConfHelper.EXECUTOR_MEMORY));
+    }
 }
