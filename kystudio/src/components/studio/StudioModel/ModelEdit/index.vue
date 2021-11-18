@@ -1250,7 +1250,8 @@ export default class ModelEdit extends Vue {
       message: this.$t('modelChangeTips'),
       type: 'warning',
       showClose: true,
-      duration: 0
+      duration: 0,
+      closeOtherMessages: true
     })
     this.isIgnore = true
   }
@@ -1380,10 +1381,13 @@ export default class ModelEdit extends Vue {
         if (isSubmit) {
           resolve(data)
           this.saveLinkData(data)
-          if (isChange && !this.exchangeJoinTableList.includes(data.selectF)) {
-            this.exchangeJoinTableList.push(data.selectF)
+          if (isChange && this.exchangeJoinTableList.filter(item => item.guid === data.selectF).length === 0) {
+            this.exchangeJoinTableList.push({guid: data.selectF, joinType: data.joinType, isNew: data.isNew ?? false})
+          } else if (isChange && this.exchangeJoinTableList.filter(item => item.guid === data.selectF).length > 0) {
+            const idx = this.exchangeJoinTableList.findIndex(it => it.guid === data.selectF)
+            this.exchangeJoinTableList[idx] = {...this.exchangeJoinTableList[idx], ...{joinType: data.joinType, isNew: data.isNew ?? false}}
           } else if (!isChange) {
-            const index = this.exchangeJoinTableList.indexOf(data.selectF)
+            const index = this.exchangeJoinTableList.findIndex(it => it.guid === data.selectF)
             index >= 0 && this.exchangeJoinTableList.splice(index, 1)
           }
           !this.exchangeJoinTableList.length && (this.isIgnore = false)
@@ -1696,7 +1700,8 @@ export default class ModelEdit extends Vue {
         modelInstance: this.modelInstance,
         mode: 'saveModel',
         allDimension: this.allDimension,
-        isChangeModelLayout: this.isIgnore // isIgnore为true说明至少改动过一次模型join关系等重大变化
+        isChangeModelLayout: this.isIgnore, // isIgnore为true说明至少改动过一次模型join关系等重大变化
+        exchangeJoinTableList: this.exchangeJoinTableList // 变更的 join table
       }).then((res) => {
         if (data.uuid && res.isPurgeSegment) {
           this.isPurgeSegment = res.isPurgeSegment // 修改分区列会清空所有segment，该字段引导用户去添加segment

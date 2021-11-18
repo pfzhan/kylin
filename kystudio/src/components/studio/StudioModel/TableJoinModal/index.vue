@@ -667,14 +667,14 @@ export default class TableJoinModal extends Vue {
       this.resetModalForm()
       this.callback && this.callback({
         isSubmit: isSubmit,
-        data: data,
+        data: {...data, isNew: !this.joinConditionBackUp},
         isChange: this.compareJoinCondition(data)
       })
       this.joinConditionBackUp = null
     }, 300)
   }
   compareJoinCondition (data) {
-    if (!this.joinConditionBackUp && data.joinType === 'LEFT') return false
+    // if (!this.joinConditionBackUp && data.joinType === 'LEFT') return false
     let newData = JSON.parse(JSON.stringify(data))
     delete newData.anti_flatten_lookups
     delete newData.anti_flatten_cc

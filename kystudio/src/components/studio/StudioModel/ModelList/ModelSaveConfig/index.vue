@@ -292,6 +292,7 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
       modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
       allDimension: state => state.form.allDimension,
       isChangeModelLayout: state => state.form.isChangeModelLayout,
+      exchangeJoinTableList: state => state.form.exchangeJoinTableList,
       callback: state => state.callback
     }),
     // ...mapState('DimensionsModal', {
@@ -726,18 +727,32 @@ export default class ModelPartitionModal extends Vue {
         })
         isOnlySave = res.isOnlySave
       } else if (this.isChangeModelLayout || this.originFilterCondition !== this.filterCondition) {
+        let result = null
         this.importantChange = true
-        const res = await this.callGlobalDetailDialog({
-          msg: this.$t('purgeSegmentDataTips', {storageSize: Vue.filter('dataSize')(this.modelInstance.storage)}),
-          title: this.$t('kylinLang.common.tip'),
-          dialogType: 'warning',
-          showDetailBtn: false,
-          isSubSubmit: true,
-          wid: '600px',
-          submitSubText: this.$t('kylinLang.common.save'),
-          submitText: this.$t('saveAndLoad')
-        })
-        isOnlySave = res.isOnlySave
+        if (this.exchangeJoinTableList.filter(it => it.joinType === 'LEFT' && it.isNew).length === this.exchangeJoinTableList.length) {
+          result = await this.callGlobalDetailDialog({
+            msg: this.$t('onlyAddLeftJoinTip'),
+            title: this.$t('kylinLang.common.tip'),
+            dialogType: 'warning',
+            showDetailBtn: false,
+            isSubSubmit: true,
+            wid: '600px',
+            isHideSubmit: true,
+            submitSubText: this.$t('kylinLang.common.save')
+          })
+        } else {
+          result = await this.callGlobalDetailDialog({
+            msg: this.$t('purgeSegmentDataTips', {storageSize: Vue.filter('dataSize')(this.modelInstance.storage)}),
+            title: this.$t('kylinLang.common.tip'),
+            dialogType: 'warning',
+            showDetailBtn: false,
+            isSubSubmit: true,
+            wid: '600px',
+            submitSubText: this.$t('kylinLang.common.save'),
+            submitText: this.$t('saveAndLoad')
+          })
+        }
+        isOnlySave = result.isOnlySave
       } else {
         this.importantChange = false
       }
