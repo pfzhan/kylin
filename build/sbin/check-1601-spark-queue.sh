@@ -34,67 +34,85 @@ initKerberosIfNeeded
 
 echo "Checking Spark Queue..."
 
-kylin_storage_queue=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-conf.spark.yarn.queue`
-kylin_engine_queue=`$KYLIN_HOME/bin/get-properties.sh kylin.engine.spark-conf.spark.yarn.queue`
-kylin_principal=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.principal`
+function checkQueueSettings() {
+  # get queue settings
+  kylin_storage_queue=$($KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-conf.spark.yarn.queue)
+  kylin_engine_queue=$($KYLIN_HOME/bin/get-properties.sh kylin.engine.spark-conf.spark.yarn.queue)
 
-# list all the queue
-queue_list_str=`mapred queue -showacls | awk 'NR>4  {print $1}'`
-queue_arr=($queue_list_str)
+  # set queue=default if the queue is empty
+  [[ -z "${kylin_storage_queue}" ]] && kylin_storage_queue=default
+  [[ -z "${kylin_engine_queue}" ]] && kylin_engine_queue=default
 
-# flag variable to indicate whether the queue is valid or not
-storage_vaild=false
-engine_vaild=false
-for queue in "${queue_arr[@]}"
-do
-  # in case of 'xxx.queue'
-  queue=${queue##*.}
-  if [ $queue = $kylin_storage_queue ];then
-    storage_vaild=true
+  # get current username
+  user_name=$(mapred queue -showacls | awk 'NR==1 {print $6}')
+
+  # list all the queue
+  queue_list_str=$(mapred queue -showacls | awk 'NR>4  {print $1}')
+  queue_arr=($queue_list_str)
+
+  # flag variable to indicate whether the queue is valid or not
+  storage_vaild=false
+  engine_vaild=false
+
+  for queue in "${queue_arr[@]}"; do
+    # In case of 'xxx.xxx.queuename'.
+    # If the queue is 'root.user.queuename', we need to get 'queuename' instead of 'root.user.queuename'.
+    queue=${queue##*.}
+    if [ $queue = $kylin_storage_queue ]; then
+      storage_vaild=true
+    fi
+    if [ $queue = $kylin_engine_queue ]; then
+      engine_vaild=true
+    fi
+  done
+
+  if $storage_vaild && $engine_vaild; then
+    echo "kylin_storage_queue: '$kylin_storage_queue' and kylin_engine_queue: '$kylin_engine_queue' exist."
+  elif $storage_vaild; then
+    quit "ERROR: Checking Spark Queue failed, kylin_engine_queue: '$kylin_engine_queue' does not exist."
+  elif $engine_vaild; then
+    quit "ERROR: Checking Spark Queue failed, kylin_storage_queue: '$kylin_storage_queue' does not exist."
+  else
+    quit "ERROR: Checking Spark Queue failed, kylin_storage_queue: '$kylin_storage_queue' and kylin_engine_queue: '$kylin_engine_queue' does not exist."
   fi
-  if [ $queue = $kylin_engine_queue ];then
-    engine_vaild=true
+
+  # check SUBMIT permission
+  submit_reg='.*SUBMIT_APPLICATIONS.*'
+  storage_submit_info=$(mapred queue -showacls | awk '$1=="'$kylin_storage_queue'" {print $2}')
+  engine_submit_info=$(mapred queue -showacls | awk '$1=="'$kylin_engine_queue'" {print $2}')
+
+  if [[ "$storage_submit_info" =~ $submit_reg ]] && [[ "$engine_submit_info" =~ $submit_reg ]]; then
+    echo "'$user_name' can submit to '$kylin_storage_queue' and '$kylin_engine_queue'"
+  elif [[ "$storage_submit_info" =~ $submit_reg ]]; then
+    quit "ERROR: Checking Spark Queue failed, '$user_name' can not submit task to kylin_engine_queue: '$kylin_engine_queue'"
+  elif [[ "$engine_submit_info" =~ $submit_reg ]]; then
+    quit "ERROR: Checking Spark Queue failed, '$user_name' can not submit task to kylin_storage_queue: '$kylin_storage_queue'"
+  else
+    quit "ERROR: Checking Spark Queue failed, '$user_name' can not submit task to kylin_storage_queue: '$kylin_storage_queue' and kylin_engine_queue: '$kylin_engine_queue'"
   fi
-done
 
-if $storage_vaild && $engine_vaild;then
-  echo "'$kylin_storage_queue' and '$kylin_engine_queue' exist"
-elif $storage_vaild;then
-  quit "ERROR: Checking Spark Queue failed, please check the queue setting '$kylin_engine_queue' in kylin.properties"
-elif $engine_vaild;then
-  quit "ERROR: Checking Spark Queue failed, please check the queue setting '$kylin_storage_queue' in kylin.properties"
+  # check the queue is running or not
+  running_str='running'
+  storage_running_info=$(mapred queue -info $kylin_storage_queue | awk '$2=="State" {print $4}')
+  engine_running_info=$(mapred queue -info $kylin_engine_queue | awk '$2=="State" {print $4}')
+
+  if [ $storage_running_info = $running_str ] && [ $engine_running_info = $running_str ]; then
+    echo "Queue: kylin_storage_queue: '$kylin_storage_queue' and Queue: kylin_engine_queue: '$kylin_engine_queue' are running"
+  elif [ $storage_running_info = $running_str ]; then
+    quit "ERROR: Checking Spark Queue failed, Queue: kylin_engine_queue: '$kylin_engine_queue' is not running"
+  elif [ $engine_running_info = $running_str ]; then
+    quit "ERROR: Checking Spark Queue failed, Queue: kylin_storage_queue: '$kylin_storage_queue' is not running"
+  else
+    quit "ERROR: Checking Spark Queue failed, Queue: kylin_storage_queue: '$kylin_storage_queue' and Queue: kylin_engine_queue: '$kylin_engine_queue' are not running"
+  fi
+
+}
+
+if [[ $(is_kap_kerberos_enabled) == 1 ]]; then
+  checkQueueSettings
 else
-  quit "ERROR: Checking Spark Queue failed, please check the queue setting '$kylin_storage_queue' and '$kylin_engine_queue' in kylin.properties"
-fi
-
-# check SUBMIT permission
-submit_reg='.*SUBMIT_APPLICATIONS.*'
-storage_submit_info=`mapred queue -showacls | awk '$1=="'$kylin_storage_queue'" {print $2}'`
-engine_submit_info=`mapred queue -showacls | awk '$1=="'$kylin_engine_queue'" {print $2}'`
-
-if [[ "$storage_submit_info" =~ $submit_reg ]] && [[ "$engine_submit_info" =~ $submit_reg ]];then
-  echo "'$kylin_principal' can submit to '$kylin_storage_queue' and '$kylin_engine_queue'"
-elif [[ "$storage_submit_info" =~ $submit_reg ]];then
-  quit "ERROR: Checking Spark Queue failed, '$kylin_principal' can not submit task to '$kylin_engine_queue'"
-elif [[ "$engine_submit_info" =~ $submit_reg ]];then
-  quit "ERROR: Checking Spark Queue failed, '$kylin_principal' can not submit task to  '$kylin_storage_queue'"
-else
-  quit "ERROR: Checking Spark Queue failed, '$kylin_principal' can not submit task to  '$kylin_storage_queue' and '$kylin_engine_queue'"
-fi
-
-# check the queue is running or not
-running_str=running
-storage_running_info=`mapred queue -info $kylin_storage_queue | awk '$2=="State" {print $4}'`
-engine_running_info=`mapred queue -info $kylin_engine_queue | awk '$2=="State" {print $4}'`
-
-if [ $storage_running_info = $running_str ] && [ $engine_running_info = $running_str ];then
-  echo "'$kylin_storage_queue' and '$kylin_engine_queue' are running"
-elif [ $storage_running_info = $running_str ];then
-  quit "ERROR: Checking Spark Queue failed, '$kylin_engine_queue' is not running"
-elif [ $engine_running_info = $running_str ];then
-  quit "ERROR: Checking Spark Queue failed, '$kylin_storage_queue' is not running"
-else
-  quit "ERROR: Checking Spark Queue failed, '$kylin_storage_queue' and '$kylin_engine_queue' are not running"
+  echo "Kerberos is not enabled, skip checking queue setting."
+  exit 3
 fi
 
 echo "Checking Spark Queue succeed"
