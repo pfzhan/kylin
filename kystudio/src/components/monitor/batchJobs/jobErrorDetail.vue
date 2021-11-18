@@ -62,7 +62,7 @@ export default class jobErrorDetail extends Vue {
     const manualAddrs = this.currentErrorJob.failed_resolve
     if (manualAddrs) {
       const tag = document.createElement('a')
-      tag.href = `https://docs.kyligence.io/books/v4.5${manualAddrs}`
+      tag.href = `https://docs.kyligence.io/books/v4.5/${this.$lang}${manualAddrs}`
       tag.target = '_blank'
       tag.click()
     }
