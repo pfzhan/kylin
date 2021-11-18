@@ -168,6 +168,9 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.query.query-history-download-max-size', key: 'queryDownloadMaxSize', defaultValue: 100000})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.second-storage.class', key: 'isShowSecondStorage'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.allow-non-admin-generate-query-diag-package', key: 'isNonAdminGenQueryDiagPackage', defaultValue: 'true'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.sso-redirect-url', key: 'ssoRedirectUrl'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.sso.cookie-name', key: 'cookieNames'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.sso.sso-login-enabled', key: 'ssoLoginEnabled'})
           resolve(response)
         }, () => {
           reject()

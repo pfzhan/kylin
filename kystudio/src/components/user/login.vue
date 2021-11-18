@@ -43,6 +43,9 @@
               <el-form-item class="ksd-pt-40">
                 <kap-icon-button type="primary" class="login-btn ksd-mt-10"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
               </el-form-item>
+              <el-form-item v-if="ssoLoginEnabled">
+                <kap-icon-button type="primary" class="login-btn ksd-mt-10" @click.native="ssoLogin">{{$t('ssoLogin')}}</kap-icon-button>
+              </el-form-item>
             </el-form>
           </div>
         </el-col>
@@ -137,7 +140,8 @@ export default {
       changeDialog: true,
       showLicenseCheck: false,
       loginSuccess: false,
-      hasLicenseMsg: false
+      hasLicenseMsg: false,
+      ssoLoginEnabled: false
     }
   },
   watch: {
@@ -151,7 +155,8 @@ export default {
     ...mapActions({
       login: 'LOGIN',
       getAboutKap: 'GET_ABOUTKAP',
-      trialLicenseFile: 'TRIAL_LICENSE_FILE'
+      trialLicenseFile: 'TRIAL_LICENSE_FILE',
+      getPublicConfig: 'GET_CONF'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -281,6 +286,23 @@ export default {
       }
       return 0
     },
+    // sso 登录
+    ssoLogin () {
+      try {
+        var url = this.$store.state.system.ssoRedirectUrl + location.protocol + '//' + location.host + '/kylin/#/dashboard'
+        var cookieNames = this.$store.state.system.cookieNames.split(',')
+        for (var i = 0; i < cookieNames.length; i++) {
+          var reg = new RegExp('(^| )' + cookieNames[i] + '=([^;]*)(;|$)')
+          if (document.cookie.match(reg) === null) {
+            window.location.replace(url)
+            return
+          }
+        }
+        this.$router.push('/dashboard')
+      } catch (e) {
+        console.error('sso 登录配置出错，请检查相关配置是否正确')
+      }
+    },
     onLoginSubmit () {
       this.$refs['loginForm'].validate((valid) => {
         if (valid) {
@@ -318,6 +340,10 @@ export default {
         }
       })
     },
+    async checkSSO () {
+      await this.getPublicConfig()
+      this.ssoLoginEnabled = this.$store.state.system.ssoLoginEnabled === 'true'
+    },
     loginEnd () {
       Vue.http.headers.common['Authorization'] = ''
       this.$refs['loginBtn'].loading = false
@@ -341,6 +367,7 @@ export default {
   },
   created () {
     this.checkLicense()
+    this.checkSSO()
     // 这里是为了拦截 用户单独打开KC 中嵌套的KE 页面，KC 中的KE 页面的url 都会包含secret_ke_index.html
     this.accessForbidden = window.location.href.includes('secret_ke_index.html') && this.$store.state.config.platform !== 'cloud'
   },
@@ -376,6 +403,7 @@ export default {
       loginIn: 'Login',
       userName: 'Username',
       password: 'Password',
+      ssoLogin: 'SSO Login',
       forgetPassword: 'Forget Password',
       noUserName: 'Please enter your username.',
       noUserPwd: 'Please enter your password.',
@@ -411,6 +439,7 @@ export default {
       loginIn: '登录',
       userName: '用户名',
       password: '密码',
+      ssoLogin: 'SSO 登录',
       forgetPassword: '忘记密码',
       noUserName: '请输入用户名',
       noUserPwd: '请输入密码',
