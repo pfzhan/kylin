@@ -424,12 +424,12 @@ public class Message {
     }
 
     public String getPROJECT_DROP_FAILED_SECOND_STORAGE_ENABLED() {
-        return "Can't delete project \"%s\". Please disable tiered storage firstly.";
+        return "Can't delete project \"%s\", please disable tiered storage firstly.";
     }
 
     public String getPROJECT_DROP_FAILED_JOBS_NOT_KILLED() {
-        return "Can't delete project \"%s\". Please have all jobs in running/pending status been killed before "
-                + "dropping the project";
+        return "Can't delete project \"%s\", please have all jobs in running/pending/paused status been killed before "
+                + "dropping the project.";
     }
 
     public String getPROJECT_UNMODIFIABLE_REASON() {
