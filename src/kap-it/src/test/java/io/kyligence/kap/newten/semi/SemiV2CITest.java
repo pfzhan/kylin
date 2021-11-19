@@ -477,6 +477,68 @@ public class SemiV2CITest extends SemiAutoTestBase {
     }
 
     @Test
+    public void testBatchCreateModelWithProposingNewJoinRelation() {
+        String project = "newten";
+
+        // prepare initial model
+        String sql = "select lstg_format_name, sum(price) from test_kylin_fact group by lstg_format_name";
+        val smartContext = AccelerationContextUtil.newSmartContext(kylinConfig, project, new String[] { sql });
+        ProposerJob.propose(smartContext);
+        smartContext.saveMetadata();
+        AccelerationContextUtil.onlineModel(smartContext);
+        List<AbstractContext.ModelContext> modelContexts = smartContext.getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        NDataModel targetModel = modelContexts.get(0).getTargetModel();
+
+        // assert initial result
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        NDataModel dataModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
+        long dimensionCount = allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(12, allNamedColumns.size());
+        Assert.assertEquals(1L, dimensionCount);
+        Assert.assertEquals(2, dataModel.getAllMeasures().size());
+        Assert.assertEquals(1, indexPlanManager.getIndexPlan(dataModel.getUuid()).getAllLayouts().size());
+        Assert.assertTrue(dataModel.getJoinTables().isEmpty());
+
+        // transfer auto model to semi-auto
+        // make model online
+        AccelerationContextUtil.transferProjectToSemiAutoMode(getTestConfig(), project);
+        NDataflowManager dfManager = NDataflowManager.getInstance(getTestConfig(), project);
+        dfManager.updateDataflowStatus(targetModel.getId(), RealizationStatusEnum.ONLINE);
+        getTestConfig().setProperty("kylin.smart.conf.model-opt-rule", "append");
+
+        // optimize with a batch of sql list
+        List<String> li = Lists.newArrayList();
+        li.add("select test_kylin_fact.order_id, lstg_format_name\n"
+                + "from test_kylin_fact left join test_order on test_kylin_fact.order_id = test_order.order_id\n");
+        AbstractContext proposeContext = modelService.suggestModel(project, li, true, false);
+
+        List<AbstractContext.ModelContext> modelContextList = proposeContext.getModelContexts();
+        Assert.assertEquals(1, modelContextList.size());
+        SuggestionResponse suggestionResponse = modelService.buildModelSuggestionResponse(proposeContext);
+        List<SuggestionResponse.ModelRecResponse> reusedModels = suggestionResponse.getReusedModels();
+        List<SuggestionResponse.ModelRecResponse> newModels = suggestionResponse.getNewModels();
+        List<ModelRequest> reusedModelRequests = mockModelRequest(reusedModels);
+        List<ModelRequest> newModelRequests = mockModelRequest(newModels);
+        changeTheIndexRecOrder(reusedModelRequests);
+        modelService.batchCreateModel(getProject(), newModelRequests, reusedModelRequests);
+
+        // assert result after apply recommendations
+        NDataModel modelAfterSuggestModel = modelManager.getDataModelDesc(targetModel.getUuid());
+        long dimensionCountRefreshed = modelAfterSuggestModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).count();
+        Assert.assertEquals(2L, dimensionCountRefreshed);
+        List<NDataModel.Measure> allMeasures = modelAfterSuggestModel.getAllMeasures();
+        Assert.assertEquals(2, allMeasures.size());
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelAfterSuggestModel.getUuid());
+        Assert.assertEquals(2, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(1, modelAfterSuggestModel.getJoinTables().size());
+        Assert.assertEquals(17, modelAfterSuggestModel.getAllNamedColumns().size());
+    }
+
+    @Test
     public void testSuggestModelKeepColumnAndMeasureOrder() {
         String project = "newten";
 

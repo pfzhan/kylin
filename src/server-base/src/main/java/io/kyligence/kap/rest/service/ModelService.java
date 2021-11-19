@@ -1794,6 +1794,14 @@ public class ModelService extends BasicService {
                         allNamedColumns.add(dim);
                     }
                 });
+                Set<Integer> namedColumnIds = allNamedColumns.stream().map(NDataModel.NamedColumn::getId)
+                        .collect(Collectors.toSet());
+                modelRequest.getAllNamedColumns().forEach(col -> {
+                    if (!namedColumnIds.contains(col.getId())) {
+                        allNamedColumns.add(col);
+                        namedColumnIds.add(col.getId());
+                    }
+                });
                 newMeasureMap.forEach((measureName, measure) -> copyForWrite.getAllMeasures().add(measure));
                 // keep order of all columns and measures
                 copyForWrite.keepColumnOrder();
