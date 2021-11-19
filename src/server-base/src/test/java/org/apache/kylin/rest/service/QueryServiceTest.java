@@ -247,8 +247,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
         Mockito.doAnswer(x -> queryExec).when(queryService).newQueryExec(project, null);
         Mockito.when(queryService.newQueryExec(project, null)).thenReturn(queryExec);
-        Mockito.when(queryService.queryRoutingEngine.queryWithSqlMassage(Mockito.any()))
-                .thenReturn(new QueryResult());
+        Mockito.when(queryService.queryRoutingEngine.queryWithSqlMassage(Mockito.any())).thenReturn(new QueryResult());
     }
 
     private void stubQueryConnectionException() throws Exception {
@@ -513,8 +512,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void mockOLAPContextWithStreaming() throws Exception {
-        val modelManager = Mockito
-                .spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "demo"));
+        val modelManager = Mockito.spy(NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "demo"));
 
         Mockito.doReturn(modelManager).when(queryService).getDataModelManager("demo");
         // mock agg index realization
@@ -540,8 +538,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void mockQueryWithSqlMassage() throws Exception {
-        Mockito.doAnswer(invocation -> new QueryResult())
-                .when(queryService.queryRoutingEngine).queryWithSqlMassage(Mockito.any());
+        Mockito.doAnswer(invocation -> new QueryResult()).when(queryService.queryRoutingEngine)
+                .queryWithSqlMassage(Mockito.any());
     }
 
     private void mockOLAPContextWithOneModelInfo(String modelId, String modelAlias, long layoutId) throws Exception {
@@ -694,8 +692,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             List<ColumnMeta> factColumns;
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
-                    "NEST1", "NEST2", "NEST3", "NEST4")));
+            Assert.assertTrue(getColumnNames(factColumns)
+                    .containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "NEST1", "NEST2", "NEST3", "NEST4")));
         }
 
         // hide computed column
@@ -708,8 +706,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
             Assert.assertEquals(columnDescs.length, factColumns.size());
-            Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
-                    "NEST1", "NEST2", "NEST3", "NEST4")));
+            Assert.assertFalse(getColumnNames(factColumns)
+                    .containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "NEST1", "NEST2", "NEST3", "NEST4")));
         }
     }
 
@@ -974,6 +972,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         dataModelSerializer.serialize(model, new DataOutputStream(baos));
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         NDataModel dKapModel = dataModelSerializer.deserialize(new DataInputStream(bais));
+        dKapModel.setProject("default");
 
         dKapModel.getComputedColumnDescs().remove(dKapModel.getComputedColumnDescs().size() - 1);
         dKapModel.setMvcc(model.getMvcc());
@@ -990,6 +989,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         dataModelSerializer.serialize(model, new DataOutputStream(baos));
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         NDataModel dKapModel = dataModelSerializer.deserialize(new DataInputStream(bais));
+        dKapModel.setProject("default");
 
         String newCCStr = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
                 + "      \"tableAlias\": \"TEST_KYLIN_FACT\",\n" + "      \"columnName\": \"DEAL_YEAR_PLUS_ONE\",\n"
@@ -1343,14 +1343,13 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                 + "Result Row Count:\\s(.*?)" + matchNewLine + "Shuffle partitions:\\s(.*?)" + matchNewLine
                 + "Accept Partial:\\s(.*?)" + matchNewLine + "Is Partial Result:\\s(.*?)" + matchNewLine
                 + "Hit Exception Cache:\\s(.*?)" + matchNewLine + "Storage Cache Used:\\s(.*?)" + matchNewLine
-                + "Storage Cache Type:\\s(.*?)" + matchNewLine
-                + "Is Query Push-Down:\\s(.*?)" + matchNewLine + "Is Prepare:\\s(.*?)" + matchNewLine
-                + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)" + matchNewLine
-                + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
-                + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "Is forced to Push-Down:\\s(.*?)"
-                + matchNewLine + "User Agent:\\s(.*?)" + matchNewLine + "Back door toggles:\\s(.*?)" + matchNewLine
-                + "Scan Segment Count:\\s(.*?)" + matchNewLine + "Scan File Count:\\s(.*?)" + matchNewLine
-                + "[=]+\\[QUERY\\][=]+.*";
+                + "Storage Cache Type:\\s(.*?)" + matchNewLine + "Is Query Push-Down:\\s(.*?)" + matchNewLine
+                + "Is Prepare:\\s(.*?)" + matchNewLine + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)"
+                + matchNewLine + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine
+                + "Message:\\s(.*?)" + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine
+                + "Is forced to Push-Down:\\s(.*?)" + matchNewLine + "User Agent:\\s(.*?)" + matchNewLine
+                + "Back door toggles:\\s(.*?)" + matchNewLine + "Scan Segment Count:\\s(.*?)" + matchNewLine
+                + "Scan File Count:\\s(.*?)" + matchNewLine + "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);
 
@@ -1456,26 +1455,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
         final List<TableMeta> tableMetas = queryService.getMetadata("default");
-        TableMeta tableToCheck = tableMetas.stream()
-                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
-                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
-                .findFirst().get();
+        TableMeta tableToCheck = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT")).findFirst().get();
         ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
-                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
-                .findFirst().get();
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID")).findFirst().get();
         Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "account_id");
     }
 
     @Test
     public void testMetaDataColumnCaseNotSensitive() throws IOException {
         final List<TableMeta> tableMetas = queryService.getMetadata("default");
-        TableMeta tableToCheck = tableMetas.stream()
-                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
-                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
-                .findFirst().get();
+        TableMeta tableToCheck = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT")).findFirst().get();
         ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
-                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
-                .findFirst().get();
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID")).findFirst().get();
         Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "ACCOUNT_ID");
     }
 
@@ -1484,26 +1477,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.source.name-case-sensitive-enabled", "true");
         final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
-        TableMeta tableToCheck = tableMetas.stream()
-                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
-                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
-                .findFirst().get();
+        TableMeta tableToCheck = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT")).findFirst().get();
         ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
-                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
-                .findFirst().get();
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID")).findFirst().get();
         Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "account_id");
     }
 
     @Test
     public void testMetaDataV2ColumnCaseNotSensitive() throws IOException {
         final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default", null);
-        TableMeta tableToCheck = tableMetas.stream()
-                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
-                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT"))
-                .findFirst().get();
+        TableMeta tableToCheck = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_ACCOUNT")).findFirst().get();
         ColumnMeta columnToCheck = tableToCheck.getColumns().stream()
-                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID"))
-                .findFirst().get();
+                .filter(c -> c.getCOLUMN_NAME().equalsIgnoreCase("ACCOUNT_ID")).findFirst().get();
         Assert.assertEquals(columnToCheck.getCOLUMN_NAME(), "ACCOUNT_ID");
     }
 
@@ -1777,12 +1764,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals("4965c827-fbb4-4ea1-a744-3f341a3b030d",
                 sqlResponse.getNativeRealizations().get(0).getModelId());
-        Assert.assertEquals((Long) 10001L,
-                sqlResponse.getNativeRealizations().get(0).getLayoutId());
+        Assert.assertEquals((Long) 10001L, sqlResponse.getNativeRealizations().get(0).getLayoutId());
         Assert.assertEquals("cd2b9a23-699c-4699-b0dd-38c9412b3dfd",
                 sqlResponse.getNativeRealizations().get(1).getModelId());
-        Assert.assertEquals((Long) 20001L,
-                sqlResponse.getNativeRealizations().get(1).getLayoutId());
+        Assert.assertEquals((Long) 20001L, sqlResponse.getNativeRealizations().get(1).getLayoutId());
 
         Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
         Assert.assertFalse(sqlResponse.getNativeRealizations().get(1).isStreamingLayout());
@@ -1806,15 +1791,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals("4965c827-fbb4-4ea1-a744-3f341a3b030d",
                 sqlResponse.getNativeRealizations().get(0).getModelId());
-        Assert.assertEquals((Long) 10001L,
-                sqlResponse.getNativeRealizations().get(0).getLayoutId());
+        Assert.assertEquals((Long) 10001L, sqlResponse.getNativeRealizations().get(0).getLayoutId());
 
         Assert.assertTrue(sqlResponse.getNativeRealizations().get(0).isStreamingLayout());
     }
 
     @Test
     public void testQueryWithParamWhenTransformWithToSubQuery() {
-        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.util.WithToSubQueryTransformer");
+        overwriteSystemProp("kylin.query.transformers",
+                "io.kyligence.kap.query.util.ReplaceStringWithVarchar,org.apache.kylin.query.util.PowerBIConverter,org.apache.kylin.query.util.DefaultQueryTransformer,io.kyligence.kap.query.util.EscapeTransformer,io.kyligence.kap.query.util.ConvertToComputedColumn,org.apache.kylin.query.util.KeywordDefaultDirtyHack,io.kyligence.kap.query.security.RowFilter,io.kyligence.kap.query.util.WithToSubQueryTransformer");
         PrepareSqlStateParam[] params1 = new PrepareSqlStateParam[2];
         params1[0] = new PrepareSqlStateParam(Double.class.getCanonicalName(), "123.1");
         params1[1] = new PrepareSqlStateParam(Integer.class.getCanonicalName(), "123");
@@ -2024,8 +2009,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         SQLResponse resp1 = queryService.doQueryWithCache(request);
         Assert.assertTrue(resp1.isException());
-        Assert.assertEquals(
-                String.format(Locale.ROOT, MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), "1", 1),
+        Assert.assertEquals(String.format(Locale.ROOT,
+                MsgPicker.getMsg().getSQL_BLACKLIST_QUERY_CONCUTTENT_LIMIT_EXCEEDED(), "1", 1),
                 resp1.getExceptionMessage());
     }
 

@@ -102,6 +102,7 @@ import io.kyligence.kap.rest.service.RawRecService;
 import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.ModelReuseContextOfSemiV2;
+import io.kyligence.kap.smart.ModelSelectContextOfSemiV2;
 import lombok.val;
 import lombok.var;
 
@@ -519,6 +520,10 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
     public void testCouldAnsweredByExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
         FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+        AbstractContext proposeContext = new ModelSelectContextOfSemiV2(getTestConfig(), favoriteRequest.getProject(),
+                sqls.toArray(new String[0]));
+        Mockito.doReturn(proposeContext).when(modelService).probeRecommendation(favoriteRequest.getProject(),
+                favoriteRequest.getSqls());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/validation").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))

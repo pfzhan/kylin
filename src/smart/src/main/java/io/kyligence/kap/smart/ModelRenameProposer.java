@@ -29,8 +29,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -65,7 +66,8 @@ public class ModelRenameProposer extends AbstractProposer {
     }
 
     private Set<String> getAllModelNames() {
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.readSystemKylinConfig(),
+                project);
         Set<String> modelNames = Sets.newHashSet();
         modelNames.addAll(dataModelManager.listAllModelAlias());
         modelNames.addAll(getProposeContext().getExtraMeta().getAllModels());

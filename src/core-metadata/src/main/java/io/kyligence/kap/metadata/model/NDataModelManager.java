@@ -45,11 +45,11 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
@@ -224,30 +224,37 @@ public class NDataModelManager {
         return crud.listAll();
     }
 
-    public NDataModel createDataModelDesc(NDataModel desc, String owner) {
-        NDataModel copy = copyForWrite(desc);
-        String name = copy.getAlias();
-        List<NDataModel> allModels = crud.listAll();
-        for (NDataModel model : allModels.stream().filter(model -> !model.isBroken()).collect(Collectors.toList())) {
-            if (model.getAlias().equals(name)) {
+    private List<NDataModel> readAllModelsFromSystem(String project) {
+        KylinConfig systemKylinConfig = KylinConfig.readSystemKylinConfig();
+        Preconditions.checkNotNull(systemKylinConfig, "System KylinConfig is null.");
+        NDataModelManager instance = NDataModelManager.getInstance(systemKylinConfig, project);
+        return instance.listAllModels();
+    }
+
+    public void checkDuplicateModel(NDataModel model) {
+        List<NDataModel> allModels = readAllModelsFromSystem(model.getProject());
+        for (NDataModel existingModel : allModels) {
+            if (existingModel.getAlias().equalsIgnoreCase(model.getAlias())
+                    || existingModel.getUuid().equals(model.getUuid())) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), name));
+                        String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MODEL_NAME(), model.getAlias()));
             }
         }
+    }
 
-        NProjectManager prjMgr = getProjectManager();
-        ProjectInstance prj = prjMgr.getProject(project);
-        if (prj.containsModel(name))
-            throw new IllegalStateException("project " + project + " already contains model " + name);
+    public NDataModel createDataModelDesc(NDataModel model, String owner) {
+        NDataModel copy = copyForWrite(model);
+
+        checkDuplicateModel(model);
 
         //check model count
+        List<NDataModel> allModels = readAllModelsFromSystem(model.getProject());
         NCircuitBreaker.verifyModelCreation(allModels.size());
 
         copy.setOwner(owner);
         copy.setStorageType(getConfig().getDefaultStorageType());
-        desc = saveDataModelDesc(copy);
-
-        return desc;
+        model = saveDataModelDesc(copy);
+        return model;
     }
 
     public Set<Long> addPartitionsIfAbsent(NDataModel model, List<String[]> partitionValues) {
@@ -308,11 +315,15 @@ public class NDataModelManager {
 
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
-        dataModelDesc.init(config, this.getAllTablesMap(),
-                crud.listAll().stream().filter(model -> !model.isBroken()).collect(Collectors.toList()), project);
+        if (!dataModelDesc.getComputedColumnDescs().isEmpty()) {
+            List<NDataModel> models = readAllModelsFromSystem(dataModelDesc.getProject());
+            dataModelDesc.init(config, getAllTablesMap(),
+                    models.stream().filter(model -> !model.isBroken()).collect(Collectors.toList()), project);
+        } else {
+            dataModelDesc.init(config, getAllTablesMap(), Lists.newArrayList(), project);
+        }
 
         crud.save(dataModelDesc);
-
         return dataModelDesc;
 
     }

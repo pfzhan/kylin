@@ -85,8 +85,10 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasicModel() {
         NDataModel bm = mgrDefault.getDataModelDesc(modelBasic);
-        List<String> alias = Lists.newArrayList("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LEAF_CATEG_ID", "TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
-        List<String> partitions = Lists.newArrayList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.ORDER_ID", "TEST_KYLIN_FACT.CAL_DT");
+        List<String> alias = Lists.newArrayList("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
+        List<String> partitions = Lists.newArrayList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.ORDER_ID",
+                "TEST_KYLIN_FACT.CAL_DT");
         List<Pair<List<String>, List<String>>> valueMapping = Lists.newArrayList();
         List<String> pValue1 = Lists.newArrayList("1", "2", "3");
         List<String> aValue1 = Lists.newArrayList("a", "b", "c");
@@ -102,7 +104,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         valueMapping.add(Pair.newPair(pValue2, aValue4));
 
         MultiPartitionKeyMappingImpl mapping = new MultiPartitionKeyMappingImpl(alias, partitions, valueMapping);
-//        bm.setMultiPartitionKeyMapping(mapping);
+        //        bm.setMultiPartitionKeyMapping(mapping);
         mgrDefault.updateDataModelDesc(bm);
 
         Assert.assertEquals(9, bm.getJoinTables().size());
@@ -150,6 +152,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         model.setAlias(modelTest);
         model.setUuid(modelTest);
         model.setOwner(ownerTest);
+        model.setProject(projectDefault);
         model.setRootFactTableName("DEFAULT.TEST_KYLIN_FACT");
         Measure measure = new Measure();
         measure.setName("test_measure");
@@ -164,8 +167,9 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     public void createDataModelDesc_duplicateModelName_fail() throws IOException {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Model name 'nmodel_basic' is duplicated, could not be created.");
-        NDataModel nDataModel = JsonUtil.deepCopy(
-                (NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"), NDataModel.class);
+        NDataModel nDataModel = JsonUtil.deepCopy(mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+                NDataModel.class);
+        nDataModel.setProject(projectDefault);
 
         mgrDefault.createDataModelDesc(nDataModel, "root");
     }
@@ -179,6 +183,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         nDataModel.setUuid(RandomUtil.randomUUIDStr());
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
+        nDataModel.setProject(projectDefault);
         mgrDefault.createDataModelDesc(nDataModel, "root");
 
         NDataModel model = mgrDefault.getDataModelDesc(nDataModel.getId());
@@ -197,6 +202,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         nDataModel.setAlias("nmodel_basic2");
         nDataModel.setUuid(RandomUtil.randomUUIDStr());
         nDataModel.setLastModified(0L);
+        nDataModel.setProject(projectDefault);
 
         //add a duplicate
         List<NDataModel.NamedColumn> allNamedColumns = nDataModel.getAllNamedColumns();
@@ -217,6 +223,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         nDataModel.setUuid(RandomUtil.randomUUIDStr());
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
+        nDataModel.setProject(projectDefault);
 
         //make conflict on NamedColumn.name
         List<NDataModel.NamedColumn> allNamedColumns = nDataModel.getAllNamedColumns();

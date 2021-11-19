@@ -2900,6 +2900,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
 
         Field field = ComputedColumnDesc.class.getDeclaredField("expression");
         Unsafe.changeAccessibleObject(field, true);
@@ -2924,6 +2925,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
 
         Field field = ComputedColumnDesc.class.getDeclaredField("columnName");
         Unsafe.changeAccessibleObject(field, true);
@@ -2955,6 +2957,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -2978,6 +2981,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -2992,6 +2996,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3042,6 +3047,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3086,13 +3092,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
                 "", false);
-        Assert.assertTrue(dataModelDescs.size() == 1);
+        Assert.assertEquals(1, dataModelDescs.size());
 
         contents = contents.replaceFirst("\"type\": \"LEFT\"", "\"type\": \"INNER\"");
         contents = contents.replace("nmodel_cc_test", "nmodel_cc_test_2");
 
         bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3237,6 +3244,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3277,6 +3285,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3317,6 +3326,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3355,6 +3365,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3371,6 +3382,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("newten");
         //it's adding to non-default project, should be okay because cc conflict check is by project
         modelService.getDataModelManager("newten").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
@@ -3387,6 +3399,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("newten");
         //it's adding to non-default project, should be okay because cc conflict check is by project
         modelService.getDataModelManager("newten").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
@@ -3622,6 +3635,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3662,6 +3676,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3704,6 +3719,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setProject("default");
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
     }
@@ -3739,6 +3755,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
             InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
             NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+            deserialized.setProject("default");
             modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
             //TODO modelService.updateModelToResourceStore(deserialized, "default");
         } catch (BadModelException e) {
@@ -6546,12 +6563,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testCouldAnsweredByExistedModels() {
         val project = "streaming_test";
-        val emptyLists = modelService.couldAnsweredByExistedModels(project, Arrays.asList());
-        Assert.assertTrue(emptyLists.isEmpty());
+        val proposeContext0 = modelService.probeRecommendation(project, Collections.emptyList());
+        Assert.assertTrue(proposeContext0.getProposedModels().isEmpty());
 
-        val sqlList = Arrays.asList("SELECT * FROM SSB.P_LINEORDER_STR");
-        val modelLists = modelService.couldAnsweredByExistedModels(project, sqlList);
-        Assert.assertTrue(modelLists.isEmpty());
+        val sqlList = Collections.singletonList("SELECT * FROM SSB.P_LINEORDER_STR");
+        val proposeContext1 = modelService.probeRecommendation(project, sqlList);
+        Assert.assertTrue(proposeContext1.getProposedModels().isEmpty());
 
         val sqls = Lists.newArrayList("select * from SSB.LINEORDER");
         AbstractContext proposeContext = modelService.suggestModel(getProject(), sqls, false, true);
@@ -6559,7 +6576,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(response.getReusedModels().isEmpty());
 
         thrown.expect(KylinException.class);
-        modelService.couldAnsweredByExistedModels("not_existed_project", sqlList);
+        modelService.probeRecommendation("not_existed_project", sqlList);
     }
 
     @Test

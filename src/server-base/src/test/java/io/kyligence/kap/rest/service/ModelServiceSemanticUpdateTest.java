@@ -436,11 +436,13 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         modelManager.listAllModels().forEach(modelManager::dropModel);
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure.json"), ModelRequest.class);
+        request.setAlias("model_with_measure");
         val newModel = modelService.createModel(request.getProject(), request);
 
         val updateRequest = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure_change_alias.json"),
                 ModelRequest.class);
+        updateRequest.setAlias("model_with_measure_change_alias");
         updateRequest.setUuid(newModel.getUuid());
         modelService.updateDataModelSemantic(getProject(), updateRequest);
 
@@ -455,6 +457,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure_change_alias_twice.json"),
                 ModelRequest.class);
         updateRequest2.setUuid(newModel.getUuid());
+        updateRequest2.setAlias("model_with_measure_change_alias_twice");
         modelService.updateDataModelSemantic(getProject(), updateRequest2);
         model = modelService.getDataModelManager(getProject()).getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
@@ -889,6 +892,7 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_multi_measures.json"),
                 ModelRequest.class);
+        request.setAlias("model_with_multi_measures");
         request.setUuid(null);
         List<NamedColumn> dimensions = request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
                 .collect(Collectors.toList());

@@ -70,6 +70,7 @@ public class SmartSemiAutoTest extends NLocalFileMetadataTestCase {
 
         val baseModel = JsonUtil.readValue(new File("src/test/resources/nsmart/default/model_desc/model.json"),
                 NDataModel.class);
+        baseModel.setProject(project);
         modelManager.createDataModelDesc(baseModel, "ADMIN");
         val indexPlan = new IndexPlan();
         indexPlan.setUuid(baseModel.getUuid());

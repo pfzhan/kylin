@@ -145,6 +145,16 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
+    /**
+     * Developer can only use this method for read system KylinConfig.
+     */
+    public static KylinConfig readSystemKylinConfig() {
+        if (SYS_ENV_INSTANCE == null) {
+            return KylinConfig.getInstanceFromEnv();
+        }
+        return SYS_ENV_INSTANCE;
+    }
+
     public static KylinConfig newKylinConfig() {
         try {
             KylinConfig config = new KylinConfig();

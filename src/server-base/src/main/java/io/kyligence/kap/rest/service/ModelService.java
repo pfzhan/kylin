@@ -1282,6 +1282,7 @@ public class ModelService extends BasicService {
             nDataModel.setLastModified(System.currentTimeMillis());
             nDataModel.setRecommendationsCount(0);
             nDataModel.setMvcc(-1);
+            nDataModel.setProject(project);
             changeModelOwner(nDataModel);
             val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
             cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid(), RealizationStatusEnum.OFFLINE);
@@ -1696,6 +1697,8 @@ public class ModelService extends BasicService {
             // create model
             NDataModel model = JsonUtil.deepCopyQuietly(modelRequest, NDataModel.class);
             IndexPlan indexPlan = modelRequest.getIndexPlan();
+            model.setProject(project);
+            indexPlan.setProject(project);
             if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
                 dataModelManager.updateDataModelDesc(model);
             } else {
@@ -2214,6 +2217,7 @@ public class ModelService extends BasicService {
             copy.setAlias(FusionModel.getBatchName(request.getAlias(), model.getUuid()));
             copy.setRootFactTableName(tableName);
             copy.setFusionId(model.getUuid());
+            copy.setProject(project);
             model.setFusionId(model.getUuid());
 
             String tableAlias = kafkaConfig.getBatchTableAlias();

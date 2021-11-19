@@ -173,8 +173,10 @@ public class OptRecV2TestBase extends NLocalFileMetadataTestCase {
         for (String id : modelUUIDs) {
             NDataModel dataModel = JsonUtil.readValue(new File(String.format(Locale.ROOT, modelPathPattern, id)),
                     NDataModel.class);
+            dataModel.setProject(getProject());
             IndexPlan indexPlan = JsonUtil.readValue(new File(String.format(Locale.ROOT, indexPathPattern, id)),
                     IndexPlan.class);
+            indexPlan.setProject(getProject());
             modelManager.createDataModelDesc(dataModel, dataModel.getOwner());
             indexPlanManager.createIndexPlan(indexPlan);
             dataflowManager.createDataflow(indexPlan, dataModel.getOwner());

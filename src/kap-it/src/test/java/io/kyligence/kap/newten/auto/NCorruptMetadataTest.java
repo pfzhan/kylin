@@ -27,13 +27,11 @@ package io.kyligence.kap.newten.auto;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.core.StringContains;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -498,10 +496,8 @@ public class NCorruptMetadataTest extends NAutoTestBase {
     }
 
     private void assertWithException(Exception e, String expectedMessage, String expectedCauseMessage) {
-        Assert.assertTrue(e instanceof TransactionException);
-        Assert.assertTrue(e.getCause() instanceof IllegalStateException);
-        Assert.assertTrue(e.getMessage().startsWith(expectedMessage));
-        Assert.assertThat(e.getCause().getMessage(), new StringContains(expectedCauseMessage));
+        Assert.assertTrue(e instanceof IllegalStateException);
+        Assert.assertTrue(e.getMessage().startsWith(expectedCauseMessage));
     }
 
     @Override
