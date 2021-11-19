@@ -729,7 +729,7 @@ export default class ModelPartitionModal extends Vue {
       } else if (this.isChangeModelLayout || this.originFilterCondition !== this.filterCondition) {
         let result = null
         this.importantChange = true
-        if (this.exchangeJoinTableList.filter(it => it.joinType === 'LEFT' && it.isNew).length === this.exchangeJoinTableList.length) {
+        if (this.exchangeJoinTableList.length > 0 && this.exchangeJoinTableList.filter(it => it.joinType === 'LEFT' && it.isNew).length === this.exchangeJoinTableList.length) {
           result = await this.callGlobalDetailDialog({
             msg: this.$t('onlyAddLeftJoinTip'),
             title: this.$t('kylinLang.common.tip'),

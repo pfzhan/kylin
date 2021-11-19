@@ -271,6 +271,7 @@ export default class TableJoinModal extends Vue {
   // 格式化一开始的 join 关系
   backUpJoinCondition () {
     let {join_tables: joinInfo, tables} = this.form.modelInstance
+    if (!joinInfo) return
     joinInfo = joinInfo.map(item => {
       return {
         ...item,
