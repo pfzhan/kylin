@@ -819,6 +819,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getHdfsWorkingDirectoryWithoutScheme() + project + "/job_tmp/";
     }
 
+    public String getSnapshotCheckPointDir(String project, String jobId) {
+        return getHdfsWorkingDirectory(project) + "job_tmp/" + jobId + "/__step_checkpoint_snapshot/";
+    }
+
     public StorageURL getJobTmpMetaStoreUrl(String project, String jobId) {
         Map<String, String> params = new HashMap<>();
         params.put("path", getJobTmpDir(project) + getNestedPath(jobId) + "meta");
@@ -1473,11 +1477,13 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long asyncProfilingResultTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.query.async-profiler-result-timeout", "60s"), TimeUnit.MILLISECONDS);
+        return TimeUtil.timeStringAs(getOptional("kylin.query.async-profiler-result-timeout", "60s"),
+                TimeUnit.MILLISECONDS);
     }
 
     public long asyncProfilingProfileTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.query.async-profiler-profile-timeout", "5m"), TimeUnit.MILLISECONDS);
+        return TimeUtil.timeStringAs(getOptional("kylin.query.async-profiler-profile-timeout", "5m"),
+                TimeUnit.MILLISECONDS);
     }
 
     public boolean readSourceWithDefaultParallelism() {

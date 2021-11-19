@@ -219,7 +219,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
             throw new RuntimeException("Cannot find hive-site.xml in kylin_hadoop_conf_dir: " + hadoopConfDir + //
                     ". In order to enable spark cubing, you must set kylin.env.hadoop-conf-dir to a dir which contains at least core-site.xml, hdfs-site.xml, hive-site.xml, mapred-site.xml, yarn-site.xml");
         }
-
+        deleteSnapshotDirectoryOnExists();
         deleteJobTmpDirectoryOnExists();
 
         onExecuteStart();
@@ -563,6 +563,20 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
         props.remove("kylin.storage.columnar.spark-conf.spark.yarn.am.extraJavaOptions");
         props.remove("kylin.storage.columnar.spark-conf.spark.executor.extraJavaOptions");
+    }
+
+    private void deleteSnapshotDirectoryOnExists() {
+        if (isResumable()) {
+            return;
+        }
+        KylinConfig kylinConf = KylinConfig.getInstanceFromEnv();
+        String snapshotPath = kylinConf.getSnapshotCheckPointDir(getProject(), getId().split("_")[0]);
+        try {
+            Path path = new Path(snapshotPath);
+            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), path);
+        } catch (Exception e) {
+            logger.error("delete snapshot checkpoint in path {} failed.", snapshotPath, e);
+        }
     }
 
     private void deleteJobTmpDirectoryOnExists() {
