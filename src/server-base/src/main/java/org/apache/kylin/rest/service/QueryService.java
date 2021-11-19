@@ -548,6 +548,11 @@ public class QueryService extends BasicService {
 
             sqlResponse.setServer(clusterManager.getLocalServer());
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
+            if (sqlResponse.isStorageCacheUsed()) {
+                sqlResponse.setDuration(0);
+            } else {
+                sqlResponse.setDuration(QueryContext.currentMetrics().duration());
+            }
             logQuery(sqlRequest, sqlResponse);
 
             addToQueryHistory(sqlResponse, sqlRequest);
