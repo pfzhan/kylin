@@ -27,10 +27,12 @@ package io.kyligence.kap.rest.service;
 import static io.kyligence.kap.rest.service.JobService.EXCEPTION_CODE_DEFAULT;
 import static io.kyligence.kap.rest.service.JobService.EXCEPTION_CODE_PATH;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
+import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.ErrorCode;
@@ -61,7 +63,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -104,9 +105,6 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void setup() {
@@ -304,12 +302,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
         var failedReason = new KylinException(FAILED_UPDATE_JOB_STATUS, "test").getMessage();
 
-        manager.updateJobError(jobId, jobId, failedSegmentId, failedStack, failedReason);
         var output = manager.getJob(jobId).getOutput();
-        Assert.assertNull(output.getFailedStepId());
-        Assert.assertNull(output.getFailedSegmentId());
-        Assert.assertNull(output.getFailedStack());
-        Assert.assertNull(output.getFailedReason());
 
         manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
@@ -399,7 +392,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         var output = manager.getOutput(executable.getId());
-        var pausedTimeFromLastModify = AbstractExecutable.getPausedTimeFromLastModify(output);
+        long pausedTimeFromLastModify = AbstractExecutable.getPausedTimeFromLastModify(output);
         Assert.assertEquals(0, pausedTimeFromLastModify);
 
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
@@ -427,21 +420,23 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
 
         var output = manager.getOutput(executable.getId());
-        var duration = AbstractExecutable.getDuration(output);
-        Assert.assertEquals(0, duration);
+        final long[] duration = { AbstractExecutable.getDuration(output) };
+        Assert.assertEquals(0, duration[0]);
 
         ((DefaultOutput) output).setStartTime(System.currentTimeMillis());
-        Thread.sleep(10);
-        duration = AbstractExecutable.getDuration(output);
-        Assert.assertTrue(duration >= 10);
+        org.apache.kylin.job.execution.Output finalOutput = output;
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            duration[0] = AbstractExecutable.getDuration(finalOutput);
+            Assert.assertTrue(duration[0] >= 10);
+        });
 
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
         output = manager.getOutput(executable.getId());
-        duration = AbstractExecutable.getDuration(output);
-        Assert.assertTrue((System.currentTimeMillis() - output.getStartTime()) >= duration);
+        duration[0] = AbstractExecutable.getDuration(output);
+        Assert.assertTrue((System.currentTimeMillis() - output.getStartTime()) >= duration[0]);
 
         val durationFromExecutable = executable.getDuration();
-        Assert.assertTrue(durationFromExecutable >= duration);
+        Assert.assertTrue(durationFromExecutable >= duration[0]);
     }
 
     @Test
@@ -501,7 +496,8 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetDurationWithoutWaiteTimeFromSingleSegment() throws JsonProcessingException {
+    public void testGetDurationWithoutWaiteTimeFromSingleSegment()
+            throws JsonProcessingException, InterruptedException {
         for (int i = 1; i < 3; i++) {
             val segmentId = RandomUtil.randomUUIDStr();
 
@@ -559,8 +555,11 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
                                 : AbstractExecutable.getDuration(output))
                         .mapToLong(Long::valueOf).sum();
             }
-            Assert.assertTrue(sumDuration != 0);
-            Assert.assertTrue(sumDuration >= durationWithoutWaiteTime);
+            long finalSumDuration = sumDuration;
+            await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+                Assert.assertNotEquals(0, finalSumDuration);
+            });
+            Assert.assertTrue(finalSumDuration >= durationWithoutWaiteTime);
         }
     }
 }
