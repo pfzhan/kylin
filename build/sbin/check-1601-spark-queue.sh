@@ -109,10 +109,18 @@ function checkQueueSettings() {
 }
 
 if [[ $(is_kap_kerberos_enabled) == 1 ]]; then
-  checkQueueSettings
+  kylin_kerberos_platform=$($KYLIN_HOME/bin/get-properties.sh kylin.kerberos.platform)
+  if [ $kylin_kerberos_platform = FI ]; then
+    checkQueueSettings
+  elif [ $kylin_kerberos_platform = Standard ]; then
+    echo "Not implemented yet, skip checking queue setting."
+    exit 3
+  else
+    echo "Skip checking queue setting."
+    exit 3
+  fi
 else
   echo "Kerberos is not enabled, skip checking queue setting."
   exit 3
 fi
-
 echo "Checking Spark Queue succeed"
