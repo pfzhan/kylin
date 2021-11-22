@@ -270,7 +270,9 @@ import io.kyligence.kap.rest.service.params.BasicSegmentParams;
 import io.kyligence.kap.rest.service.params.FullBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
+import io.kyligence.kap.rest.service.params.ModelQueryParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.secondstorage.SecondStorage;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -306,7 +308,7 @@ public class ModelService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
     private static final String LAST_MODIFY = "last_modify";
-    private static final String REC_COUNT = "recommendations_count";
+    public static final String REC_COUNT = "recommendations_count";
 
     public static final String VALID_NAME_FOR_MODEL = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
@@ -330,6 +332,10 @@ public class ModelService extends BasicService {
 
     @Autowired
     private AccessService accessService;
+
+    @Setter
+    @Autowired
+    private ModelQueryService modelQueryService;
 
     @Setter
     @Autowired
@@ -675,14 +681,30 @@ public class ModelService extends BasicService {
             boolean reverse, String modelAliasOrOwner, List<ModelAttributeEnum> modelAttributes, Long lastModifyFrom,
             Long lastModifyTo, boolean onlyNormalDim) {
         List<NDataModel> models = new ArrayList<>();
-        if (StringUtils.isEmpty(table)) {
-            models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
-                    lastModifyFrom, lastModifyTo, onlyNormalDim));
-
-        } else {
-            models.addAll(getRelateModels(project, table, modelAlias));
+        DataResult<List<NDataModel>> filterModels;
+        if (modelQueryService.matchQuery(table, sortBy)) {
+            val modelQueryParams = new ModelQueryParams(modelId, modelAlias, exactMatch, project, owner, status, offset,
+                    limit, sortBy, reverse, modelAliasOrOwner, modelAttributes, lastModifyFrom, lastModifyTo,
+                    onlyNormalDim);
+            val tripleList = modelQueryService.getModels(modelQueryParams);
+            val pair = getModelsOfCurrentPage(modelQueryParams, tripleList);
+            models.addAll(pair.getFirst());
+            // add second storage infos
+            ModelUtils.addSecondStorageInfo(project, models);
+            filterModels = new DataResult<>(models, pair.getSecond(), offset, limit);
+            filterModels.setValue(addOldParams(project, filterModels.getValue()));
+            filterModels.setValue(updateReponseAcl(filterModels.getValue(), project));
+            return filterModels;
         }
-        Set<NDataModel> filteredModels = getFilteredModels(project, modelAttributes, models);
+
+        if (StringUtils.isNotEmpty(table)) {
+            models.addAll(getRelateModels(project, table, modelAlias));
+        } else {
+            models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse,
+                    modelAliasOrOwner, lastModifyFrom, lastModifyTo, onlyNormalDim));
+        }
+
+        Set<NDataModel> filteredModels = ModelUtils.getFilteredModels(project, modelAttributes, models);
 
         if (CollectionUtils.isNotEmpty(modelAttributes)) {
             models = models.stream().filter(filteredModels::contains).collect(Collectors.toList());
@@ -690,37 +712,37 @@ public class ModelService extends BasicService {
         if (StringUtils.isNotEmpty(modelId)) {
             models.removeIf(model -> !model.getUuid().equals(modelId));
         }
+        filterModels = DataResult.get(models, offset, limit);
 
-        DataResult<List<NDataModel>> filterModels = DataResult.get(models, offset, limit);
         filterModels.setValue(addOldParams(project, filterModels.getValue()));
         filterModels.setValue(updateReponseAcl(filterModels.getValue(), project));
         return filterModels;
     }
 
-    private Set<NDataModel> getFilteredModels(String project, List<ModelAttributeEnum> modelAttributes,
-            List<NDataModel> models) {
-        Set<ModelAttributeEnum> modelAttributeSet = Sets
-                .newHashSet(modelAttributes == null ? Collections.emptyList() : modelAttributes);
-        Set<NDataModel> filteredModels = new HashSet<>();
-        if (SecondStorageUtil.isProjectEnable(project)) {
-            val secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models);
-            val it = models.listIterator();
-            while (it.hasNext()) {
-                val secondStorageInfo = secondStorageInfos.get(it.nextIndex());
-                NDataModelResponse modelResponse = (NDataModelResponse) it.next();
-                modelResponse.setSecondStorageNodes(secondStorageInfo.getSecondStorageNodes());
-                modelResponse.setSecondStorageSize(secondStorageInfo.getSecondStorageSize());
-                modelResponse.setSecondStorageEnabled(secondStorageInfo.isSecondStorageEnabled());
+    public Pair<List<NDataModelResponse>, Integer> getModelsOfCurrentPage(ModelQueryParams queryElem,
+            List<ModelTriple> modelTripleList) {
+        val projectName = queryElem.getProjectName();
+        val offset = queryElem.getOffset();
+        val limit = queryElem.getLimit();
+        val status = queryElem.getStatus();
+        val dfManager = getDataflowManager(projectName);
+        List<NDataModelResponse> filterModels = new ArrayList<>();
+        final AtomicInteger totalSize = new AtomicInteger();
+        modelTripleList.stream().map(t -> {
+            if ((status == null || status.isEmpty()) && !PagingUtil.isInCurrentPage(totalSize.get(), offset, limit)) {
+                totalSize.getAndIncrement();
+                return null;
             }
-            if (modelAttributeSet.contains(ModelAttributeEnum.SECOND_STORAGE)) {
-                filteredModels.addAll(ModelAttributeEnum.SECOND_STORAGE.filter(models));
-                modelAttributeSet.remove(ModelAttributeEnum.SECOND_STORAGE);
+            return convertToDataModelResponse(t.getDataModel(), projectName, dfManager, status,
+                    queryElem.isOnlyNormalDim());
+        }).filter(Objects::nonNull).forEach(nDataModelResponse -> {
+            if (PagingUtil.isInCurrentPage(totalSize.get(), offset, limit)) {
+                filterModels.add(nDataModelResponse);
             }
-        }
-        for (val attr : modelAttributeSet) {
-            filteredModels.addAll(attr.filter(models));
-        }
-        return filteredModels;
+            totalSize.getAndIncrement();
+        });
+
+        return new Pair<>(filterModels, totalSize.get());
     }
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
@@ -739,23 +761,11 @@ public class ModelService extends BasicService {
         val dfManager = getDataflowManager(projectName);
         List<NDataModelResponse> filterModels = new ArrayList<>();
         pairs.forEach(p -> {
-            val dataflow = p.getKey();
             val modelDesc = p.getValue();
-            long inconsistentSegmentCount = dfManager.getDataflow(modelDesc.getId())
-                    .getSegments(SegmentStatusEnum.WARNING).size();
-            ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName,
-                    inconsistentSegmentCount);
-            if (modelDesc.isFusionModel()) {
-                modelResponseStatus = convertFusionModelStatusToDisplay(modelDesc, modelResponseStatus, projectName,
-                        dfManager);
-            }
-            boolean isScd2ForbiddenOnline = checkSCD2ForbiddenOnline(modelDesc, projectName);
-            boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
-            if (isModelStatusMatch) {
-                NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
-                nDataModelResponse.computedInfo(inconsistentSegmentCount, modelResponseStatus, isScd2ForbiddenOnline,
-                        modelDesc, onlyNormalDim);
-                filterModels.add(nDataModelResponse);
+            val dataModelResponse = convertToDataModelResponse(modelDesc, projectName, dfManager, status,
+                    onlyNormalDim);
+            if (dataModelResponse != null) {
+                filterModels.add(dataModelResponse);
             }
         });
 
@@ -771,6 +781,28 @@ public class ModelService extends BasicService {
                     StringUtils.isEmpty(sortBy) ? ModelService.LAST_MODIFY : sortBy, !reverse);
             filterModels.sort(comparator);
             return filterModels;
+        }
+    }
+
+    public NDataModelResponse convertToDataModelResponse(NDataModel modelDesc, String projectName,
+            NDataflowManager dfManager, List<String> status, boolean onlyNormalDim) {
+        long inconsistentSegmentCount = dfManager.getDataflow(modelDesc.getId()).getSegments(SegmentStatusEnum.WARNING)
+                .size();
+        ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName,
+                inconsistentSegmentCount);
+        if (modelDesc.isFusionModel()) {
+            modelResponseStatus = convertFusionModelStatusToDisplay(modelDesc, modelResponseStatus, projectName,
+                    dfManager);
+        }
+        boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
+        if (isModelStatusMatch) {
+            boolean isScd2ForbiddenOnline = checkSCD2ForbiddenOnline(modelDesc, projectName);
+            NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
+            nDataModelResponse.computedInfo(inconsistentSegmentCount, modelResponseStatus, isScd2ForbiddenOnline,
+                    modelDesc, onlyNormalDim);
+            return nDataModelResponse;
+        } else {
+            return null;
         }
     }
 
@@ -802,13 +834,15 @@ public class ModelService extends BasicService {
             boolean exactMatch, String owner, String modelAliasOrOwner, Long lastModifyFrom, Long lastModifyTo) {
         return getDataflowManager(projectName).listAllDataflows(true).stream()
                 .map(df -> Pair.newPair(df,
-                        df.checkBrokenWithRelatedInfo() ? getBrokenModel(projectName, df.getId()) : df.getModel()))
+                        df.checkBrokenWithRelatedInfo()
+                                ? modelQueryService.getBrokenModel(projectName, df.getId())
+                                : df.getModel()))
                 .filter(p -> !(Objects.nonNull(lastModifyFrom) && lastModifyFrom > p.getValue().getLastModified())
                         && !(Objects.nonNull(lastModifyTo) && lastModifyTo <= p.getValue().getLastModified())
-                        && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
-                                || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
-                        && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
-                        && isArgMatch(owner, exactMatch, p.getValue().getOwner())
+                        && (ModelUtils.isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
+                                || ModelUtils.isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
+                        && ModelUtils.isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
+                        && ModelUtils.isArgMatch(owner, exactMatch, p.getValue().getOwner())
                         && !p.getValue().fusionModelBatchPart())
                 .collect(Collectors.toList());
     }
@@ -853,12 +887,6 @@ public class ModelService extends BasicService {
                 .filter(modle -> !"-1".equalsIgnoreCase(modle.getExpansionrate())).collect(Collectors.toList());
         nDataModelResponses.addAll(unknowModels);
         return nDataModelResponses;
-    }
-
-    private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
-        return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
-                || (!exactMatch
-                        && originValue.toLowerCase(Locale.ROOT).contains(valueToMatch.toLowerCase(Locale.ROOT)));
     }
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
@@ -2230,7 +2258,7 @@ public class ModelService extends BasicService {
 
             String tableAlias = kafkaConfig.getBatchTableAlias();
             String oldAliasName = model.getRootFactTableRef().getTableName();
-            convertModel(copy, tableAlias, oldAliasName);
+            convertToDataModelResponse(copy, tableAlias, oldAliasName);
             NDataModel copyModel = saveModel(project, copy);
             createFusionModel(project, model, copyModel);
         }
@@ -2243,7 +2271,7 @@ public class ModelService extends BasicService {
         fusionModelManager.createModel(fusionModel);
     }
 
-    private void convertModel(ModelRequest copy, String tableName, String oldAliasName) {
+    private void convertToDataModelResponse(ModelRequest copy, String tableName, String oldAliasName) {
         copy.getSimplifiedJoinTableDescs()
                 .forEach(x -> x.getSimplifiedJoinDesc().changeFKTableAlias(oldAliasName, tableName));
         copy.getSimplifiedDimensions().forEach(x -> x.changeTableAlias(oldAliasName, tableName));
@@ -2264,13 +2292,6 @@ public class ModelService extends BasicService {
             copyForWrite.setIndexPlanOverrideIndexes(indexPlan.getIndexPlanOverrideIndexes());
             copyForWrite.setLastModified(System.currentTimeMillis());
         });
-    }
-
-    private NDataModel getBrokenModel(String project, String modelId) {
-        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDescWithoutInit(modelId);
-        model.setBroken(true);
-        return model;
     }
 
     private void checkModelRequest(ModelRequest request) {
@@ -3670,7 +3691,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         val modelManager = getDataModelManager(project);
         val origin = modelManager.getDataModelDesc(modelRequest.getId());
-        val broken = getBrokenModel(project, origin.getId());
+        val broken = modelQueryService.getBrokenModel(project, origin.getId());
         val prjManager = getProjectManager();
         val prj = prjManager.getProject(project);
 

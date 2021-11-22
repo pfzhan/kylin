@@ -70,4 +70,8 @@ public class PagingUtil {
         Collections.sort(identifier);
         return identifier;
     }
+
+    public static boolean isInCurrentPage(int totalSize, int offset, int limit) {
+        return totalSize >= offset * limit && totalSize < (offset * limit + limit);
+    }
 }

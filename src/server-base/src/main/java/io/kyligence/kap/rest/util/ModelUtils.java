@@ -28,8 +28,14 @@ import static org.apache.kylin.common.exception.ServerErrorCode.TIMESTAMP_COLUMN
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
+import io.kyligence.kap.rest.constant.ModelAttributeEnum;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -41,6 +47,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 
 public class ModelUtils {
@@ -61,8 +69,7 @@ public class ModelUtils {
         return bigDecimal.toString();
     }
 
-    public static void checkPartitionColumn(NDataModel model,
-                                            PartitionDesc partitionDesc, String errMsg) {
+    public static void checkPartitionColumn(NDataModel model, PartitionDesc partitionDesc, String errMsg) {
         if (!model.isBroken() && model.isStreaming()) {
             if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
                     || !DateFormat.isTimestampFormat(partitionDesc.getPartitionDateFormat())) {
@@ -90,4 +97,52 @@ public class ModelUtils {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getTIMESTAMP_COLUMN_NOT_EXIST()));
         }
     }
+
+    public static boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
+        return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
+                || (!exactMatch
+                        && originValue.toLowerCase(Locale.ROOT).contains(valueToMatch.toLowerCase(Locale.ROOT)));
+
+    }
+
+    public static Set<NDataModel> getFilteredModels(String project, List<ModelAttributeEnum> modelAttributes,
+                                              List<NDataModel> models) {
+        Set<ModelAttributeEnum> modelAttributeSet = Sets
+                .newHashSet(modelAttributes == null ? Collections.emptyList() : modelAttributes);
+        Set<NDataModel> filteredModels = new HashSet<>();
+        if (SecondStorageUtil.isProjectEnable(project)) {
+            val secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models);
+            val it = models.listIterator();
+            while (it.hasNext()) {
+                val secondStorageInfo = secondStorageInfos.get(it.nextIndex());
+                NDataModelResponse modelResponse = (NDataModelResponse) it.next();
+                modelResponse.setSecondStorageNodes(secondStorageInfo.getSecondStorageNodes());
+                modelResponse.setSecondStorageSize(secondStorageInfo.getSecondStorageSize());
+                modelResponse.setSecondStorageEnabled(secondStorageInfo.isSecondStorageEnabled());
+            }
+            if (modelAttributeSet.contains(ModelAttributeEnum.SECOND_STORAGE)) {
+                filteredModels.addAll(ModelAttributeEnum.SECOND_STORAGE.filter(models));
+                modelAttributeSet.remove(ModelAttributeEnum.SECOND_STORAGE);
+            }
+        }
+        for (val attr : modelAttributeSet) {
+            filteredModels.addAll(attr.filter(models));
+        }
+        return filteredModels;
+    }
+
+    public static void addSecondStorageInfo(String project, List<NDataModel> models) {
+        if (SecondStorageUtil.isProjectEnable(project)) {
+            val secondStorageInfos = SecondStorageUtil.setSecondStorageSizeInfo(models);
+            val it = models.listIterator();
+            while (it.hasNext()) {
+                val secondStorageInfo = secondStorageInfos.get(it.nextIndex());
+                NDataModelResponse modelResponse = (NDataModelResponse) it.next();
+                modelResponse.setSecondStorageNodes(secondStorageInfo.getSecondStorageNodes());
+                modelResponse.setSecondStorageSize(secondStorageInfo.getSecondStorageSize());
+                modelResponse.setSecondStorageEnabled(secondStorageInfo.isSecondStorageEnabled());
+            }
+        }
+    }
+
 }

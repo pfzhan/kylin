@@ -4,7 +4,7 @@
   "create_time" : 1575870240084,
   "version" : "4.0.0.0",
   "alias" : "AUTO_MODEL_P_LINEORDER_2",
-  "owner" : null,
+  "owner" : "ADMIN",
   "model_type": "STREAMING",
   "config_last_modifier" : null,
   "config_last_modified" : 0,

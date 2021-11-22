@@ -21,39 +21,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.util;
 
+import java.io.Serializable;
 
+import org.apache.commons.lang3.tuple.Triple;
 
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
 
-package io.kyligence.kap.rest.service;
+@Setter
+@Getter
+public class ModelTriple extends Triple<NDataflow, NDataModel, Object> {
+    public static final int SORT_KEY_DATAFLOW = 1;
+    public static final int SORT_KEY_DATA_MODEL = 2;
+    public static final int SORT_KEY_CALC_OBJECT = 3;
 
-import java.util.ArrayList;
-import org.apache.kylin.rest.util.PagingUtil;
-import org.junit.Assert;
-import org.junit.Test;
+    private NDataflow dataflow;
 
-import com.google.common.collect.Lists;
+    private NDataModel dataModel;
 
-public class PagingUtilTest {
-    @Test
-    public void testPageCut() {
-        ArrayList<String> list = Lists.newArrayList("a", "b", "c", "d", "e");
-        Assert.assertEquals(Lists.newArrayList("d"), PagingUtil.cutPage(list, 3, 1));
+    private Serializable calcObject;
+
+    public ModelTriple(NDataflow dataflow, NDataModel dataModel) {
+        this.dataflow = dataflow;
+        this.dataModel = dataModel;
     }
 
-
-    @Test
-    public void testFuzzyMatching() {
-        ArrayList<String> noAccessList = Lists.newArrayList("a1", "AB1", "Ab1", "aB1", "abc1");
-        Assert.assertEquals(Lists.newArrayList("AB1", "Ab1", "aB1", "abc1"), PagingUtil.getIdentifierAfterFuzzyMatching("ab", false, noAccessList));
-        Assert.assertEquals(Lists.newArrayList("abc1"), PagingUtil.getIdentifierAfterFuzzyMatching("ab", true, noAccessList));
+    @Override
+    public NDataflow getLeft() {
+        return dataflow;
     }
 
-    @Test
-    public void testIsInCurrentPage() {
-        Assert.assertTrue(PagingUtil.isInCurrentPage(0, 0, 5));
-        Assert.assertTrue(PagingUtil.isInCurrentPage(6, 1, 5));
-        Assert.assertFalse(PagingUtil.isInCurrentPage(11, 1, 5));
-        Assert.assertFalse(PagingUtil.isInCurrentPage(1, 1, 5));
+    @Override
+    public NDataModel getMiddle() {
+        return dataModel;
+    }
+
+    @Override
+    public Object getRight() {
+        return calcObject;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return super.equals(other);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 }

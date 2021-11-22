@@ -87,6 +87,9 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private ModelService modelService = Mockito.spy(new ModelService());
 
+    @InjectMocks
+    private ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
+
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
@@ -119,7 +122,9 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelQueryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(modelService, "modelQueryService", modelQueryService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         modelService.setSemanticUpdater(semanticService);
         modelService.setIndexPlanService(indexPlanService);

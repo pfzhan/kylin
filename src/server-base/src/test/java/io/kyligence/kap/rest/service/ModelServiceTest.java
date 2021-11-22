@@ -29,10 +29,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -231,6 +228,7 @@ import io.kyligence.kap.rest.response.SuggestionResponse;
 import io.kyligence.kap.rest.service.params.IncrementBuildSegmentParams;
 import io.kyligence.kap.rest.service.params.MergeSegmentParams;
 import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
+import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.SCD2SimplificationConvertUtil;
 import io.kyligence.kap.secondstorage.SecondStorageNodeHelper;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
@@ -252,6 +250,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @InjectMocks
     private final ModelService modelService = Mockito.spy(new ModelService());
+
+    @InjectMocks
+    private final ModelQueryService modelQueryService = Mockito.spy(new ModelQueryService());
 
     @InjectMocks
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
@@ -304,10 +305,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         overwriteSystemProp("kylin.model.multi-partition-enabled", "true");
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelQueryService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
+        ReflectionTestUtils.setField(modelService, "modelQueryService", modelQueryService);
         ReflectionTestUtils.setField(tableService, "jobService", jobService);
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
@@ -361,11 +364,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 Arrays.asList("DISABLED"), "last_modify", true);
         Assert.assertEquals(0, model5.size());
 
-        List<NDataModelResponse> models6 = modelService.getModels("", "default", false, "", null, "last_modify", true,
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
+        List<NDataModelResponse> models6 = modelService.getModels("", "default", false, "", null, "", true,
                 "nmodel_full_measure_test", null, null);
         Assert.assertEquals(1, models6.size());
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
 
-        List<NDataModelResponse> models7 = modelService.getModels("", "default", false, "", null, "last_modify", true,
+        List<NDataModelResponse> models7 = modelService.getModels("", "default", false, "", null, "expansionrate", true,
                 "admin", null, null);
         Assert.assertEquals(7, models7.size());
 
@@ -532,53 +537,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
             String modelStatus = modelService.getModelStatus(id, projectName).toString();
             Assert.assertEquals("ONLINE", modelStatus);
         }
-    }
-
-    @Test
-    public void testGetFilteredModels() {
-        // Prepare mocked batch, hybrid, streaming, and second storage models
-        List<NDataModelResponse> mockedModels = Lists.newArrayList();
-        NDataModel modelSpy1 = Mockito.spy(new NDataModel());
-        when(modelSpy1.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
-        mockedModels.add(new NDataModelResponse(modelSpy1));
-        NDataModel modelSpy2 = Mockito.spy(new NDataModel());
-        when(modelSpy2.getModelType()).thenReturn(NDataModel.ModelType.HYBRID);
-        mockedModels.add(new NDataModelResponse(modelSpy2));
-        mockedModels.add(new NDataModelResponse(modelSpy2));
-        NDataModel modelSpy3 = Mockito.spy(new NDataModel());
-        when(modelSpy3.getModelType()).thenReturn(NDataModel.ModelType.STREAMING);
-        mockedModels.add(new NDataModelResponse(modelSpy3));
-        NDataModelResponse modelSpy4 = Mockito.spy(new NDataModelResponse(new NDataModel()));
-        when(modelSpy4.isSecondStorageEnabled()).thenReturn(true);
-        mockedModels.add(modelSpy4);
-        mockedModels.add(modelSpy4);
-        mockedModels.add(modelSpy4);
-
-        when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("ONLINE"), "last_modify", true, null,
-                null, null, true)).thenReturn(mockedModels);
-        doReturn(new ArrayList<>()).when(modelService).addOldParams(anyString(), any());
-
-        DataResult<List<NDataModel>> modelResult1 = modelService.getModels(null, "", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null, Arrays.asList(ModelAttributeEnum.BATCH,
-                        ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
-                null, null, true);
-
-        DataResult<List<NDataModel>> modelResult2 = modelService.getModels(null, "", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING), null, null, true);
-
-        DataResult<List<NDataModel>> modelResult3 = modelService.getModels(null, "", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
-                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.SECOND_STORAGE), null, null, true);
-
-        DataResult<List<NDataModel>> modelResult4 = modelService.getModels(null, "", true, "default", "ADMIN",
-                Arrays.asList("ONLINE"), "", 0, 10, "last_modify", true, null,
-                Arrays.asList(ModelAttributeEnum.SECOND_STORAGE), null, null, true);
-
-        Assert.assertEquals(7, modelResult1.getTotalSize());
-        Assert.assertEquals(2, modelResult2.getTotalSize());
-        Assert.assertEquals(4, modelResult3.getTotalSize());
-        Assert.assertEquals(3, modelResult4.getTotalSize());
     }
 
     @Test
@@ -1554,6 +1512,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<RelatedModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
                 "nmodel_basic_inner");
         Assert.assertEquals(1, models2.size());
+        Mockito.doReturn(new ArrayList<>()).when(modelService).addOldParams(Mockito.anyString(), any());
+
+        val models3 = modelService.getModels("741ca86a-1f13-46da-a59f-95fb68615e3a", null, true, "default", "ADMIN",
+                Lists.newArrayList(), "DEFAULT.TEST_KYLIN_FACT", 0, 8, "last_modify", true, null, null, null, null,
+                true);
+        Assert.assertEquals(1, models3.getTotalSize());
     }
 
     @Test
@@ -6339,6 +6303,79 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request3.setUuid(model);
         modelService.changeSecondStorageIfNeeded("default", request3, emptyResponse);
         Assert.assertTrue(SecondStorageUtil.isModelEnable("default", model));
+    }
+
+    @Test
+    public void testGetBrokenModel() {
+        val modelId = "b780e4e4-69af-449e-b09f-05c90dfa04b6";
+        val model = modelQueryService.getBrokenModel("default", modelId);
+        Assert.assertTrue(model.isBroken());
+    }
+
+    @Test
+    public void testQueryModels() {
+        String project = "streaming_test";
+        val modelList = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 8,
+                "last_modify", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
+                null, true);
+        Assert.assertEquals(11, modelList.getTotalSize());
+        Assert.assertEquals(8, modelList.getValue().size());
+
+        val modelList1 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 10,
+                "usage", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
+                null, true);
+        Assert.assertEquals(11, modelList1.getTotalSize());
+        Assert.assertEquals(1, modelList1.getValue().size());
+
+        val modelResponse = modelList1.getValue().get(0);
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+
+        val triple = new ModelTriple(dfMgr.getDataflow(modelResponse.getUuid()), modelResponse);
+        Assert.assertTrue(triple.getLeft() instanceof NDataflow);
+        Assert.assertTrue(triple.getMiddle() instanceof NDataModel);
+        Assert.assertNull(triple.getRight());
+
+        val modelList2 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 5,
+                "storage", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
+                null, true);
+        Assert.assertEquals(11, modelList2.getTotalSize());
+        Assert.assertEquals(5, modelList2.getValue().size());
+        Assert.assertTrue(((NDataModelResponse) modelList2.getValue().get(0))
+                .getStorage() >= ((NDataModelResponse) modelList2.getValue().get(4)).getStorage());
+
+        val modelList3 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 10,
+                "expansionrate", true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
+                null, false);
+        Assert.assertEquals(1, modelList3.getValue().size());
+
+        val modelList4 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 10,
+                "expansionrate", false, "ADMIN",
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID),
+                974198646000L, System.currentTimeMillis(), true);
+        Assert.assertEquals(10, modelList4.getValue().size());
+
+        val modelList5 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 6, "",
+                true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
+                null, false);
+        Assert.assertEquals(5, modelList5.getValue().size());
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
+        val modelList6 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 1, 6, "",
+                true, null, Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING,
+                        ModelAttributeEnum.HYBRID, ModelAttributeEnum.SECOND_STORAGE),
+                null, null, false);
+        Assert.assertEquals(5, modelList6.getValue().size());
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
+
+        val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6, "input_records_count",
+                true, null,
+                Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
+                null, false);
+        Assert.assertEquals(6, modelList7.getValue().size());
     }
 
     @Test
