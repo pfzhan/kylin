@@ -2969,8 +2969,12 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.metrics.prometheus-enabled", TRUE));
     }
 
+    public boolean getCheckResourceEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.build.resource.check-enabled", FALSE));
+    }
+
     public long getCheckResourceTimeLimit() {
-        return Long.parseLong(getOptional("kylin.build.resource.check-retry-limit-minutes", "10"));
+        return Long.parseLong(getOptional("kylin.build.resource.check-retry-limit-minutes", "30"));
     }
 
     public boolean isBatchGetRowAclEnabled() {

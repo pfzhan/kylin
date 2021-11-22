@@ -57,16 +57,22 @@ class WaiteForResource(jobContext: SparkApplication) extends StageExec {
       KylinBuildEnv.get().buildJobInfos.startWait()
       Thread.sleep(sleepSeconds * 1000)
 
-      // Set check resource timeout limit, otherwise tasks will remain in an endless loop, default is 10 min.
-      val timeoutLimitNs: Long = TimeUnit.NANOSECONDS.convert(config.getCheckResourceTimeLimit, TimeUnit.MINUTES)
-      logInfo(s"CheckResource timeout limit was set: ${config.getCheckResourceTimeLimit} minutes.")
-      val startTime: Long = System.nanoTime
-      var timeTaken: Long = 0
+      // Set check resource timeout limit, otherwise tasks will remain in an endless loop, default is 30 min.
+      val checkEnabled: Boolean = config.getCheckResourceEnabled
+      var (timeoutLimitNs: Long, startTime: Long, timeTaken: Long) = if (checkEnabled) {
+        logInfo(s"CheckResource timeout limit was set: ${config.getCheckResourceTimeLimit} minutes.")
+        // can not delete toLong method, may cause match error
+        (TimeUnit.NANOSECONDS.convert(config.getCheckResourceTimeLimit, TimeUnit.MINUTES).toLong, System.nanoTime.toLong, 0L)
+      } else {
+        (-1L, -1L, -1L)
+      }
       try while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager)) {
-        timeTaken = System.nanoTime
-        if (timeTaken - startTime > timeoutLimitNs) {
-          val timeout = TimeUnit.MINUTES.convert(timeTaken - startTime, TimeUnit.NANOSECONDS)
-          throw new NoRetryException(s"CheckResource exceed timeout limit: $timeout minutes.")
+        if (checkEnabled) {
+          timeTaken = System.nanoTime
+          if (timeTaken - startTime > timeoutLimitNs) {
+            val timeout = TimeUnit.MINUTES.convert(timeTaken - startTime, TimeUnit.NANOSECONDS)
+            throw new NoRetryException(s"CheckResource exceed timeout limit: $timeout minutes.")
+          }
         }
         val waitTime = (Math.random * 10 * 60).toLong
         logInfo(s"Current available resource in cluster is not sufficient, wait $waitTime seconds.")
