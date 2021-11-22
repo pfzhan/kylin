@@ -329,7 +329,7 @@ public abstract class AbstractExecutable implements Executable {
             }
 
             //The output will be stored in HDFS,not in RS
-            if (this instanceof ChainedExecutable) {
+            if (this instanceof ChainedStageExecutable) {
                 if (newStatus == ExecutableState.SUCCEED) {
                     executableManager.makeStageSuccess(jobId);
                 } else if (newStatus == ExecutableState.ERROR) {

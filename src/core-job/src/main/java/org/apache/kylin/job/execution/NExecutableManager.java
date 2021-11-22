@@ -1225,7 +1225,8 @@ public class NExecutableManager {
         return true;
     }
 
-    public void makeStageSuccess(String jobId) {
+    public void makeStageSuccess(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
             return;
@@ -1233,7 +1234,7 @@ public class NExecutableManager {
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.forEach(task -> {
-                if (task instanceof ChainedStageExecutable) {
+                if (task instanceof ChainedStageExecutable && StringUtils.equals(taskOrJobId, task.getId())) {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
@@ -1249,7 +1250,8 @@ public class NExecutableManager {
         }
     }
 
-    public void makeStageError(String jobId) {
+    public void makeStageError(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
             return;
@@ -1257,7 +1259,7 @@ public class NExecutableManager {
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.forEach(task -> {
-                if (task instanceof ChainedStageExecutable) {
+                if (task instanceof ChainedStageExecutable && StringUtils.equals(taskOrJobId, task.getId())) {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {

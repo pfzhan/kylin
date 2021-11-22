@@ -35,8 +35,7 @@ class SnapshotExec(id: String) extends BuildExec(id) {
   @throws(classOf[IOException])
   def buildSnapshot(): Unit = {
     for (stage <- subStages.asScala) {
-      stage.onStageStart()
-      stage.execute()
+      stage.toWorkWithoutFinally()
     }
   }
 

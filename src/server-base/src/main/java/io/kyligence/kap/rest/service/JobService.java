@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_JOB_STATUS;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_ACTION;
 import static org.apache.kylin.common.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
@@ -126,6 +125,7 @@ import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -573,17 +573,16 @@ public class JobService extends BasicService {
                 }
                 if (MapUtils.isNotEmpty(stringSubStageMap)) {
                     executableStepResponse.setSegmentSubStages(stringSubStageMap);
-                    if (stringSubStageMap.size() == 1) {
-                        for (Map.Entry<String, ExecutableStepResponse.SubStages> entry : stringSubStageMap.entrySet()) {
-                            val taskDuration = entry.getValue().getStage().stream()
-                                    .map(ExecutableStepResponse::getDuration) //
-                                    .mapToLong(Long::valueOf).sum();
-                            executableStepResponse.setDuration(taskDuration);
-                        }
-                    }
                 }
                 if (CollectionUtils.isNotEmpty(subStages)) {
                     executableStepResponse.setSubStages(subStages);
+                    if (MapUtils.isEmpty(stringSubStageMap) || stringSubStageMap.size() == 1) {
+                        val taskDuration = subStages.stream() //
+                                .map(ExecutableStepResponse::getDuration) //
+                                .mapToLong(Long::valueOf).sum();
+                        executableStepResponse.setDuration(taskDuration);
+
+                    }
                 }
             }
             executableStepList.add(executableStepResponse);

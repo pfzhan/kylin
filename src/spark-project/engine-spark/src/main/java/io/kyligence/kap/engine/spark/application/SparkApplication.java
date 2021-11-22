@@ -452,6 +452,7 @@ public abstract class SparkApplication implements Application, IKeep {
     protected void waiteForResourceSuccess() throws Exception {
         val waiteForResource = WAITE_FOR_RESOURCE.create(this, null, null);
         waiteForResource.onStageFinished(true);
+        infos.recordStageId("");
     }
 
     protected void chooseContentSize(SparkConfHelper helper) {

@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
@@ -126,6 +127,8 @@ public class SegmentBuildJob extends SegmentJob {
     protected void build() throws IOException {
         Stream<NDataSegment> segmentStream = config.isSegmentParallelBuildEnabled() ? //
                 readOnlySegments.parallelStream() : readOnlySegments.stream();
+        AtomicLong finishedSegmentCount = new AtomicLong(0);
+        val segmentsCount = readOnlySegments.size();
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
@@ -144,8 +147,10 @@ public class SegmentBuildJob extends SegmentJob {
                 buildSegment(seg, exec);
 
                 val refreshColumnBytes = REFRESH_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
-                refreshColumnBytes.onStageStart();
-                refreshColumnBytes.execute();
+                refreshColumnBytes.toWorkWithoutFinally();
+                if (finishedSegmentCount.incrementAndGet() < segmentsCount) {
+                    refreshColumnBytes.onStageFinished(true);
+                }
             } catch (IOException e) {
                 Throwables.propagate(e);
             }

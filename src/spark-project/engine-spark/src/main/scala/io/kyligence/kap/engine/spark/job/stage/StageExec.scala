@@ -124,6 +124,18 @@ trait StageExec extends Logging {
     } finally onStageFinished(result)
   }
 
+  def toWorkWithoutFinally(): Unit = {
+    onStageStart()
+    try {
+      execute()
+    } catch {
+      case throwable: Throwable =>
+        KylinBuildEnv.get().buildJobInfos.recordSegmentId(getSegmentId)
+        KylinBuildEnv.get().buildJobInfos.recordStageId(getId)
+        Throwables.propagate(throwable)
+    }
+  }
+
 
   def setId(id: String): Unit = {
     this.id = id

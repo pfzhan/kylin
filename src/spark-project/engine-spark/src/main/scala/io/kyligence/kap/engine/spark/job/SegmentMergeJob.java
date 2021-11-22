@@ -29,6 +29,7 @@ import static io.kyligence.kap.engine.spark.job.StageType.MERGE_FLAT_TABLE;
 import static io.kyligence.kap.engine.spark.job.StageType.MERGE_INDICES;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
@@ -56,6 +57,8 @@ public class SegmentMergeJob extends SegmentJob {
     private void merge() throws IOException {
         Stream<NDataSegment> segmentStream = config.isSegmentParallelBuildEnabled() ? //
                 readOnlySegments.parallelStream() : readOnlySegments.stream();
+        AtomicLong finishedSegmentCount = new AtomicLong(0);
+        val segmentsCount = readOnlySegments.size();
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {
@@ -69,8 +72,11 @@ public class SegmentMergeJob extends SegmentJob {
                 exec.mergeSegment();
 
                 val mergeColumnBytes = MERGE_COLUMN_BYTES.createStage(this, seg, buildParam, exec);
-                mergeColumnBytes.onStageStart();
-                mergeColumnBytes.execute();
+                mergeColumnBytes.toWorkWithoutFinally();
+
+                if (finishedSegmentCount.incrementAndGet() < segmentsCount) {
+                    mergeColumnBytes.onStageFinished(true);
+                }
             } catch (IOException e) {
                 Throwables.propagate(e);
             }

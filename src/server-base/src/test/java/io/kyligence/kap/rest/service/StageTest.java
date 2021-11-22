@@ -124,6 +124,106 @@ public class StageTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetJobDetailDurationSingleSegment() {
+        val segmentId = RandomUtil.randomUUIDStr();
+
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        val sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject(getProject());
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
+        executable.addTask(sparkExecutable);
+
+        val build1 = new NStageForBuild();
+        build1.setProject(getProject());
+        val build2 = new NStageForMerge();
+        build2.setProject(getProject());
+        val build3 = new NStageForSnapshot();
+        build3.setProject(getProject());
+        final StageBase stage1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase stage2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase stage3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
+        manager.updateStageStatus(stage1.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        manager.updateStageStatus(stage2.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        manager.updateStageStatus(stage3.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.SUCCEED);
+        manager.makeStageSuccess(sparkExecutable.getId());
+
+        val jobDetail = jobService.getJobDetail(getProject(), executable.getId());
+
+        var durationTask = jobDetail.stream().filter(response -> CollectionUtils.isNotEmpty(response.getSubStages()))
+                .map(ExecutableStepResponse::getDuration).mapToLong(Long::valueOf).sum();
+        var taskResponse = jobDetail.stream().filter(response -> CollectionUtils.isNotEmpty(response.getSubStages()))
+                .findFirst().orElse(null);
+        Assert.assertNotNull(taskResponse);
+        var durationStage = taskResponse.getSubStages().stream().map(ExecutableStepResponse::getDuration)
+                .mapToLong(Long::valueOf).sum();
+        Assert.assertEquals(durationTask, durationStage);
+
+        var durationWithoutPausedTime = executable.getDurationWithoutPausedTime();
+        Assert.assertEquals(durationStage, durationWithoutPausedTime);
+    }
+
+    @Test
+    public void testGetJobDetailDuration() {
+        val segmentId = RandomUtil.randomUUIDStr();
+        val segmentId2 = RandomUtil.randomUUIDStr();
+
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        val sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject(getProject());
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId + "," + segmentId2);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
+        executable.addTask(sparkExecutable);
+
+        val build1 = new NStageForBuild();
+        build1.setProject(getProject());
+        val build2 = new NStageForMerge();
+        build2.setProject(getProject());
+        val build3 = new NStageForSnapshot();
+        build3.setProject(getProject());
+        final StageBase stage1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase stage2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase stage3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
+
+        manager.addJob(executable);
+
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
+        manager.updateStageStatus(stage1.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        manager.updateStageStatus(stage2.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        manager.updateStageStatus(stage3.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.SUCCEED);
+        manager.makeStageSuccess(sparkExecutable.getId());
+
+        val jobDetail = jobService.getJobDetail(getProject(), executable.getId());
+        var duration = jobDetail.stream().map(ExecutableStepResponse::getDuration).mapToLong(Long::valueOf).sum();
+        var durationWithoutPausedTime = executable.getDurationWithoutPausedTime();
+        Assert.assertEquals(duration, durationWithoutPausedTime);
+    }
+
+    @Test
     public void testGetDiscardJobDetail() {
         val segmentId = RandomUtil.randomUUIDStr();
         val segmentId2 = RandomUtil.randomUUIDStr();
@@ -331,7 +431,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null, null);
         manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.RUNNING, null, null, false);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null, null);
-        manager.makeStageSuccess(executable.getId());
+        manager.makeStageSuccess(sparkExecutable.getId());
 
         var info = manager.getWaiteTime(executable);
         Map<String, String> waiteTime = JsonUtil.readValueAsMap(info.getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
@@ -370,22 +470,22 @@ public class StageTest extends NLocalFileMetadataTestCase {
 
         manager.updateStageStatus(logicStep1.getId(), segmentId, ExecutableState.SUCCEED, null, errMsg);
         var output1 = manager.getOutput(logicStep1.getId(), segmentId);
-        Assert.assertEquals(output1.getState(), ExecutableState.SUCCEED);
+        Assert.assertEquals(ExecutableState.SUCCEED, output1.getState());
         Assert.assertEquals(output1.getShortErrMsg(), errMsg);
         Assert.assertTrue(MapUtils.isEmpty(output1.getExtra()));
 
         manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.ERROR, null, errMsg);
         output1 = manager.getOutput(logicStep1.getId(), segmentId);
-        Assert.assertEquals(output1.getState(), ExecutableState.SUCCEED);
+        Assert.assertEquals(ExecutableState.SUCCEED, output1.getState());
         Assert.assertEquals(output1.getShortErrMsg(), errMsg);
         Assert.assertTrue(MapUtils.isEmpty(output1.getExtra()));
         var output2 = manager.getOutput(logicStep1.getId(), segmentId2);
-        Assert.assertEquals(output2.getState(), ExecutableState.ERROR);
+        Assert.assertEquals(ExecutableState.ERROR, output2.getState());
         Assert.assertEquals(output2.getShortErrMsg(), errMsg);
         Assert.assertTrue(MapUtils.isEmpty(output2.getExtra()));
 
         var outputLogicStep2 = manager.getOutput(logicStep2.getId(), segmentId);
-        Assert.assertEquals(outputLogicStep2.getState(), ExecutableState.READY);
+        Assert.assertEquals(ExecutableState.READY, outputLogicStep2.getState());
         Assert.assertNull(outputLogicStep2.getShortErrMsg());
         Assert.assertTrue(MapUtils.isEmpty(outputLogicStep2.getExtra()));
     }
@@ -405,21 +505,21 @@ public class StageTest extends NLocalFileMetadataTestCase {
         newStatus = ExecutableState.ERROR;
         var flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertFalse(flag);
-        Assert.assertEquals(jobOutput.getStatus(), "PAUSED");
+        Assert.assertEquals("PAUSED", jobOutput.getStatus());
 
         jobOutput.setStatus(ExecutableState.SKIP.toString());
         newStatus = ExecutableState.SUCCEED;
         flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertFalse(flag);
-        Assert.assertEquals(jobOutput.getStatus(), "SKIP");
+        Assert.assertEquals("SKIP", jobOutput.getStatus());
 
         jobOutput.setStatus(ExecutableState.READY.toString());
         newStatus = ExecutableState.SUCCEED;
         flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertTrue(flag);
-        Assert.assertEquals(jobOutput.getStatus(), "SUCCEED");
-        Assert.assertEquals(jobOutput.getFailedMsg(), failedMsg);
-        Assert.assertEquals(jobOutput.getInfo().get(NBatchConstants.P_INDEX_SUCCESS_COUNT), "0");
+        Assert.assertEquals("SUCCEED", jobOutput.getStatus());
+        Assert.assertEquals(failedMsg, jobOutput.getFailedMsg());
+        Assert.assertEquals("0", jobOutput.getInfo().get(NBatchConstants.P_INDEX_SUCCESS_COUNT));
 
         jobOutput.setStatus(ExecutableState.SKIP.toString());
         newStatus = ExecutableState.READY;
@@ -427,10 +527,11 @@ public class StageTest extends NLocalFileMetadataTestCase {
         updateInfo.put(NBatchConstants.P_INDEX_SUCCESS_COUNT, "123");
         flag = manager.setStageOutput(jobOutput, taskOrJobId, newStatus, updateInfo, failedMsg, isRestart);
         Assert.assertTrue(flag);
-        Assert.assertEquals(jobOutput.getStatus(), "READY");
-        Assert.assertEquals(jobOutput.getStartTime(), 0);
-        Assert.assertEquals(jobOutput.getEndTime(), 0);
-        Assert.assertEquals(jobOutput.getInfo().get(NBatchConstants.P_INDEX_SUCCESS_COUNT), "123");
+        Assert.assertEquals("READY", jobOutput.getStatus());
+        Assert.assertEquals(0, jobOutput.getStartTime());
+        Assert.assertEquals(0, jobOutput.getEndTime());
+        val successIndexCountString = jobOutput.getInfo().get(NBatchConstants.P_INDEX_SUCCESS_COUNT);
+        Assert.assertEquals("123", successIndexCountString);
     }
 
     @Test
@@ -456,22 +557,31 @@ public class StageTest extends NLocalFileMetadataTestCase {
         final StageBase stage3 = (StageBase) sparkExecutable.addStage(build3);
         val stageIds = Sets.newHashSet(stage1.getId(), stage2.getId(), stage3.getId());
         sparkExecutable.setStageMap();
-
         manager.addJob(executable);
-        manager.makeStageSuccess(executable.getId());
 
-        val job = manager.getJob(executable.getId());
-        val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) job).getTasks().get(0)).getStagesMap();
+        manager.makeStageSuccess(executable.getId());
+        var job = manager.getJob(executable.getId());
+        var stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) job).getTasks().get(0)).getStagesMap();
         Assert.assertEquals(1, stagesMap.size());
         Assert.assertTrue(stagesMap.containsKey(segmentId));
-        val stageBases = stagesMap.get(segmentId);
+        var stageBases = stagesMap.get(segmentId);
         Assert.assertEquals(3, stageBases.size());
-        stageBases.forEach(stage -> {
-            Assert.assertEquals(ExecutableState.SUCCEED, stage.getStatus(segmentId));
-        });
+        stageBases.forEach(stage -> Assert.assertEquals(ExecutableState.READY, stage.getStatus(segmentId)));
+
+        manager.makeStageSuccess(sparkExecutable.getId());
+        job = manager.getJob(executable.getId());
+        stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) job).getTasks().get(0)).getStagesMap();
+        Assert.assertEquals(1, stagesMap.size());
+        Assert.assertTrue(stagesMap.containsKey(segmentId));
+        stageBases = stagesMap.get(segmentId);
+        Assert.assertEquals(3, stageBases.size());
+        stageBases.forEach(stage -> Assert.assertEquals(ExecutableState.SUCCEED, stage.getStatus(segmentId)));
+
         val actualIds = stageBases.stream().map(AbstractExecutable::getId).collect(Collectors.toSet());
 
         compareStageIds(stageIds, actualIds);
+
+        manager.makeStageSuccess("do-nothing" + sparkExecutable.getId());
     }
 
     private void compareStageIds(Set<String> expectedIds, Set<String> actualIds) {
@@ -511,19 +621,28 @@ public class StageTest extends NLocalFileMetadataTestCase {
         manager.updateStageStatus(stage3.getId(), segmentId, ExecutableState.RUNNING, null, "test output");
 
         manager.makeStageError(executable.getId());
-
-        val job = manager.getJob(executable.getId());
-        val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) job).getTasks().get(0)).getStagesMap();
+        var job = manager.getJob(executable.getId());
+        var stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) job).getTasks().get(0)).getStagesMap();
         Assert.assertEquals(1, stagesMap.size());
         Assert.assertTrue(stagesMap.containsKey(segmentId));
-        val stageBases = stagesMap.get(segmentId);
+        var stageBases = stagesMap.get(segmentId);
         Assert.assertEquals(3, stageBases.size());
-        stageBases.forEach(stage -> {
-            Assert.assertEquals(ExecutableState.ERROR, stage.getStatus(segmentId));
-        });
+        stageBases.forEach(stage -> Assert.assertEquals(ExecutableState.RUNNING, stage.getStatus(segmentId)));
+
+        manager.makeStageError(sparkExecutable.getId());
+        job = manager.getJob(executable.getId());
+        stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) job).getTasks().get(0)).getStagesMap();
+        Assert.assertEquals(1, stagesMap.size());
+        Assert.assertTrue(stagesMap.containsKey(segmentId));
+        stageBases = stagesMap.get(segmentId);
+        Assert.assertEquals(3, stageBases.size());
+        stageBases.forEach(stage -> Assert.assertEquals(ExecutableState.ERROR, stage.getStatus(segmentId)));
+
         val actualIds = stageBases.stream().map(AbstractExecutable::getId).collect(Collectors.toSet());
 
         compareStageIds(stageIds, actualIds);
+
+        manager.makeStageError("do-nothing" + sparkExecutable.getId());
     }
 
     @Test
@@ -582,7 +701,7 @@ public class StageTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, executablePO.getTasks().size());
         executablePO.getTasks().forEach(po -> {
             Assert.assertEquals(1, po.getStagesMap().size());
-            Assert.assertTrue(po.getStagesMap().keySet().contains(segmentId));
+            Assert.assertTrue(po.getStagesMap().containsKey(segmentId));
             Assert.assertTrue(Sets.newHashSet(segmentId).containsAll(po.getStagesMap().keySet()));
             po.getStagesMap().values().forEach(list -> {
                 Assert.assertEquals(3, list.size());
