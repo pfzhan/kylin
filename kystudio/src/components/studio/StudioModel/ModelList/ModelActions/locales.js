@@ -64,7 +64,7 @@ export default {
     disableActionTips3: 'Unavailable for Fusion model',
     disableActionTips4: 'The time partition settings can\'t be modified for fusion model and streaming model. ',
     disableSecStorageActionTips: 'The tiered storage can\'t be used for fusion or streaming models at the moment.',
-    forbidenComputedColumnTips: 'The parquet files containing data prior to 1970 cannot be loaded. <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/en/tiered_storage/" target="_blank">View the manual <i class="el-ksd-icon-spark_link_16"></i></a>'
+    forbidenComputedColumnTips: 'The parquet files containing data prior to 1970 cannot be loaded. <a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/en/Designers-Guide/tiered_storage/" target="_blank">View the manual <i class="el-ksd-icon-spark_link_16"></i></a>'
   },
   'zh-cn': {
     authorityDetails: '权限详情',
@@ -131,6 +131,6 @@ export default {
     disableActionTips3: '融合数据模型暂无法使用此功能',
     disableActionTips4: '融合数据模型和流数据模型无法修改时间分区设置。',
     disableSecStorageActionTips: '融合数据模型或流数据模型暂无法使用分层存储',
-    forbidenComputedColumnTips: '分层存储暂时无法加载包含 1970 年以前数据的 parquet 文件。<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/zh-cn/tiered_storage/" target="_blank">查看手册<i class="el-ksd-icon-spark_link_16"></i></a>'
+    forbidenComputedColumnTips: '分层存储暂时无法加载包含 1970 年以前数据的 parquet 文件。<a class="ky-a-like" href="https://docs.kyligence.io/books/v4.5/zh-cn/Whats-New/tiered_storage/" target="_blank">查看手册<i class="el-ksd-icon-spark_link_16"></i></a>'
   }
 }

@@ -116,7 +116,7 @@ import { pageRefTags, apiUrl } from 'config'
       exportSqlTitle: 'Export SQL',
       exportHistoryTips: '{maxLength} query histories could be exported at a time. If you want to export more. Check ',
       userManual: 'User Manual',
-      manualUrl: 'https://docs.kyligence.io/books/v4.5/en/query/history.en.html',
+      manualUrl: 'https://docs.kyligence.io/books/v4.5/en/Designers-Guide/query/history.en.html',
       exportHistoryTips2: ' for details.',
       exportSqlConfirm: '<b>{historyTotal}</b> SQL(s) will be exported as a .txt file. Are you sure you want to export?',
       exportHistoryConfirm: '<b>{historyTotal}</b> query historie(s) will be exported as a .csv file. Are you sure you want to export?'
@@ -127,7 +127,7 @@ import { pageRefTags, apiUrl } from 'config'
       exportSqlTitle: '导出 SQL',
       exportHistoryTips: '单次导出上限为 {maxLength} 条。如若需要导出更多，请参考',
       userManual: '用户手册',
-      manualUrl: 'https://docs.kyligence.io/books/v4.5/zh-cn/query/history.cn.html',
+      manualUrl: 'https://docs.kyligence.io/books/v4.5/zh-cn/Designers-Guide/query/history.cn.html',
       exportHistoryTips2: '。',
       exportSqlConfirm: '<b>{historyTotal}</b> 条 SQL 将以 .txt 格式导出。确定要导出吗？',
       exportHistoryConfirm: '<b>{historyTotal}</b> 条查询历史将以 .csv 格式导出。确定要导出吗？'
