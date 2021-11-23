@@ -93,6 +93,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -157,6 +158,7 @@ import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
+import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
@@ -2880,6 +2882,7 @@ public class ModelService extends BasicService {
             request.setSaveOnly(true);
             request.setMultiPartitionDesc(multiPartitionDesc);
             updateDataModelSemantic(project, request);
+            updateSecondStorageModel(project, modelId);
         }
     }
 
@@ -3496,6 +3499,13 @@ public class ModelService extends BasicService {
         updateListeners.forEach(listener -> listener.onUpdate(project, modelId));
         changeSecondStorageIfNeeded(project, request, baseIndexResponse);
         return baseIndexResponse;
+    }
+
+    public void updateSecondStorageModel(String project, String modelId) {
+        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
+            updater.onUpdate(project, modelId);
+        }
     }
 
     public void changeSecondStorageIfNeeded(String project, ModelRequest request,

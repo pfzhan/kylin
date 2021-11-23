@@ -5452,7 +5452,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testConvertToRequestWithCH() throws IOException {
+    public void testConvertToRequestWithSecondStorage() throws IOException {
         val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val project = "default";
         MockSecondStorage.mock("default", new ArrayList<>(), this);
