@@ -60,6 +60,7 @@ import org.apache.spark.application.NoRetryException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -495,6 +496,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         }
     }
 
+    @Ignore
     @Test
     public void testGetDurationWithoutWaiteTimeFromSingleSegment()
             throws JsonProcessingException, InterruptedException {
