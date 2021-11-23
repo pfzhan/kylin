@@ -569,8 +569,7 @@ public class KapConfig {
     }
 
     public boolean enableReplaceDynamicParams() {
-        return Boolean.parseBoolean(
-                config.getOptional("kylin.query.replace-dynamic-params-enabled", FALSE));
+        return Boolean.parseBoolean(config.getOptional("kylin.query.replace-dynamic-params-enabled", FALSE));
     }
 
     public boolean runConstantQueryLocally() {
@@ -637,6 +636,18 @@ public class KapConfig {
         return KylinConfig.getKylinConfDir() + File.separator + getKerberosJaasConf();
     }
 
+    public String getKafkaJaasConf() {
+        return config.getOptional("kylin.kafka-jaas-conf", "kafka_jaas.conf");
+    }
+
+    public String getKafkaJaasConfPath() {
+        return KylinConfig.getKylinConfDir() + File.separator + getKafkaJaasConf();
+    }
+
+    public boolean isKafkaJaasEnabled() {
+        return Boolean.parseBoolean(config.getOptional("kylin.kafka-jaas.enabled", FALSE));
+    }
+
     public String getKerberosPrincipal() {
         return config.getOptional("kylin.kerberos.principal");
     }
@@ -681,7 +692,6 @@ public class KapConfig {
     public boolean optimizeShardEnabled() {
         return Boolean.parseBoolean(config.getOptional("kylin.build.optimize-shard-enabled", TRUE));
     }
-
 
     public String getSwitchBackupFsExceptionAllowString() {
         return config.getOptional("kylin.query.switch-backup-fs-exception-allow-string", "alluxio");

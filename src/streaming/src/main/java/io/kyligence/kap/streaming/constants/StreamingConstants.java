@@ -46,6 +46,7 @@ public class StreamingConstants {
     public static final String SPARK_YARN_DIST_JARS = "spark.yarn.dist.jars";
     public static final String SPARK_DRIVER_OPTS = "spark.driver.extraJavaOptions";
     public static final String SPARK_EXECUTOR_OPTS = "spark.executor.extraJavaOptions";
+    public static final String SPARK_YARN_AM_OPTS = "spark.yarn.am.extraJavaOptions";
     public static final String SPARK_YARN_TIMELINE_SERVICE = "spark.hadoop.yarn.timeline-service.enabled";
     public static final String SPARK_SHUFFLE_PARTITIONS = "spark.sql.shuffle.partitions";
     public static final String SPARK_SHUFFLE_PARTITIONS_DEFAULT = "8";

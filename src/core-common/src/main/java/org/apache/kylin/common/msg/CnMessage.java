@@ -1829,6 +1829,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getREAD_KAFKA_JAAS_FILE_ERROR() {
+        return "无法正确读取 Kafka 认证文件，请检查后再试。";
+    }
+
+    @Override
     public String getBATCH_STREAM_TABLE_NOT_MATCH() {
         return "表 “%s” 与 Kafka 表的列不一致，请确认两者的列完全一致后重试。";
     }

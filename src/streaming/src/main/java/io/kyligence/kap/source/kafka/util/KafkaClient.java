@@ -24,22 +24,34 @@
 
 package io.kyligence.kap.source.kafka.util;
 
+import static org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG;
+
 import java.util.Properties;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kylin.common.KylinConfig;
+
+import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
+import org.apache.kylin.common.util.Pair;
 
 public class KafkaClient {
     private static Consumer<Object, Object> mockup;
+    /**
+     * load jaas file's text into kafkaJaasTextPair to avoid multiple read file
+     */
+    private static final Pair<Boolean, String> kafkaJaasTextPair = new Pair<>(false, null);
 
     private KafkaClient() {
         throw new IllegalStateException("Utility class");
     }
 
-    public static Consumer<Object, Object> getKafkaConsumer(String brokers, String consumerGroup, Properties properties) {
+    public static Consumer<Object, Object> getKafkaConsumer(String brokers, String consumerGroup,
+            Properties properties) {
         Properties props = constructDefaultKafkaConsumerProperties(brokers, consumerGroup, properties);
         if (mockup != null) {
             return mockup;
@@ -64,6 +76,7 @@ public class KafkaClient {
     public static Properties constructDefaultKafkaAdminClientProperties(String brokers, String consumerGroup,
             Properties properties) {
         Properties props = new Properties();
+        setSaslJaasConf(props);
         props.put("bootstrap.servers", brokers);
         props.put("group.id", consumerGroup);
         if (properties != null) {
@@ -75,6 +88,7 @@ public class KafkaClient {
     public static Properties constructDefaultKafkaConsumerProperties(String brokers, String consumerGroup,
             Properties properties) {
         Properties props = new Properties();
+        setSaslJaasConf(props);
         props.put("bootstrap.servers", brokers);
         props.put("key.deserializer", StringDeserializer.class.getName());
         props.put("value.deserializer", ByteBufferDeserializer.class.getName());
@@ -84,5 +98,18 @@ public class KafkaClient {
             props.putAll(properties);
         }
         return props;
+    }
+
+    private static void setSaslJaasConf(Properties props) {
+        props.putAll(KylinConfig.getInstanceFromEnv().getStreamingKafkaConfigOverride());
+        synchronized (kafkaJaasTextPair) {
+            if (!kafkaJaasTextPair.getFirst().booleanValue()) {
+                kafkaJaasTextPair.setSecond(StreamingJobUtils.extractKafkaSaslJaasConf());
+                kafkaJaasTextPair.setFirst(true);
+            }
+        }
+        if (StringUtils.isNotEmpty(kafkaJaasTextPair.getSecond())) {
+            props.put(SASL_JAAS_CONFIG, kafkaJaasTextPair.getSecond());
+        }
     }
 }

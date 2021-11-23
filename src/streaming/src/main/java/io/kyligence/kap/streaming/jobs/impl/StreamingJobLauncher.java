@@ -42,6 +42,7 @@ import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_SHUF
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_SHUFFLE_PARTITIONS_DEFAULT;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_STREAMING_ENTRY;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_STREAMING_MERGE_ENTRY;
+import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_YARN_AM_OPTS;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_YARN_DIST_JARS;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.SPARK_YARN_TIMELINE_SERVICE;
 import static io.kyligence.kap.streaming.constants.StreamingConstants.STREAMING_DURATION;
@@ -57,8 +58,8 @@ import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
 
-import lombok.Getter;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
@@ -75,11 +76,14 @@ import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import io.kyligence.kap.streaming.jobs.AbstractSparkJobLauncher;
 import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
 import io.kyligence.kap.streaming.util.MetaInfoUpdater;
+import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class StreamingJobLauncher extends AbstractSparkJobLauncher {
+    private static final String KRB5CONF_PROPS = "java.security.krb5.conf";
+    private static final String JAASCONF_PROPS = "java.security.auth.login.config";
 
     private Map<String, String> jobParams;
     private String mainClazz;
@@ -101,45 +105,51 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         this.config = StreamingJobUtils.getStreamingKylinConfig(this.config, jobParams, modelId, project);
 
         switch (jobType) {
-            case STREAMING_BUILD: {
-                this.mainClazz = SPARK_STREAMING_ENTRY;
-                this.appArgs = new String[]{project, modelId,
-                        jobParams.getOrDefault(STREAMING_DURATION,
-                                STREAMING_DURATION_DEFAULT),
-                        jobParams.getOrDefault(STREAMING_WATERMARK,
-                                STREAMING_WATERMARK_DEFAULT) };
-                break;
-            }
-            case STREAMING_MERGE: {
-                this.mainClazz = SPARK_STREAMING_MERGE_ENTRY;
-                this.appArgs = new String[]{project, modelId,
-                        jobParams.getOrDefault(STREAMING_SEGMENT_MAX_SIZE,
-                                STREAMING_SEGMENT_MAX_SIZE_DEFAULT),
-                        jobParams.getOrDefault(STREAMING_SEGMENT_MERGE_THRESHOLD,
-                                STREAMING_SEGMENT_MERGE_THRESHOLD_DEFAULT)};
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("The streaming job Type " + jobType.name() + " is not supported...");
+        case STREAMING_BUILD: {
+            this.mainClazz = SPARK_STREAMING_ENTRY;
+            this.appArgs = new String[] { project, modelId,
+                    jobParams.getOrDefault(STREAMING_DURATION, STREAMING_DURATION_DEFAULT),
+                    jobParams.getOrDefault(STREAMING_WATERMARK, STREAMING_WATERMARK_DEFAULT) };
+            break;
+        }
+        case STREAMING_MERGE: {
+            this.mainClazz = SPARK_STREAMING_MERGE_ENTRY;
+            this.appArgs = new String[] { project, modelId,
+                    jobParams.getOrDefault(STREAMING_SEGMENT_MAX_SIZE, STREAMING_SEGMENT_MAX_SIZE_DEFAULT),
+                    jobParams.getOrDefault(STREAMING_SEGMENT_MERGE_THRESHOLD,
+                            STREAMING_SEGMENT_MERGE_THRESHOLD_DEFAULT) };
+            break;
+        }
+        default:
+            throw new IllegalArgumentException("The streaming job Type " + jobType.name() + " is not supported...");
 
         }
         initialized = true;
     }
 
     private String getDriverHDFSLogPath() {
-        return String.format(Locale.ROOT, "%s/%s/%s/%s/driver.%s.log", config.getStreamingBaseJobsLocation(), project, jobId,
-                currentTimestamp, currentTimestamp);
+        return String.format(Locale.ROOT, "%s/%s/%s/%s/driver.%s.log", config.getStreamingBaseJobsLocation(), project,
+                jobId, currentTimestamp, currentTimestamp);
     }
 
     private String wrapDriverJavaOptions(Map<String, String> sparkConf) {
         val driverJavaOptsConfigStr = sparkConf.get(SparkLauncher.DRIVER_EXTRA_JAVA_OPTIONS);
 
         Preconditions.checkNotNull(driverJavaOptsConfigStr, SparkLauncher.DRIVER_EXTRA_JAVA_OPTIONS + " is empty");
-
         StringBuilder driverJavaOptionsSB = new StringBuilder(driverJavaOptsConfigStr);
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        if (kapConfig.isKerberosEnabled() && !driverJavaOptsConfigStr.contains(KRB5CONF_PROPS)) {
+            val krb5conf = " -Djava.security.krb5.conf=" + kapConfig.getKerberosKrb5ConfPath();
+            driverJavaOptionsSB.append(krb5conf);
+        }
+        if (kapConfig.isKafkaJaasEnabled() && !driverJavaOptsConfigStr.contains(JAASCONF_PROPS)) {
+            val jaasConf = " -Djava.security.auth.login.config=" + kapConfig.getKafkaJaasConfPath();
+            driverJavaOptionsSB.append(jaasConf);
+        }
         driverJavaOptionsSB.append(javaPropertyFormatter(REST_SERVER_IP, AddressUtil.getLocalHostExactAddress()));
         driverJavaOptionsSB.append(javaPropertyFormatter("kylin.hdfs.working.dir", config.getHdfsWorkingDirectory()));
-        driverJavaOptionsSB.append(javaPropertyFormatter("spark.driver.log4j.appender.hdfs.File", getDriverHDFSLogPath()));
+        driverJavaOptionsSB
+                .append(javaPropertyFormatter("spark.driver.log4j.appender.hdfs.File", getDriverHDFSLogPath()));
         driverJavaOptionsSB.append(javaPropertyFormatter("user.timezone", config.getTimeZone()));
 
         final String driverLog4jXmlFile = config.getLogSparkStreamingDriverPropertiesFile();
@@ -165,7 +175,16 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         Preconditions.checkNotNull(executorJavaOptsConfigStr, SparkLauncher.EXECUTOR_EXTRA_JAVA_OPTIONS + " is empty");
 
         StringBuilder executorJavaOptionsSB = new StringBuilder(executorJavaOptsConfigStr);
-
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        if (kapConfig.isKerberosEnabled() && !executorJavaOptsConfigStr.contains(KRB5CONF_PROPS)) {
+            val krb5Conf = " -Djava.security.krb5.conf=./__spark_conf__/__hadoop_conf__/"
+                    + kapConfig.getKerberosKrb5Conf();
+            executorJavaOptionsSB.append(krb5Conf);
+        }
+        if (kapConfig.isKafkaJaasEnabled() && !executorJavaOptsConfigStr.contains(JAASCONF_PROPS)) {
+            val jaasConf = " -Djava.security.auth.login.config=./" + kapConfig.getKafkaJaasConf();
+            executorJavaOptionsSB.append(jaasConf);
+        }
         executorJavaOptionsSB.append(javaPropertyFormatter("kap.spark.identifier", jobId));
         executorJavaOptionsSB.append(javaPropertyFormatter("kap.spark.jobTimeStamp", currentTimestamp.toString()));
         executorJavaOptionsSB.append(javaPropertyFormatter("kap.spark.project", project));
@@ -180,14 +199,35 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
         return executorJavaOptionsSB.toString();
     }
 
+    private String wrapYarnAmJavaOptions(Map<String, String> sparkConf) {
+        val yarnAmJavaOptsConfigStr = sparkConf.getOrDefault(SPARK_YARN_AM_OPTS, "");
+
+        StringBuilder yarnAmJavaOptionsSB = new StringBuilder(yarnAmJavaOptsConfigStr);
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        if (kapConfig.isKerberosEnabled() && !yarnAmJavaOptsConfigStr.contains(KRB5CONF_PROPS)) {
+            val krb5Conf = " -Djava.security.krb5.conf=./__spark_conf__/__hadoop_conf__/"
+                    + kapConfig.getKerberosKrb5Conf();
+            yarnAmJavaOptionsSB.append(krb5Conf);
+        }
+        return yarnAmJavaOptionsSB.toString();
+    }
+
     public void startYarnJob() throws Exception {
         Map<String, String> sparkConf = getStreamingSparkConfig(config);
         sparkConf.forEach((key, value) -> launcher.setConf(key, value));
 
         val numberOfExecutor = sparkConf.getOrDefault(SPARK_EXECUTOR_INSTANCES, SPARK_EXECUTOR_INSTANCES_DEFAULT);
         val numberOfCore = sparkConf.getOrDefault(SPARK_EXECUTOR_CORES, SPARK_EXECUTOR_CORES_DEFAULT);
-        handler = launcher.setAppName(jobId).setSparkHome(KylinConfig.getSparkHome())
-                .setMaster(sparkConf.getOrDefault(SPARK_MASTER, SPARK_MASTER_DEFAULT))
+        val sparkLauncher = launcher.setAppName(jobId).setSparkHome(KylinConfig.getSparkHome());
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        if (kapConfig.isKerberosEnabled()) {
+            sparkLauncher.setConf("spark.kerberos.keytab", kapConfig.getKerberosKeytabPath());
+            sparkLauncher.setConf("spark.kerberos.principal", kapConfig.getKerberosPrincipal());
+        }
+        if (kapConfig.isKafkaJaasEnabled()) {
+            sparkLauncher.addFile(kapConfig.getKafkaJaasConfPath());
+        }
+        sparkLauncher.setMaster(sparkConf.getOrDefault(SPARK_MASTER, SPARK_MASTER_DEFAULT))
                 .setConf(SPARK_DRIVER_MEM, sparkConf.getOrDefault(SPARK_DRIVER_MEM, SPARK_DRIVER_MEM_DEFAULT))
                 .setConf(SPARK_EXECUTOR_INSTANCES, numberOfExecutor).setConf(SPARK_EXECUTOR_CORES, numberOfCore)
                 .setConf(SPARK_CORES_MAX, calcMaxCores(numberOfExecutor, numberOfCore))
@@ -199,8 +239,10 @@ public class StreamingJobLauncher extends AbstractSparkJobLauncher {
                 .setConf(SparkLauncher.EXECUTOR_EXTRA_CLASSPATH, Paths.get(kylinJobJar).getFileName().toString())
                 .setConf(SPARK_DRIVER_OPTS, wrapDriverJavaOptions(sparkConf))
                 .setConf(SPARK_EXECUTOR_OPTS, wrapExecutorJavaOptions(sparkConf))
+                .setConf(SPARK_YARN_AM_OPTS, wrapYarnAmJavaOptions(sparkConf))
                 .addFile(config.getLogSparkStreamingExecutorPropertiesFile()).setAppResource(kylinJobJar)
-                .setMainClass(mainClazz).addAppArgs(appArgs).startApplication(listener);
+                .setMainClass(mainClazz).addAppArgs(appArgs);
+        handler = sparkLauncher.startApplication(listener);
     }
 
     @Override

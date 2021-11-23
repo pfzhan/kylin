@@ -29,7 +29,9 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils
 import io.kyligence.kap.metadata.model.NDataModel
+import io.kyligence.kap.streaming.jobs.StreamingJobUtils
 import org.apache.commons.lang3.StringUtils
+import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
@@ -54,6 +56,9 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
 
   private val MAX_OFFSETS_PER_TRIGGER = "maxOffsetsPerTrigger"
   private val STARTING_OFFSETS = "startingOffsets"
+  private val SECURITY_PROTOCOL = "security.protocol"
+  private val SASL_MECHANISM = "sasl.mechanism"
+
   var lookupTablesGlobal: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = null
   var factTableDataset: Dataset[Row] = null
   var tableRefreshInterval = -1L
@@ -63,6 +68,19 @@ class CreateStreamingFlatTable(flatTable: IJoinedFlatTableDesc,
     val tableDesc = model.getRootFactTable.getTableDesc
     val kafkaParam = tableDesc.getKafkaConfig.getKafkaParam
     val kafkaJobParams = config.getStreamingKafkaConfigOverride.asScala
+    val securityProtocol = kafkaJobParams.get(SECURITY_PROTOCOL)
+    if (securityProtocol.isDefined) {
+      kafkaJobParams.remove(SECURITY_PROTOCOL);
+      kafkaJobParams.put("kafka." + SECURITY_PROTOCOL, securityProtocol.get)
+    }
+    val saslMechanism = kafkaJobParams.get(SASL_MECHANISM)
+    if (saslMechanism.isDefined) {
+      kafkaJobParams.remove(SASL_MECHANISM);
+      kafkaJobParams.put("kafka." + SASL_MECHANISM, saslMechanism.get)
+    }
+    val text = StreamingJobUtils.extractKafkaSaslJaasConf
+    if (StringUtils.isNotEmpty(text)) kafkaJobParams.put(SaslConfigs.SASL_JAAS_CONFIG, text)
+
     kafkaJobParams.foreach { param =>
       param._1 match {
         case MAX_OFFSETS_PER_TRIGGER => if (param._2.toInt > 0) {

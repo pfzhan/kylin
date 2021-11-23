@@ -1614,6 +1614,10 @@ public class Message {
         return "The parser cannot parse the sample data. Please check the options or modify the parser, and parse again.";
     }
 
+    public String getREAD_KAFKA_JAAS_FILE_ERROR() {
+        return "Can't read Kafka authentication file correctly. Please check and try again.";
+    }
+
     public String getBATCH_STREAM_TABLE_NOT_MATCH() {
         return "The columns from table “%s“ and the Kafka table are not identical. Please check and try again.";
     }

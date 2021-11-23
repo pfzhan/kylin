@@ -23,6 +23,11 @@
  */
 package io.kyligence.kap.streaming.jobs;
 
+import java.io.File;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +40,6 @@ import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 
 public class StreamingJobUtilsTest extends StreamingTestCase {
-
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -86,5 +90,29 @@ public class StreamingJobUtilsTest extends StreamingTestCase {
         Assert.assertFalse(kylinConfig.getStreamingSparkConfigOverride().isEmpty());
         Assert.assertFalse(kylinConfig.getStreamingKafkaConfigOverride().isEmpty());
         Assert.assertEquals("30m", kylinConfig.getStreamingTableRefreshInterval());
+    }
+
+    @Test
+    public void testExtractKafkaSaslJaasConf() throws Exception{
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        Assert.assertNull(StreamingJobUtils.extractKafkaSaslJaasConf());
+        getTestConfig().setProperty("kylin.kafka-jaas.enabled", "true");
+        FileUtils.write(new File(kapConfig.getKafkaJaasConfPath()),
+                "KafkaClient{ org.apache.kafka.common.security.scram.ScramLoginModule required}");
+        val text = StreamingJobUtils.extractKafkaSaslJaasConf();
+        Assert.assertNotNull(text);
+
+        getTestConfig().setProperty("kylin.kafka-jaas-conf", "kafka_err_jaas.conf");
+        File file = new File(kapConfig.getKafkaJaasConfPath());
+
+        FileUtils.write(file, "}4{");
+        try{
+            StreamingJobUtils.extractKafkaSaslJaasConf();
+        }catch (Exception e) {
+            Assert.assertTrue(e instanceof KylinException);
+            Assert.assertEquals("KE-010035015", ((KylinException) e).getErrorCode().getCodeString());
+        }finally {
+            FileUtils.deleteQuietly(new File(KapConfig.getInstanceFromEnv().getKafkaJaasConfPath()));
+        }
     }
 }

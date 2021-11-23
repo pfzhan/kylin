@@ -23,25 +23,49 @@
  */
 package io.kyligence.kap.source.kafka.util;
 
+import static org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG;
+
+import java.io.File;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.Metadata;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.internals.AdminMetadataManager;
 import org.apache.kafka.clients.consumer.internals.ConsumerCoordinator;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.Node;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.Pair;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
+import io.kyligence.kap.streaming.jobs.StreamingJobUtils;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
-
+import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class KafkaClientTest {
+public class KafkaClientTest extends StreamingTestCase {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Before
+    public void setUp() throws Exception {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void tearDown() {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testConstructMethod() {
@@ -98,12 +122,26 @@ public class KafkaClientTest {
     }
 
     @Test
-    public void testConstructDefaultKafkaAdminClientProperties() {
+    public void testConstructDefaultKafkaAdminClientProperties() throws Exception {
         val prop = KafkaClient.constructDefaultKafkaAdminClientProperties("localhost:9092", "group1", new Properties());
         Assert.assertNotNull(prop);
-        val propNull = KafkaClient.constructDefaultKafkaAdminClientProperties("localhost:9092", "group1", null);
-        Assert.assertNotNull(propNull);
+        val prop1 = KafkaClient.constructDefaultKafkaAdminClientProperties("localhost:9092", "group1", null);
+        Assert.assertNotNull(prop1);
         Assert.assertEquals("localhost:9092", prop.getProperty("bootstrap.servers"));
         Assert.assertEquals("group1", prop.getProperty("group.id"));
+
+        val kapConfig = KapConfig.getInstanceFromEnv();
+
+        FileUtils.write(new File(kapConfig.getKafkaJaasConfPath()),
+                "KafkaClient{ org.apache.kafka.common.security.scram.ScramLoginModule required}");
+        val text = StreamingJobUtils.extractKafkaSaslJaasConf();
+        Assert.assertNull(text);
+        Pair<Boolean, String> kafkaJaasTextPair = (Pair<Boolean, String>) ReflectionUtils.getField(KafkaClient.class,
+                "kafkaJaasTextPair");
+        kafkaJaasTextPair.setFirst(false);
+        getTestConfig().setProperty("kylin.kafka-jaas.enabled", "true");
+        val prop2 = KafkaClient.constructDefaultKafkaAdminClientProperties("localhost:9092", "group1", null);
+        Assert.assertNotNull(prop2.get(SASL_JAAS_CONFIG));
+        getTestConfig().setProperty("kylin.kafka-jaas.enabled", "false");
     }
 }

@@ -63,6 +63,8 @@ public class CreateStreamingFlatTableTest extends StreamingTestCase {
     public void testGenerateStreamingDataset() {
         val config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "100");
+        config.setProperty("kylin.streaming.kafka-conf.security.protocol", "SASL_PLAINTEXT");
+        config.setProperty("kylin.streaming.kafka-conf.sasl.mechanism", "PLAIN");
         val source = createSparkKafkaSource(config);
         source.enableMemoryStream(false);
         source.post(StreamingTestConstant.KAP_SSB_STREAMING_JSON_FILE());
