@@ -153,13 +153,13 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .thenReturn(mockTables());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
-                .param("withExt", "false") //
+                .param("ext", "false") //
                 .param("project", "default") //
                 .param("table", "") //
                 .param("database", "DEFAULT") //
-                .param("pageOffset", "0") //
-                .param("pageSize", "10") //
-                .param("isFuzzy", "true") //
+                .param("page_offset", "0") //
+                .param("page_size", "10") //
+                .param("is_fuzzy", "true") //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
@@ -181,7 +181,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetTableDescWithName() throws Exception {
-        Mockito.when(tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true))
+        Mockito.when(tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", false))
                 .thenReturn(mockTables());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -194,7 +194,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nTableController).getTableDesc(false, "default", "TEST_KYLIN_FACT", "DEFAULT", true, 0, 10, 9);
+        Mockito.verify(nTableController).getTableDesc(false, "default", "TEST_KYLIN_FACT", "DEFAULT", false, 0, 10, 9);
     }
 
     @Test

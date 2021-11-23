@@ -139,7 +139,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "project") String project,
             @RequestParam(value = "table", required = false) String table,
             @RequestParam(value = "database", required = false) String database,
-            @RequestParam(value = "is_fuzzy", required = false, defaultValue = "true") boolean isFuzzy,
+            @RequestParam(value = "is_fuzzy", required = false, defaultValue = "false") boolean isFuzzy,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "source_type", required = false, defaultValue = "9") Integer sourceType)
@@ -161,7 +161,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "ext", required = false) boolean withExt,
             @RequestParam(value = "project") String project,
             @RequestParam(value = "table", required = false, defaultValue = "") String table,
-            @RequestParam(value = "is_fuzzy", required = false, defaultValue = "true") boolean isFuzzy,
+            @RequestParam(value = "is_fuzzy", required = false, defaultValue = "false") boolean isFuzzy,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "source_type", required = false, defaultValue = "9") List<Integer> sourceType)
