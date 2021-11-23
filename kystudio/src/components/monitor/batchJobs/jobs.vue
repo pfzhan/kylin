@@ -89,15 +89,16 @@
             :label="$t('TargetSubject')"
             sortable="custom"
             min-width="140"
-            show-overflow-tooltip
             prop="target_subject">
             <template slot-scope="scope">
-              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
-              <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && !scope.row.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
-                <span class="is-disabled">{{scope.row.target_subject}}</span>
-              </common-tip>
-              <a class="link" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && $store.state.project.snapshot_manual_management_enabled&&!scope.row.target_subject_error" @click="gotoSnapshotList(scope.row)">{{scope.row.target_subject}}</a>
-              <a class="link" v-if="!tableJobTypes.includes(scope.row.job_name)&&!scope.row.target_subject_error" @click="gotoModelList(scope.row)">{{scope.row.target_subject}}</a>
+              <p class="target-subject-title" :title="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(scope.row.job_name) || scope.row.target_subject_error ? getTargetSubject(scope.row) : scope.row.target_subject">
+                <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="['TABLE_SAMPLING', 'SECOND_STORAGE_NODE_CLEAN'].includes(scope.row.job_name) || scope.row.target_subject_error">{{getTargetSubject(scope.row)}}</span>
+                <common-tip :content="$t('snapshotDisableTips')" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && !scope.row.target_subject_error && !$store.state.project.snapshot_manual_management_enabled">
+                  <span class="is-disabled">{{scope.row.target_subject}}</span>
+                </common-tip>
+                <a class="link" v-if="['SNAPSHOT_BUILD', 'SNAPSHOT_REFRESH'].includes(scope.row.job_name) && $store.state.project.snapshot_manual_management_enabled&&!scope.row.target_subject_error" @click="gotoSnapshotList(scope.row)">{{scope.row.target_subject}}</a>
+                <a class="link" v-if="!tableJobTypes.includes(scope.row.job_name)&&!scope.row.target_subject_error" @click="gotoModelList(scope.row)">{{scope.row.target_subject}}</a>
+              </p>
             </template>
           </el-table-column>
           <el-table-column
@@ -799,7 +800,7 @@ export default class JobsList extends Vue {
                   handleSuccess(res, (data) => {
                     const result = data.map(it => ({...it, sub_stages: it.sub_stages ?? [], segment_sub_stages: it.segment_sub_stages ?? []}))
                     this.selectedJob = this.jobsList[selectedIndex]
-                    this.selectedJob['details'] = result.map(item => ({...item, step_status: this.exChangeErrorStop(item, result), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, result) : item.sub_stages}))
+                    this.selectedJob['details'] = result.map(item => ({...item, step_status: this.exChangeStatus(item, result), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, result) : item.sub_stages}))
                     if (this.expandSegmentDetailId) {
                       const jobDetail = result.filter(it => it.id === this.expandSegmentDetailId)
                       const detail = this.definitionStopErrorStatus(jobDetail[0])
@@ -841,11 +842,14 @@ export default class JobsList extends Vue {
   }
 
   // 大步骤状态 ERROR_STOP 转换
-  exChangeErrorStop (currentStep, steps) {
+  exChangeStatus (currentStep, steps) {
     const hasErrorTask = steps.filter(it => it.step_status === 'ERROR')
     if (hasErrorTask.length && !['DISCARDED', 'ERROR', 'FINISHED', 'STOPPED', 'SKIP'].includes(currentStep.step_status)) {
       return 'ERROR_STOP'
     } else {
+      if (this.selectedJob.job_status === 'STOPPED') {
+        return 'STOPPED'
+      }
       return currentStep.step_status
     }
   }
@@ -1353,7 +1357,7 @@ export default class JobsList extends Vue {
       this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
-            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeErrorStop(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : (item.sub_stages ?? []), segment_sub_stages: item.segment_sub_stages ?? []})))
+            this.$set(this.selectedJob, 'details', data.map(item => ({...item, step_status: this.exChangeStatus(item, data), sub_stages: item.sub_stages && item.sub_stages.length > 0 ? this.definitionSubTaskStopErrorStatus(item.sub_stages, data) : (item.sub_stages ?? []), segment_sub_stages: item.segment_sub_stages ?? []})))
             this.isShowJobBtn()
             // this.setRightBarTop()
           })
@@ -1618,6 +1622,7 @@ export default class JobsList extends Vue {
           margin-top: 2px;
           &.is-running {
             animation: rotating 2s linear infinite;
+            font-size: 15px;
           }
         }
 
@@ -1776,6 +1781,7 @@ export default class JobsList extends Vue {
                 -webkit-line-clamp: 3;
                 overflow: hidden;
                 position: relative;
+                word-break: break-all;
               }
               .duration-details {
                 color: @ke-color-primary;
@@ -1890,6 +1896,12 @@ export default class JobsList extends Vue {
             margin-left: 0;
           }
         }
+      }
+      .target-subject-title {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
