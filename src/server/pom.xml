@@ -35,12 +35,6 @@
     <url>http://kyligence.io</url>
     <description>REST Service and RPC Server</description>
 
-    <!-- Only for debug -->
-    <properties>
-        <tomcat.version>8.5.63</tomcat.version>
-
-    </properties>
-
     <parent>
         <artifactId>ke</artifactId>
         <groupId>io.kyligence.ke</groupId>

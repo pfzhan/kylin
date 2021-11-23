@@ -132,7 +132,7 @@
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
         <cors.version>2.5</cors.version>
-        <tomcat.version>8.5.65</tomcat.version>
+        <tomcat.version>8.5.68</tomcat.version>
         <t-digest.version>3.1.1-kylin-r1</t-digest.version>
         <jsonpath.version>2.3.0</jsonpath.version>
         <lombok.version>1.18.2</lombok.version>
