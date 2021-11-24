@@ -183,5 +183,39 @@ services:
     volumes:
       - ./data/influxdb:/var/lib/influxdb
 
+  clickhouse01:
+    image: registry.kyligence.io/kyligence/clickhouse-ssh:21.1.2.15
+    container_name: dev-clickhouse01
+    hostname: clickhouse01
+    networks:
+      - sandbox_cluster
+    restart: always
+    links:
+      - namenode:namenode
+      - datanode:datanode
+    ports:
+      - 9001:9000
+      - 8124:8123
+    volumes:
+      - ${CLICKHOUSE_CONF}:/etc/clickhouse-server/config.d/
+      - ${HADOOP_CORE_SITE}:/etc/clickhouse-server/core-site.xml
+
+  clickhouse02:
+    image: registry.kyligence.io/kyligence/clickhouse-ssh:21.1.2.15
+    container_name: dev-clickhouse02
+    hostname: clickhouse02
+    networks:
+      - sandbox_cluster
+    restart: always
+    links:
+      - namenode:namenode
+      - datanode:datanode
+    ports:
+      - 9002:9000
+      - 8125:8123
+    volumes:
+      - ${CLICKHOUSE_CONF}:/etc/clickhouse-server/config.d/
+      - ${HADOOP_CORE_SITE}:/etc/clickhouse-server/core-site.xml
+
 networks:
   sandbox_cluster:

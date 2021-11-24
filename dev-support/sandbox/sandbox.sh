@@ -49,6 +49,9 @@ function main() {
     help
   fi
 
+  export CLICKHOUSE_CONF=${WORKDIR}/conf/clickhouse
+  export HADOOP_CORE_SITE=${WORKDIR}/conf/hadoop/core-site.xml
+
   case $1 in
     "init" )
         if [[ ! -d "${PROJECT_DIR}/src/server/target" ]]; then
