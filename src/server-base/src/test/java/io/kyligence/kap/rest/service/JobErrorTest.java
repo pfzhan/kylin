@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.ErrorCode;
@@ -60,7 +61,6 @@ import org.apache.spark.application.NoRetryException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -496,10 +496,8 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    @Ignore
     @Test
-    public void testGetDurationWithoutWaiteTimeFromSingleSegment()
-            throws JsonProcessingException, InterruptedException {
+    public void testGetDurationWithoutWaiteTimeFromSingleSegment() throws JsonProcessingException {
         for (int i = 1; i < 3; i++) {
             val segmentId = RandomUtil.randomUUIDStr();
 
@@ -549,19 +547,18 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
             val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) executable).getTasks().get(0))
                     .getStagesMap();
 
-            var sumDuration = 0L;
-            for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
-                int finalI = i;
-                sumDuration = entry.getValue().stream().map(stage -> stage.getOutput(entry.getKey()))
-                        .map(output -> finalI == 2 ? AbstractExecutable.getDuration(output) - 1
-                                : AbstractExecutable.getDuration(output))
-                        .mapToLong(Long::valueOf).sum();
-            }
-            long finalSumDuration = sumDuration;
+            AtomicLong sumDuration = new AtomicLong(0L);
+            int finalI = i;
             await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-                Assert.assertNotEquals(0, finalSumDuration);
+                for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
+                    sumDuration.set(entry.getValue().stream().map(stage -> stage.getOutput(entry.getKey()))
+                            .map(output -> finalI == 2 ? AbstractExecutable.getDuration(output) - 1
+                                    : AbstractExecutable.getDuration(output))
+                            .mapToLong(Long::valueOf).sum());
+                }
+                Assert.assertNotEquals(0, sumDuration.get());
+                Assert.assertTrue(sumDuration.get() >= durationWithoutWaiteTime);
             });
-            Assert.assertTrue(finalSumDuration >= durationWithoutWaiteTime);
         }
     }
 }

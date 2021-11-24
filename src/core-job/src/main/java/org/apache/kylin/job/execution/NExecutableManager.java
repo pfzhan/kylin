@@ -736,7 +736,7 @@ public class NExecutableManager {
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING
-                                            || stage.getStatus(entry.getKey()) == ExecutableState.ERROR)//
+                                            || stage.getStatus(entry.getKey()).isNotProgressing())//
                                     .forEach(stage -> // 
                             updateStageStatus(stage.getId(), entry.getKey(), ExecutableState.READY, null, null));
                         }
