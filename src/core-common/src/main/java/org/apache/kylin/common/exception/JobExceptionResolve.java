@@ -30,7 +30,8 @@ public enum JobExceptionResolve implements ExceptionResolveSupplier{
     JOB_DATE_FORMAT_NOT_MATCH_ERROR("KE-030001003"),
     JOB_OUT_OF_MEMORY_ERROR("KE-030001004"),
     JOB_NO_SPACE_LEFT_ON_DEVICE_ERROR("KE-030001005"),
-    JOB_CLASS_NOT_FOUND_ERROR("KE-030001006");
+    JOB_CLASS_NOT_FOUND_ERROR("KE-030001006"),
+    KERBEROS_REALM_NOT_FOUND("KE-030001007");
 
 
     private final ExceptionResolve resolve;

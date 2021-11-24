@@ -857,7 +857,7 @@ public abstract class AbstractExecutable implements Executable {
         }
     }
 
-    private void wrapWithExecuteExceptionUpdateJobError(Exception exception) {
+    protected void wrapWithExecuteExceptionUpdateJobError(Exception exception) {
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             getExecutableManager(project).updateJobError(getId(), getId(), null,
                     ExceptionUtils.getStackTrace(exception), exception.getMessage());

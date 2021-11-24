@@ -1007,8 +1007,8 @@ public class JobService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
         val output = executableManager.getOutputFromHDFSByJobId(jobId, stepId, Integer.MAX_VALUE);
-        return Optional.ofNullable(output.getVerboseMsgStream())
-                .orElse(IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
+        return Optional.ofNullable(output.getVerboseMsgStream()).orElse(
+                IOUtils.toInputStream(Optional.ofNullable(output.getVerboseMsg()).orElse(StringUtils.EMPTY), "UTF-8"));
     }
 
     /**
