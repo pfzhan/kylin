@@ -308,7 +308,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
     @Test
     public void testCleanProjectSegments() throws Exception {
         buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
-        val jobId = secondStorageService.projectClean(Arrays.asList(project));
+        val jobId = secondStorageService.projectClean(Arrays.asList(project, "default"));
         waitJobFinish(project, jobId.get(project).get(modelId));
 
         val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
