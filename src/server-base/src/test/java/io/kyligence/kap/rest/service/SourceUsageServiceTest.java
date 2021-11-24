@@ -70,7 +70,7 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(1558495L, usage.getCurrentCapacity());
+            Assert.assertEquals(1991845L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -97,6 +97,16 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
             tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.KYLIN_ACCOUNT");
             Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, tableCapacityDetail.getTableKind());
             Assert.assertEquals(12345L, tableCapacityDetail.getCapacity());
+
+            projectCapacityDetail = usage.getProjectCapacity("heterogeneous_segment_with_snapshot_large_than_input_bytes");
+            tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.KYLIN_SALES");
+            Assert.assertEquals(SourceUsageRecord.TableKind.FACT, tableCapacityDetail.getTableKind());
+            Assert.assertEquals(309894L, tableCapacityDetail.getCapacity());
+
+            // with snapshot, use table ext original size 123456, even 123456 > input size 90000
+            tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.KYLIN_ACCOUNT");
+            Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, tableCapacityDetail.getTableKind());
+            Assert.assertEquals(123456L, tableCapacityDetail.getCapacity());
 
             projectCapacityDetail = usage.getProjectCapacity("heterogeneous_segment_without_snapshot");
             tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.KYLIN_SALES");
