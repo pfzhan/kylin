@@ -26,8 +26,10 @@ package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Set;
 
+import org.apache.kylin.metadata.model.JoinTableDesc;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
@@ -36,7 +38,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.kylin.metadata.model.TableDesc;
 
 @Data
 public class NModelDescResponse implements Serializable {
@@ -60,10 +61,13 @@ public class NModelDescResponse implements Serializable {
     private List<NDataModel.Measure> measures;
     @JsonProperty("aggregation_groups")
     private List<AggGroupResponse> aggregationGroups;
-    @JsonProperty("all_tables")
-    private Set<TableDesc> allTables;
     @JsonProperty("computed_columns")
     private List<ComputedColumnDesc> computedColumnDescs;
+    @JsonProperty("fact_table")
+    private String factTable;
+    @JsonProperty("join_tables")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<JoinTableDesc> joinTables;
 
     @Data
     @AllArgsConstructor

@@ -93,7 +93,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -277,6 +276,7 @@ import io.kyligence.kap.rest.service.params.RefreshSegmentParams;
 import io.kyligence.kap.rest.util.ModelTriple;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.secondstorage.SecondStorage;
+import io.kyligence.kap.secondstorage.SecondStorageUpdater;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.TablePartition;
@@ -702,8 +702,8 @@ public class ModelService extends BasicService {
         if (StringUtils.isNotEmpty(table)) {
             models.addAll(getRelateModels(project, table, modelAlias));
         } else {
-            models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse,
-                    modelAliasOrOwner, lastModifyFrom, lastModifyTo, onlyNormalDim));
+            models.addAll(getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner,
+                    lastModifyFrom, lastModifyTo, onlyNormalDim));
         }
 
         Set<NDataModel> filteredModels = ModelUtils.getFilteredModels(project, modelAttributes, models);
@@ -4114,7 +4114,8 @@ public class ModelService extends BasicService {
         response.setProject(model.getProject());
         response.setDescription(model.getDescription());
         response.setComputedColumnDescs(model.getComputedColumnDescs());
-        response.setAllTables(model.getAllTableRefs().stream().map(TableRef::getTableDesc).collect(Collectors.toSet()));
+        response.setFactTable(model.getRootFactTableName());
+        response.setJoinTables(model.getJoinTables());
 
         response.setMeasures(model.getMeasures());
         List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream() //

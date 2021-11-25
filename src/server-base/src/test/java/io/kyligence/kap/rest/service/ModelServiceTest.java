@@ -4908,6 +4908,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(24, model1.getDimensions().size());
         Assert.assertSame("DIMENSION", model1.getDimensions().get(3).getNamedColumn().getStatus().name());
         Assert.assertSame("DIMENSION", model1.getDimensions().get(5).getNamedColumn().getStatus().name());
+        Assert.assertTrue(model1.getJoinTables().size() > 0);
 
         // model2: model with rule_based_index and table indexes, with overlap between their dimensions
         NModelDescResponse model2 = modelService.getModelDesc("nmodel_basic_inner", "default");
@@ -6371,8 +6372,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(5, modelList6.getValue().size());
         getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
 
-        val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6, "input_records_count",
-                true, null,
+        val modelList7 = modelService.getModels(null, null, true, project, "ADMIN", Lists.newArrayList(), "", 0, 6,
+                "input_records_count", true, null,
                 Arrays.asList(ModelAttributeEnum.BATCH, ModelAttributeEnum.STREAMING, ModelAttributeEnum.HYBRID), null,
                 null, false);
         Assert.assertEquals(6, modelList7.getValue().size());
