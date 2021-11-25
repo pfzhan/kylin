@@ -548,7 +548,7 @@ public class QueryService extends BasicService {
 
             sqlResponse.setServer(clusterManager.getLocalServer());
             sqlResponse.setQueryId(QueryContext.current().getQueryId());
-            if (sqlResponse.isStorageCacheUsed()) {
+            if (sqlResponse.isStorageCacheUsed() || sqlResponse.isHitExceptionCache()) {
                 sqlResponse.setDuration(0);
             } else {
                 sqlResponse.setDuration(QueryContext.currentMetrics().duration());
@@ -587,21 +587,38 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse searchCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {
-        SQLResponse response = queryCacheManager.getFromExceptionCache(sqlRequest);
-        if (response != null && isFailTimesExceedThreshold(response, kylinConfig)) {
-            logger.info("The sqlResponse is found in EXCEPTION_QUERY_CACHE");
-            response.setHitExceptionCache(true);
-        } else {
-            response = queryCacheManager.searchSuccessCache(sqlRequest);
+        SQLResponse response = searchFailedCache(sqlRequest, kylinConfig);
+        if (response == null) {
+            response = searchSuccessCache(sqlRequest, kylinConfig);
         }
         if (response != null) {
-            logger.info("The sqlResponse is found in SUCCESS_QUERY_CACHE");
-            response.setStorageCacheUsed(true);
             response.setDuration(0);
             collectToQueryContext(response);
             QueryContext.currentTrace().clear();
             QueryContext.currentTrace().startSpan(QueryTrace.HIT_CACHE);
             QueryContext.currentTrace().endLastSpan();
+        }
+        return response;
+    }
+
+    private SQLResponse searchFailedCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {
+        SQLResponse response = queryCacheManager.getFromExceptionCache(sqlRequest);
+        if (response != null && isFailTimesExceedThreshold(response, kylinConfig)) {
+            logger.info("The sqlResponse is found in EXCEPTION_QUERY_CACHE");
+            response.setHitExceptionCache(true);
+            QueryContext.current().getMetrics().setException(true);
+            QueryContext.current().getMetrics().setFinalCause(response.getThrowable());
+            QueryContext.current().getMetrics().setQueryMsg(response.getExceptionMessage());
+            return response;
+        }
+        return null;
+    }
+
+    private SQLResponse searchSuccessCache(SQLRequest sqlRequest, KylinConfig kylinConfig) {
+        SQLResponse response = queryCacheManager.searchSuccessCache(sqlRequest);
+        if (response != null) {
+            logger.info("The sqlResponse is found in SUCCESS_QUERY_CACHE");
+            response.setStorageCacheUsed(true);
         }
         return response;
     }
