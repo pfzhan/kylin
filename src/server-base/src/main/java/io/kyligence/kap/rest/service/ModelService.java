@@ -2813,6 +2813,7 @@ public class ModelService extends BasicService {
             request.setPartitionDesc(params.getPartitionDesc());
             request.setProject(params.getProject());
             request.setMultiPartitionDesc(params.getMultiPartitionDesc());
+            updateSecondStorageModel(params.getProject(), request.getId());
             updateDataModelSemantic(params.getProject(), request);
             params.getSegmentHoles().clear();
         }
@@ -2881,8 +2882,8 @@ public class ModelService extends BasicService {
             request.setPartitionDesc(partitionDesc);
             request.setSaveOnly(true);
             request.setMultiPartitionDesc(multiPartitionDesc);
-            updateDataModelSemantic(project, request);
             updateSecondStorageModel(project, modelId);
+            updateDataModelSemantic(project, request);
         }
     }
 
