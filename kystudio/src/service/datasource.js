@@ -241,8 +241,9 @@ export default {
   fetchDatabases (project, datasourceType) {
     return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasource_type: datasourceType})
   },
-  fetchDBandTables (project, page_offset, pageSize, table, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, source_type: datasourceType, ext: true})
+  fetchDBandTables ({project_name: project, page_offset, page_size: pageSize, table, source_type: datasourceType, is_fuzzy = true}) {
+    // 为了对齐外部 API，项目里面接口增加 is_fuzzy 参数，true 为模糊查询
+    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, source_type: datasourceType, is_fuzzy, ext: true})
   },
   reloadHiveDBAndTables (para) {
     return Vue.resource(apiUrl + 'tables/reload_hive_table_name').get(para)

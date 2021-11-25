@@ -324,7 +324,7 @@ export default {
       return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName, para.modelName, para.page_offset, para.pageSize)
     },
     [types.FETCH_DB_AND_TABLES]: function ({commit}, para) { // 获取db 和 tables，参数：projectName，页码，每页条数，搜索关键字，数据源类型
-      return api.datasource.fetchDBandTables(para.project_name, para.page_offset, para.page_size, para.table, para.source_type)
+      return api.datasource.fetchDBandTables(para)
     },
     [types.FETCH_DATABASES]: function ({commit}, para) {
       return api.datasource.fetchDatabases(para.projectName, para.sourceType)
@@ -332,7 +332,7 @@ export default {
     [types.FETCH_TABLES]: function ({commit}, para) {
       return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.page_offset, para.pageSize, para.isFuzzy, para.sourceType, para.isExt)
         .then((response) => {
-          if (!para.isFuzzy && !para.isDisableCache) {
+          if (para.isFuzzy && !para.isDisableCache) {
             commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.page_offset === 0 })
           }
           return response
