@@ -296,6 +296,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     SECOND_STORAGE_PROJECT_LOCKING("KE-010037008"), //
     PROJECT_DROP_FAILED("KE-010037009"), //
     JOB_RESTART_FAILED("KE-010037010"), //
+    JOB_RESUME_FAILED("KE-010037011"), //
 
     //10038XXX system profile
     SYSTEM_PROFILE_ABNORMAL_DATA("KE-010038001"), //

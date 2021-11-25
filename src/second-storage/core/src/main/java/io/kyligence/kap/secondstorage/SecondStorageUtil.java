@@ -70,6 +70,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.BASE_TABLE_INDEX
 import static org.apache.kylin.common.exception.ServerErrorCode.PARTITION_COLUMN_NOT_AVAILABLE;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_DATA_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_STATUS_ERROR;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 public class SecondStorageUtil {
     public static final Set<ExecutableState> RUNNING_STATE = Sets.newHashSet(
@@ -364,6 +365,29 @@ public class SecondStorageUtil {
         }
         if (!canRestart) {
             throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJOB_RESTART_FAILED());
+        }
+    }
+
+    public static void checkJobResume(String project, String jobId) {
+        if (!isProjectEnable(project)) return;
+        NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        AbstractExecutable abstractExecutable = executableManager.getJob(jobId);
+        JobTypeEnum type = abstractExecutable.getJobType();
+        boolean secondStorageLoading = type == JobTypeEnum.EXPORT_TO_SECOND_STORAGE;
+        ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
+                .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
+        if (BUILD_JOBS.contains(jobDetail.getJobType())) {
+            secondStorageLoading = true;
+            long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
+            // build job can't restart when second storage step is running
+            if (finishedCount < 3) {
+                secondStorageLoading = false;
+            }
+        }
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        long runningJobsCount = scheduler.getContext().getRunningJobs().keySet().stream().filter(id -> id.startsWith(jobId)).count();
+        if (secondStorageLoading && runningJobsCount > 0) {
+            throw new KylinException(ServerErrorCode.JOB_RESUME_FAILED, MsgPicker.getMsg().getJOB_RESUME_FAILED());
         }
     }
 }

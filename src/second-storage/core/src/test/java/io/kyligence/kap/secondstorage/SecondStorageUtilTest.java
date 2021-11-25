@@ -151,4 +151,9 @@ public class SecondStorageUtilTest extends NLocalFileMetadataTestCase {
     public void checkJobRestartWhenNotEnable() {
         SecondStorageUtil.checkJobRestart("default", RandomUtil.randomUUIDStr());
     }
+
+    @Test
+    public void checkJobResumeWhenNotEnable() {
+        SecondStorageUtil.checkJobResume("default", RandomUtil.randomUUIDStr());
+    }
 }

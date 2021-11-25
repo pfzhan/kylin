@@ -1590,6 +1590,10 @@ public class Message {
         return "Tiered storage task doesn't support restart.\n";
     }
 
+    public String getJOB_RESUME_FAILED() {
+        return "Tiered storage task can't resume. Please try again later.\n";
+    }
+
     public String getINVALID_BROKER_DEFINITION() {
         return "The broker filed can’t be empty. Please check and try again.";
     }

@@ -1795,7 +1795,12 @@ public class CnMessage extends Message {
 
     @Override
     public String getJOB_RESTART_FAILED() {
-        return "分层存储任务不支持重启操作.\n";
+        return "分层存储任务不支持重启操作。\n";
+    }
+
+    @Override
+    public String getJOB_RESUME_FAILED() {
+        return "分层存储任务暂时不能恢复，请稍后再试。\n";
     }
 
     @Override

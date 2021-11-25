@@ -306,7 +306,7 @@ public class ClickHouseLoad extends AbstractExecutable {
                 for (List<LoadInfo> infoBatch : loadInfos)
                     dataLoader.load(infoBatch, this.loadContext);
                 if (isPaused()) {
-                    saveState();
+                    saveState(false);
                 }
                 if (isPaused() || isDiscarded()) {
                     throw new JobStoppedException("job stop manually.");
@@ -340,10 +340,11 @@ public class ClickHouseLoad extends AbstractExecutable {
         return ExecutableState.PAUSED == SecondStorageUtil.getJobStatus(project, getParentId());
     }
 
-    public void saveState() {
+    public void saveState(boolean saveEmpty) {
         Preconditions.checkNotNull(loadContext, "load context can't be null");
         Map<String, String> info = new HashMap<>();
-        info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, loadContext.serializeToString());
+        // if save empty，will clean the
+        info.put(LoadContext.CLICKHOUSE_LOAD_CONTEXT, saveEmpty ? "[]" : loadContext.serializeToString());
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val manager = this.getManager();
             manager.updateJobOutput(getParentId(), null, info, null, null);
@@ -358,6 +359,8 @@ public class ClickHouseLoad extends AbstractExecutable {
         if (!StringUtils.isEmpty(state)) {
             loadContext.deserializeToString(state);
         }
+        // clean history, when job failed or KE process down, will run job without history.
+        saveState(true);
     }
 
 }

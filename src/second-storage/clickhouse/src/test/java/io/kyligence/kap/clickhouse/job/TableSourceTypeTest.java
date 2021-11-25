@@ -50,4 +50,9 @@ public class TableSourceTypeTest extends NLocalFileMetadataTestCase {
         String result = TableSourceType.S3.transformFileUrl("hdfs://liunengdev/kylin_clickhouse/ke_metadata/test/parquet/3070ef88-fa57-4ad6-9a6b-9587cfcd4140/62fea0e8-40ef-4baa-a59f-29822fc17321/20000040001/part-00000-b1920799-ef6f-4c77-b0bf-2e72edb558dd-c000.snappy.parquet", "host.docker.internal:9000&test&test123", URI.create("/test"));
         Assert.assertEquals("S3('http://host.docker.internal:9000/liunengdev/kylin_clickhouse/ke_metadata/test/parquet/3070ef88-fa57-4ad6-9a6b-9587cfcd4140/62fea0e8-40ef-4baa-a59f-29822fc17321/20000040001/part-00000-b1920799-ef6f-4c77-b0bf-2e72edb558dd-c000.snappy.parquet' , 'test','test123', Parquet)", result);
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void hdfs() {
+        TableSourceType.HDFS.transformFileUrl("viewfs://liunengdev/kylin_clickhouse/ke_metadata/test/parquet/3070ef88-fa57-4ad6-9a6b-9587cfcd4140/62fea0e8-40ef-4baa-a59f-29822fc17321/20000040001/part-00000-b1920799-ef6f-4c77-b0bf-2e72edb558dd-c000.snappy.parquet", "host.docker.internal:9000&test&test123", URI.create("/test"));
+    }
 }

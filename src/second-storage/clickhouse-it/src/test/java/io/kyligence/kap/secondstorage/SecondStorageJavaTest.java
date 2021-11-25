@@ -62,6 +62,7 @@ import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import static org.apache.kylin.common.exception.JobErrorCode.SECOND_STORAGE_JOB_EXISTS;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_CREATE_JOB;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_NODE_NOT_AVAILABLE;
 import org.apache.kylin.common.util.Pair;
@@ -164,7 +165,12 @@ public class SecondStorageJavaTest implements JobWaiter {
         val dataflow = dataflowManager.getDataflow(modelId);
         val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
         val request = new StorageRequest();
-        triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
+        val jobId = triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
+        try {
+            SecondStorageUtil.checkJobResume(project, jobId);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.JOB_RESUME_FAILED.toErrorCode(), e.getErrorCode());
+        }
         try {
             triggerClickHouseLoadJob(project, modelId, enableTestUser.getUser(), segs);
         } catch (KylinException e) {
@@ -447,6 +453,7 @@ public class SecondStorageJavaTest implements JobWaiter {
         clickHouse.apply("DROP DATABASE " + database);
         val jobId = triggerModelCleanJob(project, modelId, enableTestUser.getUser());
         waitJobFinish(project, jobId);
+        SecondStorageUtil.checkJobResume(project, jobId);
         SecondStorageUtil.checkJobRestart(project, jobId);
     }
 }

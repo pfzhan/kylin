@@ -387,6 +387,7 @@ public class JobService extends BasicService {
         JobActionEnum.validateValue(action.toUpperCase(Locale.ROOT));
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
+            SecondStorageUtil.checkJobResume(project, jobId);
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);

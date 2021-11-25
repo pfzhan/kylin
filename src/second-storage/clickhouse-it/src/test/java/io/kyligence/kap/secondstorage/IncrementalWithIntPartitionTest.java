@@ -27,10 +27,15 @@ package io.kyligence.kap.secondstorage;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.clickhouse.job.ClickHouse;
+import io.kyligence.kap.clickhouse.job.ClickHouseSegmentCleanJob;
+import io.kyligence.kap.clickhouse.job.LoadContext;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
 import io.kyligence.kap.secondstorage.management.SecondStorageService;
@@ -44,13 +49,17 @@ import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.ServerErrorCode;
 import static org.apache.kylin.common.exception.ServerErrorCode.SECOND_STORAGE_PROJECT_LOCKING;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.SparkSession;
+import static org.awaitility.Awaitility.await;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -64,6 +73,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class IncrementalWithIntPartitionTest implements JobWaiter {
@@ -218,7 +228,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         val seg = dataflowManager.getDataflow(modelId).getSegments().getFirstSegment();
         secondStorageService.lockOperate(project, Collections.singletonList("LOAD"), "LOCK");
         try {
-            refreshSegment(seg.getId());
+            refreshSegment(seg.getId(), true);
         } catch (Exception e) {
             KylinException cause = (KylinException) e.getCause();
             Assert.assertEquals(SECOND_STORAGE_PROJECT_LOCKING.toErrorCode(), cause.getErrorCode());
@@ -228,7 +238,7 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         Assert.fail();
     }
 
-    private void refreshSegment(String segId) {
+    private String refreshSegment(String segId, boolean wait) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val dfMgr = NDataflowManager.getInstance(config, getProject());
         val df = dfMgr.getDataflow(modelId);
@@ -236,7 +246,10 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         NDataSegment newSeg = dfMgr.refreshSegment(df, df.getSegment(segId).getSegRange());
         val jobParam = new JobParam(newSeg, df.getModel().getId(), enableTestUser.getUser());
         val jobId = jobManager.refreshSegmentJob(jobParam);
-        waitJobFinish(project, jobId);
+        if (wait) {
+            waitJobFinish(project, jobId);
+        }
+        return jobId;
     }
 
     @Test
@@ -315,5 +328,74 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         val tableData = tableFlowManager.orElseThrow(null).get(modelId).orElseThrow(null).getTableDataList().get(0);
         Assert.assertEquals(0, tableData.getPartitions().size());
         Assert.assertTrue(SecondStorageUtil.isModelEnable(project, modelId));
+    }
+
+    private void cleanSegments(List<String> segs) {
+        val request = new StorageRequest();
+        request.setProject(project);
+        request.setModel(modelId);
+        request.setSegmentIds(segs);
+        secondStorageEndpoint.cleanStorage(request, segs);
+        val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val job = manager.getAllExecutables().stream().filter(ClickHouseSegmentCleanJob.class::isInstance).findFirst();
+        Assert.assertTrue(job.isPresent());
+        waitJobFinish(project, job.get().getId());
+    }
+
+    @Test
+    public void testJobPaused() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        cleanSegments(segs.subList(1, 2));
+        registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_PAUSED, 10000);
+        val jobId = refreshSegment(segs.get(1), false);
+        await().atMost(15, TimeUnit.SECONDS).until(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            ExecutablePO jobDetail = executableManager.getAllJobs().stream().filter(job -> job.getId().equals(jobId))
+                    .findFirst().orElseThrow(() -> new IllegalStateException("Job not found"));
+            long finishedCount = jobDetail.getTasks().stream().filter(task -> "SUCCEED".equals(task.getOutput().getStatus())).count();
+            return finishedCount >= 3;
+        });
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            executableManager.pauseJob(jobId);
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        waitJobEnd(project, jobId);
+        try {
+            SecondStorageUtil.checkJobResume(project, jobId);
+        } catch (KylinException e) {
+            Assert.assertEquals(ServerErrorCode.JOB_RESUME_FAILED.toErrorCode(), e.getErrorCode());
+        }
+//        Thread.sleep(15000);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        await().atMost(15, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        int partitionNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
+        Assert.assertEquals(1, partitionNum);
+        Assert.assertFalse(SecondStorageLockUtils.containsKey(modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val job = manager.getJob(jobId);
+            Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
+            Assert.assertEquals("[]", job.getOutput().getExtra().get(LoadContext.CLICKHOUSE_LOAD_CONTEXT));
+        });
+
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            executableManager.resumeJob(jobId);
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        await().atMost(2, TimeUnit.SECONDS).until(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
+        });
+        waitJobFinish(project, jobId);
+        Assert.assertEquals(24, IncrementalWithIntPartitionTest.getModelRowCount(project, modelId));
+        SecondStorageUtil.checkSecondStorageData(project);
     }
 }
