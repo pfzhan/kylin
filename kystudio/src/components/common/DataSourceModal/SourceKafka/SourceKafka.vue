@@ -317,7 +317,7 @@ export default class SourceKafka extends Vue {
       this.loading = false
     }, (res) => {
       // handleError(res)
-      if (!res.data.data.failed_servers.length) {
+      if (!res.data.data || (res.data.data.failed_servers && !res.data.data.failed_servers.length)) {
         handleError(res)
       } else {
         this.isShowErrorBrokers = true
