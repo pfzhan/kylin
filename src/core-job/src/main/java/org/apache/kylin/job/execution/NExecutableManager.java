@@ -733,6 +733,13 @@ public class NExecutableManager {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            // when resume job, update stage last modified time from calculate duration
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.READY)//
+                                    .forEach(stage -> //
+                            updateStageStatus(stage.getId(), entry.getKey(), null, null, null));
+                            // update running stage to ready
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING
@@ -996,6 +1003,15 @@ public class NExecutableManager {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
+                            // when paused job, update stage last modified time from calculate duration
+                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
+                                    .stream() //
+                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.RUNNING
+                                            && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED
+                                            && stage.getStatus(entry.getKey()) != ExecutableState.SKIP)//
+                                    .forEach(stage -> //
+                            updateStageStatus(stage.getId(), entry.getKey(), null, null, null));
+                            // pause running stage
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
                                     .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.RUNNING)//

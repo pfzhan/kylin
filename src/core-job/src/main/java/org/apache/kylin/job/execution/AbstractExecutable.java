@@ -701,8 +701,8 @@ public abstract class AbstractExecutable implements Executable {
             }
             return System.currentTimeMillis() - output.getStartTime();
         }
-        if (output.getState() == ExecutableState.READY) {
-            return System.currentTimeMillis() - output.getStartTime();
+        if (output.getState() == ExecutableState.READY && output.getLastModified() != 0) {
+            return output.getLastModified() - output.getStartTime();
         }
 
         return output.getEndTime() - output.getStartTime();
