@@ -646,7 +646,7 @@ export default class queryResult extends Vue {
       const res = await this.loadAllIndex({
         project: this.currentSelectedProject,
         model: modelId,
-        key: layoutId,
+        ids: layoutId,
         page_offset: 0,
         page_size: 10,
         sort_by: '',
