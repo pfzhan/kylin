@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.EventBusFactory;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -60,6 +61,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.FusionModel;
@@ -108,6 +110,8 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
     @Mock
     private final AccessService accessService = Mockito.spy(AccessService.class);
 
+    private final ModelUpdateListener modelUpdateListener = new ModelUpdateListener();
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -118,6 +122,7 @@ public class FusionModelServiceTest extends CSVSourceTestCase {
     public void setup() {
         super.setup();
         overwriteSystemProp("HADOOP_USER_NAME", "root");
+        EventBusFactory.getInstance().register(modelUpdateListener, true);
         ReflectionTestUtils.setField(fusionModelService, "modelService", modelService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);

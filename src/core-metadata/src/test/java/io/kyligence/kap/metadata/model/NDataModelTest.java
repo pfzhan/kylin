@@ -164,4 +164,24 @@ public class NDataModelTest {
         Assert.assertEquals(NDataModel.ModelType.BATCH, model.getModelType());
         Assert.assertEquals(true, model.isBroken());
     }
+
+    @Test
+    public void tstModelRenameEvent() {
+        NDataModel.ModelRenameEvent renameEvent = new NDataModel.ModelRenameEvent(DEFAULT_PROJECT,
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "new_model_name");
+        Assert.assertEquals(DEFAULT_PROJECT, renameEvent.getProject());
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", renameEvent.getSubject());
+        Assert.assertEquals("new_model_name", renameEvent.getNewName());
+
+        renameEvent.setProject("streaming_test");
+        renameEvent.setSubject("e78a89dd-847f-4574-8afa-8768b4228b73");
+        renameEvent.setNewName("new_model_name2");
+        Assert.assertEquals("streaming_test", renameEvent.getProject());
+        Assert.assertEquals("e78a89dd-847f-4574-8afa-8768b4228b73", renameEvent.getSubject());
+        Assert.assertEquals("new_model_name2", renameEvent.getNewName());
+
+        NDataModel.ModelRenameEvent renameEvent1 = new NDataModel.ModelRenameEvent("name");
+        Assert.assertEquals("name", renameEvent1.getNewName());
+    }
+
 }

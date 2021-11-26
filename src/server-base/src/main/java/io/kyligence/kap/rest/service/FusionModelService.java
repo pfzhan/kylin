@@ -147,6 +147,10 @@ public class FusionModelService extends BasicService {
             modelService.renameDataModel(project, batchId, FusionModel.getBatchName(newAlias, modelId));
         }
         modelService.renameDataModel(project, modelId, newAlias);
+        if (model.isStreaming() || model.isFusionModel()) {
+            // Sync update of streaming job meta model name
+            EventBusFactory.getInstance().postSync(new NDataModel.ModelRenameEvent(project, modelId, newAlias));
+        }
     }
 
     @Transaction(project = 0)

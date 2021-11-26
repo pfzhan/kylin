@@ -48,7 +48,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -93,6 +92,7 @@ import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.streaming.KafkaConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -122,6 +122,19 @@ public class NDataModel extends RootPersistentEntity {
 
     public enum MeasureType implements Serializable {
         NORMAL, EXPANDABLE, INTERNAL
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    public static class ModelRenameEvent extends SchedulerEventNotifier {
+        private String newName;
+
+        public ModelRenameEvent(String project, String subject, String newName) {
+            this.project = project;
+            this.subject = subject;
+            this.newName = newName;
+        }
     }
 
     @Getter

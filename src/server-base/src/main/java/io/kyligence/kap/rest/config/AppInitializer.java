@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Date;
 
+import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -123,6 +124,7 @@ public class AppInitializer {
             EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
             EventBusFactory.getInstance().register(new StreamingJobListener(), true);
             EventBusFactory.getInstance().register(new ModelDropAddListener(), true);
+            EventBusFactory.getInstance().register(new ModelUpdateListener(), true);
 
             ExecutableUtils.initJobFactory();
         } else {
