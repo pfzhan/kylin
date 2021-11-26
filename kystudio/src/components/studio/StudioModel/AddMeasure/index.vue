@@ -109,7 +109,7 @@
               </el-option>
               <el-option-group key="ccolumn" :label="$t('ccolumns')" v-if="measure.expression === 'TOP_N' && getCCGroups.length">
                 <el-option
-                  v-for="item in getCCGroups"
+                  v-for="item in getCCGroups(isGroupBy)"
                   :key="item.guid"
                   :label="item.tableAlias + '.' + item.columnName"
                   :value="item.tableAlias + '.' + item.columnName">
@@ -379,10 +379,16 @@ export default class AddMeasure extends Vue {
       expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
     }
   }
-  get getCCGroups () {
+  getCCGroups (isGroupBy) {
     if (this.ccGroups.length) {
       if (['SUM(column)', 'TOP_N', 'CORR'].includes(this.measure.expression)) {
         return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+      } else if (this.measure.expression === 'TOP_N') {
+        if (isGroupBy && isGroupBy === 'Group by') {
+          return this.ccGroups.filter(it => measuresDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+        } else {
+          return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
+        }
       } else if (this.measure.expression === 'PERCENTILE_APPROX') {
         return this.ccGroups.filter(item => measurePercenDataType.includes(item.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
       } else {
