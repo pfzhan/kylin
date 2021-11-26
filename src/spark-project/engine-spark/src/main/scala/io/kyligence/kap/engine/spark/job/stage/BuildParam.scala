@@ -53,6 +53,21 @@ class BuildParam {
   private var cachedPartitionFlatTableStats: Map[java.lang.Long, Statistics] =
     immutable.Map.newBuilder[java.lang.Long, Statistics].result()
 
+  private var skipGenerateFlatTable: Boolean = _
+  private var skipMaterializedFactTableView: Boolean = _
+
+  def isSkipMaterializedFactTableView: Boolean = skipMaterializedFactTableView
+
+  def setSkipMaterializedFactTableView(skipMaterializedFactTableView: Boolean): Unit = {
+    this.skipMaterializedFactTableView = skipMaterializedFactTableView
+  }
+
+  def isSkipGenerateFlatTable: Boolean = skipGenerateFlatTable
+
+  def setSkipGenerateFlatTable(skipGenerateFlatTable: Boolean): Unit = {
+    this.skipGenerateFlatTable = skipGenerateFlatTable
+  }
+
   def getCachedPartitionFlatTableStats: Map[java.lang.Long, Statistics] = cachedPartitionFlatTableStats
 
   def setCachedPartitionFlatTableStats(cachedPartitionFlatTableStats: Map[java.lang.Long, Statistics]): Unit = {

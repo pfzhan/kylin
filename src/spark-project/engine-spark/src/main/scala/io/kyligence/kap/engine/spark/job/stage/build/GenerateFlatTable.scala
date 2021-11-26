@@ -39,5 +39,9 @@ class GenerateFlatTable(jobContext: SegmentJob, dataSegment: NDataSegment, build
     buildParam.setFlatTablePart(flatTablePart)
 
     buildParam.setBuildFlatTable(this)
+
+    if (buildParam.isSkipGenerateFlatTable) {
+      onStageSkipped()
+    }
   }
 }

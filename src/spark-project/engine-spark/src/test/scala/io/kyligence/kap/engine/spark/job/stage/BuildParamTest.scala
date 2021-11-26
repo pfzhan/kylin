@@ -22,25 +22,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.engine.spark.job.stage.build.partition
+package io.kyligence.kap.engine.spark.job.stage
 
-import io.kyligence.kap.engine.spark.job.SegmentJob
-import io.kyligence.kap.engine.spark.job.stage.BuildParam
-import io.kyligence.kap.metadata.cube.model.NDataSegment
-import org.apache.spark.sql.{Dataset, Row}
+import org.scalatest.funsuite.AnyFunSuite
 
-class PartitionGenerateFlatTable(jobContext: SegmentJob, dataSegment: NDataSegment, buildParam: BuildParam)
-  extends PartitionFlatTableAndDictBase(jobContext, dataSegment, buildParam) {
-  override def execute(): Unit = {
-    val flatTable: Dataset[Row] = generateFlatTable()
-    buildParam.setFlatTable(flatTable)
-    val flatTablePart: Dataset[Row] = generateFlatTablePart()
-    buildParam.setFlatTablePart(flatTablePart)
+class BuildParamTest extends AnyFunSuite {
+  test("basic") {
+    val param = new BuildParam()
+    assert(!param.isSkipGenerateFlatTable)
 
-    buildParam.setPartitionFlatTable(this)
+    param.setSkipGenerateFlatTable(true)
+    assert(param.isSkipGenerateFlatTable)
 
-    if (buildParam.isSkipGenerateFlatTable) {
-      onStageSkipped()
-    }
+    param.setSkipGenerateFlatTable(false)
+    assert(!param.isSkipGenerateFlatTable)
+
+    assert(!param.isSkipMaterializedFactTableView)
+
+    param.setSkipMaterializedFactTableView(true)
+    assert(param.isSkipMaterializedFactTableView)
+
+    param.setSkipMaterializedFactTableView(false)
+    assert(!param.isSkipMaterializedFactTableView)
   }
 }

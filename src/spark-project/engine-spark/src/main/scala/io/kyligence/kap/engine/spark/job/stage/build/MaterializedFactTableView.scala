@@ -56,5 +56,8 @@ class MaterializedFactTableView(jobContext: SegmentJob, dataSegment: NDataSegmen
 
     val fastFactTableDS: Dataset[Row] = newFastFactTableDS()
     buildParam.setFastFactTableDS(fastFactTableDS)
+    if (buildParam.isSkipMaterializedFactTableView) {
+      onStageSkipped()
+    }
   }
 }

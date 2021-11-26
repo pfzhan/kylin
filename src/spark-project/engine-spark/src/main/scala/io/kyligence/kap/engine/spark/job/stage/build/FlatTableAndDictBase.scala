@@ -288,7 +288,7 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
 
   private def tryPersistFTVDS(tableDS: Dataset[Row]): Dataset[Row] = {
     if (!shouldPersistFTV) {
-      onStageSkipped()
+      buildParam.setSkipMaterializedFactTableView(true)
       return tableDS
     }
     logInfo(s"Persist FACT-TABLE-VIEW $factTableViewPath")
@@ -303,12 +303,12 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
 
   private def tryPersistFTDS(tableDS: Dataset[Row]): Dataset[Row] = {
     if (!shouldPersistFT) {
-      onStageSkipped()
+      buildParam.setSkipGenerateFlatTable(true)
       return tableDS
     }
     if (tableDS.schema.isEmpty) {
       logInfo("No available flat table schema.")
-      onStageSkipped()
+      buildParam.setSkipGenerateFlatTable(true)
       return tableDS
     }
     logInfo(s"Segment $segmentId persist flat table: $flatTablePath")
@@ -329,11 +329,11 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
   private def tryRecoverFTDS(): Option[Dataset[Row]] = {
     if (tableDesc.isPartialBuild) {
       logInfo(s"Segment $segmentId no need reuse flat table for partial build.")
-      onStageSkipped()
+      buildParam.setSkipGenerateFlatTable(true)
       return None
     } else if (!isFTReady) {
       logInfo(s"Segment $segmentId  no available flat table.")
-      onStageSkipped()
+      buildParam.setSkipGenerateFlatTable(true)
       return None
     }
     // +----------+---+---+---+---+-----------+-----------+
@@ -416,7 +416,7 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
   }
 
   private[build] def evaluateColumnBytes(totalCount: Long, //
-                                  sampled: Map[String, Long]): Map[String, Long] = {
+                                         sampled: Map[String, Long]): Map[String, Long] = {
     val tableMetadataManager = NTableMetadataManager.getInstance(config, project)
     val tableSizeMap: mutable.Map[String, Long] = mutable.Map()
 
