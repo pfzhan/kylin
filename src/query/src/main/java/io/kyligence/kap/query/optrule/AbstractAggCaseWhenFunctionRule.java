@@ -24,12 +24,17 @@
 
 package io.kyligence.kap.query.optrule;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.query.relnode.ContextUtil;
-import io.kyligence.kap.query.util.AggExpressionUtil;
-import io.kyligence.kap.query.util.AggExpressionUtil.AggExpression;
-import io.kyligence.kap.query.util.AggExpressionUtil.GroupExpression;
+import static io.kyligence.kap.query.util.KapQueryUtil.isCast;
+import static io.kyligence.kap.query.util.KapQueryUtil.isNotNullLiteral;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -51,19 +56,17 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.query.util.KapQueryUtil.isCast;
-import static io.kyligence.kap.query.util.KapQueryUtil.isNotNullLiteral;
+import io.kyligence.kap.query.relnode.ContextUtil;
+import io.kyligence.kap.query.util.AggExpressionUtil;
+import io.kyligence.kap.query.util.AggExpressionUtil.AggExpression;
+import io.kyligence.kap.query.util.AggExpressionUtil.GroupExpression;
 
 /**
  * expand agg(sum case when .. then col else col end) to agg(sum case when agg(col) else agg(col) end)
@@ -91,7 +94,8 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
             Project originalProject = ruleCall.rel(1);
 
             List<AggregateCall> applicableAggCalls = originalAgg.getAggCallList().stream()
-                    .filter(aggCall -> isApplicableWithSumCaseRule(aggCall, originalProject)).collect(Collectors.toList());
+                    .filter(aggCall -> isApplicableWithSumCaseRule(aggCall, originalProject))
+                    .collect(Collectors.toList());
             List<AggregateCall> nonApplicableAggCalls = new LinkedList<>(originalAgg.getAggCallList());
             nonApplicableAggCalls.removeAll(applicableAggCalls);
 
@@ -133,7 +137,7 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
      * @return
      */
     private RelNode joinAggCaseWhenAndNonAggCaseWhenRel(RelBuilder relBuilder, RelNode sumCaseAgg,
-                                                        Aggregate nonSumCaseAgg, Aggregate originalAgg) {
+            Aggregate nonSumCaseAgg, Aggregate originalAgg) {
         relBuilder.push(nonSumCaseAgg);
         relBuilder.push(sumCaseAgg);
         List<RelDataTypeField> leftFields = nonSumCaseAgg.getRowType().getFieldList();
@@ -222,8 +226,7 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
 
         // Locate basic sum expression info
         List<AggExpression> aggExpressions = AggExpressionUtil.collectSumExpressions(oldAgg, oldProject);
-        List<AggExpression> sumCaseExprs = aggExpressions.stream()
-                .filter(aggExpr -> isApplicableAggExpression(aggExpr))
+        List<AggExpression> sumCaseExprs = aggExpressions.stream().filter(this::isApplicableAggExpression)
                 .collect(Collectors.toList());
         Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups = AggExpressionUtil
                 .collectGroupExprAndGroup(oldAgg, oldProject);
@@ -285,7 +288,6 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
         return relNode;
     }
 
-
     private List<RexNode> buildBottomProject(RelBuilder relBuilder, Project oldProject,
             List<GroupExpression> groupExpressions, List<AggExpression> aggExpressions) {
         List<RexNode> bottomProjectList = Lists.newArrayList();
@@ -303,29 +305,41 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
         for (AggExpression aggExpression : aggExpressions) {
             if (isApplicableAggExpression(aggExpression)) {
                 // sum expression expanded project
-                int[] conditionsInput = aggExpression.getBottomProjConditionsInput();
-                for (int i = 0; i < conditionsInput.length; i++) {
-                    aggExpression.getBottomAggConditionsInput()[i] = bottomProjectList.size();
-                    RexInputRef conditionInput = rexBuilder.makeInputRef(oldProject.getInput(), conditionsInput[i]);
-                    bottomProjectList.add(conditionInput);
-                }
-                List<RexNode> values = aggExpression.getValuesList();
-                for (int i = 0; i < values.size(); i++) {
-                    aggExpression.getBottomAggValuesInput()[i] = bottomProjectList.size();
-                    if (isCast(values.get(i))) {
-                        bottomProjectList.add(((RexCall) (values.get(i))).operands.get(0));
-                    } else if (isNotNullLiteral(values.get(i))) {
-                        bottomProjectList.add(values.get(i));
-                    } else {
-                        bottomProjectList.add(rexBuilder.makeBigintLiteral(BigDecimal.ZERO));
-                    }
-                }
+                buildBottomAggExpression(rexBuilder, oldProject, bottomProjectList, aggExpression);
             } else if (aggExpression.getExpression() != null) {
                 aggExpression.getBottomAggInput()[0] = bottomProjectList.size();
                 bottomProjectList.add(aggExpression.getExpression());
             }
         }
         return bottomProjectList;
+    }
+
+    private void buildBottomAggExpression(RexBuilder rexBuilder, Project oldProject, List<RexNode> bottomProjectList,
+            AggExpression aggExpression) {
+        int[] conditionsInput = aggExpression.getBottomProjConditionsInput();
+        for (int i = 0; i < conditionsInput.length; i++) {
+            aggExpression.getBottomAggConditionsInput()[i] = bottomProjectList.size();
+            RexInputRef conditionInput = rexBuilder.makeInputRef(oldProject.getInput(), conditionsInput[i]);
+            bottomProjectList.add(conditionInput);
+        }
+        List<RexNode> values = aggExpression.getValuesList();
+        for (int i = 0; i < values.size(); i++) {
+            aggExpression.getBottomAggValuesInput()[i] = bottomProjectList.size();
+            if (isCast(values.get(i))) {
+                RexNode rexNode = ((RexCall) (values.get(i))).operands.get(0);
+                DataType dataType = DataType.getType(rexNode.getType().getSqlTypeName().getName());
+                if (!AggExpressionUtil.isSum(aggExpression.getAggCall().getAggregation().kind)
+                        || dataType.isNumberFamily() || dataType.isIntegerFamily()) {
+                    bottomProjectList.add(rexNode);
+                } else {
+                    bottomProjectList.add(values.get(i));
+                }
+            } else if (isNotNullLiteral(values.get(i))) {
+                bottomProjectList.add(values.get(i));
+            } else {
+                bottomProjectList.add(rexBuilder.makeBigintLiteral(BigDecimal.ZERO));
+            }
+        }
     }
 
     private List<AggregateCall> buildBottomAggregate(RelBuilder relBuilder, List<AggExpression> aggExpressions,
@@ -354,8 +368,8 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
                 String aggName = getBottomAggPrefix() + aggCaseIdx + "$" + valueIdx;
                 List<Integer> args = Lists.newArrayList(aggExpression.getBottomAggValuesInput()[valueIdx]);
                 aggExpression.getTopProjValuesInput()[valueIdx] = bottomAggOffset + bottomAggCalls.size();
-                bottomAggCalls.add(AggregateCall.create(getBottomAggFunc(aggExpression.getAggCall()), false, false, args, -1,
-                        bottomAggOffset, relBuilder.peek(), null, aggName));
+                bottomAggCalls.add(AggregateCall.create(getBottomAggFunc(aggExpression.getAggCall()), false, false,
+                        args, -1, bottomAggOffset, relBuilder.peek(), null, aggName));
             }
             aggCaseIdx++;
         }
@@ -463,6 +477,7 @@ public abstract class AbstractAggCaseWhenFunctionRule extends RelOptRule {
     }
 
     private static final String BOTTOM_AGG_PREFIX = "SUB_AGG$";
+
     protected String getBottomAggPrefix() {
         return BOTTOM_AGG_PREFIX;
     }

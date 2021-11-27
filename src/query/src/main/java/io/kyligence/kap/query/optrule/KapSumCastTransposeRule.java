@@ -31,7 +31,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.query.relnode.KapProjectRel;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -54,6 +53,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +62,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapAggregateRel;
+import io.kyligence.kap.query.relnode.KapProjectRel;
 import io.kyligence.kap.query.util.AggExpressionUtil;
 
 public class KapSumCastTransposeRule extends RelOptRule {
@@ -100,7 +101,9 @@ public class KapSumCastTransposeRule extends RelOptRule {
                 int index = aggCall.getArgList().get(0);
                 RexNode value = originalProject.getProjects().get(index);
                 if (containCast(value)) {
-                    return true;
+                    RexNode rexNode = ((RexCall) value).getOperands().get(0);
+                    DataType dataType = DataType.getType(rexNode.getType().getSqlTypeName().getName());
+                    return dataType.isNumberFamily() || dataType.isIntegerFamily();
                 }
             }
         }
@@ -175,7 +178,7 @@ public class KapSumCastTransposeRule extends RelOptRule {
     }
 
     private List<AggregateCall> buildBottomAggregate(RelBuilder relBuilder,
-                                                     List<AggExpressionUtil.AggExpression> aggExpressions, int bottomAggOffset) {
+            List<AggExpressionUtil.AggExpression> aggExpressions, int bottomAggOffset) {
         List<AggregateCall> bottomAggCalls = Lists.newArrayList();
 
         for (AggExpressionUtil.AggExpression aggExpression : aggExpressions) {

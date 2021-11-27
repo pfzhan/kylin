@@ -75,6 +75,21 @@ public class IndexSuggesterTest extends AutoTestOnLearnKylinData {
     }
 
     @Test
+    public void testSumCaseWhenCC() {
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "true");
+        String[] sqls = new String[] {
+                "select price,sum(case when price>10 then cast(LSTG_FORMAT_NAME as DECIMAL) end) from KYLIN_SALES group by price" };
+        val context = AccelerationContextUtil.newSmartContext(getTestConfig(), proj, sqls);
+        SmartMaster smartMaster = new SmartMaster(context);
+        smartMaster.runUtWithContext(smartUtHook);
+        AbstractContext ctx = smartMaster.getContext();
+        AbstractContext.ModelContext mdCtx = ctx.getModelContexts().get(0);
+        overwriteSystemProp("kylin.query.convert-sum-expression-enabled", "false");
+        Assert.assertEquals(1, mdCtx.getUsedCC().size());
+
+    }
+
+    @Test
     public void testTableIndexSuggestColOrder() {
         String[] sqls = new String[] {
                 "select ops_user_id, ops_region, price from kylin_sales where "
