@@ -690,6 +690,7 @@ export default class UploadSqlModel extends Vue {
   getSuggestModels (sqls, reuseExistedModel) {
     this.suggestModel({project: this.currentSelectedProject, sqls: sqls, reuse_existed_model: reuseExistedModel}).then((res) => {
       handleSuccess(res, (data) => {
+        if (!this.isShow) return
         // 优化建议超过 1000 让其重新上传sql
         if (data.reused_models.length > 1000) {
           this.$confirm(this.$t('recommendsOverSizeTip'), this.$t('recommendsOverSizeTitle'), {
@@ -959,6 +960,7 @@ export default class UploadSqlModel extends Vue {
     this.importLoading = true
     this.importSqlFiles({project: this.currentSelectedProject, formData: formData}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
+        if (!this.isShow) return
         this.checkUploadFiles(this.uploadItems)
         this.showUploadRules = true
         this.importLoading = false

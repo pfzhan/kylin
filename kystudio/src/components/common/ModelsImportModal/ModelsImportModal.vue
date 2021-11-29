@@ -33,16 +33,16 @@
         <el-table class="model-list" border :data="models" size="small" refs="parseModelList" :row-class-name="tableRowClassName" @row-click="activeModal">
           <el-table-column prop="target_name" class-name="model-name-item" :label="$t('modelName')">
             <template slot-scope="scope">
-              <template v-if="showParseTable">
+              <span class="import-models" v-if="showParseTable">
                 <span :class="[importModelStatus(scope.row)]"></span>
                 <span v-if="scope.row.action === 'new'">
                   <el-input :class="{'error-tip': scope.row.isNameError}" v-model="scope.row.target_name" size="mini" @change="handleRenameReset(scope.row)"/>
                   <div class="rename-error" v-if="scope.row.isNameError">{{$t(scope.row.nameErrorMsg)}}</div>
                 </span>
-                <span class="model-name-layout" v-else>
+                <div class="model-name-layout" v-else>
                   <span class="model-name-elip" v-custom-tooltip="{text: scope.row.original_name, w: 0, tableClassName: 'model-list'}">{{scope.row.original_name}}</span>
-                </span>
-              </template>
+                </div>
+              </span>
             </template>
           </el-table-column>
           <el-table-column :label="$t('actions')" width="150px">
@@ -320,15 +320,11 @@ import { NamedRegex } from 'config'
 import { validator, diffOverWriteModel } from './handler'
 import vuex, { actionTypes } from '../../../store'
 import { handleSuccessAsync, handleError, ArrayFlat } from '../../../util'
-import RenderModelConflicts from './RenderModelConflicts'
-import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
 
 vuex.registerModule(['modals', 'ModelsImportModal'], store)
 
 @Component({
   components: {
-    RenderModelConflicts,
-    OverflowTextTooltip
   },
   computed: {
     ...mapState('ModelsImportModal', {
@@ -729,10 +725,15 @@ export default class ModelsImportModal extends Vue {
         try {
           const { project, form } = this
           await this.uploadMetadataFile({ project, form })
+          if (!this.isShow) return
           this.step = 'second'
           this.showError = false
           this.activeModalObj = this.models[0];
           ['new', 'noImport'].includes(this.getCurrentDefaultStatus(this.models[0])) && this.getDiffs()
+          this.showParseTable = false
+          this.$nextTick(() => {
+            this.showParseTable = true
+          })
         } catch (e) {
           const { code } = e.body
           this.isSubmiting = false
@@ -1098,7 +1099,16 @@ export default class ModelsImportModal extends Vue {
     padding: 0 0 0 20px;
   }
   .model-list {
+    .import-models {
+      // display: flex;
+      // gap: 5px;
+      // align-items: center;
+    }
     .model-name-item {
+      .cell > span {
+        display: inline-block;
+        width: 100%;
+      }
       .el-input {
         width: calc(~'100% - 20px');
       }
@@ -1108,26 +1118,28 @@ export default class ModelsImportModal extends Vue {
       }
     }
     .model-name-layout {
-      width: calc(~'100% - 20px');
-      height: 20px;
+      width: calc(~'100% - 35px');
       display: inline-block;
-      overflow: hidden;
-      vertical-align: top;
-      .tip_box {
-        height: 100%;
-      }
+    //   flex: 1;
+    //   height: 20px;
+    //   display: inline-block;
+    //   overflow: hidden;
+    //   vertical-align: top;
+    //   .tip_box {
+    //     height: 100%;
+    //   }
     }
-    .model-name-elip {
-      display: -webkit-box;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: normal;
-      -webkit-line-clamp: 1;
-      /*! autoprefixer: off */
-      -webkit-box-orient: vertical;
-      /* autoprefixer: on */
-      white-space: nowrap\0 !important;
-    }
+    // .model-name-elip {
+      // display: -webkit-box;
+      // overflow: hidden;
+      // text-overflow: ellipsis;
+      // white-space: normal;
+      // -webkit-line-clamp: 1;
+      // /*! autoprefixer: off */
+      // -webkit-box-orient: vertical;
+      // /* autoprefixer: on */
+      // white-space: nowrap\0 !important;
+    // }
   }
   .model-type-header {
     padding: 0 10px;
