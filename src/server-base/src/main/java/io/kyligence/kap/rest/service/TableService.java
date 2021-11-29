@@ -1234,6 +1234,11 @@ public class TableService extends BasicService {
             throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         val context = calcReloadContext(project, tableIdentity, true);
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        // remove fusion model batch part
+        context.getRemoveAffectedModels().keySet()
+                .removeIf(modelId -> dataModelManager.getDataModelDesc(modelId).fusionModelBatchPart());
+
         return preProcessBeforeReloadWithContext(project, context);
     }
 
