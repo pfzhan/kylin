@@ -138,6 +138,7 @@ class SnapshotBuilder(var jobId: String) extends Logging with Serializable {
           case e: Throwable => logWarning(s"Fetch snapshot size for ${copy.getIdentity} from ${fullSnapShotPath}", e)
         }
         copy.setLastSnapshotSize(snapshotSize)
+        copy.setSnapshotLastModified(System.currentTimeMillis)
         tableMetadataManager.updateTableDesc(copy)
         copy
       }

@@ -113,6 +113,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       val tableMeta = tableMetadataManager.getTableDesc(table.getIdentity)
       Assert.assertNotNull(tableMeta.getLastSnapshotPath)
       Assert.assertNotEquals(tableMeta.getLastSnapshotSize, 0)
+      Assert.assertNotEquals(tableMeta.getSnapshotLastModified, 0)
     }
   }
 

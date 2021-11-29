@@ -120,6 +120,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                 val copy = localTblMgr.copyForWrite(localTbDesc);
                 copy.setLastSnapshotPath(remoteTbDesc.getLastSnapshotPath());
                 copy.setLastSnapshotSize(remoteTbDesc.getLastSnapshotSize());
+                copy.setSnapshotLastModified(remoteTbDesc.getSnapshotLastModified());
                 copy.setSnapshotTotalRows(remoteTbDesc.getSnapshotTotalRows());
                 localTblMgr.updateTableDesc(copy);
             });
