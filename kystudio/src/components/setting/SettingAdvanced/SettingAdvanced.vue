@@ -269,9 +269,9 @@
     <EditableBlock
       :header-content="$t('SCD2Settings')"
       :isEditable="false">
-      <template slot="header">
+      <!-- <template slot="header">
         <span class="beta-label">BETA</span>
-      </template>
+      </template> -->
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('nonEqualJoin')}}</span><span class="setting-value fixed ksd-fs-12">
           <el-switch
