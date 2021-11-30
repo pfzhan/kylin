@@ -670,7 +670,7 @@ public class NExecutableManager {
             String nodeInfo = info.get("node_info");
             String host = nodeInfo.split(":")[0];
             if (!host.equals(AddressUtil.getLocalInstance().split(":")[0])
-                    && !host.equals(AddressUtil.getZkLocalInstance().split(":")[0])) {
+                    && !host.equals(config.getServerAddress().split(":")[0])) {
                 exe.setRunAtRemote(host, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
                         config.getRemoteSSHPassword());
             } else {
@@ -1326,7 +1326,7 @@ public class NExecutableManager {
                 Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
             }
             String oldNodeInfo = info.get("node_info");
-            String newNodeInfo = AddressUtil.getZkLocalInstance();
+            String newNodeInfo = config.getServerAddress();
             if (Objects.nonNull(oldNodeInfo) && !Objects.equals(oldNodeInfo, newNodeInfo)
                     && !Objects.equals(taskOrJobId, jobId)) {
                 logger.info("The node running job has changed. Job id: {}, Step name: {}, Switch from {} to {}.", jobId,

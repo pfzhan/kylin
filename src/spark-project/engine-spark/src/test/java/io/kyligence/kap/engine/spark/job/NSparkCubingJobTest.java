@@ -80,7 +80,6 @@ import org.sparkproject.guava.collect.Sets;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.SnapshotBuilder;
@@ -494,7 +493,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // wait job done
         wait(job);
 
-        Assert.assertEquals(AddressUtil.getZkLocalInstance(), job.getOutput().getExtra().get("node_info"));
+        Assert.assertEquals(config.getServerAddress(), job.getOutput().getExtra().get("node_info"));
     }
 
     private void validateCube(String segmentId) {
