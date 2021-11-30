@@ -70,7 +70,7 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertNull(sourceUsageRecord);
             sourceUsageManager.updateSourceUsage(record);
             SourceUsageRecord usage = sourceUsageManager.getLatestRecord(1);
-            Assert.assertEquals(1991845L, usage.getCurrentCapacity());
+            Assert.assertEquals(1990649L, usage.getCurrentCapacity());
             Assert.assertEquals(SourceUsageRecord.CapacityStatus.OK, usage.getCapacityStatus());
             // -1 means UNLIMITED
             Assert.assertEquals(-1L, usage.getLicenseCapacity());
@@ -84,9 +84,14 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(SourceUsageRecord.TableKind.FACT, tableCapacityDetail.getTableKind());
             Assert.assertEquals(2517L, tableCapacityDetail.getCapacity());
 
+            //  8892fa3f-f607-4eec-8159-7c5ae2f16942 ->     "DEFAULT.TEST_ACCOUNT.ACCOUNT_COUNTRY" : 28,
+            //  8892fa3f-f607-4eec-8159-7c5ae2f16942 ->     "DEFAULT.TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL" : 20,
+            //  8892fa3f-f607-4eec-8159-7c5ae2f16942 ->     "DEFAULT.TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL" : 14,
+            //  8892fa3f-f607-4eec-8159-7c5ae2f16942 ->     "DEFAULT.TEST_ACCOUNT.ACCOUNT_CONTACT" : 95,
+            //  8892fa3f-f607-4eec-8159-7c5ae2f16942 ->     "DEFAULT.TEST_ACCOUNT.ACCOUNT_ID" : 112,
             tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.TEST_ACCOUNT");
             Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, tableCapacityDetail.getTableKind());
-            Assert.assertEquals(0, tableCapacityDetail.getCapacity());
+            Assert.assertEquals(269L, tableCapacityDetail.getCapacity());
 
             projectCapacityDetail = usage.getProjectCapacity("heterogeneous_segment_2");
             tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.KYLIN_SALES");
@@ -113,10 +118,12 @@ public class SourceUsageServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(SourceUsageRecord.TableKind.FACT, tableCapacityDetail.getTableKind());
             Assert.assertEquals(309894L, tableCapacityDetail.getCapacity());
 
-            // without snapshot, use table ext total rows to calculate
+            // without snapshot, use max column bytes in segments to calculate
+            // 2b0b5bb9-df78-5817-5245-2a28c451035d -> DEFAULT.KYLIN_ACCOUNT.ACCOUNT_ID : 8002
+            // a7cef448-34e9-4acf-8632-0a3db101cef4 -> DEFAULT.KYLIN_ACCOUNT.ACCOUNT_SELLER_LEVEL : 1001
             tableCapacityDetail = projectCapacityDetail.getTableByName("DEFAULT.KYLIN_ACCOUNT");
             Assert.assertEquals(SourceUsageRecord.TableKind.WITHSNAP, tableCapacityDetail.getTableKind());
-            Assert.assertEquals(90000L, tableCapacityDetail.getCapacity());
+            Assert.assertEquals(90003L, tableCapacityDetail.getCapacity());
 
             return null;
         }, UnitOfWork.GLOBAL_UNIT);

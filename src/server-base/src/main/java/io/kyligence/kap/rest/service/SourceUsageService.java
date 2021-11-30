@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -44,6 +45,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
@@ -54,6 +56,7 @@ import io.kyligence.kap.engine.spark.smarter.IndexDependencyParser;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.SegmentPartition;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -74,8 +77,7 @@ public class SourceUsageService extends BasicService {
     }
 
     private long getLookupTableSource(SourceUsageRecord.TableCapacityDetail table,
-            SourceUsageRecord.ProjectCapacityDetail project, long inputBytes,
-                                      Map<String, Map<String, Set<String>>> dataflowSegmentUsedColumns) {
+            SourceUsageRecord.ProjectCapacityDetail project, long inputBytes) {
         String projectName = project.getName();
         String tableName = table.getName();
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
@@ -90,48 +92,8 @@ public class SourceUsageService extends BasicService {
             }
             return originalSize;
         } else {
-            return Math.min(inputBytes, getLookupTableSourceByScale(table, projectName, dataflowSegmentUsedColumns));
+            return inputBytes;
         }
-    }
-
-    // for calculating lookup table without snapshot source usage
-    private long getLookupTableSourceByScale(SourceUsageRecord.TableCapacityDetail table, String projectName,
-                                             Map<String, Map<String, Set<String>>> dataflowSegmentUsedColumns) {
-        String tableName = table.getName();
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                projectName);
-        TableExtDesc tableExtDesc = tableManager.getOrCreateTableExt(tableName);
-        long tableTotalRows = tableExtDesc.getTotalRows();
-        if (tableTotalRows == 0L) {
-            log.debug("Total rows for table: {} is zero.", tableName);
-            return 0;
-        }
-        long tableBytes;
-        try {
-            double rowBytes = 0;
-            for (SourceUsageRecord.ColumnCapacityDetail column : table.getColumns()) {
-                long recordCount = 0;
-                long columnBytes = 0;
-                for (String dataflow : column.getSourceBytesMap().keySet()) {
-                    long size = dataflowSegmentUsedColumns.getOrDefault(dataflow, new HashMap<>())
-                            .entrySet().stream().filter(entry -> entry.getValue().contains(column.getName()))
-                            .count();
-                    recordCount += tableTotalRows * size;
-                    columnBytes += column.getDataflowSourceBytes(dataflow);
-                }
-
-                if (recordCount <= 0)
-                    continue;
-
-                rowBytes += (double) columnBytes / (double) recordCount;
-            }
-            tableBytes = (long) (rowBytes * tableTotalRows);
-        } catch (Exception e) {
-            log.error("Failed to calculate lookup table: {} source usage.", tableName, e);
-            table.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
-            return 0;
-        }
-        return tableBytes;
     }
 
     private void checkTableKind(SourceUsageRecord.TableCapacityDetail tableDetail, NDataModel model) {
@@ -148,25 +110,23 @@ public class SourceUsageService extends BasicService {
     }
 
     private long calculateTableCapacity(SourceUsageRecord.TableCapacityDetail table,
-                                        SourceUsageRecord.ProjectCapacityDetail project,
-                                        Map<String, Map<String, Set<String>>> dataflowSegmentUsedColumns) {
+            SourceUsageRecord.ProjectCapacityDetail project) {
         long inputBytes = calculateTableInputBytes(table);
 
         long sourceBytes;
         if (SourceUsageRecord.TableKind.FACT == table.getTableKind()) {
             return inputBytes;
         } else {
-            sourceBytes = getLookupTableSource(table, project, inputBytes, dataflowSegmentUsedColumns);
+            sourceBytes = getLookupTableSource(table, project, inputBytes);
         }
         return sourceBytes;
     }
 
-    private void updateProjectSourceUsage(SourceUsageRecord.ProjectCapacityDetail project,
-                                          Map<String, Map<String, Set<String>>> dataflowSegmentUsedColumns) {
+    private void updateProjectSourceUsage(SourceUsageRecord.ProjectCapacityDetail project) {
         long sum = 0L;
         SourceUsageRecord.CapacityStatus status = SourceUsageRecord.CapacityStatus.OK;
         for (SourceUsageRecord.TableCapacityDetail table : project.getTables()) {
-            long capacity = calculateTableCapacity(table, project, dataflowSegmentUsedColumns);
+            long capacity = calculateTableCapacity(table, project);
             table.setCapacity(capacity);
             sum += capacity;
             SourceUsageRecord.CapacityStatus tableStatus = table.getStatus();
@@ -208,57 +168,86 @@ public class SourceUsageService extends BasicService {
         sourceUsageParams.setCurrentCapacity(sum);
     }
 
-    private Map<String, Set<String>> calculateTableInProject(NDataflow dataflow, SourceUsageRecord.ProjectCapacityDetail projectDetail) {
+    private Map<TblColRef, Long> calculateColumnSourceInSegment(NDataSegment segment, IndexDependencyParser parser) {
+        Map<TblColRef, Long> columnBytes = new HashMap<>();
+        NDataModel model = segment.getModel();
+        Set<TblColRef> usedColumns = new HashSet<>(getSegmentUsedColumns(segment, parser));
+
+        Stream<Map.Entry<String, Long>> columnSourceBytesMapStream = segment.getColumnSourceBytes().entrySet().stream();
+
+        if (model.isMultiPartitionModel()) {
+            columnSourceBytesMapStream = segment.getMultiPartitions().stream()
+                    .map(SegmentPartition::getColumnSourceBytes).map(Map::entrySet).flatMap(Collection::stream);
+        }
+
+        columnSourceBytesMapStream.forEach(sourceMap -> {
+            String column = sourceMap.getKey();
+            TblColRef columnColRef = model.findColumn(column);
+            if (columnColRef != null && usedColumns.contains(columnColRef)) {
+                TableRef tableRef = columnColRef.getTableRef();
+                Long value = columnBytes.getOrDefault(columnColRef, 0L);
+                if (model.isFactTable(tableRef)) {
+                    columnBytes.put(columnColRef, sourceMap.getValue() + value);
+                } else {
+                    columnBytes.put(columnColRef, Math.max(sourceMap.getValue(), value));
+                }
+            }
+        });
+
+        usedColumns.forEach(column -> columnBytes.putIfAbsent(column, 0L));
+
+        return columnBytes;
+    }
+
+    private Map<TblColRef, Long> calculateColumnSourceInDataflow(NDataflow dataflow) {
+        Map<TblColRef, Long> dataflowColumnBytes = new HashMap<>();
+        NDataModel model = dataflow.getModel();
+        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
+        IndexDependencyParser parser = new IndexDependencyParser(model);
+
+        for (NDataSegment segment : segments) {
+            Map<TblColRef, Long> columnSourceInSegment = calculateColumnSourceInSegment(segment, parser);
+            for (Map.Entry<TblColRef, Long> sourceMap : columnSourceInSegment.entrySet()) {
+                TblColRef tblColRef = sourceMap.getKey();
+                Long value = dataflowColumnBytes.getOrDefault(tblColRef, 0L);
+                if (model.isFactTable(tblColRef.getTableRef())) {
+                    dataflowColumnBytes.put(tblColRef, sourceMap.getValue() + value);
+                } else {
+                    dataflowColumnBytes.put(tblColRef, Math.max(sourceMap.getValue(), value));
+                }
+            }
+        }
+        return dataflowColumnBytes;
+    }
+
+    private void calculateTableInProject(NDataflow dataflow, SourceUsageRecord.ProjectCapacityDetail projectDetail) {
         NDataModel model = dataflow.getModel();
         if (dataflow.checkBrokenWithRelatedInfo()) {
             log.debug("Current model: {} is broken, skip calculate source usage", model);
-            return new HashMap<>();
+            return;
         }
-
-        Segments<NDataSegment> segments = dataflow.getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);
-        Map<String, Set<String>> segmentUsedColumnMap = new HashMap<>();
 
         // source usage is first captured by column, then sum up to table and project
-        Map<String, Long> dataflowColumnsBytes = new HashMap<>();
+        Map<TblColRef, Long> dataflowColumnsBytes = calculateColumnSourceInDataflow(dataflow);
 
-        IndexDependencyParser parser = new IndexDependencyParser(dataflow.getModel());
-        for (NDataSegment segment : segments) {
-            try {
-                Set<TblColRef> usedColumns = new HashSet<>(getSegmentUsedColumns(segment, parser));
-                segmentUsedColumnMap.put(segment.getId(), usedColumns.stream().map(TblColRef::getCanonicalName).collect(Collectors.toSet()));
-                Map<String, Long> columnSourceBytesMap = segment.getColumnSourceBytes();
-                for (Map.Entry<String, Long> sourceMap : columnSourceBytesMap.entrySet()) {
-                    String column = sourceMap.getKey();
-                    if (segmentUsedColumnMap.getOrDefault(segment.getId(), new HashSet<>()).contains(column)) {
-                        long value = dataflowColumnsBytes.getOrDefault(column, 0L);
-                        dataflowColumnsBytes.put(column, sourceMap.getValue() + value);
-                    }
-                }
-
-                for (TblColRef column : usedColumns) {
-                    String tableName = column.getTableRef().getTableIdentity();
-                    String columnName = column.getCanonicalName();
-                    SourceUsageRecord.TableCapacityDetail tableDetail = projectDetail.getTableByName(tableName) == null
-                            ? new SourceUsageRecord.TableCapacityDetail(tableName)
-                            : projectDetail.getTableByName(tableName);
-                    SourceUsageRecord.ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(columnName) == null
-                            ? new SourceUsageRecord.ColumnCapacityDetail(columnName)
-                            : tableDetail.getColumnByName(columnName);
-                    // simply return 0 for missing cols in flat table
-                    // as the cols in model definition may be different from segment flat table
-                    long sourceBytes = dataflowColumnsBytes.getOrDefault(columnName, 0L);
-                    columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
-                    tableDetail.updateColumn(columnDetail);
-                    checkTableKind(tableDetail, model);
-                    projectDetail.updateTable(tableDetail);
-                }
-            } catch (Exception e) {
-                log.error("Failed to get all columns' TblColRef for segment: {}", segment, e);
-                projectDetail.setStatus(SourceUsageRecord.CapacityStatus.ERROR);
-            }
+        for (Map.Entry<TblColRef, Long> tblColRefLongEntry : dataflowColumnsBytes.entrySet()) {
+            TblColRef column = tblColRefLongEntry.getKey();
+            String tableName = column.getTableRef().getTableIdentity();
+            String columnName = column.getCanonicalName();
+            SourceUsageRecord.TableCapacityDetail tableDetail = projectDetail.getTableByName(tableName) == null
+                    ? new SourceUsageRecord.TableCapacityDetail(tableName)
+                    : projectDetail.getTableByName(tableName);
+            SourceUsageRecord.ColumnCapacityDetail columnDetail = tableDetail.getColumnByName(columnName) == null
+                    ? new SourceUsageRecord.ColumnCapacityDetail(columnName)
+                    : tableDetail.getColumnByName(columnName);
+            // simply return 0 for missing cols in flat table
+            // as the cols in model definition may be different from segment flat table
+            long sourceBytes = dataflowColumnsBytes.getOrDefault(column, 0L);
+            columnDetail.setDataflowSourceBytes(dataflow.getId(), sourceBytes);
+            tableDetail.updateColumn(columnDetail);
+            checkTableKind(tableDetail, model);
+            projectDetail.updateTable(tableDetail);
         }
-
-        return segmentUsedColumnMap;
     }
 
     public SourceUsageRecord refreshLatestSourceUsageRecord() {
@@ -272,20 +261,19 @@ public class SourceUsageService extends BasicService {
 
             // for each dataflow in project, collect table details
 
-            Map<String, Map<String, Set<String>>> dataflowSegmentUsedColumns = new HashMap<>();
             for (NDataModel model : NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName)
                     .listUnderliningDataModels()) {
                 try {
                     val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName)
                             .getDataflow(model.getId());
                     if (!isAllSegmentsEmpty(dataflow)) {
-                        dataflowSegmentUsedColumns.put(dataflow.getId(), calculateTableInProject(dataflow, projectDetail));
+                        calculateTableInProject(dataflow, projectDetail);
                     }
                 } catch (Exception e) {
                     log.error("Failed to get dataflow for {} in project: {}", model.getId(), projectName, e);
                 }
             }
-            updateProjectSourceUsage(projectDetail, dataflowSegmentUsedColumns);
+            updateProjectSourceUsage(projectDetail);
             updateProjectUsageRatio(projectDetail);
             if (projectDetail.getCapacity() > 0) {
                 usage.appendProject(projectDetail);
