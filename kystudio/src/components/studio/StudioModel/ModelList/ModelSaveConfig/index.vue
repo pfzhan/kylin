@@ -723,7 +723,8 @@ export default class ModelPartitionModal extends Vue {
           wid: '600px',
           dangerouslyUseHTMLString: true,
           submitSubText: this.$t('kylinLang.common.save'),
-          submitText: this.$t('saveAndLoad')
+          submitText: this.$t('saveAndLoad'),
+          isHideSubmit: !this.isChangeToFullLoad
         })
         isOnlySave = res.isOnlySave
       } else if (this.isChangeModelLayout || this.originFilterCondition !== this.filterCondition) {
