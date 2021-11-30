@@ -236,6 +236,8 @@ object ExpressionConverter {
             new Column(StringLocate(k_lit(children.apply(1)).expr, k_lit(children.head).expr, lit(instr).expr)) //instr(str,substr,start)
           case "length" =>
             length(k_lit(children.head))
+          case "left" =>
+            substring(k_lit(children.head), 1, children.apply(1).asInstanceOf[Int])
           case "repeat" =>
             repeat(k_lit(children.head), children.apply(1).asInstanceOf[Int])
           case "size" =>
