@@ -460,6 +460,11 @@ abstract class FlatTableAndDictBase(private val jobContext: SegmentJob,
           case throwable: Throwable =>
             logWarning(s"Calculate $column's table $tableName count exception", throwable)
         } finally {
+          if (total > totalCount) {
+            logInfo(s"Table $tableName's count $total is large than flat table count $totalCount, " +
+              s"use flat table count as table count")
+            total = totalCount
+          }
           tableSizeMap(tableName) = total
         }
 

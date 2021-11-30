@@ -48,6 +48,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Service;
 
@@ -266,6 +267,12 @@ public class SourceUsageService extends BasicService {
                 try {
                     val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), projectName)
                             .getDataflow(model.getId());
+                    RealizationStatusEnum status = dataflow.getStatus();
+                    if (status == RealizationStatusEnum.OFFLINE) {
+                        log.debug("Model {} is {}, skip to calculate source usage in project {}", model.getAlias(),
+                                status, project);
+                        continue;
+                    }
                     if (!isAllSegmentsEmpty(dataflow)) {
                         calculateTableInProject(dataflow, projectDetail);
                     }
