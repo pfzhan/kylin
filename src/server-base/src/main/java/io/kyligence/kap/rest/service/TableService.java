@@ -1214,6 +1214,7 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
 
         val context = calcReloadContext(project, tableIdentity, false);
+        removeFusionModelBatchPart(project, context);
         PreReloadTableResponse preReloadTableResponse = preProcessBeforeReloadWithContext(project, context);
 
         OpenPreReloadTableResponse openPreReloadTableResponse = new OpenPreReloadTableResponse(preReloadTableResponse);
@@ -1234,12 +1235,14 @@ public class TableService extends BasicService {
             throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         val context = calcReloadContext(project, tableIdentity, true);
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        // remove fusion model batch part
-        context.getRemoveAffectedModels().keySet()
-                .removeIf(modelId -> dataModelManager.getDataModelDesc(modelId).fusionModelBatchPart());
-
+        removeFusionModelBatchPart(project, context);
         return preProcessBeforeReloadWithContext(project, context);
+    }
+
+    private void removeFusionModelBatchPart(String project, ReloadTableContext context) {
+        NDataModelManager manager = getDataModelManager(project);
+        context.getRemoveAffectedModels().keySet()
+                .removeIf(modelId -> manager.getDataModelDesc(modelId).fusionModelBatchPart());
     }
 
     private PreReloadTableResponse preProcessBeforeReloadWithContext(String project, ReloadTableContext context) {
