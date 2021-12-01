@@ -567,6 +567,7 @@ public class QueryService extends BasicService {
             if (sqlResponse != null) {
                 sqlResponse.setException(true);
                 sqlResponse.setExceptionMessage(e.getMessage());
+                sqlResponse.setResults(null);
                 return sqlResponse;
             } else {
                 return new SQLResponse(null, null, 0, true, e.getMessage());
