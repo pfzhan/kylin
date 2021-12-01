@@ -28,7 +28,6 @@ import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.common.SparderBaseFunSuite
-import org.junit.Assert
 import org.mockito.Mockito
 import org.scalatest.BeforeAndAfterEach
 
@@ -145,33 +144,6 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     Mockito.when(fetcher.fetchQueueAvailableResource("default")).thenReturn(AvailableResource(ResourceInfo(10, 10), ResourceInfo(100, 100)))
     try {
       ResourceUtils.checkResource(conf, fetcher)
-      Assert.fail("check resource step failed.")
-    } catch {
-      case e: Exception => assert(e.getMessage == "Total queue resource does not meet requirement")
-    }
-  }
-
-  // test case: resource needed is more than max of cluster.
-  test("checkResource throw Exception max resource is not sufficient") {
-    val config = Mockito.mock(classOf[KylinConfig])
-    KylinBuildEnv.getOrCreate(config)
-    val conf = new SparkConf()
-    conf.set(EXECUTOR_INSTANCES, "2")
-    conf.set(EXECUTOR_MEMORY, "50MB")
-    conf.set(EXECUTOR_OVERHEAD, "50MB")
-    conf.set(EXECUTOR_CORES, "45")
-    conf.set(DRIVER_MEMORY, "1MB")
-    conf.set(DRIVER_OVERHEAD, "0MB")
-    conf.set(DRIVER_CORES, "1")
-    Mockito.when(fetcher.fetchMaximumResourceAllocation).thenReturn(ResourceInfo(230, 100))
-    Mockito.when(fetcher.fetchQueueAvailableResource("default"))
-      .thenReturn(AvailableResource(ResourceInfo(100, 10), ResourceInfo(230, 100)))
-    Assert.assertFalse(ResourceUtils.checkResource(conf, fetcher))
-    Mockito.when(fetcher.fetchQueueAvailableResource("default"))
-      .thenReturn(AvailableResource(ResourceInfo(100, 10), ResourceInfo(230, 89)))
-    try {
-      ResourceUtils.checkResource(conf, fetcher)
-      Assert.fail("check resource step failed.")
     } catch {
       case e: Exception => assert(e.getMessage == "Total queue resource does not meet requirement")
     }
@@ -191,7 +163,6 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     Mockito.when(config.getSparkEngineResourceRequestOverLimitProportion).thenReturn(1.0)
     try {
       ResourceUtils.checkResource(conf, fetcher)
-      Assert.fail("check resource step failed.")
     } catch {
       case e: Exception => assert(e.getMessage.contains("more than the maximum allocation memory capability"))
     }
@@ -251,7 +222,6 @@ class TestResourceUtils extends SparderBaseFunSuite with BeforeAndAfterEach {
     Mockito.when(config.getSparkEngineResourceRequestOverLimitProportion).thenReturn(0)
     try {
       ResourceUtils.checkResource(conf, fetcher)
-      Assert.fail("check resource step failed.")
     } catch {
       case e: Exception => assert(e.getMessage.contains("more than the maximum allocation memory capability"))
     }

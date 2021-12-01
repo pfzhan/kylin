@@ -70,18 +70,18 @@ object ResourceUtils extends Logging {
       + Utils.byteStringAsMb(sparkConf.get(EXECUTOR_OVERHEAD))) * instances
     val executorCores = sparkConf.get(EXECUTOR_CORES).toInt * instances
 
-    if (!isResourceEnough(queueAvailable.max, true, executorMemory, executorCores, instances)) {
+    if (!verify(queueAvailable.max, executorMemory, executorCores, instances)) {
       logInfo(s"Require resource ($executorMemory MB, $executorCores vCores)," +
         s" queue max resource (${queueAvailable.max.memory} MB, ${queueAvailable.max.vCores} vCores)")
       throw new NoRetryException("Total queue resource does not meet requirement")
     }
     logInfo(s"Require resource ($executorMemory MB, $executorCores vCores)," +
       s" available resource (${queueAvailable.available.memory} MB, ${queueAvailable.available.vCores} vCores)")
-    isResourceEnough(queueAvailable.available, false, executorMemory, executorCores, instances)
+    verify(queueAvailable.available, executorMemory, executorCores, instances)
   }
 
-  private def isResourceEnough(resource: ResourceInfo, isMaxResource: Boolean, memory: Long, vCores: Long, instances: Int): Boolean = {
-    if (instances == 1 || isMaxResource) {
+  private def verify(resource: ResourceInfo, memory: Long, vCores: Long, instances: Int): Boolean = {
+    if (instances == 1) {
       resource.memory >= memory && resource.vCores >= vCores
     } else {
       resource.memory * 1.0 / memory >= 0.5 && resource.vCores * 1.0 / vCores >= 0.5
