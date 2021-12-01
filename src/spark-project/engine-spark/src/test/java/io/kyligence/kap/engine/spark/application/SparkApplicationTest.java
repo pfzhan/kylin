@@ -28,10 +28,22 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
+import com.google.common.collect.Sets;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -121,6 +133,55 @@ public class SparkApplicationTest extends NSparkBasicTest {
                 "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));
 
         Mockito.verify(application, Mockito.times(3)).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
+    }
+
+    @Test
+    public void testCheckRangePartitionTableIsExist() throws Exception {
+        KylinBuildEnv.getOrCreate(getTestConfig());
+        NTableMetadataManager tableMgr = NTableMetadataManager
+                .getInstance(getTestConfig(), "tdh");
+        TableDesc fact = tableMgr.getTableDesc("TDH_TEST.LINEORDER_PARTITION");
+        fact.setTransactional(true);
+
+        PartitionDesc partitionDesc = new PartitionDesc();
+        ColumnDesc columnDesc = new ColumnDesc();
+        columnDesc.setName("LO_DATE");
+        columnDesc.setDatatype("date");
+        columnDesc.setTable(fact);
+        NDataModel nDataModel = new NDataModel();
+        nDataModel.setUuid(UUID.randomUUID().toString());
+        SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange();
+        timePartitionedSegmentRange.setStart(1637387522L);
+        timePartitionedSegmentRange.setEnd(1637905922L);
+        // fact.setSegmentRange(timePartitionedSegmentRange);
+        TableRef tableRef = new TableRef(nDataModel, "LINEORDER_PARTITION", fact, false);
+        partitionDesc.setPartitionDateColumnRef(new TblColRef(tableRef, columnDesc));
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd hh:mm:ss");
+        fact.setPartitionDesc(partitionDesc);
+
+        Set<TableRef> tableRefs = Sets.newHashSet();
+
+        SparkApplication sparkApplication = Mockito.mock(SparkApplication.class);
+        Mockito.when(sparkApplication.checkRangePartitionTableIsExist(Mockito.any())).thenCallRealMethod();
+        tableRefs.add(tableRef);
+        nDataModel.setAllTableRefs(tableRefs);
+        Assert.assertFalse(sparkApplication.checkRangePartitionTableIsExist(nDataModel));
+
+        NDataModel nDataModel2 = new NDataModel();
+        nDataModel2.setUuid(UUID.randomUUID().toString());
+        timePartitionedSegmentRange.setStart(1637387522L);
+        timePartitionedSegmentRange.setEnd(1637905922L);
+        // fact.setSegmentRange(timePartitionedSegmentRange);
+        fact.setRangePartition(Boolean.TRUE);
+        tableRef = new TableRef(nDataModel2, "LINEORDER_PARTITION", fact, false);
+        partitionDesc.setPartitionDateColumnRef(new TblColRef(tableRef, columnDesc));
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd hh:mm:ss");
+        fact.setPartitionDesc(partitionDesc);
+
+        tableRefs.clear();
+        tableRefs.add(tableRef);
+        nDataModel2.setAllTableRefs(tableRefs);
+        Assert.assertTrue(sparkApplication.checkRangePartitionTableIsExist(nDataModel2));
     }
 
 }

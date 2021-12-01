@@ -1620,6 +1620,12 @@ public class ModelService extends BasicService {
         if (getModelConfig(dataModel).skipCheckFlatTable()) {
             return;
         }
+        long rangePartitionTableCount = dataModel.getAllTableRefs().stream().filter(p -> p.getTableDesc().isRangePartition()).count();
+        if(rangePartitionTableCount > 0) {
+            logger.info("Range partitioned tables do not support pushdown, so do not need to perform subsequent logic");
+            return;
+        }
+
         try {
             ProjectInstance projectInstance = getProjectManager().getProject(dataModel.getProject());
             if (projectInstance.getSourceType() == ISourceAware.ID_SPARK

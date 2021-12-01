@@ -883,6 +883,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.query.async-profiler-result-timeout", "60s", 60000L));
         map.put("asyncProfilingProfileTimeout",
                 new PropertiesEntity("kylin.query.async-profiler-profile-timeout", "5m", 300000L));
+        map.put("isReadTransactionalTableEnabled", new PropertiesEntity("kylin.build.resource.read-transactional-table-enabled", "true", true));
+        map.put("getFlatTableStorageFormat", new PropertiesEntity("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE", "SEQUENCEFILE"));
+        map.put("getFlatTableFieldDelimiter", new PropertiesEntity("kylin.source.hive.flat-table-field-delimiter", "\u001F", "\u001F"));
+        map.put("isSkipBasicAuthorization", new PropertiesEntity("kap.authorization.skip-basic-authorization", "false", false));
     }
 
     @Before
@@ -909,7 +913,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(549, methodsCount);
+        Assert.assertEquals(554, methodsCount);
     }
 
     @Test

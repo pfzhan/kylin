@@ -187,6 +187,17 @@ public enum JobStepType {
         @Override
         protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
         }
+    },
+
+    CLEAN_UP_TRANSACTIONAL_TABLE {
+        @Override
+        public AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config) {
+            return new SparkCleanupTransactionalTableStep();
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+        }
     };
 
     protected abstract AbstractExecutable create(DefaultChainedExecutable parent, KylinConfig config);

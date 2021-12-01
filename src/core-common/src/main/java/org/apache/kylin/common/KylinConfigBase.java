@@ -837,6 +837,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getJobTmpDir(project) + getNestedPath(jobId) + "/spark_args.json";
     }
 
+    public String getJobTmpTransactionalTableDir(String project, String jobId) {
+        return getJobTmpDir(project) + jobId + "/transactional/";
+    }
+
     public Path getJobTmpShareDir(String project, String jobId) {
         String path = getJobTmpDir(project) + jobId + "/share/";
         return new Path(path);
@@ -3041,4 +3045,20 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.cache.ehcache.exception-time-to-idle-seconds", "600"));
     }
 
+
+    public boolean isSkipBasicAuthorization() {
+        return Boolean.parseBoolean(getOptional("kap.authorization.skip-basic-authorization", FALSE));
+    }
+
+    public boolean isReadTransactionalTableEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.build.resource.read-transactional-table-enabled", TRUE));
+    }
+
+    public String getFlatTableStorageFormat() {
+        return this.getOptional("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE");
+    }
+
+    public String getFlatTableFieldDelimiter() {
+        return this.getOptional("kylin.source.hive.flat-table-field-delimiter", "\u001F");
+    }
 }

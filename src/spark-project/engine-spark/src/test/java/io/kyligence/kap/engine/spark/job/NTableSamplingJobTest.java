@@ -112,7 +112,6 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10_000, tableExt.getTotalRows());
         Assert.assertEquals(samplingJob.getCreateTime(), tableExt.getCreateTime());
     }
-
     @Test
     public void testSamplingUpdateJobStatistics() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -128,7 +127,33 @@ public class NTableSamplingJobTest extends NLocalWithSparkSessionTest {
 
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
+        val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
+        executableManager.addJob(samplingJob);
+        final String jobId = samplingJob.getId();
+        await().atMost(60, TimeUnit.MINUTES).until(() -> executableManager.getJob(jobId).getStatus().isFinalState());
+        Assert.assertEquals(ExecutableState.SUCCEED, samplingJob.getStatus());
 
+        stats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
+        Assert.assertEquals(1, (int) stats.getFirst());
+
+    }
+
+    @Test
+    public void testSamplingUpdateJobStatisticsByPartitionTable() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(config, PROJECT);
+        NExecutableManager executableManager = NExecutableManager.getInstance(config, PROJECT);
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, PROJECT);
+
+        long endTime = System.currentTimeMillis() + 302400000L;
+        long startTime = endTime - 604800000L;
+
+        var stats = jobStatisticsManager.getOverallJobStats(startTime, endTime);
+        Assert.assertEquals(0, (int) stats.getFirst());
+
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        final TableDesc tableDesc = tableMgr.getTableDesc(tableName);
+        tableDesc.setRangePartition(true);
         val samplingJob = NTableSamplingJob.create(tableDesc, PROJECT, "ADMIN", 20_000_000);
         executableManager.addJob(samplingJob);
         final String jobId = samplingJob.getId();

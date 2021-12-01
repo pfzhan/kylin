@@ -294,6 +294,8 @@ public abstract class SparkApplication implements Application, IKeep {
             // init KylinBuildEnv
             KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
             infos = KylinBuildEnv.get().buildJobInfos();
+            infos.recordJobId(jobId);
+            infos.recordProject(project);
             infos.recordJobStepId(System.getProperty("spark.driver.param.taskId", jobId));
             HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();
@@ -461,6 +463,10 @@ public abstract class SparkApplication implements Application, IKeep {
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, chooseContentSize(shareDir));
     }
 
+    protected boolean checkRangePartitionTableIsExist(NDataModel modelDesc) {
+        return modelDesc.getAllTableRefs().stream().anyMatch(p -> p.getTableDesc().isRangePartition());
+    }
+
     protected String chooseContentSize(Path shareDir) {
         // return size with unit
         return ResourceDetectUtils.getMaxResourceSize(shareDir) + "b";
@@ -519,6 +525,11 @@ public abstract class SparkApplication implements Application, IKeep {
         }
         val modelManager = NDataModelManager.getInstance(config, project);
         NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
+        if(checkRangePartitionTableIsExist(modelDesc)){
+            logger.info("Range partitioned tables do not support pushdown, so do not need to perform subsequent logic");
+            return;
+        }
+
         val partitionDesc = modelDesc.getPartitionDesc();
         if (partitionDesc == null || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
                 || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))

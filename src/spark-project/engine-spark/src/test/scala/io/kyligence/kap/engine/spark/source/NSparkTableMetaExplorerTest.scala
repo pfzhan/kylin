@@ -110,6 +110,16 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     }
   }
 
+  test("Test load hive transaction table") {
+    SparderEnv.setSparkSession(spark)
+    val sql = "CREATE TABLE hive_transaction_table (a int, b int) clustered by (a) into 8 buckets" +
+      " stored as orc TBLPROPERTIES ('transactional'='true')";
+    spark.sql("DROP TABLE IF EXISTS hive_transaction_table")
+    spark.sql(sql)
+    val meta = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_transaction_table")
+    assert(meta.allColumns.get(0).name.equals("a"))
+    assert(meta.isTransactional)
+  }
 
   test("Test get partition info from  hive partition table") {
     SparderEnv.setSparkSession(spark)

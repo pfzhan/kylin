@@ -23,13 +23,16 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 import java.util.List;
 
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -40,8 +43,28 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NSparkCubingSourceInputTest extends NLocalWithSparkSessionTest {
 
+    private final ColumnDesc[] COLUMN_DESCS = new ColumnDesc[2];
+
+    @Before
+    public void setup() {
+        {
+            ColumnDesc columnDesc = new ColumnDesc();
+            columnDesc.setName("id1");
+            columnDesc.setDatatype("integer");
+            COLUMN_DESCS[0] = columnDesc;
+        }
+        {
+            ColumnDesc columnDesc = new ColumnDesc();
+            columnDesc.setName("str1");
+            columnDesc.setDatatype("varchar");
+            COLUMN_DESCS[1] = columnDesc;
+        }
+    }
+
     @Test
     public void testGetSourceData() {
+        KylinBuildEnv.clean();
+        KylinBuildEnv kylinBuildEnv = KylinBuildEnv.getOrCreate(getTestConfig());
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");
         TableDesc fact = tableMgr.getTableDesc("SSB.P_LINEORDER");
         Dataset<Row> sourceData = SourceFactory.createEngineAdapter(fact, NSparkCubingEngine.NSparkCubingSource.class)

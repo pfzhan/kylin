@@ -23,10 +23,14 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCreateHiveTemporaryTable;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import io.kyligence.kap.engine.spark.utils.HiveTransactionTableHelper;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
@@ -42,11 +46,13 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+
 public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingSource {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingSourceInput.class);
 
     @Override
-    public Dataset<Row> getSourceData(TableDesc table, SparkSession ss, Map<String, String> getSourceData) {
+    public Dataset<Row> getSourceData(TableDesc table, SparkSession ss, Map<String, String> params) {
         ColumnDesc[] columnDescs = table.getColumns();
         List<String> tblColNames = Lists.newArrayListWithCapacity(columnDescs.length);
         StructType kylinSchema = new StructType();
@@ -59,7 +65,16 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         }
         String[] colNames = tblColNames.toArray(new String[0]);
         String colString = Joiner.on(",").join(colNames);
-        String sql = String.format(Locale.ROOT, "select %s from %s", colString, table.getIdentity());
+        String sql;
+        KylinConfig kylinConfig = KylinBuildEnv.get().kylinConfig();
+        logger.info("isRangePartition:{};isTransactional:{};isReadTransactionalTableEnabled:{}",
+                table.isRangePartition(), table.isTransactional(), kylinConfig.isReadTransactionalTableEnabled());
+        if (isNeedCreateHiveTemporaryTable(table.isRangePartition(), table.isTransactional(),
+                kylinConfig.isReadTransactionalTableEnabled())) {
+            sql = HiveTransactionTableHelper.doGetQueryHiveTemporaryTableSql(table, params, colString, KylinBuildEnv.get());
+        } else {
+            sql = String.format(Locale.ROOT, "select %s from %s", colString, table.getIdentity());
+        }
         Dataset<Row> df = ss.sql(sql);
         StructType sparkSchema = df.schema();
         logger.debug("Source data sql is: {}", sql);

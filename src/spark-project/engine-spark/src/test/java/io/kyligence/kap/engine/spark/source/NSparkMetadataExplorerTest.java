@@ -77,6 +77,9 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
         Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
                 "p_lineorder", "ssb");
         Assert.assertTrue(tableDescTableExtDescPair != null && tableDescTableExtDescPair.getFirst() != null);
+        Assert.assertFalse(tableDescTableExtDescPair.getFirst().isTransactional());
+        Assert.assertNotNull(tableDescTableExtDescPair.getFirst().isRangePartition());
+        Assert.assertFalse(tableDescTableExtDescPair.getFirst().isRangePartition());
     }
 
     @Test
@@ -85,6 +88,42 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
         sparkMetadataExplorer.createSampleDatabase("test");
         List<String> databases = sparkMetadataExplorer.listDatabases();
         Assert.assertTrue(databases != null && databases.contains("test"));
+    }
+
+    @Test
+    public void testCheckPartitionTable() throws Exception {
+        populateSSWithCSVData(getTestConfig(), "tdh", ss);
+
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
+        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "CUSTOMER", "tdh");
+        TableDesc fact1 = tableDescTableExtDescPair.getKey();
+        Assert.assertEquals(Boolean.FALSE, fact1.isRangePartition());
+
+        tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "DATES_RANGE", "tdh");
+        TableDesc fact2 = tableDescTableExtDescPair.getFirst();
+        Assert.assertEquals(Boolean.FALSE, fact2.isRangePartition());
+
+        tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "DATES_TRANSACTION_RANGE", "tdh");
+        TableDesc fact4 = tableDescTableExtDescPair.getKey();
+        Assert.assertEquals(Boolean.FALSE, fact4.isRangePartition());
+
+        tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "LINEORDER_PARTITION", "tdh");
+        TableDesc fact5 = tableDescTableExtDescPair.getKey();
+        Assert.assertEquals(Boolean.FALSE, fact5.isRangePartition());
+
+        tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "LINEORDER_TRANSACTION", "tdh");
+        TableDesc fact6 = tableDescTableExtDescPair.getKey();
+        Assert.assertEquals(Boolean.FALSE, fact6.isRangePartition());
+
+        tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "LINEORDER_TRANSACTION_PARTITION", "tdh");
+        TableDesc fact7 = tableDescTableExtDescPair.getFirst();
+        Assert.assertEquals(Boolean.FALSE, fact7.isRangePartition());
     }
 
     @Test

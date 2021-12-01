@@ -37,6 +37,8 @@ import org.sparkproject.guava.base.Preconditions;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.SneakyThrows;
 
+import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
+
 /**
  *
  */
@@ -89,7 +91,10 @@ public class NSparkSnapshotJob extends DefaultChainedExecutableOnTable {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.BUILD_SNAPSHOT.createStep(job, config);
-
+        if(isNeedCleanUpTransactionalTableJob(tableDesc.isTransactional(), tableDesc.isRangePartition(),
+                config.isReadTransactionalTableEnabled())) {
+            JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
+        }
         return job;
     }
 

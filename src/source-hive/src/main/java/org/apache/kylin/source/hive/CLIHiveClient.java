@@ -46,7 +46,6 @@ package org.apache.kylin.source.hive;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -112,6 +111,7 @@ public class CLIHiveClient implements IHiveClient {
         }
         List<HiveTableMeta.HiveTableColumnMeta> allColumns = Lists.newArrayList();
         List<HiveTableMeta.HiveTableColumnMeta> partitionColumns = Lists.newArrayList();
+
         for (FieldSchema fieldSchema : allFields) {
             allColumns.add(new HiveTableMeta.HiveTableColumnMeta(fieldSchema.getName(), fieldSchema.getType(), fieldSchema.getComment()));
         }

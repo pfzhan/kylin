@@ -25,6 +25,8 @@
 package io.kyligence.kap.engine.spark.job;
 
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
+
+import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
 import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
@@ -143,6 +145,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
             startTime = Math.min(startTime, Long.parseLong(segment.getSegRange().getStart().toString()));
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
+
         }
         job.setParams(params);
         job.setId(jobId);
@@ -201,8 +204,21 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
                 JobStepType.SECOND_STORAGE_REFRESH.createStep(job, config);
             }
         }
+
+        Boolean isRangePartitionTable = df.getModel().getAllTableRefs().stream()
+                .anyMatch(tableRef -> tableRef.getTableDesc().isRangePartition());
+        Boolean isTransactionalTable = df.getModel().getAllTableRefs().stream()
+                .anyMatch(tableRef -> tableRef.getTableDesc().isTransactional());
+
+        if(isNeedCleanUpTransactionalTableJob(isTransactionalTable, isRangePartitionTable,
+                kylinConfig.isReadTransactionalTableEnabled())) {
+            JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
+        }
         return job;
     }
+
+
+
 
     public static void checkIfNeedBuildSnapshots(NSparkCubingJob job) {
         switch (job.getJobType()) {
@@ -231,6 +247,10 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
     NResourceDetectStep getResourceDetectStep() {
         return getTask(NResourceDetectStep.class);
+    }
+
+    SparkCleanupTransactionalTableStep getCleanIntermediateTableStep() {
+        return getTask(SparkCleanupTransactionalTableStep.class);
     }
 
     @Override

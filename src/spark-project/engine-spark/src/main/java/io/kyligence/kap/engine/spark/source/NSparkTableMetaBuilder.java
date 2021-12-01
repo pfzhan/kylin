@@ -43,6 +43,8 @@ public class NSparkTableMetaBuilder {
     private boolean isNative = true;
     private List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists.newArrayList();
     private List<NSparkTableMeta.SparkTableColumnMeta> partitionColumns = Lists.newArrayList();
+    private boolean isTransactional = false;
+    private boolean isRangePartition = false;
 
     public NSparkTableMetaBuilder setTableName(String tableName) {
         this.tableName = tableName;
@@ -114,8 +116,18 @@ public class NSparkTableMetaBuilder {
         return this;
     }
 
+    public NSparkTableMetaBuilder setIsTransactional(boolean isTransactional) {
+        this.isTransactional = isTransactional;
+        return this;
+    }
+
+    public NSparkTableMetaBuilder setIsRangePartition(boolean isRangePartition) {
+        this.isRangePartition = isRangePartition;
+        return this;
+    }
+
     public NSparkTableMeta createSparkTableMeta() {
         return new NSparkTableMeta(tableName, sdLocation, sdInputFormat, sdOutputFormat, owner, provider, tableType, createTime,
-                lastAccessTime, fileSize, fileNum, isNative, allColumns, partitionColumns);
+                lastAccessTime, fileSize, fileNum, isNative, allColumns, partitionColumns, isTransactional, isRangePartition);
     }
 }

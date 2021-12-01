@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalyst.TableIdentifier;
 import org.apache.spark.sql.catalyst.catalog.CatalogTable;
@@ -118,7 +119,7 @@ public class NSparkTableMetaExplorer implements Serializable {
         builder.setLastAccessTime(tableMetadata.lastAccessTime() + "");
         builder.setTableType(tableMetadata.tableType().name());
         builder.setPartitionColumns(getColumns(tableMetadata, tableMetadata.partitionSchema()));
-
+        builder.setIsRangePartition(isRangePartition(tableMetadata));
         if (tableMetadata.storage().inputFormat().isDefined()) {
             builder.setSdInputFormat(tableMetadata.storage().inputFormat().get());
         }
@@ -138,11 +139,20 @@ public class NSparkTableMetaExplorer implements Serializable {
         if (tableMetadata.properties().contains("numFiles")) {
             builder.setFileNum(Long.parseLong(tableMetadata.properties().get("numFiles").get()));
         }
+        if (tableMetadata.properties().contains("transactional")) {
+            builder.setIsTransactional(Boolean.parseBoolean(tableMetadata.properties().get("transactional").get()));
+        }
         return builder.createSparkTableMeta();
     }
 
     private List<NSparkTableMeta.SparkTableColumnMeta> getColumns(CatalogTable tableMetadata, StructType schema) {
+        return getColumns(tableMetadata, schema, true);
+    }
+
+    private List<NSparkTableMeta.SparkTableColumnMeta> getColumns(CatalogTable tableMetadata, StructType schema,
+                                                                  boolean isCheckRepeatColumn) {
         List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists.newArrayListWithCapacity(schema.size());
+        Set<String> columnCacheTemp = Sets.newHashSet();
         for (org.apache.spark.sql.types.StructField field : schema.fields()) {
             String type = field.dataType().simpleString();
             if (field.metadata().contains(CHAR_VARCHAR_TYPE_STRING_METADATA_KEY)) {
@@ -154,6 +164,11 @@ public class NSparkTableMetaExplorer implements Serializable {
                         finalType);
                 continue;
             }
+            if(isCheckRepeatColumn && columnCacheTemp.contains(field.name())) {
+                logger.info("The【{}】column is already included and does not need to be added again", field.name());
+                continue;
+            }
+            columnCacheTemp.add(field.name());
             allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(field.name(), type,
                     field.getComment().isDefined() ? field.getComment().get() : null));
         }
@@ -171,5 +186,11 @@ public class NSparkTableMetaExplorer implements Serializable {
                         + "(There are maybe syntactic differences between HIVE and SparkSQL)", e);
             }
         }
+    }
+
+    private Boolean isRangePartition(CatalogTable tableMetadata) {
+        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = getColumns(tableMetadata, tableMetadata.schema(), false);
+        return allColumns.stream().collect(Collectors.groupingBy(p -> p.name)).values()
+                .stream().anyMatch(p -> p.size() > 1);
     }
 }

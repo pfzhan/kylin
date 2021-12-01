@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.tool.util.ProjectTemporaryTableCleanerHelper;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -54,9 +55,13 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.CliCommandExecutor.CliCmdExecResult;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -85,6 +90,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 
 @Slf4j
 public class StorageCleaner {
@@ -214,6 +221,8 @@ public class StorageCleaner {
 
     public void collect(String project) {
         log.info("collect garbage for {}", project);
+        val projectTemporaryTableCleaner = new ProjectTemporaryTableCleaner(project);
+        projectTemporaryTableCleaner.execute();
         val projectCleaner = new ProjectStorageCleaner(project);
         projectCleaner.execute();
     }
@@ -283,7 +292,6 @@ public class StorageCleaner {
         }
 
         public void execute() {
-            val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             collectJobTmp(project);
             collectDataflow(project);
             collectTable(project);
@@ -392,6 +400,64 @@ public class StorageCleaner {
                 item.getProject(project).getTableExds()
                         .removeIf(node -> activeTableExdDir.contains(node.getRelativePath()));
             }
+        }
+    }
+
+    class ProjectTemporaryTableCleaner {
+        private final String project;
+        private CliCommandExecutor cliCommandExecutor;
+        private ProjectTemporaryTableCleanerHelper tableCleanerHelper;
+
+        ProjectTemporaryTableCleaner(String project) {
+            this.project = project;
+            this.cliCommandExecutor = new CliCommandExecutor();
+            this.tableCleanerHelper = new ProjectTemporaryTableCleanerHelper();
+        }
+
+        public void execute() {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            Set<String> activeJobs = executableManager.getAllExecutables().stream()
+                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
+            List<FileTreeNode> jobTemps = allFileSystems.iterator().next().getProject(project).getJobTmps();
+            Set<String> discardJobs = executableManager.getAllExecutables().stream()
+                    .filter(e -> e.getStatus() == ExecutableState.DISCARDED)
+                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
+            doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps, activeJobs, discardJobs));
+        }
+
+        private void doExecuteCmd(String cmd) {
+            try {
+                CliCmdExecResult executeResult = cliCommandExecutor.execute(cmd, null);
+                if (executeResult.getCode() != 0) {
+                    log.error("execute drop intermediate table return fail, cmd : " + cmd);
+                } else {
+                    log.info("execute drop intermediate table succeeded, cmd: " + cmd);
+                }
+            } catch (ShellException e) {
+                log.error("execute drop intermediate table error, cmd : " + cmd, e);
+            }
+        }
+
+        public String collectDropTemporaryTransactionTable(List<FileTreeNode> jobTemps, Set<String> activeJobs, Set<String> discardJobs) {
+            String result = "";
+            try {
+                Set<String> availableJobs = activeJobs.stream().filter(jobPath -> !discardJobs.contains(jobPath))
+                        .collect(Collectors.toSet());
+                jobTemps.removeIf(node -> availableJobs.contains(node.getRelativePath()));
+
+                if (tableCleanerHelper.isNeedClean(jobTemps.isEmpty(), discardJobs.isEmpty())) {
+                    // The key of the map object is database, and the value is a table name list
+                    ISourceMetadataExplorer explr = SourceFactory
+                            .getSource(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project))
+                            .getSourceMetadataExplorer();
+                    result = tableCleanerHelper.collectDropDBTemporaryTableCmd(KylinConfig.getInstanceFromEnv(),
+                            explr, jobTemps, discardJobs);
+                }
+            } catch (Exception exception) {
+                log.error("Failed to delete temporary tables.", exception);
+            }
+            log.info("collectDropTemporaryTransactionTable end.");
+            return result;
         }
     }
 
@@ -560,7 +626,7 @@ public class StorageCleaner {
 
         FileTreeNode parent;
 
-        String getRelativePath() {
+        public String getRelativePath() {
             if (parent == null) {
                 return name;
             }

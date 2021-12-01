@@ -214,7 +214,8 @@ public class NSparkSnapshotJobTest extends NLocalWithSparkSessionTest {
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         Set<String> partitionToBuild = ImmutableSet.of("2012-01-03");
-
+        TableDesc tableDesc = tableManager.getTableDesc(tableName);
+        tableDesc.setRangePartition(true);
         NSparkSnapshotJob job = NSparkSnapshotJob.create(tableManager.getTableDesc(tableName), "ADMIN",
                 JobTypeEnum.SNAPSHOT_BUILD, RandomUtil.randomUUIDStr(), partitionCol, true, partitionToBuild, null,
                 null);

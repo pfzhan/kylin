@@ -145,6 +145,12 @@ public class SnapshotBuildJob extends SparkApplication {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return toPartitions(getParam("partitions"));
         }
+
+        if (tableDesc.isRangePartition() && tableDesc.getPartitionColumn().equalsIgnoreCase(selectPartitionCol)) {
+            logger.info("The【{}】column is range partition table,so return partition column.", tableDesc.getName());
+            return toPartitions(tableDesc.getPartitionColumn());
+        }
+
         ISourceMetadataExplorer explr = SourceFactory.getSource(tableDesc).getSourceMetadataExplorer();
         Set<String> curPartitions = explr.getTablePartitions(tableDesc.getDatabase(), tableDesc.getName(),
                 tableDesc.getProject(), selectPartitionCol);

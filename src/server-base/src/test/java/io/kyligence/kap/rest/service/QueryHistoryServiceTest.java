@@ -376,7 +376,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
         // get all tables
         tableMap = queryHistoryService.getQueryHistoryTableMap(null);
-        Assert.assertEquals(22, tableMap.size());
+        Assert.assertEquals(23, tableMap.size());
 
         // not existing project
         try {

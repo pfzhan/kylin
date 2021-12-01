@@ -258,7 +258,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
         boolean hasMetadataFile = new ZipFile(
                 Objects.requireNonNull(Objects.requireNonNull(mainDir.listFiles())[0].listFiles())[0]).stream()
-                        .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
+                .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
 
         Assert.assertFalse(hasMetadataFile);
     }
@@ -274,7 +274,7 @@ public class StreamingJobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
         boolean hasMetadataFile = new ZipFile(
                 Objects.requireNonNull(Objects.requireNonNull(mainDir.listFiles())[0].listFiles())[0]).stream()
-                        .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
+                .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
         Assert.assertTrue(hasMetadataFile);
     }
 

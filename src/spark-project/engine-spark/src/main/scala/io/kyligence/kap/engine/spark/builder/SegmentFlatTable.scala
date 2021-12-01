@@ -359,11 +359,25 @@ class SegmentFlatTable(private val sparkSession: SparkSession, //
     Some(tableDS)
   }
 
-  protected def newTableDS(tableRef: TableRef): Dataset[Row] = {
+  def newTableDS(tableRef: TableRef): Dataset[Row] = {
     // By design, why not try recovering from table snapshot.
     // If fact table is a view and its snapshot exists, that will benefit.
     logInfo(s"Load source table ${tableRef.getTableIdentity}")
-    sparkSession.table(tableRef.getTableDesc).alias(tableRef.getAlias)
+    val tableDescCopy = tableRef.getTableDesc
+    if(tableDescCopy.isTransactional || tableDescCopy.isRangePartition) {
+      val model = tableRef.getModel
+      if(Objects.nonNull(model)) {
+        tableDescCopy.setPartitionDesc(model.getPartitionDesc)
+      }
+
+      if(Objects.nonNull(segmentRange) && Objects.nonNull(segmentRange.getStart) && Objects.nonNull(segmentRange.getEnd)) {
+        sparkSession.table(tableDescCopy, segmentRange.getStart.toString, segmentRange.getEnd.toString).alias(tableRef.getAlias)
+      } else {
+        sparkSession.table(tableDescCopy).alias(tableRef.getAlias)
+      }
+    } else {
+      sparkSession.table(tableDescCopy).alias(tableRef.getAlias)
+    }
   }
 
   protected final def gatherStatistics(tableDS: Dataset[Row]): Statistics = {

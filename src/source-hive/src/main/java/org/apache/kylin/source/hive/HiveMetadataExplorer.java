@@ -47,7 +47,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.RandomUtil;
@@ -58,9 +61,11 @@ import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDataDeployer {
-
+    public static final Logger logger = LoggerFactory.getLogger(HiveMetadataExplorer.class);
     IHiveClient hiveClient = HiveClientFactory.getHiveClient();
 
     @Override
@@ -102,22 +107,9 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
             tableDesc.setTableType(hiveTableMeta.tableType);
         }
 
+        tableDesc.setRangePartition(checkIsRangePartitionTable(hiveTableMeta.allColumns));
         int columnNumber = hiveTableMeta.allColumns.size();
-        List<ColumnDesc> columns = new ArrayList<ColumnDesc>(columnNumber);
-        for (int i = 0; i < columnNumber; i++) {
-            HiveTableMeta.HiveTableColumnMeta field = hiveTableMeta.allColumns.get(i);
-            ColumnDesc cdesc = new ColumnDesc();
-            cdesc.setName(field.name.toUpperCase(Locale.ROOT));
-            // use "double" in kylin for "float"
-            if ("float".equalsIgnoreCase(field.dataType)) {
-                cdesc.setDatatype("double");
-            } else {
-                cdesc.setDatatype(field.dataType);
-            }
-            cdesc.setId(String.valueOf(i + 1));
-            cdesc.setComment(field.comment);
-            columns.add(cdesc);
-        }
+        List<ColumnDesc> columns = getColumnDescs(hiveTableMeta.allColumns);
         tableDesc.setColumns(columns.toArray(new ColumnDesc[columnNumber]));
 
         StringBuilder partitionColumnString = new StringBuilder();
@@ -144,6 +136,36 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
         tableExtDesc.addDataSourceProp("skip_header_line_count", String.valueOf(hiveTableMeta.skipHeaderLineCount));
 
         return Pair.newPair(tableDesc, tableExtDesc);
+    }
+
+    public List<ColumnDesc> getColumnDescs(List<HiveTableMeta.HiveTableColumnMeta> columnMetaList) {
+        List<ColumnDesc> columns = new ArrayList<>(columnMetaList.size());
+        Set<String> columnCacheTemp = Sets.newHashSet();
+        IntStream.range(0, columnMetaList.size()).forEach(i -> {
+            HiveTableMeta.HiveTableColumnMeta field = columnMetaList.get(i);
+            if(columnCacheTemp.contains(field.name)) {
+                logger.info("The【{}】column is already included and does not need to be added again", field.name);
+                return;
+            }
+            columnCacheTemp.add(field.name);
+            ColumnDesc cdesc = new ColumnDesc();
+            cdesc.setName(field.name.toUpperCase(Locale.ROOT));
+            // use "double" in kylin for "float"
+            if ("float".equalsIgnoreCase(field.dataType)) {
+                cdesc.setDatatype("double");
+            } else {
+                cdesc.setDatatype(field.dataType);
+            }
+            cdesc.setId(String.valueOf(i + 1));
+            cdesc.setComment(field.comment);
+            columns.add(cdesc);
+        });
+        return columns;
+    }
+
+    public boolean checkIsRangePartitionTable(List<HiveTableMeta.HiveTableColumnMeta> columnMetas) {
+        return columnMetas.stream().collect(Collectors.groupingBy(p -> p.name)).values()
+                .stream().anyMatch(p -> p.size() > 1);
     }
 
     @Override

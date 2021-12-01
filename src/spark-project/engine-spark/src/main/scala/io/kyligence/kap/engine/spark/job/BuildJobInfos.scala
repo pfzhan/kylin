@@ -70,6 +70,10 @@ class BuildJobInfos {
 
   private var stageId = ""
 
+  private var jobId = ""
+
+  private var project = ""
+
   def startJob(): Unit = {
     jobStartTime = System.currentTimeMillis()
   }
@@ -222,6 +226,22 @@ class BuildJobInfos {
 
   def getStageId: String = {
     stageId
+  }
+
+  def recordJobId(recordJobId: String): Unit = {
+    jobId = recordJobId
+  }
+
+  def getJobId: String = {
+    jobId
+  }
+
+  def recordProject(recordProject: String): Unit = {
+    project = recordProject
+  }
+
+  def getProject: String = {
+    project
   }
 
   def clear(): Unit = {

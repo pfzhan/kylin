@@ -45,7 +45,6 @@ import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.utils.AccelerationContextUtil;
 import lombok.val;
 import lombok.var;
-
 public class NReuseModelCcTest extends NAutoTestBase {
 
     @Override

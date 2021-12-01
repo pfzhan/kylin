@@ -22,11 +22,10 @@
 
 package io.kyligence.kap.engine.spark.utils
 
-import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.metadata.project.NProjectManager
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.TableDesc
+import org.apache.kylin.metadata.model.{TableDesc}
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
@@ -36,6 +35,17 @@ object SparkDataSource {
     def table(tableDesc: TableDesc): DataFrame = {
       val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
         .getProject(tableDesc.getProject).getOverrideKylinProps
+      SourceFactory
+        .createEngineAdapter(tableDesc,
+          classOf[NSparkCubingEngine.NSparkCubingSource])
+        .getSourceData(tableDesc, sparkSession, params)
+    }
+
+    def table(tableDesc: TableDesc, segmentStart: String, segmentEnd: String): DataFrame = {
+      val params = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv)
+        .getProject(tableDesc.getProject).getOverrideKylinProps
+      params.put("segmentStart", segmentStart)
+      params.put("segmentEnd", segmentEnd)
       SourceFactory
         .createEngineAdapter(tableDesc,
           classOf[NSparkCubingEngine.NSparkCubingSource])

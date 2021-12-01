@@ -70,6 +70,7 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_MERGER_SPARK_SEGMENT = "Merge Segment Data";
     public static final String STEP_NAME_BUILD_SEGMENT_BUCKET = "Build Segment Bucket";
     public static final String STEP_NAME_CLEANUP = "Clean Up Old Segment";
+    public static final String STEP_INTERMEDIATE_TABLE_CLEANUP = "Clean Up Intermediate Table";
     public static final String STEP_UPDATE_METADATA = "Update Metadata";
     public static final String STEP_NAME_UPDATE_CUBE_INFO = "Refresh Index Information";
     public static final String STEP_NAME_BUILD_N_D_CUBOID = "Build N-Dimension Cuboid";

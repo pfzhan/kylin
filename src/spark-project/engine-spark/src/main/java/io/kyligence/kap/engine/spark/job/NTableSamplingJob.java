@@ -50,6 +50,8 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
+
 @Slf4j
 public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
     public NTableSamplingJob() {
@@ -97,7 +99,10 @@ public class NTableSamplingJob extends DefaultChainedExecutableOnTable {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         JobStepType.RESOURCE_DETECT.createStep(job, config);
         JobStepType.SAMPLING.createStep(job, config);
-
+        if(isNeedCleanUpTransactionalTableJob(tableDesc.isTransactional(), tableDesc.isRangePartition(),
+                config.isReadTransactionalTableEnabled())) {
+            JobStepType.CLEAN_UP_TRANSACTIONAL_TABLE.createStep(job, config);
+        }
         log.info("sampling job create success on table {}", tableDesc.getIdentity());
         return job;
     }
