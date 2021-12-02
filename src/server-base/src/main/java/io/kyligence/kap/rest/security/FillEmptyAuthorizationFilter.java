@@ -35,7 +35,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
-@Component
+@Component(value = "fillEmptyAuthorizationFilter")
 public class FillEmptyAuthorizationFilter extends GenericFilterBean {
 
     @Override
