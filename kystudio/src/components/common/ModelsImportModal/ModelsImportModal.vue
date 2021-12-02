@@ -2,7 +2,8 @@
   <el-dialog class="models-import-modal"
     :width="step !== 'second' ? '480px' : '900px'"
     :title="$t('importModelsMetadata')"
-    :visible="isShow"
+    :visible="true"
+    v-if="isShow"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     @open="handleOpen"
@@ -16,11 +17,11 @@
       <p>* <span v-html="$t('importTips3')" /></p>
     </div>
     <!-- 上传元数据zip包界面 -->
-    <el-form ref="form" :model="form" :rules="rules" v-loading="isSubmiting" v-if="isBodyShow && step === 'first'">
+    <el-form ref="form" :model="form" :rules="rules" v-loading="isSubmiting" v-if="step === 'first'">
       <el-form-item class="file-upload" prop="file" :label="$t('selectFile')">
-        <el-input :value="form.file && form.file.name" :placeholder="$t('placeholder')" :class="{'error-tip': showError}" />
+        <el-input :value="form.file && form.file.name" :placeholder="$t('placeholder')" :class="{'error-tip': showError && form.file}" />
         <input class="file-input" type="file" accept="application/zip" title="" @change="handleSelectFile" />
-        <p class="error-msg" v-if="showError">{{validateErrorMsg}}</p>
+        <p class="error-msg" v-if="showError && form.file">{{validateErrorMsg}}</p>
       </el-form-item>
       <!-- <el-form-item class="checkbox-label">
         <el-checkbox class="table-mapping-checkbox" v-model="setTableMapping">{{$t('tableMapLabel')}}<el-tooltip :content="$t('tableMapLabelTip')" effect="dark" placement="top"><i class="el-icon-ksd-alert_1 ksd-ml-5"></i></el-tooltip></el-checkbox>
@@ -28,7 +29,7 @@
       <el-input class="table-map-details" v-if="setTableMapping" type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" :placeholder="$t('tableMapPlaceholder')" v-model.trim="tableMapContent"></el-input>
     </el-form>
     <!-- 解析zip元数据包界面 -->
-    <div class="modal-parse-contain" v-loading="isSubmiting" v-else-if="isBodyShow && step === 'second'">
+    <div class="modal-parse-contain" v-loading="isSubmiting" v-else-if="step === 'second'">
       <div class="modal-tables">
         <el-table class="model-list" border :data="models" size="small" refs="parseModelList" :row-class-name="tableRowClassName" @row-click="activeModal">
           <el-table-column prop="target_name" class-name="model-name-item" :label="$t('modelName')">
@@ -272,7 +273,7 @@
       <!-- {{JSON.stringify(activeModalObj[activeTabName]['computedColumns'])}} -->
     </div>
     <!-- 确认导入界面 -->
-    <div class="confirm-import-modal-layout" v-else-if="isBodyShow && step === 'third'">
+    <div class="confirm-import-modal-layout" v-else-if="step === 'third'">
       <p class="title">{{$t('confirmImportTips')}}</p>
       <div class="contain" v-for="(item, index) in importModalView" :key="index">
         <p class="contain-item">{{$t(item.title, {num: item.value.length})}}</p>
@@ -725,7 +726,7 @@ export default class ModelsImportModal extends Vue {
         try {
           const { project, form } = this
           await this.uploadMetadataFile({ project, form })
-          if (!this.isShow) return
+          if (!this.isShow || !this.form.file) return
           this.step = 'second'
           this.showError = false
           this.activeModalObj = this.models[0];
@@ -735,6 +736,7 @@ export default class ModelsImportModal extends Vue {
             this.showParseTable = true
           })
         } catch (e) {
+          if (!this.isShow || !this.form.file) return
           const { code } = e.body
           this.isSubmiting = false
           if (!code) {
