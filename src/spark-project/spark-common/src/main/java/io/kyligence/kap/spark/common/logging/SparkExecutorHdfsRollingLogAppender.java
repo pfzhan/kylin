@@ -250,15 +250,15 @@ public class SparkExecutorHdfsRollingLogAppender extends AbstractHdfsLogAppender
 
     @PluginFactory
     public static SparkExecutorHdfsRollingLogAppender createAppender(@PluginAttribute("name") String name,
-                                                                     @PluginAttribute("workingDir") String workingDir, @PluginAttribute("metadataId") String metadataId,
-                                                                     @PluginAttribute("category") String category, @PluginAttribute("identifier") String identifier,
-                                                                     @PluginAttribute("jobName") String jobName, @PluginAttribute("project") String project,
-                                                                     @PluginAttribute("jobTimeStamp") String jobTimeStamp, @PluginAttribute("rollingPeriod") int rollingPeriod,
-                                                                     @PluginAttribute("logQueueCapacity") int logQueueCapacity,
-                                                                     @PluginAttribute("flushInterval") int flushInterval,
-                                                                     @PluginAttribute("rollingByteSize") long rollingByteSize,
-                                                                     @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
-                                                                     @PluginElement("Properties") Property[] properties) {
+            @PluginAttribute("workingDir") String workingDir, @PluginAttribute("metadataId") String metadataId,
+            @PluginAttribute("category") String category, @PluginAttribute("identifier") String identifier,
+            @PluginAttribute("jobName") String jobName, @PluginAttribute("project") String project,
+            @PluginAttribute("jobTimeStamp") String jobTimeStamp, @PluginAttribute("rollingPeriod") int rollingPeriod,
+            @PluginAttribute("logQueueCapacity") int logQueueCapacity,
+            @PluginAttribute("flushInterval") int flushInterval,
+            @PluginAttribute("rollingByteSize") long rollingByteSize,
+            @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
+            @PluginElement("Properties") Property[] properties) {
         HdfsManager manager = new HdfsManager(name, layout);
         val appender = new SparkExecutorHdfsRollingLogAppender(name, layout, filter, false, false, properties, manager);
         appender.setWorkingDir(workingDir);

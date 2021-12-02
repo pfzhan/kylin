@@ -107,11 +107,9 @@ public class StreamingJobDiagInfoTool extends AbstractInfoExtractorTool {
     protected void executeExtract(OptionsHelper optionsHelper, File exportDir) throws Exception {
 
         final String jobId = optionsHelper.getOptionValue(OPTION_STREAMING_JOB_ID);
-        final boolean includeYarnLogs = getBooleanOption(optionsHelper, OPTION_STREAMING_INCLUDE_YARN_LOGS, true);
         final boolean includeClient = getBooleanOption(optionsHelper, OPTION_STREAMING_INCLUDE_CLIENT, true);
         final boolean includeConf = getBooleanOption(optionsHelper, OPTION_STREAMING_INCLUDE_CONF, true);
         final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_STREAMING_META, true);
-        final boolean isCloud = getKapConfig().isCloud();
         final boolean includeAuditLog = getBooleanOption(optionsHelper, OPTION_STREAMING_AUDIT_LOG, true);
         final boolean includeBin = true;
 
@@ -151,11 +149,9 @@ public class StreamingJobDiagInfoTool extends AbstractInfoExtractorTool {
             exportRecCandidate(project, modelId, exportDir, false, recordTimeFile);
         }
 
-        if (includeYarnLogs && !isCloud) {
-            String[] sparkLogArgs = { OPT_DIR, exportDir.getAbsolutePath(), OPT_STREAMING_JOB, jobId, OPT_PROJECT,
-                    project };
-            dumpStreamingSparkLog(sparkLogArgs, recordTimeFile);
-        }
+        String[] sparkLogArgs = { OPT_DIR, exportDir.getAbsolutePath(), OPT_STREAMING_JOB, jobId, OPT_PROJECT,
+                project };
+        dumpStreamingSparkLog(sparkLogArgs, recordTimeFile);
 
         if (includeClient) {
             exportClient(recordTimeFile);

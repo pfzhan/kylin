@@ -99,25 +99,24 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     private long start = System.currentTimeMillis();
 
     protected AbstractHdfsLogAppender(String name, Layout<? extends Serializable> layout, Filter filter,
-                                      boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
+            boolean ignoreExceptions, boolean immediateFlush, Property[] properties, HdfsManager manager) {
         super(name, layout, filter, ignoreExceptions, immediateFlush, properties, manager);
-        StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s starting ...", getAppenderName()));
-        StatusLogger.getLogger().warn("hdfsWorkingDir -> " + getWorkingDir());
+        StatusLogger.getLogger().warn("{} starting ...", getAppenderName());
+        StatusLogger.getLogger().warn("hdfsWorkingDir -> {}", getWorkingDir());
 
         init();
 
         logBufferQue = new LinkedBlockingDeque<>(getLogQueueCapacity());
-        final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true) //
-                .setNameFormat("logger-thread-%d").build();
+        final ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("logger-thread-%d")
+                .build();
         appendHdfsService = Executors.newSingleThreadExecutor(factory);
         appendHdfsService.submit(this::checkAndFlushLog);
 
-        ShutdownHookManager.get().addShutdownHook(new Thread(() -> {
+        ShutdownHookManager.get().addShutdownHook(() -> {
             stop();
             closeWriter();
-        }), FileSystem.SHUTDOWN_HOOK_PRIORITY * 2);
-
-        StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s started ...", getAppenderName()));
+        }, FileSystem.SHUTDOWN_HOOK_PRIORITY * 2);
+        StatusLogger.getLogger().warn("{} started ...", getAppenderName());
     }
 
     public FileSystem getFileSystem() {
@@ -138,7 +137,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
                     fileSystem = new Path(workingDir).getFileSystem(conf);
                 } catch (IOException e) {
                     StatusLogger.getLogger().error("Failed to create the file system, ", e);
-                    throw new RuntimeException(e);
+                    throw new RuntimeException("Failed to create the file system, ", e);
                 }
             }
         }
@@ -195,7 +194,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
                     StatusLogger.getLogger().error(String.format(Locale.ROOT, "close %s failed!", getAppenderName()),
                             e);
                 }
-                StatusLogger.getLogger().warn(String.format(Locale.ROOT, "%s closed ...", getAppenderName()));
+                StatusLogger.getLogger().warn("{} closed ...", getAppenderName());
             }
         }
     }
@@ -288,8 +287,6 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
     /**
      * init the hdfs writer and create the hdfs file with outPath.
      * need kerberos authentic, so fileSystem init here.
-     *
-     * @param outPath
      */
     protected boolean initHdfsWriter(Path outPath, Configuration conf) {
         synchronized (initWriterLock) {
@@ -300,8 +297,8 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
             while (retry-- > 0) {
                 try {
                     fileSystem = getFileSystem(conf);
-                    outStream = fileSystem.exists(outPath)
-                            ? fileSystem.append(outPath, 8192) : fileSystem.create(outPath, false);
+                    outStream = fileSystem.exists(outPath) ? fileSystem.append(outPath, 8192)
+                            : fileSystem.create(outPath, false);
                     break;
                 } catch (Exception e) {
                     StatusLogger.getLogger().error("fail to create stream for path: " + outPath, e);
@@ -398,8 +395,7 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
             StatusLogger.getLogger().debug("start rolling log file {}", logPath);
             Path pathProcess = new Path(logPath);
             Path pathDone = new Path(getLogPathRollingDone(logPath));
-            FileSystem fs = getFileSystem();
-            fs.rename(pathProcess, pathDone);
+            getFileSystem().rename(pathProcess, pathDone);
             String currentProcessPath = getLogPathAfterRolling(logPath);
             outStream = null;
             StatusLogger.getLogger().debug("end rolling log file {}", currentProcessPath);
@@ -407,12 +403,9 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
         }
     }
 
-
     abstract String getLogPathAfterRolling(String logPath);
 
     abstract String getLogPathRollingDone(String logPath);
-
-
 
     public static class HdfsManager extends OutputStreamManager {
 
@@ -430,10 +423,15 @@ public abstract class AbstractHdfsLogAppender extends AbstractOutputStreamAppend
 
         @Override
         protected synchronized void flushDestination() {
-            final OutputStream stream = getOutputStreamQuietly(); // access volatile field only once per method
+            // access volatile field only once per method
+            final OutputStream stream = getOutputStreamQuietly();
             if (stream != null) {
                 try {
-                    ((HdfsDataOutputStream) stream).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
+                    if (stream instanceof HdfsDataOutputStream) {
+                        ((HdfsDataOutputStream) stream).hsync(EnumSet.of(HdfsDataOutputStream.SyncFlag.UPDATE_LENGTH));
+                        return;
+                    }
+                    ((FSDataOutputStream) stream).hflush();
                 } catch (final IOException ex) {
                     throw new AppenderLoggingException("Error flushing stream " + getName(), ex);
                 }

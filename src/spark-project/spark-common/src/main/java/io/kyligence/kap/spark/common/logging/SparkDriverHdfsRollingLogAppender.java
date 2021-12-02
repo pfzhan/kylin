@@ -102,10 +102,8 @@ public class SparkDriverHdfsRollingLogAppender extends AbstractHdfsLogAppender {
             StatusLogger.getLogger().debug("current log file size > {}, need to rolling", getRollingByteSize());
             setLogPath(updateOutPutPath(getLogPath()));
         }
-        if (!isWriterInited()) {
-            if (!initHdfsWriter(new Path(getLogPath()), new Configuration())) {
-                StatusLogger.getLogger().error("init the hdfs writer failed!");
-            }
+        if (!isWriterInited() && !initHdfsWriter(new Path(getLogPath()), new Configuration())) {
+            StatusLogger.getLogger().error("init the hdfs writer failed!");
         }
 
         while (eventSize > 0) {
@@ -130,15 +128,15 @@ public class SparkDriverHdfsRollingLogAppender extends AbstractHdfsLogAppender {
 
     @PluginFactory
     public synchronized static SparkDriverHdfsRollingLogAppender createAppender(@PluginAttribute("name") String name,
-                                                                                @PluginAttribute("kerberosEnabled") boolean kerberosEnabled,
-                                                                                @PluginAttribute("kerberosPrincipal") String kerberosPrincipal,
-                                                                                @PluginAttribute("kerberosKeytab") String kerberosKeytab,
-                                                                                @PluginAttribute("workingDir") String hdfsWorkingDir, @PluginAttribute("logPath") String logPath,
-                                                                                @PluginAttribute("logQueueCapacity") int logQueueCapacity,
-                                                                                @PluginAttribute("flushInterval") int flushInterval,
-                                                                                @PluginAttribute("rollingByteSize") long rollingByteSize,
-                                                                                @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
-                                                                                @PluginElement("Properties") Property[] properties) {
+            @PluginAttribute("kerberosEnabled") boolean kerberosEnabled,
+            @PluginAttribute("kerberosPrincipal") String kerberosPrincipal,
+            @PluginAttribute("kerberosKeytab") String kerberosKeytab,
+            @PluginAttribute("workingDir") String hdfsWorkingDir, @PluginAttribute("logPath") String logPath,
+            @PluginAttribute("logQueueCapacity") int logQueueCapacity,
+            @PluginAttribute("flushInterval") int flushInterval,
+            @PluginAttribute("rollingByteSize") long rollingByteSize,
+            @PluginElement("Layout") Layout<? extends Serializable> layout, @PluginElement("Filter") Filter filter,
+            @PluginElement("Properties") Property[] properties) {
         if (appender != null) {
             return appender;
         }
