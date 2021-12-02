@@ -659,7 +659,7 @@ export default class SettingBasic extends Vue {
             await this.updateProjectGeneralInfo(submitData); break
           } else {
             await this.callGlobalDetailDialog({
-              msg: (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') ? this.$t('turnOnTipsInCloud') : this.$t('turnOnTips'),
+              msg: this.$t('turnOnTips'),
               title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
               dialogType: 'warning',
               isBeta: false,
