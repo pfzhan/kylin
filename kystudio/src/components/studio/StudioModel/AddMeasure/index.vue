@@ -381,7 +381,7 @@ export default class AddMeasure extends Vue {
   }
   getCCGroups (isGroupBy) {
     if (this.ccGroups.length) {
-      if (['SUM(column)', 'TOP_N', 'CORR'].includes(this.measure.expression)) {
+      if (['SUM(column)', 'CORR'].includes(this.measure.expression)) {
         return this.ccGroups.filter(it => measureSumAndTopNDataType.includes(it.datatype.toLocaleLowerCase().match(/^(\w+)\(?/)[1]))
       } else if (this.measure.expression === 'TOP_N') {
         if (isGroupBy && isGroupBy === 'Group by') {
