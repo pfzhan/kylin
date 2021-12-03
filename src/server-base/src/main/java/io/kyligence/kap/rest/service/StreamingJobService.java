@@ -354,7 +354,7 @@ public class StreamingJobService extends BasicService {
             }
             val jobId = StreamingUtils.getJobId(resp.getModelId(), resp.getJobType().name());
             if (dataLatenciesMap != null && dataLatenciesMap.containsKey(jobId)) {
-                resp.setDataLatency(dataLatenciesMap.get(jobId));
+                resp.setDataLatency(convertDataLatency(dataLatenciesMap.get(jobId)));
             }
             val recordMgr = StreamingJobRecordManager.getInstance();
             val record = recordMgr.getLatestOneByJobId(jobId);
@@ -478,7 +478,7 @@ public class StreamingJobService extends BasicService {
             statsList.stream().forEach(item -> {
                 consumptionRateList.add(item.getRowsPerSecond().intValue());
                 procTimeList.add(item.getProcessingTime());
-                minDataLatencyList.add(item.getMinDataLatency());
+                minDataLatencyList.add(convertDataLatency(item.getMinDataLatency()));
                 createDateList.add(item.getCreateTime());
             });
             resp.setConsumptionRateHist(consumptionRateList);
@@ -487,6 +487,15 @@ public class StreamingJobService extends BasicService {
             resp.setCreateTime(createDateList);
         }
         return resp;
+    }
+
+    /**
+     * convert minus data to zero
+     * @param dataLatency
+     * @return
+     */
+    private Long convertDataLatency(Long dataLatency) {
+        return (dataLatency != null && dataLatency < 0) ? 0 : dataLatency;
     }
 
     public StreamingJobResponse getStreamingJobInfo(String jobId, String project) {

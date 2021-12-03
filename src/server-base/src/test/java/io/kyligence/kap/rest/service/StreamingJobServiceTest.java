@@ -256,6 +256,12 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         StreamingJobMeta streamingJobMeta = jobMgr.getStreamingJobByUuid(MODEL_ID + "_build");
         Assert.assertEquals(JobStatusEnum.LAUNCHING_ERROR, streamingJobMeta.getCurrentStatus());
+
+        streamingJobsStatsManager.deleteAllStreamingJobStats();
+        streamingJobsStatsManager.insert(new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 60000L, -500L, -60L, System.currentTimeMillis() - 100));
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 1);
+        Assert.assertEquals(1, list.getTotalSize());
+        Assert.assertEquals(0L, list.getValue().get(0).getDataLatency().longValue());
     }
 
     @Test
