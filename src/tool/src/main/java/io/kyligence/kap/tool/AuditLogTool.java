@@ -131,11 +131,12 @@ public class AuditLogTool extends ExecutableApplication {
     }
 
     public static void main(String[] args) {
-        val tool = new AuditLogTool();
         try {
+            val tool = new AuditLogTool();
             tool.execute(args);
         } catch (Exception e) {
             System.out.println(ANSI_RED + "Audit log task failed." + ANSI_RESET);
+            logger.error("fail execute audit log tool: ", e);
             Unsafe.systemExit(1);
         }
         System.out.println("Audit log task finished.");
