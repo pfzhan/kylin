@@ -14,7 +14,8 @@ export default {
     modelSpeedModelsCount: 0,
     reachThreshold: false,
     circleSpeedInfoLock: false,
-    otherColumns: []
+    otherColumns: [],
+    filterModelNameByKC: ''
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -50,6 +51,9 @@ export default {
     },
     [types.RESET_OTHER_COLUMNS]: (state) => {
       state.otherColumns = []
+    },
+    [types.UPDATE_FILTER_MODEL_NAME_CLOUD]: (state, name) => {
+      state.filterModelNameByKC = name
     }
   },
   actions: {

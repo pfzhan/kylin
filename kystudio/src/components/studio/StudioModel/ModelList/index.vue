@@ -402,6 +402,11 @@ function getDefaultFilters (that) {
         vm.filterArgs.model_alias_or_owner = to.query.model_alias
         vm.filterArgs.exact = true
       }
+      // 针对 KC job 跳转过来无法筛选模型问题
+      if (vm.platform === 'iframe' && vm.filterModelNameByKC) {
+        vm.filterArgs.model_alias_or_owner = vm.filterModelNameByKC
+        vm.filterArgs.exact = true
+      }
       // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的
       vm.filterArgs.project = vm.currentSelectedProject
       const prop = 'gmtTime'
@@ -423,7 +428,9 @@ function getDefaultFilters (that) {
       'isOnlyQueryNode'
     ]),
     ...mapState({
-      currentUser: state => state.user.currentUser
+      currentUser: state => state.user.currentUser,
+      platform: state => state.config.platform,
+      filterModelNameByKC: state => state.model.filterModelNameByKC
     })
   },
   methods: {
@@ -468,6 +475,9 @@ function getDefaultFilters (that) {
     // }),
     ...mapMutations('DimensionsModal', {
       collectOtherColumns: 'COLLECT_OTHER_COLUMNS'
+    }),
+    ...mapMutations({
+      updateFilterModelByCloud: 'UPDATE_FILTER_MODEL_NAME_CLOUD'
     })
   },
   components: {
@@ -528,6 +538,30 @@ export default class ModelList extends Vue {
   isShow = false
   loadingModels = false
   debouce = null
+
+  @Watch('modelsPagerRenderData')
+  onModelChange (modelsPagerRenderData) {
+    this.modelArray = []
+    modelsPagerRenderData.list.forEach(item => {
+      this.$set(item, 'showModelDetail', false)
+      this.modelArray.push({
+        ...item,
+        tabTypes: this.currentEditModel === item.alias ? this.expandTab : 'overview',
+        showER: false
+      })
+    })
+  }
+  // 监听模型过滤 - 针对 KC job 跳转过来无法筛选模型问题
+  @Watch('filterModelNameByKC')
+  listenModelNameChange (val, oldVal) {
+    if (this.platform === 'iframe' && !oldVal && val) {
+      this.filterArgs.model_alias_or_owner = val
+      this.filterArgs.exact = true
+      this.$nextTick(() => {
+        this.loadModelsList()
+      })
+    }
+  }
 
   // async showGuide () {
   //   await this.callGuideModal({ isShowBuildGuide: true })
@@ -896,18 +930,6 @@ export default class ModelList extends Vue {
     const type = 'all'
     await this.callModelsExportModal({ project, type })
   }
-  @Watch('modelsPagerRenderData')
-  onModelChange (modelsPagerRenderData) {
-    this.modelArray = []
-    modelsPagerRenderData.list.forEach(item => {
-      this.$set(item, 'showModelDetail', false)
-      this.modelArray.push({
-        ...item,
-        tabTypes: this.currentEditModel === item.alias ? this.expandTab : 'overview',
-        showER: false
-      })
-    })
-  }
   onSortChange ({ prop, order }) {
     this.filterArgs.sort_by = prop
     if (prop === 'gmtTime') {
@@ -974,6 +996,7 @@ export default class ModelList extends Vue {
     }
     this.filterArgs.page_offset = 0
     this.searchLoading = true
+    this.updateFilterModelByCloud('')
     this.loadModelsList().then(() => {
       this.searchLoading = false
     }).finally((res) => {
