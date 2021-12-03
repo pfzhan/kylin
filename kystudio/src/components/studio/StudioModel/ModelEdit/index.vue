@@ -1250,7 +1250,7 @@ export default class ModelEdit extends Vue {
       message: this.$t('modelChangeTips'),
       type: 'warning',
       showClose: true,
-      duration: 0,
+      duration: 10000,
       closeOtherMessages: true
     })
     this.isIgnore = true
@@ -1348,7 +1348,7 @@ export default class ModelEdit extends Vue {
         type: 'warning',
         showClose: true,
         closeOtherMessages: true,
-        duration: 0
+        duration: 10000
       })
       return
     }
@@ -1544,7 +1544,7 @@ export default class ModelEdit extends Vue {
           type: 'warning',
           showClose: true,
           closeOtherMessages: true,
-          duration: 0
+          duration: 10000
         })
         return
       }
@@ -1592,7 +1592,7 @@ export default class ModelEdit extends Vue {
           type: 'warning',
           showClose: true,
           closeOtherMessages: true,
-          duration: 0
+          duration: 10000
         })
         return
       }
@@ -1985,12 +1985,16 @@ export default class ModelEdit extends Vue {
               if (modelSaveConfigData.save_only) {
                 this.$message({
                   type: 'success',
+                  duration: 10000,
+                  showClose: true,
                   message: <p>{this.$t('saveSuccessTip')}<br/>{createBaseIndexNum > 0 ? this.$t('createBaseIndexTips', {createBaseNum: createBaseIndexNum}) : updateBaseIndexNum > 0 ? this.$t('updateBaseIndexTips', {updateBaseNum: updateBaseIndexNum}) : ''}{(createBaseIndexNum > 0 || updateBaseIndexNum > 0) && this.modelData.model_type !== 'STREAMING' ? <a href="javascript:void();" onClick={() => this.buildBaseIndexEvent(result)}>{this.$t('buildIndex')}</a> : ''}</p>
                 })
               } else {
                 this.$message({
                   dangerouslyUseHTMLString: true,
                   type: 'success',
+                  duration: 10000,
+                  showClose: true,
                   message: (
                     <div>
                       <span>{this.$t('kylinLang.common.buildSuccess')}</span>

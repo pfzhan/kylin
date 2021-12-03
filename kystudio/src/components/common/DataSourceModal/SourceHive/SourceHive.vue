@@ -388,9 +388,7 @@ export default class SourceHive extends Vue {
         this.$message({
           type: 'error',
           message: this.$t('refreshError'),
-          showClose: true,
-          closeOtherMessages: true,
-          duration: 0
+          closeOtherMessages: true
         })
       }
       this.reloadHiveTablesStatus.time = 0

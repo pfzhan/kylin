@@ -610,6 +610,8 @@ export default class ModelSegment extends Vue {
         dangerouslyUseHTMLString: true,
         type: 'success',
         customClass: 'build-full-load-success',
+        duration: 10000,
+        showClose: true,
         message: (
           <div>
             <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -734,6 +736,8 @@ export default class ModelSegment extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'build-full-load-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -943,6 +947,8 @@ export default class ModelSegment extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'build-full-load-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -1033,6 +1039,8 @@ export default class ModelSegment extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'build-full-load-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -1079,6 +1087,8 @@ export default class ModelSegment extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'sync-segment-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('kylinLang.common.buildSuccess')}</span>
@@ -1127,6 +1137,8 @@ export default class ModelSegment extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'sync-segment-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('kylinLang.common.delSuccess')}</span>

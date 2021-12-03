@@ -481,6 +481,8 @@ export default class Homepage extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'acce-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('acceSuccess', {acceNum: data})}</span>
@@ -492,6 +494,8 @@ export default class Homepage extends Vue {
         this.$message({
           type: 'success',
           dangerouslyUseHTMLString: true,
+          duration: 10000,
+          showClose: true,
           message: this.$t('acceSuccessZero')
         })
       }

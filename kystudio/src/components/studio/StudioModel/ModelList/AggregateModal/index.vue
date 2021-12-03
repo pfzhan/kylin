@@ -1190,6 +1190,8 @@ export default class AggregateModal extends Vue {
         this.$message({
           type: 'success',
           dangerouslyUseHTMLString: true,
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{tipMsg}</span>

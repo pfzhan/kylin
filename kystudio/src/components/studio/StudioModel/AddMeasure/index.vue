@@ -648,8 +648,6 @@ export default class AddMeasure extends Vue {
           if (this.showMutipleColumnsTip) {
             this.$message({
               type: 'error',
-              showClose: true,
-              duration: 0,
               message
             })
             return
@@ -673,7 +671,7 @@ export default class AddMeasure extends Vue {
             if (name) {
               const currentMeasure = this.allTableColumns.filter(it => it.full_colname === name)
               if (currentMeasure.length && currentMeasure[0].datatype.toLocaleLowerCase().indexOf('varchar') >= 0) {
-                this.$message({ type: 'error', showClose: true, closeOtherMessages: true, duration: 0, message: this.$t('createCCMeasureTips', {expression: measureClone.expression}) })
+                this.$message({ type: 'error', closeOtherMessages: true, message: this.$t('createCCMeasureTips', {expression: measureClone.expression}) })
                 return
               }
             }

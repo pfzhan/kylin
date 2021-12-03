@@ -790,7 +790,7 @@ export default class QueryHistoryTable extends Vue {
       this.$message({
         message: this.$t('noSpaceTips'),
         type: 'warning',
-        duration: 0,
+        duration: 10000,
         showClose: true
       })
     }

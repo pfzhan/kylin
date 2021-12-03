@@ -92,7 +92,11 @@ if (projectName) {
 // 第三方参数控制
 // end
 // Vue.prototype.introJs = introJs
-Vue.use(ElementUI)
+Vue.use(ElementUI, {
+  closeOtherMessages: true,
+  errorMessageDuration: 10000,
+  errorMessageShowClose: true
+})
 Vue.use(VueClipboard)
 Vue.use(VueKonva)
 Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn'

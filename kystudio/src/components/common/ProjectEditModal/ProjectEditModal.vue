@@ -316,7 +316,7 @@ export default class ProjectEditModal extends Vue {
         this.saveLoading = false
         this.closeHandler(res)
       } else {
-        this.$message({ showClose: true, duration: 0, message: isInvaild, type: 'error' })
+        this.$message.error(isInvaild)
       }
     } catch (e) {
       this.saveLoading = false

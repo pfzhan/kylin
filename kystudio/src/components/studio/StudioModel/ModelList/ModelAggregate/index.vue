@@ -1052,6 +1052,8 @@ export default class ModelAggregate extends Vue {
       result.base_table_index && layoutIds.push(result.base_table_index.layout_id)
       this.$message({
         type: 'success',
+        duration: 10000,
+        showClose: true,
         message: <span>{
           this.$t('buildBaseIndexTip', {baseIndexNum: result.base_agg_index && result.base_table_index ? 2 : !result.base_agg_index && !result.base_table_index ? 0 : 1})
         }{ this.model.model_type !== 'STREAMING'

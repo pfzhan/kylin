@@ -945,10 +945,8 @@ export default class UploadSqlModel extends Vue {
   }
   uploadErrorMsg () {
     this.errMsgInstance = this.$message({
-      showClose: true,
       message: this.$t('uploadErrorMsg', { maxCount: this.favoriteImportSqlMaxSize }),
-      type: 'error',
-      duration: 0
+      type: 'error'
     })
   }
   submitFiles () {

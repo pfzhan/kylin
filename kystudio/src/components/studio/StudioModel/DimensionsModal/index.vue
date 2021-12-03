@@ -865,7 +865,7 @@ export default class DimensionsModal extends Vue {
   }
   submit () {
     this.checkDimensionForm()
-    this.errorGuidList.length && this.$message.error(this.$t('sameNameTip'))
+    this.errorGuidList.length && this.$message.error({message: this.$t('sameNameTip'), type: 'error'})
     this.isClickSubmit = true
     if (this.dimensionValidPass) {
       let result = this.getAllSelectedColumns()

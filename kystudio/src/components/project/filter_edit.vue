@@ -130,9 +130,7 @@ export default {
         handleError(res, (data, code, status, msg) => {
           this.$message({
             type: 'error',
-            message: msg,
-            showClose: true,
-            duration: 0
+            message: msg
           })
         })
       })
@@ -153,9 +151,7 @@ export default {
         handleError(res, (data, code, status, msg) => {
           this.$message({
             type: 'error',
-            message: msg,
-            showClose: true,
-            duration: 0
+            message: msg
           })
         })
       })

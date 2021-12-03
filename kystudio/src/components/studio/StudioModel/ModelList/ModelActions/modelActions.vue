@@ -544,7 +544,7 @@ export default class ModelActions extends Vue {
       const data = await handleSuccessAsync(res)
       this.userOptions = data.value
     } catch (e) {
-      this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
+      this.$message({ closeOtherMessages: true, message: e.body.msg, type: 'error' })
     }
   }
 
@@ -561,7 +561,7 @@ export default class ModelActions extends Vue {
       this.$message.success(this.$t('changeModelSuccess', this.modelOwner))
       this.$emit('loadModelsList')
     } catch (e) {
-      this.$message({ showClose: true, duration: 0, message: e.body.msg, type: 'error' })
+      this.$message({ message: e.body.msg, type: 'error' })
       this.changeLoading = false
       this.changeOwnerVisible = false
     }
@@ -765,6 +765,8 @@ export default class ModelActions extends Vue {
           dangerouslyUseHTMLString: true,
           type: 'success',
           customClass: 'close-sec-storage-success',
+          duration: 10000,
+          showClose: true,
           message: (
             <div>
               <span>{this.$t('jobSuccess')}</span>

@@ -486,6 +486,8 @@ export default class Snapshot extends Vue {
         dangerouslyUseHTMLString: true,
         type: 'success',
         customClass: 'build-full-load-success',
+        duration: 10000,
+        showClose: true,
         message: (
           <div>
             <span>{this.$t('kylinLang.common.buildSuccess')}</span>

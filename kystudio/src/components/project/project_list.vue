@@ -250,9 +250,7 @@ export default {
           handleSuccess(result, (data, code, status, msg) => {
             this.$message({
               type: 'success',
-              message: this.$t('kylinLang.common.backupSuccessTip') + data,
-              showClose: true,
-              duration: 0
+              message: this.$t('kylinLang.common.backupSuccessTip') + data
             })
           })
         }, (res) => {
@@ -277,7 +275,7 @@ export default {
         const data = await handleSuccessAsync(res)
         this.userOptions = data.value
       } catch (e) {
-        this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
+        this.$message({ closeOtherMessages: true, message: e.body.msg, type: 'error' })
       }
     },
     async openChangeProjectOwner (projectName) {
@@ -301,7 +299,7 @@ export default {
         })
         this.loadProjects(this.filterData)
       } catch (e) {
-        this.$message({ showClose: true, duration: 0, message: e.body.msg, type: 'error' })
+        this.$message({ message: e.body.msg, type: 'error' })
         this.changeLoading = false
         this.changeOwnerVisible = false
       }
