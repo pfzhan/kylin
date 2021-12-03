@@ -213,7 +213,7 @@
                     <el-tag
                       size="small"
                       :type="getJobStatusTag">
-                      {{selectedJob.job_status === 'STOPPED' ? 'PAUSED' : selectedJob.job_status}}
+                      {{selectedJob.job_status}}
                     </el-tag>
                   </span>
                 </p>
