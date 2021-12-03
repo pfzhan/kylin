@@ -104,7 +104,7 @@ function runTool() {
     exit $?
 }
 
-USER_OPTS="$@"
+USER_OPTS=" $@"
 if [[ ${USER_OPTS} == *" -help"* ]]; then
     help
     exit 1
