@@ -687,7 +687,9 @@ public class QueryService extends BasicService {
             QueryContext.current().getMetrics().setException(true);
             String errMsg = makeErrorMsgUserFriendly(e);
             if (errMsg == null) {
-                errMsg = e.getMessage();
+                // in case makeErrorMsgUserFriendly fails to get a err msg, try e.getMessage()
+                // in case getMessage is null as well, set the err msg as the full exception class name
+                errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getCanonicalName();
             }
             sqlResponse = new SQLResponse(null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();

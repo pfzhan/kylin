@@ -335,6 +335,24 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testQueryStackOverflowError() throws Exception {
+        final String sql = "select * from success_table_2";
+        final String project = "default";
+
+        Mockito.doAnswer(invocation -> {
+            throw new StackOverflowError();
+        }).when(queryService.queryRoutingEngine).queryWithSqlMassage(Mockito.any());
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
+
+        final SQLResponse response = queryService.queryWithCache(request);
+        Assert.assertTrue(response.isException());
+        Assert.assertTrue(StringUtils.contains(response.getExceptionMessage(), "java.lang.StackOverflowError"));
+    }
+
+    @Test
     public void testQueryWithCacheFailedForProjectNotExist() {
         final String sql = "select * from success_table";
         final String notExistProject = "default0";
