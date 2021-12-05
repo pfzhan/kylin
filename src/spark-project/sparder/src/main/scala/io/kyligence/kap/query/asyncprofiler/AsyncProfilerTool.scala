@@ -43,7 +43,7 @@ object AsyncProfilerTool extends Logging {
     try {
       log.debug("start profiling")
       _running = true
-      profiler.execute0(params)
+      profiler.execute(params)
     } catch {
       case e: Exception =>
         log.error("failed start profiling", e)
@@ -54,7 +54,7 @@ object AsyncProfilerTool extends Logging {
     log.debug("stop and dump profiling")
     try {
       _running = false
-      profiler.execute0(params)
+      profiler.execute(params)
     } catch {
       case e: Exception =>
         log.error("failed dump profiling", e)
@@ -65,7 +65,7 @@ object AsyncProfilerTool extends Logging {
   def stop(): Unit = {
     try {
       _running = false
-      profiler.stop0()
+      profiler.stop()
     } catch {
       case e: Exception =>
         logTrace("failed stop profiling", e)
@@ -73,12 +73,12 @@ object AsyncProfilerTool extends Logging {
   }
 
   def status(): String = {
-    profiler.execute0("status")
+    profiler.execute("status")
   }
 
   def execute(cmd: String): String = {
     try {
-      profiler.execute0(cmd)
+      profiler.execute(cmd)
     } catch {
       case e: Exception =>
         log.error("failed exec profiling", e)

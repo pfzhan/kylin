@@ -25,6 +25,8 @@
 package io.kyligence.kap.query.asyncprofiler;
 
 import io.kyligence.kap.common.obf.IKeep;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -34,27 +36,56 @@ public class AsyncProfiler implements IKeep {
             "../spark-project/sparder/src/main/resources/async-profiler-lib/macOS/libasyncProfiler.so";
     private static final String LIB_PATH = "/async-profiler-lib/linux64/libasyncProfiler.so";
 
-    private static AsyncProfiler profiler;
+    private static final Logger logger = LoggerFactory.getLogger(AsyncProfiler.class);
 
-    public static synchronized AsyncProfiler getInstance() throws IOException {
+    private static AsyncProfiler profiler;
+    private boolean loaded = false;
+
+    public static synchronized AsyncProfiler getInstance() {
         if (profiler == null) {
             profiler = new AsyncProfiler();
         }
         return profiler;
     }
 
-    private AsyncProfiler() throws IOException {
-        boolean isTestingOnLocalMac = System.getProperty("os.name", "").contains("Mac")
-                || System.getProperty("os.name", "").contains("OS X");
-        if (isTestingOnLocalMac) {
-            System.load(new java.io.File(LOCAL_DEV_LIB_PATH).getAbsolutePath());
+    private AsyncProfiler() {
+        try {
+            boolean isTestingOnLocalMac = System.getProperty("os.name", "").contains("Mac")
+                    || System.getProperty("os.name", "").contains("OS X");
+            if (isTestingOnLocalMac) {
+                System.load(new java.io.File(LOCAL_DEV_LIB_PATH).getAbsolutePath());
+            } else {
+                final java.nio.file.Path tmpLib = java.io.File.createTempFile("libasyncProfiler", ".so").toPath();
+                java.nio.file.Files.copy(
+                        AsyncProfilerTool.class.getResourceAsStream(LIB_PATH),
+                        tmpLib,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                System.load(tmpLib.toAbsolutePath().toString());
+            }
+            loaded = true;
+        } catch (Throwable e) {
+            logger.error("async lib loading failed.", e);
+        }
+    }
+
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    public void stop() throws IllegalStateException {
+        if (loaded) {
+            stop0();
         } else {
-            final java.nio.file.Path tmpLib = java.io.File.createTempFile("libasyncProfiler", ".so").toPath();
-            java.nio.file.Files.copy(
-                    AsyncProfilerTool.class.getResourceAsStream(LIB_PATH),
-                    tmpLib,
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            System.load(tmpLib.toAbsolutePath().toString());
+            logger.error("invalid operation stop(). async lib loading failed.");
+        }
+    }
+
+    public String execute(String command) throws IllegalArgumentException, IllegalStateException, IOException {
+        if (loaded) {
+            return execute0(command);
+        } else {
+            logger.error("invalid operation execute(). async lib loading failed.");
+            return "";
         }
     }
 
