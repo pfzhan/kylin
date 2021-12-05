@@ -714,6 +714,11 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setJobType(JobTypeEnum.INDEX_BUILD);
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         modelId = "2";
         executable = new SucceedTestExecutable();
@@ -724,7 +729,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
 
         long result = manager.getMaxDurationRunningExecDurationByModel(modelId, manager.getAllJobs());
-        Assert.assertEquals(result, executable.getDuration());
+        Assert.assertTrue(Math.abs(result - executable.getDuration()) < 3000);
 
         result = manager.getMaxDurationRunningExecDurationByModel("3", manager.getAllJobs());
         Assert.assertEquals(0, result);
