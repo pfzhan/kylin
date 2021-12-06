@@ -47,8 +47,44 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testFastRoutineToolMaintenanceMode() {
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
+
+        FastRoutineTool routineTool = new FastRoutineTool();
+        routineTool.execute(new String[] { "--cleanup" });
+        Assert.assertFalse(epochManager.isMaintenanceMode());
+
+        routineTool.execute(new String[] { "--metadata" });
+        Assert.assertTrue(epochManager.isMaintenanceMode());
+    }
+
+    @Test
+    public void testFastRoutineToolMaintenanceMode2() {
+        EpochManager epochManager = EpochManager.getInstance(getTestConfig());
+        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, false);
+
+        FastRoutineTool routineTool = new FastRoutineTool();
+        routineTool.execute(new String[] { "-c" });
+        Assert.assertFalse(epochManager.isMaintenanceMode());
+
+        routineTool.execute(new String[] { "--projects=ssb,default" });
+        Assert.assertFalse(epochManager.isMaintenanceMode());
+
+        routineTool.execute(new String[] { "-m" });
+        Assert.assertTrue(epochManager.isMaintenanceMode());
+    }
+
+    @Test
     public void testExecuteRoutine1() {
         RoutineTool routineTool = new RoutineTool();
+        routineTool.execute(new String[] { "--cleanup" });
+        Assert.assertTrue(routineTool.isStorageCleanup());
+    }
+
+    @Test
+    public void testFastExecuteRoutine1() {
+        FastRoutineTool routineTool = new FastRoutineTool();
         routineTool.execute(new String[] { "--cleanup" });
         Assert.assertTrue(routineTool.isStorageCleanup());
     }
@@ -61,8 +97,25 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testFastExecuteRoutine2() {
+        FastRoutineTool routineTool = new FastRoutineTool();
+        routineTool.execute(new String[] {});
+        Assert.assertFalse(routineTool.isStorageCleanup());
+    }
+
+    @Test
     public void testExecuteRoutineWithOptionProjects1() {
         RoutineTool routineTool = new RoutineTool();
+        routineTool.execute(new String[] {});
+
+        Assert.assertFalse(routineTool.isStorageCleanup());
+        Assert.assertArrayEquals(new String[] {}, routineTool.getProjects());
+
+    }
+
+    @Test
+    public void testFastExecuteRoutineWithOptionProjects1() {
+        FastRoutineTool routineTool = new FastRoutineTool();
         routineTool.execute(new String[] {});
 
         Assert.assertFalse(routineTool.isStorageCleanup());
@@ -81,8 +134,28 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testFastExecuteRoutineWithOptionProjects2() {
+        FastRoutineTool routineTool = new FastRoutineTool();
+
+        routineTool.execute(new String[] { "--projects=ssb" });
+
+        Assert.assertFalse(routineTool.isStorageCleanup());
+        Assert.assertArrayEquals(new String[] { "ssb" }, routineTool.getProjects());
+    }
+
+    @Test
     public void testExecuteRoutineWithOptionProjects3() {
         RoutineTool routineTool = new RoutineTool();
+
+        routineTool.execute(new String[] { "--projects=ssb,default" });
+
+        Assert.assertFalse(routineTool.isStorageCleanup());
+        Assert.assertArrayEquals(new String[] { "ssb", "default" }, routineTool.getProjects());
+    }
+
+    @Test
+    public void testFastExecuteRoutineWithOptionProjects3() {
+        FastRoutineTool routineTool = new FastRoutineTool();
 
         routineTool.execute(new String[] { "--projects=ssb,default" });
 

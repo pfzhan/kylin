@@ -111,7 +111,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         }
     }
 
-    private void cleanMeta(List<String> projectsToCleanup) throws IOException {
+    protected void cleanMeta(List<String> projectsToCleanup) throws IOException {
         try {
             cleanGlobalMeta();
             for (String projName : projectsToCleanup) {
@@ -168,7 +168,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         }
     }
 
-    private boolean printUsage(OptionsHelper optionsHelper) {
+    protected boolean printUsage(OptionsHelper optionsHelper) {
         boolean help = optionsHelper.hasOption(OPTION_HELP);
         if (help) {
             optionsHelper.printUsage(this.getClass().getName(), getOptions());
@@ -176,7 +176,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         return help;
     }
 
-    private void initOptionValues(OptionsHelper optionsHelper) {
+    protected void initOptionValues(OptionsHelper optionsHelper) {
         this.storageCleanup = optionsHelper.hasOption(OPTION_CLEANUP);
         this.metadataCleanup = optionsHelper.hasOption(OPTION_CLEANUP_METADATA);
 
