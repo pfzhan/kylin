@@ -48,7 +48,9 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,9 +70,11 @@ import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.OpenPartitionColumnFormatResponse;
 import io.kyligence.kap.rest.response.OpenPreReloadTableResponse;
 import io.kyligence.kap.rest.response.OpenReloadTableResponse;
+import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
 import io.swagger.annotations.ApiOperation;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -269,5 +273,31 @@ public class OpenTableController extends NBasicController {
         columnFormatResponse.setColumnFormat(columnFormat);
 
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, columnFormatResponse, "");
+    }
+
+    @ApiOperation(value = "prepareUnloadTable", tags = { "AI" })
+    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload")
+    @ResponseBody
+    public EnvelopeResponse<PreUnloadTableResponse> prepareUnloadTable(@RequestParam(value = "project") String project,
+            @PathVariable(value = "database") String database,
+            @PathVariable(value = "table") String table) throws IOException {
+
+        String projectName = checkProjectName(project);
+        String dbTblName = String.format(Locale.ROOT, "%s.%s", database, table);
+        val response = tableService.preUnloadTable(projectName, dbTblName);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "unloadTable", tags = { "AI" })
+    @DeleteMapping(value = "/{database:.+}/{table:.+}")
+    @ResponseBody
+    public EnvelopeResponse<String> unloadTable(@RequestParam(value = "project") String project,
+            @PathVariable(value = "database") String database, @PathVariable(value = "table") String table,
+            @RequestParam(value = "cascade", defaultValue = "false") Boolean cascade) {
+
+        String projectName = checkProjectName(project);
+        String dbTblName = String.format(Locale.ROOT, "%s.%s", database, table);
+        tableService.unloadTable(projectName, dbTblName, cascade);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, dbTblName, "");
     }
 }

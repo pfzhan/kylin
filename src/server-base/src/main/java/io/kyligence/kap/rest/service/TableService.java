@@ -954,7 +954,7 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void unloadTable(String project, String table, Boolean cascade) {
+    public String unloadTable(String project, String table, Boolean cascade) {
         aclEvaluate.checkProjectWritePermission(project);
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
@@ -995,6 +995,8 @@ public class TableService extends BasicService {
             projectInstance.setDefaultDatabase(ProjectInstance.DEFAULT_DATABASE);
             npr.updateProject(projectInstance);
         }
+
+        return tableDesc.getIdentity();
     }
 
     private void unloadKafkaTableUsingTable(String project, TableDesc tableDesc) {
@@ -1019,7 +1021,6 @@ public class TableService extends BasicService {
         getKafkaConfigManager(project).removeKafkaConfig(tableIdentity);
     }
 
-    @Transaction(project = 0, readonly = true)
     public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         val response = new PreUnloadTableResponse();

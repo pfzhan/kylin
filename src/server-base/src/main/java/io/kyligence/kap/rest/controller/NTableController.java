@@ -176,8 +176,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "unloadTable", tags = { "AI" }, notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{database:.+}/{table:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
-            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @DeleteMapping(value = "/{database:.+}/{table:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<String> unloadTable(@RequestParam(value = "project") String project,
             @PathVariable(value = "database") String database, //
@@ -191,8 +190,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "prepareUnloadTable", tags = { "AI" }, notes = "Update URL: {project}; Update Param: project")
-    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload", produces = { HTTP_VND_APACHE_KYLIN_JSON,
-            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<PreUnloadTableResponse> prepareUnloadTable(@RequestParam(value = "project") String project,
             @PathVariable(value = "database") String database, //

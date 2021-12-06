@@ -479,7 +479,8 @@ public class TableServiceTest extends CSVSourceTestCase {
                 .getInstance(KylinConfig.getInstanceFromEnv(), "default");
         Assert.assertEquals(1, result.length);
         val size = nTableMetadataManager.listAllTables().size();
-        tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD", false);
+        String unloadedTable = tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD", false);
+        Assert.assertEquals(tableDesc.getIdentity(), unloadedTable);
 
         Assert.assertNull(nTableMetadataManager.getTableDesc("DEFAULT.TEST_UNLOAD"));
         Assert.assertEquals(size - 1, nTableMetadataManager.listAllTables().size());

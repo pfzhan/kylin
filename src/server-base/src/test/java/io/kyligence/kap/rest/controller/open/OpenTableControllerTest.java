@@ -67,6 +67,8 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.OpenReloadTableRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.response.PreUnloadTableResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
 
@@ -88,6 +90,9 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private TableService tableService;
+
+    @Mock
+    private ModelService modelService;
 
     @InjectMocks
     private OpenTableController openTableController = Mockito.spy(new OpenTableController());
@@ -143,8 +148,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .param("project", project1).param("table", tableName1).param("database", database1)
-                .param("source_type", "1")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .param("source_type", "1").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError());
         Mockito.verify(openTableController).getTableDesc(project1, tableName1, database1, false, true, 0, 10, 1);
     }
@@ -295,7 +299,6 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(openTableController).reloadTable(request3);
     }
 
-
     @Test
     public void testSubmitSamplingFailedForKafkaTable() throws Exception {
         final SamplingRequest request = new SamplingRequest();
@@ -326,6 +329,34 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).getPartitionColumnFormat(project, tableName, columnName);
+    }
+
+    @Test
+    public void testPrepareUnloadTable() throws Exception {
+        Mockito.doReturn(new PreUnloadTableResponse()).when(tableService).preUnloadTable("default", "DEFAULT.TABLE");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/{database}/{table}/prepare_unload", "DEFAULT", "TABLE")
+                .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).prepareUnloadTable("default", "DEFAULT", "TABLE");
+    }
+
+    @Test
+    public void testUnloadTable() throws Exception {
+        Mockito.doReturn(false).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
+        Mockito.doReturn("DEFAULT.TABLE").when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{database}/{table}", "DEFAULT", "TABLE")
+                .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).unloadTable("default", "DEFAULT", "TABLE", false);
+    }
+
+    @Test
+    public void testUnloadTableException() throws Exception {
+        Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
+        Mockito.doReturn("DEFAULT.TABLE").when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{database}/{table}", "DEFAULT", "TABLE")
+                .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)));
+        Mockito.verify(openTableController).unloadTable("default", "DEFAULT", "TABLE", false);
     }
 
 }

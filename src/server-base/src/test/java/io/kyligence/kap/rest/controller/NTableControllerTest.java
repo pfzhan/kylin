@@ -484,7 +484,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUnloadTable() throws Exception {
         Mockito.doReturn(false).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
-        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
+        Mockito.doReturn("DEFAULT.TABLE").when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{database}/{table}", "DEFAULT", "TABLE")
                 .param("project", "default").accept(MediaType.parseMediaType(APPLICATION_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -494,7 +494,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUnloadTableException() throws Exception {
         Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
-        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
+        Mockito.doReturn("DEFAULT.TABLE").when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{database}/{table}", "DEFAULT", "TABLE")
                 .param("project", "default").accept(MediaType.parseMediaType(APPLICATION_JSON)));
         Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE", false);
