@@ -1263,6 +1263,9 @@ public class ModelService extends BasicService {
             EventBusFactory.getInstance().postSync(new StreamingJobKillEvent(project, modelId));
             EventBusFactory.getInstance().postSync(new StreamingJobDropEvent(project, modelId));
         }
+
+        cleanModelWithSecondStorage(modelId, project);
+
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -1298,6 +1301,15 @@ public class ModelService extends BasicService {
                     String.format(Locale.ROOT, MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
         }
         purgeModel(modelId, project);
+    }
+
+    private void cleanModelWithSecondStorage(String modelId, String project) {
+        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+            val jobHandler = new SecondStorageModelCleanJobHandler();
+            final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, modelId, getUsername());
+            getJobManager(project).addJob(param, jobHandler);
+            SecondStorageUtil.disableModel(project, modelId);
+        }
     }
 
     public void cloneModel(String modelId, String newModelName, String project) {

@@ -5494,6 +5494,35 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testDropModelWithSecondStorage() throws IOException {
+        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val project = "default";
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, project);
+        SecondStorageUtil.initModelMetaData("default", model);
+        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
+        ModelRequest request = new ModelRequest();
+        request.setWithSecondStorage(true);
+        request.setUuid(model);
+        BuildBaseIndexResponse changedResponse = Mockito.mock(BuildBaseIndexResponse.class);
+        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded(eq("default"), eq(request),
+                any(BuildBaseIndexResponse.class));
+        Mockito.when(changedResponse.hasTableIndexChange()).thenReturn(true);
+
+        modelService.dropModel(model, project, false);
+
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        val tableFlow = tableFlowManager.get().get(model);
+        Assert.assertFalse(tableFlow.isPresent());
+    }
+
+    @Test
     public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
