@@ -35,6 +35,7 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
+import io.kyligence.kap.streaming.util.JobKiller;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -111,6 +112,10 @@ public class StreamingJobManager {
 
     public List<StreamingJobMeta> listAllStreamingJobMeta() {
         return crud.listAll();
+    }
+
+    public void destroyAllProcess() {
+        listAllStreamingJobMeta().stream().forEach(JobKiller::killProcess);
     }
 
     private ResourceStore getStore() {

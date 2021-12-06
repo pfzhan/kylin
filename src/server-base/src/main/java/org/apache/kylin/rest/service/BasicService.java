@@ -53,6 +53,7 @@ import javax.servlet.http.HttpServletRequest;
 import io.kyligence.kap.metadata.model.FusionModelManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfigManager;
 import io.kyligence.kap.metadata.streaming.StreamingJobStatsManager;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -178,6 +179,10 @@ public abstract class BasicService {
 
     public QueryHistoryDAO getQueryHistoryDao() {
         return RDBMSQueryHistoryDAO.getInstance();
+    }
+
+    public StreamingJobManager getStreamingJobManager(String project) {
+        return StreamingJobManager.getInstance(getConfig(), project);
     }
 
     public StreamingJobStatsManager getStreamingJobStatsManager() {

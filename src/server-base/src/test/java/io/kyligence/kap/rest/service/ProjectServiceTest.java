@@ -46,6 +46,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.common.ShellExecutable;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -109,6 +110,8 @@ import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.ProjectStatisticsResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import lombok.val;
 import lombok.var;
 
@@ -668,6 +671,70 @@ public class ProjectServiceTest extends ServiceTestBase {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         Assert.assertNull(prjManager.getProject(project));
         Assert.assertNull(NDefaultScheduler.getInstanceByProject(project));
+    }
+
+    @Test
+    public void testDropStreamingProject() {
+        KylinConfig.getInstanceFromEnv().setMetadataUrl(
+                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,DATABASE_TO_UPPER=FALSE,username=sa,password=");
+        val project = "project13";
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName(project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            projectService.createProject(project, projectInstance);
+            return null;
+        }, project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            try {
+                val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
+                val meta1 = new StreamingJobMeta();
+                meta1.setCurrentStatus(JobStatusEnum.RUNNING);
+                Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+                projectService.dropProject(project);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof KylinException);
+                Assert.assertEquals("KE-010037009", ((KylinException) e).getErrorCode().getCodeString());
+            }
+            return null;
+        }, project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            try {
+                val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
+                val meta1 = new StreamingJobMeta();
+                meta1.setCurrentStatus(JobStatusEnum.STARTING);
+                Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+                projectService.dropProject(project);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof KylinException);
+                Assert.assertEquals("KE-010037009", ((KylinException) e).getErrorCode().getCodeString());
+            }
+            return null;
+        }, project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            try {
+                val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
+                val meta1 = new StreamingJobMeta();
+                meta1.setCurrentStatus(JobStatusEnum.STARTING);
+                Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+                Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+                projectService.dropProject(project);
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof KylinException);
+                Assert.assertEquals("KE-010037009", ((KylinException) e).getErrorCode().getCodeString());
+            }
+            return null;
+        }, project);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val mgr = Mockito.spy(StreamingJobManager.getInstance(getTestConfig(), PROJECT));
+            val meta1 = new StreamingJobMeta();
+            meta1.setCurrentStatus(JobStatusEnum.STOPPED);
+            Mockito.when(projectService.getStreamingJobManager(Mockito.anyString())).thenReturn(mgr);
+            Mockito.when(mgr.listAllStreamingJobMeta()).thenReturn(Arrays.asList(meta1));
+            projectService.dropProject(project);
+            return null;
+        }, project);
     }
 
     @Test

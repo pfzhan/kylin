@@ -29,6 +29,7 @@ import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryTaskScheduler;
+import io.kyligence.kap.streaming.manager.StreamingJobManager;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.hadoop.fs.FileSystem;
@@ -50,6 +51,7 @@ public class ProjectDropListener {
 
         try {
             NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
+            StreamingJobManager.getInstance(kylinConfig, project).destroyAllProcess();
             RDBMSQueryHistoryDAO.getInstance().dropProjectMeasurement(project);
             RawRecManager.getInstance(project).deleteByProject(project);
             QueryHistoryTaskScheduler.shutdownByProject(project);

@@ -45,6 +45,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_NOT_EXIS
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -66,6 +67,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -1003,17 +1005,22 @@ public class ProjectService extends BasicService {
                         || (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.PENDING)
                         || (abstractExecutable.getStatus().toJobStatus() == JobStatusEnum.STOPPED))
                 .map(AbstractExecutable::getId).collect(Collectors.toList());
-        if (!jobIds.isEmpty()) {
+        val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
+                JobStatusEnum.STOPPING);
+        val streamingJobList = getStreamingJobManager(project).listAllStreamingJobMeta().stream()
+                .filter(meta -> streamingJobStatusList.contains(meta.getCurrentStatus()))
+                .map(RootPersistentEntity::getUuid).collect(Collectors.toList());
+        if (!jobIds.isEmpty() || !streamingJobList.isEmpty()) {
             logger.warn("The following jobs are in running or pending status and should be killed before dropping"
                     + " the project {} : {}", project, jobIds);
             throw new KylinException(PROJECT_DROP_FAILED,
                     String.format(Locale.ROOT, MsgPicker.getMsg().getPROJECT_DROP_FAILED_JOBS_NOT_KILLED(), project));
-        } else {
-            NProjectManager prjManager = getProjectManager();
-            prjManager.forceDropProject(project);
-            UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
-            EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
         }
+
+        NProjectManager prjManager = getProjectManager();
+        prjManager.forceDropProject(project);
+        UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
+        EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

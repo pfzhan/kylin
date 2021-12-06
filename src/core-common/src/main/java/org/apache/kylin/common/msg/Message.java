@@ -432,8 +432,7 @@ public class Message {
     }
 
     public String getPROJECT_DROP_FAILED_JOBS_NOT_KILLED() {
-        return "Can't delete project \"%s\", please have all jobs in running/pending/paused status been killed before "
-                + "dropping the project.";
+        return "Can't delete project \"%s\", please discard the related job and try again.";
     }
 
     public String getPROJECT_UNMODIFIABLE_REASON() {

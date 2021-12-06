@@ -342,7 +342,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getPROJECT_DROP_FAILED_JOBS_NOT_KILLED() {
-        return "无法删除项目 \"%s\"，请先终止处于以下状态的任务： 运行阶段，初始阶段，暂停阶段。";
+        return "无法删除项目 \"%s\"，请终止相关任务后再试。";
     }
 
     @Override
