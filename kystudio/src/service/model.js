@@ -379,5 +379,8 @@ export default {
   },
   validateDateFormat (para) {
     return Vue.resource(apiUrl + 'models/check_partition_desc').save(para)
+  },
+  checkInternalMeasure (para) {
+    return Vue.resource(apiUrl + 'models/model_save/check').save(para)
   }
 }

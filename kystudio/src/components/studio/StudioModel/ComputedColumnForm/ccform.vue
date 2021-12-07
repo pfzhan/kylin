@@ -22,7 +22,7 @@
       <div class="ky-error-title">{{$t('errorMsg')}}</div>
       <div class="ky-error-content">{{errorMsg}}</div>
     </div>
-    <div class="btn-group clearfix ksd-mt-6" v-if="!source || source !== 'createMeasure'">
+    <div class="btn-group clearfix ksd-mt-6">
       <el-button type="primary" size="small" @click="addCC" class="ksd-fright ksd-ml-10" v-if="isEdit && !isPureForm" :loading="checkBtnLoading">
         {{$t('kylinLang.common.save')}}
       </el-button>
@@ -260,13 +260,12 @@ export default class CCForm extends Vue {
             })
           } else {
             this.checkRemoteCC((data) => {
+              this.ccObject = data
               this.ccObject.table_guid = factTable.guid
-              // 由后台推荐的datatype
-              this.ccObject.datatype = data.datatype
               // 新增 measure 中创建 cc 暂不保存 cc
               if (this.source && this.source === 'createMeasure') {
-                this.$emit('checkSuccess', data, this.ccObject)
-                this.isEdit = false
+                this.$emit('checkSuccess', this.ccObject)
+                // this.isEdit = false
                 resolve()
                 return
               }
@@ -305,6 +304,9 @@ export default class CCForm extends Vue {
   }
   changeExpression () {
     this.errorMsg && (this.errorMsg = '')
+    if (!this.isEditMeasureCC) {
+      this.isEdit = true
+    }
   }
   setAutoCompleteData (data) {
     let ad = data.map((col) => {
@@ -324,7 +326,7 @@ export default class CCForm extends Vue {
   }
   @Watch('ccDesc')
   initCCDesc () {
-    this.ccObject = JSON.parse(this.ccMeta)
+    this.resetCC()
     if (this.ccDesc) {
       Object.assign(this.ccObject, this.ccDesc)
       this.isEdit = false

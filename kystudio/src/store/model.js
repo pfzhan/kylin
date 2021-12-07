@@ -454,6 +454,9 @@ export default {
     },
     [types.VALIDATE_DATE_FORMAT] (_, params) {
       return api.model.validateDateFormat(params)
+    },
+    [types.CHECK_INTERNAL_MEASURE] (_, params) {
+      return api.model.checkInternalMeasure(params)
     }
   },
   getters: {
