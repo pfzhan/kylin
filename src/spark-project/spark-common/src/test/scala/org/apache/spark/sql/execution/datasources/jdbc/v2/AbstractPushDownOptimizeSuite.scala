@@ -169,6 +169,34 @@ abstract class AbstractPushDownOptimizeSuite extends PlanTest {
     check(plan)
   }
 
+  test("mock with count(1)") {
+    val relationV2 = prepareV2Relation()
+    val query = relationV2.groupBy('t1.attr)(count(1)).analyze
+    val plan = Optimize.execute(query)
+    check(plan)
+  }
+
+  test("mock with count(*)") {
+    val relationV2 = prepareV2Relation()
+    val query = relationV2.groupBy('t1.attr)(count("*")).analyze
+    val plan = Optimize.execute(query)
+    check(plan)
+  }
+
+  test("mock with count(*) + 1") {
+    val relationV2 = prepareV2Relation()
+    val query = relationV2.groupBy('t1.attr)(count("*") + 1).analyze
+    val plan = Optimize.execute(query)
+    check(plan)
+  }
+
+  test("mock with count(a), count(a) + 1, count(1), count(*)") {
+    val relationV2 = prepareV2Relation()
+    val query = relationV2.groupBy('t1.attr)(count('a), count('a) + 1, count(1), count("*")).analyze
+    val plan = Optimize.execute(query)
+    check(plan)
+  }
+
   test("mock with aggregation with alias") {
     val relationV2 = prepareV2Relation()
     val query = relationV2

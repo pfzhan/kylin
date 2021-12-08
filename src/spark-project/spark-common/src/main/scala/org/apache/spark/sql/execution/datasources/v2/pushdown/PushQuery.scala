@@ -328,22 +328,31 @@ object PushQuery extends Logging {
     }
 
   def unapply(plan: logical.LogicalPlan): Option[PushQuery] = {
+    resolvePushQuery(plan)
+  }
+
+  private def resolvePushQuery(plan: logical.LogicalPlan, hasCountStar: Boolean = false): Option[PushQuery] = {
     import DataSourceV2Implicits._
 
     plan match {
       case ScanOperation(project, filters, relation: DataSourceV2Relation) =>
         relation.table.asReadable.newScanBuilder(relation.options) match {
-          case down: SupportsSQLPushDown if relation.catalog.exists(_.isInstanceOf[SupportsSQL])  && project.nonEmpty =>
+          case down: SupportsSQLPushDown if relation.catalog.exists(_.isInstanceOf[SupportsSQL])  &&
+            (project.nonEmpty || hasCountStar) =>
             Some(PushScanQuery(project, filters, relation, down))
           case builder: ScanBuilder =>
             Some(new OldPush(project, filters, relation, builder))
         }
       case Aggregate(groupBy, aggExpressions, child) =>
-        unapply(child).flatMap {
+        // Spark considers the COUNT(*) is not a project for relation
+        val counts = aggExpressions.flatMap { _.collect {
+          case ae: AggregateExpression if ae.aggregateFunction.isInstanceOf[Count] => ae.aggregateFunction
+        }}
+        resolvePushQuery(child, counts.exists(count => count.children(0) == Literal(1))).flatMap {
           case s@PushScanQuery(_, _, _, _) if !subqueryPlan(child) &&
-               !containNonSupportedAggregateFunction(aggExpressions) &&
-               !containNonSupportProjects(s.project) &&
-               s.postScanFilters.isEmpty =>
+            !containNonSupportedAggregateFunction(aggExpressions) &&
+            !containNonSupportProjects(s.project) &&
+            s.postScanFilters.isEmpty =>
             Some(PushAggregateQuery(groupBy, aggExpressions, s))
           case _ => None
         }

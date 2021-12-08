@@ -93,10 +93,10 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
 
             String table = ClickHouseUtils.PrepareTestData.db + "." + ClickHouseUtils.PrepareTestData.table;
             String sql = String.format(Locale.ROOT,
-                    "select s2, sum(i1), sum(i2) from %s.%s group by s2 order by s2", catalogName, table);
+                    "select s2, sum(i1), sum(i2), count(i1), count(*) from %s.%s group by s2 order by s2", catalogName, table);
 
             List<Row> expectedRow =
-                    ImmutableList.of(RowFactory.create("2", 3, 3L), RowFactory.create("3", 3, 3L));
+                    ImmutableList.of(RowFactory.create("2", 3, 3L, 2L, 2L), RowFactory.create("3", 3, 3L, 1L, 1L));
             Dataset<Row> dataset = ss.sql(sql);
             List<Row> results = dataset.collectAsList();
             Assert.assertEquals(expectedRow, results);
@@ -134,39 +134,39 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
             List<String> expectedGroup = ImmutableList.of("s2");
             List<Row> expectedRow =
                     ImmutableList.of(
-                            RowFactory.create("2", 12, 5.0),
-                            RowFactory.create("3", 9, 4.0),
-                            RowFactory.create("4", 7, 3.0));
+                            RowFactory.create("2", 12, 5.0, 3, 3),
+                            RowFactory.create("3", 9, 4.0, 3, 3),
+                            RowFactory.create("4", 7, 3.0, 1, 1));
 
             String sql2 = String.format(Locale.ROOT,
-                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by s2", catalogName, table);
+                    "select s2, sum(i1), avg(i2), count(*), count(i2) from %s.%s group by s2 order by s2", catalogName, table);
             CheckSQL(sql2, expectedRow, expectedGroup, 2);
 
             String sql3 = String.format(Locale.ROOT,
-                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 1", catalogName, table);
+                    "select s2, sum(i1), avg(i2), count(*), count(i2) from %s.%s group by s2 order by 1", catalogName, table);
             CheckSQL(sql3, expectedRow, expectedGroup, 2);
 
             String sql4 = String.format(Locale.ROOT,
-                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 2 desc", catalogName, table);
+                    "select s2, sum(i1), avg(i2), count(*), count(i2) from %s.%s group by s2 order by 2 desc", catalogName, table);
             CheckSQL(sql4, expectedRow, expectedGroup, 2);
 
             String sql5 = String.format(Locale.ROOT,
-                    "select s2, sum(i1), avg(i2) from %s.%s group by s2 order by 3 desc", catalogName, table);
+                    "select s2, sum(i1), avg(i2), count(*), count(i2) from %s.%s group by s2 order by 3 desc", catalogName, table);
             CheckSQL(sql5, expectedRow, expectedGroup, 2);
 
             //Alias
             String sql3_1 = String.format(Locale.ROOT,
-                    "select s2 as xxxx, sum(i1) as s_1, avg(i2) as a_1 from %s.%s group by s2 order by 1",
+                    "select s2 as xxxx, sum(i1) as s_1, avg(i2) as a_1, count(*) as c_1, count(i2) as c_2 from %s.%s group by s2 order by 1",
                     catalogName, table);
             CheckSQL(sql3_1, expectedRow, expectedGroup, 2);
 
             String sql5_1 = String.format(Locale.ROOT,
-                    "select s2 as xxxx, sum(i1) as s_1, avg(i2) as a_1 from %s.%s group by s2 order by 3 desc",
+                    "select s2 as xxxx, sum(i1) as s_1, avg(i2) as a_1, count(*) as c_1, count(i2) as c_2 from %s.%s group by s2 order by 3 desc",
                     catalogName, table);
             CheckSQL(sql5_1, expectedRow, expectedGroup, 2);
 
             String sql5_2 = String.format(Locale.ROOT,
-                    "select s2 as xxxx, sum(i1) as s_1, (sum(i2) / count(i2)) as a_1 from %s.%s group by s2 order by 3 desc",
+                    "select s2 as xxxx, sum(i1) as s_1, (sum(i2) / count(i2)) as a_1, count(*) as c_1, count(i2) as c_2 from %s.%s group by s2 order by 3 desc",
                     catalogName, table);
             CheckSQL(sql5_2, expectedRow, expectedGroup, 2);
 
