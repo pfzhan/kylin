@@ -248,6 +248,14 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
+    public void testCorr() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
+        overwriteSystemProp("kylin.query.metadata.expose-computed-column", "FALSE");
+
+        new TestScenario(CompareLevel.SAME, "query/sql_corr").execute();
+    }
+
+    @Test
     public void testGroupingSetsWithoutSplitGroupingSets() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
         overwriteSystemProp("kylin.query.engine.split-group-sets-into-union", "FALSE");

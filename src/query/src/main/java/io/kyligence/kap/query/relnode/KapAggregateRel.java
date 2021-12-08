@@ -50,7 +50,9 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.measure.corr.CorrMeasureType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -96,12 +98,13 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        // todo: cherry-pick CORR measure
-        // for (AggregateCall call : aggCalls) {
-        //            if (CorrMeasureType.FUNC_CORR.equalsIgnoreCase(call.getAggregation().getUuid().toUpperCase())) {
-        //                return planner.getCostFactory().makeCost(Double.MAX_VALUE, 0, 0);
-        //            }
-        //        }
+        for (AggregateCall call : aggCalls) {
+            // skip corr expandsion during model suggestion
+            if (!KylinConfig.getInstanceFromEnv().getSkipCorrReduceRule()
+                    && CorrMeasureType.FUNC_CORR.equalsIgnoreCase(call.getAggregation().getName())) {
+                return planner.getCostFactory().makeInfiniteCost();
+            }
+        }
         return super.computeSelfCost(planner, mq);
     }
 

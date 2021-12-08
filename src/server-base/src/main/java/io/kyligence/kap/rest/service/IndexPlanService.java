@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
@@ -43,6 +44,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -132,6 +134,32 @@ public class IndexPlanService extends BasicService {
     @Autowired
     private final List<ModelUpdateListener> updateListeners = Lists.newArrayList();
 
+    /**
+     * expand expand EXPANDABLE measures in index plan request's indexes
+     * @param plan
+     */
+    public void expandIndexPlanRequest(IndexPlan plan, NDataModel model) {
+        ExpandableMeasureUtil.expandIndexPlanIndexes(plan, model);
+    }
+
+    /**
+     * convert update rule based index req to ruble based index
+     * expand EXPANDABLE measures if any
+     * @param request
+     * @return
+     */
+    private RuleBasedIndex convertRequestToRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
+        val model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
+                .getDataModelDesc(request.getModelId());
+        val newRuleBasedCuboid = new RuleBasedIndex();
+        BeanUtils.copyProperties(request, newRuleBasedCuboid);
+
+        ExpandableMeasureUtil.expandRuleBasedIndex(newRuleBasedCuboid, model);
+        newRuleBasedCuboid.setGlobalDimCap(request.getGlobalDimCap());
+
+        return newRuleBasedCuboid;
+    }
+
     @Transaction(project = 0)
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
@@ -146,7 +174,7 @@ public class IndexPlanService extends BasicService {
             Preconditions.checkNotNull(model);
 
             val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
-                RuleBasedIndex ruleBasedIndex = request.convertToRuleBasedIndex();
+                RuleBasedIndex ruleBasedIndex = convertRequestToRuleBasedIndex(request);
                 ruleBasedIndex.setLastModifiedTime(System.currentTimeMillis());
                 copyForWrite.setRuleBasedIndex(ruleBasedIndex, Sets.newHashSet(), false, true,
                         request.isRestoreDeletedIndex());
@@ -401,7 +429,7 @@ public class IndexPlanService extends BasicService {
     public DiffRuleBasedIndexResponse calculateDiffRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
         aclEvaluate.checkProjectWritePermission(request.getProject());
         UpdateRuleImpact diff = getIndexPlan(request.getProject(), request.getModelId())
-                .diffRuleBasedIndex(request.convertToRuleBasedIndex());
+                .diffRuleBasedIndex(convertRequestToRuleBasedIndex(request));
 
         return DiffRuleBasedIndexResponse.from(request.getModelId(), diff);
     }
@@ -421,7 +449,7 @@ public class IndexPlanService extends BasicService {
 
         boolean invalid = false;
         try {
-            RuleBasedIndex ruleBasedIndex = request.convertToRuleBasedIndex();
+            RuleBasedIndex ruleBasedIndex = convertRequestToRuleBasedIndex(request);
             NDataModel model = NDataModelManager.getInstance(getConfig(), request.getProject())
                     .getDataModelDesc(indexPlan.getUuid());
 
@@ -488,7 +516,7 @@ public class IndexPlanService extends BasicService {
         request.setAggregationGroups(aggregationGroupsCopy);
 
         try {
-            indexPlan.setRuleBasedIndex(request.convertToRuleBasedIndex());
+            indexPlan.setRuleBasedIndex(convertRequestToRuleBasedIndex(request));
         } catch (OutOfMaxCombinationException oe) {
             log.error("The number of cuboid for the cube exceeds the limit, ", oe);
         } catch (IllegalStateException e) {
@@ -716,7 +744,29 @@ public class IndexPlanService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkState(indexPlan != null);
-        return indexPlan.getRuleBasedIndex();
+
+        val index = indexPlan.getRuleBasedIndex();
+        if (index == null) {
+            return null;
+        }
+        val newRuleBasedIndex = new RuleBasedIndex();
+
+        newRuleBasedIndex.setIndexUpdateEnabled(index.getIndexUpdateEnabled());
+        newRuleBasedIndex.setAggregationGroups(new LinkedList<>());
+
+        for (NAggregationGroup aggGrp : index.getAggregationGroups()) {
+            val aggGrpCopy = new NAggregationGroup();
+            aggGrpCopy.setIncludes(aggGrp.getIncludes());
+            aggGrpCopy.setSelectRule(aggGrp.getSelectRule());
+            aggGrpCopy.setIndexRange(aggGrp.getIndexRange());
+
+            List<Integer> filteredMeasure = Lists.newArrayList(aggGrp.getMeasures());
+            filteredMeasure.removeIf(indexPlan.getModel().getEffectiveInternalMeasureIds()::contains);
+            aggGrpCopy.setMeasures(filteredMeasure.toArray(new Integer[0]));
+            newRuleBasedIndex.getAggregationGroups().add(aggGrpCopy);
+        }
+
+        return newRuleBasedIndex;
     }
 
     private TableIndexResponse convertToTableIndexResponse(LayoutEntity cuboidLayout, NDataModel model) {
@@ -764,9 +814,14 @@ public class IndexPlanService extends BasicService {
 
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model,
             Set<Long> layoutIdsOfRunningJobs) {
+
+        // remove all internal measures
+        val colOrders = Lists.newArrayList(layoutEntity.getColOrder());
+        colOrders.removeIf(model.getEffectiveInternalMeasureIds()::contains);
+
         val response = new IndexResponse();
         BeanUtils.copyProperties(layoutEntity, response);
-        response.setColOrder(convertColumnOrMeasureIdName(layoutEntity.getColOrder(), model));
+        response.setColOrder(convertColumnOrMeasureIdName(colOrders, model));
         response.setShardByColumns(convertColumnIdName(layoutEntity.getShardByColumns(), model));
         response.setSortByColumns(convertColumnIdName(layoutEntity.getSortByColumns(), model));
         response.setProject(model.getProject());

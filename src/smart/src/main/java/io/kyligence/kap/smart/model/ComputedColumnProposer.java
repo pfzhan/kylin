@@ -135,8 +135,7 @@ public class ComputedColumnProposer extends AbstractModelProposer {
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
             } else {
-                String name = String.format(Locale.ROOT, "%s_%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, currentTs,
-                        index);
+                String name = ComputedColumnUtil.newAutoCCName(currentTs, index);
                 ccDesc.setColumnName(name);
             }
 

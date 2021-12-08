@@ -33,6 +33,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,6 +75,21 @@ public class ExpressionComparatorTest extends NLocalFileMetadataTestCase {
         assertEquals(true, ExpressionComparator.isNodeEqual(sn0, sn1, matchInfo, AliasDeduceImpl.NO_OP));
         assertEquals(false, ExpressionComparator.isNodeEqual(sn0, sn3, matchInfo, AliasDeduceImpl.NO_OP));
 
+    }
+
+    @Test
+    public void testCommutativeEqual() throws SqlParseException {
+        String sql0 = "select a.a + a.b * a.c from t as a";
+        String sql1 = "select a.c * a.b + a.a from t as a";
+
+        SqlNode sn0 = CalciteParser.getOnlySelectNode(sql0);
+        SqlNode sn1 = CalciteParser.getOnlySelectNode(sql1);
+
+        BiMap<String, String> aliasMapping = HashBiMap.create();
+        aliasMapping.put("A", "A");
+        QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, null);
+
+        Assert.assertTrue(ExpressionComparator.isNodeEqual(sn0, sn1, matchInfo, AliasDeduceImpl.NO_OP));
     }
 
     @Test

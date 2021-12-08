@@ -133,11 +133,11 @@ public class ParameterDesc implements Serializable {
             return false;
         }
 
-        if (p.isColumnType() && !Objects.equals(q.getColRef(), p.getColRef())) {
-            return false;
+        if (p.isColumnType() && p.getColRef() != null && Objects.equals(q.getColRef(), p.getColRef())) {
+            return true;
         }
 
-        return p.isColumnType() || p.value.equals(q.value);
+        return p.value.equals(q.value);
     }
 
     @Override

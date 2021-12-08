@@ -173,6 +173,10 @@ public class CnMessage extends Message {
         return "该度量的定义和度量 “%s” 相同。请修改。";
     }
 
+    public String getDUPLICATE_INTERNAL_MEASURE_DEFINITION() {
+        return "该度量的定义和隐藏度量 “%s” 相同。请修改。";
+    }
+
     @Override
     public String getDUPLICATE_JOIN_CONDITIONS() {
         return "“%s” 和 “%s” 已存在联接条件，不能被创建。请修改。";

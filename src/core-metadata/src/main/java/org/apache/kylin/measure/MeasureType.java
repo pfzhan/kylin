@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -181,5 +182,17 @@ abstract public class MeasureType<T> implements java.io.Serializable {
 
         /** Fill in specified row into tuple. */
         void fillTuple(Tuple tuple, int row);
+    }
+
+    public boolean expandable() {
+        return false;
+    }
+
+    /**
+     * A user defined measure (outer measure) could translate into one or more internal measures which are the
+     * actual measures get computed and stored in cube.
+     */
+    public List<FunctionDesc> convertToInternalFunctionDesc(FunctionDesc functionDesc) {
+        return Lists.newArrayList(functionDesc);
     }
 }

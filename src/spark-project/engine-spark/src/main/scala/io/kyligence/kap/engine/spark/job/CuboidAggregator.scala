@@ -38,6 +38,7 @@ import org.apache.spark.sql.udaf._
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.catalyst.expressions.Literal
 
 import java.util
 import java.util.Locale
@@ -226,7 +227,8 @@ object CuboidAggregator {
           } else {
             collect_set(columns.head).as(measureEntry._1.toString)
           }
-
+        case "CORR" =>
+          new Column(Literal(null, DoubleType)).as(measureEntry._1.toString)
       }
     }.toSeq
 

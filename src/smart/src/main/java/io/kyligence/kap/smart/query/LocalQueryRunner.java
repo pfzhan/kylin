@@ -80,6 +80,7 @@ class LocalQueryRunner extends AbstractQueryRunner {
         config.setProperty("kylin.query.pushdown-enabled", "true");
         config.setProperty("kylin.query.transformers", StringUtils.join(kylinConfig.getQueryTransformers(), ','));
         config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
+        config.setProperty("kap.smart.conf.skip-corr-reduce-rule", "true");
 
         return config;
     }

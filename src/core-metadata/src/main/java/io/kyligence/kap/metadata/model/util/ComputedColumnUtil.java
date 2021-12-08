@@ -73,6 +73,10 @@ public class ComputedColumnUtil {
     public static final String CC_NAME_PREFIX = "CC_AUTO_";
     public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
+    public static String newAutoCCName(long ts, int index) {
+        return String.format(Locale.ROOT, "%s_%s_%s", ComputedColumnUtil.CC_NAME_PREFIX, ts, index);
+    }
+
     public static String shareCCNameAcrossModel(ComputedColumnDesc newCC, NDataModel newModel,
             List<NDataModel> otherModels) {
         try {
@@ -376,6 +380,24 @@ public class ComputedColumnUtil {
 
         return ExpressionComparator.isNodeEqual(CalciteParser.getReadonlyExpNode(newCC.getExpression()),
                 CalciteParser.getReadonlyExpNode(existingCC.getExpression()), aliasMapping, AliasDeduce.NO_OP);
+    }
+
+    /**
+     * search cc in model by expr
+     * @param models
+     * @param ccToFind cc desc containing to searching cc expr
+     * @return
+     */
+    public static ComputedColumnDesc findCCByExpr(List<NDataModel> models, ComputedColumnDesc ccToFind) {
+        for (NDataModel model : models) {
+            for (ComputedColumnDesc existingCC : model.getComputedColumnDescs()) {
+                AliasMapping aliasMapping = getCCAliasMapping(model, model, existingCC, ccToFind);
+                if (isSameCCExpr(existingCC, ccToFind, aliasMapping)) {
+                    return existingCC;
+                }
+            }
+        }
+        return null;
     }
 
     private static boolean isSameAliasTable(ComputedColumnDesc existingCC, ComputedColumnDesc newCC,

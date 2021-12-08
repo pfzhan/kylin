@@ -120,6 +120,10 @@ public class NDataModel extends RootPersistentEntity {
         SMALL, MEDIUM, LARGE
     }
 
+    public enum MeasureType implements Serializable {
+        NORMAL, EXPANDABLE, INTERNAL
+    }
+
     @Getter
     @Setter
     @AllArgsConstructor
@@ -254,6 +258,9 @@ public class NDataModel extends RootPersistentEntity {
 
     private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED measures, only after init() is called
 
+    @Getter
+    private Map<Integer, Collection<Integer>> effectiveExpandedMeasures; // excluding DELETED measures, only after init() is called
+
     private List<TblColRef> mpCols;
 
     private TableRef rootFactTableRef;
@@ -348,6 +355,16 @@ public class NDataModel extends RootPersistentEntity {
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         private boolean tomb = false;
+
+        @Getter
+        @Setter
+        @JsonProperty("type")
+        private MeasureType type = MeasureType.NORMAL;
+
+        @Getter
+        @Setter
+        @JsonProperty("internal_ids")
+        private List<Integer> internalIds = new ArrayList<>();
 
         public void changeTableAlias(String oldAlias, String newAlias) {
             for (val parameter : getFunction().getParameters()) {
@@ -1110,15 +1127,20 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private void initAllMeasures() {
+        this.effectiveExpandedMeasures = new HashMap<>();
         ImmutableBiMap.Builder<Integer, Measure> mapBuilder = ImmutableBiMap.builder();
-        for (Measure m : allMeasures) {
+        for (Measure measure : allMeasures) {
             try {
-                m.setName(m.getName());
+                measure.setName(measure.getName());
 
-                if (!m.tomb) {
-                    mapBuilder.put(m.id, m);
-                    FunctionDesc func = m.getFunction();
+                if (!measure.tomb) {
+                    mapBuilder.put(measure.id, measure);
+                    FunctionDesc func = measure.getFunction();
                     func.init(this);
+
+                    if (measure.getType() == MeasureType.EXPANDABLE) {
+                        this.effectiveExpandedMeasures.put(measure.getId(), measure.getInternalIds());
+                    }
                 }
             } catch (Exception e) {
                 throw new KylinException(FAILED_UPDATE_MODEL, MsgPicker.getMsg().getINIT_MEASURE_FAILED());
@@ -1462,4 +1484,10 @@ public class NDataModel extends RootPersistentEntity {
         return getModelType() == ModelType.STREAMING || getModelType() == ModelType.HYBRID;
     }
 
+    public Set<Integer> getEffectiveInternalMeasureIds() {
+        return getEffectiveMeasures().values().stream()
+                .filter(m -> m.getType() == NDataModel.MeasureType.INTERNAL)
+                .map(NDataModel.Measure::getId)
+                .collect(Collectors.toSet());
+    }
 }

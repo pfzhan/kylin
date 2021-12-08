@@ -165,6 +165,9 @@ public class NDataModelResponse extends NDataModel {
         this.lastModify = lastModified;
         this.setSimplifiedJoinTableDescs(
                 SCD2SimplificationConvertUtil.simplifiedJoinTablesConvert(dataModel.getJoinTables()));
+
+        // filter out and hide internal measures from users
+        this.setAllMeasures(getAllMeasures().stream().filter(m -> m.getType() != MeasureType.INTERNAL).collect(Collectors.toList()));
     }
 
     @JsonProperty("simplified_dimensions")

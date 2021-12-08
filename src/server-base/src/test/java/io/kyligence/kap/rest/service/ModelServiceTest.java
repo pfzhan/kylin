@@ -54,6 +54,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -67,8 +68,12 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -113,6 +118,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.AclUtil;
 import org.apache.kylin.util.BrokenEntityProxy;
 import org.apache.kylin.util.PasswordEncodeFactory;
@@ -309,6 +315,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
         ReflectionTestUtils.setField(modelService, "userGroupService", userGroupService);
         ReflectionTestUtils.setField(semanticService, "userGroupService", userGroupService);
+        ReflectionTestUtils.setField(semanticService, "expandableMeasureUtil", new ExpandableMeasureUtil((model, ccDesc) -> {
+            String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
+                    AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), semanticService.getCurrentUserGroups()));
+            ccDesc.setInnerExpression(ccExpression);
+            ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
+        }));
         ReflectionTestUtils.setField(modelService, "projectService", projectService);
         ReflectionTestUtils.setField(modelService, "modelQueryService", modelQueryService);
         ReflectionTestUtils.setField(tableService, "jobService", jobService);
@@ -6647,5 +6659,46 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(0).getId()));
         Assert.assertTrue(
                 IndexEntity.isAggIndex(response.getNewModels().get(0).getIndexPlan().getIndexes().get(1).getId()));
+    }
+
+    @Test
+    public void testCreateModelWithCorr() throws Exception {
+        setupPushdownEnv();
+        val modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/internal_measure.model_desc/nmodel_test.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        val saved = modelService.createModel(modelRequest.getProject(), modelRequest);
+
+        List<String> autoCCNames = new LinkedList<>();
+        for (ComputedColumnDesc ccDesc : saved.getComputedColumnDescs()) {
+            if (ccDesc.getColumnName().startsWith("CC_AUTO")) {
+                autoCCNames.add(ccDesc.getColumnName());
+            }
+        }
+        NDataModel toDump = new NDataModel();
+        toDump.setUuid("");
+        toDump.setCreateTime(0);
+        toDump.setAllMeasures(saved.getAllMeasures());
+        toDump.setComputedColumnDescs(saved.getComputedColumnDescs());
+        String dump = JsonUtil.writeValueAsString(toDump);
+
+        for (int i = 0; i < autoCCNames.size(); i++) {
+            String orgCCName = autoCCNames.get(i);
+            String newCCName = "AUTO_CC_" + i;
+            dump = dump.replaceAll(orgCCName, newCCName);
+        }
+
+        String expected = FileUtils.readFileToString(
+                new File("src/test/resources/ut_meta/internal_measure.model_desc/nmodel_test_expected.json"));
+        Assert.assertEquals(expected, dump);
+
+        val index = NIndexPlanManager.getInstance(getTestConfig(), getProject()).getIndexPlan(saved.getId());
+        Assert.assertEquals(saved.getEffectiveMeasures().size(), index.getEffectiveMeasures().size());
+        for (IndexEntity indexEntity : index.getIndexes()) {
+            if (indexEntity.getMeasures().size() > 0) {
+                Assert.assertEquals(saved.getEffectiveMeasures().size(), indexEntity.getMeasures().size());
+            }
+        }
     }
 }

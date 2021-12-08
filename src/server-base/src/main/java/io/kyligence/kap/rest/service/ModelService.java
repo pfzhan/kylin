@@ -93,6 +93,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.base.Strings;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -1729,20 +1730,29 @@ public class ModelService extends BasicService {
             IndexPlan indexPlan = modelRequest.getIndexPlan();
             model.setProject(project);
             indexPlan.setProject(project);
+
+            NDataModel saved;
             if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
-                dataModelManager.updateDataModelDesc(model);
+                saved = dataModelManager.updateDataModelDesc(model);
             } else {
-                dataModelManager.createDataModelDesc(model, model.getOwner());
+                saved = dataModelManager.createDataModelDesc(model, model.getOwner());
             }
+
+            // expand measures
+            semanticUpdater.deleteExpandableMeasureInternalMeasures(saved);
+            semanticUpdater.expandExpandableMeasure(saved);
+            preProcessBeforeModelSave(saved, project);
+            NDataModel expanded = getDataModelManager(project).updateDataModelDesc(saved);
 
             // create IndexPlan
             IndexPlan emptyIndex = new IndexPlan();
-            emptyIndex.setUuid(model.getUuid());
+            emptyIndex.setUuid(expanded.getUuid());
             indexPlanManager.createIndexPlan(emptyIndex);
-            addBaseIndex(modelRequest, model, indexPlan);
+            indexPlanService.expandIndexPlanRequest(indexPlan, expanded);
+            addBaseIndex(modelRequest, expanded, indexPlan);
 
             // create DataFlow
-            val df = dataflowManager.createDataflow(emptyIndex, model.getOwner());
+            val df = dataflowManager.createDataflow(emptyIndex, expanded.getOwner());
             if (modelRequest.isWithEmptySegment() && !modelRequest.isStreaming()) {
                 dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
                         SegmentStatusEnum.READY);
@@ -1751,10 +1761,10 @@ public class ModelService extends BasicService {
                 dataflowManager.updateDataflowStatus(df.getId(), RealizationStatusEnum.ONLINE);
             }
 
-            createStreamingJob(project, model, modelRequest);
+            createStreamingJob(project, expanded, modelRequest);
             updateIndexPlan(project, indexPlan);
             UnitOfWorkContext context = UnitOfWork.get();
-            context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
+            context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, expanded.getId(), expanded.getAlias()));
         }
     }
 
@@ -1769,6 +1779,9 @@ public class ModelService extends BasicService {
         }
 
         for (ModelRequest modelRequest : modelRequestList) {
+            modelRequest.setProject(project);
+            semanticUpdater.expandModelRequest(modelRequest);
+
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, project);
             NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
@@ -1783,7 +1796,7 @@ public class ModelService extends BasicService {
                     modelManager.getDataModelDesc(modelRequest.getId()), false);
             // update model
             List<LayoutRecDetailResponse> recItems = modelRequest.getRecItems();
-            modelManager.updateDataModel(modelRequest.getId(), copyForWrite -> {
+            NDataModel updated = modelManager.updateDataModel(modelRequest.getId(), copyForWrite -> {
                 copyForWrite.setJoinTables(modelRequest.getJoinTables());
                 List<NDataModel.NamedColumn> allNamedColumns = copyForWrite.getAllNamedColumns();
                 Map<Integer, NDataModel.NamedColumn> namedColumnMap = Maps.newHashMap();
@@ -1837,8 +1850,16 @@ public class ModelService extends BasicService {
                 copyForWrite.keepColumnOrder();
                 copyForWrite.keepMeasureOrder();
             });
+
+            // expand
+            semanticUpdater.deleteExpandableMeasureInternalMeasures(updated);
+            semanticUpdater.expandExpandableMeasure(updated);
+            preProcessBeforeModelSave(updated, project);
+            NDataModel expanded = getDataModelManager(project).updateDataModelDesc(updated);
+
             // update IndexPlan
             IndexPlan indexPlan = modelRequest.getIndexPlan();
+            indexPlanService.expandIndexPlanRequest(indexPlan, expanded);
             Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
             indexPlan.getAllLayouts().forEach(layout -> layoutMap.putIfAbsent(layout.getId(), layout));
             indexPlanManager.updateIndexPlan(modelRequest.getId(), copyForWrite -> {
@@ -2202,7 +2223,12 @@ public class ModelService extends BasicService {
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         preProcessBeforeModelSave(dataModel, project);
         createStreamingJob(project, dataModel, modelRequest);
-        val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+        var careted = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+
+        semanticUpdater.expandExpandableMeasure(careted);
+        preProcessBeforeModelSave(careted, project);
+        val model = getDataModelManager(project).updateDataModelDesc(careted);
+
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val indexPlan = new IndexPlan();
@@ -2356,13 +2382,48 @@ public class ModelService extends BasicService {
                         String.format(Locale.ROOT, MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure definitions
-            if (measures.contains(measure))
+            SimplifiedMeasure dupMeasure = null;
+            for (SimplifiedMeasure m : measures) {
+                if (isDupMeasure(measure, m)) {
+                    dupMeasure = m;
+                    break;
+                }
+            }
+
+            if (dupMeasure != null) {
+                dupMeasure = dupMeasure.getId() != 0 ? dupMeasure : measure;
+                if (request.getId() != null) {
+                    NDataModel.Measure existingMeasure =
+                            getModelById(request.getId(), request.getProject()).getEffectiveMeasures().get(dupMeasure.getId());
+                    if (existingMeasure != null && existingMeasure.getType() == NDataModel.MeasureType.INTERNAL) {
+                        throw new KylinException(DUPLICATE_MEASURE_EXPRESSION, String.format(Locale.ROOT,
+                                MsgPicker.getMsg().getDUPLICATE_INTERNAL_MEASURE_DEFINITION(), measure.getName()));
+                    }
+                }
                 throw new KylinException(DUPLICATE_MEASURE_EXPRESSION, String.format(Locale.ROOT,
                         MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
+            }
 
             measureNames.add(measure.getName());
             measures.add(measure);
         }
+    }
+
+    private boolean isDupMeasure(SimplifiedMeasure measure, SimplifiedMeasure measure1) {
+        if (measure.getExpression().equalsIgnoreCase(measure1.getExpression())
+                && Objects.equals(measure.getParameterValue(), measure1.getParameterValue())
+                && Objects.equals(measure.getConfiguration(), measure1.getConfiguration())) {
+
+            // if both has a return type then compare the return type
+            if (!Strings.isNullOrEmpty(measure1.getReturnType()) && !Strings.isNullOrEmpty(measure.getReturnType())) {
+                return Objects.equals(measure1.getReturnType(), measure.getReturnType());
+            } else {
+                // otherwise if return type is null on any side, then just compare expr and params
+                // one measure may be a newly added one and has not been assigned a return type yet
+                return true;
+            }
+        }
+        return false;
     }
 
     private void checkModelJoinConditions(ModelRequest request) {
@@ -3458,6 +3519,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public BuildBaseIndexResponse updateDataModelSemantic(String project, ModelRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
+        semanticUpdater.expandModelRequest(request);
         checkModelRequest(request);
         checkModelPermission(project, request.getUuid());
         validatePartitionDateColumn(request);
@@ -3475,7 +3537,17 @@ public class ModelService extends BasicService {
         BaseIndexUpdateHelper baseIndexUpdater = new BaseIndexUpdateHelper(originModel, request.isWithBaseIndex());
 
         preProcessBeforeModelSave(copyModel, project);
-        modelManager.updateDataModelDesc(copyModel);
+        val updated = modelManager.updateDataModelDesc(copyModel);
+
+        // 1. delete old internal measure
+        // 2. expand new measuers
+        // the ordering of the two steps is important as tomb internal measure
+        // should not be used to construct new expandable measures
+        semanticUpdater.deleteExpandableMeasureInternalMeasures(updated);
+        semanticUpdater.expandExpandableMeasure(updated);
+        preProcessBeforeModelSave(updated, project);
+        getDataModelManager(project).updateDataModelDesc(updated);
+
         indexPlanService.updateForMeasureChange(project, modelId, updateImpact.getInvalidMeasures(),
                 updateImpact.getReplacedMeasures());
         Set<Integer> affectedSet = updateImpact.getAffectedIds();
@@ -3994,6 +4066,12 @@ public class ModelService extends BasicService {
 
     public ModelSaveCheckResponse checkBeforeModelSave(ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(modelRequest.getProject());
+        semanticUpdater.expandModelRequest(modelRequest);
+
+        checkModelDimensions(modelRequest);
+        checkModelMeasures(modelRequest);
+        checkModelJoinConditions(modelRequest);
+
         validateFusionModelDimension(modelRequest);
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
         NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());

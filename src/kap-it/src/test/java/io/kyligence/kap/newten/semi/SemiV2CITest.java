@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.service.IndexPlanService;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -116,6 +117,8 @@ public class SemiV2CITest extends SemiAutoTestBase {
     @Mock
     ModelService modelService = Mockito.spy(ModelService.class);
     @Mock
+    private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
+    @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
@@ -133,6 +136,7 @@ public class SemiV2CITest extends SemiAutoTestBase {
         modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         modelService.setSemanticUpdater(semanticService);
+        ReflectionTestUtils.setField(modelService, "indexPlanService", indexPlanService);
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
         prepareACL();
         QueryHistoryTaskScheduler.getInstance(getProject()).init();

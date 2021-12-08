@@ -2445,6 +2445,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.env.smart-thread-num", "10"));
     }
 
+    public boolean getSkipCorrReduceRule() {
+        return Boolean.parseBoolean(getOptional("kap.smart.conf.skip-corr-reduce-rule", FALSE));
+    }
+
     public String getEngineWriteFs() {
         String engineWriteFs = getOptional("kylin.env.engine-write-fs", "");
         return StringUtil.dropSuffix(engineWriteFs, File.separator);

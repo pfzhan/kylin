@@ -41,6 +41,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -73,6 +76,7 @@ import org.apache.kylin.metadata.model.tool.JoinDescNonEquiCompBean;
 import org.apache.kylin.metadata.model.tool.NonEquiJoinConditionVisitor;
 import org.apache.kylin.query.exception.QueryErrorCode;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,6 +126,13 @@ import lombok.extern.slf4j.Slf4j;
 public class ModelSemanticHelper extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelSemanticHelper.class);
+    private ExpandableMeasureUtil expandableMeasureUtil =
+            new ExpandableMeasureUtil((model, ccDesc) -> {
+                String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc,
+                        AclPermissionUtil.prepareQueryContextACLInfo(model.getProject(), getCurrentUserGroups()));
+                ccDesc.setInnerExpression(ccExpression);
+                ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
+            });
 
     public NDataModel deepCopyModel(NDataModel originModel) {
         NDataModel nDataModel;
@@ -154,6 +165,44 @@ public class ModelSemanticHelper extends BasicService {
         convertNonEquiJoinCond(dataModel, modelRequest);
         dataModel.setModelType(dataModel.getModelTypeFromTable());
         return dataModel;
+    }
+
+    /**
+     * expand model request, add hidden internal measures from current model
+     * @param modelRequest
+     * @return
+     */
+    public void expandModelRequest(ModelRequest modelRequest) {
+        if (modelRequest.getUuid() != null) {
+            NDataModel existingModel =
+                    NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), modelRequest.getProject())
+                            .getDataModelDesc(modelRequest.getUuid());
+            Set<Integer> internalIds = new HashSet<>();
+            for (SimplifiedMeasure measure : modelRequest.getSimplifiedMeasures()) {
+                if (existingModel.getEffectiveExpandedMeasures().containsKey(measure.getId())) {
+                    internalIds.addAll(existingModel.getEffectiveExpandedMeasures().get(measure.getId()));
+                }
+            }
+            Set<Integer> requestMeasureIds = modelRequest.getSimplifiedMeasures().stream().map(SimplifiedMeasure::getId).collect(Collectors.toSet());
+            for (Integer internalId : internalIds) {
+                if (!requestMeasureIds.contains(internalId)) {
+                    modelRequest.getSimplifiedMeasures().add(SimplifiedMeasure.fromMeasure(existingModel.getEffectiveMeasures().get(internalId)));
+                }
+            }
+        }
+    }
+
+    public void deleteExpandableMeasureInternalMeasures(NDataModel model) {
+        expandableMeasureUtil.deleteExpandableMeasureInternalMeasures(model);
+    }
+
+    /**
+     * expand measures (e.g. CORR measure) in current model, may create new CC or new measures
+     * @param model
+     * @return
+     */
+    public void expandExpandableMeasure(NDataModel model) {
+        expandableMeasureUtil.expandExpandableMeasure(model);
     }
 
     private void convertNonEquiJoinCond(final NDataModel dataModel, final ModelRequest request) {

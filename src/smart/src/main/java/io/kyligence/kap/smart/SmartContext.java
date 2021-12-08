@@ -27,6 +27,9 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.ImmutableList;
@@ -42,6 +45,13 @@ import lombok.Getter;
 
 @Getter
 public class SmartContext extends AbstractContext {
+
+    private ExpandableMeasureUtil expandableMeasureUtil =
+            new ExpandableMeasureUtil((model, ccDesc) -> {
+                String ccExpression = KapQueryUtil.massageComputedColumn(model, model.getProject(), ccDesc, null);
+                ccDesc.setInnerExpression(ccExpression);
+                ComputedColumnEvalUtil.evaluateExprAndType(model, ccDesc);
+            });
 
     public SmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
         super(kylinConfig, project, sqls);
@@ -89,11 +99,22 @@ public class SmartContext extends AbstractContext {
                 continue;
             }
             NDataModel model = modelCtx.getTargetModel();
+            NDataModel updated;
             if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
-                dataModelManager.updateDataModelDesc(model);
+                updated = dataModelManager.updateDataModelDesc(model);
             } else {
-                dataModelManager.createDataModelDesc(model, model.getOwner());
+                updated = dataModelManager.createDataModelDesc(model, model.getOwner());
             }
+
+            // expand measures
+            expandableMeasureUtil.deleteExpandableMeasureInternalMeasures(updated);
+            expandableMeasureUtil.expandExpandableMeasure(updated);
+            updated = dataModelManager.updateDataModelDesc(updated);
+
+            // update and expand index plan as well
+            IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
+            ExpandableMeasureUtil.expandRuleBasedIndex(indexPlan.getRuleBasedIndex(), updated);
+            ExpandableMeasureUtil.expandIndexPlanIndexes(indexPlan, updated);
         }
     }
 

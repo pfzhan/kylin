@@ -28,6 +28,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.optrule.CorrReduceFunctionRule;
 import io.kyligence.kap.query.optrule.KapCountDistinctJoinRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
@@ -286,6 +287,11 @@ public class PlannerFactory {
             planner.addRule(KapAggFilterTransposeRule.AGG_FILTER_JOIN);
             planner.addRule(KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG);
             planner.addRule(KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG);
+        }
+
+        // skip corr expandsion during model suggestion
+        if (!KylinConfig.getInstanceFromEnv().getSkipCorrReduceRule()) {
+            planner.addRule(CorrReduceFunctionRule.INSTANCE);
         }
     }
 

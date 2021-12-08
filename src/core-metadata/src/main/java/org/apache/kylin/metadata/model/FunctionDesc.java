@@ -174,8 +174,7 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_TOP_N = "TOP_N";
     public static final ImmutableSet<String> DIMENSION_AS_MEASURES = ImmutableSet.<String> builder()
             .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
-    public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder().add(FUNC_CORR)
-            .build();
+    public static final ImmutableSet<String> NOT_SUPPORTED_FUNCTION = ImmutableSet.<String> builder().build();
 
     private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
 
@@ -185,6 +184,7 @@ public class FunctionDesc implements Serializable {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, BIGINT);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COLLECT_SET, "ARRAY");
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_CORR, "double");
     }
 
     public static final String PARAMETER_TYPE_CONSTANT = "constant";

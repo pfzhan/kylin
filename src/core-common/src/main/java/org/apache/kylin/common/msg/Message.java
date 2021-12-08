@@ -118,6 +118,10 @@ public class Message {
         return "The definition of this measure  is the same as measure \"%s\". Please modify it.";
     }
 
+    public String getDUPLICATE_INTERNAL_MEASURE_DEFINITION() {
+        return "The definition of this measure  is the same as internal measure \"%s\". Please modify it.";
+    }
+
     public String getDUPLICATE_JOIN_CONDITIONS() {
         return "Can’t create the join condition between \"%s\" and \"%s\", because a same one already exists.";
     }

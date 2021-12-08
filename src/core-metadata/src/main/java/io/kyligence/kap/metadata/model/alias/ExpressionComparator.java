@@ -25,14 +25,19 @@ package io.kyligence.kap.metadata.model.alias;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -138,7 +143,11 @@ public class ExpressionComparator {
                 if (!thisNode.getOperator().getName().equalsIgnoreCase(thatNode.getOperator().getName())) {
                     return false;
                 }
-                return isNodeListEqual(thisNode.getOperandList(), thatNode.getOperandList());
+                if (isCommutativeOperator(thisNode.getOperator())) {
+                    return isNodeListEqualRegardlessOfOrdering(thisNode.getOperandList(), thatNode.getOperandList());
+                } else {
+                    return isNodeListEqual(thisNode.getOperandList(), thatNode.getOperandList());
+                }
             }
             if (queryNode instanceof SqlLiteral) {
                 SqlLiteral thisNode = (SqlLiteral) queryNode;
@@ -206,7 +215,41 @@ public class ExpressionComparator {
                     && querySqlDataTypeSpec.getPrecision() == exprSqlDataTypeSpec.getPrecision();
         }
 
-        protected boolean isNodeListEqual(List<SqlNode> queryNodeList, List<SqlNode> exprNodeList) {
+        // maintain a very limited set of COMMUTATIVE_OPERATORS
+        // as the equal assertion on commutative operation is more costly (O(n^2)) than non commutative operation (O(n))
+        // add new operators here only when necessary
+        private static final Set<SqlKind> COMMUTATIVE_OPERATORS = Sets.newHashSet(
+          SqlKind.PLUS, SqlKind.TIMES
+        );
+
+        private boolean isCommutativeOperator(SqlOperator operator) {
+            return COMMUTATIVE_OPERATORS.contains(operator.getKind());
+        }
+
+        private boolean isNodeListEqualRegardlessOfOrdering(List<SqlNode> queryNodeList, List<SqlNode> exprNodeList) {
+            if (queryNodeList.size() != exprNodeList.size()) {
+                return false;
+            }
+
+            List<SqlNode> remExprNodes = Lists.newLinkedList(exprNodeList);
+            for (SqlNode queryNode : queryNodeList) {
+                int found = -1;
+                for (int i = 0; i < remExprNodes.size(); i++) {
+                    if (isSqlNodeEqual(queryNode, remExprNodes.get(i))) {
+                        found = i;
+                        break;
+                    }
+                }
+
+                if (found == -1) {
+                    return false;
+                }
+                remExprNodes.remove(found);
+            }
+            return true;
+        }
+
+        private boolean isNodeListEqual(List<SqlNode> queryNodeList, List<SqlNode> exprNodeList) {
             if (queryNodeList.size() != exprNodeList.size()) {
                 return false;
             }

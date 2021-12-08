@@ -52,6 +52,7 @@ import org.apache.kylin.measure.basic.BasicMeasureType;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.measure.bitmap.intersect.IntersectMeasureType;
 import org.apache.kylin.measure.collect_set.CollectSetMeasureType;
+import org.apache.kylin.measure.corr.CorrMeasureType;
 import org.apache.kylin.measure.dim.DimCountDistinctMeasureType;
 import org.apache.kylin.measure.extendedcolumn.ExtendedColumnMeasureType;
 import org.apache.kylin.measure.hllc.HLLCMeasureType;
@@ -92,6 +93,7 @@ import com.google.common.collect.Maps;
  * 
  * @param <T> the Java type of aggregation data object, e.g. HLLCounter
  */
+// TODO remove this over complicated factory
 abstract public class MeasureTypeFactory<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(MeasureTypeFactory.class);
@@ -141,6 +143,7 @@ abstract public class MeasureTypeFactory<T> {
         factoryInsts.add(new DimCountDistinctMeasureType.Factory());
         factoryInsts.add(new IntersectMeasureType.Factory());
         factoryInsts.add(new CollectSetMeasureType.Factory());
+        factoryInsts.add(new CorrMeasureType.Factory());
 
         logger.info("Checking custom measure types from kylin config");
 
