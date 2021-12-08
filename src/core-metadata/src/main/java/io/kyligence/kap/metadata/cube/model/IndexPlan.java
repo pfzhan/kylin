@@ -672,7 +672,10 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                 this.toBeDeletedIndexes.add(newIndexEntity);
                 toBeDeletedMap.put(identifier, newIndexEntity);
             }
-            toBeDeletedMap.get(identifier).getLayouts().add(JsonUtil.deepCopyQuietly(layoutEntity, LayoutEntity.class));
+            LayoutEntity layout = JsonUtil.deepCopyQuietly(layoutEntity, LayoutEntity.class);
+            if (!toBeDeletedMap.get(identifier).getLayouts().contains(layout)) {
+                toBeDeletedMap.get(identifier).getLayouts().add(layout);
+            }
         }
 
     }
