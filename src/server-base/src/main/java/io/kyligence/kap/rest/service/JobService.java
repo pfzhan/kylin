@@ -515,24 +515,19 @@ public class JobService extends BasicService {
 
         // waite time in output
         Map<String, String> waiteTimeMap;
-        Map<String, String> pausedTimeMap;
         val output = executable.getOutput();
         try {
             waiteTimeMap = JsonUtil.readValueAsMap(output.getExtra().getOrDefault(NBatchConstants.P_WAITE_TIME, "{}"));
-            pausedTimeMap = JsonUtil
-                    .readValueAsMap(output.getExtra().getOrDefault(NBatchConstants.P_PAUSED_TIME, "{}"));
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             waiteTimeMap = Maps.newHashMap();
-            pausedTimeMap = Maps.newHashMap();
         }
         final String targetSubject = executable.getTargetSubject();
         List<ExecutableStepResponse> executableStepList = new ArrayList<>();
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (AbstractExecutable task : tasks) {
             final ExecutableStepResponse executableStepResponse = parseToExecutableStep(task,
-                    getExecutableManager(project).getOutput(task.getId()), waiteTimeMap, output.getState(),
-                    pausedTimeMap);
+                    getExecutableManager(project).getOutput(task.getId()), waiteTimeMap, output.getState());
             if (task.getStatus() == ExecutableState.ERROR) {
                 executableStepResponse.setFailedStepId(output.getFailedStepId());
                 executableStepResponse.setFailedSegmentId(output.getFailedSegmentId());
@@ -555,10 +550,8 @@ public class JobService extends BasicService {
                     List<StageBase> stageBases = Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList());
                     List<ExecutableStepResponse> stageResponses = Lists.newArrayList();
                     for (StageBase stage : stageBases) {
-                        val pausedStage = segmentId + stage.getId();
-                        val pausedTime = pausedTimeMap.getOrDefault(pausedStage, "0");
                         val stageResponse = parseStageToExecutableStep(task, stage,
-                                getExecutableManager(project).getOutput(stage.getId(), segmentId), pausedTime);
+                                getExecutableManager(project).getOutput(stage.getId(), segmentId));
                         setStage(subStages, stageResponse);
                         stageResponses.add(stageResponse);
 
@@ -570,7 +563,7 @@ public class JobService extends BasicService {
                     // table sampling and snapshot table don't have some segment
                     if (!StringUtils.equals(task.getId(), segmentId)) {
                         setSegmentSubStageParams(project, targetSubject, task, segmentId, segmentSubStages, stageBases,
-                                stageResponses, waiteTimeMap, output.getState(), pausedTimeMap);
+                                stageResponses, waiteTimeMap, output.getState());
                         stringSubStageMap.put(segmentId, segmentSubStages);
                     }
                 }
@@ -658,18 +651,9 @@ public class JobService extends BasicService {
         }
     }
 
-    private long getSegmentDuration(long execStartTime, long execEndTime) {
-        if (execStartTime == 0) {
-            return 0;
-        }
-
-        return execEndTime == 0 ? System.currentTimeMillis() - execStartTime : execEndTime - execStartTime;
-    }
-
     private void setSegmentSubStageParams(String project, String targetSubject, AbstractExecutable task,
             String segmentId, ExecutableStepResponse.SubStages segmentSubStages, List<StageBase> stageBases,
-            List<ExecutableStepResponse> stageResponses, Map<String, String> waiteTimeMap, ExecutableState jobState,
-            Map<String, String> pausedTimeMap) {
+            List<ExecutableStepResponse> stageResponses, Map<String, String> waiteTimeMap, ExecutableState jobState) {
         segmentSubStages.setStage(stageResponses);
 
         // when job restart, taskStartTime is zero
@@ -692,22 +676,21 @@ public class JobService extends BasicService {
                 .min(Long::compare).orElse(0L);
         segmentSubStages.setExecStartTime(execStartTime);
 
-        val execEndTime = stageResponses.stream()//
-                .map(ExecutableStepResponse::getExecEndTime)//
-                .max(Long::compare).orElse(0L);
-        segmentSubStages.setExecEndTime(execEndTime);
-
-        val segmentDuration = getSegmentDuration(execStartTime, execEndTime);
-        var pauseTime = 0L;
-        for (Map.Entry<String, String> entry : pausedTimeMap.entrySet()) {
-            if (StringUtils.startsWith(entry.getKey(), segmentId)) {
-                final String value = pausedTimeMap.getOrDefault(entry.getValue(), "0");
-                if (Long.parseLong(value) > pauseTime) {
-                    pauseTime = Long.parseLong(value);
-                }
-            }
+        // If this segment has running stage, this segment is running, this segment doesn't have end time
+        // If this task is running and this segment has pending stage, this segment is running, this segment doesn't have end time
+        val stageStatuses = stageResponses.stream().map(ExecutableStepResponse::getStatus).collect(Collectors.toSet());
+        if (!stageStatuses.contains(JobStatusEnum.RUNNING)
+                && !(task.getStatus() == ExecutableState.RUNNING && stageStatuses.contains(JobStatusEnum.PENDING))) {
+            val execEndTime = stageResponses.stream()//
+                    .map(ExecutableStepResponse::getExecEndTime)//
+                    .max(Long::compare).orElse(0L);
+            segmentSubStages.setExecEndTime(execEndTime);
         }
-        segmentSubStages.setDuration(segmentDuration - pauseTime);
+
+        val segmentDuration = stageResponses.stream() //
+                .map(ExecutableStepResponse::getDuration) //
+                .mapToLong(Long::valueOf).sum();
+        segmentSubStages.setDuration(segmentDuration);
 
         final Segments<NDataSegment> segmentsByRange = modelService.getSegmentsByRange(targetSubject, project, "", "");
         final NDataSegment segment = segmentsByRange.stream()//
@@ -789,7 +772,7 @@ public class JobService extends BasicService {
     }
 
     private ExecutableStepResponse parseStageToExecutableStep(AbstractExecutable task, StageBase stageBase,
-            Output stageOutput, String pausedTime) {
+            Output stageOutput) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(stageBase.getId());
         result.setName(stageBase.getName());
@@ -809,8 +792,7 @@ public class JobService extends BasicService {
         result.setExecEndTime(AbstractExecutable.getEndTime(stageOutput));
         result.setCreateTime(AbstractExecutable.getCreateTime(stageOutput));
 
-        val duration = AbstractExecutable.getDuration(stageOutput) - Long.parseLong(pausedTime);
-        result.setDuration(duration);
+        result.setDuration(AbstractExecutable.getDuration(stageOutput));
 
         val indexCount = Optional.ofNullable(task.getParam(NBatchConstants.P_INDEX_COUNT)).orElse("0");
         result.setIndexCount(Long.parseLong(indexCount));
@@ -824,7 +806,7 @@ public class JobService extends BasicService {
     }
 
     private ExecutableStepResponse parseToExecutableStep(AbstractExecutable task, Output stepOutput,
-            Map<String, String> waiteTimeMap, ExecutableState jobState, Map<String, String> pausedTimeMap) {
+            Map<String, String> waiteTimeMap, ExecutableState jobState) {
         ExecutableStepResponse result = new ExecutableStepResponse();
         result.setId(task.getId());
         result.setName(task.getName());
@@ -845,9 +827,7 @@ public class JobService extends BasicService {
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
         result.setCreateTime(AbstractExecutable.getCreateTime(stepOutput));
 
-        long pausedTime = Long.parseLong(pausedTimeMap.getOrDefault(task.getId(), "0"));
-        val duration = AbstractExecutable.getDuration(stepOutput) - pausedTime;
-        result.setDuration(duration);
+        result.setDuration(AbstractExecutable.getDuration(stepOutput));
         // if resume job, need sum of waite time
         long waiteTime = Long.parseLong(waiteTimeMap.getOrDefault(task.getId(), "0"));
         if (jobState != ExecutableState.PAUSED) {

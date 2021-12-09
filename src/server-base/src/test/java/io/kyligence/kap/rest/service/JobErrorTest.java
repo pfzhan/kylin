@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.exception.ErrorCode;
@@ -304,7 +303,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         var failedStack = ExceptionUtils.getStackTrace(new KylinException(FAILED_UPDATE_JOB_STATUS, "test"));
         var failedReason = new KylinException(FAILED_UPDATE_JOB_STATUS, "test").getMessage();
 
+        manager.updateJobError(jobId, jobId, failedSegmentId, failedStack, failedReason);
         var output = manager.getJob(jobId).getOutput();
+        Assert.assertNull(output.getFailedStepId());
+        Assert.assertNull(output.getFailedSegmentId());
+        Assert.assertNull(output.getFailedStack());
+        Assert.assertNull(output.getFailedReason());
 
         manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
@@ -387,34 +391,6 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetPausedTimeFromLastModify() {
-        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
-        val executable = new SucceedTestExecutable();
-        executable.setProject(getProject());
-        executable.setId(RandomUtil.randomUUIDStr());
-        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        manager.addJob(executable);
-
-        var output = manager.getOutput(executable.getId());
-        long pausedTimeFromLastModify = AbstractExecutable.getPausedTimeFromLastModify(output);
-        Assert.assertEquals(0, pausedTimeFromLastModify);
-
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
-        output = manager.getOutput(executable.getId());
-        pausedTimeFromLastModify = AbstractExecutable.getPausedTimeFromLastModify(output);
-        val pausedTimeFromLastModifyFromExecutable = executable.getPausedTimeFromLastModify();
-        Assert.assertTrue(pausedTimeFromLastModify <= pausedTimeFromLastModifyFromExecutable);
-
-        ((DefaultOutput) output).setState(ExecutableState.SUCCEED);
-        pausedTimeFromLastModify = AbstractExecutable.getPausedTimeFromLastModify(output);
-        Assert.assertEquals(0, pausedTimeFromLastModify);
-
-        ((DefaultOutput) output).setState(ExecutableState.SKIP);
-        pausedTimeFromLastModify = AbstractExecutable.getPausedTimeFromLastModify(output);
-        Assert.assertEquals(0, pausedTimeFromLastModify);
-    }
-
-    @Test
     public void testGetDuration() throws InterruptedException {
         val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedTestExecutable();
@@ -445,123 +421,98 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetDurationWithoutWaiteTimeFromTwoSegment() throws JsonProcessingException {
-        for (int i = 1; i < 3; i++) {
-            val segmentId = RandomUtil.randomUUIDStr();
-            val segmentId2 = RandomUtil.randomUUIDStr();
+        val segmentId = RandomUtil.randomUUIDStr();
+        val segmentId2 = RandomUtil.randomUUIDStr();
 
-            val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
-            val executable = new SucceedChainedTestExecutable();
-            executable.setProject(getProject());
-            executable.setId(RandomUtil.randomUUIDStr());
-            executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
-            val sparkExecutable = new NSparkExecutable();
-            sparkExecutable.setProject(getProject());
-            sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId + "," + segmentId2);
-            sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
-            sparkExecutable.setId(RandomUtil.randomUUIDStr());
-            executable.addTask(sparkExecutable);
+        val sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject(getProject());
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId + "," + segmentId2);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
+        executable.addTask(sparkExecutable);
 
-            val build1 = new NStageForBuild(RandomUtil.randomUUIDStr());
-            build1.setProject(getProject());
-            val build2 = new NStageForMerge(RandomUtil.randomUUIDStr());
-            build2.setProject(getProject());
-            val build3 = new NStageForSnapshot(RandomUtil.randomUUIDStr());
-            build3.setProject(getProject());
-            final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
-            final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
-            final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
-            sparkExecutable.setStageMap();
+        val build1 = new NStageForBuild(RandomUtil.randomUUIDStr());
+        build1.setProject(getProject());
+        val build2 = new NStageForMerge(RandomUtil.randomUUIDStr());
+        build2.setProject(getProject());
+        val build3 = new NStageForSnapshot(RandomUtil.randomUUIDStr());
+        build3.setProject(getProject());
+        final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
 
-            manager.addJob(executable);
+        manager.addJob(executable);
 
-            Map<String, String> info = Maps.newHashMap();
-            if (i == 2) {
-                Map<String, String> pauseTimeMap = Maps.newHashMap();
-                pauseTimeMap.put(sparkExecutable.getId(), "1");
-                pauseTimeMap.put(segmentId + logicStep1.getId(), "1");
-                pauseTimeMap.put(segmentId + logicStep2.getId(), "1");
-                pauseTimeMap.put(segmentId + logicStep3.getId(), "1");
-                info.put(NBatchConstants.P_PAUSED_TIME, JsonUtil.writeValueAsString(pauseTimeMap));
-            }
-            manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, info);
-            manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
-            manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
-            manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
-            manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
+        manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
 
-            val durationWithoutWaiteTime = executable.getDurationWithoutPausedTime();
+        val durationWithoutWaiteTime = executable.getDurationFromStepOrStageDurationSum();
 
-            int finalI = i;
-            val sumDuration = ((ChainedExecutable) executable).getTasks().stream()
-                    .map(exe -> finalI == 2 ? exe.getDuration() - 1 : exe.getDuration()).mapToLong(Long::valueOf).sum();
-            Assert.assertTrue(sumDuration >= durationWithoutWaiteTime);
-        }
+        val sumDuration = ((ChainedExecutable) executable).getTasks().stream().map(exe -> exe.getDuration())
+                .mapToLong(Long::valueOf).sum();
+        Assert.assertTrue(sumDuration >= durationWithoutWaiteTime);
     }
 
     @Test
     public void testGetDurationWithoutWaiteTimeFromSingleSegment() throws JsonProcessingException {
-        for (int i = 1; i < 3; i++) {
-            val segmentId = RandomUtil.randomUUIDStr();
+        val segmentId = RandomUtil.randomUUIDStr();
 
-            val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
-            val executable = new SucceedChainedTestExecutable();
-            executable.setProject(getProject());
-            executable.setId(RandomUtil.randomUUIDStr());
-            executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
+        val executable = new SucceedChainedTestExecutable();
+        executable.setProject(getProject());
+        executable.setId(RandomUtil.randomUUIDStr());
+        executable.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
-            val sparkExecutable = new NSparkExecutable();
-            sparkExecutable.setProject(getProject());
-            sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
-            sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
-            sparkExecutable.setId(RandomUtil.randomUUIDStr());
-            executable.addTask(sparkExecutable);
+        val sparkExecutable = new NSparkExecutable();
+        sparkExecutable.setProject(getProject());
+        sparkExecutable.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
+        sparkExecutable.setParam(NBatchConstants.P_INDEX_COUNT, "10");
+        sparkExecutable.setId(RandomUtil.randomUUIDStr());
+        executable.addTask(sparkExecutable);
 
-            val build1 = new NStageForBuild(RandomUtil.randomUUIDStr());
-            build1.setProject(getProject());
-            val build2 = new NStageForMerge(RandomUtil.randomUUIDStr());
-            build2.setProject(getProject());
-            val build3 = new NStageForSnapshot(RandomUtil.randomUUIDStr());
-            build3.setProject(getProject());
-            final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
-            final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
-            final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
-            sparkExecutable.setStageMap();
+        val build1 = new NStageForBuild(RandomUtil.randomUUIDStr());
+        build1.setProject(getProject());
+        val build2 = new NStageForMerge(RandomUtil.randomUUIDStr());
+        build2.setProject(getProject());
+        val build3 = new NStageForSnapshot(RandomUtil.randomUUIDStr());
+        build3.setProject(getProject());
+        final StageBase logicStep1 = (StageBase) sparkExecutable.addStage(build1);
+        final StageBase logicStep2 = (StageBase) sparkExecutable.addStage(build2);
+        final StageBase logicStep3 = (StageBase) sparkExecutable.addStage(build3);
+        sparkExecutable.setStageMap();
 
-            manager.addJob(executable);
+        manager.addJob(executable);
 
-            Map<String, String> info = Maps.newHashMap();
-            if (i == 2) {
-                Map<String, String> pauseTimeMap = Maps.newHashMap();
-                pauseTimeMap.put(sparkExecutable.getId(), "1");
-                pauseTimeMap.put(segmentId + logicStep1.getId(), "1");
-                pauseTimeMap.put(segmentId + logicStep2.getId(), "1");
-                pauseTimeMap.put(segmentId + logicStep3.getId(), "1");
-                info.put(NBatchConstants.P_PAUSED_TIME, JsonUtil.writeValueAsString(pauseTimeMap));
+        Map<String, String> info = Maps.newHashMap();
+
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, info);
+        manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
+        manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
+        manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
+
+        val durationWithoutWaiteTime = executable.getDurationFromStepOrStageDurationSum();
+
+        val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) executable).getTasks().get(0)).getStagesMap();
+
+        await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            var sumDuration = 0L;
+            for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
+                sumDuration = entry.getValue().stream().map(stage -> stage.getOutput(entry.getKey()))
+                        .map(AbstractExecutable::getDuration).mapToLong(Long::valueOf).sum();
             }
-            manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, info);
-            manager.updateJobOutput(sparkExecutable.getId(), ExecutableState.RUNNING);
-            manager.updateStageStatus(logicStep1.getId(), null, ExecutableState.RUNNING, null, null);
-            manager.updateStageStatus(logicStep2.getId(), null, ExecutableState.RUNNING, null, null);
-            manager.updateStageStatus(logicStep3.getId(), null, ExecutableState.RUNNING, null, null);
-
-            val durationWithoutWaiteTime = executable.getDurationWithoutPausedTime();
-
-            val stagesMap = ((ChainedStageExecutable) ((ChainedExecutable) executable).getTasks().get(0))
-                    .getStagesMap();
-
-            AtomicLong sumDuration = new AtomicLong(0L);
-            int finalI = i;
-            await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-                for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
-                    sumDuration.set(entry.getValue().stream().map(stage -> stage.getOutput(entry.getKey()))
-                            .map(output -> finalI == 2 ? AbstractExecutable.getDuration(output) - 1
-                                    : AbstractExecutable.getDuration(output))
-                            .mapToLong(Long::valueOf).sum());
-                }
-                Assert.assertNotEquals(0, sumDuration.get());
-                Assert.assertTrue(sumDuration.get() >= durationWithoutWaiteTime);
-            });
-        }
+            Assert.assertTrue(sumDuration != 0);
+            Assert.assertTrue(sumDuration >= durationWithoutWaiteTime);
+        });
     }
 }

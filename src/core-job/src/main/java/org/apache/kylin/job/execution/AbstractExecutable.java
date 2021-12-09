@@ -46,7 +46,6 @@ import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IllegalFormatException;
@@ -64,7 +63,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.MailHelper;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.StringUtil;
@@ -650,33 +648,21 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     // just using to get job duration in get job list
-    public long getDurationWithoutPausedTime() {
-        // waite time in output
-        Map<String, String> pausedTimeMap;
-        try {
-            pausedTimeMap = JsonUtil
-                    .readValueAsMap(getOutput().getExtra().getOrDefault(NBatchConstants.P_PAUSED_TIME, "{}"));
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-            pausedTimeMap = Maps.newHashMap();
-        }
+    public long getDurationFromStepOrStageDurationSum() {
         var duration = getDuration();
         if (this instanceof ChainedExecutable) {
             val tasks = ((ChainedExecutable) this).getTasks();
             val jobAtomicDuration = new AtomicLong(0);
-            val finalPausedTimeMap = pausedTimeMap;
             tasks.forEach(task -> {
-                long pausedTime = Long.parseLong(finalPausedTimeMap.getOrDefault(task.getId(), "0"));
-                var taskDuration = task.getDuration() - pausedTime;
+                var taskDuration = task.getDuration();
                 if (task instanceof ChainedStageExecutable) {
                     val stagesMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (stagesMap.size() == 1) {
                         for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
-                            taskDuration = entry.getValue().stream().map(stage -> {
-                                val pausedStage = entry.getKey() + stage.getId();
-                                val stagePausedTime = finalPausedTimeMap.getOrDefault(pausedStage, "0");
-                                return getDuration(stage.getOutput(entry.getKey())) - Long.parseLong(stagePausedTime);
-                            }).mapToLong(Long::valueOf).sum();
+                            taskDuration = entry.getValue().stream()
+                                    .map(stage -> getDuration(stage.getOutput(entry.getKey()))) //
+                                    .mapToLong(Long::valueOf) //
+                                    .sum();
                         }
                     }
                 }
@@ -692,36 +678,18 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public static long getDuration(Output output) {
+        if (output.getDuration() != 0) {
+            var duration = output.getDuration();
+            if (ExecutableState.RUNNING == output.getState()) {
+                duration = duration + System.currentTimeMillis() - output.getLastModified();
+            }
+            return duration;
+        }
         if (output.getStartTime() == 0) {
             return 0;
         }
-        if (output.getEndTime() == 0) {
-            if (output.getState() == ExecutableState.PAUSED && output.getLastModified() != 0) {
-                return output.getLastModified() - output.getStartTime();
-            }
-            return System.currentTimeMillis() - output.getStartTime();
-        }
-        if (output.getState() == ExecutableState.READY && output.getLastModified() != 0) {
-            return output.getLastModified() - output.getStartTime();
-        }
-
-        return output.getEndTime() - output.getStartTime();
-    }
-
-    public long getPausedTimeFromLastModify() {
-        return getPausedTimeFromLastModify(getOutput());
-    }
-
-    public static long getPausedTimeFromLastModify(Output output) {
-        if (output.getStartTime() == 0 || output.getLastModified() == 0) {
-            return 0;
-        }
-
-        if (output.getState() == ExecutableState.SUCCEED || output.getState() == ExecutableState.SKIP) {
-            return 0;
-        }
-
-        return System.currentTimeMillis() - output.getLastModified();
+        return output.getEndTime() == 0 ? System.currentTimeMillis() - output.getStartTime()
+                : output.getEndTime() - output.getStartTime();
     }
 
     public long getWaitTime() {

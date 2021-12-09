@@ -478,6 +478,7 @@ public class NExecutableManager {
         result.setStartTime(jobOutput.getStartTime());
         result.setEndTime(jobOutput.getEndTime());
         result.setWaitTime(jobOutput.getWaitTime());
+        result.setDuration(jobOutput.getDuration());
         result.setCreateTime(jobOutput.getCreateTime());
         result.setByteSize(jobOutput.getByteSize());
         result.setShortErrMsg(jobOutput.getFailedMsg());
@@ -721,7 +722,6 @@ public class NExecutableManager {
             throw new KylinException(FAILED_UPDATE_JOB_STATUS, String.format(Locale.ROOT,
                     MsgPicker.getMsg().getInvalidJobStatusTransaction(), "RESUME", jobId, job.getStatus()));
         }
-        val pausedTime = getPausedTime(job);
 
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
@@ -733,12 +733,6 @@ public class NExecutableManager {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
-                            // when resume job, update stage last modified time from calculate duration
-                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
-                                    .stream() //
-                                    .filter(stage -> stage.getStatus(entry.getKey()) == ExecutableState.READY)//
-                                    .forEach(stage -> //
-                            updateStageStatus(stage.getId(), entry.getKey(), null, null, null));
                             // update running stage to ready
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
@@ -752,50 +746,7 @@ public class NExecutableManager {
             });
         }
 
-        updateJobOutput(jobId, ExecutableState.READY, pausedTime);
-    }
-
-    public Map<String, String> getPausedTime(AbstractExecutable job) {
-        try {
-            val oldInfo = Optional.ofNullable(job.getOutput().getExtra()).orElse(Maps.newHashMap());
-            Map<String, String> info = Maps.newHashMap(oldInfo);
-            if (job instanceof DefaultChainedExecutable) {
-                Map<String, String> pausedTime = JsonUtil
-                        .readValueAsMap(info.getOrDefault(NBatchConstants.P_PAUSED_TIME, "{}"));
-
-                final List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-                for (AbstractExecutable task : tasks) {
-                    val pauseTime = task.getPausedTimeFromLastModify();
-                    val oldPauseTime = Long.parseLong(pausedTime.getOrDefault(task.getId(), "0"));
-                    pausedTime.put(task.getId(), String.valueOf(pauseTime + oldPauseTime));
-                    if (task instanceof ChainedStageExecutable) {
-                        final ChainedStageExecutable stageExecutable = (ChainedStageExecutable) task;
-                        Map<String, List<StageBase>> stageMap = Optional.ofNullable(stageExecutable.getStagesMap())
-                                .orElse(Maps.newHashMap());
-
-                        for (Map.Entry<String, List<StageBase>> entry : stageMap.entrySet()) {
-                            final String segmentId = entry.getKey();
-                            if (pausedTime.containsKey(segmentId)) {
-                                break;
-                            }
-                            val stageBases = Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList());
-                            for (StageBase stageBase : stageBases) {
-                                val pausedStage = segmentId + stageBase.getId();
-
-                                val stagePauseTime = stageBase.getPausedTimeFromLastModify(entry.getKey());
-                                val oldStagePauseTime = Long.parseLong(pausedTime.getOrDefault(pausedStage, "0"));
-                                pausedTime.put(pausedStage, String.valueOf(stagePauseTime + oldStagePauseTime));
-                            }
-                        }
-                    }
-                }
-                info.put(NBatchConstants.P_PAUSED_TIME, JsonUtil.writeValueAsString(pausedTime));
-            }
-            return info;
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-            return null;
-        }
+        updateJobOutput(jobId, ExecutableState.READY);
     }
 
     public void restartJob(String jobId) {
@@ -880,7 +831,6 @@ public class NExecutableManager {
         // restart waite time
         Map<String, String> info = Maps.newHashMap();
         info.put(NBatchConstants.P_WAITE_TIME, "{}");
-        info.put(NBatchConstants.P_PAUSED_TIME, "{}");
         updateJobOutput(jobId, ExecutableState.READY, info);
     }
 
@@ -1003,14 +953,6 @@ public class NExecutableManager {
                     final Map<String, List<StageBase>> tasksMap = ((ChainedStageExecutable) task).getStagesMap();
                     if (MapUtils.isNotEmpty(tasksMap)) {
                         for (Map.Entry<String, List<StageBase>> entry : tasksMap.entrySet()) {
-                            // when paused job, update stage last modified time from calculate duration
-                            Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
-                                    .stream() //
-                                    .filter(stage -> stage.getStatus(entry.getKey()) != ExecutableState.RUNNING
-                                            && stage.getStatus(entry.getKey()) != ExecutableState.SUCCEED
-                                            && stage.getStatus(entry.getKey()) != ExecutableState.SKIP)//
-                                    .forEach(stage -> //
-                            updateStageStatus(stage.getId(), entry.getKey(), null, null, null));
                             // pause running stage
                             Optional.ofNullable(entry.getValue()).orElse(Lists.newArrayList())//
                                     .stream() //
@@ -1361,12 +1303,14 @@ public class NExecutableManager {
 
         if (oldStatus == ExecutableState.RUNNING) {
             jobOutput.addEndTime(time);
+            jobOutput.addDuration(time);
             return;
         }
 
         switch (newStatus) {
         case RUNNING:
             jobOutput.addStartTime(time);
+            jobOutput.addLastRunningStartTime(time);
             break;
         case SKIP:
         case SUICIDAL:

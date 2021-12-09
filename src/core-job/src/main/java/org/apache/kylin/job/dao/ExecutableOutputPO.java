@@ -94,6 +94,12 @@ public class ExecutableOutputPO implements Serializable {
     @JsonProperty("wait_time")
     private long waitTime;
 
+    @JsonProperty("duration")
+    private long duration;
+
+    @JsonProperty("last_running_start_time")
+    private long lastRunningStartTime;
+
     @JsonProperty("is_resumable")
     private boolean resumable = false;
 
@@ -128,10 +134,22 @@ public class ExecutableOutputPO implements Serializable {
         endTime = time;
     }
 
+    public void addDuration(long time) {
+        if (time != 0 && time > lastRunningStartTime) {
+            duration = duration + time - lastRunningStartTime;
+        }
+    }
+
+    public void addLastRunningStartTime(long time) {
+        lastRunningStartTime = time;
+    }
+
     public void resetTime() {
         createTime = System.currentTimeMillis();
         startTime = 0L;
         endTime = 0L;
         waitTime = 0L;
+        duration = 0L;
+        lastRunningStartTime = 0L;
     }
 }

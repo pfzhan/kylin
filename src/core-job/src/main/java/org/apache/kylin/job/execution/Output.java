@@ -57,6 +57,8 @@ public interface Output {
 
     long getWaitTime();
 
+    long getDuration();
+
     Map<String, String> getExtra();
 
     String getVerboseMsg();

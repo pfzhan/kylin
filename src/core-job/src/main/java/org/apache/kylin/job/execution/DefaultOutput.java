@@ -65,6 +65,7 @@ public class DefaultOutput implements Output {
     private long startTime;
     private long endTime;
     private long waitTime;
+    private long duration;
     private long createTime;
     private long byteSize;
     private String shortErrMsg;
