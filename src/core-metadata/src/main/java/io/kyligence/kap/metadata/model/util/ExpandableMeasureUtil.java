@@ -189,7 +189,7 @@ public class ExpandableMeasureUtil {
                 for (FunctionDesc internalFunc : internalFuncs) {
                     for (int i = 0; i < internalFunc.getParameters().size(); i++) {
                         ParameterDesc param = internalFunc.getParameters().get(i);
-                        if (param.getType() != FunctionDesc.PARAMETER_TYPE_MATH_EXPRESSION) {
+                        if (!param.getType().equalsIgnoreCase(FunctionDesc.PARAMETER_TYPE_MATH_EXPRESSION)) {
                             continue;
                         }
 
