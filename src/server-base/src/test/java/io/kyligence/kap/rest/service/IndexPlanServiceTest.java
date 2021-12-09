@@ -359,6 +359,11 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
             }
         });
         dfManager.updateDataflowDetailsLayouts(readySegs.getLatestReadySegment(), lists);
+        indexPlanManager.updateIndexPlan(id, copyForWrite -> {
+            copyForWrite.markIndexesToBeDeleted(copyForWrite.getId(), saved.getRuleBaseLayouts().stream()
+                    .filter(layoutEntity -> layoutEntity.getColOrder().size() == 3).collect(Collectors.toSet()));
+        });
+
         aggregationGroup = getNAggregationGroup(new Integer[] { 100000, 100005 });
         var res = indexPlanService
                 .updateRuleBasedCuboid("default",
