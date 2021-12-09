@@ -60,6 +60,7 @@ import org.apache.spark.application.NoRetryException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -288,6 +289,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(failedReason, output.getFailedReason());
     }
 
+    @Ignore
     @Test
     public void testUpdateJobErrorManager() throws InterruptedException {
         val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
