@@ -404,6 +404,7 @@ public class NSparkExecutable extends AbstractExecutable implements ChainedStage
 
             return ExecuteResult.createSucceed(r.getCmd());
         } catch (Exception e) {
+            wrapWithExecuteExceptionUpdateJobError(e);
             return ExecuteResult.createError(e);
         }
     }

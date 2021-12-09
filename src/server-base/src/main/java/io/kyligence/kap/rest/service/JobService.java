@@ -388,6 +388,7 @@ public class JobService extends BasicService {
         switch (JobActionEnum.valueOf(action.toUpperCase(Locale.ROOT))) {
         case RESUME:
             SecondStorageUtil.checkJobResume(project, jobId);
+            executableManager.updateJobError(jobId, null, null, null, null);
             executableManager.resumeJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             MetricsGroup.hostTagCounterInc(MetricsName.JOB_RESUMED, MetricsCategory.PROJECT, project);
@@ -395,6 +396,7 @@ public class JobService extends BasicService {
         case RESTART:
             SecondStorageUtil.checkJobRestart(project, jobId);
             killExistApplication(project, jobId);
+            executableManager.updateJobError(jobId, null, null, null, null);
             executableManager.restartJob(jobId);
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             break;

@@ -1147,16 +1147,14 @@ public class NExecutableManager {
             String failedReason) {
         val jobId = extractJobId(taskOrJobId);
 
-        if (StringUtils.equals(jobId, failedStepId)) {
-            return;
-        }
-
         executableDao.updateJob(jobId, job -> {
             ExecutableOutputPO jobOutput = job.getOutput();
-            jobOutput.setFailedStepId(failedStepId);
-            jobOutput.setFailedSegmentId(failedSegmentId);
-            jobOutput.setFailedStack(failedStack);
-            jobOutput.setFailedReason(failedReason);
+            if (jobOutput.getFailedReason() == null || failedReason == null) {
+                jobOutput.setFailedStepId(failedStepId);
+                jobOutput.setFailedSegmentId(failedSegmentId);
+                jobOutput.setFailedStack(failedStack);
+                jobOutput.setFailedReason(failedReason);
+            }
             return true;
         });
     }

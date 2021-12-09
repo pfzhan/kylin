@@ -237,6 +237,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
                 executableStepResponse.getFailedReason());
 
         // test default reason / code / resolve
+        manager.updateJobError(jobId, null, null, null, null);
         jobService.updateJobError(project, jobId, failedStepId, failedSegmentId, failedStack, "test");
         jobService.setExceptionResolveAndCodeAndReason(executable.getOutput(), executableStepResponse);
         Assert.assertEquals(JobExceptionResolve.JOB_BUILDING_ERROR.toExceptionResolve().getResolve(),
@@ -289,7 +290,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateJobErrorManager() {
+    public void testUpdateJobErrorManager() throws InterruptedException {
         val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
         val executable = new SucceedChainedTestExecutable();
         executable.setProject(getProject());
@@ -312,6 +313,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(failedStack, output.getFailedStack());
         Assert.assertEquals(failedReason, output.getFailedReason());
 
+        manager.updateJobError(jobId, null, null, null, null);
         manager.updateJobError(jobId, "", failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals("", output.getFailedStepId());
@@ -319,6 +321,7 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(failedStack, output.getFailedStack());
         Assert.assertEquals(failedReason, output.getFailedReason());
 
+        manager.updateJobError(jobId, null, null, null, null);
         manager.updateJobError(jobId, failedStepId, null, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
