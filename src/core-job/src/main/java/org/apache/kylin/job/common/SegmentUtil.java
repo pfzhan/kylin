@@ -94,13 +94,14 @@ public class SegmentUtil {
             return SegmentStatusEnumToDisplay.LOCKED;
         }
 
+        if (anyIndexJobRunning(segment, executables)) {
+            return SegmentStatusEnumToDisplay.LOADING;
+        }
+
         if (SegmentStatusEnum.WARNING == segment.getStatus()) {
             return SegmentStatusEnumToDisplay.WARNING;
         }
 
-        if (anyIndexJobRunning(segment, executables)) {
-            return SegmentStatusEnumToDisplay.LOADING;
-        }
         return SegmentStatusEnumToDisplay.ONLINE;
     }
 

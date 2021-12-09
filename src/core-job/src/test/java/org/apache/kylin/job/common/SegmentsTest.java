@@ -130,8 +130,15 @@ public class SegmentsTest {
         seg.setStatus(SegmentStatusEnum.WARNING);
         segments.add(seg);
 
+        PowerMockito.mockStatic(SegmentUtil.class);
+        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
+        PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(false);
+        SegmentStatusEnumToDisplay status = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
+        Assert.assertEquals(SegmentStatusEnumToDisplay.WARNING, status);
+        PowerMockito.when(SegmentUtil.getSegmentStatusToDisplay(segments, seg, null)).thenCallRealMethod();
+        PowerMockito.when(SegmentUtil.anyIndexJobRunning(seg)).thenReturn(true);
         SegmentStatusEnumToDisplay status2 = SegmentUtil.getSegmentStatusToDisplay(segments, seg, null);
-        Assert.assertEquals(status2, SegmentStatusEnumToDisplay.WARNING);
+        Assert.assertEquals(SegmentStatusEnumToDisplay.LOADING, status2);
     }
 
     @Test
