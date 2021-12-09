@@ -90,7 +90,10 @@ KYLIN_OUT=${KYLIN_HOME}/logs/kylin.out
 
 if [ "$1" == "start" ] || [ "$1" == "spawn" ]
 then
-    logRotate $ERR_LOG
-    logRotate $OUT_LOG
-    logRotate $KYLIN_OUT
+    # avoid re-entering
+    if [[ ! -n ${KYLIN_SKIP_ROTATE_LOG} ]]; then
+        logRotate $ERR_LOG
+        logRotate $OUT_LOG
+        logRotate $KYLIN_OUT
+    fi
 fi

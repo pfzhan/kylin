@@ -28,10 +28,6 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
-source ${KYLIN_HOME}/sbin/init-kerberos.sh
-## init Kerberos if needed
-initKerberosIfNeeded
-
 echo "Checking Zookeeper role..."
 
 zk_connect_string=`${KYLIN_HOME}/bin/get-properties.sh kylin.env.zookeeper-connect-string`

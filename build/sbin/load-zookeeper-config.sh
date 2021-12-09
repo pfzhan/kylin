@@ -39,3 +39,4 @@ function fetchFIZkInfo(){
         fi
     fi
 }
+fetchFIZkInfo
