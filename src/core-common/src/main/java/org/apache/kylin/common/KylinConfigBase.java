@@ -1385,6 +1385,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.engine.spark-conf.spark.master", "yarn").toLowerCase(Locale.ROOT);
     }
 
+    public String getKubernetesNameSpace() {
+        return getOptional("kylin.engine.spark-conf.spark.kubernetes.namespace", "default").toLowerCase(Locale.ROOT);
+    }
+
     public String getDeployMode() {
         return getOptional("kylin.engine.spark-conf.spark.submit.deployMode", "client").toLowerCase(Locale.ROOT);
     }

@@ -38,6 +38,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cluster.ClusterManagerFactory;
+import io.kyligence.kap.cluster.IClusterManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -137,14 +139,30 @@ public class ProcessStatusListener {
                             killProc.exitValue());
                     if (!ProcessUtils.isAlive(pid)) {
                         log.info("Destroy process {} of job {} SUCCEED.", pid, jobId);
-                        return;
+                    } else {
+                        log.info("Destroy process {} of job {} FAILED.", pid, jobId);
                     }
-                    log.info("Destroy process {} of job {} FAILED.", pid, jobId);
                 } else {
                     log.warn("Destroy process {} of job {} TIMEOUT exceed {}s.", pid, jobId, CMD_EXEC_TIMEOUT_SEC);
                 }
             } catch (Exception e) {
                 log.error("Destroy process of job {} FAILED.", jobId, e);
+            }
+
+            if (KylinConfig.getInstanceFromEnv().getSparkMaster().startsWith("k8s")) {
+                try {
+                    val applicationName = "job_step_" + jobId;
+                    log.info("Start to kill spark application {} of job {}", applicationName, jobId);
+                    final IClusterManager cm = ClusterManagerFactory.create(KylinConfig.getInstanceFromEnv());
+                    cm.killApplication(jobId);
+                    if (!cm.applicationExisted(jobId)) {
+                        log.info("Kill spark application {} of job {} SUCCEED.", applicationName, jobId);
+                    } else {
+                        log.info("Kill spark application {} of job {} FAILED.", applicationName, jobId);
+                    }
+                } catch (Exception e) {
+                    log.error("Kill spark application {} FAILED.", jobId, e);
+                }
             }
         } else {
             log.info("Ignore not alive process {} of job {}", pid, jobId);
