@@ -19,7 +19,7 @@ export default {
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
-      state.modelsList = result.list
+      state.modelsList = [...result.list]
       state.modelsTotal = result.total
     },
     [types.CACHE_MODEL_EDIT]: function (state, result) {

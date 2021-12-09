@@ -406,6 +406,9 @@ function getDefaultFilters (that) {
       if (vm.platform === 'iframe' && vm.filterModelNameByKC) {
         vm.filterArgs.model_alias_or_owner = vm.filterModelNameByKC
         vm.filterArgs.exact = true
+        vm.$nextTick(() => {
+          vm.updateFilterModelByCloud('')
+        })
       }
       // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的
       vm.filterArgs.project = vm.currentSelectedProject
@@ -559,6 +562,7 @@ export default class ModelList extends Vue {
       this.filterArgs.exact = true
       this.$nextTick(() => {
         this.loadModelsList()
+        this.updateFilterModelByCloud('')
       })
     }
   }

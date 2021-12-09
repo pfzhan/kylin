@@ -1461,6 +1461,12 @@ export default class JobsList extends Vue {
       margin: 10px 0;
       padding-left: 10px;
       color: @text-title-color;
+      .el-checkbox__input {
+        font-size: inherit;
+        .el-checkbox__inner {
+          vertical-align: middle;
+        }
+      }
       .el-checkbox__label {
         color: @text-title-color;
       }
