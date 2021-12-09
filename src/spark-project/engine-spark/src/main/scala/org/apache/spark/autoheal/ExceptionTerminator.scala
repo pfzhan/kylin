@@ -53,6 +53,7 @@ object ExceptionTerminator extends Logging {
       case _: RuntimeException =>
         resolveRuntimeException(env, rl.throwable)
       case _ =>
+        logWarning(s"Retry with increasing memory, caused by: ${rl.throwable}")
         incMemory(env)
     }
     result match {
