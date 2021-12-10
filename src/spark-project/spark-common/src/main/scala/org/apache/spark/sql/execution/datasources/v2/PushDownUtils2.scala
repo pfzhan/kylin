@@ -17,13 +17,13 @@
 
 package org.apache.spark.sql.execution.datasources.v2
 
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, AttributeSet, Expression, NamedExpression, PredicateHelper, SchemaPruning, SubqueryExpression}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, AttributeSet, BinaryComparison, Expression, NamedExpression, PredicateHelper, SchemaPruning, SubqueryExpression}
 import org.apache.spark.sql.catalyst.util.CharVarcharUtils
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 import org.apache.spark.sql.execution.datasources.DataSourceStrategy
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{DecimalType, StructType}
 
 import scala.collection.mutable
 
@@ -47,7 +47,9 @@ object PushDownUtils2 extends PredicateHelper {
         // Catalyst filter expression that can't be translated to data source filters.
         val untranslatableExprs = mutable.ArrayBuffer.empty[Expression]
 
-        for (filterExpr <- filters) {
+        val (unsupportedFilters, supportedFilters) = filters.partition(unsupportedFilter(_))
+
+        for (filterExpr <- supportedFilters) {
           val translated =
             DataSourceStrategy.translateFilterWithMapping(filterExpr, Some(translatedFilterToExpr),
               nestedPredicatePushdownEnabled = true)
@@ -64,11 +66,17 @@ object PushDownUtils2 extends PredicateHelper {
         val postScanFilters = r.pushFilters(translatedFilters.toArray).map { filter =>
           DataSourceStrategy.rebuildExpressionFromFilter(filter, translatedFilterToExpr)
         }
-        (r.pushedFilters(), (untranslatableExprs ++ postScanFilters).toSeq)
+        (r.pushedFilters(), unsupportedFilters ++ untranslatableExprs ++ postScanFilters)
 
       case _ => (Nil, filters)
     }
   }
+
+  private def unsupportedFilter(filter: Expression): Boolean = filter.find {
+    case b @ BinaryComparison(column, value) =>
+      DecimalType.acceptsType(column.dataType) || DecimalType.acceptsType(value.dataType)
+    case _ => false
+  }.nonEmpty
 
   /**
    * Applies column pruning to the data source, w.r.t. the references of the given expressions.

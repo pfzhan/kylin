@@ -36,6 +36,7 @@ import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
+import org.apache.spark.sql.types.Decimal;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -43,6 +44,7 @@ import org.junit.Test;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import scala.collection.JavaConverters;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Locale;
@@ -80,6 +82,43 @@ public class ClickHouseV2QueryTest extends NLocalWithSparkSessionTest {
         SparderEnv.getSparkSession().sessionState().conf().setConfString(
                 catalogPrefix + ".driver",
                 clickhouse.getDriverClassName());
+    }
+
+    private void executeAndCheck(String sql, List<Row> expectedRow) {
+        Dataset<Row> dataset = ss.sql(sql);
+        List<Row> results1 = dataset.collectAsList();
+        Assert.assertEquals(expectedRow, results1);
+
+        ShardJDBCScan shardJDBCScan = ClickHouseUtils.findShardScan(dataset.queryExecution().optimizedPlan());
+        Assert.assertEquals(1, shardJDBCScan.relation().parts().length);
+    }
+
+    @Test
+    public void testFilterPushDown() throws Exception {
+        boolean result =ClickHouseUtils.prepare1Instance(true,
+                (JdbcDatabaseContainer<?> clickhouse, Connection connection) -> {
+
+            final String catalogName = "testFilterPushDown";
+            final String catalogPrefix = "spark.sql.catalog." + catalogName;
+            setupCatalog(clickhouse, catalogPrefix);
+
+            String table = ClickHouseUtils.PrepareTestData.db + "." + ClickHouseUtils.PrepareTestData.table;
+            String sql1 = String.format(Locale.ROOT,
+                    "select s2, i1, i2, n3 from %s.%s where n3 > 2", catalogName, table);
+            List<Row> expectedRow1 = ImmutableList.of();
+            executeAndCheck(sql1, expectedRow1);
+
+            String sql2 = String.format(Locale.ROOT,
+                    "select s2, i1, i2, n3 from %s.%s where n3 != 0 and i1 > 1", catalogName, table);
+            BigDecimal decimal = new BigDecimal("-18.22");
+            decimal.setScale(4,BigDecimal.ROUND_HALF_UP);
+            List<Row> expectedRow2 = ImmutableList.of(
+                    RowFactory.create("3", 3, 3L, decimal),
+                    RowFactory.create("2", 2, 2L, decimal));
+            executeAndCheck(sql2, expectedRow2);
+            return true;
+        });
+        Assert.assertTrue(result);
     }
 
     @Test
