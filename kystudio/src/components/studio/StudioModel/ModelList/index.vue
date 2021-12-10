@@ -560,10 +560,10 @@ export default class ModelList extends Vue {
     if (this.platform === 'iframe' && !oldVal && val) {
       this.filterArgs.model_alias_or_owner = val
       this.filterArgs.exact = true
-      this.$nextTick(() => {
+      setTimeout(() => {
         this.loadModelsList()
         this.updateFilterModelByCloud('')
-      })
+      }, 200)
     }
   }
 
