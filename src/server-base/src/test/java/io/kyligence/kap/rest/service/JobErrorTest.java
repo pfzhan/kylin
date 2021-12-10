@@ -307,11 +307,12 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
 
         manager.updateJobError(jobId, jobId, failedSegmentId, failedStack, failedReason);
         var output = manager.getJob(jobId).getOutput();
-        Assert.assertNull(output.getFailedStepId());
-        Assert.assertNull(output.getFailedSegmentId());
-        Assert.assertNull(output.getFailedStack());
-        Assert.assertNull(output.getFailedReason());
+        Assert.assertNotNull(output.getFailedStepId());
+        Assert.assertNotNull(output.getFailedSegmentId());
+        Assert.assertNotNull(output.getFailedStack());
+        Assert.assertNotNull(output.getFailedReason());
 
+        manager.updateJobError(jobId, null, null, null, null);
         manager.updateJobError(jobId, failedStepId, failedSegmentId, failedStack, failedReason);
         output = manager.getJob(jobId).getOutput();
         Assert.assertEquals(failedStepId, output.getFailedStepId());
