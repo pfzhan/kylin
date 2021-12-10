@@ -24,8 +24,10 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_USER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
+import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.USERGROUP_NOT_EXIST;
 import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
@@ -48,6 +50,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.service.KylinUserService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -135,6 +138,23 @@ public class NUserGroupService implements IUserGroupService {
         List<String> moveOutUsers = Lists.newArrayList(groupUsers);
         moveInUsers.removeAll(groupUsers);
         moveOutUsers.removeAll(users);
+
+        val msg = MsgPicker.getMsg();
+
+        String currentUser = aclEvaluate.getCurrentUserName();
+
+        List<String> moveList = new ArrayList<String>();
+        moveList.addAll(moveInUsers);
+        moveList.addAll(moveOutUsers);
+
+        for (String user : moveList) {
+            if (StringUtils.equalsIgnoreCase(KylinUserService.SUPER_ADMIN, user)) {
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
+            }
+            if (StringUtils.equalsIgnoreCase(currentUser, user)) {
+                throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_EDIT_FORBIDDEN());
+            }
+        }
 
         for (String in : moveInUsers) {
             ManagedUser managedUser = (ManagedUser) userService.loadUserByUsername(in);

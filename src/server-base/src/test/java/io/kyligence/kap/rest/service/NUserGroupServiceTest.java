@@ -167,23 +167,26 @@ public class NUserGroupServiceTest extends ServiceTestBase {
     public void testListUserGroups() throws IOException {
         userGroupService.addGroup("t1");
         userGroupService.addGroup("t2");
-        userGroupService.modifyGroupUsers("t1", Arrays.asList("ADMIN"));
-        userGroupService.modifyGroupUsers("t2", Arrays.asList("ADMIN"));
-        var groups = aclTCRService.getCurrentUserGroups();
+        userGroupService.modifyGroupUsers("t1", Arrays.asList("MODELER"));
+        userGroupService.modifyGroupUsers("t2", Arrays.asList("MODELER"));
+
+        var groups = userGroupService.listUserGroups("MODELER");
         Assert.assertEquals(2, groups.size());
         Assert.assertTrue(groups.contains("t1"));
         Assert.assertTrue(groups.contains("t2"));
         userGroupService.addGroup("t3");
-        userGroupService.modifyGroupUsers("t3", Arrays.asList("ADMIN"));
-        groups = aclTCRService.getCurrentUserGroups();
+        userGroupService.modifyGroupUsers("t3", Arrays.asList("MODELER"));
+        groups = userGroupService.listUserGroups("MODELER");
         Assert.assertEquals(3, groups.size());
         Assert.assertTrue(groups.contains("t3"));
+        Assert.assertThrows(RuntimeException.class,
+                () -> userGroupService.modifyGroupUsers("t1", Arrays.asList("ADMIN")));
     }
 
     @Test
     public void testGetUserGroupResponse() throws IOException {
         List<String> users = new ArrayList<>();
-        users.add("ADMIN");
+        users.add("MODELER");
         userGroupService.addGroup("t1");
         userGroupService.addGroup("t2");
         userGroupService.addGroup("t3");
@@ -201,7 +204,7 @@ public class NUserGroupServiceTest extends ServiceTestBase {
                 Assert.assertEquals(0, response.getUsers().size());
             } else {
                 Assert.assertEquals(1, response.getUsers().size());
-                Assert.assertTrue(response.getUsers().contains("ADMIN"));
+                Assert.assertTrue(response.getUsers().contains("MODELER"));
             }
         }
     }
