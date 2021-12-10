@@ -59,6 +59,8 @@ import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.SparkSession;
+
+import static org.apache.kylin.common.exception.ServerErrorCode.SEGMENT_DROP_FAILED;
 import static org.awaitility.Awaitility.await;
 import org.junit.Assert;
 import org.junit.Before;
@@ -161,6 +163,26 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
         checkSizeInNode();
         secondStorageService.sizeInNode(project);
         checkSizeInNode();
+    }
+
+    @Test
+    public void testRemoveSegmentWhenHasLoadTask() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        val range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+        SecondStorageLockUtils.acquireLock(modelId, range).lock();
+        try {
+            SecondStorageUtil.checkSegmentRemove(project, modelId, segs.toArray(new String[]{}));
+        } catch (KylinException e) {
+            SecondStorageLockUtils.unlock(modelId, range);
+            Assert.assertEquals(SEGMENT_DROP_FAILED.toErrorCode(), e.getErrorCode());
+            return;
+        }
+        SecondStorageLockUtils.unlock(modelId, range);
+        Assert.fail();
     }
 
     private void checkSizeInNode() {

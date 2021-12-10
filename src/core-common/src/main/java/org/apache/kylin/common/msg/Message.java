@@ -1593,6 +1593,10 @@ public class Message {
         return "Tiered storage task doesn't support restart.\n";
     }
 
+    public String getSEGMENT_DROP_FAILED() {
+        return "Segment can't remove. There is an ongoing load data job of tiered storage. Please try again later.\n";
+    }
+
     public String getJOB_RESUME_FAILED() {
         return "Tiered storage task can't resume. Please try again later.\n";
     }

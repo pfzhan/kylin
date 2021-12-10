@@ -278,7 +278,7 @@
         <poi.version>4.1.2</poi.version>
 
         <!-- clickhouse -->
-        <clickhouse-native-jdbc.version>2.5.3</clickhouse-native-jdbc.version>
+        <clickhouse-native-jdbc.version>2.6.1</clickhouse-native-jdbc.version>
         <clickhouse-jdbc.version>0.2.4</clickhouse-jdbc.version>
         <clickhouse.group>ru.yandex.clickhouse</clickhouse.group>
         <clickhouse.artifact>clickhouse-jdbc</clickhouse.artifact>

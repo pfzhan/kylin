@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.clickhouse.job;
 
+import io.kyligence.kap.clickhouse.database.ClickHouseOperator;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseCreateTable;
 import io.kyligence.kap.clickhouse.ddl.ClickHouseRender;
-import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
-import static io.kyligence.kap.clickhouse.job.DataLoader.getPrefixColumn;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.secondstorage.NameUtil;
 import io.kyligence.kap.secondstorage.ddl.AlterTable;
@@ -50,6 +49,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.kyligence.kap.clickhouse.job.DataLoader.columns;
+import static io.kyligence.kap.clickhouse.job.DataLoader.getPrefixColumn;
 
 @Getter
 @Slf4j
@@ -137,12 +139,9 @@ public class ShardLoader {
         //3 rename with atomically
         final RenameTable renameToTempTemp = RenameTable.renameSource(database, destTableName).to(database,
                 destTempTableName);
-        try {
+        ClickHouseOperator operator = new ClickHouseOperator(clickHouse);
+        if (operator.listTables(database).contains(destTableName)) {
             clickHouse.apply(renameToTempTemp.toSql(render));
-        } catch (SQLException e) {
-            if (!tableNotExistError(e)) {
-                throw e;
-            }
         }
         final RenameTable renameToDest = RenameTable.renameSource(database, insertTempTableName).to(database,
                 destTableName);

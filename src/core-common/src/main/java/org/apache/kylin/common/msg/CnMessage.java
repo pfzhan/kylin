@@ -1808,6 +1808,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getSEGMENT_DROP_FAILED() {
+        return "Segment 正在导入分层存储中。请稍后重试。\n";
+    }
+
+    @Override
     public String getINVALID_BROKER_DEFINITION() {
         return "Broker 信息不可为空，请检查后重试。";
     }

@@ -30,7 +30,9 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -55,6 +57,7 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.SegmentRange;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -365,6 +368,22 @@ public class SecondStorageUtil {
         }
         if (!canRestart) {
             throw new KylinException(ServerErrorCode.JOB_RESTART_FAILED, MsgPicker.getMsg().getJOB_RESTART_FAILED());
+        }
+    }
+
+    public static void checkSegmentRemove(String project, String modelId, String[] ids) {
+        if (!isModelEnable(project, modelId)) return;
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        long startTime = Long.MAX_VALUE - 1;
+        long endTime = 0L;
+        for (NDataSegment segment : dataflow.getSegments(Sets.newHashSet(ids))) {
+            startTime = Math.min(startTime, Long.parseLong(segment.getSegRange().getStart().toString()));
+            endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
+                    : Long.parseLong(segment.getSegRange().getEnd().toString());
+        }
+        if (SecondStorageLockUtils.containsKey(modelId, new SegmentRange.TimePartitionedSegmentRange(startTime, endTime))) {
+            throw new KylinException(ServerErrorCode.SEGMENT_DROP_FAILED, MsgPicker.getMsg().getSEGMENT_DROP_FAILED());
         }
     }
 

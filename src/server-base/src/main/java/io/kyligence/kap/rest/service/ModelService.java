@@ -3289,6 +3289,7 @@ public class ModelService extends BasicService {
         if (SecondStorageUtil.isModelEnable(project, model)) {
             LockTypeEnum.checkLock(LockTypeEnum.LOAD.name(), SecondStorageUtil.getProjectLocks(project));
         }
+        SecondStorageUtil.checkSegmentRemove(project, model, ids);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (ManagementType.TABLE_ORIENTED == dataModel.getManagementType()) {
             throw new KylinException(PERMISSION_DENIED, String.format(Locale.ROOT,
@@ -3297,7 +3298,6 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExistById(model, project, ids);
         checkSegmentsStatus(model, project, ids, SegmentStatusEnumToDisplay.LOCKED);
-
         val indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Set<String> idsToDelete = Sets.newHashSet();

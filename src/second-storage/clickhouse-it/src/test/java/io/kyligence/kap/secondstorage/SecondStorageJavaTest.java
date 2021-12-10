@@ -74,6 +74,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.sql.SparkSession;
+
 import static org.awaitility.Awaitility.await;
 import org.junit.Assert;
 import org.junit.Before;
