@@ -24,10 +24,20 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.query.QueryHistoryInfo;
+import io.kyligence.kap.metadata.query.QueryMetrics;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.QueryService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -174,6 +184,33 @@ public class QueryMetricsListenerTest extends NLocalFileMetadataTestCase {
                 getCounterCount(MetricsName.QUERY_5S_10S, MetricsCategory.PROJECT, "default", new HashMap<>()));
         Assert.assertEquals(e + 1,
                 getCounterCount(MetricsName.QUERY_SLOW, MetricsCategory.PROJECT, "default", new HashMap<>()));
+    }
+
+    @Test
+    public void testRecordQueryPrometheusMetric() {
+        QueryMetrics queryMetrics = Mockito.mock(QueryMetrics.class);
+        QueryHistoryInfo queryHistoryInfo = Mockito.mock(QueryHistoryInfo.class);
+        Mockito.when(queryMetrics.getQueryHistoryInfo()).thenReturn(queryHistoryInfo);
+        Mockito.when(queryHistoryInfo.isExactlyMatch()).thenReturn(true);
+        Mockito.when(queryMetrics.getProjectName()).thenReturn("project");
+        Mockito.when(queryMetrics.isIndexHit()).thenReturn(false);
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "project");
+        Mockito.when(queryMetrics.getRealizationMetrics()).thenReturn(Collections.emptyList());
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "false");
+        queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
+        Collection<Meter> meters1 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
+        Assert.assertEquals(0, meters1.size());
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "true");
+        queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
+        Collection<Meter> meters2 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
+        Assert.assertEquals(0, meters2.size());
+
+        Mockito.when(queryMetrics.isIndexHit()).thenReturn(true);
+        queryMetricsListener.recordQueryPrometheusMetric(queryMetrics, modelManager, meterRegistry);
+        Collection<Meter> meters3 = meterRegistry.find(PrometheusMetrics.QUERY_SCAN_BYTES.getValue()).meters();
+        Assert.assertNotEquals(0, meters3.size());
     }
 
 }

@@ -48,10 +48,13 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -63,12 +66,12 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.QueryMetrics;
 import io.kyligence.kap.metadata.query.QueryMetricsContext;
 import lombok.val;
+import org.apache.kylin.rest.util.SpringContext;
 
 public class QueryMetricsListener {
 
@@ -97,25 +100,36 @@ public class QueryMetricsListener {
         MetricsGroup.histogramUpdate(MetricsName.QUERY_SCAN_BYTES, MetricsCategory.PROJECT, project, tags,
                 queryMetric.getTotalScanBytes());
 
-        PrometheusMetricsGroup.summaryRecord(queryMetric.getQueryDuration() * 1.0 / 1000,
-                PrometheusMetrics.QUERY_SECONDS, new double[] { 0.8, 0.9 }, //
-                "pushdown", queryMetric.isPushdown() + "", //
-                "cache", queryMetric.isCacheHit() + "", "hit_index", queryMetric.isIndexHit() + "", //
-                "hit_exactly_index", queryMetric.getQueryHistoryInfo().isExactlyMatch() + "", //
-                "succeed", queryMetric.isSucceed() + "", "hit_snapshot", queryMetric.isTableSnapshotUsed() + "", //
-                "instance", queryMetric.getServer(), "project", queryMetric.getProjectName());
+        recordQueryPrometheusMetric(queryMetric, modelManager, SpringContext.getBean(MeterRegistry.class));
 
-        // only record scan bytes when hit index
-        if (queryMetric.isIndexHit()) {
-            PrometheusMetricsGroup.summaryRecord(queryMetric.getTotalScanBytes(), //
-                    PrometheusMetrics.QUERY_SCAN_BYTES, new double[] { 0.8, 0.9 }, //
-                    "project", project, "model",
-                    queryMetric.getRealizationMetrics().stream()
-                            .map(m -> modelManager.getDataModelDesc(m.getModelId()).getAlias())
-                            .collect(Collectors.joining(",")),
-                    "instance", queryMetric.getServer());
+    }
+
+    public void recordQueryPrometheusMetric(QueryMetrics queryMetric, NDataModelManager modelManager, MeterRegistry meterRegistry) {
+        if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+            return;
         }
+        DistributionSummary.builder(PrometheusMetrics.QUERY_SECONDS.getValue())
+                .tags(MetricsTag.PUSH_DOWN.getVal(), queryMetric.isPushdown() + "", MetricsTag.CACHE.getVal(),
+                        queryMetric.isCacheHit() + "", MetricsTag.HIT_INDEX.getVal(), queryMetric.isIndexHit() + "",
+                        MetricsTag.HIT_EXACTLY_INDEX.getVal(), queryMetric.getQueryHistoryInfo().isExactlyMatch() + "",
+                        MetricsTag.SUCCEED.getVal(), queryMetric.isSucceed() + "",
+                        MetricsTag.HIT_SNAPSHOT.getVal(), queryMetric.isTableSnapshotUsed() + "",
+                        MetricsTag.PROJECT.getVal(), queryMetric.getProjectName())
+                .distributionStatisticExpiry(Duration.ofDays(1))
+                .sla(KylinConfig.getInstanceFromEnv().getMetricsQuerySlaSeconds())
+                .register(meterRegistry)
+                .record(queryMetric.getQueryDuration() * 1.0 / 1000);
 
+        if (queryMetric.isIndexHit()) {
+            DistributionSummary.builder(PrometheusMetrics.QUERY_SCAN_BYTES.getValue())
+                    .tags(MetricsTag.MODEL.getVal(),
+                            queryMetric.getRealizationMetrics().stream()
+                                    .map(e -> modelManager.getDataModelDesc(e.getModelId()).getAlias())
+                                    .collect(Collectors.joining(",")),
+                            MetricsTag.PROJECT.getVal(), queryMetric.getProjectName())
+                    .distributionStatisticExpiry(Duration.ofDays(1)).publishPercentiles(new double[] { 0.8, 0.9 })
+                    .register(meterRegistry).record(queryMetric.getTotalScanBytes());
+        }
     }
 
     private void updateQueryTypeMetrics(QueryMetrics queryMetrics, String project, Map<String, String> tags) {

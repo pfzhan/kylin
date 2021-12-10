@@ -29,6 +29,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -38,6 +40,8 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -56,6 +60,7 @@ import org.apache.http.ssl.TrustStrategy;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.model.TimeRange;
@@ -69,7 +74,6 @@ import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.util.AddressUtil;
@@ -84,6 +88,7 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.rest.util.SpringContext;
 
 @Slf4j
 public class JobSyncListener {
@@ -372,9 +377,7 @@ public class JobSyncListener {
                     MetricsGroup.histogramUpdate(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT,
                             project, tags, duration);
 
-                    PrometheusMetricsGroup.summaryRecord((duration + notifier.getWaitTime()) / 1000.0,
-                            PrometheusMetrics.MODEL_BUILD_DURATION, new double[] { 0.8, 0.9 }, //
-                            "project", project, "model", modelAlias);
+                    recordPrometheusMetric(dataflow, notifier, SpringContext.getBean(MeterRegistry.class));
                 }
 
                 Map<String, String> tags = getJobStatisticsTags(notifier.getJobType());
@@ -403,6 +406,23 @@ public class JobSyncListener {
             log.error("Fail to update metrics.", e);
         }
 
+    }
+
+    public void recordPrometheusMetric(NDataflow dataflow, JobFinishedNotifier notifier, MeterRegistry meterRegistry) {
+        if (!KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
+            return;
+        }
+        boolean containPrometheusJobTypeFlag = Arrays.stream(JobTypeEnum.getTypesForPrometheus())
+                .anyMatch(jobTypeEnum -> jobTypeEnum.toString().equals(notifier.getJobType()));
+        if (containPrometheusJobTypeFlag) {
+            DistributionSummary.builder(PrometheusMetrics.MODEL_BUILD_DURATION.getValue())
+                    .tags(MetricsTag.MODEL.getVal(), dataflow.getModelAlias(), MetricsTag.PROJECT.getVal(), notifier.getProject(),
+                            MetricsTag.JOB_TYPE.getVal(), notifier.getJobType(), MetricsTag.SUCCEED.getVal(),
+                            notifier.isSucceed() + "")
+                    .distributionStatisticExpiry(Duration.ofDays(1)).sla(KylinConfig.getInstanceFromEnv().getMetricsJobSlaMinutes())
+                    .register(meterRegistry)
+                    .record((notifier.getDuration() + notifier.getWaitTime()) / (60.0 * 1000.0));
+        }
     }
 
     /**

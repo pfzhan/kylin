@@ -3061,4 +3061,24 @@ public abstract class KylinConfigBase implements Serializable {
     public String getFlatTableFieldDelimiter() {
         return this.getOptional("kylin.source.hive.flat-table-field-delimiter", "\u001F");
     }
+
+    public long[] getMetricsQuerySlaSeconds() {
+        return getOptionalLongArray("kylin.metrics.query.sla.seconds", new String[]{"3", "15", "60"});
+    }
+
+    public long[] getMetricsJobSlaMinutes() {
+        return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[]{"30", "60", "300"});
+    }
+
+    protected final long[] getOptionalLongArray(String prop, String[] dft) {
+        String[] strArray = getOptionalStringArray(prop, dft);
+        long[] longArray;
+        try {
+            longArray = Arrays.stream(strArray).mapToLong(Long::parseLong).toArray();
+        } catch (NumberFormatException ex) {
+            logger.warn("NumberFormatException, prop={}", prop, ex);
+            longArray = Arrays.stream(dft).mapToLong(Long::parseLong).toArray();
+        }
+        return longArray;
+    }
 }

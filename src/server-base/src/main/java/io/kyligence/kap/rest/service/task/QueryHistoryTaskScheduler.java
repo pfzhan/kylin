@@ -46,8 +46,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -67,8 +65,6 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryInfo;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.RawRecService;
-import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.Tags;
 import lombok.Data;
 import lombok.Getter;
 import lombok.val;
@@ -212,7 +208,6 @@ public class QueryHistoryTaskScheduler {
             // update metadata
             updateMetadata(numOfQueryHitIndex, overallQueryNum, dfHitCountMap, modelsLastQueryTime, maxId,
                     hitSnapshotCountMap);
-            registerMetrics(dfHitCountMap, project);
         }
 
         private void updateMetadata(int numOfQueryHitIndex, int overallQueryNum,
@@ -497,33 +492,5 @@ public class QueryHistoryTaskScheduler {
         Map<Long, FrequencyMap> layoutHits = Maps.newHashMap();
 
         int dataflowHit;
-    }
-
-    private void registerMetrics(Map<String, DataflowHitCount> dfHitCountMap, String project) {
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        for (val entry : dfHitCountMap.entrySet()) {
-            if (dfManager.getDataflow(entry.getKey()) == null) {
-                continue;
-            }
-            String modelId = entry.getKey();
-            NDataflow dataFlow = dfManager.getDataflow(modelId);
-            String modelName = dataFlow.getModelAlias();
-            val layoutHitCount = entry.getValue().getLayoutHits();
-            for (Long indexId : layoutHitCount.keySet()) {
-                PrometheusMetricsGroup.newGaugeIfAbsent(PrometheusMetrics.INDEX_USAGE, new Object(), //
-                        obj -> {
-                            NDataflowManager dfm = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                                    project);
-                            NDataflow df = dfm.getDataflow(modelId);
-                            if (df == null) {
-                                return 0;
-                            }
-                            return df.getLayoutHitCount().get(indexId).getDateFrequency().values().stream()
-                                    .mapToInt(Integer::intValue).sum();
-                        }, //
-                        Tags.of(Tag.of("project", project), Tag.of("model_name", modelName),
-                                Tag.of("index_id", "" + indexId)));
-            }
-        }
     }
 }

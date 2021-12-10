@@ -24,7 +24,6 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.candidate.RawRecManager;
@@ -59,7 +58,7 @@ public class ProjectDropListener {
 
             MetricsGroup.removeProjectMetrics(project);
             if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
-                PrometheusMetricsGroup.removeProjectMetrics(project);
+                MetricsRegistry.deletePrometheusProjectMetrics(project);
             }
             EpochManager epochManager = EpochManager.getInstance(kylinConfig);
             epochManager.deleteEpoch(project);

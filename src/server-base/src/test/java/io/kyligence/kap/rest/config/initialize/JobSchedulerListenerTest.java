@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -35,11 +36,17 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.assertj.core.util.Lists;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -212,6 +219,31 @@ public class JobSchedulerListenerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(jobInfo.getSegmentPartitionInfoList().get(1).getSegmentId(),
                 "ff839b0b-2c23-4420-b332-0df70e36c343");
+    }
+
+    @Test
+    public void testRecordPrometheusMetric() {
+        JobSyncListener jobSyncListener = Mockito.spy(JobSyncListener.class);
+        NDataflow dataflow = Mockito.mock(NDataflow.class);
+        JobFinishedNotifier notifier = Mockito.mock(JobFinishedNotifier.class);
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+        Mockito.when(notifier.getJobType()).thenReturn(JobTypeEnum.STREAMING_BUILD.toString());
+        Mockito.when(dataflow.getModelAlias()).thenReturn("model");
+        Mockito.when(notifier.getProject()).thenReturn("project");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "false");
+        jobSyncListener.recordPrometheusMetric(dataflow, notifier, meterRegistry);
+        Collection<Meter> meters1 = meterRegistry.find(PrometheusMetrics.MODEL_BUILD_DURATION.getValue()).meters();
+        Assert.assertEquals(0, meters1.size());
+
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metrics.prometheus-enabled", "true");
+        jobSyncListener.recordPrometheusMetric(dataflow, notifier, meterRegistry);
+        Collection<Meter> meters2 = meterRegistry.find(PrometheusMetrics.MODEL_BUILD_DURATION.getValue()).meters();
+        Assert.assertEquals(0, meters2.size());
+
+        Mockito.when(notifier.getJobType()).thenReturn(JobTypeEnum.INDEX_BUILD.toString());
+        jobSyncListener.recordPrometheusMetric(dataflow, notifier, meterRegistry);
+        Collection<Meter> meters3 = meterRegistry.find(PrometheusMetrics.MODEL_BUILD_DURATION.getValue()).meters();
+        Assert.assertNotEquals(0, meters3.size());
     }
 
     static class ModelHandler implements HttpHandler {

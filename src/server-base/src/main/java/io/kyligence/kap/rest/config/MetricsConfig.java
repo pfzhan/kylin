@@ -45,7 +45,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.MetricsRegistry;
@@ -64,10 +63,6 @@ public class MetricsConfig {
 
     @EventListener(ApplicationReadyEvent.class)
     public void registerMetrics() {
-//        if (KylinConfig.getInstanceFromEnv().isDevOrUT()) {
-//            return;
-//        }
-
         String host = clusterManager.getLocalServer();
 
         log.info("Register global metrics...");
@@ -76,8 +71,8 @@ public class MetricsConfig {
         log.info("Register host metrics...");
         MetricsRegistry.registerHostMetrics(host);
         if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
-            log.info("Register micrometer global metrics");
-            MetricsRegistry.registerMicrometerGlobalMetrics();
+            log.info("Register prometheus global metrics... ");
+            MetricsRegistry.registerGlobalPrometheusMetrics();
         }
 
         METRICS_SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
@@ -88,9 +83,6 @@ public class MetricsConfig {
             for (String newProject : newProjects) {
                 log.info("Register project metrics for {}", newProject);
                 MetricsRegistry.registerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
-                if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
-                    MetricsRegistry.registerMicrometerProjectMetrics(KylinConfig.getInstanceFromEnv(), newProject, host);
-                }
             }
 
             Sets.SetView<String> outDatedProjects = Sets.difference(allControlledProjects, allProjects);
@@ -99,9 +91,6 @@ public class MetricsConfig {
                 log.info("Remove project metrics for {}", outDatedProject);
                 MetricsGroup.removeProjectMetrics(outDatedProject);
                 MetricsRegistry.removeProjectFromStorageSizeMap(outDatedProject);
-                if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
-                    PrometheusMetricsGroup.removeProjectMetrics(outDatedProject);
-                }
             }
 
             allControlledProjects.clear();

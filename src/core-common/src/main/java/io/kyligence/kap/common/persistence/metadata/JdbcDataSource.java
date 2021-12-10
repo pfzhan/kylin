@@ -40,17 +40,20 @@ public class JdbcDataSource implements IKeep {
     private JdbcDataSource() {
     }
 
-    private static Map<Properties, DataSource> instances = Maps.newHashMap();
+    private static Map<Properties, DataSource> instances = Maps.newConcurrentMap();
 
-    public static synchronized DataSource getDataSource(Properties props) throws Exception {
+    public static DataSource getDataSource(Properties props) throws Exception {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return BasicDataSourceFactory.createDataSource(props);
+        }
+        if (instances.containsKey(props)) {
+            return instances.get(props);
         }
         instances.putIfAbsent(props, BasicDataSourceFactory.createDataSource(props));
         return instances.get(props);
     }
 
-    public static synchronized Collection<DataSource> getDataSources() {
+    public static Collection<DataSource> getDataSources() {
         return instances.values();
     }
 }

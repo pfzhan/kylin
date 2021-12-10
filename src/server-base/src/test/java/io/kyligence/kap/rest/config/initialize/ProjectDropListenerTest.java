@@ -25,12 +25,14 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.util.SpringContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,17 +44,18 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.metrics.MetricsGroup;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.val;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ MetricsGroup.class, UserGroupInformation.class })
+@PrepareForTest({SpringContext.class, MetricsGroup.class, UserGroupInformation.class, MeterRegistry.class })
 public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
+
+    private MeterRegistry meterRegistry;
+
     @Before
     public void setup() throws IOException {
         PowerMockito.mockStatic(UserGroupInformation.class);
@@ -66,9 +69,9 @@ public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
-        PrometheusMetricsGroup prometheusMetricsGroup = new PrometheusMetricsGroup(new SimpleMeterRegistry());
-        ReflectionTestUtils.getField(prometheusMetricsGroup, "meterRegistry");
+        meterRegistry = new SimpleMeterRegistry();
         PowerMockito.mockStatic(MetricsGroup.class);
+        PowerMockito.mockStatic(SpringContext.class);
     }
 
     @After
@@ -91,7 +94,7 @@ public class ProjectDropListenerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(fs.exists(file));
 
         ProjectDropListener projectDropListener = new ProjectDropListener();
-
+        PowerMockito.when(SpringContext.getBean(MeterRegistry.class)).thenReturn(meterRegistry);
         projectDropListener.onDelete(project);
 
         Assert.assertFalse(fs.exists(path));

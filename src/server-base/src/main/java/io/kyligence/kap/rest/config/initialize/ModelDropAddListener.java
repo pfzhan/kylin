@@ -24,14 +24,9 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
-import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.dao.ExecutablePO;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.rest.util.SpringContext;
 
 import com.codahale.metrics.Gauge;
 import com.google.common.collect.Maps;
@@ -40,16 +35,12 @@ import io.kyligence.kap.common.metrics.MetricsCategory;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.MetricsTag;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
 import io.kyligence.kap.guava20.shaded.common.eventbus.Subscribe;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.OptRecService;
 import io.kyligence.kap.rest.util.ModelUtils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,7 +57,7 @@ public class ModelDropAddListener {
             log.debug("delete model {} in project {}", modelId, project);
             MetricsGroup.removeModelMetrics(project, modelId);
             if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
-                PrometheusMetricsGroup.removeModelMetrics(project, modelName);
+                MetricsRegistry.removePrometheusModelMetrics(project, modelName);
             }
         });
     }
@@ -125,34 +116,6 @@ public class ModelDropAddListener {
         MetricsGroup.newCounter(MetricsName.MODEL_BUILD_DURATION, MetricsCategory.PROJECT, project, tags);
         MetricsGroup.newCounter(MetricsName.MODEL_WAIT_DURATION, MetricsCategory.PROJECT, project, tags);
         MetricsGroup.newHistogram(MetricsName.MODEL_BUILD_DURATION_HISTOGRAM, MetricsCategory.PROJECT, project, tags);
-
-        if (KylinConfig.getInstanceFromEnv().isPrometheusMetricsEnabled()) {
-            // add prometheus metrics
-            NExecutableManager executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                    project);
-
-            JobTypeEnum[] jobTypeEnums = JobTypeEnum.getTypesForPrometheus();
-            PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.MODEL_JOB_EXCEED_LAST_JOB_TIME_THRESHOLD,
-                    project, modelAlias, executableManager, manager -> {
-                        List<ExecutablePO> allJobs = manager.getAllJobs();
-                        long lastSuccessJobDuration = manager.getLastSuccessExecDurationByModel(modelId, allJobs, jobTypeEnums);
-                        long currentRunningJobDuration = manager.getMaxDurationRunningExecDurationByModel(modelId, allJobs, jobTypeEnums);
-
-                        if (lastSuccessJobDuration <= 0 || currentRunningJobDuration <= 0) {
-                            return 0.0;
-                        }
-
-                        return (currentRunningJobDuration - lastSuccessJobDuration) / (double) lastSuccessJobDuration;
-                    });
-            PrometheusMetricsGroup.newModelGauge(PrometheusMetrics.RECOMMENDED_DELETE_INDEX_NUM, project, modelAlias,
-                    new Object(), obj -> {
-                        if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-                            return 0;
-                        }
-                        OptRecService optRecService = SpringContext.getBean(OptRecService.class);
-                        return optRecService.getOptRecLayoutsResponse(project, modelId, OptRecService.RecActionType.REMOVE_INDEX.name()).getSize();
-                    });
-        }
     }
 
     abstract static class GaugeWrapper implements Gauge<Long> {

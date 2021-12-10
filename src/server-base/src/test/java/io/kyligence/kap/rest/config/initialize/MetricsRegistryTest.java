@@ -25,14 +25,21 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.metrics.MetricsTag;
+import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Tags;
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.BaseTestExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
@@ -56,7 +63,6 @@ import io.kyligence.kap.common.metrics.MetricsController;
 import io.kyligence.kap.common.metrics.MetricsGroup;
 import io.kyligence.kap.common.metrics.MetricsName;
 import io.kyligence.kap.common.metrics.prometheus.PrometheusMetrics;
-import io.kyligence.kap.common.metrics.prometheus.PrometheusMetricsGroup;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ModelService;
@@ -67,8 +73,10 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.val;
 import lombok.var;
 
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ SpringContext.class, MetricsGroup.class, UserGroupInformation.class })
+@PrepareForTest({ SpringContext.class, MetricsGroup.class, UserGroupInformation.class, JdbcDataSource.class })
 public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
 
     private MeterRegistry meterRegistry;
@@ -96,9 +104,7 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
                 "totalStorageSizeMap");
         totalStorageSizeMap.put(project, 1L);
 
-        PrometheusMetricsGroup prometheusMetricsGroup = new PrometheusMetricsGroup(new SimpleMeterRegistry());
-        meterRegistry = (MeterRegistry) ReflectionTestUtils.getField(prometheusMetricsGroup,
-                "meterRegistry");
+        meterRegistry = new SimpleMeterRegistry();
 
         PowerMockito.mockStatic(SpringContext.class);
     }
@@ -126,10 +132,24 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRegisterMicrometerGlobalMetrics() {
-        MetricsRegistry.registerMicrometerGlobalMetrics();
+    public void testRegisterGlobalPrometheusMetrics() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+        val props = datasourceParameters(url);
+        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        PowerMockito.mockStatic(JdbcDataSource.class);
+        PowerMockito.when(JdbcDataSource.getDataSources()).thenReturn(Lists.newArrayList(dataSource));
+        PowerMockito.when(SpringContext.getBean(MeterRegistry.class)).thenReturn(meterRegistry);
+        MetricsRegistry.registerGlobalPrometheusMetrics();
         List<Meter> meters = meterRegistry.getMeters();
-        Assert.assertEquals(1, meters.size());
+        Assert.assertEquals(5, meters.size());
+        MetricsRegistry.registerGlobalMetrics(getTestConfig(), project);
+
+        List<Meter> meterList = meterRegistry.getMeters().stream()
+                .filter(e -> "idle".equals(e.getId().getTag(MetricsTag.STATE.getVal()))
+                        || "active".equals(e.getId().getTag(MetricsTag.STATE.getVal()))).collect(Collectors.toList());
+        Assert.assertEquals(2, meterList.size());
+        Collection<Gauge> gauges = meterRegistry.find(PrometheusMetrics.JVM_DB_CONNECTIONS.getValue()).gauges();
+        gauges.forEach(Gauge::value);
     }
 
     @Test
@@ -142,9 +162,9 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
                 .thenReturn(projectService);
 
         MetricsRegistry.registerProjectMetrics(getTestConfig(), project, "localhost");
-        MetricsRegistry.registerMicrometerProjectMetrics(getTestConfig(), project, "localhost");
+        MetricsRegistry.registerHostMetrics("localhost");
         List<Meter> meters = meterRegistry.getMeters();
-        Assert.assertEquals(300, meters.size());
+        Assert.assertEquals(0, meters.size());
 
         val manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         BaseTestExecutable executable = new SucceedTestExecutable();
@@ -167,23 +187,47 @@ public class MetricsRegistryTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRegisterMicrometerJobMetrics() {
-        NExecutableManager executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+    public void testDeletePrometheusProjectMetrics() {
+        Assert.assertEquals(0, meterRegistry.getMeters().size());
+        Counter counter = meterRegistry.counter(PrometheusMetrics.SPARK_TASKS.getValue(),
+                Tags.of(MetricsTag.PROJECT.getVal(), "TEST"));
+        counter.increment();
 
-        String modelId = "1";
-        BaseTestExecutable executable = new SucceedTestExecutable();
-        executable.setTargetSubject(modelId);
-        executable.setProject("default");
-        executableManager.addJob(executable);
-        executableManager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, Collections.emptyMap(), null, null);
+        Assert.assertNotEquals(0, meterRegistry.getMeters().size());
+        PowerMockito.when(SpringContext.getBean(MeterRegistry.class)).thenReturn(meterRegistry);
+        MetricsRegistry.deletePrometheusProjectMetrics("TEST");
+        Assert.assertEquals(0, meterRegistry.getMeters().size());
 
-        MetricsRegistry.registerMicrometerJobMetrics(executableManager, project,
-                PrometheusMetrics.JOB_RUNNING_DURATION_MAX, ExecutableState.RUNNING);
-        List<Meter> meters = meterRegistry.getMeters();
-        Assert.assertEquals(1, meters.size());
+        thrown.expect(IllegalArgumentException.class);
+        MetricsRegistry.deletePrometheusProjectMetrics("");
+    }
 
-        thrown.expect(IllegalStateException.class);
-        MetricsRegistry.registerMicrometerJobMetrics(executableManager, project,
-                PrometheusMetrics.QUERY_SLOW_TIMES, ExecutableState.SUCCEED);
+    @Test
+    public void testRemovePrometheusModelMetrics() {
+        Assert.assertEquals(0, meterRegistry.getMeters().size());
+        Counter counter1 = meterRegistry.counter(PrometheusMetrics.MODEL_BUILD_DURATION.getValue(),
+                Tags.of(MetricsTag.PROJECT.getVal(), "TEST", MetricsTag.MODEL.getVal(), "MODULE01"));
+        Counter counter2 = meterRegistry.counter(PrometheusMetrics.MODEL_BUILD_DURATION.getValue(),
+                Tags.of(MetricsTag.PROJECT.getVal(), "TEST", MetricsTag.MODEL.getVal(), "MODULE02"));
+        counter1.increment();
+        counter2.increment();
+
+        Assert.assertEquals(2, meterRegistry.getMeters().size());
+        PowerMockito.when(SpringContext.getBean(MeterRegistry.class)).thenReturn(meterRegistry);
+        MetricsRegistry.removePrometheusModelMetrics("TEST", "MODULE01");
+
+        Assert.assertEquals(1, meterRegistry.getMeters().size());
+        List<Meter.Id> collect = meterRegistry.getMeters().stream().map(Meter::getId)
+                .filter(id -> "TEST".equals(id.getTag(MetricsTag.PROJECT.getVal()))
+                        && "MODULE01".equals(id.getTag(MetricsTag.MODEL.getVal())))
+                .collect(Collectors.toList());
+
+        Assert.assertEquals(0, collect.size());
+
+        thrown.expect(IllegalArgumentException.class);
+        MetricsRegistry.removePrometheusModelMetrics("", "");
+
+        thrown.expect(IllegalArgumentException.class);
+        MetricsRegistry.removePrometheusModelMetrics("project", "");
     }
 }

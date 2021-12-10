@@ -887,6 +887,10 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getFlatTableStorageFormat", new PropertiesEntity("kylin.source.hive.flat-table-storage-format", "SEQUENCEFILE", "SEQUENCEFILE"));
         map.put("getFlatTableFieldDelimiter", new PropertiesEntity("kylin.source.hive.flat-table-field-delimiter", "\u001F", "\u001F"));
         map.put("isSkipBasicAuthorization", new PropertiesEntity("kap.authorization.skip-basic-authorization", "false", false));
+        map.put("getMetricsQuerySlaSeconds",
+                new PropertiesEntity("kylin.metrics.query.sla.seconds", "1,3,a,15,60", new long[] { 3, 15, 60 }));
+        map.put("getMetricsJobSlaMinutes",
+                new PropertiesEntity("kylin.metrics.job.sla.minutes", "1,30,60,300", new long[] { 1, 30, 60, 300 }));
     }
 
     @Before
@@ -913,7 +917,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
         // if you fail on this assertion, you should not only change the expected value but also put the configuration you added into the map above
-        Assert.assertEquals(554, methodsCount);
+        Assert.assertEquals(557, methodsCount);
     }
 
     @Test
@@ -971,6 +975,9 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                     switch (componentType.getName()) {
                     case "int":
                         Assert.assertArrayEquals((int[]) propertiesEntity.getExpectValue(), (int[]) invoke);
+                        break;
+                    case "long":
+                        Assert.assertArrayEquals((long[]) propertiesEntity.getExpectValue(), (long[]) invoke);
                         break;
                     default:
                         /// just implement it
