@@ -289,7 +289,6 @@ public class JobErrorTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(failedReason, output.getFailedReason());
     }
 
-    @Ignore
     @Test
     public void testUpdateJobErrorManager() throws InterruptedException {
         val manager = NExecutableManager.getInstance(jobService.getConfig(), getProject());
