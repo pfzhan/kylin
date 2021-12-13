@@ -2446,7 +2446,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean getSkipCorrReduceRule() {
-        return Boolean.parseBoolean(getOptional("kap.smart.conf.skip-corr-reduce-rule", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.smart.conf.skip-corr-reduce-rule", FALSE));
     }
 
     public String getEngineWriteFs() {
