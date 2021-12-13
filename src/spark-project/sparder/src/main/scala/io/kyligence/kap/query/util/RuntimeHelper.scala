@@ -27,19 +27,19 @@ import org.apache.kylin.common.util.ImmutableBitSet
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
 import org.apache.kylin.metadata.model.TblColRef
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{DataTypes, StructType}
-import org.apache.spark.sql.types.{ArrayType, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataTypes, StructType}
 import org.apache.spark.sql.udf.UdfManager
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 // scalastyle:off
-object RuntimeHelper {
+object RuntimeHelper  extends Logging {
 
   final val literalOne = new Column(Literal(1, DataTypes.IntegerType))
   final val literalTs = new Column(Literal(null, DataTypes.TimestampType))
@@ -114,17 +114,25 @@ object RuntimeHelper {
           if (topNMapping.contains(index)) {
             topNMapping.apply(index)
           } else if (calciteToGTinfo.contains(index)) {
-            val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
-            val hasTopN = topNMapping.nonEmpty && topNIndexs.nonEmpty
-            if (hasTopN && topNIndexs.map(_._2).contains(gTInfoIndex)) {
-              // topn measure will be erase when calling inline
-              literalOne.as(s"${factTableName}_${columnName}")
-            } else if (primaryKey.get(gTInfoIndex)) {
-              //  primary key
-              col(gTInfoNames.apply(gTInfoIndex))
-            } else {
-              //  measure
-              col(gTInfoNames.apply(gTInfoIndex))
+            try {
+              val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
+              val hasTopN = topNMapping.nonEmpty && topNIndexs.nonEmpty
+              if (hasTopN && topNIndexs.map(_._2).contains(gTInfoIndex)) {
+                // topn measure will be erase when calling inline
+                literalOne.as(s"${factTableName}_${columnName}")
+              } else if (primaryKey.get(gTInfoIndex)) {
+                //  primary key
+                col(gTInfoNames.apply(gTInfoIndex))
+              } else {
+                //  measure
+                col(gTInfoNames.apply(gTInfoIndex))
+              }
+            } catch {
+              case e: IndexOutOfBoundsException => {
+                logWarning("Column found lost in layout columnName: " + columnName +
+                  ", allColumns: " + allColumns.toString(), e)
+                throw e
+              }
             }
           } else if (deriveMap.contains(index)) {
             deriveMap.apply(index)

@@ -46,10 +46,12 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
@@ -98,7 +100,26 @@ public abstract class GridTableMapping {
 
     public int getIndexOf(FunctionDesc metric) {
         Integer r = metrics2gt.get(metric);
+        if (r == null) {
+            r = handlerCountReplace(metric);
+        }
         return r == null ? -1 : r;
+    }
+
+    public Integer handlerCountReplace(FunctionDesc metric) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (config.isReplaceColCountWithCountStar() && FunctionDesc.FUNC_COUNT.equals(metric.getExpression())) {
+            Iterator<FunctionDesc> functionDescIterator = metrics2gt.keySet().iterator();
+            while (functionDescIterator.hasNext()) {
+                FunctionDesc functionDesc = functionDescIterator.next();
+                if (FunctionDesc.FUNC_COUNT.equals(functionDesc.getExpression())
+                        && functionDesc.getParameters().size() == 1
+                        && "1".equals(functionDesc.getParameters().get(0).getValue())) {
+                    return metrics2gt.get(functionDesc);
+                }
+            }
+        }
+        return null;
     }
 
     public int[] getMetricsIndices(Collection<FunctionDesc> metrics) {
