@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.common.persistence.transaction;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
+@EqualsAndHashCode
 public class StopQueryBroadcastEventNotifier extends BroadcastEventReadyNotifier {
 
     @Getter
@@ -37,4 +39,15 @@ public class StopQueryBroadcastEventNotifier extends BroadcastEventReadyNotifier
         this.id = id;
         this.subject = id;
     }
+
+    @Override
+    public BroadcastScopeEnum getBroadcastScope() {
+        return BroadcastScopeEnum.QUERY_AND_ALL;
+    }
+
+    @Override
+    public boolean needBroadcastSelf() {
+        return false;
+    }
+
 }

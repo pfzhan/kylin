@@ -3124,4 +3124,12 @@ public abstract class KylinConfigBase implements Serializable {
     public String getRecommendationCostMethod() {
         return getOptional("kylin.smart.update-cost-method", "HIT_COUNT");
     }
+
+    public int getEventBusHandleThreadCount() {
+        return Integer.parseInt(getOptional("kylin.env.eventbus-handle-count", "100"));
+    }
+
+    public long getMetadataCheckDuration() {
+        return Long.parseLong(getOptional("kylin.env.health-check-interval", "3000"));
+    }
 }

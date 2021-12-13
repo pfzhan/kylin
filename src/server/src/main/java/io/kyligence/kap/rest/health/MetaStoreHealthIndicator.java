@@ -62,7 +62,8 @@ public class MetaStoreHealthIndicator extends AbstractKylinHealthIndicator {
 
     @EventListener(AfterMetadataReadyEvent.class)
     public void init() {
-        META_STORE_HEALTH_EXECUTOR.scheduleWithFixedDelay(this::healthCheck, 0, HEALTH_CHECK_INTERVAL_MILLISECONDS,
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        META_STORE_HEALTH_EXECUTOR.scheduleWithFixedDelay(this::healthCheck, 0, config.getMetadataCheckDuration(),
                 TimeUnit.MILLISECONDS);
     }
 

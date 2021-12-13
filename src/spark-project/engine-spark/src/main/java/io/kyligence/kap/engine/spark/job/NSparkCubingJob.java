@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
-
 import static io.kyligence.kap.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
 import static java.util.stream.Collectors.joining;
 import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
@@ -66,6 +64,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.secondstorage.SecondStorageConstants;
 import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import lombok.val;
 
 /**
@@ -355,5 +354,4 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
         return true;
     }
-
 }

@@ -192,6 +192,24 @@ public class RestClient {
         return response;
     }
 
+    public HttpResponse updateSourceUsage() throws IOException {
+        String url = baseUrl + "/broadcast/capacity/refresh_all";
+        HttpPut put = newPut(url);
+        put.addHeader(ROUTED, "true");
+        HttpResponse response = null;
+        try {
+            response = client.execute(put);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                String msg = EntityUtils.toString(response.getEntity());
+                logger.error("Invalid response: {} for refresh capacity: {} \n{}",
+                        response.getStatusLine().getStatusCode(), url, msg);
+            }
+        } finally {
+            cleanup(put, response);
+        }
+        return response;
+    }
+
     public HttpResponse notify(BroadcastEventReadyNotifier notifier) throws IOException {
         String url = baseUrl + "/broadcast";
         HttpPost post = newPost(url);

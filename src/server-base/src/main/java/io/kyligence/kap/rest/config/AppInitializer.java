@@ -25,8 +25,6 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Date;
 
-import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
-import io.kyligence.kap.rest.source.DataSourceState;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -58,6 +56,7 @@ import io.kyligence.kap.rest.config.initialize.JobSchedulerListener;
 import io.kyligence.kap.rest.config.initialize.JobSyncListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
+import io.kyligence.kap.rest.config.initialize.ModelUpdateListener;
 import io.kyligence.kap.rest.config.initialize.ProcessStatusListener;
 import io.kyligence.kap.rest.config.initialize.QueryMetricsListener;
 import io.kyligence.kap.rest.config.initialize.SourceUsageUpdateListener;
@@ -65,6 +64,7 @@ import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.config.initialize.TableSchemaChangeListener;
 import io.kyligence.kap.rest.service.QueryCacheManager;
 import io.kyligence.kap.rest.service.QueryHistoryScheduler;
+import io.kyligence.kap.rest.source.DataSourceState;
 import io.kyligence.kap.rest.util.JStackDumpTask;
 import io.kyligence.kap.streaming.jobs.StreamingJobListener;
 import io.kyligence.kap.tool.daemon.KapGuardianHATask;
@@ -119,7 +119,7 @@ public class AppInitializer {
             EventBusFactory.getInstance().register(new JobSyncListener(), true);
             EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
             EventBusFactory.getInstance().register(epochChangedListener, false);
-            EventBusFactory.getInstance().register(broadcastListener, false);
+            EventBusFactory.getInstance().registerBroadcast(broadcastListener);
             EventBusFactory.getInstance().register(sourceUsageUpdateListener, false);
             EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
             EventBusFactory.getInstance().register(new StreamingJobListener(), true);

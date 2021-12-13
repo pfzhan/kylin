@@ -22,9 +22,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-
 package io.kyligence.kap.common.persistence.transaction;
 
+import lombok.EqualsAndHashCode;
+
+@EqualsAndHashCode
 public class RefreshVolumeBroadcastEventNotifier extends BroadcastEventReadyNotifier {
+
+    @Override
+    public boolean needBroadcastSelf() {
+        return false;
+    }
 }

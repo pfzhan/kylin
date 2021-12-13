@@ -30,12 +30,28 @@ import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ *
+ * if you extend a new broadcast event, please clear about:
+ * 1. aboutBroadcast Scope
+ * 2. is need to be handled by itself?
+ * 3. For all current broadcast event, when last same broadcast haven't been sent to other nodes,
+ * current broadcast event will be ignored. therefore, you have to override equals and hashcode methods.
+ *
+ */
+
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @Getter
 @Setter
 public class BroadcastEventReadyNotifier extends SchedulerEventNotifier {
 
-    protected BroadcastScopeEnum broadcastScope = BroadcastScopeEnum.WHOLE_NODES;
+    public BroadcastScopeEnum getBroadcastScope() {
+        return BroadcastScopeEnum.WHOLE_NODES;
+    }
+
+    public boolean needBroadcastSelf() {
+        return true;
+    }
 
     public enum BroadcastScopeEnum {
         /**
@@ -47,6 +63,11 @@ public class BroadcastEventReadyNotifier extends SchedulerEventNotifier {
          * All、Job
          */
         LEADER_NODES,
+
+        /**
+         * All、Query
+         */
+        QUERY_AND_ALL,
 
         ALL_NODES, JOB_NODES, QUERY_NODES
     }

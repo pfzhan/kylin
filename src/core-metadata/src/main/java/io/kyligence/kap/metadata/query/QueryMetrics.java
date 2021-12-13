@@ -32,12 +32,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
+import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class QueryMetrics {
+public class QueryMetrics extends SchedulerEventNotifier {
 
     protected static final Logger logger = LoggerFactory.getLogger(QueryMetrics.class);
 

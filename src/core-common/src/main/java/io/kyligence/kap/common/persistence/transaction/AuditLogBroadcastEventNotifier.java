@@ -24,5 +24,13 @@
 
 package io.kyligence.kap.common.persistence.transaction;
 
+import lombok.EqualsAndHashCode;
+
+@EqualsAndHashCode
 public class AuditLogBroadcastEventNotifier extends BroadcastEventReadyNotifier {
+
+    @Override
+    public boolean needBroadcastSelf() {
+        return false;
+    }
 }

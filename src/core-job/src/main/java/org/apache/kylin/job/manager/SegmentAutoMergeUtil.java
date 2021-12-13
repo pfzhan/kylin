@@ -46,13 +46,15 @@ public class SegmentAutoMergeUtil {
     }
 
     public static void autoMergeSegments(String project, String modelId, String owner) {
+        if (SegmentAutoMergeUtil.canSkipMergeAndClearSeg(project, modelId)) {
+            return;
+        }
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             handleRetention(project, modelId);
             doAutoMerge(project, modelId, owner);
             return null;
         }, project, 1);
     }
-
     private static void doAutoMerge(String project, String modelId, String owner) {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val df = dfManager.getDataflow(modelId);
@@ -80,5 +82,14 @@ public class SegmentAutoMergeUtil {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val df = dfManager.getDataflow(modelId);
         dfManager.handleRetention(df);
+    }
+
+    public static boolean canSkipMergeAndClearSeg(String project, String modelId) {
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
+        if (segmentConfig == null) {
+            logger.error("segment config is null");
+            return true;
+        }
+        return segmentConfig.canSkipAutoMerge() && segmentConfig.canSkipHandleRetentionSegment();
     }
 }

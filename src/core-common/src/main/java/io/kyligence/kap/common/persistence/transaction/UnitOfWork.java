@@ -262,7 +262,7 @@ public class UnitOfWork {
         checkEpoch(params);
         val unitName = params.getUnitName();
         metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitName, params.getEpochId());
-        if (!params.isReadonly() && !config.isUTEnv()) {
+        if (entitiesSize != 0 && !params.isReadonly() && !params.isSkipAuditLog() && !config.isUTEnv()) {
             factory.postAsync(new AuditLogBroadcastEventNotifier());
         }
         try {

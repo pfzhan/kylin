@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.slf4j.Logger;
@@ -54,7 +55,8 @@ public class FileSystemHealthIndicator extends AbstractKylinHealthIndicator {
 
     @EventListener(AfterMetadataReadyEvent.class)
     public void init() {
-        FILE_SYSTEM_HEALTH_EXECUTOR.scheduleWithFixedDelay(this::healthCheck, 0, HEALTH_CHECK_INTERVAL_MILLISECONDS,
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        FILE_SYSTEM_HEALTH_EXECUTOR.scheduleWithFixedDelay(this::healthCheck, 0, config.getMetadataCheckDuration(),
                 TimeUnit.MILLISECONDS);
     }
 

@@ -24,8 +24,14 @@
 
 package io.kyligence.kap.common.persistence.transaction;
 
+import lombok.EqualsAndHashCode;
+
+@EqualsAndHashCode
 public class EpochCheckBroadcastNotifier extends BroadcastEventReadyNotifier {
-    public EpochCheckBroadcastNotifier() {
-        setBroadcastScope(BroadcastScopeEnum.LEADER_NODES);
+
+    @Override
+    public BroadcastScopeEnum getBroadcastScope() {
+        return BroadcastScopeEnum.LEADER_NODES;
     }
+
 }

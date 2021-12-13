@@ -505,11 +505,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public Segments getSegmentsToRemoveByRetention() {
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, getModel().getUuid());
-        val retentionRange = segmentConfig.getRetentionRange();
-        if (!retentionRange.isRetentionRangeEnabled() || retentionRange.getRetentionRangeNumber() <= 0
-                || retentionRange.getRetentionRangeType() == null) {
+        if (segmentConfig.canSkipHandleRetentionSegment()) {
             return null;
         } else {
+            val retentionRange = segmentConfig.getRetentionRange();
             return segments.getSegmentsToRemoveByRetention(retentionRange.getRetentionRangeType(),
                     retentionRange.getRetentionRangeNumber());
         }

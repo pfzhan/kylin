@@ -305,9 +305,8 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public SegmentRange autoMergeSegments(SegmentConfig segmentConfig) {
         val volatileRange = segmentConfig.getVolatileRange();
         val retentionRange = segmentConfig.getRetentionRange();
-        val isAutoMergeEnabled = segmentConfig.getAutoMergeEnabled();
         val autoMergeTimeEnums = segmentConfig.getAutoMergeTimeRanges();
-        if (!isAutoMergeEnabled) {
+        if (segmentConfig.canSkipAutoMerge()) {
             return null;
         }
         Segments<T> readySegs = getSegments(SegmentStatusEnum.READY, SegmentStatusEnum.WARNING);

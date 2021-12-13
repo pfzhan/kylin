@@ -25,13 +25,25 @@
 package io.kyligence.kap.common.persistence.transaction;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @Getter
 @NoArgsConstructor
+@EqualsAndHashCode
 public class AclTCRRevokeEventNotifier extends BroadcastEventReadyNotifier {
     private String sid;
     private boolean principle;
+
+    @Override
+    public boolean needBroadcastSelf() {
+        return false;
+    }
+
+    @Override
+    public BroadcastScopeEnum getBroadcastScope() {
+        return BroadcastScopeEnum.LEADER_NODES;
+    }
 }

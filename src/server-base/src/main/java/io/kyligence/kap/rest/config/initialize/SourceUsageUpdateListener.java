@@ -97,7 +97,7 @@ public class SourceUsageUpdateListener {
                     clientMap.put(owner, new RestClient(owner));
                 }
                 log.debug("Start to notify {} to update source usage", owner);
-                clientMap.get(owner).notify(notifier);
+                clientMap.get(owner).updateSourceUsage();
             } catch (Exception e) {
                 log.error("Failed to update source usage using rest client", e);
             }

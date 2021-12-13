@@ -26,14 +26,27 @@ package io.kyligence.kap.common.persistence.transaction;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @Getter
 @NoArgsConstructor
+@EqualsAndHashCode
 public class UpdateJobStatusEventNotifier extends BroadcastEventReadyNotifier {
     private List<String> jobIds;
     private String action;
     private List<String> statuses;
+
+    @Override
+    public boolean needBroadcastSelf() {
+        return false;
+    }
+
+    @Override
+    public BroadcastScopeEnum getBroadcastScope() {
+        return BroadcastScopeEnum.LEADER_NODES;
+    }
+
 }

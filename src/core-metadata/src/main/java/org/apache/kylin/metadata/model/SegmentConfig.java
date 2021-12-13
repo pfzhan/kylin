@@ -42,7 +42,11 @@
 
 package org.apache.kylin.metadata.model;
 
+import java.io.Serializable;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
@@ -50,10 +54,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-
-import java.io.Serializable;
-import java.util.List;
 
 @Getter
 @Setter
@@ -75,4 +75,13 @@ public class SegmentConfig implements Serializable {
 
     @JsonProperty("create_empty_segment_enabled")
     private Boolean createEmptySegmentEnabled = false;
+
+    public boolean canSkipAutoMerge() {
+        return !autoMergeEnabled;
+    }
+
+    public boolean canSkipHandleRetentionSegment() {
+        return !retentionRange.isRetentionRangeEnabled() || retentionRange.getRetentionRangeNumber() <= 0
+                || retentionRange.getRetentionRangeType() == null;
+    }
 }

@@ -24,19 +24,28 @@
 
 package io.kyligence.kap.common.scheduler;
 
+import java.util.Locale;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 public class SchedulerEventNotifier {
 
     protected String project;
     protected String subject;
+
+    public String getEventType() {
+        return this.getClass().getSimpleName();
+    }
+
+    @Override
+    public String toString() {
+        return String.format(Locale.ROOT, "%s {project=%s, subject=%s}", getEventType(), project, subject);
+    }
 }

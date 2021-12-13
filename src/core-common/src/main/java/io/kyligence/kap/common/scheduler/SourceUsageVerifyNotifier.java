@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.common.scheduler;
 
-import io.kyligence.kap.common.persistence.transaction.BroadcastEventReadyNotifier;
-
-public class SourceUsageVerifyNotifier extends BroadcastEventReadyNotifier {
+public class SourceUsageVerifyNotifier extends SchedulerEventNotifier {
     // Verify model partition column is aligned with source table partition column
 }
