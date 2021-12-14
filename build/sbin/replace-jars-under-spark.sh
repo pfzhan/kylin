@@ -34,11 +34,6 @@ if [[ "${kerberosEnabled}" == "false" || -f ${BYPASS} ]]
 then
     return
 fi
-
-if [[ $(hadoop version) == *"mapr"* ]];then
-    return
-fi
-
 echo "Start replacing hadoop jars under ${SPARK_HOME}/jars."
 
 common_jars=

@@ -37,10 +37,6 @@ if [ -z $KYLIN_HOME ];then
     export KYLIN_HOME=$(cd -P -- "$(dirname -- "$0")"/../ && pwd -P)
 fi
 
-if [[ -z ${MAPR_HOME} ]];then
-    export MAPR_HOME="/opt/mapr"
-fi
-
 if [ -z ${kylin_hadoop_conf_dir} ]; then
     export kylin_hadoop_conf_dir=$KYLIN_HOME/hadoop_conf
 fi
