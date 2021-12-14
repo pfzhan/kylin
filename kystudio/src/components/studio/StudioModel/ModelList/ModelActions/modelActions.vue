@@ -760,7 +760,7 @@ export default class ModelActions extends Vue {
     try {
       this.secStorageLoading = true
       await this.updateModelSecStorage({ project: this.currentSelectedProject, model: this.currentModel.uuid, enabled: this.second_storage_enabled })
-      if (!this.second_storage_enabled) { // 关闭会发起删除TS缓存任务
+      if (!this.second_storage_enabled && this.currentModel.second_storage_enabled) { // 从开启变更成关闭会发起删除TS缓存任务
         this.$message({
           dangerouslyUseHTMLString: true,
           type: 'success',
