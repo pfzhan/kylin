@@ -110,16 +110,6 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile /etc/hadoop/conf/topology.map
         checkAndCopyFile /etc/hadoop/conf/ssl-client.xml
         checkAndCopyFile /etc/hadoop/conf/hadoop-env.sh
-    elif [[ $(hadoop version) == *"mapr"* ]]
-    then
-        mkdir -p ${kylin_hadoop_conf_dir}
-
-        checkAndCopyFile ${MAPR_HOME}/hadoop/hadoop-*/etc/hadoop/hdfs-site.xml
-        checkAndCopyFile ${MAPR_HOME}/hadoop/hadoop-*/etc/hadoop/core-site.xml
-        checkAndCopyFile ${MAPR_HOME}/hadoop/hadoop-*/etc/hadoop/yarn-site.xml
-        checkAndCopyFile ${MAPR_HOME}/hive/hive-*/conf/hive-site.xml
-        checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hiveserver2-site.xml
-        checkAndCopyFile ${KYLIN_HOME}/hadoop_conf/hive-site.xml ${KYLIN_HOME}/hadoop_conf/hivemetastore-site.xml
     else
         # APACHE HADOOP platform
         APACHE_HADOOP_CONF_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.apache-hadoop-conf-dir`

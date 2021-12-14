@@ -36,15 +36,18 @@ if [ "$1" == "-v" ]; then
 fi
 
 
-if [[ $(hadoop version) == *"mapr"* ]]; then
-    MAPR_AUTHENTICATION="-Djava.security.auth.login.config=${MAPR_HOME}/conf/mapr.login.conf"
-fi
-
 if [ "${SPARK_SCHEDULER_MODE}" == "" ] || [[ "${SPARK_SCHEDULER_MODE}" != "FAIR" && "${SPARK_SCHEDULER_MODE}" != "SJF" ]]; then
   SPARK_SCHEDULER_MODE="FAIR"
 fi
 
 function prepareEnv() {
+    # avoid re-entering
+    if [[ -n $SKIP_PRE_ENV ]]; then
+        return
+    fi
+
+    SKIP_PRE_ENV=1
+
     export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
     export SPARK_HOME=${KYLIN_HOME}/spark
 
@@ -91,9 +94,7 @@ function skipCheckOrNot() {
     fi
 
 }
-function checkZookeeperConfig {
-    #this is necessary in FI
-    source ${KYLIN_HOME}/sbin/load-zookeeper-config.sh
+function checkZookeeperRole {
     if [[ `skipCheckOrNot $KYLIN_SKIP_CHECK_MODE` ]]; then
         return 0
     fi
@@ -203,7 +204,7 @@ function runToolInternal() {
     else
         kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.xml"
     fi
-    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} ${MAPR_AUTHENTICATION} -Dfile.encoding=UTF-8 -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/conf/:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
+    java -Xms${JAVA_VM_TOOL_XMS} -Xmx${JAVA_VM_TOOL_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configurationFile=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/conf/:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/server/jars/*:${SPARK_HOME}/jars/*" "$@"
 }
 
 function killChildProcess {
@@ -329,11 +330,7 @@ function startKE(){
         fi
     fi
 
-    checkRestPort
-
     checkEnv
-
-    checkSparkDir
 
     START_TIME=$(date "+%Y-%m-%d %H:%M:%S")
 
@@ -343,7 +340,15 @@ function startKE(){
 
     prepareEnv
 
-    checkZookeeperConfig
+    #this is necessary in FI
+    source ${KYLIN_HOME}/sbin/load-zookeeper-config.sh
+
+    if [[ -f ${KYLIN_HOME}/bin/check-env-bypass ]]; then
+        checkRestPort
+        checkZookeeperRole
+    fi
+
+    checkSparkDir
 
     checkKeMetaList
 
@@ -352,7 +357,7 @@ function startKE(){
     checkTimeZone
 
     cd ${KYLIN_HOME}/server
-    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} ${TIME_ZONE} ${MAPR_AUTHENTICATION} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${KYLIN_SERVER_LOG4J} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/conf,${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/guardian.sh kill"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 < /dev/null & echo $! >> ${KYLIN_HOME}/pid &
+    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} ${TIME_ZONE} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${KYLIN_SERVER_LOG4J} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/conf,${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/guardian.sh kill"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 < /dev/null & echo $! >> ${KYLIN_HOME}/pid &
 
     clearRedundantProcess 3
 
