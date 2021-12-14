@@ -36,7 +36,6 @@ import org.apache.spark.sql.execution.datasources.jdbc.ShardOptions$;
 import org.apache.spark.sql.execution.datasources.v2.V2ScanRelationPushDown2$;
 import org.apache.spark.sql.execution.datasources.v2.jdbc.ShardJDBCScan;
 import org.apache.spark.sql.jdbc.JdbcDialects$;
-import org.apache.spark.sql.types.Decimal;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
