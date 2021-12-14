@@ -271,7 +271,9 @@ public class HiveTransactionTableHelper {
 
         String sql = "";
         Boolean hasParam = Objects.nonNull(partitionDesc) && params.containsKey("segmentStart") && params.containsKey("segmentEnd")
-                && Objects.nonNull(partitionDesc.getPartitionDateColumnRef());
+                && Objects.nonNull(partitionDesc.getPartitionDateColumnRef())
+                && Objects.nonNull(partitionDesc.getPartitionDateColumnRef().getTable())
+                && partitionDesc.getPartitionDateColumnRef().getTable().equalsIgnoreCase(table.getIdentity());
         if(hasParam) {
             ColumnDesc partitionColumnDesc = partitionDesc.getPartitionDateColumnRef().getColumnDesc();
             String partitionDataColumn = partitionColumnDesc.getName();
