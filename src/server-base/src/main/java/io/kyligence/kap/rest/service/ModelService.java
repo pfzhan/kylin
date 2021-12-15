@@ -2430,8 +2430,8 @@ public class ModelService extends BasicService {
             if (dupMeasure != null) {
                 dupMeasure = dupMeasure.getId() != 0 ? dupMeasure : measure;
                 if (request.getId() != null) {
-                    NDataModel.Measure existingMeasure =
-                            getModelById(request.getId(), request.getProject()).getEffectiveMeasures().get(dupMeasure.getId());
+                    NDataModel.Measure existingMeasure = getModelById(request.getId(), request.getProject())
+                            .getEffectiveMeasures().get(dupMeasure.getId());
                     if (existingMeasure != null && existingMeasure.getType() == NDataModel.MeasureType.INTERNAL) {
                         throw new KylinException(DUPLICATE_MEASURE_EXPRESSION, String.format(Locale.ROOT,
                                 MsgPicker.getMsg().getDUPLICATE_INTERNAL_MEASURE_DEFINITION(), measure.getName()));
