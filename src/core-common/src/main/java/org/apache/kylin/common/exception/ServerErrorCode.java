@@ -86,6 +86,7 @@ public enum ServerErrorCode implements ErrorCodeSupplier {
     // 10035XXX multi partition column
     INVALID_MULTI_PARTITION_MAPPING_REQUEST("KE-010002019"), //
     INVALID_PARTITION_VALUES("KE-010002020"), //
+    TABLE_JOIN_RELATIONSHIP_ERROR("KE-010002021"), //
 
     // 10003XXX user
     USER_NOT_EXIST("KE-010003001"), //

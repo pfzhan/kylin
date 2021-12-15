@@ -42,9 +42,9 @@
 
 package org.apache.kylin.common.msg;
 
-import java.util.Locale;
-
 import org.apache.kylin.common.Singletons;
+
+import java.util.Locale;
 
 public class Message {
 
@@ -1192,7 +1192,7 @@ public class Message {
     }
 
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
-        return "Can’t set the dimension table of this model, as it has been used as fact table in another model. Please modify and try again.";
+        return "Can’t set the dimension table of this model, as it has been used as fact table in this model. Please modify and try again.";
     }
 
     public String getNO_DATA_IN_TABLE() {

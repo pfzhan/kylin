@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.model;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.COLUMN_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_JOIN_RELATIONSHIP_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 
 import java.io.Serializable;
@@ -89,7 +90,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.scheduler.SchedulerEventNotifier;
-import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.streaming.KafkaConfig;
@@ -1070,7 +1070,8 @@ public class NDataModel extends RootPersistentEntity {
                     .map(JoinTableDesc::getTable).collect(Collectors.toSet());
 
             if (lookups.contains(getRootFactTableName())) {
-                throw new LookupTableException(MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_THIS_MODEL());
+                throw new KylinException(TABLE_JOIN_RELATIONSHIP_ERROR,
+                        MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_THIS_MODEL());
             }
         }
     }
@@ -1360,9 +1361,8 @@ public class NDataModel extends RootPersistentEntity {
 
     public NamedColumn getColumnByColumnNameInModel(String name) {
         Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
-        return allNamedColumns.stream()
-                .filter(col -> col.name.equalsIgnoreCase(name) && col.isExist())
-                .findFirst().orElse(null);
+        return allNamedColumns.stream().filter(col -> col.name.equalsIgnoreCase(name) && col.isExist()).findFirst()
+                .orElse(null);
     }
 
     public String getColumnNameByColumnId(int id) {

@@ -42,9 +42,9 @@
 
 package org.apache.kylin.common.msg;
 
-import java.util.Locale;
-
 import org.apache.kylin.common.Singletons;
+
+import java.util.Locale;
 
 public class CnMessage extends Message {
 
@@ -1394,7 +1394,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getDIMENSION_TABLE_USED_IN_THIS_MODEL() {
-        return "无法设置此模型的维度表，因为其已被用作其他模型的事实表。请修改后重试。";
+        return "无法设置此模型的维度表，因为其已被用作当前模型的事实表。请修改后重试。";
     }
 
     @Override
