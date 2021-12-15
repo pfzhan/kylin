@@ -39,6 +39,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -78,7 +79,7 @@ public class TableExtService extends BasicService {
 
     public LoadTableResponse loadDbTables(String[] dbTables, String project, boolean isDb) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
-        Map<String, Set<String>> dbTableMap = classifyDbTables(dbTables);
+        Map<String, Set<String>> dbTableMap = classifyDbTables(dbTables, isDb);
         Set<String> existDbs = Sets.newHashSet(tableService.getSourceDbNames(project));
         LoadTableResponse tableResponse = new LoadTableResponse();
         List<Pair<TableDesc, TableExtDesc>> loadTables = Lists.newArrayList();
@@ -89,7 +90,8 @@ public class TableExtService extends BasicService {
                 if (isDb) {
                     tableResponse.getFailed().add(db);
                 } else {
-                    tableResponse.getFailed().addAll(tableSet);
+                    List<String> tables = tableSet.stream().map(table -> db + "." + table).collect(Collectors.toList());
+                    tableResponse.getFailed().addAll(tables);
                 }
                 continue;
             }
@@ -106,14 +108,16 @@ public class TableExtService extends BasicService {
             if (tables.length > 0)
                 loadTables.addAll(extractTableMeta(tables, project, tableResponse));
         }
+        if (!loadTables.isEmpty()) {
+            return innerLoadTables(project, tableResponse, loadTables);
+        }
 
-        innerLoadTables(project, tableResponse, loadTables);
         return tableResponse;
     }
 
-    private void innerLoadTables(String project, LoadTableResponse tableResponse,
+    private LoadTableResponse innerLoadTables(String project, LoadTableResponse tableResponse,
             List<Pair<TableDesc, TableExtDesc>> loadTables) {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> { //
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> { //
             NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.readSystemKylinConfig(),
                     project);
             loadTables.forEach(pair -> {
@@ -123,14 +127,14 @@ public class TableExtService extends BasicService {
                     try {
                         loadTable(pair.getFirst(), pair.getSecond(), project);
                     } catch (Exception ex) {
-                        logger.error("Failed to load table '{}'", tableName, ex);
+                        logger.error("Failed to load table ({}/{})", project, tableName, ex);
                         success = false;
                     }
                 }
                 Set<String> targetSet = success ? tableResponse.getLoaded() : tableResponse.getFailed();
                 targetSet.add(tableName);
             });
-            return 0;
+            return tableResponse;
         }, project, 1);
     }
 
@@ -157,16 +161,17 @@ public class TableExtService extends BasicService {
         });
     }
 
-    private Map<String, Set<String>> classifyDbTables(String[] dbTables) {
+    private Map<String, Set<String>> classifyDbTables(String[] dbTables, boolean isDb) {
         Map<String, Set<String>> dbTableMap = Maps.newHashMap();
         for (String str : dbTables) {
             String db;
             String table = null;
-            if (str.contains(".")) {
-                db = str.split("\\.", 2)[0].trim().toUpperCase(Locale.ROOT);
-                table = str.split("\\.", 2)[1].trim().toUpperCase(Locale.ROOT);
-            } else {
+            if (isDb) {
                 db = str.toUpperCase(Locale.ROOT);
+            } else {
+                String[] dbTableName = HadoopUtil.parseHiveTableName(str);
+                db = dbTableName[0].toUpperCase(Locale.ROOT);
+                table = dbTableName[1].toUpperCase(Locale.ROOT);
             }
             Set<String> tables = dbTableMap.getOrDefault(db, Sets.newHashSet());
             if (table != null) {
