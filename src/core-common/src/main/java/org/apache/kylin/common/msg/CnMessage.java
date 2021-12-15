@@ -1784,7 +1784,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_JOB_EXISTS() {
-        return "当前无法关闭分层存储。模型 “%s” 正在进行加载数据到分层存储的任务，请稍后重试。\n";
+        return "当前无法关闭分层存储。模型 “%s” 存在正在运行的任务，请检查后再试。\n";
     }
 
     @Override
@@ -1794,7 +1794,7 @@ public class CnMessage extends Message {
 
     @Override
     public String getSECOND_STORAGE_PROJECT_JOB_EXISTS() {
-        return "当前无法关闭分层存储。项目 “%s” 正在进行加载数据到分层存储的任务，请稍后重试。\n";
+        return "当前无法关闭分层存储。项目 “%s” 存在正在运行的任务，请检查后再试。\n";
     }
 
     @Override
