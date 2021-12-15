@@ -35,6 +35,8 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+
+import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT;
 import static io.kyligence.kap.secondstorage.SecondStorageConcurrentTestUtil.registerWaitPoint;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.management.SecondStorageEndpoint;
@@ -406,6 +408,44 @@ public class IncrementalWithIntPartitionTest implements JobWaiter {
             Assert.assertEquals(ExecutableState.PAUSED, job.getStatus());
             Assert.assertEquals("[]", job.getOutput().getExtra().get(LoadContext.CLICKHOUSE_LOAD_CONTEXT));
         });
+
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            executableManager.resumeJob(jobId);
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        await().atMost(2, TimeUnit.SECONDS).until(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            return executableManager.getJob(jobId).getStatus() == ExecutableState.RUNNING;
+        });
+        waitJobFinish(project, jobId);
+        Assert.assertEquals(24, IncrementalWithIntPartitionTest.getModelRowCount(project, modelId));
+        SecondStorageUtil.checkSecondStorageData(project);
+    }
+
+    @Test
+    public void testJobPausedBeforeCommit() throws Exception {
+        buildIncrementalLoadQuery("2012-01-01", "2012-01-02");
+        buildIncrementalLoadQuery("2012-01-02", "2012-01-03");
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflow = dataflowManager.getDataflow(modelId);
+        val segs = dataflow.getQueryableSegments().stream().map(NDataSegment::getId).collect(Collectors.toList());
+        cleanSegments(segs.subList(1, 2));
+        registerWaitPoint(SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT, 10000);
+        val jobId = refreshSegment(segs.get(1), false);
+        await().atMost(15, TimeUnit.SECONDS).until(() -> SecondStorageConcurrentTestUtil.isWaiting(WAIT_BEFORE_COMMIT));
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            executableManager.pauseJob(jobId);
+            return null;
+        }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
+        waitJobEnd(project, jobId);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        await().atMost(15, TimeUnit.SECONDS).until(() -> scheduler.getContext().getRunningJobs().values().size() == 0);
+        val tableFlowManager = SecondStorageUtil.tableFlowManager(KylinConfig.getInstanceFromEnv(), project);
+        int partitionNum = tableFlowManager.get().get(modelId).orElseThrow(() -> new IllegalStateException("tableflow not found")).getTableDataList().get(0).getPartitions().size();
+        Assert.assertEquals(1, partitionNum);
+        Assert.assertFalse(SecondStorageLockUtils.containsKey(modelId, SegmentRange.TimePartitionedSegmentRange.createInfinite()));
 
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);

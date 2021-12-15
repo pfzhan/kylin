@@ -36,15 +36,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SecondStorageConcurrentTestUtil {
     // for load data to clickhouse
     public static final String WAIT_PAUSED = "WAIT_PAUSED";
+    public static final String WAIT_BEFORE_COMMIT = "WAIT_BEFORE_COMMIT";
 
     private static final Map<String, Integer> latchMap = new ConcurrentHashMap<>();
+    private static final Map<String, Boolean> waitingMap = new ConcurrentHashMap<>();
 
     public static void wait(String point) {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             try {
                 if (latchMap.containsKey(point)) {
+                    waitingMap.put(point, true);
                     Thread.sleep(latchMap.get(point));
                     latchMap.remove(point);
+                    waitingMap.remove(point);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -59,6 +63,10 @@ public class SecondStorageConcurrentTestUtil {
 
     public static boolean existWaitPoint(String point) {
         return latchMap.containsKey(point);
+    }
+
+    public static boolean isWaiting(String point) {
+        return waitingMap.containsKey(point);
     }
 
     private SecondStorageConcurrentTestUtil() {

@@ -199,7 +199,9 @@ public class DataLoader {
             for (Future<?> future : futureList) {
                 future.get();
             }
-            stopFlag.set(loadContext.getJob().isDiscarded() || loadContext.getJob().isPaused());
+            SecondStorageConcurrentTestUtil.wait(SecondStorageConcurrentTestUtil.WAIT_BEFORE_COMMIT);
+            paused = loadContext.getJob().isPaused();
+            stopFlag.set(loadContext.getJob().isDiscarded() || paused);
             if (!stopFlag.get()) {
                 // commit data when job finish normally
                 for (ShardLoader shardLoader : shardLoaders) {
