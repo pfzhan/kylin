@@ -175,6 +175,8 @@ import io.kyligence.kap.metadata.cube.model.PartitionStatusEnum;
 import io.kyligence.kap.metadata.cube.model.PartitionStatusEnumToDisplay;
 import io.kyligence.kap.metadata.cube.model.RuleBasedIndex;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.job.JobBucket;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.BadModelException;
@@ -304,6 +306,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private JdbcRawRecStore jdbcRawRecStore;
 
+    private FavoriteRuleManager favoriteRuleManager;
+
     @Before
     public void setup() {
         super.setup();
@@ -337,6 +341,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val copy = prjManager.copyForWrite(prj);
         copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
+        favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), getProject());
 
         try {
             new JdbcRawRecStore(getTestConfig());
@@ -4877,6 +4882,49 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(
                 "(((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100)) AND ((TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) > 123))",
                 model.getFilterCondition());
+    }
+
+    @Test
+    public void testMassageModelFilterConditionWithExcludedTable() {
+        overwriteSystemProp("kylin.engine.build-excluded-table", "true");
+        mockExcludeTableRule("DEFAULT.TEST_ORDER");
+        String project = "default";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel model = modelManager
+                .copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        String originSql = "trans_id = 0 and TEST_ORDER.order_id < 100 and DEAL_AMOUNT > 123";
+        model.setFilterCondition(originSql);
+        modelService.massageModelFilterCondition(model);
+        Assert.assertEquals(
+                "(((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_ORDER.ORDER_ID < 100)) AND ((TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) > 123))",
+                model.getFilterCondition());
+    }
+
+    @Test
+    public void testMassageModelFilterConditionWithExcludedTableException() {
+        mockExcludeTableRule("DEFAULT.TEST_ORDER");
+        String project = "default";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel model = modelManager
+                .copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        String originSql = "trans_id = 0 and TEST_ORDER.order_id < 100 and DEAL_AMOUNT > 123";
+        model.setFilterCondition(originSql);
+        try {
+            modelService.massageModelFilterCondition(model);
+        } catch (Exception e) {
+            String msg = "Can’t use the columns from dimension table “TEST_ORDER“ for data filter condition, "
+                    + "as the join relationships of this table won’t be precomputed.";
+            Assert.assertEquals(msg, e.getMessage());
+        }
+    }
+
+    private void mockExcludeTableRule(String excludedTables) {
+        List<FavoriteRule.Condition> conditions = com.clearspring.analytics.util.Lists.newArrayList();
+        FavoriteRule.Condition condition = new FavoriteRule.Condition();
+        condition.setLeftThreshold(null);
+        condition.setRightThreshold(excludedTables);
+        conditions.add(condition);
+        favoriteRuleManager.updateRule(conditions, true, FavoriteRule.EXCLUDED_TABLES_RULE);
     }
 
     @Test

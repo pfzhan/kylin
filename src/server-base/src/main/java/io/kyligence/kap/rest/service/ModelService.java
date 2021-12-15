@@ -1636,8 +1636,9 @@ public class ModelService extends BasicService {
         if (getModelConfig(dataModel).skipCheckFlatTable()) {
             return;
         }
-        long rangePartitionTableCount = dataModel.getAllTableRefs().stream().filter(p -> p.getTableDesc().isRangePartition()).count();
-        if(rangePartitionTableCount > 0) {
+        long rangePartitionTableCount = dataModel.getAllTableRefs().stream()
+                .filter(p -> p.getTableDesc().isRangePartition()).count();
+        if (rangePartitionTableCount > 0) {
             logger.info("Range partitioned tables do not support pushdown, so do not need to perform subsequent logic");
             return;
         }
@@ -4140,7 +4141,7 @@ public class ModelService extends BasicService {
      * @param model
      */
     @VisibleForTesting
-    void massageModelFilterCondition(final NDataModel model) {
+    public void massageModelFilterCondition(final NDataModel model) {
         if (StringUtils.isEmpty(model.getFilterCondition())) {
             return;
         }
@@ -4179,14 +4180,15 @@ public class ModelService extends BasicService {
         SqlVisitor<Object> sqlVisitor = new AddTableNameSqlVisitor(expr, colToTable, ambiguityCol, allColumn);
 
         sqlNode.accept(sqlVisitor);
-
-        Set<String> excludedTables = getFavoriteRuleManager(model.getProject()).getExcludedTables();
-        ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
-        String antiFlattenLookup = checker.detectFilterConditionDependsLookups(sqlNode.toString(),
-                checker.getExcludedLookups());
-        if (antiFlattenLookup != null) {
-            throw new KylinException(FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
-                    MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+        if (!KylinConfig.getInstanceFromEnv().isBuildExcludedTableEnabled()) {
+            Set<String> excludedTables = getFavoriteRuleManager(model.getProject()).getExcludedTables();
+            ExcludedLookupChecker checker = new ExcludedLookupChecker(excludedTables, model.getJoinTables(), model);
+            String antiFlattenLookup = checker.detectFilterConditionDependsLookups(sqlNode.toString(),
+                    checker.getExcludedLookups());
+            if (antiFlattenLookup != null) {
+                throw new KylinException(FILTER_CONDITION_DEPENDS_ANTI_FLATTEN_LOOKUP, String.format(Locale.ROOT,
+                        MsgPicker.getMsg().getFILTER_CONDITION_ON_ANTI_FLATTEN_LOOKUP(), antiFlattenLookup));
+            }
         }
         return sqlNode
                 .toSqlString(new CalciteSqlDialect(
