@@ -582,7 +582,6 @@ public class NDataModel extends RootPersistentEntity {
             return factTableRefs.contains(t);
     }
 
-    //TODO: different from isFactTable(TableRef t)
     public boolean isFactTable(String fullTableName) {
         for (TableRef t : factTableRefs) {
             if (t.getTableIdentity().equals(fullTableName))
@@ -640,9 +639,8 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
 
-        if (result == null)
-            throw new RuntimeException(
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), input));
+        Preconditions.checkArgument(result != null,
+                String.format(Locale.ROOT, MsgPicker.getMsg().getBadSqlColumnNotFoundReason(), input));
         return result;
     }
 
@@ -760,15 +758,15 @@ public class NDataModel extends RootPersistentEntity {
                 throw new IllegalStateException("Join table does not exist:" + join.getTable());
 
             TableDesc tableDesc = tables.get(join.getTable());
-            String alias = join.getAlias();
-            if (alias == null) {
-                alias = tableDesc.getName();
+            String joinAlias = join.getAlias();
+            if (joinAlias == null) {
+                joinAlias = tableDesc.getName();
             }
-            alias = alias.toUpperCase(Locale.ROOT);
-            join.setAlias(alias);
+            joinAlias = joinAlias.toUpperCase(Locale.ROOT);
+            join.setAlias(joinAlias);
 
             boolean isLookup = join.getKind() == TableKind.LOOKUP;
-            TableRef ref = new TableRef(this, alias, tableDesc, isLookup);
+            TableRef ref = new TableRef(this, joinAlias, tableDesc, isLookup);
             if (join.isDerivedForbidden()) {
                 queryDerivedDisabledRefs.add(ref);
             }
@@ -783,11 +781,12 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private void addAlias(TableRef ref) {
-        String alias = ref.getAlias();
-        if (aliasMap.containsKey(alias))
-            throw new IllegalStateException("Alias '" + alias + "' ref to multiple tables: " + ref.getTableIdentity()
-                    + ", " + aliasMap.get(alias).getTableIdentity());
-        aliasMap.put(alias, ref);
+        String tableAlias = ref.getAlias();
+        if (aliasMap.containsKey(tableAlias)) {
+            throw new IllegalStateException(String.format(Locale.ROOT, "Alias '%s' ref to multiple tables: %s, %s",
+                    tableAlias, ref.getTableIdentity(), aliasMap.get(tableAlias).getTableIdentity()));
+        }
+        aliasMap.put(tableAlias, ref);
 
         TableDesc table = ref.getTableDesc();
         addTableName(table.getName(), ref);
@@ -917,9 +916,9 @@ public class NDataModel extends RootPersistentEntity {
             }
             for (int i = 0; i < fkCols.length; i++) {
                 if (!fkCols[i].getDatatype().equals(pkCols[i].getDatatype())) {
-                    logger.warn("PK " + dimTable + "." + pkCols[i].getName() + "." + pkCols[i].getDatatype()
-                            + " are not consistent with FK " + join.getFKSide().getTableIdentity() + "."
-                            + fkCols[i].getName() + "." + fkCols[i].getDatatype());
+                    logger.warn("PK {}.{}.{} are not consistent with FK {}.{}.{}", dimTable, pkCols[i].getName(),
+                            pkCols[i].getDatatype(), join.getFKSide().getTableIdentity(), fkCols[i].getName(),
+                            fkCols[i].getDatatype());
                 }
             }
         }
