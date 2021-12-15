@@ -1292,6 +1292,7 @@ public class ModelService extends BasicService {
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
             nDataflowUpdate.setToRemoveSegs(nDataSegments);
             dataflowManager.updateDataflow(nDataflowUpdate);
+            cleanModelWithSecondStorage(modelId, project);
         }
         offlineModelIfNecessary(dataflowManager, modelId);
     }
