@@ -354,7 +354,7 @@ import SnapshotModel from './SnapshotModel/SnapshotModel.vue'
       if (to.params.table) {
         vm.filter.table = to.params.table
       }
-      vm.getSnapshotList()
+      // vm.getSnapshotList()
     })
   },
   components: {
