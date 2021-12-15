@@ -563,9 +563,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetSegmentsByRange() {
-        Segments<NDataSegment> segments = modelService.getSegmentsByRange("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default", "0", "" + Long.MAX_VALUE);
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+
+        Segments<NDataSegment> segments = modelService.getSegmentsByRange(modelId, "default", "0", "" + Long.MAX_VALUE);
         Assert.assertEquals(1, segments.size());
+
+        val brokenSegments1 = modelService.getSegmentsByRange("f1bb4bbd-a638-442b-a276-e301fde0d7f6", "broken_test",
+                "0", "" + Long.MAX_VALUE);
+        Assert.assertTrue(brokenSegments1.isEmpty());
+        val mgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        mgr.updateDataModel(modelId, copyForWrite -> {
+            copyForWrite.setBroken(true);
+            copyForWrite.setBrokenReason(NDataModel.BrokenReason.EVENT);
+        });
+        Segments<NDataSegment> segments1 = modelService.getSegmentsByRange(modelId, "default", "0",
+                "" + Long.MAX_VALUE);
+        Assert.assertTrue(segments1.isEmpty());
+        mgr.dropModel(modelId);
+        Segments<NDataSegment> segments2 = modelService.getSegmentsByRange(modelId, "default", "0",
+                "" + Long.MAX_VALUE);
+        Assert.assertTrue(segments2.isEmpty());
     }
 
     @Test

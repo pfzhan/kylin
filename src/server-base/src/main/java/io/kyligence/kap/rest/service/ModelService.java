@@ -1086,6 +1086,10 @@ public class ModelService extends BasicService {
         if (df == null) {
             return Segments.empty();
         }
+        val model = df.getModel();
+        if (model == null || model.isBroken()) {
+            return Segments.empty();
+        }
         SegmentRange filterRange = getSegmentRangeByModel(project, modelId, start, end);
         return df.getSegmentsByRange(filterRange);
     }
