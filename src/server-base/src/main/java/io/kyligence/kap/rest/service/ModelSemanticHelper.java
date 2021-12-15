@@ -41,6 +41,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -53,6 +54,8 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.SecondStorageJobParamUtil;
+import org.apache.kylin.job.handler.SecondStorageModelCleanJobHandler;
 import org.apache.kylin.job.manager.JobManager;
 import org.apache.kylin.job.model.JobParam;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -906,6 +909,7 @@ public class ModelSemanticHelper extends BasicService {
         dataflowManager.updateDataflow(df.getUuid(), copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
+        cleanModelWithSecondStorage(newModel.getUuid(), project);
 
         String modelId = newModel.getUuid();
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
@@ -936,6 +940,15 @@ public class ModelSemanticHelper extends BasicService {
                 segments.forEach(segment -> segmentRanges.add(segment.getSegRange()));
                 dataflowManager.fillDfManually(df, segmentRanges);
             }
+        }
+    }
+
+    private void cleanModelWithSecondStorage(String modelId, String project) {
+        if (SecondStorageUtil.isModelEnable(project, modelId)) {
+            val jobHandler = new SecondStorageModelCleanJobHandler();
+            final JobParam param = SecondStorageJobParamUtil.modelCleanParam(project, modelId, getUsername());
+            getJobManager(project).addJob(param, jobHandler);
+            SecondStorageUtil.disableModel(project, modelId);
         }
     }
 

@@ -5559,6 +5559,28 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testChangePartitionDescWithSecondStorage() throws Exception {
+        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, project);
+        SecondStorageUtil.initModelMetaData("default", model);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+
+        val modelRequest = prepare();
+        modelRequest.setWithSecondStorage(true);
+        modelRequest.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
+        modelService.updateDataModelSemantic("default", modelRequest);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+    }
+
+    @Test
     public void testDropModelWithSecondStorage() throws IOException {
         val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val project = "default";
