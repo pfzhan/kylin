@@ -86,7 +86,7 @@ public class SnapshotInfoResponse implements Comparable<SnapshotInfoResponse> {
         this.storage = tableDesc.getLastSnapshotSize();
         this.factTableCount = factTableCount;
         this.lookupTableCount = lookupTableCount;
-        this.lastModifiedTime = tableDesc.getLastModified();
+        this.lastModifiedTime = tableDesc.getSnapshotLastModified();
         this.status = status;
         this.columns = columns;
         this.selectPartitionCol = tableDesc.getSelectedSnapshotPartitionCol();
