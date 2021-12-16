@@ -6,11 +6,11 @@
         <span>{{$t('kylinLang.common.dataSource')}}</span>
       </div>
       <div class="icon-btns clearfix">
-        <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]" v-if="isShowSourceSwitch">
+        <!-- <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]" v-if="isShowSourceSwitch">
           <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
             <i class="ksd-fs-14 el-icon-ksd-setting" @click="handleSwitchSource"></i>
           </el-tooltip>
-        </div>
+        </div> -->
         <div class="add-source-table-icon" v-if="isShowLoadTable">
           <el-tooltip :content="$t('addDatasource')" effect="dark" placement="top">
             <i class="ksd-fs-14 el-icon-ksd-project_add"  @click="importDataSource('selectSource', currentProjectData)"></i>
