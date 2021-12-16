@@ -238,6 +238,8 @@ object ExpressionConverter {
             length(k_lit(children.head))
           case "repeat" =>
             repeat(k_lit(children.head), children.apply(1).asInstanceOf[Int])
+          case "size" =>
+            size(k_lit(children.head))
           case "strpos" =>
             val pos =
               if (children.length == 2) 1
