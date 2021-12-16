@@ -138,7 +138,7 @@
         <div class="panel-content" id="scrollBox" :class="{'ksd-pt-38': isShowAlter}">
           <div class="alter-block" v-if="isShowAlter">
             <el-alert :type="globalAlterTips.flag === 0 ? 'error' : 'warning'" :closable="globalAlterTips.flag !== 0" show-icon>
-              <span slot="title">{{globalAlterTips.text}} <a href="javascript:void(0);" @click="jumpToDetails" v-if="globalAlterTips.detailPath">{{$t('viewDetails')}}</a></span>
+              <span slot="title">{{globalAlterTips.text}} <a href="javascript:void(0);" @click="jumpToDetails" v-if="globalAlterTips.detailPath&&$route.name!=='SystemCapacity'">{{$t('viewDetails')}}</a></span>
             </el-alert>
           </div>
           <div class="grid-content bg-purple-light" id="scrollContent">
