@@ -164,6 +164,49 @@ public class RestSupportTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testHttpGet() {
+        List<Integer> ports = Lists.newArrayList(50000, 51000, 52000);
+
+        Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
+            for (int port : ports) {
+                try {
+                    latch = new CountDownLatch(1);
+                    HttpServer server = HttpServer.create(new InetSocketAddress("localhost", port), 0);
+                    val request = new StreamingJobUpdateRequest();
+                    server.createContext("/test", new NormalModeHandler(request));
+                    server.start();
+
+                    val rest = new RestSupport("http://localhost:" + port + "/test/");
+                    val restResp = rest.execute(rest.createHttpGet("status"), null);
+                    Assert.assertNotNull(restResp);
+                    Assert.assertEquals("0", restResp.getCode());
+                    Assert.assertEquals("false", restResp.getData());
+                    Assert.assertEquals("", restResp.getMsg());
+
+                    val maintenanceMode = rest.isMaintenanceMode();
+                    Assert.assertFalse(maintenanceMode);
+
+                    val checkMaintenanceMode = rest.checkMaintenceMode();
+                    Assert.assertFalse(checkMaintenanceMode);
+                    rest.close();
+                    latch.await(10, TimeUnit.SECONDS);
+                    server.stop(0);
+                    break;
+                } catch (InterruptedException e) {
+                    Assert.fail();
+                } catch (IOException e) {
+                    continue;
+                }
+            }
+            assertMeet = true;
+            return true;
+        });
+        if (!assertMeet) {
+            Assert.fail();
+        }
+    }
+
+    @Test
     public void testMaintenanceMode() {
         List<Integer> ports = Lists.newArrayList(50000, 51000, 52000);
 
@@ -233,7 +276,6 @@ public class RestSupportTest extends NLocalFileMetadataTestCase {
                 if (s.equals(JsonUtil.writeValueAsString(req))) {
                     assertMeet = true;
                 }
-                System.out.println("begin to hand req:" + s);
 
             } finally {
 

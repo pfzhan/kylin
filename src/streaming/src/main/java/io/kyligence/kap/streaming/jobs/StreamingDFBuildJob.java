@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.sql.Dataset;
@@ -59,6 +60,7 @@ import io.kyligence.kap.streaming.common.BuildJobEntry;
 import io.kyligence.kap.streaming.metadata.BuildLayoutWithRestUpdate;
 import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
+import io.kyligence.kap.streaming.util.JobExecutionIdHolder;
 import lombok.val;
 
 public class StreamingDFBuildJob extends DFBuildJob {
@@ -66,7 +68,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
     private Map<Long, Dataset<Row>> cuboidDatasetMap;
 
     public StreamingDFBuildJob(String project) {
-        buildLayoutWithUpdate = new BuildLayoutWithRestUpdate();
+        buildLayoutWithUpdate = new BuildLayoutWithRestUpdate(JobTypeEnum.STREAMING_BUILD);
         config = KylinConfig.getInstanceFromEnv();
         dfMgr = NDataflowManager.getInstance(config, project);
         this.project = project;
@@ -122,16 +124,16 @@ public class StreamingDFBuildJob extends DFBuildJob {
     }
 
     public void updateSegment(BuildJobEntry buildJobEntry) {
-        RestSupport rest = createRestSupport();
         String url = "/streaming_jobs/dataflow/segment";
         StreamingSegmentRequest req = new StreamingSegmentRequest(project, buildJobEntry.dataflowId(),
                 buildJobEntry.flatTableCount());
         req.setNewSegId(buildJobEntry.batchSegment().getId());
         req.setStatus(RealizationStatusEnum.ONLINE.name());
-        try {
+        req.setJobType(JobTypeEnum.STREAMING_BUILD.name());
+        val jobId = StreamingUtils.getJobId(buildJobEntry.dataflowId(), req.getJobType());
+        req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));
+        try(RestSupport rest = createRestSupport()) {
             rest.execute(rest.createHttpPut(url), req);
-        } finally {
-            rest.close();
         }
         StreamingUtils.replayAuditlog();
     }

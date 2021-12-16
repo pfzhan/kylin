@@ -40,7 +40,7 @@ import io.kyligence.kap.streaming.jobs.{StreamingDFBuildJob, StreamingJobUtils, 
 import io.kyligence.kap.streaming.manager.StreamingJobManager
 import io.kyligence.kap.streaming.metadata.StreamingJobMeta
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest
-import io.kyligence.kap.streaming.util.JobKiller
+import io.kyligence.kap.streaming.util.{JobExecutionIdHolder, JobKiller}
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
@@ -85,6 +85,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
   var dataflow: NDataflow = null
   var trigger: Trigger = null
   val minMaxBuffer = new ArrayBuffer[(Long, Long)](1)
+  var jobExecId: Integer = null
 
   def execute(): Unit = {
     log.info("{}, {}, {}", prj, dataflowId, String.valueOf(duration))
@@ -94,8 +95,8 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
 
     UdfManager.create(ss)
     registerStreamListener(ss, config, jobId, prj, duration, minMaxBuffer)
-    val pid = StreamingUtils.getProcessId
-    reportApplicationInfo(config, prj, dataflowId, JobTypeEnum.STREAMING_BUILD.name, pid)
+    jobExecId = reportApplicationInfo(config, prj, dataflowId, JobTypeEnum.STREAMING_BUILD.name, StreamingUtils.getProcessId)
+    JobExecutionIdHolder.setJobExecutionId(jobId, jobExecId)
 
     val prjMgr = NProjectManager.getInstance(config)
     val baseCheckpointLocation = config.getStreamingBaseCheckpointLocation
@@ -111,9 +112,10 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
       "streaming query must have time partition column for project:  %s dataflowId: $s", prj, dataflowId)
 
     val builder = startRealtimeBuildStreaming(streamFlatTable, timeColumn, query, baseCheckpointLocation)
-    addShutdownListener(gracefulStop, prj, StreamingUtils.getJobId(dataflowId, JobTypeEnum.STREAMING_BUILD.name))
+    addShutdownListener(gracefulStop, prj, jobId)
 
     startTableRefreshThread(streamFlatTable)
+    startJobExecutionIdCheckThread(gracefulStop, prj, jobExecId, jobId)
 
     while (!ss.sparkContext.isStopped) {
       if (gracefulStop.get()) {
@@ -220,7 +222,7 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
     if (streamFlatTable.shouldRefreshTable) {
       val tableRefreshThread = new Thread() {
         override def run(): Unit = {
-          while (!gracefulStop.get() && !ss.sparkContext.isStopped) {
+          while (isRunning(gracefulStop)) {
             tableRefreshAcc.getAndAdd(1)
             StreamingUtils.sleep(rateTriggerDuration)
           }
@@ -279,6 +281,8 @@ class StreamingEntry(args: Array[String]) extends StreamingApplication with Logg
           time, minDataLatency, maxDataLatency)
         val rest = createRestSupport(config)
         try {
+          request.setJobExecutionId(jobExecId)
+          request.setJobType(JobTypeEnum.STREAMING_BUILD.name())
           rest.execute(rest.createHttpPut("/streaming_jobs/stats"), request)
         } catch {
           case e: Exception => logError("Streaming Stats Rest Request Failed...", e)

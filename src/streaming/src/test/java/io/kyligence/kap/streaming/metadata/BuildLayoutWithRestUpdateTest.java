@@ -29,6 +29,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,7 +59,7 @@ public class BuildLayoutWithRestUpdateTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateLayouts() {
-        val layoutUpdater = new BuildLayoutWithRestUpdate() {
+        val layoutUpdater = new BuildLayoutWithRestUpdate(JobTypeEnum.STREAMING_BUILD) {
             public void updateLayouts(KylinConfig config, String project, String dataflowId,
                     final List<NDataLayout> layouts) {
                 super.updateLayouts(config, project, dataflowId, layouts);

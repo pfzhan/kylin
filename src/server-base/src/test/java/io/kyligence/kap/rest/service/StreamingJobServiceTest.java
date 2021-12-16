@@ -258,7 +258,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(JobStatusEnum.LAUNCHING_ERROR, streamingJobMeta.getCurrentStatus());
 
         streamingJobsStatsManager.deleteAllStreamingJobStats();
-        streamingJobsStatsManager.insert(new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 60000L, -500L, -60L, System.currentTimeMillis() - 100));
+        streamingJobsStatsManager.insert(new StreamingJobStats(jobId, PROJECT, 120L, 32.22, 60000L, -500L, -60L,
+                System.currentTimeMillis() - 100));
         list = streamingJobService.getStreamingJobList(jobFilter, 0, 1);
         Assert.assertEquals(1, list.getTotalSize());
         Assert.assertEquals(0L, list.getValue().get(0).getDataLatency().longValue());
@@ -269,12 +270,16 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val jobId = StreamingUtils.getJobId(MODEL_ID, JobTypeEnum.STREAMING_BUILD.name());
         val streamingJobsStatsManager = createStatData(jobId);
 
-        var jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+        var jobFilter = new StreamingJobFilter("stream_merge1", Collections.EMPTY_LIST, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, PROJECT, "last_modified", true);
         var list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
+        Assert.assertEquals("stream_merge1", list.getValue().get(0).getModelName());
+        Assert.assertEquals(1, list.getValue().get(0).getModelIndexes().intValue());
+
+        jobFilter = new StreamingJobFilter("", Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST,
+                PROJECT, "last_modified", true);
+        list = streamingJobService.getStreamingJobList(jobFilter, 0, 20);
         Assert.assertEquals(11, list.getTotalSize());
-        Assert.assertEquals("model_streaming", list.getValue().get(3).getModelName());
-        Assert.assertEquals(4, list.getValue().get(3).getModelIndexes().intValue());
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4, mgr.getIndexPlan("4965c827-fbb4-4ea1-a744-3f341a3b030d").getAllLayouts().size());
         Assert.assertEquals(4, mgr.getIndexPlan("cd2b9a23-699c-4699-b0dd-38c9412b3dfd").getAllLayouts().size());
@@ -473,7 +478,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testAddSegmentForMerge() throws Exception {
+    public void testAddSegmentForMerge() {
         val rangeToMerge = new SegmentRange.KafkaOffsetPartitionedSegmentRange(1613957110000L, 1613957130000L,
                 createKafkaPartitionsOffset(3, 100L), createKafkaPartitionsOffset(3, 300L));
         val newSegId = RandomUtil.randomUUIDStr();
@@ -484,12 +489,12 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val newSeg = df.getSegment(newSegId);
         Assert.assertEquals(newSegId, newSeg.getId());
         Assert.assertEquals("1", newSeg.getAdditionalInfo().get(StreamingConstants.FILE_LAYER));
-        val segId = streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, "0", newSegId);
-        Assert.assertEquals(StringUtils.EMPTY, segId);
+        Assert.assertEquals(StringUtils.EMPTY,
+                streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, "0", newSegId));
     }
 
     @Test
-    public void testAppendSegment() throws Exception {
+    public void testAppendSegment() {
         val rangeToMerge = new SegmentRange.KafkaOffsetPartitionedSegmentRange(1613957140000L, 1613957150000L,
                 createKafkaPartitionsOffset(3, 500L), createKafkaPartitionsOffset(3, 600L));
         val newSegId = RandomUtil.randomUUIDStr();
@@ -500,9 +505,8 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         val newSeg = df.getSegment(newSegId);
         Assert.assertEquals(newSegId, newSeg.getId());
         Assert.assertNull(newSeg.getAdditionalInfo().get(StreamingConstants.FILE_LAYER));
-        val segId = streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, null, newSegId);
-        Assert.assertEquals(StringUtils.EMPTY, segId);
-
+        Assert.assertEquals(StringUtils.EMPTY,
+                streamingJobService.addSegment(PROJECT, "not_existed_model", rangeToMerge, null, newSegId));
     }
 
     @Test
@@ -928,5 +932,13 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(MsgPicker.getMsg().getPARTITION_COLUMN_START_ERROR());
         streamingJobService.launchStreamingJob(PROJECT, modelId, JobTypeEnum.STREAMING_BUILD);
+    }
+
+    @Test
+    public void testCheckJobExecutionId() {
+        val jobId = DATAFLOW_ID + "_build";
+        streamingJobService.checkJobExecutionId(PROJECT, jobId, null);
+        thrown.expect(IllegalStateException.class);
+        streamingJobService.checkJobExecutionId(PROJECT, jobId, -1);
     }
 }

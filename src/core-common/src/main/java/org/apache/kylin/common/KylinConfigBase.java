@@ -1438,10 +1438,6 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.streaming.table-refresh-interval");
     }
 
-    public long getStreamingJobShutdownTimeout() {
-        return TimeUtil.timeStringAs(getOptional("kylin.streaming.shutdown-timeout", "0m"), TimeUnit.MINUTES);
-    }
-
     public String getStreamingJobStatusWatchEnabled() {
         return getOptional("kylin.streaming.job-status-watch-enabled", "true");
     }
@@ -1461,6 +1457,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getStreamingJobWatermark() {
         return getOptional("kylin.streaming.watermark", "");
+    }
+
+    public long getStreamingJobExecutionIdCheckInterval() {
+        return TimeUtil.timeStringAs(getOptional("kylin.streaming.job-execution-id-check-interval", "1m"), TimeUnit.MINUTES);
     }
 
     public String getSparkEngineBuildStepsToSkip() {

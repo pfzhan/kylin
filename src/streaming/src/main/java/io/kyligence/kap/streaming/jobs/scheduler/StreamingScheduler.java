@@ -151,10 +151,8 @@ public class StreamingScheduler {
         var jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
 
         checkJobStartStatus(jobMeta, jobId);
-        int code = JobKiller.killProcess(jobMeta);
-        if (code != 1) {
-            throw new KylinException(ServerErrorCode.JOB_START_FAILURE, jobId);
-        }
+        JobKiller.killProcess(jobMeta);
+
         killYarnApplication(jobId, modelId);
 
         Predicate<NDataSegment> predicate = item -> (item.getStatus() == SegmentStatusEnum.NEW

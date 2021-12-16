@@ -109,7 +109,7 @@ public class JobKiller {
             if (jobMeta.getJobType() == JobTypeEnum.STREAMING_BUILD) {
                 StreamingEntry.stop();
             } else if (jobMeta.getJobType() == JobTypeEnum.STREAMING_MERGE) {
-                StreamingMergeEntry.shutdown();
+                StreamingMergeEntry.stop();
             }
             return 1;
         } else {

@@ -28,7 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
-public class StreamingJobStatsRequest {
+public class StreamingJobStatsRequest extends StreamingRequestHeader{
 
     @JsonProperty("job_id")
     private String jobId;

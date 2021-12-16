@@ -27,8 +27,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.RejectedExecutionException;
 
-import io.kyligence.kap.streaming.rest.RestSupport;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -40,6 +39,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 
@@ -56,11 +56,11 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.streaming.app.StreamingEntry;
 import io.kyligence.kap.streaming.common.BuildJobEntry;
+import io.kyligence.kap.streaming.rest.RestSupport;
 import io.kyligence.kap.streaming.util.ReflectionUtils;
 import io.kyligence.kap.streaming.util.StreamingTestCase;
 import lombok.val;
 import lombok.var;
-import org.mockito.Mockito;
 
 public class StreamingDFBuildJobTest extends StreamingTestCase {
 
@@ -141,7 +141,7 @@ public class StreamingDFBuildJobTest extends StreamingTestCase {
                 updater.setStatus(RealizationStatusEnum.OFFLINE);
             });
             Mockito.when(builder.createRestSupport()).thenReturn(new RestSupport(config) {
-                public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+                public RestResponse execute(HttpRequestBase httpReqBase, Object param) {
                     dfMgr.updateDataflow(batchBuildJob.dataflowId(), updater -> {
                         updater.setStatus(RealizationStatusEnum.ONLINE);
                     });

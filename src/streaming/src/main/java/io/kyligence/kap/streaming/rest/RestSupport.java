@@ -41,11 +41,11 @@
  */
 package io.kyligence.kap.streaming.rest;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.kyligence.kap.streaming.constants.StreamingConstants;
-import lombok.val;
-import lombok.var;
+import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
+import java.io.Closeable;
+import java.io.InputStream;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHeaders;
@@ -55,6 +55,7 @@ import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -64,11 +65,14 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import static io.kyligence.kap.common.constant.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.streaming.constants.StreamingConstants;
+import lombok.val;
+import lombok.var;
 
-public class RestSupport {
+public class RestSupport implements Closeable {
     protected static final Logger logger = LoggerFactory.getLogger(RestSupport.class);
 
     protected String baseUrl;
@@ -98,25 +102,26 @@ public class RestSupport {
         httpClient = httpClientBuilder.build();
     }
 
-    public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
+    public RestResponse<String> execute(HttpRequestBase httpReqBase, Object param) {
         int retry = 0;
         Exception err = null;
 
         while (retry++ < MAX_RETRY) {
             try {
-                if (param != null) {
+                if (param != null && httpReqBase instanceof HttpEntityEnclosingRequestBase) {
                     ObjectMapper mapper = new ObjectMapper();
-                    httpReqBase.setEntity(new StringEntity(mapper.writeValueAsString(param), "UTF-8"));
+                    ((HttpEntityEnclosingRequestBase) httpReqBase)
+                            .setEntity(new StringEntity(mapper.writeValueAsString(param), "UTF-8"));
                 }
 
                 HttpResponse response = httpClient.execute(httpReqBase);
                 int code = response.getStatusLine().getStatusCode();
 
-                logger.info("code=" + code + ",url=" + httpReqBase.getURI());
+                logger.info("code={},url={}", code, httpReqBase.getURI());
                 if (code == HttpStatus.SC_OK) {
-                    RestResponse resp = JsonUtil.readValue(response.getEntity().getContent(),
-                            new TypeReference<RestResponse>() {});
-                    return resp;
+                    return JsonUtil.readValue(response.getEntity().getContent(),
+                            new TypeReference<RestResponse<String>>() {
+                            });
                 } else {
                     InputStream inputStream = response.getEntity().getContent();
                     String responseContent = IOUtils.toString(inputStream);
@@ -141,7 +146,7 @@ public class RestSupport {
         while (maintenanceMode) {
             try {
                 if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    Thread.sleep((long)60 * 1000);
+                    Thread.sleep((long) 60 * 1000);
                 }
                 maintenanceMode = isMaintenanceMode();
             } catch (InterruptedException e) {
@@ -166,10 +171,10 @@ public class RestSupport {
 
                 logger.info("code=" + code + ",url=" + httpReqBase.getURI());
                 if (code == HttpStatus.SC_OK) {
-                    RestResponse resp = JsonUtil.readValue(response.getEntity().getContent(),
-                            new TypeReference<RestResponse>() {
+                    RestResponse<String> resp = JsonUtil.readValue(response.getEntity().getContent(),
+                            new TypeReference<RestResponse<String>>() {
                             });
-                    return Boolean.parseBoolean(resp.getData().toString());
+                    return Boolean.parseBoolean(resp.getData());
                 } else {
                     InputStream inputStream = response.getEntity().getContent();
                     String responseContent = IOUtils.toString(inputStream);

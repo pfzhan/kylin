@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
@@ -58,6 +59,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.streaming.StreamingJobRecord;
 import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
 import io.kyligence.kap.rest.request.StreamingJobFilter;
@@ -68,6 +70,7 @@ import io.kyligence.kap.rest.service.StreamingJobService;
 import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
+import io.kyligence.kap.streaming.request.StreamingRequestHeader;
 import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -151,6 +154,9 @@ public class StreamingJobController extends NBasicController {
     public EnvelopeResponse<String> collectStreamingJobStats(
             @RequestBody StreamingJobStatsRequest streamingJobStatsRequest) {
         checkProjectName(streamingJobStatsRequest.getProject());
+        val jobId = streamingJobStatsRequest.getJobId();
+        checkToken(streamingJobStatsRequest.getProject(), jobId.substring(0, jobId.lastIndexOf("_")),
+                streamingJobStatsRequest);
         streamingJobService.collectStreamingJobStats(streamingJobStatsRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
@@ -160,8 +166,9 @@ public class StreamingJobController extends NBasicController {
     public EnvelopeResponse<String> updateStreamingJobInfo(
             @RequestBody StreamingJobUpdateRequest streamingJobUpdateRequest) {
         checkProjectName(streamingJobUpdateRequest.getProject());
-        streamingJobService.updateStreamingJobInfo(streamingJobUpdateRequest);
-        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
+        val meta = streamingJobService.updateStreamingJobInfo(streamingJobUpdateRequest);
+        return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, Objects.toString(meta.getJobExecutionId(), null),
+                "");
     }
 
     @GetMapping(value = "/records")
@@ -180,6 +187,7 @@ public class StreamingJobController extends NBasicController {
         String dataflowId = request.getDataflowId();
         SegmentRange segRange = request.getSegmentRange();
         checkProjectName(request.getProject());
+        checkToken(project, dataflowId, request);
         String newSegId = streamingJobService.addSegment(project, dataflowId, segRange, request.getLayer(),
                 request.getNewSegId());
         return new RestResponse(newSegId);
@@ -194,6 +202,7 @@ public class StreamingJobController extends NBasicController {
         List<NDataSegment> removeSegmentList = request.getRemoveSegment();
         String status = request.getStatus();
         checkProjectName(request.getProject());
+        checkToken(project, dataflowId, request);
         streamingJobService.updateSegment(project, dataflowId, segId, removeSegmentList, status,
                 request.getSourceCount());
         return RestResponse.ok();
@@ -206,6 +215,7 @@ public class StreamingJobController extends NBasicController {
         String dataflowId = request.getDataflowId();
         List<NDataSegment> removeSegmentList = request.getRemoveSegment();
         checkProjectName(request.getProject());
+        checkToken(project, dataflowId, request);
         streamingJobService.deleteSegment(project, dataflowId, removeSegmentList);
         return RestResponse.ok();
     }
@@ -221,9 +231,17 @@ public class StreamingJobController extends NBasicController {
             layouts.get(i).setSegDetails(segDetails.get(i));
         }
         checkProjectName(project);
+        checkToken(project, dataflowId, request);
         streamingJobService.updateLayout(project, dataflowId, layouts);
 
         return RestResponse.ok();
+    }
+
+    private void checkToken(String project, String modelId, StreamingRequestHeader request) {
+        val taskId = request.getJobExecutionId();
+        val jobType = request.getJobType();
+        val jobId = StreamingUtils.getJobId(modelId, jobType);
+        streamingJobService.checkJobExecutionId(project, jobId, taskId);
     }
 
     @GetMapping(value = "/{job_id:.+}/simple_log")

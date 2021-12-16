@@ -68,6 +68,7 @@ import io.kyligence.kap.streaming.merge.NormalMergePolicy;
 import io.kyligence.kap.streaming.merge.PeakMergePolicy;
 import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
+import io.kyligence.kap.streaming.util.JobExecutionIdHolder;
 import io.kyligence.kap.streaming.util.JobKiller;
 import lombok.Getter;
 import lombok.Setter;
@@ -77,7 +78,7 @@ import lombok.var;
 public class StreamingMergeEntry extends StreamingApplication {
     private static final Logger logger = LoggerFactory.getLogger(StreamingMergeEntry.class);
     private static final AtomicLong globalMergeTime = new AtomicLong(0);
-    private static AtomicBoolean shutdown = new AtomicBoolean(false);
+    private static AtomicBoolean stopFlag = new AtomicBoolean(false);
     private static CountDownLatch latch = new CountDownLatch(1);
     @Getter
     @Setter
@@ -100,13 +101,14 @@ public class StreamingMergeEntry extends StreamingApplication {
     }
 
     public void schedule(String project, String dataflowId) throws ExecuteException {
-        shutdown.set(false);
+        stopFlag.set(false);
         logger.info("StreamingMergeEntry:{},{},{},{}", project, dataflowId, thresholdOfSegSize, numberOfSeg);
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
 
         val modelId = dataflowId;
         // step1. write markfile for stop job graceful
         String jobId = StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name());
+
         TimeZoneUtils.setDefaultTimeZone(config);
         var isError = false;
         try {
@@ -115,13 +117,16 @@ public class StreamingMergeEntry extends StreamingApplication {
             getOrCreateSparkSession(sparkConf);
             // for orphan process
             val pid = StreamingUtils.getProcessId();
-            reportApplicationInfo(config, project, dataflowId, JobTypeEnum.STREAMING_MERGE.name(), pid);
-            while (!shutdown.get() && !ss.sparkContext().isStopped()) {
+            val jobExecId = reportApplicationInfo(config, project, dataflowId, JobTypeEnum.STREAMING_MERGE.name(), pid);
+            JobExecutionIdHolder.setJobExecutionId(jobId, jobExecId);
+            startJobExecutionIdCheckThread(stopFlag, project, jobExecId, jobId);
+
+            while (isRunning(stopFlag)) {
                 process(project, dataflowId);
                 if (!isGracefulShutdown(project, jobId)) {
                     StreamingUtils.sleep(config.getStreamingSegmentMergeInterval() * 1000);
-                } else if (!config.isUTEnv()) {
-                    shutdown.set(true);
+                } else {
+                    stopFlag.set(true);
                     logger.info("begin to shutdown streaming merge job ({}:{})", project, dataflowId);
                 }
             }
@@ -132,13 +137,7 @@ public class StreamingMergeEntry extends StreamingApplication {
             JobKiller.killApplication(StreamingUtils.getJobId(modelId, JobTypeEnum.STREAMING_MERGE.name()));
             throw new ExecuteException("streaming merging segment error occured: ", e);
         } finally {
-            // add a stop method
-            merger.shutdown();
-            latch.countDown();
-            closeAuditLogStore(ss);
-            if (!isError) {
-                systemExit(0);
-            }
+            close(isError);
         }
     }
 
@@ -220,15 +219,14 @@ public class StreamingMergeEntry extends StreamingApplication {
     }
 
     public void removeSegment(String project, String dataflowId, NDataSegment seg) {
-        val config = KylinConfig.getInstanceFromEnv();
-        RestSupport rest = createRestSupport(config);
         String url = "/streaming_jobs/dataflow/segment/deletion";
         StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
         req.setRemoveSegment(Arrays.asList(seg));
-        try {
+        req.setJobType(JobTypeEnum.STREAMING_MERGE.name());
+        val jobId = StreamingUtils.getJobId(dataflowId, req.getJobType());
+        req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));
+        try(RestSupport rest = createRestSupport(KylinConfig.getInstanceFromEnv())) {
             rest.execute(rest.createHttpPost(url), req);
-        } finally {
-            rest.close();
         }
         StreamingUtils.replayAuditlog();
     }
@@ -306,17 +304,17 @@ public class StreamingMergeEntry extends StreamingApplication {
         req.setSegmentRange(rangeToMerge);
         req.setLayer(String.valueOf(currLayer));
         req.setNewSegId(RandomUtil.randomUUIDStr());
-        RestSupport rest = createRestSupport(config);
+        req.setJobType(JobTypeEnum.STREAMING_MERGE.name());
+        val jobId = StreamingUtils.getJobId(dataflowId, req.getJobType());
+        req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));
 
-        try {
+        try(RestSupport rest = createRestSupport(config)) {
             RestResponse<String> restResponse = rest.execute(rest.createHttpPost(url), req);
             String newSegId = restResponse.getData();
             // catch up local metadata
             StreamingUtils.replayAuditlog();
             NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             return dfMgr.getDataflow(dataflowId).getSegment(newSegId);
-        } finally {
-            rest.close();
         }
     }
 
@@ -342,8 +340,17 @@ public class StreamingMergeEntry extends StreamingApplication {
         }
     }
 
-    public static boolean shutdown() {
-        shutdown.set(true);
+    private void close(boolean isError) {
+        merger.shutdown();
+        latch.countDown();
+        closeAuditLogStore(ss);
+        if (!isError) {
+            systemExit(0);
+        }
+    }
+
+    public static boolean stop() {
+        stopFlag.set(true);
         var result = false;
         try {
             result = latch.await(10, TimeUnit.SECONDS);

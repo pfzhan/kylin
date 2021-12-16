@@ -25,8 +25,10 @@ package io.kyligence.kap.streaming.app;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -150,11 +152,15 @@ public class StreamingEntryTest extends StreamingTestCase {
         StreamingEntry.entry_$eq(entry);
         Assert.assertNotNull(StreamingEntry.self());
         Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
-            public RestResponse execute(HttpEntityEnclosingRequestBase httpReqBase, Object param) {
-                return RestResponse.ok();
+            public RestResponse execute(HttpRequestBase httpReqBase, Object param) {
+                val mgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
+                val jobId = DATAFLOW_ID + "_build";
+                mgr.updateStreamingJob(jobId, copyForWrite -> {
+                    copyForWrite.setJobExecutionId(1);
+                });
+                return RestResponse.ok("1");
             }
         });
-
         AwaitUtils.await(() -> {
         }, 5000, () -> {
             val mgr = StreamingJobManager.getInstance(getTestConfig(), PROJECT);
@@ -165,6 +171,7 @@ public class StreamingEntryTest extends StreamingTestCase {
         });
         try {
             entry.execute();
+            Assert.assertTrue(entry.getSparkSession().sparkContext().isStopped());
         } catch (Exception e) {
             Assert.fail(e.getMessage());
         }
@@ -212,4 +219,45 @@ public class StreamingEntryTest extends StreamingTestCase {
             retry++;
         }
     }
+
+    @Test
+    public void testIsRunning() {
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "" };
+        val entry = Mockito.spy(new StreamingEntry(args));
+        entry.setSparkSession(createSparkSession());
+        val stopFlag = new AtomicBoolean(true);
+        Assert.assertFalse(entry.isRunning(stopFlag));
+        stopFlag.set(false);
+        Assert.assertTrue(entry.isRunning(stopFlag));
+        entry.getSparkSession().close();
+        Assert.assertFalse(entry.isRunning(stopFlag));
+    }
+
+    @Test
+    public void testStartJobExecutionIdCheckThread() {
+        val args = new String[] { PROJECT, DATAFLOW_ID, "2", "" };
+        val entry = Mockito.spy(new StreamingEntry(args));
+        entry.setSparkSession(createSparkSession());
+        val config = getTestConfig();
+        config.setProperty("kylin.streaming.job-execution-id-check-interval", "0m");
+        val counter = new AtomicInteger(0);
+        Mockito.when(entry.createRestSupport(config)).thenReturn(new RestSupport(config) {
+            public RestResponse execute(HttpRequestBase httpReqBase, Object param) {
+                if (counter.getAndIncrement() < 3) {
+                    return RestResponse.ok(0);
+                } else {
+                    return RestResponse.ok(1);
+                }
+            }
+        });
+        val stopFlag = new AtomicBoolean(false);
+        val jobId = DATAFLOW_ID + "_build";
+        AwaitUtils.await(() -> {
+            entry.startJobExecutionIdCheckThread(stopFlag, PROJECT, 0, jobId);
+        }, 5000, () -> {
+            stopFlag.set(true);
+        });
+        Assert.assertTrue(entry.getSparkSession().sparkContext().isStopped());
+    }
+
 }

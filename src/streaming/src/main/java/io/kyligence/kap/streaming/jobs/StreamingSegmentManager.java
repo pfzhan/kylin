@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.kafka010.OffsetRangeManager;
@@ -40,6 +41,7 @@ import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
+import io.kyligence.kap.streaming.util.JobExecutionIdHolder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,11 +73,13 @@ public class StreamingSegmentManager {
             }, project);
             return newSegment;
         } else {
-            RestSupport rest = new RestSupport(config);
             StreamingSegmentRequest req = new StreamingSegmentRequest(project, dataflowId);
             req.setSegmentRange(sr);
             req.setNewSegId(RandomUtil.randomUUIDStr());
-            try {
+            req.setJobType(JobTypeEnum.STREAMING_BUILD.name());
+            val jobId = StreamingUtils.getJobId(dataflowId, req.getJobType());
+            req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));
+            try(RestSupport rest = new RestSupport(config)) {
                 RestResponse<String> restResponse = rest.execute(rest.createHttpPost(SEGMENT_POST_URL), req);
                 String newSegId = restResponse.getData();
                 StreamingUtils.replayAuditlog();
@@ -93,8 +97,6 @@ public class StreamingSegmentManager {
                     empSeg.setId(StringUtils.EMPTY);
                     return empSeg;
                 }
-            } finally {
-                rest.close();
             }
         }
     }

@@ -23,16 +23,14 @@
  */
 package io.kyligence.kap.streaming.request;
 
-import io.kyligence.kap.common.obf.IKeep;
+import java.util.List;
+
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import lombok.Data;
 
-import java.io.Serializable;
-import java.util.List;
-
 @Data
-public class LayoutUpdateRequest implements Serializable, IKeep {
+public class LayoutUpdateRequest extends StreamingRequestHeader {
     private String project;
 
     private String dataflowId;

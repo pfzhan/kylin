@@ -30,6 +30,8 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.StringUtils;
@@ -85,18 +87,19 @@ public abstract class StreamingApplication {
             val iter = removeSegIds.keySet().iterator();
             while (iter.hasNext()) {
                 String segId = iter.next();
-                if (dataflow.getSegment(segId) == null) {
-                    if ((now - removeSegIds.get(segId).getValue()) > intervals) {
-                        try {
-                            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(),
-                                    new Path(removeSegIds.get(segId).getKey()));
-                            iter.remove();
-                        } catch (IOException e) {
-                            logger.warn(e.getMessage());
-                        }
-                    } else if ((now - removeSegIds.get(segId).getValue()) > intervals * 10) {
+                if (dataflow.getSegment(segId) != null) {
+                    continue;
+                }
+                if ((now - removeSegIds.get(segId).getValue()) > intervals) {
+                    try {
+                        HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(),
+                                new Path(removeSegIds.get(segId).getKey()));
                         iter.remove();
+                    } catch (IOException e) {
+                        logger.warn(e.getMessage());
                     }
+                } else if ((now - removeSegIds.get(segId).getValue()) > intervals * 10) {
+                    iter.remove();
                 }
             }
             startTime.set(now);
@@ -152,39 +155,31 @@ public abstract class StreamingApplication {
         }
     }
 
-    public void reportApplicationInfo(KylinConfig config, String project, String modelId, String jobType, String pid) {
-        val buildEnv = getOrCreateKylinBuildEnv(config);
-        reportApplicationInfo(buildEnv, project, modelId, jobType, pid);
-    }
-
-    public void reportApplicationInfo(KylinBuildEnv buildEnv, String project, String modelId, String jobType,
+    public Integer reportApplicationInfo(KylinConfig config, String project, String modelId, String jobType,
             String pid) {
+        val buildEnv = getOrCreateKylinBuildEnv(config);
         val appId = ss.sparkContext().applicationId();
-        val config = buildEnv.kylinConfig();
         var trackingUrl = StringUtils.EMPTY;
-        if (isJobOnCluster()) {
-            val cm = buildEnv.clusterManager();
-            trackingUrl = getTrackingUrl(cm, ss);
-            boolean isIpPreferred = config.isTrackingUrlIpAddressEnabled();
-            try {
-                if (StringUtils.isBlank(trackingUrl)) {
-                    logger.info("Get tracking url of application $appId, but empty url found.");
-                }
-                if (!config.isUTEnv() && isIpPreferred && !StringUtils.isEmpty(trackingUrl)) {
-                    trackingUrl = tryReplaceHostAddress(trackingUrl);
-                }
-            } catch (Exception e) {
-                logger.error("get tracking url failed!", e);
+        val cm = buildEnv.clusterManager();
+        trackingUrl = getTrackingUrl(cm, ss);
+        boolean isIpPreferred = config.isTrackingUrlIpAddressEnabled();
+        try {
+            if (StringUtils.isBlank(trackingUrl)) {
+                logger.info("Get tracking url of application $appId, but empty url found.");
             }
-            val request = new StreamingJobUpdateRequest(project, modelId, jobType, appId, trackingUrl);
-            request.setProcessId(pid);
-            request.setNodeInfo(AddressUtil.getZkLocalInstance());
-            val rest = createRestSupport(config);
-            try {
-                rest.execute(rest.createHttpPut("/streaming_jobs/spark"), request);
-            } finally {
-                rest.close();
+            if (isIpPreferred && !StringUtils.isEmpty(trackingUrl)) {
+                trackingUrl = tryReplaceHostAddress(trackingUrl);
             }
+        } catch (Exception e) {
+            logger.error("get tracking url failed!", e);
+        }
+        val request = new StreamingJobUpdateRequest(project, modelId, jobType, appId, trackingUrl);
+        request.setProcessId(pid);
+        request.setNodeInfo(AddressUtil.getZkLocalInstance());
+        request.setJobType(jobType);
+        try (val rest = createRestSupport(config)) {
+            val restResp = rest.execute(rest.createHttpPut("/streaming_jobs/spark"), request);
+            return Integer.parseInt(restResp.getData());
         }
     }
 
@@ -250,6 +245,41 @@ public abstract class StreamingApplication {
         val mgr = StreamingJobManager.getInstance(config, project);
         val meta = mgr.getStreamingJobByUuid(uuid);
         return StreamingConstants.ACTION_GRACEFUL_SHUTDOWN.equals(meta.getAction());
+    }
+
+    public boolean isRunning(AtomicBoolean stopFlag) {
+        return !stopFlag.get() && !ss.sparkContext().isStopped();
+    }
+
+    /**
+     * periodic check driver's job execution id is same with meta data's job execution id
+     * @param shutdownFlag
+     * @param project
+     * @param jobExecId
+     * @param uuid
+     */
+    public void startJobExecutionIdCheckThread(AtomicBoolean shutdownFlag, String project, Integer jobExecId,
+            String uuid) {
+        val processCheckThread = new Thread(() -> {
+            val conf = KylinConfig.getInstanceFromEnv();
+            while (isRunning(shutdownFlag)) {
+                try {
+                    StreamingUtils.replayAuditlog();
+                    val mgr = StreamingJobManager.getInstance(conf, project);
+                    val meta = mgr.getStreamingJobByUuid(uuid);
+                    if (!Objects.equals(jobExecId, meta.getJobExecutionId())) {
+                        closeSparkSession();
+                        break;
+                    }
+                } catch (Exception e) {
+                    logger.warn("check JobExecutionId error:", e);
+                }
+                StreamingUtils
+                        .sleep(conf.getStreamingJobExecutionIdCheckInterval() * 60 * 1000);
+            }
+        });
+        processCheckThread.setDaemon(true);
+        processCheckThread.start();
     }
 
     public RestSupport createRestSupport(KylinConfig config) {

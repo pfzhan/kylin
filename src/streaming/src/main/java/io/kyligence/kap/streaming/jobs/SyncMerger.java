@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +43,11 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
 import io.kyligence.kap.streaming.request.StreamingSegmentRequest;
 import io.kyligence.kap.streaming.rest.RestSupport;
+import io.kyligence.kap.streaming.util.JobExecutionIdHolder;
 import lombok.val;
 
-public class SyncMerger{
-    private static final Logger logger = LoggerFactory
-            .getLogger(SyncMerger.class);
+public class SyncMerger {
+    private static final Logger logger = LoggerFactory.getLogger(SyncMerger.class);
 
     private MergeJobEntry mergeJobEntry;
 
@@ -66,10 +67,10 @@ public class SyncMerger{
             mergeJobEntry.globalMergeTime().set(System.currentTimeMillis() - start);
 
             val config = KylinConfig.getInstanceFromEnv();
-            if(config.isUTEnv()) {
+            if (config.isUTEnv()) {
                 EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    NDataflowManager dfMgr = NDataflowManager
-                            .getInstance(KylinConfig.getInstanceFromEnv(), mergeJobEntry.project());
+                    NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                            mergeJobEntry.project());
                     NDataflow copy = dfMgr.getDataflow(mergeJobEntry.dataflowId()).copy();
                     val seg = copy.getSegment(mergeJobEntry.afterMergeSegment().getId());
                     seg.setStatus(SegmentStatusEnum.READY);
@@ -82,32 +83,32 @@ public class SyncMerger{
                     return 0;
                 }, mergeJobEntry.project());
             } else {
-                RestSupport rest = new RestSupport(config);
                 String url = "/streaming_jobs/dataflow/segment";
                 StreamingSegmentRequest req = new StreamingSegmentRequest(mergeJobEntry.project(),
                         mergeJobEntry.dataflowId(), mergeJobEntry.afterMergeSegmentSourceCount());
                 req.setRemoveSegment(mergeJobEntry.unMergedSegments());
                 req.setNewSegId(mergeJobEntry.afterMergeSegment().getId());
-                try{
+                req.setJobType(JobTypeEnum.STREAMING_MERGE.name());
+                val jobId = StreamingUtils.getJobId(mergeJobEntry.dataflowId(), req.getJobType());
+                req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));
+                try (RestSupport rest = new RestSupport(config)) {
                     rest.execute(rest.createHttpPut(url), req);
-                }finally {
-                    rest.close();
                 }
                 StreamingUtils.replayAuditlog();
             }
         } catch (Exception e) {
             logger.info("merge failed reason: {} stackTrace is: {}", e.toString(), e.getStackTrace());
             val config = KylinConfig.getInstanceFromEnv();
-            if(!config.isUTEnv()) {
-                RestSupport rest = new RestSupport(config);
+            if (!config.isUTEnv()) {
                 String url = "/streaming_jobs/dataflow/segment/deletion";
                 StreamingSegmentRequest req = new StreamingSegmentRequest(mergeJobEntry.project(),
                         mergeJobEntry.dataflowId());
                 req.setRemoveSegment(mergeJobEntry.unMergedSegments());
-                try {
+                req.setJobType(JobTypeEnum.STREAMING_MERGE.name());
+                val jobId = StreamingUtils.getJobId(mergeJobEntry.dataflowId(), req.getJobType());
+                req.setJobExecutionId(JobExecutionIdHolder.getJobExecutionId(jobId));
+                try (RestSupport rest = new RestSupport(config)) {
                     rest.execute(rest.createHttpPost(url), req);
-                } finally {
-                    rest.close();
                 }
                 StreamingUtils.replayAuditlog();
             }

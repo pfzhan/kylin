@@ -66,6 +66,7 @@ import io.kyligence.kap.rest.request.StreamingJobExecuteRequest;
 import io.kyligence.kap.rest.request.StreamingJobParamsRequest;
 import io.kyligence.kap.rest.service.StreamingJobService;
 import io.kyligence.kap.streaming.constants.StreamingConstants;
+import io.kyligence.kap.streaming.metadata.StreamingJobMeta;
 import io.kyligence.kap.streaming.request.LayoutUpdateRequest;
 import io.kyligence.kap.streaming.request.StreamingJobStatsRequest;
 import io.kyligence.kap.streaming.request.StreamingJobUpdateRequest;
@@ -121,10 +122,10 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/streaming_jobs").contentType(MediaType.APPLICATION_JSON)
                         .param("model_name", StringUtils.EMPTY).param("model_names", StringUtils.EMPTY)
-                        .param("job_types", StringUtils.EMPTY)
-                        .param("statuses", StringUtils.EMPTY).param("project", PROJECT)
-                        .param("page_offset", "0").param("page_size", "10").param("sort_by", "last_modified")
-                        .param("reverse", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                        .param("job_types", StringUtils.EMPTY).param("statuses", StringUtils.EMPTY)
+                        .param("project", PROJECT).param("page_offset", "0").param("page_size", "10")
+                        .param("sort_by", "last_modified").param("reverse", "true")
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(streamingJobController).getStreamingJobList(StringUtils.EMPTY, Collections.EMPTY_LIST,
                 Collections.EMPTY_LIST, Collections.EMPTY_LIST, PROJECT, 0, 10, "last_modified", true);
@@ -173,6 +174,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCollectStreamingJobStats() throws Exception {
         val request = new StreamingJobStatsRequest();
+        request.setJobExecutionId(0);
+        request.setJobType(JobTypeEnum.STREAMING_BUILD.name());
         request.setProject(PROJECT);
         String job_id = "f6ca1ce7-43fc-4c42-a057-1e95dfb75d92_build";
         request.setJobId(job_id);
@@ -196,9 +199,11 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateStreamingJobInfo() throws Exception {
         val request = new StreamingJobUpdateRequest();
+        request.setJobType(JobTypeEnum.STREAMING_BUILD.name());
         request.setProject(PROJECT);
         request.setModelId(MODEL_ID);
         request.setProcessId("9921");
+        Mockito.when(streamingJobService.updateStreamingJobInfo(Mockito.any())).thenReturn(new StreamingJobMeta());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/streaming_jobs/spark").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -230,6 +235,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testAddSegment() throws Exception {
         val request = new StreamingSegmentRequest();
+        request.setJobExecutionId(0);
+        request.setJobType(JobTypeEnum.STREAMING_BUILD.name());
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
         request.setSegmentRange(new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1L,
@@ -246,6 +253,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateSegment() throws Exception {
         val request = new StreamingSegmentRequest();
+        request.setJobExecutionId(0);
+        request.setJobType(JobTypeEnum.STREAMING_BUILD.name());
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
         request.setNewSegId("c380dd2a-43b8-4268-b73d-2a5f76236638");
@@ -265,6 +274,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDeleteSegment() throws Exception {
         val request = new StreamingSegmentRequest();
+        request.setJobExecutionId(0);
+        request.setJobType(JobTypeEnum.STREAMING_BUILD.name());
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
         KylinConfig testConfig = getTestConfig();
@@ -286,6 +297,8 @@ public class StreamingJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateLayout() throws Exception {
         val request = new LayoutUpdateRequest();
+        request.setJobExecutionId(0);
+        request.setJobType(JobTypeEnum.STREAMING_BUILD.name());
         request.setProject(PROJECT);
         request.setDataflowId(DATAFLOW_ID);
 

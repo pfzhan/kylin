@@ -132,6 +132,9 @@ public class StreamingJobMeta extends RootPersistentEntity {
     @JsonProperty("node_info")
     private String nodeInfo;
 
+    @JsonProperty("job_execution_id")
+    private Integer jobExecutionId;
+
     @JsonProperty("yarn_app_id")
     private String yarnAppId;
 

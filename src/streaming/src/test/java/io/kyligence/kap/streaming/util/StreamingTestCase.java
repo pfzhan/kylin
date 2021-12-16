@@ -24,12 +24,9 @@
 package io.kyligence.kap.streaming.util;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import com.google.common.cache.Cache;
-import io.kyligence.kap.source.kafka.NSparkKafkaSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -40,6 +37,8 @@ import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.SparkSession;
 import org.junit.Assert;
 
+import com.google.common.cache.Cache;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -47,8 +46,10 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.utils.StreamingUtils;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.source.kafka.NSparkKafkaSource;
 import io.kyligence.kap.streaming.app.StreamingMergeEntry;
 import io.kyligence.kap.streaming.common.MergeJobEntry;
 import lombok.val;
@@ -109,18 +110,11 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
         return copy;
     }
 
-    protected void shutdownStreamingMergeJob() {
-        shutdownStreamingMergeJob(new CountDownLatch(1));
-    }
-
     protected void shutdownStreamingMergeJob(CountDownLatch latch) {
         new Thread(() -> {
-            try {
-                latch.await(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
-
-            }
-            StreamingMergeEntry.shutdown();
+            StreamingUtils.sleep(10 * 1000);
+            StreamingMergeEntry.stop();
+            latch.countDown();
         }).start();
     }
 
@@ -148,7 +142,8 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
             return df1.getSegment(seg.getId());
         }).collect(Collectors.toList());
         val globalMergeTime = new AtomicLong(System.currentTimeMillis());
-        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), 0L, globalMergeTime, updatedSegments, afterMergeSeg);
+        val mergeJobEntry = new MergeJobEntry(ss, project, df.getId(), 0L, globalMergeTime, updatedSegments,
+                afterMergeSeg);
         return mergeJobEntry;
     }
 
@@ -171,7 +166,7 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
     }
 
     public NSparkKafkaSource createSparkKafkaSource(KylinConfig config) {
-        val sourceAware= new ISourceAware() {
+        val sourceAware = new ISourceAware() {
             @Override
             public int getSourceType() {
                 return 1;
@@ -182,7 +177,7 @@ public class StreamingTestCase extends NLocalFileMetadataTestCase {
                 return config;
             }
         };
-        val cache= (Cache<String, ISource>)ReflectionUtils.getField(SourceFactory.class, "sourceMap");
+        val cache = (Cache<String, ISource>) ReflectionUtils.getField(SourceFactory.class, "sourceMap");
         cache.invalidateAll();
         val source = (NSparkKafkaSource) SourceFactory.getSource(sourceAware);
         assert source.supportBuildSnapShotByPartition();

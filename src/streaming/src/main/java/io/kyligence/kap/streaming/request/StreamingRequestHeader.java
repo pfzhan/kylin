@@ -23,43 +23,32 @@
  */
 package io.kyligence.kap.streaming.request;
 
-import java.util.List;
+import java.io.Serializable;
 
-import org.apache.kylin.metadata.model.SegmentRange;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import lombok.Data;
+import io.kyligence.kap.common.obf.IKeep;
 
-@Data
-public class StreamingSegmentRequest extends StreamingRequestHeader {
-    private String project;
+public class StreamingRequestHeader implements Serializable, IKeep {
+    @JsonProperty("job_execution_id")
+    private Integer jobExecutionId;
 
-    private String dataflowId;
+    @JsonProperty("job_type")
+    protected String jobType;
 
-    private SegmentRange segmentRange;
-
-    private String newSegId;
-
-    private List<NDataSegment> removeSegment;
-
-    private String layer;
-
-    private String status;
-
-    private Long sourceCount = -1L;
-
-    public StreamingSegmentRequest() {
-
+    public int getJobExecutionId() {
+        return jobExecutionId;
     }
 
-    public StreamingSegmentRequest(String project, String dataflowId) {
-        this.project = project;
-        this.dataflowId = dataflowId;
+    public void setJobExecutionId(int jobExecutionId) {
+        this.jobExecutionId = jobExecutionId;
     }
 
-    public StreamingSegmentRequest(String project, String dataflowId, Long sourceCount) {
-        this.project = project;
-        this.dataflowId = dataflowId;
-        this.sourceCount = sourceCount;
+    public String getJobType() {
+        return jobType;
+    }
+
+    public void setJobType(String jobType) {
+        this.jobType = jobType;
     }
 }

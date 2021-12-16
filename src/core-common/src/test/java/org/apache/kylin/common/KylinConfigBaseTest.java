@@ -842,7 +842,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
                 new PropertiesEntity("kylin.engine.streaming-segment-clean-interval", "2h", 2L));
         map.put("getStreamingSegmentMergeRatio",
                 new PropertiesEntity("kylin.engine.streaming-segment-merge-ratio", "1.5", 1.5));
-        map.put("getStreamingJobShutdownTimeout", new PropertiesEntity("kylin.streaming.shutdown-timeout", "10m", 10L));
+        map.put("getStreamingJobExecutionIdCheckInterval", new PropertiesEntity("kylin.streaming.job-execution-id-check-interval", "1m", 1L));
         map.put("getStreamingJobStatsSurvivalThreshold",
                 new PropertiesEntity("kylin.streaming.jobstats.survival-time-threshold", "7d", 7L));
         map.put("getStreamingJobRetryEnabled",

@@ -40,7 +40,9 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -115,7 +117,7 @@ public class StreamingJobService extends BasicService {
     public void checkModelStatus(String project, String modelId, JobTypeEnum jobType) {
         String jobId = StreamingUtils.getJobId(modelId, jobType.name());
         val config = KylinConfig.getInstanceFromEnv();
-        val jobMeta = StreamingJobManager.getInstance(config, project).getStreamingJobByUuid(jobId);
+        val jobMeta = getStreamingJobManager(project).getStreamingJobByUuid(jobId);
 
         val modelMgr = NDataModelManager.getInstance(config, jobMeta.getProject());
         val model = modelMgr.getDataModelDesc(jobMeta.getModelId());
@@ -197,14 +199,14 @@ public class StreamingJobService extends BasicService {
         }
     }
 
-    public void updateStreamingJobInfo(StreamingJobUpdateRequest streamingJobUpdateRequest) {
+    public StreamingJobMeta updateStreamingJobInfo(StreamingJobUpdateRequest streamingJobUpdateRequest) {
         String project = streamingJobUpdateRequest.getProject();
         String modelId = streamingJobUpdateRequest.getModelId();
         String jobType = streamingJobUpdateRequest.getJobType();
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val config = KylinConfig.getInstanceFromEnv();
             StreamingJobManager mgr = StreamingJobManager.getInstance(config, project);
-            mgr.updateStreamingJob(StreamingUtils.getJobId(modelId, jobType), copyForWrite -> {
+            return mgr.updateStreamingJob(StreamingUtils.getJobId(modelId, jobType), copyForWrite -> {
                 copyForWrite.setProcessId(streamingJobUpdateRequest.getProcessId());
                 copyForWrite.setNodeInfo(streamingJobUpdateRequest.getNodeInfo());
                 copyForWrite.setYarnAppId(streamingJobUpdateRequest.getYarnAppId());
@@ -212,8 +214,9 @@ public class StreamingJobService extends BasicService {
                 SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                         Locale.getDefault(Locale.Category.FORMAT));
                 copyForWrite.setLastUpdateTime(simpleFormat.format(new Date()));
+                val execId = copyForWrite.getJobExecutionId();
+                copyForWrite.setJobExecutionId(execId == null ? 1 : (execId + 1));
             });
-            return null;
         }, project);
     }
 
@@ -534,4 +537,9 @@ public class StreamingJobService extends BasicService {
         return executableManager.getStreamingOutputFromHDFS(jobId).getVerboseMsg();
     }
 
+    public void checkJobExecutionId(String project, String jobId, Integer execId) {
+        val meta = getStreamingJobManager(project).getStreamingJobByUuid(jobId);
+        val msg = String.format(Locale.ROOT, "JobExecutionId(%d) is invalid", execId);
+        Preconditions.checkState(ObjectUtils.equals(execId, meta.getJobExecutionId()), msg);
+    }
 }

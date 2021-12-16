@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.DFMergeJob;
@@ -43,7 +44,7 @@ public class StreamingDFMergeJob extends DFMergeJob {
     private MergeJobEntry mergeJobEntry;
 
     public StreamingDFMergeJob() {
-        buildLayoutWithUpdate = new BuildLayoutWithRestUpdate();
+        buildLayoutWithUpdate = new BuildLayoutWithRestUpdate(JobTypeEnum.STREAMING_MERGE);
         this.config = KylinConfig.getInstanceFromEnv();
     }
 
