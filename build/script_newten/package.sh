@@ -50,6 +50,87 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<'EOL'
 ### Release History
 
+#### Kyligence Enterprise 4.5.5 release note
+
+**Enhancement**
+- Support CORR function
+- Error messages disappear too quickly, the component behavior needs to be adjusted
+- The default setting will close the function of building resource detection timeout
+- The status of last level 2 build job update
+- Remove the beta logo of intelligent recommendation function
+- Correct the calculation logic of capacity billing function
+- Files in Hadoop_conf are missing, build abnormal can't displayed
+- Build the task monitoring page in real time, increase the granularity of observation   Ïtime range, and change it to drop-down
+- Recommended interface timeout optimization
+- Query statements execution error reports, and optimize with SQL logic
+- When the query statistics switch is turned on, the CPU consumption of high concurrency query is too high, resulting in a large number of slow queries
+- Obtain model information interface optimization requirements
+- Supports simultaneous execution of multiple jobs of loading data to Tiered Storage under the same model
+- Model list loading optimization
+- Provide batch operation interfaces related to users (groups) and permissions
+- Improve diagnostic query error ease of use - log error messages in query history
+- Real time support for Kerberos environment
+- Query protection mechanism, add SQL blacklist and error caching mechanism
+- Check-env.sh capability is enhanced
+
+**Bugfix**
+- After turns on intelligent recommendation, it optimizes SQL and types diagnostic package. There is no job in the diagnostic package_ TMP directory
+- Settings-Advanced Settings-Click to open the View Manual in the multi-level partition pop-up window. The link page displays an error
+- There are serious log4j2 high-risk vulnerabilities
+- After the model is built , add dimensions and measures, modify the aggregation and detail indexes, save the error, and prompt that the index id is duplicated
+- The manual link in the optimization suggestion preferences cannot be accessed
+- Pid file does not exist in root catelog, script kylin.sh fails to be restarted
+- Hit the wrong query, the query status is success, and hit natvive
+- Edit the fusion model, modify the dimensions and measures, modify the index and cause an error
+- Pause the build job twice, duration still increasing
+- Api of getting model information does not return table association information
+- After build job resumes, duration is negative.
+- Query response time is always 0
+- Delete suspended tasks, a job state is missing from the English copy
+- Update metadata is unlocked, so build job report an error
+- Resume the suspended job of loading data to Tiered Storage, the job went wrong
+- Status icon in batch data job is not attractive
+- The build job contains build or refresh snapshot, and the metadata is not updated after the job is restarted
+- Checking Spark Driver Host failed
+- Asynchronous query failed
+- Query the data that is not within the segment time range and can hit the model normally
+- Build job was retried and the snapshot metadata was not updated
+- The columns in the model are missing, resulting in the failure of reloading the table
+- If the model quantity is empty, the construction task fails and an error is reported when saving the model
+- There is a loophole in the logic to determine whether the column belongs to the original table, which makes some SQL unable to be optimized
+- ThreadLocal was not cleaned up during query retry, resulting in the query error array out of bounds
+- Changing the time partition column format when incremental build will turn off the tiered storage switch of the model
+- Restart after real-time task stop failed
+- Fail to build snapshot incrementally when partition column is timestamp data type
+- Flame diagram - information about download timeout is missing in the log
+- No error messages are given in the error message when building job
+- In the job list, the snapshot object is blocked
+- During the process of building a snapshot, the log in the job details cannot be downloaded
+- When the sub-partition column of type is Boolean, an error is reported when detecting resources
+- Cannot pause or terminate the job of loading data to Tiered Storage
+- Through the flow model query, when the query time is not within the construction data time period, the prompt information is incorrect
+- GBase data source, jdbc data source is not effective to the default database.
+- After deleting a project, the running and pending yarn tasks under the project still occupy resources and remain
+- The offline build task is submitted to the yarn cluster mode, and the job on yarn will not be killed after discarding, resulting in a large amount of resources
+- Modify the model definition. If the new table relationship is left join, the  behavior is inconsistent with the behavior prompted in the interface after submission
+- When build one segment, the job duration is equal to the sum of the duration of each level 1 task.
+- After the model building task is completed, delete the model, batch data task, select the building task, and return an error message. There is a problem
+- The PID file displays multiple process numbers and prints them in the log
+- The result set is within 1 million, which is required to be returned within 10s, but now the return time is much longer than 10s
+- When the spark executor applies for memory, the build class task cannot exceed the maximum memory that can be applied for by a single applicationmaster container
+- SSO compatibility issues in specific cases
+- The default parameter for obtaining fuzzy matching in the item-specified table should not be on, which is inconsistent with the manual
+- The calculable column used by model view is not added to the dimension column, and the query will fail
+- There is a problem with the SQL generated by the model view, which leads to the failure of SQL parsing and error reporting
+- Enabling the mode view function causes the query performance to degrade
+- There is inconsistency between model view query and ordinary model query
+- CC metadata is written to table metadata, resulting in query error
+- Suggestions generated using SQL modeling on the interface cannot be added to the index column table
+- Memory leak caused by model import
+- Use the yarn-cluster mode diagnostic package to obtain the eventlog log path is incorrect
+- An error is reported when querying limit 10 offset 0
+
+
 #### Kyligence Enterprise 4.5.4 release note
 
 **Enhancement**
