@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +42,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -1529,6 +1532,33 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val indexPlan2 = indexManager.getIndexPlan(indexPlan.getId());
         Assert.assertEquals(0, indexPlan2.getDictionaries().size());
     }
+
+    @Test
+    public void testReloadTableWithSecondStorage() throws Exception {
+        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val project = "default";
+        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            indexPlanManager.updateIndexPlan(model, indexPlan -> {
+                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
+            });
+            return null;
+        }, project);
+        SecondStorageUtil.initModelMetaData("default", model);
+        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
+        ModelRequest request = new ModelRequest();
+        request.setWithSecondStorage(true);
+        request.setUuid(model);
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+
+        val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
+        removeColumn(tableIdentity, "IS_EFFECTUAL");
+        tableService.innerReloadTable(PROJECT, tableIdentity, true);
+
+        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+    }
+
 
     private void prepareTableExt(String tableIdentity) {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);

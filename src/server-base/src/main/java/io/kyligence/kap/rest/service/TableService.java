@@ -65,6 +65,7 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -1497,6 +1498,10 @@ public class TableService extends BasicService {
         request.getAllNamedColumns().stream() //
                 .filter(col -> ccFullNameSet.contains(col.getAliasDotColumn())) //
                 .forEach(col -> col.setStatus(NDataModel.ColumnStatus.TOMB));
+
+        if (SecondStorageUtil.isModelEnable(model.getProject(), model.getId())) {
+            request.setWithSecondStorage(true);
+        }
 
         request.setProject(projectName);
     }
