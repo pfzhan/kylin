@@ -1084,6 +1084,25 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(pgUrl, config.getQueryHistoryUrl().toString());
     }
 
+    @Test
+    public void getIsMetadataKeyCaseInSensitiveEnabled() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        boolean metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
+        Assert.assertFalse(metadataKeyCaseInSensitiveEnabled);
+
+        overwriteSystemProp("kylin.metadata.key-case-insensitive", "true");
+
+        config = KylinConfig.getInstanceFromEnv();
+        metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
+        Assert.assertTrue(metadataKeyCaseInSensitiveEnabled);
+
+        overwriteSystemProp("kylin.metadata.key-case-insensitive", "true");
+        overwriteSystemProp("kylin.security.profile", "ldap");
+        config = KylinConfig.getInstanceFromEnv();
+        metadataKeyCaseInSensitiveEnabled = config.isMetadataKeyCaseInSensitiveEnabled();
+        Assert.assertFalse(metadataKeyCaseInSensitiveEnabled);
+    }
+
 }
 
 class EnvironmentUpdateUtils {

@@ -2290,7 +2290,14 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isMetadataKeyCaseInSensitiveEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.metadata.key-case-insensitive", FALSE));
+        boolean enabled = Boolean.parseBoolean(getOptional("kylin.metadata.key-case-insensitive", FALSE));
+        if (enabled && !"testing".equals(getSecurityProfile())) {
+            logger.warn("Property kylin.metadata.key-case-insensitive is not suitable for current profile {}, "
+                    + "available profile is testing", getSecurityProfile());
+            return false;
+        }
+
+        return enabled;
     }
 
     public boolean isNeedCollectLookupTableInfo() {
