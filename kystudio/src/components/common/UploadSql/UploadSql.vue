@@ -75,7 +75,7 @@
             <el-table-column :label="$t('kylinLang.common.action')" width="80">
               <template slot-scope="props">
                 <common-tip :content="$t('kylinLang.common.edit')">
-                  <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
+                  <i class="el-icon-ksd-table_edit" :class="{'is-disabled': props.row.id === activeSqlObj.id && isEditSql}" @click.stop="editWhiteSql(props.row)"></i>
                 </common-tip>
                 <common-tip :content="$t('kylinLang.common.drop')">
                   <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
@@ -770,6 +770,10 @@ export default class UploadSqlModel extends Vue {
     return Object.keys(this.uploadRules).filter(item => this.uploadRules[item].status === 'error').length > 0
   }
   async editWhiteSql (sqlObj) {
+    // 编辑模式下，不需要再进入当前SQL的编辑
+    if (this.isEditSql && sqlObj.id === this.activeSqlObj.id) {
+      return
+    }
     if (this.isEditSql) {
       await kapWarn(this.$t('editSqlTips'), {
         type: 'warning',
@@ -1115,6 +1119,9 @@ export default class UploadSqlModel extends Vue {
         .el-icon-ksd-table_delete {
           &:hover {
             color: @base-color;
+          }
+          &.is-disabled {
+            color: @color-text-disabled;
           }
         }
       }
