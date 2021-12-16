@@ -41,9 +41,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -65,6 +62,7 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.NonEquiJoinCondition;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -101,6 +99,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.ExpandableMeasureUtil;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2CondChecker;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2Exception;
 import io.kyligence.kap.metadata.model.util.scd2.SCD2NonEquiCondSimplification;
@@ -108,6 +107,7 @@ import io.kyligence.kap.metadata.model.util.scd2.SCD2SqlConverter;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinDesc;
 import io.kyligence.kap.metadata.model.util.scd2.SimplifiedJoinTableDesc;
 import io.kyligence.kap.metadata.recommendation.ref.OptRecManagerV2;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -116,6 +116,7 @@ import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.ModelCreateContextOfSemiV2;
 import io.kyligence.kap.smart.SmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
 import lombok.var;
@@ -820,12 +821,21 @@ public class ModelSemanticHelper extends BasicService {
 
     // if partitionDesc, mpCol, joinTable, FilterCondition changed, we need reload data from datasource
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
-        return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
+        return isDifferent(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getRootFactTable(), newModel.getRootFactTable())
                 || !originModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap())
                 || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition())
                 || !isMultiPartitionDescSame(originModel.getMultiPartitionDesc(), newModel.getMultiPartitionDesc())
                 || !isAntiFlattenableSame(originModel.getJoinTables(), newModel.getJoinTables());
+    }
+
+    private boolean isDifferent(PartitionDesc p1, PartitionDesc p2) {
+        boolean isP1Null = p1 == null || p1.isEmpty();
+        boolean isP2Null = p2 == null || p2.isEmpty();
+        if (isP1Null && isP2Null) {
+            return false;
+        }
+        return !Objects.equals(p1, p2);
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,

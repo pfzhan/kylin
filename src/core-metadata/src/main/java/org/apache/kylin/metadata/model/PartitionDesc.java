@@ -47,6 +47,7 @@ import java.util.LinkedList;
 import java.util.Locale;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -110,6 +111,10 @@ public class PartitionDesc implements Serializable {
 
         DataType type = partitionDateColumnRef.getType();
         return (type.isInt() || type.isBigInt()) && DateFormat.isDatePattern(partitionDateFormat);
+    }
+
+    public boolean isEmpty() {
+        return Strings.isEmpty(partitionDateColumn);
     }
 
     public enum TimestampType implements Serializable {
