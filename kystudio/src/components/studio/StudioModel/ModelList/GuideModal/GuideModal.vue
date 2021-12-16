@@ -12,7 +12,7 @@
         <el-button class="ksd-fright" type="primary" text @click="closeModal">{{$t('iKnow')}}</el-button>
       </div>
     </div>
-    <div class="build-guide-block" :class="{'en-mode': $lang === 'en', 'brief-Menu': briefMenuGet, 'is-show-global-alter': $store.state.system.isShowGlobalAlter}" v-if="isShowBuildGuide">
+    <div class="build-guide-block" :class="{'en-mode': $lang === 'en', 'brief-Menu': briefMenuGet, 'is-show-global-alter': $store.state.system.isShowGlobalAlter, 'is-iframe': $store.state.config.platform === 'iframe'}" v-if="isShowBuildGuide">
       <div class="segment-block" v-if="step==='step1'">
         <div class="segment-tag">Segment</div>
         <div class="segment-desc arrow-top">
@@ -206,8 +206,8 @@ export default class GuideModal extends Vue {
       }
       .segment-desc {
         position: absolute;
-        left: 0px;
-        top: 50px;
+        left: 180px;
+        top: -20px;
         width: 500px;
         padding: 20px 20px 10px 20px;
         border-radius: 2px;
@@ -215,13 +215,13 @@ export default class GuideModal extends Vue {
         &.arrow-top::after {
           content: '';
           position: absolute;
-          left: 90px;
-          top: -6px;
+          left: -6px;
+          top: 26px;
           width: 0;
           height: 0;
-          border-bottom: 6px solid rgba(255,255,255,1);
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
+          border-right: 6px solid rgba(255,255,255,1);
+          border-top: 6px solid transparent;
+          border-bottom: 6px solid transparent;
           font-size: 0;
           line-height: 0;
         }
@@ -303,6 +303,19 @@ export default class GuideModal extends Vue {
           font-size: 0;
           line-height: 0;
         }
+      }
+    }
+    &.is-iframe {
+      .index-block {
+        top: 78px;
+        left: 79px;
+      }
+      .build-block {
+        top: 14px;
+      }
+      .segment-block {
+        top: 160px;
+        left: -48px;
       }
     }
     &.is-show-global-alter {
