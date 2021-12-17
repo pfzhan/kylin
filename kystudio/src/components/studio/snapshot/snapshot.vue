@@ -254,7 +254,7 @@
         <el-table-column
           prop="table"
           :label="$t('tableName')"
-          sortable="custom"
+          :sortable="true"
           show-overflow-tooltip>
         </el-table-column>
         <el-table-column
