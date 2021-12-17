@@ -1327,7 +1327,8 @@ export default class ModelList extends Vue {
     }
     .model-alias-item {
       .action-items {
-        display: none;
+        // display: none;
+        opacity: 0;
         position: absolute;
         right: 10px;
         top: 6px;
@@ -1337,7 +1338,8 @@ export default class ModelList extends Vue {
           max-width: calc(~'100% - 120px');
         }
         .action-items {
-          display: block;
+          // display: block;
+          opacity: 1;
         }
       }
     }
