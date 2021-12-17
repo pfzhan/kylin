@@ -973,6 +973,18 @@ public class ModelServiceSemanticUpdateTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testChangePartitionDesc_EmptyToNull() throws Exception {
+        final String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        NDataModelManager.getInstance(getTestConfig(), getProject()).updateDataModel(modelId,
+                copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
+        var request = newSemanticRequest(modelId);
+        modelService.updateDataModelStatus(modelId, getProject(), "ONLINE");
+        request.setPartitionDesc(null);
+        modelService.updateDataModelSemantic(getProject(), request);
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, modelService.getModelStatus(modelId, getProject()));
+    }
+
+    @Test
     public void testChangeParititionDesc_OneToNull() {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
